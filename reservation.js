@@ -5,7 +5,9 @@ import { sb, getSession, myRoles, hasAny, STAFF_ROLES } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, "0");
-const todayISO = () => new Date().toISOString().slice(0, 10);
+// Date locale au format YYYY-MM-DD (évite le décalage UTC de toISOString).
+const isoLocal = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const todayISO = () => isoLocal(new Date());
 
 let me = null;
 let isMember = false;       // membre ou staff → tarif membre
@@ -102,7 +104,7 @@ function openLogin() { $("login-modal").classList.remove("hidden"); }
 function shiftDay(delta) {
   const d = new Date($("date").value + "T00:00:00");
   d.setDate(d.getDate() + delta);
-  $("date").value = d.toISOString().slice(0, 10);
+  $("date").value = isoLocal(d);
   loadDay();
 }
 
@@ -152,7 +154,8 @@ function drawGrid(date, season, bookings) {
       } else {
         el.classList.add(isPeak(date, h) ? "pleine" : "creuse");
         const price = priceFor(c, date, h, season);
-        el.innerHTML = `<span class="pr">${price === 0 ? "0" : price ?? ""}</span>`;
+        const label = price == null ? "" : price === 0 ? "Gratuit" : price + " CHF";
+        el.innerHTML = `<span class="pr">${label}</span>`;
         el.title = `${c.name} · ${pad(h)}:15–${pad(h + 1)}:15`;
         el.addEventListener("click", () => onSlot(c, date, h, price));
       }
