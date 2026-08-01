@@ -1,8 +1,15 @@
 :root{
-  --green:#0b6b3a; --green-d:#095a30; --bg:#f4f6f5; --card:#fff;
-  --line:#e3e7e5; --ink:#1b211e; --muted:#6b746f;
-  --free:#ffffff; --mine:#0b6b3a; --busy:#c9ccca;
-  --radius:12px; --shadow:0 2px 10px rgba(0,0,0,.06);
+  /* Branding : bleu Lausanne-Sports (club + espace membres), vert fluo = académie.
+     À CONFIRMER avec la charte : hex exacts du bleu et du vert fluo. */
+  --blue:#1e3ad1; --blue-d:#152a9e; --blue-ink:#0f1f6e;
+  --fluo:#c4ff3d; --fluo-d:#a6e51f; --fluo-ink:#16350a;
+
+  /* Le thème de l'app (espace membres) suit le bleu du club. */
+  --green:#1e3ad1; --green-d:#152a9e; --mine:#1e3ad1;
+  --bg:#f5f7fb; --card:#fff;
+  --line:#e4e8f0; --ink:#141a2e; --muted:#69708a;
+  --free:#ffffff; --busy:#c9ccd6;
+  --radius:14px; --shadow:0 2px 14px rgba(20,26,46,.08);
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
@@ -69,35 +76,107 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .page-title{margin:14px;font-size:1.3rem}
 
 /* =====================================================================
-   SITE PUBLIC
+   SITE VITRINE (Club · Académie · Tournoi)
    ===================================================================== */
-.nav{display:flex;align-items:center;gap:16px;padding:14px 20px;background:#fff;
+body.public{background:#fff}
+.public h1,.public h2,.public h3,.brand{
+  font-family:"Arial Black",system-ui,sans-serif;font-style:italic;
+  letter-spacing:-.5px;text-transform:uppercase}
+
+.nav{display:flex;align-items:center;gap:16px;padding:14px 22px;background:#fff;
   border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
-.nav .brand{font-size:1.2rem}
-.nav-links{display:flex;gap:18px;margin-left:8px;flex:1}
-.nav-links a{color:var(--muted);text-decoration:none;font-size:.95rem}
-.nav-links a:hover{color:var(--green)}
-.btn-login{padding:9px 16px}
-.hero{background:linear-gradient(135deg,var(--green),var(--green-d));color:#fff;
-  padding:72px 20px;text-align:center}
-.hero-inner{max-width:720px;margin:0 auto}
-.hero h1{font-size:2.1rem;margin:0 0 12px}
-.hero p{font-size:1.1rem;opacity:.92;margin:0 0 24px}
-.btn-cta{background:#fff;color:var(--green);font-size:1.05rem;padding:13px 26px}
-.btn-cta:hover{background:#eef3f0}
-.sections{max-width:960px;margin:0 auto;padding:0 20px}
-.block{padding:48px 0}
-.block.alt{background:transparent}
-.block h2{font-size:1.6rem;color:var(--green);margin:0 0 16px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.info-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);
-  padding:20px;box-shadow:var(--shadow)}
-.info-card h3{margin:0 0 8px;color:var(--green)}
-.foot{text-align:center;padding:28px;color:var(--muted);font-size:.9rem;
-  border-top:1px solid var(--line)}
+.nav .brand{font-size:1.25rem;color:var(--blue);text-decoration:none}
+.nav-links{display:flex;gap:20px;margin-left:10px;flex:1}
+.nav-links a{color:var(--ink);text-decoration:none;font-size:.95rem;font-weight:600}
+.nav-links a:hover{color:var(--blue)}
+.btn-login{padding:10px 18px;background:var(--blue)}
+.btn-login:hover{background:var(--blue-d)}
+
+/* Hero */
+.hero{background:
+    radial-gradient(120% 120% at 80% -10%,rgba(196,255,61,.18),transparent 55%),
+    linear-gradient(150deg,var(--blue) 0%,var(--blue-ink) 100%);
+  color:#fff;padding:84px 22px 40px;text-align:center;position:relative;overflow:hidden}
+.hero-inner{max-width:760px;margin:0 auto}
+.hero-kicker{text-transform:uppercase;letter-spacing:3px;font-size:.8rem;
+  font-weight:700;color:var(--fluo);margin:0 0 14px}
+.hero h1{font-size:clamp(2.1rem,6vw,3.4rem);margin:0 0 16px;line-height:1}
+.hero-sub{font-size:1.12rem;opacity:.94;margin:0 auto 26px;max-width:560px}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-cta{background:var(--fluo);color:var(--fluo-ink);font-size:1.02rem;
+  padding:13px 26px;font-weight:700}
+.btn-cta:hover{background:var(--fluo-d)}
+.btn-cta.ghost-cta{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.6)}
+.btn-cta.ghost-cta:hover{background:rgba(255,255,255,.12)}
+.hero-trio{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+  max-width:760px;margin:34px auto 0}
+.trio-chip{flex:1;min-width:150px;padding:14px;border-radius:12px;text-decoration:none;
+  font-weight:800;font-style:italic;text-transform:uppercase;text-align:center;
+  background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.22)}
+.trio-chip:hover{background:rgba(255,255,255,.2)}
+.trio-chip.academie{color:var(--fluo)}
+
+/* Blocs produits */
+.product{max-width:1000px;margin:0 auto;padding:64px 22px;border-bottom:1px solid var(--line)}
+.product{--accent:var(--blue);--accent-d:var(--blue-d)}
+.product.academie{--accent:var(--fluo);--accent-d:var(--fluo-d)}
+.product-head{display:flex;gap:22px;align-items:flex-start;margin-bottom:28px}
+.product-logo{width:96px;height:96px;object-fit:contain;flex-shrink:0}
+.product-tag{display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:2px;
+  text-transform:uppercase;color:var(--blue);background:#eef1fd;
+  padding:4px 10px;border-radius:999px}
+.product.academie .product-tag{color:var(--fluo-ink);background:var(--fluo)}
+.product h2{font-size:1.9rem;margin:8px 0 10px;color:var(--blue-ink)}
+.product .lead{color:var(--muted);font-size:1.05rem;margin:0;max-width:620px}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.feature{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.feature h3{margin:0 0 6px;font-size:1.02rem;color:var(--blue-ink);
+  font-style:normal;text-transform:none;letter-spacing:0}
+.feature p{margin:0;color:var(--muted);font-size:.93rem}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px}
+.stat{background:var(--blue);color:#fff;border-radius:var(--radius);padding:20px;text-align:center}
+.stat b{display:block;font-size:1.5rem;font-style:italic}
+.stat span{font-size:.82rem;opacity:.85;text-transform:uppercase;letter-spacing:1px}
+.product-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+.btn-prod{padding:12px 22px;background:var(--blue);color:#fff;font-weight:700;
+  text-decoration:none;display:inline-block;border-radius:10px}
+.btn-prod:hover{background:var(--blue-d)}
+.btn-prod.green{background:var(--fluo);color:var(--fluo-ink)}
+.btn-prod.green:hover{background:var(--fluo-d)}
+.btn-prod.outline{background:transparent;color:var(--blue);border:2px solid var(--blue)}
+.btn-prod.outline:hover{background:#eef1fd}
+
+/* Cohérence */
+.coherence{max-width:1000px;margin:0 auto;padding:64px 22px;text-align:center}
+.coherence h2{font-size:1.9rem;color:var(--blue-ink);margin:0 0 12px}
+.coherence-sub{color:var(--muted);max-width:640px;margin:0 auto 34px;font-size:1.05rem}
+.flow{display:flex;align-items:stretch;justify-content:center;gap:14px;flex-wrap:wrap}
+.flow-step{flex:1;min-width:180px;max-width:240px;background:var(--card);
+  border:1px solid var(--line);border-top:5px solid var(--blue);border-radius:var(--radius);
+  padding:22px;box-shadow:var(--shadow)}
+.flow-step.academie{border-top-color:var(--fluo)}
+.flow-step span{display:inline-flex;width:34px;height:34px;border-radius:50%;
+  background:var(--blue);color:#fff;align-items:center;justify-content:center;
+  font-weight:800;font-style:italic;margin-bottom:10px}
+.flow-step.academie span{background:var(--fluo);color:var(--fluo-ink)}
+.flow-step h3{margin:0 0 6px;font-size:1.1rem;color:var(--blue-ink)}
+.flow-step p{margin:0;color:var(--muted);font-size:.92rem}
+.flow-arrow{align-self:center;color:var(--blue);font-size:1.6rem;font-weight:800}
+
+/* Pied de page */
+.foot{background:var(--blue-ink);color:#dfe4ff;padding:40px 22px 26px}
+.foot-cols{max-width:1000px;margin:0 auto;display:flex;gap:40px;flex-wrap:wrap;
+  justify-content:space-between;font-size:.92rem;line-height:1.7}
+.foot-cols a{color:var(--fluo);text-decoration:none}
+.foot-copy{text-align:center;margin:28px 0 0;opacity:.6;font-size:.82rem}
+.brand.blue{color:var(--blue)}
+
 @media (max-width:600px){
   .nav-links{display:none}
-  .hero h1{font-size:1.6rem}
+  .product-head{flex-direction:column;gap:14px}
+  .product-logo{width:72px;height:72px}
+  .flow-arrow{transform:rotate(90deg)}
 }
 
 /* =====================================================================

@@ -10,6 +10,7 @@ const closeModal = () => modal.classList.add("hidden");
 
 $("open-login").addEventListener("click", openModal);
 $("hero-login").addEventListener("click", openModal);
+document.querySelectorAll("[data-login]").forEach((b) => b.addEventListener("click", openModal));
 $("close-login").addEventListener("click", closeModal);
 modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
 
