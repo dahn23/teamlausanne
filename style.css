@@ -73,7 +73,28 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
   .slot{min-width:52px}
 }
 
-.page-title{margin:14px;font-size:1.3rem}
+.page-title{margin:14px 14px 2px;font-size:1.3rem}
+
+/* ---- Grille de réservation (courts en colonnes, heures en lignes) ---- */
+.res-head{padding:0 14px}
+.res-sub{margin:0 0 6px;color:var(--muted);font-size:.9rem}
+.rgrid{display:grid;gap:3px;min-width:max-content}
+.rcell{border-radius:6px;padding:5px 3px;font-size:.75rem;text-align:center;
+  display:flex;align-items:center;justify-content:center;min-height:36px}
+.rcell.corner{background:transparent}
+.rhead{background:#eef1f7;font-weight:800;color:var(--blue-ink);position:sticky;top:0;z-index:2;
+  flex-direction:column;line-height:1.05;font-style:italic}
+.rhour{background:#eef1f7;color:var(--muted);font-weight:700;position:sticky;left:0;z-index:1;font-size:.72rem}
+.rslot{cursor:pointer;transition:outline .1s}
+.rslot.creuse{background:#bcd3ff;color:#0f2050}
+.rslot.pleine{background:#1e3ad1;color:#fff}
+.rslot.creuse:hover,.rslot.pleine:hover{outline:2px solid #0f1f6e}
+.rslot.busy{background:#cbd0da;color:#5a5f6b;cursor:default;font-size:.68rem}
+.rslot.mine{background:#123cc4;color:#fff;outline:3px solid #f2c200;cursor:pointer}
+.rslot .pr{font-weight:800}
+.chip.creuse{background:#bcd3ff}
+.chip.pleine{background:#1e3ad1;border-color:#1e3ad1}
+.legend-note{display:block;width:100%;margin-top:8px;color:var(--muted);font-size:.8rem;line-height:1.4}
 
 /* =====================================================================
    SITE DYNAMIQUE — 3 mondes (Club · Académie · Tournoi)

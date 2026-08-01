@@ -3,21 +3,25 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b6b3a" />
+  <meta name="theme-color" content="#123cc4" />
   <title>Réservation des courts — Team Lausanne</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body data-world="club">
   <section id="app" class="screen">
     <header class="topbar">
       <a href="index.html" class="brand-sm">🎾 Team Lausanne</a>
       <span class="spacer"></span>
       <a id="admin-link" href="admin.html" class="ghost hidden">Console admin</a>
       <span id="who" class="muted"></span>
-      <button id="logout" class="ghost">Déconnexion</button>
+      <button id="login-top" class="btn-login">Se connecter</button>
+      <button id="logout" class="ghost hidden">Déconnexion</button>
     </header>
 
-    <h1 class="page-title">Réservation des courts</h1>
+    <div class="res-head">
+      <h1 class="page-title">Réservation des courts</h1>
+      <p class="res-sub">Réservation gérée par <b>Team Lausanne</b>. Ouvert aux membres et aux joueurs externes.</p>
+    </div>
 
     <div class="toolbar">
       <button id="prev-day" class="nav" aria-label="Jour précédent">‹</button>
@@ -27,15 +31,40 @@
     </div>
 
     <div id="grid-wrap" class="grid-wrap">
-      <div id="grid" class="grid"></div>
+      <div id="rgrid" class="rgrid"></div>
     </div>
 
     <p class="legend">
-      <span class="chip free"></span> Libre &nbsp;
-      <span class="chip mine"></span> Ma réservation &nbsp;
-      <span class="chip busy"></span> Occupé
+      <span class="chip creuse"></span> Heure creuse &nbsp;
+      <span class="chip pleine"></span> Heure pleine &nbsp;
+      <span class="chip busy"></span> Réservé
+      <span class="legend-note">Prix affichés en CHF. Le tarif final dépend de votre statut (membre, invité, externe) et de la 2ᵉ heure consécutive.</span>
     </p>
   </section>
+
+  <!-- Choix pour un visiteur non connecté -->
+  <div id="choice-modal" class="modal hidden">
+    <div class="card">
+      <button type="button" class="modal-close" data-close-choice aria-label="Fermer">×</button>
+      <h2 id="choice-title">Réserver ce créneau</h2>
+      <p id="choice-info" class="muted"></p>
+      <button id="choice-login" class="btn-cta" style="width:100%">Je suis membre — se connecter</button>
+      <button id="choice-guest" class="btn-prod" style="width:100%;margin-top:10px">Réserver en tant qu'invité</button>
+      <p class="muted" style="font-size:.82rem;margin-top:12px">Le paiement en ligne (Twint / carte) arrive très bientôt.</p>
+    </div>
+  </div>
+
+  <!-- Connexion -->
+  <div id="login-modal" class="modal hidden">
+    <form id="login-form" class="card">
+      <button type="button" id="close-login" class="modal-close" aria-label="Fermer">×</button>
+      <h2 class="brand blue">Espace membres</h2>
+      <label>Email<input type="email" id="email" autocomplete="email" required /></label>
+      <label>Mot de passe<input type="password" id="password" autocomplete="current-password" required /></label>
+      <button type="submit" id="login-btn">Se connecter</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </div>
 
   <script type="module" src="reservation.js"></script>
 </body>
