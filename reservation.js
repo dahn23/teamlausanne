@@ -97,7 +97,7 @@ function initUI() {
   });
 }
 
-const openLogin = () => $("login-modal").classList.remove("hidden");
+function openLogin() { $("login-modal").classList.remove("hidden"); }
 
 function shiftDay(delta) {
   const d = new Date($("date").value + "T00:00:00");
