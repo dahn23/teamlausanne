@@ -32,8 +32,14 @@ Académie facture via **bexio** (facturation + vérif « payé » par connecteur
 3. **Intégrations externes** (chacune = chantier + setup/matériel) : banque (API/agrégateur ou import CAMT — JAMAIS d'identifiants bancaires côté Claude), **Gmail/Google Workspace** (OAuth, accès selon droits), réseaux sociaux, **arrosage + capteurs d'humidité**, **serrures connectées**.
 
 ## État
-- Schéma socle **appliqué** : `db/01_socle.sql` (people, profiles, user_roles, guardianships, courts, court_bookings, lessons, lesson_enrollments + helpers + RLS activé).
-- **À faire ensuite** : règles RLS détaillées par rôle, seed des courts, 1er écran (login + grille de réservation des courts), dépôt GitHub + site Netlify.
+- Schéma socle **appliqué** : `db/01_socle.sql`.
+- Courts **seedés** (`db/02_seed_courts.sql`) : 10 outdoor (courts 1-4 sous bulle l'hiver) + 2 indoor fixes = 12 été / 6 hiver.
+- **RLS par rôle appliquée** (`db/03_rls.sql`) : helpers `is_admin`/`is_staff` ; courts en lecture pour tout connecté ; réservations lisibles par tous, créées/annulées par leur auteur ou le staff ; `people` réservé au staff + sa propre fiche.
+- **Anti-chevauchement** (`db/04_no_overlap.sql`) : impossible de double-réserver un court.
+- **1er écran** : `index.html` + `style.css` + `app.js` (login email/mdp + grille de réservation responsive, filtre saison auto). `config.js` = URL + clé publiable. `netlify.toml` = déploiement statique.
+- **Compte de test superadmin** : `dan.hafner23@gmail.com` / `TeamLausanne1!` (créé en SQL, email confirmé).
+- Dépôt GitHub **poussé** : `github.com/dahn23/teamlausanne`.
+- **À faire ensuite** : (1) créer le site Netlify lié au dépôt (1 clic dans l'UI Netlify, publish dir = racine, pas de build). (2) Écrans d'admin : fichier people, gestion des comptes/rôles, cours. (3) Couche 2 (bexio, caisse, tournoi).
 
 ## Conventions
 - Français, réponses concises et décisives.
