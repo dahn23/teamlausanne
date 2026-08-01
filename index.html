@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b6b3a" />
+  <title>Team Lausanne — Réservation des courts</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ---------- Écran de connexion ---------- -->
+  <section id="login" class="screen center hidden">
+    <form id="login-form" class="card">
+      <h1 class="brand">🎾 Team Lausanne</h1>
+      <p class="muted">Connexion à la plateforme</p>
+      <label>Email
+        <input type="email" id="email" autocomplete="email" required />
+      </label>
+      <label>Mot de passe
+        <input type="password" id="password" autocomplete="current-password" required />
+      </label>
+      <button type="submit" id="login-btn">Se connecter</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </section>
+
+  <!-- ---------- Application (grille) ---------- -->
+  <section id="app" class="screen hidden">
+    <header class="topbar">
+      <span class="brand-sm">🎾 Team Lausanne</span>
+      <span class="spacer"></span>
+      <span id="who" class="muted"></span>
+      <button id="logout" class="ghost">Déconnexion</button>
+    </header>
+
+    <div class="toolbar">
+      <button id="prev-day" class="nav" aria-label="Jour précédent">‹</button>
+      <input type="date" id="date" />
+      <button id="next-day" class="nav" aria-label="Jour suivant">›</button>
+      <span id="season-tag" class="tag"></span>
+    </div>
+
+    <div id="grid-wrap" class="grid-wrap">
+      <div id="grid" class="grid"></div>
+    </div>
+
+    <p class="legend">
+      <span class="chip free"></span> Libre &nbsp;
+      <span class="chip mine"></span> Ma réservation &nbsp;
+      <span class="chip busy"></span> Occupé
+    </p>
+  </section>
+
+  <div id="loader" class="screen center">Chargement…</div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
