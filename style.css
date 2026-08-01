@@ -148,9 +148,56 @@ body[data-world="academie"] .stat{color:var(--fluo-ink)}
 .feature h3{margin:0 0 6px;font-size:1.05rem;color:var(--blue-ink);
   font-style:normal;text-transform:none;letter-spacing:0}
 .feature p{margin:0;color:var(--muted);font-size:.93rem}
-.gallery{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}
+.gallery{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .gphoto{aspect-ratio:16/10;background-size:cover;background-position:center;
   border-radius:var(--radius);box-shadow:var(--shadow)}
+
+/* Sections riches par monde */
+.wsec{margin:0 0 48px}
+.wsec:last-child{margin-bottom:0}
+.wsec>h2{font-size:1.7rem;color:var(--blue-ink);margin:0 0 18px}
+.wsec-note{color:var(--muted);font-style:italic;font-size:.92rem;margin:14px 0 0}
+.wsec-link{display:inline-block;margin-top:16px;color:var(--accent-ink);font-weight:800;
+  font-style:italic;text-transform:uppercase;letter-spacing:-.2px;text-decoration:none;
+  border-bottom:3px solid var(--accent);padding-bottom:2px}
+.rich{max-width:740px}
+.rich p{color:#2c3240;line-height:1.65;margin:0 0 12px;font-size:1.02rem}
+
+/* Offres (avec badge/prix) */
+.offer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.offer{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--accent);
+  border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.offer-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.offer-top h3{margin:0;font-size:1.1rem;color:var(--blue-ink)}
+.offer-meta{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;
+  background:var(--accent-soft);color:var(--accent-ink);padding:3px 9px;border-radius:999px}
+.offer p{margin:0;color:var(--muted);font-size:.94rem;line-height:1.5}
+
+/* Timeline (histoire) */
+.timeline{max-width:820px}
+.tl-row{display:grid;grid-template-columns:120px 1fr;gap:18px;padding:13px 0;
+  border-bottom:1px dashed var(--line)}
+.tl-row:last-child{border-bottom:0}
+.tl-year{font-weight:800;font-style:italic;color:var(--accent-ink);font-size:1.05rem}
+.tl-text{color:#2c3240;line-height:1.55}
+
+/* Comité */
+.committee{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.cm{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column}
+.cm b{color:var(--blue-ink);font-size:1rem}
+.cm span{color:var(--muted);font-size:.88rem}
+
+/* Contact */
+.contact-card{background:var(--accent-soft);border-radius:var(--radius);padding:22px;
+  max-width:520px;line-height:1.6}
+.contact-card p{margin:0 0 8px}
+.contact-card a{color:var(--accent-ink);font-weight:700;text-decoration:none}
+
+/* Sponsors */
+.sponsors{display:flex;flex-wrap:wrap;gap:10px}
+.sponsor{background:#fff;border:1px solid var(--line);border-radius:999px;
+  padding:8px 16px;font-weight:700;color:var(--blue-ink);font-size:.9rem;box-shadow:var(--shadow)}
 
 /* Bandeau cohérence (cliquable = mini-switcher) */
 .coherence{max-width:1040px;margin:0 auto;padding:20px 22px 64px;text-align:center}
