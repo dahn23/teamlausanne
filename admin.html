@@ -21,6 +21,7 @@
     <div class="admin-body">
       <aside class="side">
         <button class="side-item active" data-view="membres">👥 Membres</button>
+        <button class="side-item" data-view="resa">🗓️ Réservations</button>
         <button class="side-item" data-view="reglages">⚙️ Réglages</button>
         <button class="side-item" data-view="bientot" disabled>💳 Finances (bientôt)</button>
         <button class="side-item" data-view="bientot" disabled>🎾 Cours (bientôt)</button>
@@ -94,6 +95,23 @@
             <span id="rg-status" class="muted"></span>
           </div>
         </div>
+
+        <!-- ---- Vue Réservations (staff) ---- -->
+        <div id="view-resa" class="view hidden">
+          <div class="crm-head">
+            <h1>Réservations</h1>
+            <div class="crm-actions">
+              <button id="resa-prev" class="nav" aria-label="Jour précédent">‹</button>
+              <input type="date" id="resa-date" />
+              <button id="resa-next" class="nav" aria-label="Jour suivant">›</button>
+              <span id="resa-season" class="tag"></span>
+              <button id="resa-new">+ Nouvelle</button>
+            </div>
+          </div>
+          <p class="muted" style="font-size:.86rem;margin:0 0 10px">
+            Glissez sur la grille pour choisir un créneau, ou cliquez une case. Cliquez une réservation pour la modifier.</p>
+          <div class="grid-wrap"><div id="resa-grid" class="rgrid"></div></div>
+        </div>
       </main>
     </div>
   </section>
@@ -145,6 +163,41 @@
         <button type="submit" id="save-person">Enregistrer</button>
       </div>
       <p id="person-error" class="error" hidden></p>
+    </form>
+  </div>
+
+  <!-- ---- Réservation staff (création / édition) ---- -->
+  <div id="resa-modal" class="modal hidden">
+    <form id="resa-form" class="card wide">
+      <button type="button" id="resa-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="resa-title">Nouvelle réservation</h2>
+      <input type="hidden" id="r-id" />
+      <input type="hidden" id="r-recid" />
+      <div class="form-grid">
+        <label>Nom<input id="r-name" list="label-list" placeholder="Cours juniors, Interclubs…" /><datalist id="label-list"></datalist></label>
+        <label>Type
+          <select id="r-kind">
+            <option value="cours">Cours</option>
+            <option value="tournoi">Tournoi</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="libre">Libre</option>
+          </select>
+        </label>
+        <label>Court<select id="r-court"></select></label>
+        <label>Date<input type="date" id="r-date" /></label>
+        <label>Heure de début<select id="r-start"></select></label>
+        <label>Durée (heures)<input type="number" id="r-dur" min="1" max="14" value="1" /></label>
+        <label>Couleur<input type="color" id="r-color" value="#1e3ad1" /></label>
+        <label class="check"><input type="checkbox" id="r-rec" /> Répéter chaque semaine</label>
+        <label>Jusqu'au (récurrence)<input type="date" id="r-until" /></label>
+      </div>
+      <div class="form-foot">
+        <button type="button" id="r-del-occ" class="danger hidden">Suppr. cette fois</button>
+        <button type="button" id="r-del-series" class="danger hidden">Suppr. la série</button>
+        <span class="spacer"></span>
+        <button type="submit" id="r-save">Enregistrer</button>
+      </div>
+      <p id="r-error" class="error" hidden></p>
     </form>
   </div>
 

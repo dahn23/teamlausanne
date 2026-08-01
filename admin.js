@@ -3,6 +3,8 @@ import { sb, requireLogin, myRoles, hasAny, STAFF_ROLES } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 let people = [];
+let meId = null;
+const pad2 = (n) => String(n).padStart(2, "0");
 
 // ---- Garde d'accès : connecté + rôle staff ----
 const session = await requireLogin();
@@ -14,11 +16,12 @@ if (session) {
     $("denied").classList.remove("hidden");
   } else {
     $("console").classList.remove("hidden");
+    meId = session.user.id;
     init();
   }
 }
 
-function init() {
+async function init() {
   $("logout").addEventListener("click", async () => {
     await sb.auth.signOut();
     location.href = "index.html";
@@ -33,7 +36,8 @@ function init() {
     b.addEventListener("click", () => showView(b.dataset.view)));
   $("rg-save").addEventListener("click", saveSettings);
   loadPeople();
-  loadSettings();
+  await loadSettings();
+  initResa();
 }
 
 // ---- Bascule de vues ----
@@ -125,6 +129,219 @@ async function saveSettings() {
   const { error } = await sb.from("app_settings").upsert(rows, { onConflict: "key" });
   $("rg-status").textContent = error ? "Erreur : " + error.message : "✓ Réglages enregistrés";
 }
+
+// ===================================================================
+//  Réservations (staff) — grille, création/édition, récurrence
+// ===================================================================
+let resaCourts = [];      // courts affichés (selon saison de la date)
+let resaCourtsAll = [];   // tous les courts actifs (pour le select)
+let resaLabels = [];
+let drag = null;
+
+const isoA = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+function seasonA(iso) {
+  const s = settings.season || { winter_start: "2026-10-19", winter_end: "2027-04-11" };
+  const md = (d) => Number(d.slice(5, 7)) * 100 + Number(d.slice(8, 10));
+  const x = md(iso), a = md(s.winter_start), b = md(s.winter_end);
+  return (x >= a || x <= b) ? "hiver" : "ete";
+}
+
+async function initResa() {
+  const { data } = await sb.from("courts").select("*").eq("is_active", true).order("display_order");
+  resaCourtsAll = data || [];
+  $("r-court").innerHTML = resaCourtsAll.map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
+  $("r-start").innerHTML = Array.from({ length: 14 }, (_, i) => i + 8)
+    .map((h) => `<option value="${h}">${pad2(h)}:15</option>`).join("");
+  await loadResaLabels();
+
+  $("resa-date").value = isoA(new Date());
+  $("resa-date").addEventListener("change", loadResaDay);
+  $("resa-prev").addEventListener("click", () => shiftResa(-1));
+  $("resa-next").addEventListener("click", () => shiftResa(1));
+  $("resa-new").addEventListener("click", () => openResaCreate(resaCourtsAll[0]?.id, 8, 1));
+  $("resa-close").addEventListener("click", closeResa);
+  $("resa-modal").addEventListener("click", (e) => { if (e.target === $("resa-modal")) closeResa(); });
+  $("resa-form").addEventListener("submit", saveResa);
+  $("r-del-occ").addEventListener("click", deleteOccurrence);
+  $("r-del-series").addEventListener("click", deleteSeries);
+  document.addEventListener("mouseup", endDrag);
+  loadResaDay();
+}
+
+async function loadResaLabels() {
+  const { data } = await sb.from("booking_labels").select("*").order("name");
+  resaLabels = data || [];
+  $("label-list").innerHTML = resaLabels.map((l) => `<option value="${esc(l.name)}">`).join("");
+}
+
+function shiftResa(delta) {
+  const d = new Date($("resa-date").value + "T00:00:00");
+  d.setDate(d.getDate() + delta);
+  $("resa-date").value = isoA(d);
+  loadResaDay();
+}
+
+async function loadResaDay() {
+  const date = $("resa-date").value;
+  const season = seasonA(date);
+  $("resa-season").textContent = season === "ete" ? "☀️ Été" : "❄️ Hiver";
+  const col = season === "ete" ? "open_summer" : "open_winter";
+  resaCourts = resaCourtsAll.filter((c) => c[col]);
+  const { data: bookings } = await sb.from("court_bookings").select("*").eq("booking_date", date);
+  drawResaGrid(date, bookings || []);
+}
+
+function drawResaGrid(date, bookings) {
+  const grid = $("resa-grid");
+  grid.style.gridTemplateColumns = `64px repeat(${resaCourts.length}, minmax(74px,1fr))`;
+  grid.innerHTML = "";
+  grid.appendChild(rcell("", "rcell corner"));
+  for (const c of resaCourts) grid.appendChild(rcell(c.name.replace("Court ", "C"), "rcell rhead"));
+
+  for (let h = 8; h <= 21; h++) {
+    grid.appendChild(rcell(pad2(h) + ":15", "rcell rhour"));
+    for (const c of resaCourts) {
+      const start = pad2(h) + ":15:00";
+      const b = bookings.find((x) => x.court_id === c.id && x.start_time <= start && x.end_time > start);
+      const el = document.createElement("div");
+      el.className = "rcell rslot";
+      if (b) {
+        el.style.background = b.color || "#1e3ad1";
+        el.style.color = "#fff";
+        el.textContent = b.title || kindLabel(b.kind);
+        el.title = (b.title || kindLabel(b.kind)) + (b.recurrence_id ? " · série" : "");
+        el.addEventListener("click", () => editBooking(b, h));
+      } else {
+        el.classList.add("rfree");
+        el.dataset.court = c.id;
+        el.dataset.hour = h;
+        el.addEventListener("mousedown", (e) => { e.preventDefault(); startDrag(c.id, h); });
+        el.addEventListener("mouseover", () => overDrag(c.id, h));
+      }
+      grid.appendChild(el);
+    }
+  }
+}
+
+const kindLabel = (k) => ({ cours: "Cours", tournoi: "Tournoi", maintenance: "Maintenance", libre: "Réservé" }[k] || "Réservé");
+function rcell(text, cls) { const el = document.createElement("div"); el.className = cls; el.textContent = text; return el; }
+
+// ---- Sélection à la souris ----
+function startDrag(court, h) { drag = { court, h1: h, h2: h }; paintDrag(); }
+function overDrag(court, h) { if (drag && drag.court === court) { drag.h2 = h; paintDrag(); } }
+function paintDrag() {
+  document.querySelectorAll("#resa-grid .rslot.sel").forEach((e) => e.classList.remove("sel"));
+  if (!drag) return;
+  const lo = Math.min(drag.h1, drag.h2), hi = Math.max(drag.h1, drag.h2);
+  document.querySelectorAll(`#resa-grid .rslot[data-court="${drag.court}"]`).forEach((e) => {
+    const h = Number(e.dataset.hour);
+    if (h >= lo && h <= hi) e.classList.add("sel");
+  });
+}
+function endDrag() {
+  if (!drag) return;
+  const lo = Math.min(drag.h1, drag.h2), hi = Math.max(drag.h1, drag.h2);
+  const court = drag.court;
+  drag = null;
+  document.querySelectorAll("#resa-grid .rslot.sel").forEach((e) => e.classList.remove("sel"));
+  openResaCreate(court, lo, hi - lo + 1);
+}
+
+// ---- Création / édition ----
+function openResaCreate(courtId, hour, dur) {
+  $("r-error").hidden = true;
+  $("resa-title").textContent = "Nouvelle réservation";
+  $("r-id").value = ""; $("r-recid").value = "";
+  $("r-name").value = ""; $("r-kind").value = "cours";
+  $("r-court").value = courtId ?? resaCourtsAll[0]?.id;
+  $("r-date").value = $("resa-date").value;
+  $("r-start").value = hour ?? 8;
+  $("r-dur").value = dur ?? 1;
+  $("r-color").value = "#1e3ad1";
+  $("r-rec").checked = false; $("r-until").value = "";
+  $("r-del-occ").classList.add("hidden");
+  $("r-del-series").classList.add("hidden");
+  $("resa-modal").classList.remove("hidden");
+}
+
+function editBooking(b, hour) {
+  $("r-error").hidden = true;
+  $("resa-title").textContent = "Modifier la réservation";
+  $("r-id").value = b.id; $("r-recid").value = b.recurrence_id || "";
+  $("r-name").value = b.title || "";
+  $("r-kind").value = b.kind || "cours";
+  $("r-court").value = b.court_id;
+  $("r-date").value = b.booking_date;
+  $("r-start").value = Number(b.start_time.slice(0, 2));
+  $("r-dur").value = Number(b.end_time.slice(0, 2)) - Number(b.start_time.slice(0, 2));
+  $("r-color").value = b.color || "#1e3ad1";
+  $("r-rec").checked = false; $("r-until").value = "";
+  $("r-del-occ").classList.remove("hidden");
+  $("r-del-series").classList.toggle("hidden", !b.recurrence_id);
+  $("resa-modal").classList.remove("hidden");
+}
+
+function closeResa() { $("resa-modal").classList.add("hidden"); }
+
+async function saveResa(e) {
+  e.preventDefault();
+  const err = $("r-error"); err.hidden = true;
+  const name = $("r-name").value.trim();
+  const kind = $("r-kind").value;
+  const courtId = Number($("r-court").value);
+  const date = $("r-date").value;
+  const startH = Number($("r-start").value);
+  const dur = Number($("r-dur").value);
+  const color = $("r-color").value;
+  if (startH + dur > 22) return failR(err, "La durée dépasse la fin de journée (22:15 max).");
+
+  const base = {
+    court_id: courtId, start_time: pad2(startH) + ":15:00", end_time: pad2(startH + dur) + ":15:00",
+    kind, title: name || null, color, created_by: meId,
+  };
+
+  const id = $("r-id").value;
+  if (id) {
+    const { error } = await sb.from("court_bookings").update({ ...base, booking_date: date }).eq("id", id);
+    if (error) return failR(err, error.message);
+  } else if ($("r-rec").checked && $("r-until").value) {
+    const recId = crypto.randomUUID();
+    let d = new Date(date + "T00:00:00");
+    const end = new Date($("r-until").value + "T00:00:00");
+    let ok = 0, conflicts = 0;
+    while (d <= end) {
+      const { error } = await sb.from("court_bookings").insert({ ...base, booking_date: isoA(d), recurrence_id: recId });
+      if (error) conflicts++; else ok++;
+      d.setDate(d.getDate() + 7);
+    }
+    if (ok === 0) return failR(err, "Aucune date libre pour cette série.");
+    if (conflicts) alert(`${ok} créneaux créés, ${conflicts} déjà occupés (ignorés).`);
+  } else {
+    const { error } = await sb.from("court_bookings").insert({ ...base, booking_date: date });
+    if (error) return failR(err, error.code === "23P01" ? "Ce créneau est déjà pris." : error.message);
+  }
+
+  if (name && !resaLabels.some((l) => l.name === name)) {
+    await sb.from("booking_labels").insert({ name, color });
+    await loadResaLabels();
+  }
+  closeResa();
+  loadResaDay();
+}
+
+async function deleteOccurrence() {
+  const id = $("r-id").value;
+  if (!id || !confirm("Supprimer cette réservation ?")) return;
+  await sb.from("court_bookings").delete().eq("id", id);
+  closeResa(); loadResaDay();
+}
+async function deleteSeries() {
+  const rec = $("r-recid").value;
+  if (!rec || !confirm("Supprimer TOUTE la série récurrente ?")) return;
+  await sb.from("court_bookings").delete().eq("recurrence_id", rec);
+  closeResa(); loadResaDay();
+}
+function failR(el, msg) { el.textContent = msg; el.hidden = false; }
 
 async function loadPeople() {
   const { data, error } = await sb
