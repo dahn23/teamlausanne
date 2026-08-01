@@ -1,25 +1,27 @@
-// Site public dynamique : un seul écran qui bascule entre 3 mondes,
-// chacun avec un contenu riche (sections). Photos = valeurs par défaut,
-// remplaçables depuis la console admin (TODO site_media).
+// Site public dynamique : 3 mondes + pages détaillées (routage par ancre).
 import { sb, getSession } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 const CONTACT_MAIL = "admin@lstennis.ch";
 const OPEN_MAIL = "info@lausanneopen.ch";
+const ITF_URL = "https://www.itftennis.com/en/tournament/m25-lausanne/sui/2026/m-itf-sui-2026-004/";
+const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 
 // ===================================================================
-//  CONTENU DES 3 MONDES
+//  MONDES
 // ===================================================================
 const WORLDS = {
-  // ---------------------------------------------------------------
   club: {
-    tag: "Le Club",
-    logo: "assets/logo-club.webp",
+    tag: "Le Club", logo: "assets/logo-club.webp",
     slogan: "Jouer. S'amuser. Ensemble.",
     desc: "Le club de tennis historique de Lausanne, aux Plaines-du-Loup depuis 1911. Devenez membre, jouez librement toute l'année et vivez la compétition en interclubs.",
     hero: "assets/photos/p1.jpg",
     cta: [{ label: "Réserver un court", type: "login" }],
     sections: [
+      { type: "split", title: "Votre club, toute l'année", photo: "assets/photos/p5.jpg", body: [
+        "Devenez membre du Lausanne-Sports Tennis et accédez à l'ensemble des courts, intérieurs comme extérieurs, été comme hiver.",
+        "Réservez votre terrain en ligne en quelques secondes et profitez d'un club-house et d'un restaurant au cœur des Plaines-du-Loup.",
+      ], link: { label: "Réserver un court", action: "login" } },
       { type: "features", title: "Le club, c'est…", items: [
         ["Devenir membre", "Accès à tous les courts, intérieurs et extérieurs, toute l'année."],
         ["Jouer librement", "Réservation en ligne en quelques secondes, été comme hiver."],
@@ -27,7 +29,7 @@ const WORLDS = {
         ["Restaurant & club-house", "Un lieu de vie convivial au cœur des Plaines-du-Loup."],
       ]},
       { type: "timeline", title: "Notre histoire", items: [
-        ["1911", "Fondation du club par des personnalités du Montriond F.C. Premier court au chemin du Signal, puis deux courts aux Plaines-du-Loup."],
+        ["1911", "Fondation par des personnalités du Montriond F.C. Premier court au chemin du Signal, puis deux courts aux Plaines-du-Loup."],
         ["1939", "Le club compte déjà 8 terrains."],
         ["1954", "12 terrains et installation sur le site du Stade de la Pontaise."],
         ["1965–1980", "Âge d'or : champion de Suisse en 1965, 1967, 1968, 1974 et 1980 — 12 titres, 3ᵉ du palmarès de Ligue nationale A."],
@@ -42,28 +44,19 @@ const WORLDS = {
         ["Réservation en ligne", "Réservez votre terrain d'un clic, depuis votre mobile."],
       ]},
       { type: "committee", title: "Le comité",
-        members: [
-          ["Kazem Huber", "Président"],
-          ["Bertrand Gygax", "Vice-président"],
-          ["Arsalan Huber", "Trésorier"],
-          ["Laurent Aubert", "Infrastructures"],
-          ["Philémon Isakov", "Compétition"],
-          ["Loïc Colotti", "Communication"],
-          ["Serge Devaud", "Membre consultant"],
-        ],
+        members: [["Kazem Huber", "Président"], ["Bertrand Gygax", "Vice-président"],
+          ["Arsalan Huber", "Trésorier"], ["Laurent Aubert", "Infrastructures"],
+          ["Philémon Isakov", "Compétition"], ["Loïc Colotti", "Communication"],
+          ["Serge Devaud", "Membre consultant"]],
         honor: ["Serge Devaud", "Françoise Tribolet", "Remo Zeraschi"] },
       { type: "contact", title: "Contact & accès",
         lines: ["Lausanne-Sports Tennis", "Stade de la Pontaise", "Route des Plaines-du-Loup 8", "1018 Lausanne"],
-        phone: "+41 21 646 13 50", email: CONTACT_MAIL,
-        hours: "Secrétariat : lun–ven, 15h00–17h00" },
-      { type: "gallery", items: ["assets/photos/p5.jpg", "assets/photos/p7.jpg"] },
+        phone: "+41 21 646 13 50", email: CONTACT_MAIL, hours: "Secrétariat : lun–ven, 15h00–17h00" },
     ],
   },
 
-  // ---------------------------------------------------------------
   academie: {
-    tag: "L'Académie",
-    logo: "assets/logo-academie.webp",
+    tag: "L'Académie", logo: "assets/logo-academie.webp",
     slogan: "Grandir. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
     hero: "assets/photos/p6.jpg",
@@ -73,69 +66,43 @@ const WORLDS = {
         "Team Lausanne propose un encadrement complet du tennis, adapté à chaque âge et à chaque niveau de jeu.",
         "Nous accompagnons le développement de chaque joueuse et joueur, de l'initiation jusqu'à la compétition professionnelle, au sein d'une véritable pyramide de formation.",
       ]},
-      { type: "offers", title: "Nos offres", items: [
-        { name: "KidsTennis", meta: "dès 5 ans", detail: "Initiation ludique et progressive pour les plus jeunes." },
+      { type: "cards", title: "Nos programmes", items: [
+        { name: "KidsTennis", meta: "dès 5 ans", detail: "L'apprentissage par le jeu pour les plus jeunes.", href: "#kids", photo: "assets/photos/kids3.jpg" },
+        { name: "Sport-études", meta: "14–19 ans", detail: "Études et tennis intensif dans un cadre optimal.", href: "#sport-etudes", photo: "assets/photos/coach1.jpg" },
+        { name: "Pro U18 & Pro", meta: "haut niveau", detail: "Le grand saut vers le circuit professionnel.", href: "#pro", photo: "assets/photos/coach2.jpg" },
+        { name: "Game Zone", meta: "chaque week-end", detail: "Des tournois juniors et un classement de saison.", href: "#gamezone", photo: "assets/photos/kids2.jpg" },
+      ]},
+      { type: "offers", title: "Cours & filières", items: [
         { name: "Cours en groupe", meta: "tous niveaux", detail: "Cours pour tous, encadrés par niveau et par âge." },
         { name: "Cours privés", meta: "sur mesure", detail: "Leçons individuelles selon vos objectifs." },
         { name: "Loisir", meta: "", detail: "Progresser à son rythme, dans le plaisir du jeu." },
         { name: "Compétition", meta: "", detail: "Filière encadrée pour les joueurs de compétition." },
         { name: "Performance", meta: "haut niveau", detail: "Encadrement renforcé vers le meilleur niveau." },
+        { name: "Stages", meta: "vacances", detail: "10 semaines de stages, de KidsTennis à Train Like a Pro." },
       ]},
-      { type: "rich", title: "Sport-études", body: [
-        "Le programme de référence pour concilier études et entraînement intensif, dans un cadre optimal (14–19 ans).",
-        "35 semaines selon le calendrier vaudois : 2h de tennis, 1h de préparation physique et 4h d'études encadrées par jour. Écoles partenaires à distance (Institut DOMI, EPSU, CNED), responsable pédagogique dédié et assistants issus de l'EPFL et de l'UNIL.",
-        "Objectif : maturité fédérale suisse ou baccalauréat français, avec des débouchés en université, NCAA ou vers le circuit professionnel.",
-      ], note: "Dès 21'600 CHF / année, repas de midi inclus." },
-      { type: "offers", title: "Pro U18 & Pro", items: [
-        { name: "Pro U18", meta: "après la scolarité", detail: "Deux entraînements par jour, 46 semaines en Suisse + 15 semaines sur le circuit ITF junior pour monter dans la hiérarchie mondiale." },
-        { name: "Pro", meta: "circuit ITF / ATP", detail: "Viser les points ATP, encadrement complet (médical, physio, mental, cordage). 46 semaines d'entraînement et 15 tournois à l'étranger par an." },
-      ], note: "Dès 34'800 CHF / année. Des solutions de soutien financier existent." },
-      { type: "offers", title: "Stages · vacances scolaires", items: [
-        { name: "KidsTennis", meta: "4–9 ans", detail: "Matin 9h–12h : 1h30 de tennis + 1h30 d'activité. 250 CHF/sem." },
-        { name: "Loisir journée", meta: "9–18 ans", detail: "9h–17h, repas inclus : 3h de tennis + activités. 450 CHF/sem." },
-        { name: "Loisir demi-journée", meta: "9–18 ans", detail: "Matin ou après-midi : 1h30 de tennis + 1h30 d'activité. 290 CHF/sem." },
-        { name: "Train Like a Pro", meta: "10–19 ans, dès R7", detail: "Journée intensive : 4h de tennis + physique et bien-être. 790 CHF/sem." },
-      ], note: "–20 % dès la 2ᵉ semaine ou pour plusieurs membres d'une même famille." },
-      { type: "rich", title: "Game Zone", body: [
-        "Chaque week-end, des tournois juniors sur une seule journée, avec deux matchs garantis par participant·e.",
-        "Un format idéal pour se lancer en compétition, cumuler de l'expérience et grimper au classement de la saison.",
-      ], link: { label: "Consulter les prochains tournois ↗", href: "https://www.mytennis.ch/fr/tournois?keyword=gamezone" } },
-      { type: "gallery", items: ["assets/photos/p4.jpg", "assets/photos/p1.jpg"] },
     ],
   },
 
-  // ---------------------------------------------------------------
   tournoi: {
-    tag: "Le Tournoi",
-    logo: "assets/logo-open.webp",
+    tag: "Le Tournoi", logo: "assets/logo-open.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
     desc: "Lausanne Open — l'unique tournoi international de tennis masculin du canton de Vaud. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
     hero: "assets/photos/p2.jpg",
     cta: [{ label: "Infos & billetterie", type: "mailopen" }],
     sections: [
-      { type: "stats", items: [
-        ["23–30 août", "2026"],
-        ["30 000 $", "dotation"],
-        ["Gratuit", "entrée libre"],
-        ["ITF M25", "catégorie"],
-      ]},
-      { type: "rich", title: "Le tournoi", body: [
+      { type: "stats", items: [["23–30 août", "2026"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
+      { type: "split", title: "Le grand rendez-vous du tennis vaudois", photo: "assets/photos/coach2.jpg", body: [
         "Le Lausanne Open réunit chaque année plusieurs dizaines de joueurs de toutes nationalités, pour la plupart classés à l'ATP, sur les courts de la Pontaise.",
-        "Vainqueur 2025 : Henry Bernet, joueur suisse de 18 ans.",
-      ], link: { label: "Tableau & résultats ITF ↗", href: "https://www.itftennis.com/en/tournament-calendar/mens-world-tennis-tour-calendar/" } },
-      { type: "rich", title: "Entrée libre", body: [
-        "L'accès au tournoi est entièrement gratuit, toute la semaine. Venez vivre le tennis professionnel au plus près des joueurs, sans billet.",
-      ]},
-      { type: "rich", title: "Journée Team Lausanne — samedi 29 août", body: [
-        "Dès 11h, une journée familiale gratuite et ouverte à tous : initiation, mini tennis, cibles et bien d'autres animations (matériel et raquettes fournis).",
-        "Vers 12h30, exhibition de tennis en fauteuil roulant. Et côté pros : demi-finales à 11h et 13h30, finale du double vers 15h.",
-      ], note: "Cadeau-souvenir offert à celles et ceux qui s'inscrivent en ligne." },
-      { type: "rich", title: "Initiation pour les écoles", body: [
-        "Toute la semaine du tournoi, une initiation gratuite est proposée aux écoles de la région, encadrée par des coachs certifié·e·s.",
-        "Matériel et raquettes fournis, cadeau-souvenir pour chaque enfant, et la possibilité d'assister à de vrais matchs professionnels.",
+        "Vainqueur 2025 : Henry Bernet, joueur suisse de 18 ans. L'accès est entièrement gratuit, toute la semaine.",
+      ], link: { label: "Tableau & résultats ITF ↗", href: ITF_URL } },
+      { type: "features", title: "Une semaine d'événements", items: [
+        ["Entrée libre", "L'accès au tournoi est gratuit toute la semaine, sans billet."],
+        ["Journée Team Lausanne", "Samedi 29 août dès 11h : animations, mini-tennis et exhibition en fauteuil roulant."],
+        ["Initiation écoles", "Les écoles de la région s'initient au tennis, encadrées par des coachs certifié·e·s."],
+        ["VIP · Tennis & Lunch", "Vivez le tournoi au plus près des joueurs, du lundi au vendredi."],
       ]},
       { type: "rich", title: "VIP · Tennis & Lunch", body: [
-        "Vivez le tournoi au plus près des joueurs avec l'expérience « Tennis & Lunch », proposée du lundi au vendredi sur invitation personnalisée.",
+        "Une expérience d'hospitalité unique : « Tennis & Lunch » du lundi au vendredi, sur invitation personnalisée.",
         "Des offres de partenariat sur mesure sont disponibles : naming du court central et de la zone VIP, banderoles, stands, visibilité digitale…",
       ], link: { label: "Nous contacter", href: "mailto:" + OPEN_MAIL } },
       { type: "sponsors", title: "Ils soutiennent le tournoi", items: [
@@ -144,12 +111,105 @@ const WORLDS = {
         "Fondation Sport et Solidarité", "Isaac", "PhysioPlus Lausanne",
         "Les Roches", "Boissons Gros de Vaud", "Chopfab Boxer", "Aquatis Hôtel", "Bertholet Mathis",
       ]},
-      { type: "gallery", items: ["assets/photos/p8.jpg", "assets/photos/p3.jpg"] },
     ],
   },
 };
 
-let current = "club";
+// ===================================================================
+//  PAGES DÉTAILLÉES
+// ===================================================================
+const DETAILS = {
+  "sport-etudes": {
+    world: "academie", title: "Sport-études", subtitle: "Concilier études et tennis, au plus haut niveau",
+    hero: "assets/photos/coach1.jpg",
+    sections: [
+      { type: "rich", title: "Le programme de référence", body: [
+        "Le sport-études permet aux 14–19 ans de concilier études et entraînement intensif, dans un cadre optimal et un suivi individualisé.",
+        "Le programme s'étend sur 35 semaines selon le calendrier vaudois et combine tennis, préparation physique et études encadrées.",
+      ]},
+      { type: "stats", items: [["35", "semaines / an"], ["2h", "tennis / jour"], ["1h", "physique / jour"], ["4h", "études / jour"]] },
+      { type: "features", title: "Un encadrement complet", items: [
+        ["Écoles partenaires", "Enseignement à distance avec l'Institut DOMI, l'EPSU et le CNED."],
+        ["Responsable pédagogique", "Un référent dédié : organisation, méthodologie, suivi des échéances."],
+        ["Soutien académique", "Des assistants issus de l'EPFL et de l'UNIL, selon les besoins."],
+        ["Objectif diplôme", "Maturité fédérale suisse ou baccalauréat français."],
+      ]},
+      { type: "rich", title: "Et après ?", body: [
+        "Le programme développe autonomie, discipline et gestion du temps.",
+        "Débouchés : université suisse, institutions américaines (NCAA) ou carrière tennistique professionnelle.",
+      ], note: "Dès 21'600 CHF / année (10 mensualités possibles), repas de midi inclus." },
+      { type: "gallery", items: ["assets/photos/p6.jpg", "assets/photos/coach3.jpg"] },
+    ],
+  },
+  pro: {
+    world: "academie", title: "Pro U18 & Pro", subtitle: "Le grand saut vers le circuit professionnel",
+    hero: "assets/photos/coach2.jpg",
+    sections: [
+      { type: "stats", items: [["46", "semaines en Suisse"], ["15", "tournois / an"], ["2×", "sessions / jour"], ["dès 34 800.–", "CHF / an"]] },
+      { type: "offers", title: "Deux programmes", items: [
+        { name: "Pro U18", meta: "après la scolarité", detail: "Deux entraînements par jour et 15 semaines par an sur le circuit ITF junior pour monter dans la hiérarchie mondiale." },
+        { name: "Pro", meta: "circuit ITF / ATP", detail: "Viser les points ATP, participer activement au circuit ITF et progresser au classement mondial." },
+      ]},
+      { type: "features", title: "Une journée type", items: [
+        ["09h00–10h00", "Préparation physique (mercredi : 14h–16h)."],
+        ["10h15–12h15", "Tennis, session du matin."],
+        ["13h15–15h15", "Tennis, session de l'après-midi."],
+        ["Suivi", "Rapports bihebdomadaires et planification annuelle."],
+      ]},
+      { type: "features", title: "Services inclus", items: [
+        ["Médical & physio", "Suivi médical, physiothérapie et tests physiques réguliers."],
+        ["Préparation mentale", "Un accompagnement mental intégré au programme."],
+        ["Cordage & équipement", "Cordages et vêtements fournis."],
+        ["Repas", "Repas de midi du lundi au vendredi."],
+      ]},
+      { type: "rich", title: "Accessible à tous les talents", body: [
+        "Des solutions de soutien financier existent pour permettre aux jeunes de réaliser leurs ambitions sportives.",
+      ], note: "Forfait dès 34'800 CHF / an. Option heures privées : 2'800 CHF (80 CHF/h sur 35 semaines). Frais à l'étranger à charge du joueur." },
+      { type: "gallery", items: ["assets/photos/coach3.jpg", "assets/photos/p2.jpg"] },
+    ],
+  },
+  kids: {
+    world: "academie", title: "KidsTennis", subtitle: "Le tennis des enfants, dès 5 ans",
+    hero: "assets/photos/kids3.jpg",
+    sections: [
+      { type: "rich", title: "Apprendre en s'amusant", body: [
+        "KidsTennis initie les enfants dès 5 ans au tennis de façon ludique et progressive.",
+        "Le jeu avant tout : coordination, motricité et plaisir, avec du matériel adapté à chaque âge et de petits groupes.",
+      ]},
+      { type: "features", title: "Notre approche", items: [
+        ["Par le jeu", "Des exercices ludiques pour progresser sans s'en rendre compte."],
+        ["Matériel adapté", "Raquettes et balles évolutives (rouge, orange, vert)."],
+        ["Petits groupes", "Un encadrement de proximité pour chaque enfant."],
+        ["Progression", "Un parcours clair vers la compétition et la Game Zone."],
+      ]},
+      { type: "offers", title: "KidsTennis en stage", items: [
+        { name: "Stage KidsTennis", meta: "4–9 ans", detail: "Le matin, 9h–12h : 1h30 de tennis + 1h30 d'activité. 250 CHF / semaine." },
+      ], note: "–20 % dès la 2ᵉ semaine ou pour plusieurs enfants d'une même famille." },
+      { type: "gallery", items: ["assets/photos/kids1.jpg", "assets/photos/kids2.jpg"] },
+    ],
+  },
+  gamezone: {
+    world: "academie", title: "Game Zone", subtitle: "Des tournois juniors chaque week-end",
+    hero: "assets/photos/kids2.jpg",
+    sections: [
+      { type: "rich", title: "Le concept", body: [
+        "Chaque week-end, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant·e.",
+        "Le format idéal pour se lancer en compétition, cumuler de l'expérience et grimper au classement de la saison.",
+      ], link: { label: "Consulter les prochains tournois ↗", href: GAMEZONE_URL } },
+      { type: "podium", title: "Classement 2025 / 2026", items: [
+        ["Vincent Rauschert", "9 victoires"], ["Maxime Dietschy", "7 victoires"], ["Fabien Jaton", "7 victoires"],
+      ]},
+      { type: "ranking", title: "Les meilleurs de la saison",
+        head: ["Joueur·euse", "Victoires"],
+        rows: [
+          ["Alexandre Josserand", "4"], ["Ilian Benboubker", "4"], ["Isaac Silmont", "4"],
+          ["Jack Doriel", "4"], ["José Matias Herrera Arriagada", "4"], ["Karl Isgren", "4"],
+          ["Matias Gerard", "4"], ["Melwan Gamba", "4"],
+        ], note: "Suivis de plus de 200 joueuses et joueurs classés sur la saison." },
+      { type: "gallery", items: ["assets/photos/kids1.jpg", "assets/photos/p4.jpg"] },
+    ],
+  },
+};
 
 // ===================================================================
 //  RENDU
@@ -157,124 +217,141 @@ let current = "club";
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+function linkHTML(link) {
+  if (!link) return "";
+  if (link.action === "login")
+    return `<button class="wsec-link" data-login>${esc(link.label)}</button>`;
+  const ext = link.href.startsWith("http") || link.href.startsWith("mailto");
+  return `<a class="wsec-link" href="${esc(link.href)}"${ext ? ' target="_blank" rel="noopener"' : ""}>${esc(link.label)}</a>`;
+}
+
 function sectionHTML(sec) {
   switch (sec.type) {
-    case "features":
-      return `<section class="wsec">
-        ${sec.title ? `<h2>${esc(sec.title)}</h2>` : ""}
-        <div class="feature-grid">${sec.items.map(([h, t]) =>
-          `<div class="feature"><h3>${esc(h)}</h3><p>${esc(t)}</p></div>`).join("")}</div>
+    case "split":
+      return `<section class="split">
+        <div class="split-media" style="background-image:url('${sec.photo}')"></div>
+        <div class="split-body"><h2>${esc(sec.title)}</h2>
+          ${sec.body.map((p) => `<p>${esc(p)}</p>`).join("")}${linkHTML(sec.link)}</div>
       </section>`;
 
+    case "features":
+      return `<section class="wsec">${sec.title ? `<h2>${esc(sec.title)}</h2>` : ""}
+        <div class="feature-grid">${sec.items.map(([h, t]) =>
+          `<div class="feature"><h3>${esc(h)}</h3><p>${esc(t)}</p></div>`).join("")}</div></section>`;
+
+    case "cards":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <div class="card-grid">${sec.items.map((o) =>
+          `<a class="pcard" href="${esc(o.href)}">
+            <div class="pcard-media" style="background-image:url('${o.photo}')"></div>
+            <div class="pcard-body"><div class="offer-top"><h3>${esc(o.name)}</h3>
+              ${o.meta ? `<span class="offer-meta">${esc(o.meta)}</span>` : ""}</div>
+              <p>${esc(o.detail)}</p><span class="pcard-more">En savoir plus →</span></div>
+          </a>`).join("")}</div></section>`;
+
     case "offers":
-      return `<section class="wsec">
-        <h2>${esc(sec.title)}</h2>
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div class="offer-grid">${sec.items.map((o) =>
           `<div class="offer"><div class="offer-top"><h3>${esc(o.name)}</h3>
             ${o.meta ? `<span class="offer-meta">${esc(o.meta)}</span>` : ""}</div>
             <p>${esc(o.detail)}</p></div>`).join("")}</div>
-        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}
-      </section>`;
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
 
     case "timeline":
-      return `<section class="wsec">
-        <h2>${esc(sec.title)}</h2>
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div class="timeline">${sec.items.map(([y, t]) =>
           `<div class="tl-row"><div class="tl-year">${esc(y)}</div><div class="tl-text">${esc(t)}</div></div>`).join("")}</div>
-        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}
-      </section>`;
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
 
     case "committee":
-      return `<section class="wsec">
-        <h2>${esc(sec.title)}</h2>
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div class="committee">${sec.members.map(([n, r]) =>
           `<div class="cm"><b>${esc(n)}</b><span>${esc(r)}</span></div>`).join("")}</div>
-        ${sec.honor ? `<p class="wsec-note">Membres d'honneur : ${sec.honor.map(esc).join(" · ")}</p>` : ""}
-      </section>`;
+        ${sec.honor ? `<p class="wsec-note">Membres d'honneur : ${sec.honor.map(esc).join(" · ")}</p>` : ""}</section>`;
 
     case "contact":
-      return `<section class="wsec">
-        <h2>${esc(sec.title)}</h2>
-        <div class="contact-card">
-          <p>${sec.lines.map(esc).join("<br>")}</p>
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <div class="contact-card"><p>${sec.lines.map(esc).join("<br>")}</p>
           <p><a href="tel:${esc(sec.phone.replace(/\s/g, ""))}">${esc(sec.phone)}</a> ·
              <a href="mailto:${esc(sec.email)}">${esc(sec.email)}</a></p>
-          ${sec.hours ? `<p class="muted">${esc(sec.hours)}</p>` : ""}
-        </div>
-      </section>`;
+          ${sec.hours ? `<p class="muted">${esc(sec.hours)}</p>` : ""}</div></section>`;
 
     case "rich":
-      return `<section class="wsec">
-        <h2>${esc(sec.title)}</h2>
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div class="rich">${sec.body.map((p) => `<p>${esc(p)}</p>`).join("")}</div>
-        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}
-        ${sec.link ? `<a class="wsec-link" href="${esc(sec.link.href)}" target="_blank" rel="noopener">${esc(sec.link.label)}</a>` : ""}
-      </section>`;
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}${linkHTML(sec.link)}</section>`;
 
     case "stats":
       return `<section class="wsec"><div class="stat-row">${sec.items.map(([b, s]) =>
         `<div class="stat"><b>${esc(b)}</b><span>${esc(s)}</span></div>`).join("")}</div></section>`;
 
+    case "podium":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <div class="podium">${sec.items.map(([n, v], i) =>
+          `<div class="pod pod-${i + 1}"><div class="pod-rank">${i + 1}</div>
+            <b>${esc(n)}</b><span>${esc(v)}</span></div>`).join("")}</div></section>`;
+
+    case "ranking":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <table class="ranking"><thead><tr>${sec.head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
+        <tbody>${sec.rows.map(([n, v]) => `<tr><td>${esc(n)}</td><td>${esc(v)}</td></tr>`).join("")}</tbody></table>
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
+
     case "sponsors":
-      return `<section class="wsec">
-        <h2>${esc(sec.title)}</h2>
-        <div class="sponsors">${sec.items.map((n) =>
-          `<span class="sponsor">${esc(n)}</span>`).join("")}</div>
-      </section>`;
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <div class="sponsor-wall">${sec.items.map((n) =>
+          `<div class="sponsor">${esc(n)}</div>`).join("")}</div></section>`;
 
     case "gallery":
       return `<section class="wsec"><div class="gallery">${sec.items.map((src) =>
         `<div class="gphoto" style="background-image:url('${src}')"></div>`).join("")}</div></section>`;
 
-    default:
-      return "";
+    default: return "";
   }
+}
+
+function paintHero({ logo, hero, tag, slogan, desc, ctaHTML }) {
+  $("nav-logo").src = logo;
+  $("hero-bg").style.backgroundImage = `url("${hero}")`;
+  $("hero-logo").src = logo;
+  $("hero-tag").textContent = tag;
+  $("hero-slogan").textContent = slogan;
+  $("hero-desc").textContent = desc;
+  $("hero-cta").innerHTML = ctaHTML;
 }
 
 function renderWorld(key) {
   const w = WORLDS[key];
-  if (!w) return;
-  current = key;
   document.body.dataset.world = key;
+  document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === key));
+  const ctaHTML = w.cta.map((c) => `<button class="btn-cta" data-cta="${c.type}">${esc(c.label)}</button>`).join("");
+  paintHero({ logo: w.logo, hero: w.hero, tag: w.tag, slogan: w.slogan, desc: w.desc, ctaHTML });
+  $("world-main").innerHTML = w.sections.map(sectionHTML).join("");
+  animate();
+}
 
-  document.querySelectorAll(".sw").forEach((b) =>
-    b.classList.toggle("active", b.dataset.world === key));
+function renderDetail(id) {
+  const d = DETAILS[id];
+  const w = WORLDS[d.world];
+  document.body.dataset.world = d.world;
+  document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === d.world));
+  const ctaHTML = `<button class="btn-cta ghost" data-back="${d.world}">← Retour à ${esc(w.tag.toLowerCase())}</button>`;
+  paintHero({ logo: w.logo, hero: d.hero, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML });
+  $("world-main").innerHTML = d.sections.map(sectionHTML).join("");
+  animate();
+}
 
-  $("nav-logo").src = w.logo;
-  $("hero-bg").style.backgroundImage = `url("${w.hero}")`;
-  $("hero-logo").src = w.logo;
-  $("hero-tag").textContent = w.tag;
-  $("hero-slogan").textContent = w.slogan;
-  $("hero-desc").textContent = w.desc;
-
-  const cta = $("hero-cta");
-  cta.innerHTML = "";
-  for (const c of w.cta) {
-    const b = document.createElement("button");
-    b.className = "btn-cta";
-    b.textContent = c.label;
-    b.addEventListener("click", () => {
-      if (c.type === "login") openModal();
-      else if (c.type === "mail") location.href = `mailto:${CONTACT_MAIL}`;
-      else if (c.type === "mailopen") location.href = `mailto:${OPEN_MAIL}`;
-    });
-    cta.appendChild(b);
-  }
-
-  const main = $("world-main");
-  main.innerHTML = w.sections.map(sectionHTML).join("");
-
-  for (const el of [$("hero-content"), main]) {
-    el.classList.remove("fade-in");
-    void el.offsetWidth;
-    el.classList.add("fade-in");
+function animate() {
+  for (const el of [$("hero-content"), $("world-main")]) {
+    el.classList.remove("fade-in"); void el.offsetWidth; el.classList.add("fade-in");
   }
 }
 
-function switchWorld(key) {
-  if (key === current) return;
-  renderWorld(key);
-  window.scrollTo({ top: 0, behavior: "smooth" });
+function route() {
+  const h = location.hash.replace("#", "");
+  if (DETAILS[h]) renderDetail(h);
+  else renderWorld(WORLDS[h] ? h : "club");
+  window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
 }
 
 // ===================================================================
@@ -283,31 +360,40 @@ function switchWorld(key) {
 const modal = $("login-modal");
 const openModal = () => modal.classList.remove("hidden");
 const closeModal = () => modal.classList.add("hidden");
-
 $("open-login").addEventListener("click", openModal);
 $("close-login").addEventListener("click", closeModal);
 modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
 
 $("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const err = $("login-error");
-  err.hidden = true;
-  $("login-btn").disabled = true;
+  const err = $("login-error"); err.hidden = true; $("login-btn").disabled = true;
   const { error } = await sb.auth.signInWithPassword({
-    email: $("email").value.trim(),
-    password: $("password").value,
-  });
+    email: $("email").value.trim(), password: $("password").value });
   $("login-btn").disabled = false;
   if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
   location.href = "reservation.html";
 });
-
 getSession().then((s) => { if (s) location.href = "reservation.html"; });
 
 // ===================================================================
-//  Bascule + démarrage
+//  Interactions globales (délégation)
 // ===================================================================
-document.querySelectorAll("[data-world]").forEach((el) =>
-  el.addEventListener("click", () => switchWorld(el.dataset.world)));
+document.addEventListener("click", (e) => {
+  const login = e.target.closest("[data-login]");
+  if (login) { openModal(); return; }
+  const cta = e.target.closest("[data-cta]");
+  if (cta) {
+    const t = cta.dataset.cta;
+    if (t === "login") openModal();
+    else if (t === "mail") location.href = `mailto:${CONTACT_MAIL}`;
+    else if (t === "mailopen") location.href = `mailto:${OPEN_MAIL}`;
+    return;
+  }
+  const back = e.target.closest("[data-back]");
+  if (back) { location.hash = back.dataset.back; return; }
+  const sw = e.target.closest(".sw, .flow-step");
+  if (sw && sw.dataset.world) { location.hash = sw.dataset.world; }
+});
 
-renderWorld("club");
+window.addEventListener("hashchange", route);
+route();

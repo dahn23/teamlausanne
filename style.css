@@ -194,10 +194,68 @@ body[data-world="academie"] .stat{color:var(--fluo-ink)}
 .contact-card p{margin:0 0 8px}
 .contact-card a{color:var(--accent-ink);font-weight:700;text-decoration:none}
 
-/* Sponsors */
-.sponsors{display:flex;flex-wrap:wrap;gap:10px}
-.sponsor{background:#fff;border:1px solid var(--line);border-radius:999px;
-  padding:8px 16px;font-weight:700;color:var(--blue-ink);font-size:.9rem;box-shadow:var(--shadow)}
+/* Mur de sponsors */
+.sponsor-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.sponsor{background:#fff;border:1px solid var(--line);border-radius:12px;min-height:76px;
+  display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;
+  font-weight:800;font-style:italic;color:var(--blue-ink);font-size:.92rem;box-shadow:var(--shadow);
+  transition:transform .15s,border-color .15s}
+.sponsor:hover{transform:translateY(-3px);border-color:var(--accent)}
+
+/* Sections "split" (photo + texte) */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 48px;
+  border-radius:calc(var(--radius) + 4px);overflow:hidden;box-shadow:var(--shadow);
+  border:1px solid var(--line);background:var(--card)}
+.split-media{min-height:340px;background-size:cover;background-position:center}
+.split-body{padding:36px}
+.split-body h2{font-size:1.7rem;color:var(--blue-ink);margin:0 0 16px}
+.split-body p{color:#2c3240;line-height:1.65;margin:0 0 12px;font-size:1.02rem}
+
+/* Cartes-programmes cliquables */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.pcard{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);text-decoration:none;
+  transition:transform .15s,box-shadow .15s}
+.pcard:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(20,26,46,.14)}
+.pcard-media{height:150px;background-size:cover;background-position:center}
+.pcard-body{padding:16px 18px;display:flex;flex-direction:column;flex:1}
+.pcard-body p{color:var(--muted);font-size:.93rem;margin:0 0 12px;flex:1}
+.pcard-more{color:var(--accent-ink);font-weight:800;font-style:italic;text-transform:uppercase;
+  font-size:.8rem;letter-spacing:-.2px}
+
+/* Bouton retour (hero) */
+.btn-cta.ghost{background:rgba(255,255,255,.14);color:#fff;border:2px solid rgba(255,255,255,.55)}
+.btn-cta.ghost:hover{background:rgba(255,255,255,.24)}
+
+/* Podium Game Zone */
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:end;max-width:680px}
+.pod{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 16px;text-align:center;box-shadow:var(--shadow);border-top:5px solid var(--accent)}
+.pod-rank{width:40px;height:40px;margin:0 auto 10px;border-radius:50%;background:var(--accent);
+  color:#fff;font-weight:800;font-style:italic;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
+.pod b{display:block;color:var(--blue-ink);font-size:1.02rem;margin-bottom:2px}
+.pod span{color:var(--muted);font-size:.9rem;font-weight:600}
+.pod-1{transform:translateY(-14px)}
+.pod-1 .pod-rank{background:#f2c200;color:#5a4500}
+.pod-2 .pod-rank{background:#b9c2cc;color:#39434d}
+.pod-3 .pod-rank{background:#cd8a52;color:#3d2410}
+
+/* Tableau de classement */
+.ranking{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);font-size:.95rem}
+.ranking th{background:var(--blue-ink);color:#fff;text-align:left;padding:12px 16px;
+  font-style:italic;text-transform:uppercase;letter-spacing:.3px;font-size:.82rem}
+.ranking td{padding:11px 16px;border-top:1px solid var(--line);color:#2c3240}
+.ranking tbody tr:nth-child(even){background:#f7f9fc}
+.ranking td:last-child{font-weight:800;color:var(--accent-ink);width:110px}
+
+@media (max-width:720px){
+  .split{grid-template-columns:1fr}
+  .split-media{min-height:200px}
+  .podium{grid-template-columns:1fr;max-width:340px;margin:0 auto}
+  .pod-1{transform:none}
+}
 
 /* Bandeau cohérence (cliquable = mini-switcher) */
 .coherence{max-width:1040px;margin:0 auto;padding:20px 22px 64px;text-align:center}
