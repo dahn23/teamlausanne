@@ -36,10 +36,15 @@ Académie facture via **bexio** (facturation + vérif « payé » par connecteur
 - Courts **seedés** (`db/02_seed_courts.sql`) : 10 outdoor (courts 1-4 sous bulle l'hiver) + 2 indoor fixes = 12 été / 6 hiver.
 - **RLS par rôle appliquée** (`db/03_rls.sql`) : helpers `is_admin`/`is_staff` ; courts en lecture pour tout connecté ; réservations lisibles par tous, créées/annulées par leur auteur ou le staff ; `people` réservé au staff + sa propre fiche.
 - **Anti-chevauchement** (`db/04_no_overlap.sql`) : impossible de double-réserver un court.
-- **1er écran** : `index.html` + `style.css` + `app.js` (login email/mdp + grille de réservation responsive, filtre saison auto). `config.js` = URL + clé publiable. `netlify.toml` = déploiement statique.
+- **Architecture front = 2 surfaces distinctes** :
+  - **Site public** (`index.html`/`index.js`) : infos académie + fenêtre de connexion → redirige les membres vers la réservation.
+  - **Réservation** (`reservation.html`/`reservation.js`) : grille des courts, login membre requis, filtre saison auto ; lien « Console admin » visible si staff.
+  - **Console admin** (`admin.html`/`admin.js`) : réservée au staff (garde de rôle), 1er module = **CRM membres** (liste + ajout/édition/suppression de `people`). Menu latéral avec Finances/Cours « bientôt ».
+  - `common.js` = client Supabase + gardes d'accès partagés. `config.js` = URL + clé publiable. `style.css` = tout le style. `netlify.toml` = déploiement statique.
+- **En ligne** : `https://teamlausanne.netlify.app` (Netlify auto-deploy sur push, Pretty URLs actif). Parcours complet testé OK (login → réservation → admin → création membre sous RLS).
 - **Compte de test superadmin** : `dan.hafner23@gmail.com` / `TeamLausanne1!` (créé en SQL, email confirmé).
-- Dépôt GitHub **poussé** : `github.com/dahn23/teamlausanne`.
-- **À faire ensuite** : (1) créer le site Netlify lié au dépôt (1 clic dans l'UI Netlify, publish dir = racine, pas de build). (2) Écrans d'admin : fichier people, gestion des comptes/rôles, cours. (3) Couche 2 (bexio, caisse, tournoi).
+- Dépôt GitHub : `github.com/dahn23/teamlausanne`.
+- **À faire ensuite** : (1) **Comptes & rôles** = donner un login aux membres + attribuer les rôles → nécessite une **edge function** Supabase (service role, jamais côté front) pour créer/inviter les comptes ; écran de gestion des rôles dans l'admin. (2) Liens parent↔junior dans le CRM. (3) Module **Cours** (lessons + inscriptions). (4) Contenu réel du site public (adresse, horaires, photos). (5) Couche 2 (bexio, caisse, tournoi).
 
 ## Conventions
 - Français, réponses concises et décisives.
