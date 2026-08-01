@@ -29,7 +29,101 @@ function init() {
   $("person-form").addEventListener("submit", savePerson);
   $("delete-person").addEventListener("click", deletePerson);
   $("search").addEventListener("input", renderRows);
+  document.querySelectorAll(".side-item[data-view]").forEach((b) =>
+    b.addEventListener("click", () => showView(b.dataset.view)));
+  $("rg-save").addEventListener("click", saveSettings);
   loadPeople();
+  loadSettings();
+}
+
+// ---- Bascule de vues ----
+function showView(view) {
+  if (view === "bientot") return;
+  document.querySelectorAll(".side-item[data-view]").forEach((b) =>
+    b.classList.toggle("active", b.dataset.view === view));
+  document.querySelectorAll(".view").forEach((v) =>
+    v.classList.toggle("hidden", v.id !== "view-" + view));
+}
+
+// ===================================================================
+//  Réglages (app_settings)
+// ===================================================================
+let settings = {};
+const PRICE_ZONES = [["hiver", "Hiver (bulle + halle)"], ["ete_ext", "Été (extérieurs)"], ["ete_halle", "Été (halle)"]];
+const PRICE_CATS = [["m_m", "M/M"], ["second", "2ᵉ h"], ["m_guest", "M/invité"], ["ext", "Externe"]];
+
+async function loadSettings() {
+  const { data } = await sb.from("app_settings").select("key,value");
+  settings = {};
+  for (const r of data || []) settings[r.key] = r.value;
+
+  const s = settings.season || {};
+  $("rg-winter-start").value = s.winter_start || "";
+  $("rg-winter-end").value = s.winter_end || "";
+  updateWeeks();
+  $("rg-winter-start").addEventListener("change", updateWeeks);
+  $("rg-winter-end").addEventListener("change", updateWeeks);
+
+  const q = settings.quotas || {};
+  $("rg-max-m").value = q.max_hours_member ?? 2;
+  $("rg-max-nm").value = q.max_hours_nonmember ?? 2;
+  $("rg-inv").value = q.invitations_per_season_member ?? 2;
+  $("rg-adv-m").value = q.advance_days_member ?? 7;
+  $("rg-adv-nm").value = q.advance_days_nonmember ?? 3;
+
+  const v = settings.visibility || {};
+  $("rg-names-member").checked = v.show_names_to_member ?? true;
+  $("rg-names-client").checked = v.show_names_to_client ?? false;
+
+  const m = settings.confirmation_email || {};
+  $("rg-mail-subject").value = m.subject || "";
+  $("rg-mail-body").value = m.body || "";
+
+  renderPricing();
+}
+
+function updateWeeks() {
+  const a = $("rg-winter-start").value, b = $("rg-winter-end").value;
+  if (!a || !b) { $("rg-weeks").textContent = ""; return; }
+  const days = (new Date(b) - new Date(a)) / 86400000;
+  const weeks = Math.round(days / 7 * 10) / 10;
+  $("rg-weeks").textContent = days > 0 ? `≈ ${weeks} semaines` : "dates invalides";
+}
+
+function renderPricing() {
+  const p = settings.pricing || {};
+  let html = '<table class="crm-table"><thead><tr><th>Zone</th><th>Tarif</th>' +
+    PRICE_CATS.map(([, l]) => `<th>${l}</th>`).join("") + "</tr></thead><tbody>";
+  for (const [zk, zl] of PRICE_ZONES) {
+    for (const rk of ["creuse", "pleine"]) {
+      html += `<tr><td>${rk === "creuse" ? zl : ""}</td><td>${rk === "creuse" ? "Creuse" : "Pleine"}</td>` +
+        PRICE_CATS.map(([ck]) =>
+          `<td><input type="number" class="rg-price" data-z="${zk}" data-r="${rk}" data-c="${ck}" min="0"
+            value="${p?.[zk]?.[rk]?.[ck] ?? 0}" style="width:64px" /></td>`).join("") + "</tr>";
+    }
+  }
+  $("rg-pricing").innerHTML = html + "</tbody></table>";
+}
+
+async function saveSettings() {
+  const pricing = {};
+  for (const [zk] of PRICE_ZONES) { pricing[zk] = { creuse: {}, pleine: {} }; }
+  document.querySelectorAll(".rg-price").forEach((i) => {
+    pricing[i.dataset.z][i.dataset.r][i.dataset.c] = Number(i.value);
+  });
+  const rows = [
+    { key: "season", value: { winter_start: $("rg-winter-start").value, winter_end: $("rg-winter-end").value } },
+    { key: "quotas", value: {
+      max_hours_member: Number($("rg-max-m").value), max_hours_nonmember: Number($("rg-max-nm").value),
+      invitations_per_season_member: Number($("rg-inv").value),
+      advance_days_member: Number($("rg-adv-m").value), advance_days_nonmember: Number($("rg-adv-nm").value) } },
+    { key: "visibility", value: { show_names_to_member: $("rg-names-member").checked, show_names_to_client: $("rg-names-client").checked } },
+    { key: "confirmation_email", value: { subject: $("rg-mail-subject").value, body: $("rg-mail-body").value } },
+    { key: "pricing", value: pricing },
+  ];
+  $("rg-status").textContent = "Enregistrement…";
+  const { error } = await sb.from("app_settings").upsert(rows, { onConflict: "key" });
+  $("rg-status").textContent = error ? "Erreur : " + error.message : "✓ Réglages enregistrés";
 }
 
 async function loadPeople() {

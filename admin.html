@@ -21,13 +21,14 @@
     <div class="admin-body">
       <aside class="side">
         <button class="side-item active" data-view="membres">👥 Membres</button>
+        <button class="side-item" data-view="reglages">⚙️ Réglages</button>
         <button class="side-item" data-view="bientot" disabled>💳 Finances (bientôt)</button>
         <button class="side-item" data-view="bientot" disabled>🎾 Cours (bientôt)</button>
       </aside>
 
       <main class="admin-main">
         <!-- ---- Vue Membres (CRM) ---- -->
-        <div id="view-membres">
+        <div id="view-membres" class="view">
           <div class="crm-head">
             <h1>Membres</h1>
             <div class="crm-actions">
@@ -43,6 +44,54 @@
               <tbody id="people-rows"></tbody>
             </table>
             <p id="empty-msg" class="muted" hidden>Aucun membre. Cliquez « + Nouveau » pour commencer.</p>
+          </div>
+        </div>
+
+        <!-- ---- Vue Réglages (réservation) ---- -->
+        <div id="view-reglages" class="view hidden">
+          <h1>Réglages de la réservation</h1>
+
+          <div class="rg-card">
+            <h2>Saison d'hiver</h2>
+            <div class="rg-row">
+              <label>Début<input type="date" id="rg-winter-start" /></label>
+              <label>Fin<input type="date" id="rg-winter-end" /></label>
+              <span id="rg-weeks" class="rg-weeks"></span>
+            </div>
+          </div>
+
+          <div class="rg-card">
+            <h2>Quotas & règles</h2>
+            <div class="rg-grid">
+              <label>Heures simultanées — membre<input type="number" id="rg-max-m" min="0" /></label>
+              <label>Heures simultanées — non-membre<input type="number" id="rg-max-nm" min="0" /></label>
+              <label>Invitations / saison (été) — membre<input type="number" id="rg-inv" min="0" /></label>
+              <label>Réservation à l'avance — membre (jours)<input type="number" id="rg-adv-m" min="0" /></label>
+              <label>Réservation à l'avance — non-membre (jours)<input type="number" id="rg-adv-nm" min="0" /></label>
+            </div>
+          </div>
+
+          <div class="rg-card">
+            <h2>Visibilité des noms</h2>
+            <label class="rg-check"><input type="checkbox" id="rg-names-member" /> Un membre voit qui a réservé</label>
+            <label class="rg-check"><input type="checkbox" id="rg-names-client" /> Un client / externe voit qui a réservé</label>
+          </div>
+
+          <div class="rg-card">
+            <h2>Tarifs (CHF)</h2>
+            <p class="muted" style="font-size:.88rem;margin-top:0">Colonnes : membre/membre · 2ᵉ heure consécutive · membre/invité · externe.</p>
+            <div id="rg-pricing"></div>
+          </div>
+
+          <div class="rg-card">
+            <h2>Email de confirmation</h2>
+            <label>Objet<input type="text" id="rg-mail-subject" /></label>
+            <label>Message<textarea id="rg-mail-body" rows="5"></textarea></label>
+          </div>
+
+          <div class="rg-foot">
+            <button id="rg-save">Enregistrer les réglages</button>
+            <span id="rg-status" class="muted"></span>
           </div>
         </div>
       </main>
