@@ -95,6 +95,10 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .chip.creuse{background:#bcd3ff}
 .chip.pleine{background:#1e3ad1;border-color:#1e3ad1}
 .legend-note{display:block;width:100%;margin-top:8px;color:var(--muted);font-size:.8rem;line-height:1.4}
+.partner-choice{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.pc-opt{display:flex;align-items:center;gap:8px;font-size:.95rem;cursor:pointer}
+#partner-select,#partner-guest-name{width:100%}
+.partner-price{font-weight:800;color:var(--blue-ink);margin:14px 0 6px}
 
 /* =====================================================================
    SITE DYNAMIQUE — 3 mondes (Club · Académie · Tournoi)

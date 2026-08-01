@@ -54,6 +54,29 @@
     </div>
   </div>
 
+  <!-- Réservation membre : choix du partenaire -->
+  <div id="partner-modal" class="modal hidden">
+    <div class="card">
+      <button type="button" class="modal-close" data-close-partner aria-label="Fermer">×</button>
+      <h2>Avec qui jouez-vous ?</h2>
+      <p id="partner-slot" class="muted"></p>
+      <div class="partner-choice">
+        <label class="pc-opt"><input type="radio" name="ptype" value="member" checked /> Un autre membre</label>
+        <label class="pc-opt"><input type="radio" name="ptype" value="guest" /> Un non-membre (invitation)</label>
+      </div>
+      <div id="partner-member-box">
+        <select id="partner-select"><option value="">— Choisir un membre —</option></select>
+      </div>
+      <div id="partner-guest-box" class="hidden">
+        <input id="partner-guest-name" placeholder="Nom du non-membre (optionnel)" />
+        <p id="invite-note" class="muted" style="font-size:.85rem;margin:8px 0 0"></p>
+      </div>
+      <p id="partner-price" class="partner-price"></p>
+      <button id="partner-confirm" style="width:100%">Confirmer la réservation</button>
+      <p id="partner-error" class="error" hidden></p>
+    </div>
+  </div>
+
   <!-- Connexion -->
   <div id="login-modal" class="modal hidden">
     <form id="login-form" class="card">
