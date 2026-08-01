@@ -22,6 +22,7 @@
       <aside class="side">
         <button class="side-item active" data-view="membres">👥 Membres</button>
         <button class="side-item" data-view="resa">🗓️ Réservations</button>
+        <button class="side-item" data-view="stats">📊 Statistiques</button>
         <button class="side-item" data-view="reglages">⚙️ Réglages</button>
         <button class="side-item" data-view="bientot" disabled>💳 Finances (bientôt)</button>
         <button class="side-item" data-view="bientot" disabled>🎾 Cours (bientôt)</button>
@@ -111,6 +112,29 @@
           <p class="muted" style="font-size:.86rem;margin:0 0 10px">
             Glissez sur la grille pour choisir un créneau, ou cliquez une case. Cliquez une réservation pour la modifier.</p>
           <div class="grid-wrap"><div id="resa-grid" class="rgrid"></div></div>
+        </div>
+
+        <!-- ---- Vue Statistiques ---- -->
+        <div id="view-stats" class="view hidden">
+          <div class="crm-head">
+            <h1>Statistiques</h1>
+            <div class="crm-actions">
+              <label class="st-range">Du <input type="date" id="st-from" /></label>
+              <label class="st-range">au <input type="date" id="st-to" /></label>
+              <button id="st-all" class="ghost">Tout l'historique</button>
+              <button id="st-refresh">Actualiser</button>
+            </div>
+          </div>
+          <div id="st-kpis" class="kpi-row"></div>
+          <div class="stat-grids">
+            <div class="stat-block"><h2>Type de joueur</h2><div id="st-players"></div></div>
+            <div class="stat-block"><h2>Semaine la plus demandée</h2><div id="st-topweek" class="st-highlight"></div></div>
+            <div class="stat-block"><h2>Occupation par court</h2><div id="st-courts"></div></div>
+            <div class="stat-block"><h2>Réservations par heure</h2><div id="st-hours"></div></div>
+            <div class="stat-block"><h2>Par jour de semaine</h2><div id="st-weekdays"></div></div>
+            <div class="stat-block"><h2>Recettes par jour (CHF)</h2><div id="st-revenue"></div></div>
+          </div>
+          <p id="st-empty" class="muted" hidden>Aucune réservation sur cette période.</p>
         </div>
       </main>
     </div>

@@ -38,6 +38,7 @@ async function init() {
   loadPeople();
   await loadSettings();
   initResa();
+  initStats();
 }
 
 // ---- Bascule de vues ----
@@ -342,6 +343,114 @@ async function deleteSeries() {
   closeResa(); loadResaDay();
 }
 function failR(el, msg) { el.textContent = msg; el.hidden = false; }
+
+// ===================================================================
+//  Statistiques
+// ===================================================================
+const WD = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+
+function initStats() {
+  const today = isoA(new Date());
+  $("st-to").value = today;
+  $("st-from").value = today.slice(0, 4) + "-01-01";
+  $("st-refresh").addEventListener("click", loadStats);
+  $("st-all").addEventListener("click", () => { $("st-from").value = "2026-01-01"; loadStats(); });
+  loadStats();
+}
+
+function weekKey(iso) {
+  const d = new Date(iso + "T00:00:00");
+  const day = (d.getDay() + 6) % 7;              // 0 = lundi
+  d.setDate(d.getDate() - day + 3);              // jeudi de la semaine ISO
+  const firstThu = new Date(d.getFullYear(), 0, 4);
+  const week = 1 + Math.round(((d - firstThu) / 86400000 - 3 + ((firstThu.getDay() + 6) % 7)) / 7);
+  return `${d.getFullYear()}-S${pad2(week)}`;
+}
+
+async function loadStats() {
+  const from = $("st-from").value, to = $("st-to").value;
+  const { data } = await sb.from("court_bookings").select("*")
+    .gte("booking_date", from).lte("booking_date", to);
+  const bookings = data || [];
+  $("st-empty").hidden = bookings.length > 0;
+
+  const hoursOf = (b) => Number(b.end_time.slice(0, 2)) - Number(b.start_time.slice(0, 2));
+  const players = { m_m: 0, m_guest: 0, ext: 0, club: 0, autre: 0 };
+  const byCourt = {}, byHour = {}, byWeekday = {}, byWeek = {}, byDayChf = {};
+  let totalHours = 0, totalChf = 0;
+
+  for (const b of bookings) {
+    const h = hoursOf(b); totalHours += h;
+    totalChf += Number(b.price_chf || 0);
+    if (["cours", "tournoi", "maintenance"].includes(b.kind)) players.club += h;
+    else if (b.payer_category === "m_m") players.m_m += h;
+    else if (b.payer_category === "m_guest") players.m_guest += h;
+    else if (b.payer_category === "ext") players.ext += h;
+    else players.autre += h;
+    byCourt[b.court_id] = (byCourt[b.court_id] || 0) + h;
+    const sh = Number(b.start_time.slice(0, 2));
+    for (let k = 0; k < h; k++) byHour[sh + k] = (byHour[sh + k] || 0) + 1;
+    const wd = ((new Date(b.booking_date + "T00:00:00").getDay()) + 6) % 7 + 1;
+    byWeekday[wd] = (byWeekday[wd] || 0) + h;
+    const wk = weekKey(b.booking_date); byWeek[wk] = (byWeek[wk] || 0) + h;
+    byDayChf[b.booking_date] = (byDayChf[b.booking_date] || 0) + Number(b.price_chf || 0);
+  }
+
+  // taux d'occupation sur la période
+  let available = 0;
+  const d0 = new Date(from + "T00:00:00"), d1 = new Date(to + "T00:00:00");
+  for (let d = new Date(d0); d <= d1; d.setDate(d.getDate() + 1)) {
+    const iso = isoA(d), season = seasonA(iso), col = season === "ete" ? "open_summer" : "open_winter";
+    available += resaCourtsAll.filter((c) => c[col]).length * 14;
+  }
+  const occ = available ? Math.round(totalHours / available * 100) : 0;
+
+  // KPI
+  $("st-kpis").innerHTML =
+    kpi("Réservations", bookings.length) + kpi("Heures jouées", totalHours) +
+    kpi("Recettes", totalChf.toFixed(0) + " CHF") + kpi("Taux d'occupation", occ + " %");
+
+  // Type de joueur
+  const pl = [["Membre / membre", players.m_m], ["Membre + invité", players.m_guest],
+    ["Non-membre", players.ext], ["Club (cours, tournois…)", players.club]];
+  if (players.autre) pl.push(["Autre", players.autre]);
+  $("st-players").innerHTML = barsFrom(pl, "h");
+
+  // Occupation par court
+  const courtRows = resaCourtsAll.map((c) => [c.name, byCourt[c.id] || 0]);
+  $("st-courts").innerHTML = barsFrom(courtRows, "h");
+
+  // Par heure
+  const hourRows = [];
+  for (let hh = 8; hh <= 21; hh++) hourRows.push([pad2(hh) + "h", byHour[hh] || 0]);
+  $("st-hours").innerHTML = barsFrom(hourRows, "");
+
+  // Par jour de semaine
+  const wdRows = [];
+  for (let w = 1; w <= 7; w++) wdRows.push([WD[w], byWeekday[w] || 0]);
+  $("st-weekdays").innerHTML = barsFrom(wdRows, "h");
+
+  // Recettes par jour (les 14 derniers jours non nuls)
+  const revRows = Object.entries(byDayChf).sort().slice(-14).map(([d, v]) => [d.slice(5), v.toFixed(0)]);
+  $("st-revenue").innerHTML = revRows.length ? barsFrom(revRows, " CHF") : '<p class="muted">—</p>';
+
+  // Semaine la plus demandée
+  const top = Object.entries(byWeek).sort((a, b) => b[1] - a[1])[0];
+  $("st-topweek").innerHTML = top
+    ? `<b>${top[0]}</b><span>${top[1]} heures réservées</span>`
+    : '<span class="muted">—</span>';
+}
+
+function kpi(label, val) {
+  return `<div class="kpi"><b>${val}</b><span>${label}</span></div>`;
+}
+function barsFrom(rows, suffix) {
+  const max = Math.max(1, ...rows.map((r) => Number(r[1])));
+  return rows.map(([label, val]) =>
+    `<div class="bar-row"><span class="bar-label">${label}</span>
+      <div class="bar"><div class="bar-fill" style="width:${Math.round(Number(val) / max * 100)}%"></div></div>
+      <span class="bar-val">${val}${suffix}</span></div>`).join("");
+}
 
 async function loadPeople() {
   const { data, error } = await sb

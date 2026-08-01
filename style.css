@@ -103,6 +103,26 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .rslot.rfree:hover{background:#dde3ef}
 .rslot.sel{background:#f2c200!important;color:#5a4500!important}
 
+/* ---- Statistiques ---- */
+.st-range{font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:var(--blue-ink);color:#fff;border-radius:var(--radius);padding:18px 20px}
+.kpi b{display:block;font-size:1.7rem;font-style:italic}
+.kpi span{font-size:.82rem;opacity:.85;text-transform:uppercase;letter-spacing:.5px}
+.stat-grids{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.stat-block{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px;box-shadow:var(--shadow)}
+.stat-block h2{margin:0 0 14px;font-size:1.05rem;color:var(--blue-ink)}
+.bar-row{display:grid;grid-template-columns:120px 1fr 60px;align-items:center;gap:10px;margin:7px 0}
+.bar-label{font-size:.85rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{background:#eef1f7;border-radius:6px;height:16px;overflow:hidden}
+.bar-fill{height:100%;background:var(--blue);border-radius:6px;min-width:2px}
+.bar-val{font-size:.82rem;font-weight:700;color:var(--blue-ink);text-align:right}
+.st-highlight{display:flex;flex-direction:column;justify-content:center;align-items:center;
+  min-height:80px;text-align:center}
+.st-highlight b{font-size:1.6rem;font-style:italic;color:var(--blue)}
+.st-highlight span{color:var(--muted)}
+
 /* =====================================================================
    SITE DYNAMIQUE — 3 mondes (Club · Académie · Tournoi)
    ===================================================================== */
