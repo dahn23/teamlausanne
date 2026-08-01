@@ -215,7 +215,7 @@ function openPartner(court, date, hour) {
   refreshPartner();
   $("partner-modal").classList.remove("hidden");
 }
-const closePartner = () => $("partner-modal").classList.add("hidden");
+function closePartner() { $("partner-modal").classList.add("hidden"); }
 
 function partnerType() {
   return document.querySelector('input[name="ptype"]:checked').value;
