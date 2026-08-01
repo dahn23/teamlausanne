@@ -3,150 +3,74 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1e3ad1" />
+  <meta name="theme-color" content="#123cc4" />
   <title>Team Lausanne — Club · Académie · Tournoi</title>
-  <meta name="description" content="Aux Plaines-du-Loup à Lausanne : le club Lausanne-Sports Tennis, l'académie Team Lausanne et le tournoi pro Lausanne Open. Jouer, progresser, vibrer." />
+  <meta name="description" content="Aux Plaines-du-Loup à Lausanne : le club Lausanne-Sports Tennis, l'académie Team Lausanne et le tournoi Lausanne Open. Un lieu, trois mondes." />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body class="public">
+<body class="public" data-world="club">
   <header class="nav">
-    <a href="#top" class="brand">Lausanne&nbsp;Tennis</a>
-    <nav class="nav-links">
-      <a href="#club">Le Club</a>
-      <a href="#academie">L'Académie</a>
-      <a href="#tournoi">Le Tournoi</a>
-      <a href="#lieu">Le Lieu</a>
-    </nav>
+    <div class="nav-brand">
+      <img id="nav-logo" class="nav-logo" src="assets/logo-club.webp" alt="" />
+    </div>
+    <div class="switcher" role="tablist" aria-label="Choisir un univers">
+      <button class="sw" data-world="club" role="tab">Le Club</button>
+      <button class="sw" data-world="academie" role="tab">L'Académie</button>
+      <button class="sw" data-world="tournoi" role="tab">Le Tournoi</button>
+    </div>
     <button id="open-login" class="btn-login">Espace membres</button>
   </header>
 
-  <!-- ---------- Hero ---------- -->
-  <section id="top" class="hero">
-    <div class="hero-inner">
-      <p class="hero-kicker">Plaines-du-Loup · Lausanne</p>
-      <h1>Jouer. Progresser. Vibrer.</h1>
-      <p class="hero-sub">Un seul lieu, trois passions du tennis :
-        le club où l'on joue, l'académie où l'on progresse,
-        le tournoi où l'on vibre.</p>
-      <div class="hero-cta">
-        <a href="#club" class="btn-cta">Découvrir</a>
-        <button id="hero-login" class="btn-cta ghost-cta">Réserver un court</button>
-      </div>
+  <!-- ---------- Hero dynamique ---------- -->
+  <section class="hero" id="hero">
+    <div class="hero-bg" id="hero-bg"></div>
+    <div class="hero-scrim"></div>
+    <div class="hero-content" id="hero-content">
+      <img class="hero-logo" id="hero-logo" src="" alt="" />
+      <p class="hero-tag" id="hero-tag"></p>
+      <h1 class="hero-slogan" id="hero-slogan"></h1>
+      <p class="hero-desc" id="hero-desc"></p>
+      <div class="hero-cta" id="hero-cta"></div>
     </div>
-    <div class="hero-trio">
-      <a href="#club" class="trio-chip club">Le Club</a>
-      <a href="#academie" class="trio-chip academie">L'Académie</a>
-      <a href="#tournoi" class="trio-chip tournoi">Le Tournoi</a>
+    <div class="hero-switch-hint">
+      <span>Changez d'univers ↑</span>
     </div>
   </section>
 
-  <main>
-    <!-- ---------- LE CLUB ---------- -->
-    <section id="club" class="product club">
-      <div class="product-head">
-        <img class="product-logo" src="assets/logo-club.webp" alt="Lausanne-Sports Tennis" />
-        <div>
-          <span class="product-tag">Le Club</span>
-          <h2>Lausanne-Sports Tennis</h2>
-          <p class="product-slogan">Jouer. S'amuser. Ensemble.</p>
-          <p class="lead">Le club de tennis historique de Lausanne. Devenez membre,
-          jouez librement toute l'année et vivez la compétition en interclubs.</p>
-        </div>
-      </div>
-      <div class="feature-grid">
-        <div class="feature"><h3>Devenir membre</h3><p>Rejoignez le club et accédez à l'ensemble des courts, intérieurs comme extérieurs.</p></div>
-        <div class="feature"><h3>Jouer librement</h3><p>Réservez votre court en ligne en quelques secondes, été comme hiver.</p></div>
-        <div class="feature"><h3>Interclubs</h3><p>Portez les couleurs du club en championnat suisse par équipes.</p></div>
-        <div class="feature"><h3>Restaurant & club-house</h3><p>Un lieu de vie convivial au cœur des Plaines-du-Loup.</p></div>
-      </div>
-      <div class="product-actions">
-        <button class="btn-prod" data-login>Réserver un court</button>
-        <a class="btn-prod outline" href="https://www.ls-tennis.ch" target="_blank" rel="noopener">Devenir membre ↗</a>
-      </div>
-    </section>
+  <!-- ---------- Contenu dynamique du monde ---------- -->
+  <main id="world-main" class="world-main"></main>
 
-    <!-- ---------- L'ACADÉMIE ---------- -->
-    <section id="academie" class="product academie">
-      <div class="product-head">
-        <img class="product-logo" src="assets/logo-academie.webp" alt="Team Lausanne Academy" />
-        <div>
-          <span class="product-tag">L'Académie</span>
-          <h2>Team Lausanne Academy</h2>
-          <p class="product-slogan">Grandir. Progresser. Ensemble.</p>
-          <p class="lead">Née de l'association Wawrinka Academy × Lausanne-Sports.
-          Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.</p>
-        </div>
-      </div>
-      <div class="feature-grid">
-        <div class="feature"><h3>KidsTennis · dès 5 ans</h3><p>Initiation ludique et progressive pour les plus jeunes.</p></div>
-        <div class="feature"><h3>Sport-études</h3><p>Le programme de référence : études et entraînement intensif combinés (14–19 ans).</p></div>
-        <div class="feature"><h3>Pro & Pro U18</h3><p>Encadrement quotidien pour les joueurs qui visent le circuit professionnel.</p></div>
-        <div class="feature"><h3>Cours privés & en groupe</h3><p>Leçons individuelles ou en petit groupe, selon vos objectifs.</p></div>
-        <div class="feature"><h3>Loisir</h3><p>Progresser à son rythme, dans le plaisir du jeu.</p></div>
-        <div class="feature"><h3>Compétition & Performance</h3><p>Filières encadrées pour les joueurs de compétition.</p></div>
-      </div>
-      <div class="product-actions">
-        <a class="btn-prod green" href="https://www.teamlausanne.ch" target="_blank" rel="noopener">Rejoindre l'académie ↗</a>
-      </div>
-    </section>
-
-    <!-- ---------- LE TOURNOI ---------- -->
-    <section id="tournoi" class="product tournoi">
-      <div class="product-head">
-        <img class="product-logo" src="assets/logo-open.webp" alt="Lausanne Open 2026" />
-        <div>
-          <span class="product-tag">Le Tournoi</span>
-          <h2>Lausanne Open 2026</h2>
-          <p class="product-slogan">Vibrer. Rêver. Ensemble.</p>
-          <p class="lead">L'unique tournoi international de tennis masculin du canton de Vaud.
-          Le circuit professionnel, chez nous, aux Plaines-du-Loup.</p>
-        </div>
-      </div>
-      <div class="stat-row">
-        <div class="stat"><b>23–30 août</b><span>2026</span></div>
-        <div class="stat"><b>30 000 $</b><span>dotation</span></div>
-        <div class="stat"><b>Gratuit</b><span>entrée libre</span></div>
-        <div class="stat"><b>Plaines-du-Loup</b><span>Lausanne</span></div>
-      </div>
-      <div class="product-actions">
-        <a class="btn-prod" href="https://www.lausanneopen.ch" target="_blank" rel="noopener">Billetterie & infos ↗</a>
-        <a class="btn-prod outline" href="https://www.lausanneopen.ch" target="_blank" rel="noopener">Offres VIP ↗</a>
-      </div>
-    </section>
-
-    <!-- ---------- LE LIEU / COHÉRENCE ---------- -->
-    <section id="lieu" class="coherence">
-      <h2>Un lieu, trois passions</h2>
-      <p class="coherence-sub">Tout se joue au même endroit, aux Plaines-du-Loup à Lausanne.
-      Le club vous accueille, l'académie vous fait progresser, le tournoi vous fait vibrer.</p>
-      <div class="flow">
-        <div class="flow-step club"><span>1</span><h3>On joue</h3><p>Membre du club, court réservé.</p></div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-step academie"><span>2</span><h3>On progresse</h3><p>Encadré par l'académie.</p></div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-step tournoi"><span>3</span><h3>On vibre</h3><p>Au plus près des pros.</p></div>
-      </div>
-    </section>
-  </main>
+  <!-- ---------- Bandeau cohérence (commun) ---------- -->
+  <section class="coherence">
+    <h2>Un lieu, trois mondes</h2>
+    <p class="coherence-sub">Tout se joue au même endroit, aux Plaines-du-Loup à Lausanne.
+      Le club où l'on joue, l'académie où l'on progresse, le tournoi où l'on vibre.</p>
+    <div class="flow">
+      <button class="flow-step" data-world="club"><span>1</span><h3>On joue</h3><p>Le Club</p></button>
+      <div class="flow-arrow">→</div>
+      <button class="flow-step academie" data-world="academie"><span>2</span><h3>On progresse</h3><p>L'Académie</p></button>
+      <div class="flow-arrow">→</div>
+      <button class="flow-step" data-world="tournoi"><span>3</span><h3>On vibre</h3><p>Le Tournoi</p></button>
+    </div>
+  </section>
 
   <footer class="foot">
     <div class="foot-cols">
       <div>
-        <b>Lausanne-Sports Tennis</b><br />
+        <b>Plaines-du-Loup — Lausanne</b><br />
         Route des Plaines-du-Loup 8<br />1018 Lausanne<br />
         +41 21 646 13 50 · admin@lstennis.ch
       </div>
       <div>
-        <b>Liens</b><br />
-        <a href="https://www.ls-tennis.ch" target="_blank" rel="noopener">Le Club ↗</a><br />
-        <a href="https://www.teamlausanne.ch" target="_blank" rel="noopener">L'Académie ↗</a><br />
-        <a href="https://www.lausanneopen.ch" target="_blank" rel="noopener">Le Tournoi ↗</a>
+        <b>Trois mondes, un lieu</b><br />
+        Le Club · L'Académie · Le Tournoi<br />
+        <span class="muted">Jouer. Grandir. Vibrer. Ensemble.</span>
       </div>
     </div>
-    <p class="foot-copy">© 2026 Lausanne Tennis — Club · Académie · Tournoi</p>
+    <p class="foot-copy">© 2026 Team Lausanne — Club · Académie · Tournoi</p>
   </footer>
 
-  <!-- ---------- Fenêtre de connexion ---------- -->
+  <!-- ---------- Connexion ---------- -->
   <div id="login-modal" class="modal hidden">
     <form id="login-form" class="card">
       <button type="button" id="close-login" class="modal-close" aria-label="Fermer">×</button>
