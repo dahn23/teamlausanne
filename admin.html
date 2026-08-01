@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b6b3a" />
+  <title>Console admin — Team Lausanne</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <section id="console" class="screen hidden">
+    <header class="topbar">
+      <span class="brand-sm">🎾 Console admin</span>
+      <span class="spacer"></span>
+      <a href="reservation.html" class="ghost">Réservation</a>
+      <a href="index.html" class="ghost">Site public</a>
+      <span id="who" class="muted"></span>
+      <button id="logout" class="ghost">Déconnexion</button>
+    </header>
+
+    <div class="admin-body">
+      <aside class="side">
+        <button class="side-item active" data-view="membres">👥 Membres</button>
+        <button class="side-item" data-view="bientot" disabled>💳 Finances (bientôt)</button>
+        <button class="side-item" data-view="bientot" disabled>🎾 Cours (bientôt)</button>
+      </aside>
+
+      <main class="admin-main">
+        <!-- ---- Vue Membres (CRM) ---- -->
+        <div id="view-membres">
+          <div class="crm-head">
+            <h1>Membres</h1>
+            <div class="crm-actions">
+              <input id="search" type="search" placeholder="Rechercher…" />
+              <button id="new-person">+ Nouveau</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="crm-table">
+              <thead>
+                <tr><th>Nom</th><th>Catégorie</th><th>Email</th><th>Téléphone</th><th>Actif</th></tr>
+              </thead>
+              <tbody id="people-rows"></tbody>
+            </table>
+            <p id="empty-msg" class="muted" hidden>Aucun membre. Cliquez « + Nouveau » pour commencer.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <div id="denied" class="screen center hidden">
+    <div class="card">
+      <h2>Accès refusé</h2>
+      <p class="muted">Cette console est réservée au staff.</p>
+      <a href="index.html"><button>Retour au site</button></a>
+    </div>
+  </div>
+
+  <div id="loader" class="screen center">Chargement…</div>
+
+  <!-- ---- Fiche personne (ajout / édition) ---- -->
+  <div id="person-modal" class="modal hidden">
+    <form id="person-form" class="card wide">
+      <button type="button" id="close-person" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="person-title">Nouvelle personne</h2>
+      <input type="hidden" id="p-id" />
+      <div class="form-grid">
+        <label>Prénom *<input id="p-first" required /></label>
+        <label>Nom *<input id="p-last" required /></label>
+        <label>Naissance<input id="p-birth" type="date" /></label>
+        <label>Genre
+          <select id="p-gender"><option value="">—</option><option value="F">F</option><option value="M">M</option><option value="X">X</option></select>
+        </label>
+        <label>Catégorie
+          <select id="p-category">
+            <option value="">—</option>
+            <option value="membre">Membre</option>
+            <option value="junior">Junior</option>
+            <option value="parent">Parent</option>
+            <option value="staff">Staff</option>
+          </select>
+        </label>
+        <label>Email<input id="p-email" type="email" /></label>
+        <label>Téléphone<input id="p-phone" /></label>
+        <label>Adresse<input id="p-address" /></label>
+        <label>NPA<input id="p-postal" /></label>
+        <label>Ville<input id="p-city" /></label>
+        <label>ID bexio<input id="p-bexio" type="number" /></label>
+        <label class="check"><input id="p-active" type="checkbox" checked /> Actif</label>
+      </div>
+      <label>Notes<textarea id="p-notes" rows="2"></textarea></label>
+      <div class="form-foot">
+        <button type="button" id="delete-person" class="danger hidden">Supprimer</button>
+        <span class="spacer"></span>
+        <button type="submit" id="save-person">Enregistrer</button>
+      </div>
+      <p id="person-error" class="error" hidden></p>
+    </form>
+  </div>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

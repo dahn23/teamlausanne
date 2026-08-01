@@ -4,15 +4,69 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
-  <title>Team Lausanne — Réservation des courts</title>
+  <title>Team Lausanne — Académie de tennis</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <!-- ---------- Écran de connexion ---------- -->
-  <section id="login" class="screen center hidden">
+<body class="public">
+  <header class="nav">
+    <span class="brand">🎾 Team Lausanne</span>
+    <nav class="nav-links">
+      <a href="#academie">L'académie</a>
+      <a href="#cours">Cours</a>
+      <a href="#courts">Courts</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <button id="open-login" class="btn-login">Espace membres</button>
+  </header>
+
+  <!-- ---------- Hero ---------- -->
+  <section class="hero">
+    <div class="hero-inner">
+      <h1>L'académie de tennis de Lausanne</h1>
+      <p>Cours tous niveaux, juniors et adultes. Réservez votre court en ligne.</p>
+      <button id="hero-login" class="btn-cta">Réserver un court</button>
+    </div>
+  </section>
+
+  <!-- ---------- Sections info (contenu à personnaliser) ---------- -->
+  <main class="sections">
+    <section id="academie" class="block">
+      <h2>L'académie</h2>
+      <p>Team Lausanne accueille joueuses et joueurs de tous niveaux, du premier
+      cours à la compétition. Encadrement par une équipe de coachs diplômés,
+      programmes juniors et adultes.</p>
+    </section>
+
+    <section id="cours" class="block alt">
+      <h2>Cours & entraînements</h2>
+      <div class="cards">
+        <div class="info-card"><h3>Juniors</h3><p>Écoles de tennis et groupes compétition, encadrés par âge et niveau.</p></div>
+        <div class="info-card"><h3>Adultes</h3><p>Cours collectifs, leçons privées et entraînements réguliers.</p></div>
+        <div class="info-card"><h3>Compétition</h3><p>Préparation physique et suivi individualisé pour la compétition.</p></div>
+      </div>
+    </section>
+
+    <section id="courts" class="block">
+      <h2>Nos courts</h2>
+      <p>12 courts en été (10 extérieurs terre battue + 2 indoor), 6 courts
+      jouables en hiver (2 indoor + 4 extérieurs sous bulle). Réservation en
+      ligne pour les membres.</p>
+    </section>
+
+    <section id="contact" class="block alt">
+      <h2>Contact</h2>
+      <p>Académie de tennis — Lausanne<br />
+      <span class="muted">Adresse, téléphone et email à compléter.</span></p>
+    </section>
+  </main>
+
+  <footer class="foot">© Team Lausanne — Académie de tennis</footer>
+
+  <!-- ---------- Fenêtre de connexion ---------- -->
+  <div id="login-modal" class="modal hidden">
     <form id="login-form" class="card">
-      <h1 class="brand">🎾 Team Lausanne</h1>
-      <p class="muted">Connexion à la plateforme</p>
+      <button type="button" id="close-login" class="modal-close" aria-label="Fermer">×</button>
+      <h2 class="brand">🎾 Espace membres</h2>
       <label>Email
         <input type="email" id="email" autocomplete="email" required />
       </label>
@@ -22,37 +76,8 @@
       <button type="submit" id="login-btn">Se connecter</button>
       <p id="login-error" class="error" hidden></p>
     </form>
-  </section>
+  </div>
 
-  <!-- ---------- Application (grille) ---------- -->
-  <section id="app" class="screen hidden">
-    <header class="topbar">
-      <span class="brand-sm">🎾 Team Lausanne</span>
-      <span class="spacer"></span>
-      <span id="who" class="muted"></span>
-      <button id="logout" class="ghost">Déconnexion</button>
-    </header>
-
-    <div class="toolbar">
-      <button id="prev-day" class="nav" aria-label="Jour précédent">‹</button>
-      <input type="date" id="date" />
-      <button id="next-day" class="nav" aria-label="Jour suivant">›</button>
-      <span id="season-tag" class="tag"></span>
-    </div>
-
-    <div id="grid-wrap" class="grid-wrap">
-      <div id="grid" class="grid"></div>
-    </div>
-
-    <p class="legend">
-      <span class="chip free"></span> Libre &nbsp;
-      <span class="chip mine"></span> Ma réservation &nbsp;
-      <span class="chip busy"></span> Occupé
-    </p>
-  </section>
-
-  <div id="loader" class="screen center">Chargement…</div>
-
-  <script type="module" src="app.js"></script>
+  <script type="module" src="index.js"></script>
 </body>
 </html>

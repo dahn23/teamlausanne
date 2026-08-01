@@ -1,72 +1,42 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SUPABASE_URL, SUPABASE_ANON_KEY, HOUR_START, HOUR_END } from "./config.js";
+// Grille de réservation (accès membre connecté).
+import { sb, requireLogin, myRoles, hasAny, STAFF_ROLES } from "./common.js";
+import { HOUR_START, HOUR_END } from "./config.js";
 
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ---- Raccourcis DOM ----
 const $ = (id) => document.getElementById(id);
-const loginScreen = $("login"), appScreen = $("app"), loader = $("loader");
-
-let me = null;              // utilisateur connecté
-let courts = [];            // courts jouables à la date choisie
-
-// ---- Utilitaires ----
 const pad = (n) => String(n).padStart(2, "0");
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
+let me = null;
+let courts = [];
+
 // Saison d'une date (même règle que season_of() en base).
 function seasonOf(iso) {
-  const [_, m, d] = iso.split("-").map(Number);
+  const [, m, d] = iso.split("-").map(Number);
   const md = m * 100 + d;
   return (md >= 415 && md < 1015) ? "ete" : "hiver";
 }
 
-// =====================================================================
-//  Authentification
-// =====================================================================
-$("login-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const err = $("login-error");
-  err.hidden = true;
-  $("login-btn").disabled = true;
-  const { error } = await sb.auth.signInWithPassword({
-    email: $("email").value.trim(),
-    password: $("password").value,
-  });
-  $("login-btn").disabled = false;
-  if (error) {
-    err.textContent = "Connexion impossible : " + error.message;
-    err.hidden = false;
-  }
-});
-
-$("logout").addEventListener("click", () => sb.auth.signOut());
-
-sb.auth.onAuthStateChange((_event, session) => {
-  me = session?.user ?? null;
-  render();
-});
-
-async function render() {
-  loader.classList.add("hidden");
-  if (!me) {
-    appScreen.classList.add("hidden");
-    loginScreen.classList.remove("hidden");
-    return;
-  }
-  loginScreen.classList.add("hidden");
-  appScreen.classList.remove("hidden");
+// ---- Garde d'accès ----
+const session = await requireLogin();
+if (session) {
+  me = session.user;
   $("who").textContent = me.email;
-  await loadDay();
+  const roles = await myRoles();
+  if (hasAny(roles, STAFF_ROLES)) $("admin-link").classList.remove("hidden");
+  init();
 }
 
-// =====================================================================
-//  Grille de réservation
-// =====================================================================
-$("date").value = todayISO();
-$("date").addEventListener("change", loadDay);
-$("prev-day").addEventListener("click", () => shiftDay(-1));
-$("next-day").addEventListener("click", () => shiftDay(1));
+function init() {
+  $("logout").addEventListener("click", async () => {
+    await sb.auth.signOut();
+    location.href = "index.html";
+  });
+  $("date").value = todayISO();
+  $("date").addEventListener("change", loadDay);
+  $("prev-day").addEventListener("click", () => shiftDay(-1));
+  $("next-day").addEventListener("click", () => shiftDay(1));
+  loadDay();
+}
 
 function shiftDay(delta) {
   const d = new Date($("date").value + "T00:00:00");
@@ -80,7 +50,6 @@ async function loadDay() {
   const season = seasonOf(date);
   $("season-tag").textContent = season === "ete" ? "☀️ Été" : "❄️ Hiver";
 
-  // Courts jouables cette saison
   const seasonCol = season === "ete" ? "open_summer" : "open_winter";
   const { data: allCourts, error: cErr } = await sb
     .from("courts").select("*")
@@ -89,7 +58,6 @@ async function loadDay() {
   if (cErr) { alert("Erreur courts : " + cErr.message); return; }
   courts = allCourts;
 
-  // Réservations du jour
   const { data: bookings, error: bErr } = await sb
     .from("court_bookings").select("*")
     .eq("booking_date", date);
@@ -103,11 +71,9 @@ function drawGrid(date, bookings) {
   const hours = [];
   for (let h = HOUR_START; h < HOUR_END; h++) hours.push(h);
 
-  // colonnes : nom du court + une par heure
   grid.style.gridTemplateColumns = `minmax(84px,auto) repeat(${hours.length},1fr)`;
   grid.innerHTML = "";
 
-  // en-tête : coin vide + heures
   grid.appendChild(cell("", "cell head"));
   for (const h of hours) grid.appendChild(cell(pad(h) + "h", "cell colhead"));
 
@@ -121,7 +87,6 @@ function drawGrid(date, bookings) {
       const el = document.createElement("div");
       el.className = "cell slot";
       if (!b) {
-        el.textContent = "";
         el.addEventListener("click", () => book(court, date, h));
       } else if (b.created_by === me.id) {
         el.classList.add("mine");
