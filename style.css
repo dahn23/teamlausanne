@@ -126,7 +126,11 @@ body.public{background:#fff}
   text-transform:uppercase;color:var(--blue);background:#eef1fd;
   padding:4px 10px;border-radius:999px}
 .product.academie .product-tag{color:var(--fluo-ink);background:var(--fluo)}
-.product h2{font-size:1.9rem;margin:8px 0 10px;color:var(--blue-ink)}
+.product h2{font-size:1.9rem;margin:8px 0 6px;color:var(--blue-ink)}
+.product-slogan{font-family:"Arial Black",system-ui,sans-serif;font-style:italic;
+  text-transform:uppercase;letter-spacing:-.3px;font-size:1.15rem;
+  color:var(--blue);margin:0 0 12px}
+.product.academie .product-slogan{color:var(--fluo-ink)}
 .product .lead{color:var(--muted);font-size:1.05rem;margin:0;max-width:620px}
 .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .feature{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
