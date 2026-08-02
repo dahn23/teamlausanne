@@ -206,6 +206,20 @@
         <label class="check"><input id="p-active" type="checkbox" checked /> Actif</label>
       </div>
       <label>Notes<textarea id="p-notes" rows="2"></textarea></label>
+
+      <div id="family-section" class="fam-section hidden">
+        <h3 class="fam-title">Liens familiaux (parent ↔ junior)</h3>
+        <div id="family-list" class="fam-list"></div>
+        <div class="fam-add">
+          <select id="fam-dir">
+            <option value="child">Cette personne est le parent/tuteur de →</option>
+            <option value="guardian">Cette personne est l'enfant de ←</option>
+          </select>
+          <select id="fam-person"></select>
+          <button type="button" id="fam-add-btn">Lier</button>
+        </div>
+      </div>
+
       <div class="form-foot">
         <button type="button" id="delete-person" class="danger hidden">Supprimer</button>
         <button type="button" id="invite-person" class="ghost hidden">✉️ Inviter par email</button>

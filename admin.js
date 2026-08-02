@@ -60,6 +60,7 @@ async function init(roles) {
   $("person-form").addEventListener("submit", savePerson);
   $("delete-person").addEventListener("click", deletePerson);
   $("invite-person").addEventListener("click", invitePerson);
+  $("fam-add-btn").addEventListener("click", addFamily);
   $("search").addEventListener("input", renderRows);
   document.querySelectorAll(".side-item[data-view]").forEach((b) =>
     b.addEventListener("click", () => showView(b.dataset.view)));
@@ -585,7 +586,48 @@ function openPerson(p) {
   $("p-bexio").value = p?.bexio_contact_id || "";
   $("p-active").checked = p ? p.is_active : true;
   $("p-notes").value = p?.notes || "";
+  $("family-section").classList.toggle("hidden", !p);
+  if (p) { populateFamPersons(p.id); loadFamily(p.id); }
   $("person-modal").classList.remove("hidden");
+}
+
+function populateFamPersons(selfId) {
+  $("fam-person").innerHTML = '<option value="">— Choisir une personne —</option>' +
+    people.filter((x) => x.id !== selfId).map((x) =>
+      `<option value="${x.id}">${esc(x.last_name)} ${esc(x.first_name)}</option>`).join("");
+}
+
+async function loadFamily(id) {
+  const { data } = await sb.from("guardianships").select("*").or(`guardian_id.eq.${id},child_id.eq.${id}`);
+  const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : "—"; };
+  const rows = data || [];
+  $("family-list").innerHTML = rows.length ? rows.map((g) => {
+    const isParent = g.guardian_id === id;
+    const other = isParent ? g.child_id : g.guardian_id;
+    const label = isParent ? `👨‍👧 Enfant : ${nameOf(other)}` : `🧑 Parent/tuteur : ${nameOf(other)}`;
+    return `<div class="fam-item"><span>${label}</span><button type="button" class="fam-del" data-g="${g.guardian_id}" data-c="${g.child_id}">✕</button></div>`;
+  }).join("") : '<p class="muted" style="font-size:.85rem;margin:0">Aucun lien.</p>';
+  $("family-list").querySelectorAll(".fam-del").forEach((b) =>
+    b.addEventListener("click", () => removeFamily(b.dataset.g, b.dataset.c, id)));
+}
+
+async function addFamily() {
+  const id = $("p-id").value;
+  if (!id) { alert("Enregistrez d'abord la fiche."); return; }
+  const other = $("fam-person").value;
+  if (!other) return;
+  const row = $("fam-dir").value === "child"
+    ? { guardian_id: id, child_id: other, relation: "parent" }
+    : { guardian_id: other, child_id: id, relation: "parent" };
+  const { error } = await sb.from("guardianships").insert(row);
+  if (error) { alert("Lien impossible : " + (error.code === "23505" ? "ce lien existe déjà." : error.message)); return; }
+  $("fam-person").value = "";
+  loadFamily(id);
+}
+
+async function removeFamily(g, c, id) {
+  await sb.from("guardianships").delete().eq("guardian_id", g).eq("child_id", c);
+  loadFamily(id);
 }
 
 function closePerson() { $("person-modal").classList.add("hidden"); }
