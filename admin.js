@@ -825,17 +825,13 @@ async function loadBookmarklet() {
 }
 
 async function loadTournaments() {
-  const [{ data: tournaments }, { data: entries }, { data: seasons }] = await Promise.all([
+  const [{ data: tournaments }, { data: cnts }, { data: seasons }] = await Promise.all([
     sb.from("gz_tournaments").select("*").order("tournament_date", { ascending: true, nullsFirst: false }),
-    sb.from("gz_entries").select("tournament_id,participant_id,confirmed"),
+    sb.from("gz_tournament_counts").select("tournament_id,inscrits,selectionnes"),
     sb.from("gz_seasons").select("id,name,start_date,end_date").order("start_date", { ascending: false }),
   ]);
   const counts = {};
-  for (const e of entries || []) {
-    const c = counts[e.tournament_id] || (counts[e.tournament_id] = { p: new Set(), s: new Set() });
-    c.p.add(e.participant_id);
-    if (e.confirmed) c.s.add(e.participant_id);
-  }
+  for (const c of cnts || []) counts[c.tournament_id] = { p: c.inscrits, s: c.selectionnes };
   const rows = tournaments || [];
   $("gz-tourn-count").textContent = rows.length ? `${rows.length} tournoi(s)` : "";
   const seasonName = {};
@@ -855,10 +851,10 @@ async function loadTournaments() {
     html += `<h3 class="gz-season-h">${sid === "none" ? "Hors saison" : esc(seasonName[sid] || "—")} <span class="muted" style="font-weight:400">(${g.length})</span></h3>`;
     html += `<div class="table-wrap" style="margin-bottom:16px"><table class="crm-table"><thead><tr><th>Tournoi</th><th>Date</th><th>Statut</th><th>Inscrits</th><th>Sélect.</th></tr></thead><tbody>`;
     for (const t of g) {
-      const c = counts[t.id] || { p: new Set(), s: new Set() };
+      const c = counts[t.id] || { p: 0, s: 0 };
       const drawn = /peuvent être joués|visibles au public/i.test((t.status || "") + JSON.stringify(t.epreuves || ""));
       const badge = t.is_gamezone ? '<span class="gz-badge">GameZone</span>' : '<span class="gz-badge off">autre</span>';
-      html += `<tr><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date || "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✅" : ""}</td><td>${c.p.size}</td><td>${c.s.size}</td></tr>`;
+      html += `<tr><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date || "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✅" : ""}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
     }
     html += "</tbody></table></div>";
   }
