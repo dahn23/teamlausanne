@@ -21,6 +21,7 @@
     <div class="admin-body">
       <aside class="side">
         <button class="side-item active" data-view="membres">👥 Membres</button>
+        <button class="side-item" data-view="roles">🔐 Rôles & accès</button>
         <button class="side-item" data-view="resa">🗓️ Réservations</button>
         <button class="side-item" data-view="stats">📊 Statistiques</button>
         <button class="side-item" data-view="reglages">⚙️ Réglages</button>
@@ -94,6 +95,30 @@
           <div class="rg-foot">
             <button id="rg-save">Enregistrer les réglages</button>
             <span id="rg-status" class="muted"></span>
+          </div>
+        </div>
+
+        <!-- ---- Vue Rôles & accès ---- -->
+        <div id="view-roles" class="view hidden">
+          <h1>Rôles & accès</h1>
+          <div class="rg-card">
+            <h2>Accès des onglets par rôle</h2>
+            <p class="muted" style="font-size:.88rem;margin-top:0">Cochez les onglets accessibles à chaque rôle.</p>
+            <div id="access-matrix"></div>
+            <div class="rg-foot">
+              <button id="access-save">Enregistrer les accès</button>
+              <span id="access-status" class="muted"></span>
+            </div>
+          </div>
+          <div class="rg-card">
+            <h2>Comptes & rôles</h2>
+            <p class="muted" style="font-size:.88rem;margin-top:0">Attribuez des rôles aux comptes existants. La création de comptes pour les membres viendra ensuite.</p>
+            <div class="table-wrap">
+              <table class="crm-table">
+                <thead><tr><th>Compte</th><th>Rôles attribués</th></tr></thead>
+                <tbody id="accounts-rows"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 

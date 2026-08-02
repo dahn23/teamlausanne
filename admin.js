@@ -23,19 +23,26 @@ if (session) {
 
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
-const TAB_ACCESS = {
-  membres:  ["superadmin", "admin", "secretaire"],
-  resa:     ["superadmin", "admin", "secretaire", "head_coach", "coach"],
-  stats:    ["superadmin", "admin", "secretaire"],
-  reglages: ["superadmin", "admin"],
+const DEFAULT_TAB_ACCESS = {
+  superadmin: ["membres", "resa", "stats", "reglages", "roles"],
+  admin:      ["membres", "resa", "stats", "reglages", "roles"],
+  secretaire: ["membres", "resa", "stats"],
+  head_coach: ["resa"],
+  coach:      ["resa"],
 };
+const ADMIN_TABS = [["membres", "Membres"], ["resa", "Réservations"], ["stats", "Statistiques"], ["reglages", "Réglages"], ["roles", "Rôles & accès"]];
+const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"]];
+const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "membre"];
+
+const tabAccessMap = () => settings.tab_access || DEFAULT_TAB_ACCESS;
 
 function applyTabAccess(roles) {
+  const access = tabAccessMap();
   let first = null;
   document.querySelectorAll(".side-item[data-view]").forEach((b) => {
     const v = b.dataset.view;
     if (v === "bientot") return;
-    const allowed = (TAB_ACCESS[v] || []).some((r) => roles.includes(r));
+    const allowed = roles.some((r) => (access[r] || []).includes(v));
     b.classList.toggle("hidden", !allowed);
     if (allowed && !first) first = v;
   });
@@ -43,7 +50,6 @@ function applyTabAccess(roles) {
 }
 
 async function init(roles) {
-  applyTabAccess(roles);
   $("logout").addEventListener("click", async () => {
     await sb.auth.signOut();
     location.href = "index.html";
@@ -57,10 +63,12 @@ async function init(roles) {
   document.querySelectorAll(".side-item[data-view]").forEach((b) =>
     b.addEventListener("click", () => showView(b.dataset.view)));
   $("rg-save").addEventListener("click", saveSettings);
-  loadPeople();
   await loadSettings();
+  applyTabAccess(roles);
+  loadPeople();
   initResa();
   initStats();
+  initRoles();
 }
 
 // ---- Bascule de vues ----
@@ -472,6 +480,55 @@ function barsFrom(rows, suffix) {
     `<div class="bar-row"><span class="bar-label">${label}</span>
       <div class="bar"><div class="bar-fill" style="width:${Math.round(Number(val) / max * 100)}%"></div></div>
       <span class="bar-val">${val}${suffix}</span></div>`).join("");
+}
+
+// ===================================================================
+//  Rôles & accès
+// ===================================================================
+function initRoles() {
+  renderAccessMatrix();
+  $("access-save").addEventListener("click", saveAccess);
+  loadAccounts();
+}
+
+function renderAccessMatrix() {
+  const access = tabAccessMap();
+  let html = '<table class="crm-table"><thead><tr><th>Rôle</th>' +
+    ADMIN_TABS.map(([, l]) => `<th>${l}</th>`).join("") + "</tr></thead><tbody>";
+  for (const [rk, rl] of ROLE_LIST) {
+    html += `<tr><td>${rl}</td>` + ADMIN_TABS.map(([tk]) =>
+      `<td style="text-align:center"><input type="checkbox" class="acc" data-role="${rk}" data-tab="${tk}" ${(access[rk] || []).includes(tk) ? "checked" : ""} /></td>`).join("") + "</tr>";
+  }
+  $("access-matrix").innerHTML = html + "</tbody></table>";
+}
+
+async function saveAccess() {
+  const map = {};
+  for (const [rk] of ROLE_LIST) map[rk] = [];
+  document.querySelectorAll(".acc:checked").forEach((c) => map[c.dataset.role].push(c.dataset.tab));
+  $("access-status").textContent = "Enregistrement…";
+  const { error } = await sb.from("app_settings").upsert({ key: "tab_access", value: map }, { onConflict: "key" });
+  if (error) { $("access-status").textContent = "Erreur : " + error.message; return; }
+  settings.tab_access = map;
+  $("access-status").textContent = "✓ Accès enregistrés (effectif à la prochaine connexion des utilisateurs)";
+}
+
+async function loadAccounts() {
+  const { data, error } = await sb.rpc("list_accounts");
+  if (error) { $("accounts-rows").innerHTML = `<tr><td colspan="2" class="muted">${esc(error.message)}</td></tr>`; return; }
+  $("accounts-rows").innerHTML = (data || []).map((a) => {
+    const label = a.person_name ? `${a.person_name} · ${a.email}` : a.email;
+    const chips = ASSIGNABLE_ROLES.map((r) =>
+      `<label class="role-chip"><input type="checkbox" data-uid="${a.user_id}" data-role="${r}" ${(a.roles || []).includes(r) ? "checked" : ""} /> ${r}</label>`).join("");
+    return `<tr><td>${esc(label)}</td><td class="role-cell">${chips}</td></tr>`;
+  }).join("");
+  $("accounts-rows").querySelectorAll("input[type=checkbox]").forEach((c) =>
+    c.addEventListener("change", () => toggleRole(c)));
+}
+
+async function toggleRole(c) {
+  const { error } = await sb.rpc("set_user_role", { target: c.dataset.uid, r: c.dataset.role, enabled: c.checked });
+  if (error) { alert("Erreur : " + error.message); c.checked = !c.checked; }
 }
 
 async function loadPeople() {

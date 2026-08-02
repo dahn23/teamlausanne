@@ -123,6 +123,11 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .st-highlight b{font-size:1.6rem;font-style:italic;color:var(--blue)}
 .st-highlight span{color:var(--muted)}
 
+/* ---- Rôles & accès ---- */
+.role-cell{display:flex;flex-wrap:wrap;gap:6px 12px}
+.role-chip{display:inline-flex;align-items:center;gap:5px;font-size:.85rem;color:var(--ink);cursor:pointer}
+#access-matrix .crm-table td:first-child{font-weight:600;color:var(--blue-ink)}
+
 /* =====================================================================
    SITE DYNAMIQUE — 3 mondes (Club · Académie · Tournoi)
    ===================================================================== */
