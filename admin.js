@@ -74,7 +74,7 @@ async function init(roles) {
   initStats();
   initRoles();
   initCours(roles);
-  initGameZone();
+  initGameZone(roles);
 }
 
 // ---- Bascule de vues ----
@@ -786,7 +786,18 @@ async function markAtt(personId, status, isCoach) {
 // ===================================================================
 //  GameZone — saisons + catégories de tarifs (Phase 1)
 // ===================================================================
-function initGameZone() {
+let gzRoles = [], gzPersonId = null, gzIsOfficial = false;
+
+async function initGameZone(roles) {
+  gzRoles = roles || [];
+  gzIsOfficial = gzRoles.some((r) => ["superadmin", "admin", "organisateur"].includes(r));
+  const { data: prof } = await sb.from("profiles").select("person_id").eq("user_id", meId).maybeSingle();
+  gzPersonId = prof?.person_id || null;
+  if (!gzIsOfficial) {
+    document.querySelector('#view-gamezone .subtab[data-sub="reglages"]')?.classList.add("hidden");
+    $("gz-bm-card")?.classList.add("hidden");
+    $("gz-official-box")?.classList.add("hidden");
+  }
   $("gz-season-new").addEventListener("click", createSeason);
   $("gz-cat-new").addEventListener("click", createCat);
   document.querySelectorAll("#view-gamezone .subtab").forEach((b) =>
@@ -795,8 +806,8 @@ function initGameZone() {
       $("gz-sub-tournois").classList.toggle("hidden", b.dataset.sub !== "tournois");
       $("gz-sub-reglages").classList.toggle("hidden", b.dataset.sub !== "reglages");
     }));
-  $("gz-mgr-close").addEventListener("click", () => $("gz-mgr-modal").classList.add("hidden"));
-  $("gz-mgr-modal").addEventListener("click", (e) => { if (e.target === $("gz-mgr-modal")) $("gz-mgr-modal").classList.add("hidden"); });
+  $("gz-detail-back").addEventListener("click", closeDetail);
+  $("gz-resp-add").addEventListener("click", addResponsable);
   $("gz-mgr-cat").addEventListener("change", async () => {
     await sb.from("gz_tournaments").update({ price_category_id: $("gz-mgr-cat").value || null }).eq("id", mgrTid);
     renderMgr();
@@ -848,7 +859,12 @@ async function loadTournaments() {
   ]);
   const counts = {};
   for (const c of cnts || []) counts[c.tournament_id] = { p: c.inscrits, s: c.selectionnes };
-  const rows = tournaments || [];
+  let rows = tournaments || [];
+  if (!gzIsOfficial) {
+    const { data: mine } = await sb.from("gz_managers").select("tournament_id").eq("person_id", gzPersonId);
+    const allowed = new Set((mine || []).map((m) => m.tournament_id));
+    rows = rows.filter((t) => allowed.has(t.id) && t.status !== "Clôturé");
+  }
   $("gz-tourn-count").textContent = rows.length ? `${rows.length} tournoi(s)` : "";
   const seasonName = {};
   for (const s of seasons || []) seasonName[s.id] = s.name;
@@ -910,7 +926,41 @@ async function openTournamentMgr(tid) {
   }
   $("gz-close-status").textContent = "";
   await loadFinances(tid);
-  $("gz-mgr-modal").classList.remove("hidden");
+  if (gzIsOfficial) loadResponsables(tid);
+  $("gz-list-wrap").classList.add("hidden");
+  $("gz-detail").classList.remove("hidden");
+  window.scrollTo(0, 0);
+}
+
+function closeDetail() {
+  $("gz-detail").classList.add("hidden");
+  $("gz-list-wrap").classList.remove("hidden");
+  loadTournaments();
+}
+
+async function loadResponsables(tid) {
+  const { data: mgrs } = await sb.from("gz_managers").select("person_id").eq("tournament_id", tid);
+  const ids = (mgrs || []).map((m) => m.person_id);
+  const named = ids.length ? (await sb.from("people").select("id,first_name,last_name").in("id", ids)).data || [] : [];
+  $("gz-resp-list").innerHTML = named.length
+    ? named.map((p) => `<span class="gz-badge" style="background:var(--fluo-d);color:var(--fluo-ink)">${esc(p.last_name)} ${esc(p.first_name)} <b class="gz-resp-del" data-id="${p.id}" style="cursor:pointer">×</b></span>`).join(" ")
+    : '<span class="muted" style="font-size:.85rem">Aucun responsable nommé.</span>';
+  $("gz-resp-list").querySelectorAll(".gz-resp-del").forEach((b) =>
+    b.addEventListener("click", async () => { await sb.from("gz_managers").delete().eq("tournament_id", tid).eq("person_id", b.dataset.id); loadResponsables(tid); loadFinances(tid); }));
+  // liste des personnes (staff) à nommer
+  if (!$("gz-resp-select").dataset.loaded) {
+    const opts = people.filter((p) => p.id).map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
+    $("gz-resp-select").innerHTML = '<option value="">— choisir une personne —</option>' + opts;
+    $("gz-resp-select").dataset.loaded = "1";
+  }
+}
+
+async function addResponsable() {
+  const pid = $("gz-resp-select").value;
+  if (!pid) return;
+  await sb.from("gz_managers").insert({ tournament_id: mgrTid, person_id: pid });
+  $("gz-resp-select").value = "";
+  loadResponsables(mgrTid); loadFinances(mgrTid);
 }
 
 function priceOpts() {
@@ -1096,7 +1146,7 @@ async function closeTournament() {
   await sb.from("gz_caisse").update({ closed: true, closed_at: new Date().toISOString() }).eq("tournament_id", mgrTid);
   await sb.from("gz_tournaments").update({ status: "Clôturé" }).eq("id", mgrTid);
   $("gz-close-status").textContent = "✓ Tournoi clôturé.";
-  loadTournaments();
+  setTimeout(closeDetail, 1400);
 }
 
 async function loadSeasons() {

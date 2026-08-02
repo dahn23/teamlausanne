@@ -178,20 +178,86 @@
 
           <!-- Sous-onglet Tournois -->
           <div id="gz-sub-tournois" class="gz-sub">
-            <div class="crm-head" style="margin-bottom:6px">
-              <h2 style="margin:0">Tournois</h2>
-              <span id="gz-tourn-count" class="muted"></span>
+            <!-- Liste des tournois -->
+            <div id="gz-list-wrap">
+              <div class="crm-head" style="margin-bottom:6px">
+                <h2 style="margin:0">Tournois</h2>
+                <span id="gz-tourn-count" class="muted"></span>
+              </div>
+              <div id="gz-tournaments-groups"></div>
+              <div id="gz-bm-card" class="rg-card" style="margin-top:18px">
+                <h2 style="margin-top:0">Import « 1 clic » (bookmarklet)</h2>
+                <ol class="muted" style="font-size:.9rem;line-height:1.7;padding-left:18px">
+                  <li>Glissez ce bouton dans votre barre de favoris : <span id="gz-bm-holder"></span></li>
+                  <li>Connectez-vous sur Swiss Tennis, ouvrez votre <b>liste de tournois</b>.</li>
+                  <li>Cliquez le favori → une petite fenêtre importe tout automatiquement.</li>
+                </ol>
+                <p id="gz-bm-note" class="muted" style="font-size:.82rem"></p>
+              </div>
             </div>
-            <div id="gz-tournaments-groups"></div>
 
-            <div class="rg-card" style="margin-top:18px">
-              <h2 style="margin-top:0">Import « 1 clic » (bookmarklet)</h2>
-              <ol class="muted" style="font-size:.9rem;line-height:1.7;padding-left:18px">
-                <li>Glissez ce bouton dans votre barre de favoris : <span id="gz-bm-holder"></span></li>
-                <li>Connectez-vous sur Swiss Tennis, ouvrez votre <b>liste de tournois</b>.</li>
-                <li>Cliquez le favori → une petite fenêtre importe tout automatiquement.</li>
-              </ol>
-              <p id="gz-bm-note" class="muted" style="font-size:.82rem"></p>
+            <!-- Page de détail d'un tournoi (in-page) -->
+            <div id="gz-detail" class="hidden">
+              <button type="button" id="gz-detail-back" class="ghost">← Retour aux tournois</button>
+              <h2 id="gz-mgr-title" style="margin:8px 0 12px">Gérer le tournoi</h2>
+
+              <div id="gz-official-box" class="rg-card">
+                <h3 style="margin-top:0">Réglages (official)</h3>
+                <div class="rg-row">
+                  <label>Catégorie de tarifs<select id="gz-mgr-cat"></select></label>
+                  <label class="rg-check" style="align-self:flex-end"><input type="checkbox" id="gz-mgr-gz" /> Compte comme GameZone</label>
+                </div>
+                <div style="margin-top:10px">
+                  <label style="font-size:.88rem;color:var(--muted)">Responsables du tournoi</label>
+                  <div id="gz-resp-list" class="role-cell" style="margin-top:6px"></div>
+                  <div class="gz-add-row">
+                    <select id="gz-resp-select"></select>
+                    <button type="button" id="gz-resp-add">Nommer responsable</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-wrap">
+                <table class="crm-table gz-mgr-table">
+                  <thead><tr><th>Joueur</th><th>Infos</th><th>Absent</th><th>Paiement</th><th>Méthode</th><th>Gagnant</th></tr></thead>
+                  <tbody id="gz-mgr-players"></tbody>
+                </table>
+              </div>
+              <div id="gz-mgr-totals" class="gz-totals"></div>
+
+              <div class="gz-mgr-sections">
+                <div class="gz-mgr-sec">
+                  <h3>Paiements additionnels</h3>
+                  <div id="gz-pay-list"></div>
+                  <div class="gz-add-row">
+                    <input id="gz-pay-label" placeholder="Libellé (ex. don, buvette…)" />
+                    <input id="gz-pay-amount" type="number" placeholder="Montant" style="width:100px" />
+                    <select id="gz-pay-method"><option value="cash">cash</option><option value="twint">twint</option><option value="carte">carte</option></select>
+                    <button type="button" id="gz-pay-add">Ajouter</button>
+                  </div>
+                </div>
+                <div class="gz-mgr-sec">
+                  <h3>Salaires (pris en cash)</h3>
+                  <div id="gz-sal-list"></div>
+                  <div class="gz-add-row">
+                    <select id="gz-sal-person"></select>
+                    <input id="gz-sal-amount" type="number" placeholder="Montant" style="width:100px" />
+                    <button type="button" id="gz-sal-add">Ajouter</button>
+                  </div>
+                </div>
+                <div class="gz-mgr-sec">
+                  <h3>Caisse (cash au secrétariat)</h3>
+                  <div class="rg-row">
+                    <label>Fonds de caisse au début<input id="gz-caisse-start" type="number" /></label>
+                    <label>Montant compté à la fin<input id="gz-caisse-counted" type="number" /></label>
+                  </div>
+                  <p id="gz-caisse-calc" class="muted" style="margin:8px 0 0"></p>
+                </div>
+                <div class="gz-mgr-foot">
+                  <button type="button" id="gz-close-tournament" class="btn-prod">Clôturer le tournoi</button>
+                  <span id="gz-close-status" class="muted"></span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -382,62 +448,6 @@
       <div id="att-children"></div>
       <h3 class="att-h">Coachs</h3>
       <div id="att-coaches"></div>
-    </div>
-  </div>
-
-  <!-- ---- GameZone : gestion d'un tournoi (responsable) ---- -->
-  <div id="gz-mgr-modal" class="modal hidden">
-    <div class="card wide" style="max-width:860px">
-      <button type="button" id="gz-mgr-close" class="modal-close" aria-label="Fermer">×</button>
-      <h2 id="gz-mgr-title">Gérer le tournoi</h2>
-      <div class="rg-row" style="margin-bottom:12px">
-        <label>Catégorie de tarifs<select id="gz-mgr-cat"></select></label>
-        <label class="rg-check" style="align-self:flex-end"><input type="checkbox" id="gz-mgr-gz" /> Compte comme GameZone</label>
-      </div>
-      <div class="table-wrap">
-        <table class="crm-table gz-mgr-table">
-          <thead><tr><th>Joueur</th><th>Infos</th><th>Absent</th><th>Paiement</th><th>Méthode</th><th>Gagnant</th></tr></thead>
-          <tbody id="gz-mgr-players"></tbody>
-        </table>
-      </div>
-      <div id="gz-mgr-totals" class="gz-totals"></div>
-
-      <div class="gz-mgr-sections">
-        <div class="gz-mgr-sec">
-          <h3>Paiements additionnels</h3>
-          <div id="gz-pay-list"></div>
-          <div class="gz-add-row">
-            <input id="gz-pay-label" placeholder="Libellé (ex. don, buvette…)" />
-            <input id="gz-pay-amount" type="number" placeholder="Montant" style="width:100px" />
-            <select id="gz-pay-method"><option value="cash">cash</option><option value="twint">twint</option><option value="carte">carte</option></select>
-            <button type="button" id="gz-pay-add">Ajouter</button>
-          </div>
-        </div>
-
-        <div class="gz-mgr-sec">
-          <h3>Salaires (pris en cash)</h3>
-          <div id="gz-sal-list"></div>
-          <div class="gz-add-row">
-            <select id="gz-sal-person"></select>
-            <input id="gz-sal-amount" type="number" placeholder="Montant" style="width:100px" />
-            <button type="button" id="gz-sal-add">Ajouter</button>
-          </div>
-        </div>
-
-        <div class="gz-mgr-sec">
-          <h3>Caisse (cash au secrétariat)</h3>
-          <div class="rg-row">
-            <label>Fonds de caisse au début<input id="gz-caisse-start" type="number" /></label>
-            <label>Montant compté à la fin<input id="gz-caisse-counted" type="number" /></label>
-          </div>
-          <p id="gz-caisse-calc" class="muted" style="margin:8px 0 0"></p>
-        </div>
-
-        <div class="gz-mgr-foot">
-          <button type="button" id="gz-close-tournament" class="btn-prod">Clôturer le tournoi</button>
-          <span id="gz-close-status" class="muted"></span>
-        </div>
-      </div>
     </div>
   </div>
 
