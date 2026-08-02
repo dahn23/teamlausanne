@@ -828,7 +828,7 @@ async function loadTournaments() {
   const [{ data: tournaments }, { data: entries }, { data: seasons }] = await Promise.all([
     sb.from("gz_tournaments").select("*").order("tournament_date", { ascending: true, nullsFirst: false }),
     sb.from("gz_entries").select("tournament_id,participant_id,confirmed"),
-    sb.from("gz_seasons").select("id,name,start_date").order("start_date", { ascending: false }),
+    sb.from("gz_seasons").select("id,name,start_date,end_date").order("start_date", { ascending: false }),
   ]);
   const counts = {};
   for (const e of entries || []) {
