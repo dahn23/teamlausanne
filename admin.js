@@ -834,8 +834,67 @@ async function deleteCourse() {
   loadCoursesDay();
 }
 
-function copyWeek() {
-  alert("Copie de la semaine de cours : je la branche à l'étape suivante.");
+const mondayOf = (iso) => { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoA(d); };
+const addDays = (iso, n) => { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + n); return isoA(d); };
+
+async function copyWeek() {
+  const srcMon = mondayOf($("cs-date").value);
+  const srcEnd = addDays(srcMon, 6);
+  const suggestion = addDays(srcMon, 7);
+  const target = prompt(`Copier TOUS les cours de la semaine du ${srcMon} vers quelle semaine ?\nEntrez une date de la semaine cible (AAAA-MM-JJ) :`, suggestion);
+  if (!target) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(target)) { alert("Date invalide (format AAAA-MM-JJ)."); return; }
+  const tgtMon = mondayOf(target);
+  const offset = Math.round((new Date(tgtMon) - new Date(srcMon)) / 86400000);
+  if (offset === 0) { alert("C'est la même semaine."); return; }
+
+  const { data: courses } = await sb.from("courses").select("*").gte("course_date", srcMon).lte("course_date", srcEnd);
+  if (!courses || !courses.length) { alert("Aucun cours dans cette semaine."); return; }
+  const ids = courses.map((c) => c.id);
+  const [books, coaches, parts] = await Promise.all([
+    sb.from("court_bookings").select("course_id,court_id").in("course_id", ids).then((r) => r.data || []),
+    sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", ids).then((r) => r.data || []),
+    sb.from("course_participants").select("course_id,child_person_id").in("course_id", ids).then((r) => r.data || []),
+  ]);
+
+  // Pass 1 : détecter les conflits (aucune écriture)
+  const toCreate = [], conflicts = [];
+  for (const c of courses) {
+    const newDate = addDays(c.course_date, offset);
+    const courts = books.filter((b) => b.course_id === c.id).map((b) => b.court_id);
+    const { data: clash } = await sb.from("court_bookings").select("court_id")
+      .eq("booking_date", newDate).in("court_id", courts)
+      .lt("start_time", c.end_time).gt("end_time", c.start_time);
+    if (clash && clash.length) conflicts.push(`${newDate} ${c.start_time.slice(0, 5)} — ${c.title || "cours"}`);
+    else toCreate.push({ c, newDate, courts });
+  }
+
+  // Avertissement AVANT toute écriture
+  let msg = `Semaine cible : ${tgtMon}.\n${toCreate.length} cours à copier.`;
+  if (conflicts.length) msg += `\n\n⚠️ ${conflicts.length} cours en CONFLIT (ignorés, rien ne sera écrasé) :\n` + conflicts.join("\n");
+  if (!toCreate.length) { alert(msg + "\n\nRien à copier."); return; }
+  if (!confirm(msg + "\n\nContinuer ?")) return;
+
+  // Pass 2 : créer les cours sans conflit
+  let created = 0;
+  for (const { c, newDate, courts } of toCreate) {
+    const { data: nc } = await sb.from("courses").insert({
+      course_type_id: c.course_type_id, title: c.title, course_date: newDate,
+      start_time: c.start_time, end_time: c.end_time, color: c.color, created_by: meId,
+    }).select("id").single();
+    if (!nc) continue;
+    for (const court of courts) await sb.from("court_bookings").insert({
+      court_id: court, booking_date: newDate, start_time: c.start_time, end_time: c.end_time,
+      kind: "cours", title: c.title || "Cours", color: c.color, created_by: meId, course_id: nc.id,
+    });
+    const cs = coaches.filter((x) => x.course_id === c.id).map((x) => ({ course_id: nc.id, coach_person_id: x.coach_person_id }));
+    if (cs.length) await sb.from("course_coaches").insert(cs);
+    const ps = parts.filter((x) => x.course_id === c.id).map((x) => ({ course_id: nc.id, child_person_id: x.child_person_id }));
+    if (ps.length) await sb.from("course_participants").insert(ps);
+    created++;
+  }
+  alert(`✓ ${created} cours copiés vers la semaine du ${tgtMon}.` + (conflicts.length ? `\n${conflicts.length} ignoré(s) pour conflit.` : ""));
+  loadCoursesDay();
 }
 function failC(el, msg) { el.textContent = msg; el.hidden = false; }
 
