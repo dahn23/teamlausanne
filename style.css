@@ -149,6 +149,7 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .gz-badge{display:inline-block;font-size:.66rem;font-weight:800;text-transform:uppercase;
   letter-spacing:.4px;background:var(--blue);color:#fff;padding:2px 7px;border-radius:999px;vertical-align:1px}
 .gz-badge.off{background:#c9ccd6;color:#42474f}
+.gz-total td{font-weight:800;color:var(--blue-ink);background:#eef1f7;border-top:2px solid var(--line)}
 
 /* ---- Cours ---- */
 .ct-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}

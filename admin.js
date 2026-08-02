@@ -826,7 +826,7 @@ async function loadBookmarklet() {
 
 async function loadTournaments() {
   const [{ data: tournaments }, { data: cnts }, { data: seasons }] = await Promise.all([
-    sb.from("gz_tournaments").select("*").order("tournament_date", { ascending: true, nullsFirst: false }),
+    sb.from("gz_tournaments").select("*").order("tournament_date", { ascending: false, nullsFirst: false }),
     sb.from("gz_tournament_counts").select("tournament_id,inscrits,selectionnes"),
     sb.from("gz_seasons").select("id,name,start_date,end_date").order("start_date", { ascending: false }),
   ]);
@@ -850,12 +850,15 @@ async function loadTournaments() {
     if (!g || !g.length) continue;
     html += `<h3 class="gz-season-h">${sid === "none" ? "Hors saison" : esc(seasonName[sid] || "—")} <span class="muted" style="font-weight:400">(${g.length})</span></h3>`;
     html += `<div class="table-wrap" style="margin-bottom:16px"><table class="crm-table"><thead><tr><th>Tournoi</th><th>Date</th><th>Statut</th><th>Inscrits</th><th>Sélect.</th></tr></thead><tbody>`;
+    let ti = 0, ts = 0;
     for (const t of g) {
       const c = counts[t.id] || { p: 0, s: 0 };
+      ti += c.p; ts += c.s;
       const drawn = /peuvent être joués|visibles au public/i.test((t.status || "") + JSON.stringify(t.epreuves || ""));
       const badge = t.is_gamezone ? '<span class="gz-badge">GameZone</span>' : '<span class="gz-badge off">autre</span>';
       html += `<tr><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date || "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✅" : ""}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
     }
+    html += `<tr class="gz-total"><td colspan="3">Total — ${g.length} tournoi(s)</td><td>${ti}</td><td>${ts}</td></tr>`;
     html += "</tbody></table></div>";
   }
   $("gz-tournaments-groups").innerHTML = html || '<p class="muted">Aucun tournoi importé. Utilisez le bookmarklet ci-dessous.</p>';
