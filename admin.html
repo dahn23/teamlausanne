@@ -173,6 +173,7 @@
           <h1>GameZone</h1>
           <div class="subnav">
             <button class="subtab active" data-sub="tournois">Tournois</button>
+            <button class="subtab" data-sub="caisse">Caisse</button>
             <button class="subtab" data-sub="reglages">Réglages</button>
           </div>
 
@@ -248,7 +249,7 @@
                 <div class="gz-mgr-sec">
                   <h3>Caisse (cash au secrétariat)</h3>
                   <div class="rg-row">
-                    <label>Fonds de caisse au début<input id="gz-caisse-start" type="number" /></label>
+                    <label>Fonds de caisse au début (auto)<input id="gz-caisse-start" type="number" readonly style="background:#eef1f7" /></label>
                     <label>Montant compté à la fin<input id="gz-caisse-counted" type="number" /></label>
                   </div>
                   <p id="gz-caisse-calc" class="muted" style="margin:8px 0 0"></p>
@@ -281,6 +282,26 @@
                 <button id="gz-cat-new">+ Nouvelle catégorie</button>
               </div>
               <div id="gz-cats"></div>
+            </div>
+          </div>
+
+          <!-- Sous-onglet Caisse (admin) -->
+          <div id="gz-sub-caisse" class="gz-sub hidden">
+            <div class="rg-card">
+              <h2 style="margin-top:0">Caisse du secrétariat</h2>
+              <p class="muted" style="margin-top:0;font-size:.9rem">Solde de cash consolidé. Chaque tournoi clôturé y ajoute son mouvement de cash.</p>
+              <div id="gz-till-balance" class="gz-till-balance">—</div>
+              <div class="gz-add-row">
+                <input id="gz-mov-label" placeholder="Libellé (ex. dépôt banque, fond initial…)" />
+                <input id="gz-mov-amount" type="number" placeholder="Montant (+ / −)" style="width:140px" />
+                <button type="button" id="gz-mov-add">Ajouter un mouvement</button>
+              </div>
+              <div class="table-wrap" style="margin-top:12px">
+                <table class="crm-table">
+                  <thead><tr><th>Date</th><th>Libellé</th><th>Mouvement</th><th>Solde</th><th></th></tr></thead>
+                  <tbody id="gz-ledger-rows"></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

@@ -793,21 +793,24 @@ async function initGameZone(roles) {
   gzIsOfficial = gzRoles.some((r) => ["superadmin", "admin", "organisateur"].includes(r));
   const { data: prof } = await sb.from("profiles").select("person_id").eq("user_id", meId).maybeSingle();
   gzPersonId = prof?.person_id || null;
+  const gzIsAdmin = gzRoles.some((r) => ["superadmin", "admin"].includes(r));
   if (!gzIsOfficial) {
     document.querySelector('#view-gamezone .subtab[data-sub="reglages"]')?.classList.add("hidden");
     $("gz-bm-card")?.classList.add("hidden");
     $("gz-official-box")?.classList.add("hidden");
   }
+  if (!gzIsAdmin) document.querySelector('#view-gamezone .subtab[data-sub="caisse"]')?.classList.add("hidden");
   $("gz-season-new").addEventListener("click", createSeason);
   $("gz-cat-new").addEventListener("click", createCat);
   document.querySelectorAll("#view-gamezone .subtab").forEach((b) =>
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-gamezone .subtab").forEach((x) => x.classList.toggle("active", x === b));
-      $("gz-sub-tournois").classList.toggle("hidden", b.dataset.sub !== "tournois");
-      $("gz-sub-reglages").classList.toggle("hidden", b.dataset.sub !== "reglages");
+      document.querySelectorAll("#view-gamezone .gz-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "gz-sub-" + b.dataset.sub));
+      if (b.dataset.sub === "caisse") loadCaisseTab();
     }));
   $("gz-detail-back").addEventListener("click", closeDetail);
   $("gz-resp-add").addEventListener("click", addResponsable);
+  $("gz-mov-add").addEventListener("click", addMovement);
   $("gz-mgr-cat").addEventListener("change", async () => {
     await sb.from("gz_tournaments").update({ price_category_id: $("gz-mgr-cat").value || null }).eq("id", mgrTid);
     renderMgr();
@@ -905,6 +908,7 @@ async function openTournamentMgr(tid) {
   mgrTid = tid;
   const { data: t } = await sb.from("gz_tournaments").select("*").eq("id", tid).single();
   mgrIsGz = !!t.is_gamezone;
+  mgrTournamentName = t.name || "Tournoi";
   $("gz-mgr-title").textContent = `Gérer — ${t.name || "tournoi"} (${t.tournament_date || ""})`;
   $("gz-mgr-gz").checked = mgrIsGz;
   const { data: cats } = await sb.from("gz_price_categories").select("*").order("created_at");
@@ -1099,7 +1103,7 @@ function updateMgrTotals() {
 }
 
 // ---- Finances du tournoi : paiements, salaires, caisse, clôture ----
-let mgrPayments = [], mgrSalaries = [], mgrManagers = [], mgrCashPlayers = 0;
+let mgrPayments = [], mgrSalaries = [], mgrManagers = [], mgrCashPlayers = 0, mgrTillBalance = 0, mgrTournamentName = "";
 
 async function loadFinances(tid) {
   const [{ data: pays }, { data: sals }, { data: caisse }, { data: mgrs }] = await Promise.all([
@@ -1114,7 +1118,9 @@ async function loadFinances(tid) {
   $("gz-sal-person").innerHTML = '<option value="">— responsable —</option>' +
     mgrManagers.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("") +
     '<option value="autre">Autre (saisir)…</option>';
-  $("gz-caisse-start").value = caisse?.start_amount ?? "";
+  const { data: bal } = await sb.rpc("gz_till_balance");
+  mgrTillBalance = Number(bal) || 0;
+  $("gz-caisse-start").value = mgrTillBalance;
   $("gz-caisse-counted").value = caisse?.counted_amount ?? "";
   renderPayments(); renderSalaries(); computeCaisse();
 }
@@ -1192,11 +1198,39 @@ async function closeTournament() {
   if (mgrIsGz && winnersNoPhoto > 0) warn += `\n• ${winnersNoPhoto} vainqueur(s) sans photo.`;
   if (c.counted !== null && c.diff !== 0) warn += `\n• La caisse comptée ne correspond pas (écart ${c.diff > 0 ? "+" : ""}${c.diff} CHF).`;
   if (warn && !confirm("⚠️ Attention :" + warn + "\n\nClôturer le tournoi quand même ?")) return;
+  const { data: cz } = await sb.from("gz_caisse").select("closed").eq("tournament_id", mgrTid).maybeSingle();
   await saveCaisse();
+  if (!cz?.closed) {
+    await sb.from("gz_caisse_ledger").insert({ tournament_id: mgrTid, label: mgrTournamentName, amount: c.cashIn - c.cashOut, created_by: meId });
+  }
   await sb.from("gz_caisse").update({ closed: true, closed_at: new Date().toISOString() }).eq("tournament_id", mgrTid);
   await sb.from("gz_tournaments").update({ status: "Clôturé" }).eq("id", mgrTid);
   $("gz-close-status").textContent = "✓ Tournoi clôturé.";
   setTimeout(closeDetail, 1400);
+}
+
+// ---- Caisse transverse (grand livre) ----
+async function loadCaisseTab() {
+  const { data: led } = await sb.from("gz_caisse_ledger").select("*").order("created_at", { ascending: true });
+  const rows = led || [];
+  let run = 0;
+  const withRun = rows.map((r) => { run += Number(r.amount); return { ...r, run }; });
+  $("gz-till-balance").textContent = run + " CHF";
+  $("gz-ledger-rows").innerHTML = withRun.length ? withRun.slice().reverse().map((r) =>
+    `<tr><td>${(r.created_at || "").slice(0, 10)}</td><td>${esc(r.label || "—")}</td>
+      <td style="font-weight:700;color:${r.amount >= 0 ? "#0b6b3a" : "#b3261e"}">${r.amount >= 0 ? "+" : ""}${r.amount}</td>
+      <td>${r.run}</td><td><button type="button" class="fam-del gz-mov-del" data-id="${r.id}">✕</button></td></tr>`).join("")
+    : '<tr><td colspan="5" class="muted">Aucun mouvement.</td></tr>';
+  $("gz-ledger-rows").querySelectorAll(".gz-mov-del").forEach((b) =>
+    b.addEventListener("click", async () => { if (confirm("Supprimer ce mouvement de caisse ?")) { await sb.from("gz_caisse_ledger").delete().eq("id", b.dataset.id); loadCaisseTab(); } }));
+}
+
+async function addMovement() {
+  const amount = Number($("gz-mov-amount").value);
+  if (!amount) { alert("Montant requis (positif pour une entrée, négatif pour une sortie)."); return; }
+  await sb.from("gz_caisse_ledger").insert({ label: $("gz-mov-label").value.trim() || null, amount, created_by: meId });
+  $("gz-mov-label").value = ""; $("gz-mov-amount").value = "";
+  loadCaisseTab();
 }
 
 async function loadSeasons() {
