@@ -24,6 +24,7 @@
         <button class="side-item" data-view="roles">🔐 Rôles & accès</button>
         <button class="side-item" data-view="resa">🗓️ Réservations</button>
         <button class="side-item" data-view="cours">🎾 Cours</button>
+        <button class="side-item" data-view="gamezone">🏆 GameZone</button>
         <button class="side-item" data-view="stats">📊 Statistiques</button>
         <button class="side-item" data-view="reglages">⚙️ Réglages</button>
         <button class="side-item" data-view="bientot" disabled>💳 Finances (bientôt)</button>
@@ -165,6 +166,38 @@
             </div>
           </div>
           <div id="cs-list" class="cs-list"></div>
+        </div>
+
+        <!-- ---- Vue GameZone ---- -->
+        <div id="view-gamezone" class="view hidden">
+          <h1>GameZone</h1>
+          <p class="muted" style="margin-top:0">Tournois juniors : saisons, tarifs, import des inscrits, responsables.</p>
+
+          <div class="rg-card">
+            <div class="crm-head" style="margin-bottom:12px">
+              <h2 style="margin:0">Saisons</h2>
+              <button id="gz-season-new">+ Nouvelle saison</button>
+            </div>
+            <div class="table-wrap">
+              <table class="crm-table">
+                <thead><tr><th>Nom</th><th>Début</th><th>Fin</th><th>Semaines</th><th>Courante</th><th></th></tr></thead>
+                <tbody id="gz-seasons-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="rg-card">
+            <div class="crm-head" style="margin-bottom:12px">
+              <h2 style="margin:0">Catégories de tarifs</h2>
+              <button id="gz-cat-new">+ Nouvelle catégorie</button>
+            </div>
+            <div id="gz-cats"></div>
+          </div>
+
+          <div class="rg-card">
+            <h2 style="margin-top:0">Import des inscrits (bookmarklet)</h2>
+            <p class="muted" style="font-size:.9rem">Le suivi des inscrits se fera en 1 clic depuis Swiss Tennis. Le bookmarklet arrive à l'étape suivante.</p>
+          </div>
         </div>
 
         <!-- ---- Vue Statistiques ---- -->

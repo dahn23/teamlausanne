@@ -24,15 +24,17 @@ if (session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "roles", "resa", "cours", "stats", "reglages"],
-  admin:      ["membres", "roles", "resa", "cours", "stats", "reglages"],
+  superadmin: ["membres", "roles", "resa", "cours", "gamezone", "stats", "reglages"],
+  admin:      ["membres", "roles", "resa", "cours", "gamezone", "stats", "reglages"],
   secretaire: ["membres", "resa", "stats"],
   head_coach: ["resa", "cours"],
   coach:      ["resa", "cours"],
+  organisateur: ["gamezone"],
+  responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["stats", "Statistiques"], ["reglages", "Réglages"]];
-const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"]];
-const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "membre"];
+const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["gamezone", "GameZone"], ["stats", "Statistiques"], ["reglages", "Réglages"]];
+const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["organisateur", "Official"], ["responsable", "Responsable"]];
+const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "membre", "organisateur", "responsable"];
 
 const tabAccessMap = () => settings.tab_access || DEFAULT_TAB_ACCESS;
 
@@ -72,6 +74,7 @@ async function init(roles) {
   initStats();
   initRoles();
   initCours(roles);
+  initGameZone();
 }
 
 // ---- Bascule de vues ----
@@ -778,6 +781,114 @@ async function markAtt(personId, status, isCoach) {
   });
   if (error) { alert(error.message); return; }
   openAttendance(attCourse.id); // refresh
+}
+
+// ===================================================================
+//  GameZone — saisons + catégories de tarifs (Phase 1)
+// ===================================================================
+function initGameZone() {
+  $("gz-season-new").addEventListener("click", createSeason);
+  $("gz-cat-new").addEventListener("click", createCat);
+  loadSeasons();
+  loadCats();
+}
+
+async function loadSeasons() {
+  const { data } = await sb.from("gz_seasons").select("*").order("start_date", { ascending: false });
+  const rows = data || [];
+  $("gz-seasons-rows").innerHTML = rows.length ? rows.map((s) => {
+    const weeks = Math.round((new Date(s.end_date) - new Date(s.start_date)) / 86400000 / 7 * 10) / 10;
+    return `<tr>
+      <td>${esc(s.name)}</td><td>${s.start_date}</td><td>${s.end_date}</td><td>${weeks}</td>
+      <td>${s.is_current ? "✓ courante" : `<button class="ghost gz-set-cur" data-id="${s.id}">définir</button>`}</td>
+      <td><button class="fam-del gz-del-season" data-id="${s.id}">✕</button></td></tr>`;
+  }).join("") : '<tr><td colspan="6" class="muted">Aucune saison.</td></tr>';
+  $("gz-seasons-rows").querySelectorAll(".gz-set-cur").forEach((b) => b.addEventListener("click", () => setCurrentSeason(b.dataset.id)));
+  $("gz-seasons-rows").querySelectorAll(".gz-del-season").forEach((b) => b.addEventListener("click", () => delSeason(b.dataset.id)));
+}
+
+async function createSeason() {
+  const name = prompt("Nom de la saison (ex. GameZone 2025/26) :");
+  if (!name) return;
+  const start = prompt("Date de début (AAAA-MM-JJ) :");
+  if (!start || !/^\d{4}-\d{2}-\d{2}$/.test(start)) return alert("Date de début invalide.");
+  const end = prompt("Date de fin (AAAA-MM-JJ) :");
+  if (!end || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return alert("Date de fin invalide.");
+  const { error } = await sb.from("gz_seasons").insert({ name, start_date: start, end_date: end });
+  if (error) return alert(error.message);
+  loadSeasons();
+}
+
+async function setCurrentSeason(id) {
+  await sb.from("gz_seasons").update({ is_current: false }).neq("id", id);
+  await sb.from("gz_seasons").update({ is_current: true }).eq("id", id);
+  loadSeasons();
+}
+
+async function delSeason(id) {
+  if (!confirm("Supprimer cette saison ?")) return;
+  await sb.from("gz_seasons").delete().eq("id", id);
+  loadSeasons();
+}
+
+async function loadCats() {
+  const { data } = await sb.from("gz_price_categories").select("*").order("created_at");
+  $("gz-cats").innerHTML = (data || []).map(catCardHTML).join("") || '<p class="muted">Aucune catégorie.</p>';
+  document.querySelectorAll(".gz-cat").forEach(wireCatCard);
+}
+
+function catCardHTML(c) {
+  const prices = Array.isArray(c.prices) ? c.prices : [];
+  const rows = prices.map((p, i) => priceRowHTML(p.label, p.amount, i)).join("");
+  return `<div class="gz-cat rg-card" data-id="${c.id}" style="background:#f5f7fb">
+    <input class="gz-cat-name" value="${esc(c.name)}" style="font-weight:800;max-width:340px" />
+    <table class="crm-table" style="margin:10px 0"><thead><tr><th>Libellé du prix</th><th>Montant (CHF)</th><th></th></tr></thead>
+      <tbody class="gz-price-rows">${rows}</tbody></table>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="ghost gz-add-price">+ Prix</button>
+      <span class="spacer" style="flex:1"></span>
+      <button type="button" class="danger gz-del-cat">Supprimer</button>
+      <button type="button" class="gz-save-cat">Enregistrer</button>
+    </div></div>`;
+}
+function priceRowHTML(label, amount, i) {
+  return `<tr><td><input class="gz-plabel" value="${esc(label || "")}" /></td>
+    <td><input class="gz-pamount" type="number" min="0" value="${amount ?? 0}" style="width:90px" /></td>
+    <td><button type="button" class="fam-del gz-del-price">✕</button></td></tr>`;
+}
+function wireCatCard(card) {
+  card.querySelector(".gz-add-price").addEventListener("click", () => {
+    card.querySelector(".gz-price-rows").insertAdjacentHTML("beforeend", priceRowHTML("", 0));
+    card.querySelectorAll(".gz-del-price").forEach((b) => b.onclick = () => b.closest("tr").remove());
+  });
+  card.querySelectorAll(".gz-del-price").forEach((b) => b.onclick = () => b.closest("tr").remove());
+  card.querySelector(".gz-save-cat").addEventListener("click", () => saveCat(card));
+  card.querySelector(".gz-del-cat").addEventListener("click", () => delCat(card.dataset.id));
+}
+
+async function saveCat(card) {
+  const name = card.querySelector(".gz-cat-name").value.trim();
+  const prices = [...card.querySelectorAll(".gz-price-rows tr")].map((tr) => ({
+    label: tr.querySelector(".gz-plabel").value.trim(),
+    amount: Number(tr.querySelector(".gz-pamount").value),
+  })).filter((p) => p.label);
+  const { error } = await sb.from("gz_price_categories").update({ name, prices }).eq("id", card.dataset.id);
+  const btn = card.querySelector(".gz-save-cat");
+  btn.textContent = error ? "Erreur" : "✓ Enregistré";
+  setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
+}
+
+async function createCat() {
+  const name = prompt("Nom de la catégorie de tarifs :");
+  if (!name) return;
+  await sb.from("gz_price_categories").insert({ name, prices: [] });
+  loadCats();
+}
+
+async function delCat(id) {
+  if (!confirm("Supprimer cette catégorie de tarifs ?")) return;
+  await sb.from("gz_price_categories").delete().eq("id", id);
+  loadCats();
 }
 
 function renderChips(containerId, items, selected) {
