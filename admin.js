@@ -59,6 +59,7 @@ async function init(roles) {
   $("person-modal").addEventListener("click", (e) => { if (e.target === $("person-modal")) closePerson(); });
   $("person-form").addEventListener("submit", savePerson);
   $("delete-person").addEventListener("click", deletePerson);
+  $("invite-person").addEventListener("click", invitePerson);
   $("search").addEventListener("input", renderRows);
   document.querySelectorAll(".side-item[data-view]").forEach((b) =>
     b.addEventListener("click", () => showView(b.dataset.view)));
@@ -569,6 +570,7 @@ function openPerson(p) {
   $("person-error").hidden = true;
   $("person-title").textContent = p ? "Modifier la fiche" : "Nouvelle personne";
   $("delete-person").classList.toggle("hidden", !p);
+  $("invite-person").classList.toggle("hidden", !p);
   $("p-id").value = p?.id || "";
   $("p-first").value = p?.first_name || "";
   $("p-last").value = p?.last_name || "";
@@ -624,4 +626,16 @@ async function deletePerson() {
   if (error) { alert("Suppression impossible : " + error.message); return; }
   closePerson();
   loadPeople();
+}
+
+async function invitePerson() {
+  const id = $("p-id").value;
+  const email = $("p-email").value.trim();
+  if (!email) { alert("Renseignez un email dans la fiche, enregistrez, puis invitez."); return; }
+  if (!confirm(`Envoyer une invitation par email à ${email} ?`)) return;
+  const { data, error } = await sb.functions.invoke("invite-member", {
+    body: { person_id: id || null, email, redirectTo: location.origin + "/set-password.html" },
+  });
+  if (error || data?.error) { alert("Échec de l'invitation : " + (data?.error || error?.message)); return; }
+  alert("Invitation envoyée à " + email + ".\nLa personne recevra un email pour activer son compte.");
 }
