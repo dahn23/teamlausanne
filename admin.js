@@ -24,13 +24,13 @@ if (session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "resa", "stats", "reglages", "roles"],
-  admin:      ["membres", "resa", "stats", "reglages", "roles"],
+  superadmin: ["membres", "roles", "resa", "cours", "stats", "reglages"],
+  admin:      ["membres", "roles", "resa", "cours", "stats", "reglages"],
   secretaire: ["membres", "resa", "stats"],
-  head_coach: ["resa"],
-  coach:      ["resa"],
+  head_coach: ["resa", "cours"],
+  coach:      ["resa", "cours"],
 };
-const ADMIN_TABS = [["membres", "Membres"], ["resa", "Réservations"], ["stats", "Statistiques"], ["reglages", "Réglages"], ["roles", "Rôles & accès"]];
+const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["stats", "Statistiques"], ["reglages", "Réglages"]];
 const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"]];
 const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "membre"];
 
@@ -71,6 +71,7 @@ async function init(roles) {
   initResa();
   initStats();
   initRoles();
+  initCours(roles);
 }
 
 // ---- Bascule de vues ----
@@ -234,8 +235,8 @@ function drawResaGrid(date, bookings) {
   for (let h = 8; h <= 21; h++) {
     grid.appendChild(rcell(pad2(h) + ":15", "rcell rhour"));
     for (const c of resaCourts) {
-      const start = pad2(h) + ":15:00";
-      const b = bookings.find((x) => x.court_id === c.id && x.start_time <= start && x.end_time > start);
+      const slotStart = pad2(h) + ":15:00", slotEnd = pad2(h + 1) + ":15:00";
+      const b = bookings.find((x) => x.court_id === c.id && x.start_time < slotEnd && x.end_time > slotStart);
       const el = document.createElement("div");
       el.className = "rcell rslot";
       if (b) {
@@ -629,6 +630,214 @@ async function removeFamily(g, c, id) {
   await sb.from("guardianships").delete().eq("guardian_id", g).eq("child_id", c);
   loadFamily(id);
 }
+
+// ===================================================================
+//  Cours
+// ===================================================================
+let courseTypes = [];
+let isHeadUser = false, isAdminUser = false;
+const QH = (() => { const a = []; for (let h = 7; h <= 22; h++) for (const m of [0, 15, 30, 45]) { if (h === 22 && m > 0) break; a.push(pad2(h) + ":" + pad2(m)); } return a; })();
+
+function initCours(roles) {
+  isHeadUser = roles.some((r) => ["superadmin", "admin", "head_coach"].includes(r));
+  isAdminUser = roles.some((r) => ["superadmin", "admin"].includes(r));
+  $("ct-card").querySelector(".ct-add").classList.toggle("hidden", !isAdminUser);
+  $("cs-new").classList.toggle("hidden", !isHeadUser);
+  $("cs-copy").classList.toggle("hidden", !isHeadUser);
+
+  $("c-start").innerHTML = QH.map((t) => `<option value="${t}">${t}</option>`).join("");
+  $("c-end").innerHTML = QH.map((t) => `<option value="${t}">${t}</option>`).join("");
+
+  $("ct-add-btn").addEventListener("click", addType);
+  $("cs-date").value = isoA(new Date());
+  $("cs-date").addEventListener("change", loadCoursesDay);
+  $("cs-prev").addEventListener("click", () => shiftCs(-1));
+  $("cs-next").addEventListener("click", () => shiftCs(1));
+  $("cs-new").addEventListener("click", () => openCourse(null));
+  $("cs-copy").addEventListener("click", copyWeek);
+  $("course-close").addEventListener("click", () => $("course-modal").classList.add("hidden"));
+  $("course-modal").addEventListener("click", (e) => { if (e.target === $("course-modal")) $("course-modal").classList.add("hidden"); });
+  $("course-form").addEventListener("submit", saveCourse);
+  $("c-del").addEventListener("click", deleteCourse);
+  $("c-children").addEventListener("click", updateCount);
+
+  loadTypes();
+  loadCoursesDay();
+}
+
+async function loadTypes() {
+  const { data } = await sb.from("course_types").select("*").order("name");
+  courseTypes = data || [];
+  $("ct-list").innerHTML = courseTypes.length ? courseTypes.map((t) =>
+    `<div class="ct-item"><span class="ct-dot" style="background:${t.color}"></span>
+      <b>${esc(t.name)}</b><span class="muted">${t.price_chf != null ? t.price_chf + " CHF" : "—"}</span>
+      ${isAdminUser ? `<button type="button" class="fam-del" data-id="${t.id}">✕</button>` : ""}</div>`).join("")
+    : '<p class="muted" style="font-size:.85rem">Aucun type de cours.</p>';
+  $("ct-list").querySelectorAll(".fam-del").forEach((b) => b.addEventListener("click", () => deleteType(b.dataset.id)));
+  $("c-type").innerHTML = '<option value="">— Type —</option>' +
+    courseTypes.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+}
+
+async function addType() {
+  const name = $("ct-name").value.trim();
+  if (!name) return;
+  const { error } = await sb.from("course_types").insert({
+    name, color: $("ct-color").value,
+    price_chf: $("ct-price").value ? Number($("ct-price").value) : null,
+  });
+  if (error) { alert("Impossible : " + (error.code === "23505" ? "ce type existe déjà." : error.message)); return; }
+  $("ct-name").value = ""; $("ct-price").value = "";
+  loadTypes();
+}
+async function deleteType(id) {
+  if (!confirm("Supprimer ce type de cours ?")) return;
+  const { error } = await sb.from("course_types").delete().eq("id", id);
+  if (error) { alert("Impossible (type utilisé par un cours ?) : " + error.message); return; }
+  loadTypes();
+}
+
+function shiftCs(delta) {
+  const d = new Date($("cs-date").value + "T00:00:00");
+  d.setDate(d.getDate() + delta);
+  $("cs-date").value = isoA(d);
+  loadCoursesDay();
+}
+
+async function loadCoursesDay() {
+  const date = $("cs-date").value;
+  const { data: courses } = await sb.from("courses").select("*").eq("course_date", date).order("start_time");
+  const ids = (courses || []).map((c) => c.id);
+  let books = [], coaches = [], parts = [];
+  if (ids.length) {
+    [books, coaches, parts] = await Promise.all([
+      sb.from("court_bookings").select("court_id,course_id").in("course_id", ids).then((r) => r.data || []),
+      sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", ids).then((r) => r.data || []),
+      sb.from("course_participants").select("course_id,child_person_id").in("course_id", ids).then((r) => r.data || []),
+    ]);
+  }
+  const courtName = (id) => (resaCourtsAll.find((c) => c.id === id)?.name || "?").replace("Court ", "C");
+  $("cs-list").innerHTML = (courses || []).length ? (courses || []).map((c) => {
+    const cts = books.filter((b) => b.course_id === c.id).map((b) => courtName(b.court_id)).join(", ");
+    const nc = coaches.filter((x) => x.course_id === c.id).length;
+    const np = parts.filter((x) => x.course_id === c.id).length;
+    const type = courseTypes.find((t) => t.id === c.course_type_id);
+    return `<div class="cs-card" data-id="${c.id}" style="border-left-color:${c.color || (type?.color) || "#0b6b3a"}">
+      <div class="cs-time">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
+      <div class="cs-main"><b>${esc(c.title || type?.name || "Cours")}</b>
+        <span class="muted">${type ? esc(type.name) + " · " : ""}Courts ${cts || "—"}</span></div>
+      <div class="cs-badges"><span>👤 ${nc}</span><span>🧒 ${np}</span></div>
+    </div>`;
+  }).join("") : '<p class="muted">Aucun cours ce jour.</p>';
+  if (isHeadUser) $("cs-list").querySelectorAll(".cs-card").forEach((el) =>
+    el.addEventListener("click", () => editCourse(el.dataset.id)));
+}
+
+function renderChips(containerId, items, selected) {
+  const set = new Set(selected || []);
+  $(containerId).innerHTML = items.map(([val, label]) =>
+    `<button type="button" class="chip ${set.has(String(val)) ? "sel" : ""}" data-val="${val}">${esc(label)}</button>`).join("");
+  $(containerId).querySelectorAll(".chip").forEach((c) =>
+    c.addEventListener("click", () => c.classList.toggle("sel")));
+}
+const chipValues = (id) => [...document.querySelectorAll("#" + id + " .chip.sel")].map((c) => c.dataset.val);
+function updateCount() {
+  $("c-count").textContent = `(${chipValues("c-children").length} / 30)`;
+}
+
+function openCourse(course, related) {
+  $("c-error").hidden = true;
+  $("course-title").textContent = course ? "Modifier le cours" : "Nouveau cours";
+  $("c-id").value = course?.id || "";
+  $("c-type").value = course?.course_type_id || "";
+  $("c-label").value = course?.title || "";
+  $("c-date").value = course?.course_date || $("cs-date").value;
+  $("c-start").value = course ? course.start_time.slice(0, 5) : "17:00";
+  $("c-end").value = course ? course.end_time.slice(0, 5) : "18:00";
+  $("c-color").value = course?.color || "#0b6b3a";
+  renderChips("c-courts", resaCourtsAll.map((c) => [c.id, c.name.replace("Court ", "C")]), related?.courts);
+  renderChips("c-coaches", people.filter((p) => p.category === "staff").map((p) => [p.id, `${p.last_name} ${p.first_name}`]), related?.coaches);
+  renderChips("c-children", people.filter((p) => p.category === "junior").map((p) => [p.id, `${p.last_name} ${p.first_name}`]), related?.children);
+  updateCount();
+  $("c-del").classList.toggle("hidden", !course);
+  $("course-modal").classList.remove("hidden");
+}
+
+async function editCourse(id) {
+  const course = (await sb.from("courses").select("*").eq("id", id).single()).data;
+  const [courts, coaches, children] = await Promise.all([
+    sb.from("court_bookings").select("court_id").eq("course_id", id).then((r) => (r.data || []).map((x) => String(x.court_id))),
+    sb.from("course_coaches").select("coach_person_id").eq("course_id", id).then((r) => (r.data || []).map((x) => x.coach_person_id)),
+    sb.from("course_participants").select("child_person_id").eq("course_id", id).then((r) => (r.data || []).map((x) => x.child_person_id)),
+  ]);
+  openCourse(course, { courts, coaches, children });
+}
+
+async function saveCourse(e) {
+  e.preventDefault();
+  const err = $("c-error"); err.hidden = true;
+  const start = $("c-start").value, end = $("c-end").value;
+  if (end <= start) return failC(err, "L'heure de fin doit être après le début.");
+  const courts = chipValues("c-courts");
+  if (!courts.length) return failC(err, "Sélectionnez au moins un court.");
+  const children = chipValues("c-children");
+  if (children.length > 30) return failC(err, "30 enfants maximum.");
+  const coaches = chipValues("c-coaches");
+
+  const row = {
+    course_type_id: $("c-type").value || null,
+    title: $("c-label").value.trim() || null,
+    course_date: $("c-date").value,
+    start_time: start + ":00", end_time: end + ":00",
+    color: $("c-color").value, created_by: meId,
+  };
+  const id = $("c-id").value;
+  let courseId = id;
+  if (id) {
+    const { error } = await sb.from("courses").update(row).eq("id", id);
+    if (error) return failC(err, error.message);
+    // reset liens + occupations
+    await Promise.all([
+      sb.from("course_coaches").delete().eq("course_id", id),
+      sb.from("course_participants").delete().eq("course_id", id),
+      sb.from("court_bookings").delete().eq("course_id", id),
+    ]);
+  } else {
+    const { data, error } = await sb.from("courses").insert(row).select("id").single();
+    if (error) return failC(err, error.message);
+    courseId = data.id;
+  }
+
+  // occupations des courts (bloque la grille)
+  const label = row.title || courseTypes.find((t) => t.id === row.course_type_id)?.name || "Cours";
+  let conflicts = 0;
+  for (const cid of courts) {
+    const { error } = await sb.from("court_bookings").insert({
+      court_id: Number(cid), booking_date: row.course_date,
+      start_time: row.start_time, end_time: row.end_time,
+      kind: "cours", title: label, color: row.color, created_by: meId, course_id: courseId,
+    });
+    if (error) conflicts++;
+  }
+  if (coaches.length) await sb.from("course_coaches").insert(coaches.map((p) => ({ course_id: courseId, coach_person_id: p })));
+  if (children.length) await sb.from("course_participants").insert(children.map((p) => ({ course_id: courseId, child_person_id: p })));
+
+  if (conflicts) alert(`Cours enregistré, mais ${conflicts} court(s) étai(en)t déjà occupé(s) sur ce créneau.`);
+  $("course-modal").classList.add("hidden");
+  loadCoursesDay();
+}
+
+async function deleteCourse() {
+  const id = $("c-id").value;
+  if (!id || !confirm("Supprimer ce cours (et libérer les courts) ?")) return;
+  await sb.from("courses").delete().eq("id", id); // cascade : bookings, coaches, participants, présences
+  $("course-modal").classList.add("hidden");
+  loadCoursesDay();
+}
+
+function copyWeek() {
+  alert("Copie de la semaine de cours : je la branche à l'étape suivante.");
+}
+function failC(el, msg) { el.textContent = msg; el.hidden = false; }
 
 function closePerson() { $("person-modal").classList.add("hidden"); }
 

@@ -23,6 +23,7 @@
         <button class="side-item active" data-view="membres">👥 Membres</button>
         <button class="side-item" data-view="roles">🔐 Rôles & accès</button>
         <button class="side-item" data-view="resa">🗓️ Réservations</button>
+        <button class="side-item" data-view="cours">🎾 Cours</button>
         <button class="side-item" data-view="stats">📊 Statistiques</button>
         <button class="side-item" data-view="reglages">⚙️ Réglages</button>
         <button class="side-item" data-view="bientot" disabled>💳 Finances (bientôt)</button>
@@ -137,6 +138,33 @@
           <p class="muted" style="font-size:.86rem;margin:0 0 10px">
             Glissez sur la grille pour choisir un créneau, ou cliquez une case. Cliquez une réservation pour la modifier.</p>
           <div class="grid-wrap"><div id="resa-grid" class="rgrid"></div></div>
+        </div>
+
+        <!-- ---- Vue Cours ---- -->
+        <div id="view-cours" class="view hidden">
+          <div class="rg-card" id="ct-card">
+            <h2>Types de cours</h2>
+            <p class="muted" style="font-size:.88rem;margin-top:0">Créés par admin/superadmin — ils impacteront le paiement.</p>
+            <div id="ct-list"></div>
+            <div class="ct-add">
+              <input id="ct-name" placeholder="Nom du type (ex. École de tennis)" />
+              <input id="ct-price" type="number" placeholder="Prix CHF" />
+              <input id="ct-color" type="color" value="#0b6b3a" />
+              <button type="button" id="ct-add-btn">Ajouter</button>
+            </div>
+          </div>
+
+          <div class="crm-head">
+            <h1 style="flex:1">Planning des cours</h1>
+            <div class="crm-actions">
+              <button id="cs-prev" class="nav" aria-label="Jour précédent">‹</button>
+              <input type="date" id="cs-date" />
+              <button id="cs-next" class="nav" aria-label="Jour suivant">›</button>
+              <button id="cs-copy" class="ghost">📋 Copier la semaine</button>
+              <button id="cs-new">+ Nouveau cours</button>
+            </div>
+          </div>
+          <div id="cs-list" class="cs-list"></div>
         </div>
 
         <!-- ---- Vue Statistiques ---- -->
@@ -262,6 +290,33 @@
         <button type="submit" id="r-save">Enregistrer</button>
       </div>
       <p id="r-error" class="error" hidden></p>
+    </form>
+  </div>
+
+  <!-- ---- Cours (création / édition) ---- -->
+  <div id="course-modal" class="modal hidden">
+    <form id="course-form" class="card wide">
+      <button type="button" id="course-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="course-title">Nouveau cours</h2>
+      <input type="hidden" id="c-id" />
+      <div class="form-grid">
+        <label>Type de cours<select id="c-type"></select></label>
+        <label>Intitulé (optionnel)<input id="c-label" placeholder="ex. Groupe rouge" /></label>
+        <label>Date<input type="date" id="c-date" /></label>
+        <label>Couleur<input type="color" id="c-color" value="#0b6b3a" /></label>
+        <label>Début<select id="c-start"></select></label>
+        <label>Fin<select id="c-end"></select></label>
+      </div>
+      <label class="cs-lbl">Courts</label><div id="c-courts" class="chip-select"></div>
+      <label class="cs-lbl">Coachs</label><div id="c-coaches" class="chip-select"></div>
+      <label class="cs-lbl">Enfants <span id="c-count" class="muted"></span></label>
+      <div id="c-children" class="chip-select"></div>
+      <div class="form-foot">
+        <button type="button" id="c-del" class="danger hidden">Supprimer le cours</button>
+        <span class="spacer"></span>
+        <button type="submit" id="c-save">Enregistrer le cours</button>
+      </div>
+      <p id="c-error" class="error" hidden></p>
     </form>
   </div>
 

@@ -165,8 +165,9 @@ function drawGrid(date, season, bookings) {
   for (const h of hours) {
     grid.appendChild(cell(pad(h) + ":15", "rcell rhour"));
     for (const c of courts) {
-      const start = pad(h) + ":15:00";
-      const b = bookings.find((x) => x.court_id === c.id && x.start_time <= start && x.end_time > start);
+      const slotStart = pad(h) + ":15:00", slotEnd = pad(h + 1) + ":15:00";
+      // chevauchement partiel = créneau bloqué (un cours coupé occupe l'heure entière côté membre)
+      const b = bookings.find((x) => x.court_id === c.id && x.start_time < slotEnd && x.end_time > slotStart);
       const el = document.createElement("div");
       el.className = "rcell rslot";
       if (b) {
