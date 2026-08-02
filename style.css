@@ -156,6 +156,19 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .gz-totals{display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;padding:14px;background:var(--blue-ink);
   color:#fff;border-radius:var(--radius);font-size:.95rem}
 .gz-totals b{color:#fff}
+.gz-mgr-sections{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.gz-mgr-sec{background:#f5f7fb;border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+.gz-mgr-sec h3{margin:0 0 10px;font-size:1rem;color:var(--blue-ink)}
+.gz-fin-item{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-bottom:6px;font-size:.88rem}
+.gz-add-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.gz-add-row input,.gz-add-row select{padding:7px 9px;font-size:.85rem}
+.gz-del-pay,.gz-del-sal{background:transparent;color:#b3261e;padding:2px 8px;font-weight:800}
+.gz-photo-wrap{display:inline-flex;align-items:center;gap:6px;margin-top:4px}
+.gz-photo-thumb{width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.gz-photo-btn{background:#eef1f7;color:var(--blue-ink);font-size:.75rem;padding:5px 8px;font-weight:700}
+.gz-mgr-foot{grid-column:1/-1;display:flex;align-items:center;gap:14px;margin-top:4px}
+@media (max-width:700px){.gz-mgr-sections{grid-template-columns:1fr}}
 
 /* ---- Cours ---- */
 .ct-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}

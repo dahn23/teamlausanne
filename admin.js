@@ -806,6 +806,11 @@ function initGameZone() {
     await sb.from("gz_tournaments").update({ is_gamezone: mgrIsGz }).eq("id", mgrTid);
     renderMgr();
   });
+  $("gz-pay-add").addEventListener("click", addPayment);
+  $("gz-sal-add").addEventListener("click", addSalary);
+  $("gz-caisse-start").addEventListener("change", saveCaisse);
+  $("gz-caisse-counted").addEventListener("change", saveCaisse);
+  $("gz-close-tournament").addEventListener("click", closeTournament);
   loadSeasons();
   loadCats();
   loadTournaments();
@@ -903,6 +908,8 @@ async function openTournamentMgr(tid) {
       .map((p) => ({ p, st: stMap[p.id] || {} }));
     renderMgr();
   }
+  $("gz-close-status").textContent = "";
+  await loadFinances(tid);
   $("gz-mgr-modal").classList.remove("hidden");
 }
 
@@ -923,13 +930,39 @@ function renderMgr() {
       <td style="text-align:center"><input type="checkbox" class="gz-absent" ${st.absent ? "checked" : ""} /></td>
       <td><select class="gz-amount" ${st.absent ? "disabled" : ""}>${amtOpts}</select></td>
       <td><select class="gz-method" ${st.absent ? "disabled" : ""}><option value="">méthode</option>${method("cash")}${method("twint")}${method("carte")}</select></td>
-      <td style="text-align:center">${mgrIsGz ? `<input type="checkbox" class="gz-winner" ${st.is_winner ? "checked" : ""} />` : ""}</td>
+      <td class="gz-winner-cell" style="text-align:center">${mgrIsGz ? `
+        <label><input type="checkbox" class="gz-winner" ${st.is_winner ? "checked" : ""} /> 🏆</label>
+        <div class="gz-photo-wrap" style="${st.is_winner ? "" : "display:none"}">
+          ${st.photo_url ? `<img src="${st.photo_url}" class="gz-photo-thumb" />` : ""}
+          <button type="button" class="gz-photo-btn">${st.photo_url ? "Refaire" : "📷 Photo"}</button>
+          <input type="file" accept="image/*" capture="environment" class="gz-photo-file" style="display:none" />
+        </div>` : ""}</td>
     </tr>`;
   }).join("");
   $("gz-mgr-players").querySelectorAll("tr[data-pid]").forEach((tr) => {
-    tr.querySelectorAll("input,select").forEach((el) => el.addEventListener("change", () => saveStatus(tr)));
+    tr.querySelectorAll(".gz-absent,.gz-amount,.gz-method,.gz-winner").forEach((el) => el.addEventListener("change", () => saveStatus(tr)));
+    const btn = tr.querySelector(".gz-photo-btn"), file = tr.querySelector(".gz-photo-file");
+    if (btn && file) {
+      btn.addEventListener("click", () => file.click());
+      file.addEventListener("change", () => uploadPhoto(tr, file));
+    }
   });
   updateMgrTotals();
+}
+
+async function uploadPhoto(tr, file) {
+  if (!file.files || !file.files[0]) return;
+  const pid = tr.dataset.pid;
+  const f = file.files[0];
+  const path = `${mgrTid}/${pid}-${Date.now()}.jpg`;
+  const { error } = await sb.storage.from("gz-photos").upload(path, f, { upsert: true, contentType: f.type });
+  if (error) { alert("Photo : " + error.message); return; }
+  const url = sb.storage.from("gz-photos").getPublicUrl(path).data.publicUrl;
+  await sb.from("gz_player_status").upsert({ tournament_id: mgrTid, participant_id: pid, photo_url: url, is_winner: true, updated_at: new Date().toISOString() }, { onConflict: "tournament_id,participant_id" });
+  const wrap = tr.querySelector(".gz-photo-wrap");
+  wrap.querySelector("img")?.remove();
+  wrap.insertAdjacentHTML("afterbegin", `<img src="${url}" class="gz-photo-thumb" />`);
+  tr.querySelector(".gz-photo-btn").textContent = "Refaire";
 }
 
 async function saveStatus(tr) {
@@ -940,6 +973,8 @@ async function saveStatus(tr) {
   const winner = tr.querySelector(".gz-winner") ? tr.querySelector(".gz-winner").checked : false;
   tr.querySelector(".gz-amount").disabled = absent;
   tr.querySelector(".gz-method").disabled = absent;
+  const wrap = tr.querySelector(".gz-photo-wrap");
+  if (wrap) wrap.style.display = winner ? "" : "none";
   await sb.from("gz_player_status").upsert({
     tournament_id: mgrTid, participant_id: pid,
     absent, amount_paid: absent || amount === "" ? null : Number(amount),
@@ -959,6 +994,109 @@ function updateMgrTotals() {
   const tot = t.cash + t.twint + t.carte;
   $("gz-mgr-totals").innerHTML =
     `<span>💵 Cash : <b>${t.cash} CHF</b></span><span>📱 Twint : <b>${t.twint} CHF</b></span><span>💳 Carte : <b>${t.carte} CHF</b></span><span>Σ Total : <b>${tot} CHF</b></span>`;
+  mgrCashPlayers = t.cash;
+  computeCaisse();
+}
+
+// ---- Finances du tournoi : paiements, salaires, caisse, clôture ----
+let mgrPayments = [], mgrSalaries = [], mgrManagers = [], mgrCashPlayers = 0;
+
+async function loadFinances(tid) {
+  const [{ data: pays }, { data: sals }, { data: caisse }, { data: mgrs }] = await Promise.all([
+    sb.from("gz_payments").select("*").eq("tournament_id", tid).order("created_at"),
+    sb.from("gz_salaries").select("*").eq("tournament_id", tid).order("created_at"),
+    sb.from("gz_caisse").select("*").eq("tournament_id", tid).maybeSingle(),
+    sb.from("gz_managers").select("person_id").eq("tournament_id", tid),
+  ]);
+  mgrPayments = pays || []; mgrSalaries = sals || [];
+  const ids = (mgrs || []).map((m) => m.person_id);
+  mgrManagers = ids.length ? (await sb.from("people").select("id,first_name,last_name").in("id", ids)).data || [] : [];
+  $("gz-sal-person").innerHTML = '<option value="">— responsable —</option>' +
+    mgrManagers.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("") +
+    '<option value="autre">Autre (saisir)…</option>';
+  $("gz-caisse-start").value = caisse?.start_amount ?? "";
+  $("gz-caisse-counted").value = caisse?.counted_amount ?? "";
+  renderPayments(); renderSalaries(); computeCaisse();
+}
+
+function renderPayments() {
+  $("gz-pay-list").innerHTML = mgrPayments.length ? mgrPayments.map((p) =>
+    `<div class="gz-fin-item"><span>${esc(p.label || "—")} — <b>${p.amount} CHF</b> · ${esc(p.method || "?")}</span><button type="button" class="gz-del-pay" data-id="${p.id}">✕</button></div>`).join("") : '<p class="muted" style="font-size:.85rem;margin:0">Aucun.</p>';
+  $("gz-pay-list").querySelectorAll(".gz-del-pay").forEach((b) => b.onclick = () => delFin("gz_payments", b.dataset.id));
+}
+function renderSalaries() {
+  const nameOf = (s) => s.name || mgrManagers.find((m) => m.id === s.person_id)?.last_name + " " + (mgrManagers.find((m) => m.id === s.person_id)?.first_name || "") || "—";
+  $("gz-sal-list").innerHTML = mgrSalaries.length ? mgrSalaries.map((s) =>
+    `<div class="gz-fin-item"><span>${esc(nameOf(s))} — <b>${s.amount} CHF</b></span><button type="button" class="gz-del-sal" data-id="${s.id}">✕</button></div>`).join("") : '<p class="muted" style="font-size:.85rem;margin:0">Aucun.</p>';
+  $("gz-sal-list").querySelectorAll(".gz-del-sal").forEach((b) => b.onclick = () => delFin("gz_salaries", b.dataset.id));
+}
+async function addPayment() {
+  const amount = Number($("gz-pay-amount").value);
+  if (!amount) return;
+  await sb.from("gz_payments").insert({ tournament_id: mgrTid, label: $("gz-pay-label").value.trim() || null, amount, method: $("gz-pay-method").value });
+  $("gz-pay-label").value = ""; $("gz-pay-amount").value = "";
+  mgrPayments = (await sb.from("gz_payments").select("*").eq("tournament_id", mgrTid).order("created_at")).data || [];
+  renderPayments(); computeCaisse();
+}
+async function addSalary() {
+  const amount = Number($("gz-sal-amount").value);
+  if (!amount) return;
+  const sel = $("gz-sal-person").value;
+  let row = { tournament_id: mgrTid, amount };
+  if (sel === "autre") { const n = prompt("Nom du responsable :"); if (!n) return; row.name = n; }
+  else if (sel) row.person_id = sel;
+  else { alert("Choisissez un responsable."); return; }
+  await sb.from("gz_salaries").insert(row);
+  $("gz-sal-amount").value = "";
+  mgrSalaries = (await sb.from("gz_salaries").select("*").eq("tournament_id", mgrTid).order("created_at")).data || [];
+  renderSalaries(); computeCaisse();
+}
+async function delFin(table, id) {
+  await sb.from(table).delete().eq("id", id);
+  if (table === "gz_payments") { mgrPayments = mgrPayments.filter((x) => x.id !== id); renderPayments(); }
+  else { mgrSalaries = mgrSalaries.filter((x) => x.id !== id); renderSalaries(); }
+  computeCaisse();
+}
+async function saveCaisse() {
+  await sb.from("gz_caisse").upsert({
+    tournament_id: mgrTid, start_amount: numOrNull($("gz-caisse-start").value),
+    counted_amount: numOrNull($("gz-caisse-counted").value), updated_at: new Date().toISOString(),
+  }, { onConflict: "tournament_id" });
+  computeCaisse();
+}
+const numOrNull = (v) => v === "" ? null : Number(v);
+
+function caisseNumbers() {
+  const start = Number($("gz-caisse-start").value) || 0;
+  const counted = $("gz-caisse-counted").value === "" ? null : Number($("gz-caisse-counted").value);
+  const cashPay = mgrPayments.filter((p) => p.method === "cash").reduce((a, p) => a + Number(p.amount || 0), 0);
+  const cashOut = mgrSalaries.reduce((a, s) => a + Number(s.amount || 0), 0);
+  const expected = start + mgrCashPlayers + cashPay - cashOut;
+  return { start, counted, cashIn: mgrCashPlayers + cashPay, cashOut, expected, diff: counted === null ? null : counted - expected };
+}
+function computeCaisse() {
+  if (!$("gz-caisse-calc")) return;
+  const c = caisseNumbers();
+  $("gz-caisse-calc").innerHTML =
+    `Cash encaissé : ${c.cashIn} · Salaires (sortie) : ${c.cashOut} · <b>Caisse attendue : ${c.expected} CHF</b>` +
+    (c.counted === null ? "" : ` · Compté : ${c.counted} · Écart : <b style="color:${c.diff === 0 ? "#0b6b3a" : "#b3261e"}">${c.diff > 0 ? "+" : ""}${c.diff} CHF</b>`);
+}
+
+async function closeTournament() {
+  const rows = [...$("gz-mgr-players").querySelectorAll("tr[data-pid]")];
+  const unresolved = rows.filter((tr) => !tr.querySelector(".gz-absent").checked && tr.querySelector(".gz-amount").value === "").length;
+  if (unresolved > 0) { alert(`${unresolved} joueur(s) ne sont ni payés ni marqués « absent ». Impossible de clôturer — complétez-les d'abord.`); return; }
+  const winnersNoPhoto = rows.filter((tr) => tr.querySelector(".gz-winner")?.checked && !tr.querySelector(".gz-photo-wrap img")).length;
+  const c = caisseNumbers();
+  let warn = "";
+  if (mgrIsGz && winnersNoPhoto > 0) warn += `\n• ${winnersNoPhoto} vainqueur(s) sans photo.`;
+  if (c.counted !== null && c.diff !== 0) warn += `\n• La caisse comptée ne correspond pas (écart ${c.diff > 0 ? "+" : ""}${c.diff} CHF).`;
+  if (warn && !confirm("⚠️ Attention :" + warn + "\n\nClôturer le tournoi quand même ?")) return;
+  await saveCaisse();
+  await sb.from("gz_caisse").update({ closed: true, closed_at: new Date().toISOString() }).eq("tournament_id", mgrTid);
+  await sb.from("gz_tournaments").update({ status: "Clôturé" }).eq("id", mgrTid);
+  $("gz-close-status").textContent = "✓ Tournoi clôturé.";
+  loadTournaments();
 }
 
 async function loadSeasons() {

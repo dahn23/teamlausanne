@@ -401,6 +401,43 @@
         </table>
       </div>
       <div id="gz-mgr-totals" class="gz-totals"></div>
+
+      <div class="gz-mgr-sections">
+        <div class="gz-mgr-sec">
+          <h3>Paiements additionnels</h3>
+          <div id="gz-pay-list"></div>
+          <div class="gz-add-row">
+            <input id="gz-pay-label" placeholder="Libellé (ex. don, buvette…)" />
+            <input id="gz-pay-amount" type="number" placeholder="Montant" style="width:100px" />
+            <select id="gz-pay-method"><option value="cash">cash</option><option value="twint">twint</option><option value="carte">carte</option></select>
+            <button type="button" id="gz-pay-add">Ajouter</button>
+          </div>
+        </div>
+
+        <div class="gz-mgr-sec">
+          <h3>Salaires (pris en cash)</h3>
+          <div id="gz-sal-list"></div>
+          <div class="gz-add-row">
+            <select id="gz-sal-person"></select>
+            <input id="gz-sal-amount" type="number" placeholder="Montant" style="width:100px" />
+            <button type="button" id="gz-sal-add">Ajouter</button>
+          </div>
+        </div>
+
+        <div class="gz-mgr-sec">
+          <h3>Caisse (cash au secrétariat)</h3>
+          <div class="rg-row">
+            <label>Fonds de caisse au début<input id="gz-caisse-start" type="number" /></label>
+            <label>Montant compté à la fin<input id="gz-caisse-counted" type="number" /></label>
+          </div>
+          <p id="gz-caisse-calc" class="muted" style="margin:8px 0 0"></p>
+        </div>
+
+        <div class="gz-mgr-foot">
+          <button type="button" id="gz-close-tournament" class="btn-prod">Clôturer le tournoi</button>
+          <span id="gz-close-status" class="muted"></span>
+        </div>
+      </div>
     </div>
   </div>
 
