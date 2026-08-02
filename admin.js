@@ -795,6 +795,17 @@ function initGameZone() {
       $("gz-sub-tournois").classList.toggle("hidden", b.dataset.sub !== "tournois");
       $("gz-sub-reglages").classList.toggle("hidden", b.dataset.sub !== "reglages");
     }));
+  $("gz-mgr-close").addEventListener("click", () => $("gz-mgr-modal").classList.add("hidden"));
+  $("gz-mgr-modal").addEventListener("click", (e) => { if (e.target === $("gz-mgr-modal")) $("gz-mgr-modal").classList.add("hidden"); });
+  $("gz-mgr-cat").addEventListener("change", async () => {
+    await sb.from("gz_tournaments").update({ price_category_id: $("gz-mgr-cat").value || null }).eq("id", mgrTid);
+    renderMgr();
+  });
+  $("gz-mgr-gz").addEventListener("change", async () => {
+    mgrIsGz = $("gz-mgr-gz").checked;
+    await sb.from("gz_tournaments").update({ is_gamezone: mgrIsGz }).eq("id", mgrTid);
+    renderMgr();
+  });
   loadSeasons();
   loadCats();
   loadTournaments();
@@ -856,12 +867,98 @@ async function loadTournaments() {
       ti += c.p; ts += c.s;
       const drawn = /peuvent être joués|visibles au public/i.test((t.status || "") + JSON.stringify(t.epreuves || ""));
       const badge = t.is_gamezone ? '<span class="gz-badge">GameZone</span>' : '<span class="gz-badge off">autre</span>';
-      html += `<tr><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date || "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✅" : ""}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
+      html += `<tr class="gz-trow" data-tid="${t.id}"><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date || "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✅" : ""}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
     }
     html += `<tr class="gz-total"><td colspan="3">Total — ${g.length} tournoi(s)</td><td>${ti}</td><td>${ts}</td></tr>`;
     html += "</tbody></table></div>";
   }
   $("gz-tournaments-groups").innerHTML = html || '<p class="muted">Aucun tournoi importé. Utilisez le bookmarklet ci-dessous.</p>';
+  $("gz-tournaments-groups").querySelectorAll(".gz-trow").forEach((r) =>
+    r.addEventListener("click", () => openTournamentMgr(r.dataset.tid)));
+}
+
+// ---- Gestion d'un tournoi (responsable) ----
+let mgrTid = null, mgrCats = [], mgrPlayers = [], mgrIsGz = false;
+
+async function openTournamentMgr(tid) {
+  mgrTid = tid;
+  const { data: t } = await sb.from("gz_tournaments").select("*").eq("id", tid).single();
+  mgrIsGz = !!t.is_gamezone;
+  $("gz-mgr-title").textContent = `Gérer — ${t.name || "tournoi"} (${t.tournament_date || ""})`;
+  $("gz-mgr-gz").checked = mgrIsGz;
+  const { data: cats } = await sb.from("gz_price_categories").select("*").order("created_at");
+  mgrCats = cats || [];
+  $("gz-mgr-cat").innerHTML = '<option value="">— catégorie de tarifs —</option>' +
+    mgrCats.map((c) => `<option value="${c.id}" ${c.id === t.price_category_id ? "selected" : ""}>${esc(c.name)}</option>`).join("");
+  const { data: entries } = await sb.from("gz_entries").select("participant_id").eq("tournament_id", tid).eq("confirmed", true);
+  const ids = [...new Set((entries || []).map((e) => e.participant_id))];
+  if (!ids.length) {
+    $("gz-mgr-players").innerHTML = '<tr><td colspan="6" class="muted">Aucun joueur sélectionné (tirage pas encore fait ?).</td></tr>';
+    $("gz-mgr-totals").innerHTML = "";
+  } else {
+    const { data: parts } = await sb.from("gz_participants").select("*").in("id", ids);
+    const { data: statuses } = await sb.from("gz_player_status").select("*").eq("tournament_id", tid);
+    const stMap = {}; for (const s of statuses || []) stMap[s.participant_id] = s;
+    mgrPlayers = (parts || []).sort((a, b) => (a.last_name + a.first_name).localeCompare(b.last_name + b.first_name))
+      .map((p) => ({ p, st: stMap[p.id] || {} }));
+    renderMgr();
+  }
+  $("gz-mgr-modal").classList.remove("hidden");
+}
+
+function priceOpts() {
+  const cat = mgrCats.find((c) => c.id === $("gz-mgr-cat").value);
+  return cat && Array.isArray(cat.prices) ? cat.prices : [];
+}
+
+function renderMgr() {
+  const opts = priceOpts();
+  $("gz-mgr-players").innerHTML = mgrPlayers.map(({ p, st }) => {
+    const amtOpts = ['<option value="">—</option>', '<option value="0">Gratuit</option>']
+      .concat(opts.map((o) => `<option value="${o.amount}" ${Number(st.amount_paid) === Number(o.amount) ? "selected" : ""}>${esc(o.label)} — ${o.amount}</option>`)).join("");
+    const method = (m) => `<option value="${m}" ${st.pay_method === m ? "selected" : ""}>${m}</option>`;
+    return `<tr data-pid="${p.id}">
+      <td><b>${esc(p.last_name)} ${esc(p.first_name)}</b>${st.is_winner ? " 🏆" : ""}</td>
+      <td class="muted" style="font-size:.8rem">${esc(p.club || "")}${p.credit_chf > 0 ? ` · crédit ${p.credit_chf} CHF` : ""}${p.comment ? " · " + esc(p.comment) : ""}</td>
+      <td style="text-align:center"><input type="checkbox" class="gz-absent" ${st.absent ? "checked" : ""} /></td>
+      <td><select class="gz-amount" ${st.absent ? "disabled" : ""}>${amtOpts}</select></td>
+      <td><select class="gz-method" ${st.absent ? "disabled" : ""}><option value="">méthode</option>${method("cash")}${method("twint")}${method("carte")}</select></td>
+      <td style="text-align:center">${mgrIsGz ? `<input type="checkbox" class="gz-winner" ${st.is_winner ? "checked" : ""} />` : ""}</td>
+    </tr>`;
+  }).join("");
+  $("gz-mgr-players").querySelectorAll("tr[data-pid]").forEach((tr) => {
+    tr.querySelectorAll("input,select").forEach((el) => el.addEventListener("change", () => saveStatus(tr)));
+  });
+  updateMgrTotals();
+}
+
+async function saveStatus(tr) {
+  const pid = tr.dataset.pid;
+  const absent = tr.querySelector(".gz-absent").checked;
+  const amount = tr.querySelector(".gz-amount").value;
+  const method = tr.querySelector(".gz-method").value;
+  const winner = tr.querySelector(".gz-winner") ? tr.querySelector(".gz-winner").checked : false;
+  tr.querySelector(".gz-amount").disabled = absent;
+  tr.querySelector(".gz-method").disabled = absent;
+  await sb.from("gz_player_status").upsert({
+    tournament_id: mgrTid, participant_id: pid,
+    absent, amount_paid: absent || amount === "" ? null : Number(amount),
+    pay_method: absent || !method ? null : method, is_winner: winner, updated_at: new Date().toISOString(),
+  }, { onConflict: "tournament_id,participant_id" });
+  updateMgrTotals();
+}
+
+function updateMgrTotals() {
+  const t = { cash: 0, twint: 0, carte: 0 };
+  $("gz-mgr-players").querySelectorAll("tr[data-pid]").forEach((tr) => {
+    if (tr.querySelector(".gz-absent").checked) return;
+    const m = tr.querySelector(".gz-method").value;
+    const a = Number(tr.querySelector(".gz-amount").value) || 0;
+    if (m && t[m] !== undefined) t[m] += a;
+  });
+  const tot = t.cash + t.twint + t.carte;
+  $("gz-mgr-totals").innerHTML =
+    `<span>💵 Cash : <b>${t.cash} CHF</b></span><span>📱 Twint : <b>${t.twint} CHF</b></span><span>💳 Carte : <b>${t.carte} CHF</b></span><span>Σ Total : <b>${tot} CHF</b></span>`;
 }
 
 async function loadSeasons() {

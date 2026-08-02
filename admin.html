@@ -385,6 +385,25 @@
     </div>
   </div>
 
+  <!-- ---- GameZone : gestion d'un tournoi (responsable) ---- -->
+  <div id="gz-mgr-modal" class="modal hidden">
+    <div class="card wide" style="max-width:860px">
+      <button type="button" id="gz-mgr-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="gz-mgr-title">Gérer le tournoi</h2>
+      <div class="rg-row" style="margin-bottom:12px">
+        <label>Catégorie de tarifs<select id="gz-mgr-cat"></select></label>
+        <label class="rg-check" style="align-self:flex-end"><input type="checkbox" id="gz-mgr-gz" /> Compte comme GameZone</label>
+      </div>
+      <div class="table-wrap">
+        <table class="crm-table gz-mgr-table">
+          <thead><tr><th>Joueur</th><th>Infos</th><th>Absent</th><th>Paiement</th><th>Méthode</th><th>Gagnant</th></tr></thead>
+          <tbody id="gz-mgr-players"></tbody>
+        </table>
+      </div>
+      <div id="gz-mgr-totals" class="gz-totals"></div>
+    </div>
+  </div>
+
   <script type="module" src="admin.js"></script>
 </body>
 </html>
