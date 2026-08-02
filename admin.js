@@ -803,8 +803,7 @@ async function loadBookmarklet() {
   catch (_e) { $("gz-bm-note").textContent = "Impossible de charger le bookmarklet."; return; }
   const code = src
     .replace("__KEY__", data.import_key)
-    .replace("__FN__", "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/gz-import")
-    .replace("__AK__", "sb_publishable_nsRKXBFgwmDjtmvS3mFc0w_Q4pi_qxK");
+    .replace("__RCV__", location.origin + "/gz-receiver.html");
   const a = document.createElement("a");
   a.href = "javascript:" + encodeURIComponent(code);
   a.textContent = "🎾 Importer GameZone";

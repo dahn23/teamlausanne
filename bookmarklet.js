@@ -1,6 +1,6 @@
 (async () => {
   try {
-    const KEY = "__KEY__", FN = "__FN__", AK = "__AK__";
+    const KEY = "__KEY__", RCV = "__RCV__";
     const base = "/advantage/servlet/";
     const g = async (u) => await (await fetch(u, { credentials: "include" })).text();
     if (!/swisstennis/.test(location.host)) { alert("Ouvre d'abord ta liste de tournois Swiss Tennis (connecté), puis clique ce favori."); return; }
@@ -45,10 +45,16 @@
       } catch (e) { /* xls indisponible avant tirage */ }
       T.push({ swiss_id: "Id" + id, name, start_date: val("Débute le"), deadline: val("Date limite d'inscription"), draw_date: val("Tirage au sort"), status, epreuves: eps, players_b64: b64 });
     }
-    const r = await fetch(FN, { method: "POST", headers: { "Content-Type": "application/json", apikey: AK }, body: JSON.stringify({ key: KEY, tournaments: T }) });
-    const j = await r.json();
-    alert(j.ok
-      ? ("✅ Import terminé : " + j.report.length + " tournoi(s).\n" + j.report.map((x) => x.swiss_id + " : " + x.players + " inscrits, " + x.selected + " sélectionnés").join("\n"))
-      : ("Erreur : " + (j.error || JSON.stringify(j))));
+    const w = window.open(RCV, "gzimport", "width=480,height=340");
+    if (!w) { alert("Autorisez les pop-ups pour comp.swisstennis.ch, puis recliquez le favori."); return; }
+    const origin = new URL(RCV).origin;
+    const onmsg = (e) => {
+      if (e.data && e.data.type === "gz-ready") {
+        w.postMessage({ type: "gz-data", key: KEY, tournaments: T }, origin);
+        window.removeEventListener("message", onmsg);
+      }
+    };
+    window.addEventListener("message", onmsg);
+    setTimeout(() => window.removeEventListener("message", onmsg), 20000);
   } catch (e) { alert("Erreur bookmarklet : " + e.message); }
 })();
