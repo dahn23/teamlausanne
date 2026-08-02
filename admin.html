@@ -173,6 +173,7 @@
           <h1>GameZone</h1>
           <div class="subnav">
             <button class="subtab active" data-sub="tournois">Tournois</button>
+            <button class="subtab" data-sub="participants">Participants</button>
             <button class="subtab" data-sub="caisse">Caisse</button>
             <button class="subtab" data-sub="reglages">Réglages</button>
           </div>
@@ -283,6 +284,26 @@
               </div>
               <div id="gz-cats"></div>
             </div>
+          </div>
+
+          <!-- Sous-onglet Tous les participants -->
+          <div id="gz-sub-participants" class="gz-sub hidden">
+            <div class="crm-head" style="margin-bottom:10px">
+              <h2 style="margin:0">Tous les participants</h2>
+              <input id="gz-part-search" type="search" placeholder="Rechercher…" style="min-width:200px" />
+            </div>
+            <div class="table-wrap">
+              <table class="crm-table">
+                <thead><tr>
+                  <th data-sort="last">Nom</th><th data-sort="first">Prénom</th><th data-sort="email">Email</th>
+                  <th data-sort="birth">Naissance</th><th data-sort="phone">Téléphone</th>
+                  <th data-sort="part">Particip.</th><th data-sort="vic">Victoires</th>
+                  <th data-sort="credit">Crédit</th><th data-sort="comment">Note</th>
+                </tr></thead>
+                <tbody id="gz-part-rows"></tbody>
+              </table>
+            </div>
+            <p id="gz-part-count" class="muted" style="font-size:.85rem"></p>
           </div>
 
           <!-- Sous-onglet Caisse (admin) -->

@@ -796,10 +796,14 @@ async function initGameZone(roles) {
   const gzIsAdmin = gzRoles.some((r) => ["superadmin", "admin"].includes(r));
   if (!gzIsOfficial) {
     document.querySelector('#view-gamezone .subtab[data-sub="reglages"]')?.classList.add("hidden");
+    document.querySelector('#view-gamezone .subtab[data-sub="participants"]')?.classList.add("hidden");
     $("gz-bm-card")?.classList.add("hidden");
     $("gz-official-box")?.classList.add("hidden");
   }
   if (!gzIsAdmin) document.querySelector('#view-gamezone .subtab[data-sub="caisse"]')?.classList.add("hidden");
+  $("gz-part-search").addEventListener("input", renderParts);
+  document.querySelectorAll('#gz-sub-participants th[data-sort]').forEach((th) =>
+    th.addEventListener("click", () => { gzPartSort = th.dataset.sort; renderParts(); }));
   $("gz-season-new").addEventListener("click", createSeason);
   $("gz-cat-new").addEventListener("click", createCat);
   document.querySelectorAll("#view-gamezone .subtab").forEach((b) =>
@@ -807,6 +811,7 @@ async function initGameZone(roles) {
       document.querySelectorAll("#view-gamezone .subtab").forEach((x) => x.classList.toggle("active", x === b));
       document.querySelectorAll("#view-gamezone .gz-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "gz-sub-" + b.dataset.sub));
       if (b.dataset.sub === "caisse") loadCaisseTab();
+      if (b.dataset.sub === "participants") loadParticipantsTab();
     }));
   $("gz-detail-back").addEventListener("click", closeDetail);
   $("gz-resp-add").addEventListener("click", addResponsable);
@@ -1231,6 +1236,38 @@ async function addMovement() {
   await sb.from("gz_caisse_ledger").insert({ label: $("gz-mov-label").value.trim() || null, amount, created_by: meId });
   $("gz-mov-label").value = ""; $("gz-mov-amount").value = "";
   loadCaisseTab();
+}
+
+// ---- Tous les participants ----
+let gzParts = [], gzPartSort = "last";
+
+async function loadParticipantsTab() {
+  const [{ data: parts }, { data: stats }] = await Promise.all([
+    sb.from("gz_participants").select("*"),
+    sb.from("gz_participant_stats").select("*"),
+  ]);
+  const sMap = {}; for (const s of stats || []) sMap[s.participant_id] = s;
+  gzParts = (parts || []).map((p) => ({ ...p, part: sMap[p.id]?.participations || 0, vic: sMap[p.id]?.victoires || 0 }));
+  renderParts();
+}
+
+function renderParts() {
+  const q = $("gz-part-search").value.trim().toLowerCase();
+  let rows = gzParts.filter((p) => !q ||
+    `${p.last_name} ${p.first_name} ${p.email || ""} ${p.phone || ""} ${p.city || ""} ${p.club || ""} ${p.comment || ""}`.toLowerCase().includes(q));
+  const val = (p) => ({ last: p.last_name, first: p.first_name, email: p.email, birth: p.birthdate,
+    phone: p.phone, part: p.part, vic: p.vic, credit: Number(p.credit_chf || 0), comment: p.comment }[gzPartSort]);
+  rows = rows.slice().sort((a, b) => {
+    const x = val(a), y = val(b);
+    if (["part", "vic", "credit"].includes(gzPartSort)) return (y || 0) - (x || 0);
+    return String(x || "").localeCompare(String(y || ""));
+  });
+  $("gz-part-rows").innerHTML = rows.map((p) => `<tr>
+    <td>${esc(p.last_name)}</td><td>${esc(p.first_name)}</td><td>${esc(p.email || "")}</td>
+    <td>${p.birthdate || ""}</td><td>${esc(p.phone || "")}</td>
+    <td>${p.part}</td><td>${p.vic > 0 ? "🏆 " + p.vic : "0"}</td>
+    <td>${p.credit_chf > 0 ? p.credit_chf + " CHF" : ""}</td><td class="muted" style="font-size:.82rem">${esc(p.comment || "")}</td></tr>`).join("");
+  $("gz-part-count").textContent = `${rows.length} participant(s)`;
 }
 
 async function loadSeasons() {
