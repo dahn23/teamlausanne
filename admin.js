@@ -840,8 +840,13 @@ async function loadTournaments() {
   $("gz-tourn-count").textContent = rows.length ? `${rows.length} tournoi(s)` : "";
   const seasonName = {};
   for (const s of seasons || []) seasonName[s.id] = s.name;
+  const seasonOfDate = (d) => {
+    if (!d) return "none";
+    const s = (seasons || []).find((x) => d >= x.start_date && d <= x.end_date);
+    return s ? s.id : "none";
+  };
   const groups = {};
-  for (const t of rows) { const k = t.season_id || "none"; (groups[k] || (groups[k] = [])).push(t); }
+  for (const t of rows) { const k = seasonOfDate(t.tournament_date); (groups[k] || (groups[k] = [])).push(t); }
   const order = (seasons || []).map((s) => s.id).concat("none");
   let html = "";
   for (const sid of order) {
