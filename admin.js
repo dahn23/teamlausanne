@@ -800,6 +800,7 @@ async function initGameZone(roles) {
     document.querySelector('#view-gamezone .subtab[data-sub="financier"]')?.classList.add("hidden");
     document.querySelector('#view-gamezone .subtab[data-sub="communication"]')?.classList.add("hidden");
     document.querySelector('#view-gamezone .subtab[data-sub="sondages"]')?.classList.add("hidden");
+    document.querySelector('#view-gamezone .subtab[data-sub="site"]')?.classList.add("hidden");
     $("gz-bm-card")?.classList.add("hidden");
     $("gz-official-box")?.classList.add("hidden");
   }
@@ -820,6 +821,7 @@ async function initGameZone(roles) {
       if (b.dataset.sub === "financier") loadFinanceTab();
       if (b.dataset.sub === "communication") loadMailTab();
       if (b.dataset.sub === "sondages") loadSurveyTab();
+      if (b.dataset.sub === "site") loadSiteTab();
     }));
   $("gz-detail-back").addEventListener("click", closeDetail);
   $("gz-resp-add").addEventListener("click", addResponsable);
@@ -1551,6 +1553,62 @@ function renderSurveyResults(sid, box) {
     html += "</div>";
   }
   box.querySelector(".gz-res-body").innerHTML = html;
+}
+
+// ---- Site public : gestion des photos de vainqueurs ----
+let gzSitePhotos = [], gzSiteSeasonsLoaded = false;
+
+async function loadSiteTab() {
+  const [{ data: st }, { data: seasons }] = await Promise.all([
+    sb.from("gz_player_status")
+      .select("participant_id,tournament_id,photo_url,photo_public,updated_at,gz_participants(first_name,last_name),gz_tournaments(name,tournament_date,season_id,is_gamezone)")
+      .eq("is_winner", true).not("photo_url", "is", null),
+    sb.from("gz_seasons").select("id,name,start_date").order("start_date", { ascending: false }),
+  ]);
+  gzSitePhotos = (st || []).filter((r) => r.gz_tournaments?.is_gamezone);
+  if (!gzSiteSeasonsLoaded) {
+    $("gz-site-season").innerHTML = '<option value="">Toutes les saisons</option>' +
+      (seasons || []).map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("");
+    $("gz-site-season").addEventListener("change", renderSitePhotos);
+    gzSiteSeasonsLoaded = true;
+  }
+  renderSitePhotos();
+}
+
+function renderSitePhotos() {
+  const sid = $("gz-site-season").value;
+  const rows = gzSitePhotos
+    .filter((r) => !sid || r.gz_tournaments?.season_id === sid)
+    .sort((a, b) => String(b.gz_tournaments?.tournament_date || "").localeCompare(String(a.gz_tournaments?.tournament_date || "")));
+  if (!rows.length) { $("gz-site-photos").innerHTML = '<p class="muted">Aucune photo de vainqueur.</p>'; return; }
+  $("gz-site-photos").innerHTML = rows.map((r) => {
+    const p = r.gz_participants || {}, t = r.gz_tournaments || {};
+    const hidden = !r.photo_public;
+    return `<div class="gz-site-card${hidden ? " off" : ""}" data-tid="${r.tournament_id}" data-pid="${r.participant_id}">
+      <img src="${esc(r.photo_url)}" alt="" />
+      <div class="gz-site-meta">
+        <b>${esc(p.first_name || "")} ${esc(p.last_name || "")}</b>
+        <span class="muted">${esc(t.name || "")}${t.tournament_date ? " · " + t.tournament_date : ""}</span>
+      </div>
+      <button class="ghost gz-site-toggle">${hidden ? "Afficher" : "Retirer du public"}</button>
+      ${hidden ? '<span class="gz-site-badge">Masquée</span>' : ""}
+    </div>`;
+  }).join("");
+  $("gz-site-photos").querySelectorAll(".gz-site-toggle").forEach((b) =>
+    b.addEventListener("click", () => toggleSitePhoto(b.closest(".gz-site-card"))));
+}
+
+async function toggleSitePhoto(card) {
+  const tid = card.dataset.tid, pid = card.dataset.pid;
+  const row = gzSitePhotos.find((r) => r.tournament_id === tid && r.participant_id === pid);
+  const next = !row.photo_public;
+  const btn = card.querySelector(".gz-site-toggle");
+  btn.textContent = "…";
+  const { error } = await sb.from("gz_player_status").update({ photo_public: next })
+    .eq("tournament_id", tid).eq("participant_id", pid);
+  if (error) { btn.textContent = "Erreur"; return; }
+  row.photo_public = next;
+  renderSitePhotos();
 }
 
 async function loadSeasons() {

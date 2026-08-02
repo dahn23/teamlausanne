@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#123cc4" />
+  <title>GameZone — Classement — Team Lausanne</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="public" data-world="academie">
+  <section class="screen gz-pub">
+    <header class="gz-pub-head">
+      <h1 class="brand">🏆 GameZone</h1>
+      <p class="muted">Le classement des tournois juniors du Team Lausanne.</p>
+      <label class="gz-pub-season">Saison
+        <select id="gzp-season"></select>
+      </label>
+    </header>
+
+    <h2 class="gz-pub-h2">Podium des victoires</h2>
+    <div id="gzp-ranking" class="gz-pub-rank"><p class="muted">Chargement…</p></div>
+
+    <h2 class="gz-pub-h2">Nos champion·ne·s</h2>
+    <div id="gzp-photos" class="gz-pub-photos"></div>
+    <p class="gz-pub-legend muted">🏆 10 victoires · 🥈 5 victoires · 🏅 chaque victoire</p>
+  </section>
+  <script type="module" src="gamezone.js"></script>
+</body>
+</html>

@@ -195,6 +195,33 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .sv-q-lbl{display:block;font-weight:700;margin-bottom:.4rem}
 .sv-opt{display:inline-flex;align-items:center;gap:6px;margin:.2rem 12px .2rem 0;cursor:pointer}
 .sv-rating{display:flex;gap:6px;flex-wrap:wrap}
+/* Site public GameZone */
+.gz-pub{max-width:820px;margin:0 auto;padding:24px 18px 60px}
+.gz-pub-head{text-align:center;margin-bottom:1.4rem}
+.gz-pub-head .brand{font-size:2rem}
+.gz-pub-season{display:inline-flex;align-items:center;gap:8px;margin-top:.6rem;font-weight:700}
+.gz-pub-season select{padding:6px 10px}
+.gz-pub-h2{margin:1.6rem 0 .8rem;font-size:1.15rem}
+.gz-pub-rank{display:flex;flex-direction:column;gap:6px}
+.gz-rank-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.gz-rank-row.top{background:linear-gradient(90deg,#fffdf2,#fff);border-color:#ecd98a}
+.gz-rank-pos{flex:0 0 28px;font-weight:800;color:var(--muted);text-align:center}
+.gz-rank-name{flex:1;font-weight:700}
+.gz-rank-tro{flex:0 0 auto;font-size:1.05rem;letter-spacing:1px;white-space:nowrap;overflow:hidden;max-width:45vw}
+.gz-cup{margin-right:4px}
+.gz-rank-w{flex:0 0 34px;text-align:right;font-weight:800}
+.gz-pub-photos{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x mandatory}
+.gz-photo-card{flex:0 0 auto;scroll-snap-align:start}
+.gz-photo-card img{height:220px;width:auto;border-radius:14px;border:1px solid var(--line);object-fit:cover;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.gz-pub-legend{text-align:center;margin-top:1rem;font-size:.85rem}
+/* Admin — gestion photos site public */
+.gz-site-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.gz-site-card{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.gz-site-card img{width:100%;height:150px;object-fit:cover}
+.gz-site-card.off img{filter:grayscale(1) opacity(.45)}
+.gz-site-meta{padding:8px 10px;font-size:.82rem;display:flex;flex-direction:column;gap:2px}
+.gz-site-toggle{margin:0 10px 10px;font-size:.78rem}
+.gz-site-badge{position:absolute;top:8px;left:8px;background:#b3261e;color:#fff;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px}
 .gz-mgr-foot{grid-column:1/-1;display:flex;align-items:center;gap:14px;margin-top:4px}
 .gz-credit-line{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:3px}
 .gz-mini{background:#eef1f7;color:var(--blue-ink);font-size:.7rem;padding:3px 7px;font-weight:700;border-radius:6px}

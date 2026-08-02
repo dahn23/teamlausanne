@@ -177,6 +177,7 @@
             <button class="subtab" data-sub="financier">Financier</button>
             <button class="subtab" data-sub="communication">Communication</button>
             <button class="subtab" data-sub="sondages">Sondages</button>
+            <button class="subtab" data-sub="site">Site public</button>
             <button class="subtab" data-sub="caisse">Caisse</button>
             <button class="subtab" data-sub="reglages">Réglages</button>
           </div>
@@ -307,6 +308,22 @@
               </table>
             </div>
             <p id="gz-part-count" class="muted" style="font-size:.85rem"></p>
+          </div>
+
+          <!-- Sous-onglet Site public -->
+          <div id="gz-sub-site" class="gz-sub hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+              <h2 style="margin:0">Site public — classement GameZone</h2>
+              <a id="gz-site-open" href="gamezone.html" target="_blank" rel="noopener" class="ghost" style="text-decoration:none">Ouvrir la page publique ↗</a>
+            </div>
+            <p class="muted" style="margin-top:.3rem;font-size:.88rem">
+              Le classement affiche <b>prénom + nom</b> et le nombre de victoires. Les photos des vainqueurs sont montrées <b>sans nom</b>.
+              Si un parent refuse la photo, clique « Retirer du public » : elle disparaît du site sans être supprimée.
+            </p>
+            <label class="gz-mail-lbl">Saison</label>
+            <select id="gz-site-season" style="max-width:320px"></select>
+            <h3 style="margin:.8rem 0 .4rem">Photos des vainqueurs</h3>
+            <div id="gz-site-photos" class="gz-site-photos"></div>
           </div>
 
           <!-- Sous-onglet Sondages -->
