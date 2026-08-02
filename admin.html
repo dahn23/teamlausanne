@@ -175,6 +175,7 @@
             <button class="subtab active" data-sub="tournois">Tournois</button>
             <button class="subtab" data-sub="participants">Participants</button>
             <button class="subtab" data-sub="financier">Financier</button>
+            <button class="subtab" data-sub="communication">Communication</button>
             <button class="subtab" data-sub="caisse">Caisse</button>
             <button class="subtab" data-sub="reglages">Réglages</button>
           </div>
@@ -305,6 +306,18 @@
               </table>
             </div>
             <p id="gz-part-count" class="muted" style="font-size:.85rem"></p>
+          </div>
+
+          <!-- Sous-onglet Communication -->
+          <div id="gz-sub-communication" class="gz-sub hidden">
+            <h2 style="margin-top:0">Communication — modèles d'e-mails</h2>
+            <p class="muted" style="margin-top:0;font-size:.88rem">
+              L'envoi automatique s'activera en production (SMTP). Variables utilisables :
+              <code>{prenom}</code> <code>{nom}</code> <code>{tournoi}</code> <code>{date}</code>
+              <code>{url_tournoi}</code> <code>{responsables}</code> <code>{lien_sondage}</code>
+              <code>{lien_tournois}</code> <code>{code_vestiaire}</code>
+            </p>
+            <div id="gz-mail-list"></div>
           </div>
 
           <!-- Sous-onglet Résumé financier -->

@@ -798,6 +798,7 @@ async function initGameZone(roles) {
     document.querySelector('#view-gamezone .subtab[data-sub="reglages"]')?.classList.add("hidden");
     document.querySelector('#view-gamezone .subtab[data-sub="participants"]')?.classList.add("hidden");
     document.querySelector('#view-gamezone .subtab[data-sub="financier"]')?.classList.add("hidden");
+    document.querySelector('#view-gamezone .subtab[data-sub="communication"]')?.classList.add("hidden");
     $("gz-bm-card")?.classList.add("hidden");
     $("gz-official-box")?.classList.add("hidden");
   }
@@ -815,6 +816,7 @@ async function initGameZone(roles) {
       if (b.dataset.sub === "caisse") loadCaisseTab();
       if (b.dataset.sub === "participants") loadParticipantsTab();
       if (b.dataset.sub === "financier") loadFinanceTab();
+      if (b.dataset.sub === "communication") loadMailTab();
     }));
   $("gz-detail-back").addEventListener("click", closeDetail);
   $("gz-resp-add").addEventListener("click", addResponsable);
@@ -1310,6 +1312,80 @@ function renderFinance() {
   $("gz-fin-rows").innerHTML = html || '<tr><td colspan="10" class="muted">Aucun tournoi.</td></tr>';
   $("gz-fin-totals").innerHTML =
     `<td colspan="2">TOTAL — ${rows.length} tournoi(s)</td><td>${T.presents}</td><td>${T.twint}</td><td>${T.cash}</td><td>${T.carte}</td><td>${T.total}</td><td>${T.salaires}</td><td>${T.net}</td><td></td>`;
+}
+
+// ---- Communication : modèles d'e-mails ----
+let gzMails = [];
+
+async function loadMailTab() {
+  const { data } = await sb.from("gz_email_templates").select("*").order("sort_order");
+  gzMails = data || [];
+  renderMailCards();
+}
+
+function renderMailCards() {
+  $("gz-mail-list").innerHTML = gzMails.map((m) => `
+    <div class="gz-mail-card" data-key="${m.key}">
+      <div class="gz-mail-head">
+        <b>${esc(m.name)}</b>
+        <label class="gz-mail-en"><input type="checkbox" class="gz-mail-enabled" ${m.enabled ? "checked" : ""}/> Actif</label>
+      </div>
+      <div class="muted" style="font-size:.82rem;margin-bottom:.4rem">⏱ ${esc(m.trigger_desc || "")}</div>
+      <label class="gz-mail-lbl">Objet</label>
+      <input type="text" class="gz-mail-subject" value="${esc(m.subject || "")}"/>
+      <label class="gz-mail-lbl">Message</label>
+      <textarea class="gz-mail-body" rows="9">${esc(m.body || "")}</textarea>
+      <div class="gz-mail-foot">
+        <div class="gz-mail-img">
+          ${m.image_url ? `<img src="${m.image_url}" class="gz-mail-thumb"/>` : ""}
+          <button type="button" class="ghost gz-mail-imgbtn">${m.image_url ? "Changer l'image" : "Ajouter une image (plan, etc.)"}</button>
+          ${m.image_url ? `<button type="button" class="ghost gz-mail-imgdel">Retirer</button>` : ""}
+          <input type="file" accept="image/*" class="gz-mail-file hidden"/>
+        </div>
+        <button type="button" class="primary gz-mail-save">Enregistrer</button>
+      </div>
+    </div>`).join("");
+  $("gz-mail-list").querySelectorAll(".gz-mail-card").forEach((card) => {
+    const key = card.dataset.key;
+    card.querySelector(".gz-mail-save").addEventListener("click", () => saveMail(key, card));
+    const file = card.querySelector(".gz-mail-file");
+    card.querySelector(".gz-mail-imgbtn").addEventListener("click", () => file.click());
+    file.addEventListener("change", () => uploadMailImage(key, file));
+    card.querySelector(".gz-mail-imgdel")?.addEventListener("click", () => removeMailImage(key));
+  });
+}
+
+async function saveMail(key, card) {
+  const patch = {
+    subject: card.querySelector(".gz-mail-subject").value.trim(),
+    body: card.querySelector(".gz-mail-body").value,
+    enabled: card.querySelector(".gz-mail-enabled").checked,
+    updated_at: new Date().toISOString(),
+  };
+  const btn = card.querySelector(".gz-mail-save");
+  btn.textContent = "…";
+  const { error } = await sb.from("gz_email_templates").update(patch).eq("key", key);
+  btn.textContent = error ? "Erreur" : "Enregistré ✓";
+  if (!error) { const m = gzMails.find((x) => x.key === key); if (m) Object.assign(m, patch); }
+  setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
+}
+
+async function uploadMailImage(key, file) {
+  if (!file.files || !file.files[0]) return;
+  const f = file.files[0];
+  const path = `templates/${key}-${Date.now()}`;
+  const { error } = await sb.storage.from("gz-photos").upload(path, f, { upsert: true, contentType: f.type });
+  if (error) { alert("Image : " + error.message); return; }
+  const url = sb.storage.from("gz-photos").getPublicUrl(path).data.publicUrl;
+  await sb.from("gz_email_templates").update({ image_url: url }).eq("key", key);
+  const m = gzMails.find((x) => x.key === key); if (m) m.image_url = url;
+  renderMailCards();
+}
+
+async function removeMailImage(key) {
+  await sb.from("gz_email_templates").update({ image_url: null }).eq("key", key);
+  const m = gzMails.find((x) => x.key === key); if (m) m.image_url = null;
+  renderMailCards();
 }
 
 async function loadSeasons() {
