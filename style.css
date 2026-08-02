@@ -222,6 +222,19 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .gz-site-meta{padding:8px 10px;font-size:.82rem;display:flex;flex-direction:column;gap:2px}
 .gz-site-toggle{margin:0 10px 10px;font-size:.78rem}
 .gz-site-badge{position:absolute;top:8px;left:8px;background:#b3261e;color:#fff;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px}
+/* Stages */
+.stg-cat-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;background:#fff}
+.stg-cat-card input[type=text],.stg-cat-card textarea{width:100%;box-sizing:border-box}
+.stg-cat-grid{display:flex;gap:18px;flex-wrap:wrap;align-items:end;margin:.5rem 0}
+.stg-cat-grid label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:700;color:var(--muted)}
+.stg-cat-grid .stg-cat-price{width:120px}
+.stg-inline{flex-direction:row!important;align-items:center;gap:6px!important}
+.stg-row{cursor:pointer}
+.stg-row:hover{background:#f5f7fd}
+.stg-vis{padding:4px 6px;font-size:.82rem}
+.stg-cmt{max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#stg-reg-table td{vertical-align:middle}
+.stg-mail-card .stg-mail-subject,.stg-mail-card .stg-mail-body{width:100%;box-sizing:border-box}
 .gz-mgr-foot{grid-column:1/-1;display:flex;align-items:center;gap:14px;margin-top:4px}
 .gz-credit-line{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:3px}
 .gz-mini{background:#eef1f7;color:var(--blue-ink);font-size:.7rem;padding:3px 7px;font-weight:700;border-radius:6px}

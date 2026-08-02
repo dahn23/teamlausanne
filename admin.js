@@ -24,15 +24,15 @@ if (session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stats", "reglages"],
-  admin:      ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stats", "reglages"],
-  secretaire: ["membres", "resa", "caisse", "stats"],
-  head_coach: ["resa", "cours"],
+  superadmin: ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stages", "stats", "reglages"],
+  admin:      ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stages", "stats", "reglages"],
+  secretaire: ["membres", "resa", "caisse", "stages", "stats"],
+  head_coach: ["resa", "cours", "stages"],
   coach:      ["resa", "cours"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stats", "Statistiques"], ["reglages", "Réglages"]];
+const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Statistiques"], ["reglages", "Réglages"]];
 const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["organisateur", "Official"], ["responsable", "Responsable"]];
 const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "membre", "organisateur", "responsable"];
 
@@ -76,6 +76,7 @@ async function init(roles) {
   initRoles();
   initCours(roles);
   initGameZone(roles);
+  initStages();
 }
 
 // ---- Bascule de vues ----
@@ -86,6 +87,7 @@ function showView(view) {
   document.querySelectorAll(".view").forEach((v) =>
     v.classList.toggle("hidden", v.id !== "view-" + view));
   if (view === "caisse") loadCaisseTab();
+  if (view === "stages") loadStagesTab();
 }
 
 // ===================================================================
@@ -811,7 +813,7 @@ async function initGameZone(roles) {
     th.addEventListener("click", () => { gzPartSort = th.dataset.sort; renderParts(); }));
   $("gz-season-new").addEventListener("click", createSeason);
   $("gz-cat-new").addEventListener("click", createCat);
-  $("gz-survey-new").addEventListener("click", createSurvey);
+  $("gz-survey-new").addEventListener("click", () => createSurvey("gamezone"));
   document.querySelectorAll("#view-gamezone .subtab").forEach((b) =>
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-gamezone .subtab").forEach((x) => x.classList.toggle("active", x === b));
@@ -819,7 +821,7 @@ async function initGameZone(roles) {
       if (b.dataset.sub === "participants") loadParticipantsTab();
       if (b.dataset.sub === "financier") loadFinanceTab();
       if (b.dataset.sub === "communication") loadMailTab();
-      if (b.dataset.sub === "sondages") loadSurveyTab();
+      if (b.dataset.sub === "sondages") loadSurveyTab("gamezone");
       if (b.dataset.sub === "site") loadSiteTab();
     }));
   $("gz-detail-back").addEventListener("click", closeDetail);
@@ -1395,29 +1397,37 @@ async function removeMailImage(key) {
   renderMailCards();
 }
 
-// ---- Sondages ----
-let gzSurveys = [], gzSurveyQ = {};
+// ---- Sondages (moteur générique : GameZone + Stages) ----
 const SITE_ORIGIN = location.origin;
+const SURVEY_CFG = {
+  gamezone: { listId: "gz-survey-list", newTag: null },
+  stage:    { listId: "stg-survey-list", newTag: "stage" },
+};
+const surveyState = { gamezone: { list: [], q: {} }, stage: { list: [], q: {} } };
 
-async function loadSurveyTab() {
+async function loadSurveyTab(scope) {
   const [{ data: surveys }, { data: qs }] = await Promise.all([
     sb.from("gz_surveys").select("*").order("created_at", { ascending: false }),
     sb.from("gz_survey_questions").select("*").order("position"),
   ]);
-  gzSurveys = surveys || [];
-  gzSurveyQ = {};
-  for (const q of qs || []) (gzSurveyQ[q.survey_id] || (gzSurveyQ[q.survey_id] = [])).push(q);
-  renderSurveys();
+  const all = surveys || [];
+  const list = scope === "stage" ? all.filter((s) => s.tag === "stage") : all.filter((s) => s.tag !== "stage");
+  const q = {};
+  for (const qq of qs || []) (q[qq.survey_id] || (q[qq.survey_id] = [])).push(qq);
+  surveyState[scope] = { list, q };
+  renderSurveys(scope);
 }
 
-function renderSurveys() {
-  if (!gzSurveys.length) { $("gz-survey-list").innerHTML = '<p class="muted">Aucun sondage. Clique « + Nouveau sondage ».</p>'; return; }
-  $("gz-survey-list").innerHTML = gzSurveys.map((s) => {
-    const qs = gzSurveyQ[s.id] || [];
+function renderSurveys(scope) {
+  const L = $(SURVEY_CFG[scope].listId);
+  const { list, q: qmap } = surveyState[scope];
+  if (!list.length) { L.innerHTML = '<p class="muted">Aucun questionnaire. Clique « + Nouveau ».</p>'; return; }
+  L.innerHTML = list.map((s) => {
+    const qs = qmap[s.id] || [];
     const link = `${SITE_ORIGIN}/sondage.html?s=${s.id}`;
     const qhtml = qs.map((q) => {
       const opts = q.qtype === "choice" ? ` <span class="muted">(${(q.options || []).map(esc).join(" · ")})</span>` : q.qtype === "rating" ? ' <span class="muted">(note 1–5)</span>' : ' <span class="muted">(texte libre)</span>';
-      return `<li>${esc(q.label)}${opts} <button class="fam-del gz-q-del" data-id="${q.id}" data-s="${s.id}">✕</button></li>`;
+      return `<li>${esc(q.label)}${opts} <button class="fam-del gz-q-del" data-id="${q.id}">✕</button></li>`;
     }).join("");
     return `<div class="gz-survey-card" data-id="${s.id}">
       <div class="gz-mail-head">
@@ -1440,24 +1450,23 @@ function renderSurveys() {
       <div class="gz-survey-res hidden" id="gz-res-${s.id}"></div>
     </div>`;
   }).join("");
-  const L = $("gz-survey-list");
-  L.querySelectorAll(".gz-survey-save").forEach((b) => b.addEventListener("click", () => saveSurvey(b.dataset.id)));
-  L.querySelectorAll(".gz-survey-del").forEach((b) => b.addEventListener("click", () => delSurvey(b.dataset.id)));
-  L.querySelectorAll(".gz-q-add").forEach((b) => b.addEventListener("click", () => addQuestion(b.dataset.id)));
-  L.querySelectorAll(".gz-q-del").forEach((b) => b.addEventListener("click", () => delQuestion(b.dataset.id, b.dataset.s)));
-  L.querySelectorAll(".gz-survey-results").forEach((b) => b.addEventListener("click", () => showSurveyResults(b.dataset.id)));
+  L.querySelectorAll(".gz-survey-save").forEach((b) => b.addEventListener("click", () => saveSurvey(scope, b.dataset.id)));
+  L.querySelectorAll(".gz-survey-del").forEach((b) => b.addEventListener("click", () => delSurvey(scope, b.dataset.id)));
+  L.querySelectorAll(".gz-q-add").forEach((b) => b.addEventListener("click", () => addQuestion(scope, b.dataset.id)));
+  L.querySelectorAll(".gz-q-del").forEach((b) => b.addEventListener("click", () => delQuestion(scope, b.dataset.id)));
+  L.querySelectorAll(".gz-survey-results").forEach((b) => b.addEventListener("click", () => showSurveyResults(scope, b.dataset.id)));
 }
 
-async function createSurvey() {
-  const title = prompt("Titre du sondage :", "Sondage de satisfaction");
+async function createSurvey(scope) {
+  const title = prompt("Titre du questionnaire :", "Questionnaire de satisfaction");
   if (!title) return;
-  const { error } = await sb.from("gz_surveys").insert({ title });
+  const { error } = await sb.from("gz_surveys").insert({ title, tag: SURVEY_CFG[scope].newTag });
   if (error) return alert(error.message);
-  loadSurveyTab();
+  loadSurveyTab(scope);
 }
 
-async function saveSurvey(id) {
-  const card = $("gz-survey-list").querySelector(`.gz-survey-card[data-id="${id}"]`);
+async function saveSurvey(scope, id) {
+  const card = $(SURVEY_CFG[scope].listId).querySelector(`.gz-survey-card[data-id="${id}"]`);
   const patch = {
     title: card.querySelector(".gz-survey-title").value.trim(),
     intro: card.querySelector(".gz-survey-intro").value.trim() || null,
@@ -1467,17 +1476,17 @@ async function saveSurvey(id) {
   btn.textContent = "…";
   const { error } = await sb.from("gz_surveys").update(patch).eq("id", id);
   btn.textContent = error ? "Erreur" : "Enregistré ✓";
-  if (!error) Object.assign(gzSurveys.find((x) => x.id === id), patch);
+  if (!error) Object.assign(surveyState[scope].list.find((x) => x.id === id), patch);
   setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
 }
 
-async function delSurvey(id) {
-  if (!confirm("Supprimer ce sondage et toutes ses réponses ?")) return;
+async function delSurvey(scope, id) {
+  if (!confirm("Supprimer ce questionnaire et toutes ses réponses ?")) return;
   await sb.from("gz_surveys").delete().eq("id", id);
-  loadSurveyTab();
+  loadSurveyTab(scope);
 }
 
-async function addQuestion(sid) {
+async function addQuestion(scope, sid) {
   const label = prompt("Question :");
   if (!label) return;
   const t = (prompt("Type — tape : choix / texte / note", "choix") || "").toLowerCase().trim();
@@ -1488,19 +1497,19 @@ async function addQuestion(sid) {
     options = (o || "").split(",").map((x) => x.trim()).filter(Boolean);
     if (!options.length) return alert("Au moins une réponse est nécessaire.");
   }
-  const pos = (gzSurveyQ[sid] || []).length;
+  const pos = (surveyState[scope].q[sid] || []).length;
   const { error } = await sb.from("gz_survey_questions").insert({ survey_id: sid, label, qtype, options, position: pos });
   if (error) return alert(error.message);
-  loadSurveyTab();
+  loadSurveyTab(scope);
 }
 
-async function delQuestion(qid) {
+async function delQuestion(scope, qid) {
   if (!confirm("Supprimer cette question ?")) return;
   await sb.from("gz_survey_questions").delete().eq("id", qid);
-  loadSurveyTab();
+  loadSurveyTab(scope);
 }
 
-async function showSurveyResults(sid) {
+async function showSurveyResults(scope, sid) {
   const box = $("gz-res-" + sid);
   if (!box.classList.contains("hidden")) { box.classList.add("hidden"); return; }
   box.classList.remove("hidden");
@@ -1522,13 +1531,13 @@ async function showSurveyResults(sid) {
       <label>au <input type="date" class="gz-res-to" value="${max}"/></label>
     </div>
     <div class="gz-res-body"></div>`;
-  const redraw = () => renderSurveyResults(sid, box);
+  const redraw = () => renderSurveyResults(scope, sid, box);
   box.querySelector(".gz-res-from").addEventListener("change", redraw);
   box.querySelector(".gz-res-to").addEventListener("change", redraw);
   redraw();
 }
 
-function renderSurveyResults(sid, box) {
+function renderSurveyResults(scope, sid, box) {
   const resp = JSON.parse(box.dataset.resp || "[]");
   const answers = JSON.parse(box.dataset.ans || "[]");
   const from = box.querySelector(".gz-res-from").value;
@@ -1536,7 +1545,7 @@ function renderSurveyResults(sid, box) {
   const inRange = (d) => (!from || d.slice(0, 10) >= from) && (!to || d.slice(0, 10) <= to);
   const okResp = new Set(resp.filter((r) => inRange(r.submitted_at)).map((r) => r.id));
   const okAns = answers.filter((a) => okResp.has(a.response_id));
-  const qs = gzSurveyQ[sid] || [];
+  const qs = surveyState[scope].q[sid] || [];
   let html = `<p><b>${okResp.size}</b> sondage(s) rempli(s) sur la période.</p>`;
   for (const q of qs) {
     const qa = okAns.filter((a) => a.question_id === q.id);
@@ -1928,3 +1937,406 @@ async function invitePerson() {
   if (error || data?.error) { alert("Échec de l'invitation : " + (data?.error || error?.message)); return; }
   alert("Invitation envoyée à " + email + ".\nLa personne recevra un email pour activer son compte.");
 }
+
+// ===================================================================
+//  Stages
+// ===================================================================
+let stgCats = [], stgSessions = [], stgCounts = {}, stgCurrent = null, stgRegs = [];
+
+const stgDays = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000) + 1);
+const stgEffPrice = (price, days) => Math.round(Number(price) * Math.min(days, 5) / 5 * 100) / 100;
+const stgCatById = (id) => stgCats.find((c) => c.id === id) || {};
+
+function initStages() {
+  document.querySelectorAll("#view-stages .stg-subtab").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#view-stages .stg-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      document.querySelectorAll("#view-stages .stg-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "stg-sub-" + b.dataset.sub));
+      if (b.dataset.sub === "stages") loadStagesTab();
+      if (b.dataset.sub === "mails") loadStageMails();
+      if (b.dataset.sub === "questionnaires") loadSurveyTab("stage");
+    }));
+  $("stg-cat-new").addEventListener("click", createStageCat);
+  $("stg-new").addEventListener("click", createStage);
+  $("stg-detail-back").addEventListener("click", closeStageDetail);
+  $("stg-program-save").addEventListener("click", saveProgram);
+  $("stg-reg-add").addEventListener("click", addRegistrant);
+  $("stg-survey-new").addEventListener("click", () => createSurvey("stage"));
+  $("stg-mail-cat").addEventListener("change", () => renderStageMails($("stg-mail-cat").value));
+}
+
+async function loadStagesTab() {
+  const [{ data: cats }, { data: sessions }, { data: regs }] = await Promise.all([
+    sb.from("stage_categories").select("*").order("sort_order"),
+    sb.from("stage_sessions").select("*").order("start_date", { ascending: false }),
+    sb.from("stage_registrations").select("stage_id"),
+  ]);
+  stgCats = cats || [];
+  stgSessions = sessions || [];
+  stgCounts = {};
+  for (const r of regs || []) stgCounts[r.stage_id] = (stgCounts[r.stage_id] || 0) + 1;
+  renderStageCats();
+  renderStageList();
+}
+
+// ---- Catégories ----
+function renderStageCats() {
+  $("stg-cat-list").innerHTML = stgCats.map((c) => `
+    <div class="stg-cat-card" data-id="${c.id}">
+      <div class="gz-mail-head">
+        <input type="text" class="stg-cat-name" value="${esc(c.name)}" style="font-weight:800;flex:1;margin-right:10px"/>
+        <label class="gz-mail-en"><input type="checkbox" class="stg-cat-active" ${c.active ? "checked" : ""}/> Active</label>
+      </div>
+      <label class="gz-mail-lbl">Description</label>
+      <textarea class="stg-cat-desc" rows="2" style="width:100%;box-sizing:border-box">${esc(c.description || "")}</textarea>
+      <div class="stg-cat-grid">
+        <label>Prix (CHF)<input type="number" class="stg-cat-price" value="${c.price}"/></label>
+        <label class="stg-inline"><input type="checkbox" class="stg-cat-meal" ${c.meal ? "checked" : ""}/> Repas</label>
+        <label class="stg-inline"><input type="checkbox" class="stg-cat-tshirt" ${c.tshirt ? "checked" : ""}/> Offrir un t-shirt</label>
+      </div>
+      <div class="gz-mail-foot">
+        <div class="gz-mail-img">
+          ${c.image_url ? `<img src="${c.image_url}" class="gz-mail-thumb"/>` : ""}
+          <button type="button" class="ghost stg-cat-imgbtn">${c.image_url ? "Changer la photo" : "Photo d'illustration"}</button>
+          <input type="file" accept="image/*" class="stg-cat-file hidden"/>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="primary stg-cat-save">Enregistrer</button>
+          <button type="button" class="fam-del stg-cat-del">Supprimer</button>
+        </div>
+      </div>
+    </div>`).join("") || '<p class="muted">Aucune catégorie.</p>';
+  $("stg-cat-list").querySelectorAll(".stg-cat-card").forEach((card) => {
+    const id = card.dataset.id;
+    card.querySelector(".stg-cat-save").addEventListener("click", () => saveStageCat(id, card));
+    card.querySelector(".stg-cat-del").addEventListener("click", () => delStageCat(id));
+    const file = card.querySelector(".stg-cat-file");
+    card.querySelector(".stg-cat-imgbtn").addEventListener("click", () => file.click());
+    file.addEventListener("change", () => uploadCatImage(id, file));
+  });
+}
+
+async function createStageCat() {
+  const name = prompt("Nom de la catégorie :");
+  if (!name) return;
+  const sort = (stgCats.at(-1)?.sort_order || stgCats.length) + 1;
+  const { error } = await sb.from("stage_categories").insert({ name, sort_order: sort });
+  if (error) return alert(error.message);
+  loadStagesTab();
+}
+
+async function saveStageCat(id, card) {
+  const patch = {
+    name: card.querySelector(".stg-cat-name").value.trim(),
+    description: card.querySelector(".stg-cat-desc").value.trim() || null,
+    price: Number(card.querySelector(".stg-cat-price").value) || 0,
+    meal: card.querySelector(".stg-cat-meal").checked,
+    tshirt: card.querySelector(".stg-cat-tshirt").checked,
+    active: card.querySelector(".stg-cat-active").checked,
+  };
+  const btn = card.querySelector(".stg-cat-save");
+  btn.textContent = "…";
+  const { error } = await sb.from("stage_categories").update(patch).eq("id", id);
+  btn.textContent = error ? "Erreur" : "Enregistré ✓";
+  if (!error) Object.assign(stgCatById(id), patch);
+  setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
+}
+
+async function delStageCat(id) {
+  if (!confirm("Supprimer cette catégorie ? (impossible si des stages l'utilisent)")) return;
+  const { error } = await sb.from("stage_categories").delete().eq("id", id);
+  if (error) return alert("Suppression impossible : " + error.message);
+  loadStagesTab();
+}
+
+async function uploadCatImage(id, file) {
+  if (!file.files || !file.files[0]) return;
+  const f = file.files[0];
+  const path = `stages/cat-${id}-${Date.now()}`;
+  const { error } = await sb.storage.from("gz-photos").upload(path, f, { upsert: true, contentType: f.type });
+  if (error) { alert("Photo : " + error.message); return; }
+  const url = sb.storage.from("gz-photos").getPublicUrl(path).data.publicUrl;
+  await sb.from("stage_categories").update({ image_url: url }).eq("id", id);
+  stgCatById(id).image_url = url;
+  renderStageCats();
+}
+
+// ---- Liste des stages ----
+function stgVisLabel(s) {
+  if (s.visibility_mode === "manual") return s.visible ? "Visible (manuel)" : "Masqué (manuel)";
+  const today = new Date().toISOString().slice(0, 10);
+  const limit = new Date(new Date(s.start_date) - 3 * 86400000).toISOString().slice(0, 10);
+  return today <= limit ? "Visible (auto)" : "Masqué (auto, J-3)";
+}
+
+function renderStageList() {
+  $("stg-rows").innerHTML = stgSessions.map((s) => {
+    const cat = stgCatById(s.category_id);
+    const days = stgDays(s.start_date, s.end_date);
+    const price = stgEffPrice(cat.price || 0, days);
+    const dates = s.start_date === s.end_date ? s.start_date : `${s.start_date} → ${s.end_date}`;
+    return `<tr class="stg-row" data-id="${s.id}">
+      <td><b>${esc(s.title || cat.name || "Stage")}</b></td>
+      <td>${esc(cat.name || "—")}</td>
+      <td>${dates}</td>
+      <td>${days}${days < 5 ? " <span class='muted'>(pro-rata)</span>" : ""}</td>
+      <td>${price} CHF</td>
+      <td>${stgCounts[s.id] || 0}</td>
+      <td>
+        <select class="stg-vis" data-id="${s.id}">
+          <option value="auto"${s.visibility_mode === "auto" ? " selected" : ""}>Auto (J-3)</option>
+          <option value="show"${s.visibility_mode === "manual" && s.visible ? " selected" : ""}>Visible</option>
+          <option value="hide"${s.visibility_mode === "manual" && !s.visible ? " selected" : ""}>Masqué</option>
+        </select>
+        <div class="muted" style="font-size:.72rem">${stgVisLabel(s)}</div>
+      </td>
+    </tr>`;
+  }).join("") || '<tr><td colspan="7" class="muted">Aucun stage.</td></tr>';
+  $("stg-rows").querySelectorAll(".stg-row").forEach((tr) =>
+    tr.addEventListener("click", (e) => { if (e.target.closest(".stg-vis")) return; openStage(tr.dataset.id); }));
+  $("stg-rows").querySelectorAll(".stg-vis").forEach((sel) =>
+    sel.addEventListener("change", () => setStageVisibility(sel.dataset.id, sel.value)));
+}
+
+async function setStageVisibility(id, val) {
+  const patch = val === "auto" ? { visibility_mode: "auto" }
+    : { visibility_mode: "manual", visible: val === "show" };
+  await sb.from("stage_sessions").update(patch).eq("id", id);
+  Object.assign(stgSessions.find((s) => s.id === id), patch);
+  renderStageList();
+}
+
+async function createStage() {
+  if (!stgCats.length) return alert("Crée d'abord une catégorie.");
+  const catName = prompt("Catégorie du stage — tape le nom exact parmi :\n" + stgCats.map((c) => c.name).join(", "), stgCats[0].name);
+  if (!catName) return;
+  const cat = stgCats.find((c) => c.name.toLowerCase() === catName.trim().toLowerCase());
+  if (!cat) return alert("Catégorie introuvable.");
+  const start = prompt("Date de début (AAAA-MM-JJ) :");
+  if (!start || !/^\d{4}-\d{2}-\d{2}$/.test(start)) return alert("Date de début invalide.");
+  const end = prompt("Date de fin (AAAA-MM-JJ) :", start);
+  if (!end || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return alert("Date de fin invalide.");
+  if (end < start) return alert("La date de fin précède le début.");
+  const { error } = await sb.from("stage_sessions").insert({ category_id: cat.id, start_date: start, end_date: end });
+  if (error) return alert(error.message);
+  loadStagesTab();
+}
+
+// ---- Détail d'un stage : inscrits + programme ----
+async function openStage(id) {
+  stgCurrent = id;
+  const s = stgSessions.find((x) => x.id === id);
+  const cat = stgCatById(s.category_id);
+  const days = stgDays(s.start_date, s.end_date);
+  const price = stgEffPrice(cat.price || 0, days);
+  $("stg-detail-title").textContent = (s.title || cat.name || "Stage");
+  $("stg-detail-meta").innerHTML = `${esc(cat.name || "")} · ${s.start_date}${s.end_date !== s.start_date ? " → " + s.end_date : ""} · ${days} jour(s) · <b>${price} CHF</b>${days < 5 ? " (pro-rata)" : ""}${cat.meal ? " · 🍽 repas" : ""}${cat.tshirt ? " · 👕 t-shirt" : ""}`;
+  $("stg-program").value = s.program || "";
+  $("stg-list-wrap").classList.add("hidden");
+  $("stg-detail").classList.remove("hidden");
+  await loadRegistrations();
+}
+
+function closeStageDetail() {
+  stgCurrent = null;
+  $("stg-detail").classList.add("hidden");
+  $("stg-list-wrap").classList.remove("hidden");
+}
+
+async function saveProgram() {
+  const btn = $("stg-program-save");
+  btn.textContent = "…";
+  const { error } = await sb.from("stage_sessions").update({ program: $("stg-program").value }).eq("id", stgCurrent);
+  const s = stgSessions.find((x) => x.id === stgCurrent); if (s && !error) s.program = $("stg-program").value;
+  btn.textContent = error ? "Erreur" : "Enregistré ✓";
+  setTimeout(() => (btn.textContent = "Enregistrer le programme"), 1500);
+}
+
+async function loadRegistrations() {
+  const { data } = await sb.from("stage_registrations").select("*").eq("stage_id", stgCurrent).order("created_at");
+  stgRegs = data || [];
+  renderRegistrants();
+}
+
+function renderRegistrants() {
+  const s = stgSessions.find((x) => x.id === stgCurrent);
+  const cat = stgCatById(s.category_id);
+  const base = stgEffPrice(cat.price || 0, stgDays(s.start_date, s.end_date));
+  $("stg-reg-count").textContent = stgRegs.length;
+  $("stg-reg-rows").innerHTML = stgRegs.map((r) => {
+    const price = Math.round(base * (1 - r.discount_pct / 100) * 100) / 100;
+    const rebate = r.discount_pct ? `−${r.discount_pct}% <span class="muted">(${esc(r.discount_reason || "")})</span> <button class="fam-del stg-reb-del" data-id="${r.id}">✕</button>`
+      : `<button class="ghost stg-reb-add" data-id="${r.id}">−20%</button>`;
+    const invoice = r.invoice_created
+      ? `<span class="muted">Facturé${r.invoice_sent_at ? " le " + r.invoice_sent_at.slice(0, 10) : ""}</span>`
+      : `<button class="ghost stg-inv" data-id="${r.id}">Créer facture + mail</button>`;
+    return `<tr data-id="${r.id}">
+      <td><b>${esc(r.first_name)} ${esc(r.last_name)}</b></td>
+      <td>${r.birth_date || "—"}</td>
+      <td>${esc(r.email || "—")}</td>
+      <td>${cat.tshirt ? esc(r.tshirt_size || "—") : "—"}</td>
+      <td>${cat.meal ? esc(r.meal_restriction || "—") : "—"}</td>
+      <td class="stg-cmt">${esc(r.comment || "")}</td>
+      <td>${rebate}</td>
+      <td><b>${price}</b></td>
+      <td>${invoice}</td>
+      <td><input type="checkbox" class="stg-paid" data-id="${r.id}" ${r.paid ? "checked" : ""}/></td>
+      <td><button class="fam-del stg-reg-del" data-id="${r.id}">✕</button></td>
+    </tr>`;
+  }).join("") || '<tr><td colspan="11" class="muted">Aucun inscrit.</td></tr>';
+  const T = $("stg-reg-rows");
+  T.querySelectorAll(".stg-reb-add").forEach((b) => b.addEventListener("click", () => setDiscount(b.dataset.id)));
+  T.querySelectorAll(".stg-reb-del").forEach((b) => b.addEventListener("click", () => removeDiscount(b.dataset.id)));
+  T.querySelectorAll(".stg-inv").forEach((b) => b.addEventListener("click", () => createInvoice(b.dataset.id)));
+  T.querySelectorAll(".stg-paid").forEach((c) => c.addEventListener("change", () => togglePaid(c.dataset.id, c.checked)));
+  T.querySelectorAll(".stg-reg-del").forEach((b) => b.addEventListener("click", () => delRegistrant(b.dataset.id)));
+}
+
+async function addRegistrant() {
+  const first = prompt("Prénom :"); if (!first) return;
+  const last = prompt("Nom :"); if (!last) return;
+  const email = prompt("Email (optionnel) :") || null;
+  const birth = prompt("Date de naissance (AAAA-MM-JJ, optionnel) :") || null;
+  const { error } = await sb.from("stage_registrations").insert({ stage_id: stgCurrent, first_name: first.trim(), last_name: last.trim(), email, birth_date: birth && /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth : null });
+  if (error) return alert(error.message);
+  stgCounts[stgCurrent] = (stgCounts[stgCurrent] || 0) + 1;
+  loadRegistrations();
+}
+
+async function setDiscount(id) {
+  const t = (prompt("Motif du rabais −20% — tape : famille / 2e semaine", "famille") || "").toLowerCase().trim();
+  if (!t) return;
+  const reason = t.startsWith("2") || t.includes("sem") ? "2e semaine" : "famille";
+  await sb.from("stage_registrations").update({ discount_pct: 20, discount_reason: reason }).eq("id", id);
+  const r = stgRegs.find((x) => x.id === id); Object.assign(r, { discount_pct: 20, discount_reason: reason });
+  renderRegistrants();
+}
+
+async function removeDiscount(id) {
+  await sb.from("stage_registrations").update({ discount_pct: 0, discount_reason: null }).eq("id", id);
+  const r = stgRegs.find((x) => x.id === id); Object.assign(r, { discount_pct: 0, discount_reason: null });
+  renderRegistrants();
+}
+
+async function createInvoice(id) {
+  if (!confirm("Créer la facture et envoyer le mail d'inscription (avec facture jointe) ?\nL'envoi réel s'activera en production.")) return;
+  const now = new Date().toISOString();
+  await sb.from("stage_registrations").update({ invoice_created: true, invoice_sent_at: now }).eq("id", id);
+  const r = stgRegs.find((x) => x.id === id); Object.assign(r, { invoice_created: true, invoice_sent_at: now });
+  renderRegistrants();
+}
+
+async function togglePaid(id, paid) {
+  await sb.from("stage_registrations").update({ paid, paid_at: paid ? new Date().toISOString() : null }).eq("id", id);
+  const r = stgRegs.find((x) => x.id === id); r.paid = paid;
+}
+
+async function delRegistrant(id) {
+  if (!confirm("Supprimer cet inscrit ?")) return;
+  await sb.from("stage_registrations").delete().eq("id", id);
+  stgCounts[stgCurrent] = Math.max(0, (stgCounts[stgCurrent] || 1) - 1);
+  loadRegistrations();
+}
+
+// ---- Mails des stages ----
+const STG_MAIL_TYPES = [
+  ["inscription", "Confirmation d'inscription (+ facture)", "À l'émission de la facture", false],
+  ["rappel_paiement", "Rappel de paiement", "jours avant le début, si non payé", true],
+  ["avant_stage", "Avant le stage", "jours avant le début", true],
+  ["remerciement", "Remerciement + questionnaire", "jours après la fin", true],
+];
+let stgMails = [], stgMailSurveys = [];
+
+async function loadStageMails() {
+  const [{ data: cats }, { data: tpls }, { data: surveys }] = await Promise.all([
+    sb.from("stage_categories").select("id,name").order("sort_order"),
+    sb.from("stage_email_templates").select("*"),
+    sb.from("gz_surveys").select("id,title,tag"),
+  ]);
+  stgMails = tpls || [];
+  stgMailSurveys = (surveys || []).filter((s) => s.tag === "stage");
+  const sel = $("stg-mail-cat");
+  const prev = sel.value;
+  sel.innerHTML = (cats || []).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+  sel.value = prev && [...sel.options].some((o) => o.value === prev) ? prev : (cats?.[0]?.id || "");
+  renderStageMails(sel.value);
+}
+
+function renderStageMails(catId) {
+  if (!catId) { $("stg-mail-list").innerHTML = '<p class="muted">Crée d\'abord une catégorie.</p>'; return; }
+  const byType = {};
+  for (const m of stgMails) if (m.category_id === catId) byType[m.type] = m;
+  $("stg-mail-list").innerHTML = STG_MAIL_TYPES.map(([type, label, when, hasOffset]) => {
+    const m = byType[type] || { category_id: catId, type, subject: "", body: "", offset_days: 0, enabled: true };
+    const surveyOpts = type === "remerciement"
+      ? `<label class="gz-mail-lbl">Questionnaire lié</label>
+         <select class="stg-mail-survey"><option value="">— aucun —</option>${stgMailSurveys.map((s) => `<option value="${s.id}"${m.survey_id === s.id ? " selected" : ""}>${esc(s.title)}</option>`).join("")}</select>`
+      : "";
+    const offset = hasOffset
+      ? `<label class="gz-mail-lbl">Délai</label><div class="stg-inline"><input type="number" class="stg-mail-offset" value="${m.offset_days}" style="width:80px"/> <span class="muted">${when}</span></div>`
+      : `<div class="muted" style="font-size:.82rem;margin-top:.4rem">⏱ ${when}</div>`;
+    return `<div class="gz-mail-card stg-mail-card" data-type="${type}">
+      <div class="gz-mail-head"><b>${label}</b>
+        <label class="gz-mail-en"><input type="checkbox" class="stg-mail-enabled" ${m.enabled ? "checked" : ""}/> Actif</label>
+      </div>
+      ${offset}
+      <label class="gz-mail-lbl">Objet</label>
+      <input type="text" class="stg-mail-subject" value="${esc(m.subject || "")}"/>
+      <label class="gz-mail-lbl">Message</label>
+      <textarea class="stg-mail-body" rows="7">${esc(m.body || "")}</textarea>
+      ${surveyOpts}
+      <div class="gz-mail-foot">
+        <div class="gz-mail-img">
+          ${m.attachment_url ? `<a href="${m.attachment_url}" target="_blank" rel="noopener" class="muted">📎 pièce jointe</a>` : ""}
+          <button type="button" class="ghost stg-mail-attbtn">${m.attachment_url ? "Changer la pièce jointe" : "Joindre un PDF / image"}</button>
+          <input type="file" accept="application/pdf,image/*" class="stg-mail-file hidden"/>
+        </div>
+        <button type="button" class="primary stg-mail-save">Enregistrer</button>
+      </div>
+    </div>`;
+  }).join("");
+  $("stg-mail-list").querySelectorAll(".stg-mail-card").forEach((card) => {
+    const type = card.dataset.type;
+    card.querySelector(".stg-mail-save").addEventListener("click", () => saveStageMail(catId, type, card));
+    const file = card.querySelector(".stg-mail-file");
+    card.querySelector(".stg-mail-attbtn").addEventListener("click", () => file.click());
+    file.addEventListener("change", () => uploadStageMailAttach(catId, type, file));
+  });
+}
+
+function stgMailPatch(catId, type, card) {
+  const patch = {
+    category_id: catId, type,
+    subject: card.querySelector(".stg-mail-subject").value.trim(),
+    body: card.querySelector(".stg-mail-body").value,
+    enabled: card.querySelector(".stg-mail-enabled").checked,
+    updated_at: new Date().toISOString(),
+  };
+  const off = card.querySelector(".stg-mail-offset");
+  if (off) patch.offset_days = Number(off.value) || 0;
+  const sv = card.querySelector(".stg-mail-survey");
+  if (sv) patch.survey_id = sv.value || null;
+  return patch;
+}
+
+async function saveStageMail(catId, type, card) {
+  const patch = stgMailPatch(catId, type, card);
+  const btn = card.querySelector(".stg-mail-save");
+  btn.textContent = "…";
+  const { error } = await sb.from("stage_email_templates").upsert(patch, { onConflict: "category_id,type" });
+  btn.textContent = error ? "Erreur" : "Enregistré ✓";
+  if (!error) await loadStageMails();
+  setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
+}
+
+async function uploadStageMailAttach(catId, type, file) {
+  if (!file.files || !file.files[0]) return;
+  const f = file.files[0];
+  const path = `stages/mail-${catId}-${type}-${Date.now()}`;
+  const { error } = await sb.storage.from("gz-photos").upload(path, f, { upsert: true, contentType: f.type });
+  if (error) { alert("Pièce jointe : " + error.message); return; }
+  const url = sb.storage.from("gz-photos").getPublicUrl(path).data.publicUrl;
+  await sb.from("stage_email_templates").upsert({ category_id: catId, type, attachment_url: url }, { onConflict: "category_id,type" });
+  await loadStageMails();
+}
+

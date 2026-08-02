@@ -26,6 +26,7 @@
         <button class="side-item" data-view="cours">🎾 Cours</button>
         <button class="side-item" data-view="gamezone">🏆 GameZone</button>
         <button class="side-item" data-view="caisse">💰 Caisse</button>
+        <button class="side-item" data-view="stages">🎓 Stages</button>
         <button class="side-item" data-view="stats">📊 Statistiques</button>
         <button class="side-item" data-view="reglages">⚙️ Réglages</button>
         <button class="side-item" data-view="bientot" disabled>💳 Finances (bientôt)</button>
@@ -367,6 +368,96 @@
             </div>
           </div>
 
+        </div>
+
+        <!-- ---- Vue Stages ---- -->
+        <div id="view-stages" class="view hidden">
+          <div class="crm-head"><h1>🎓 Stages</h1></div>
+          <div class="subnav">
+            <button class="subtab stg-subtab active" data-sub="stages">Stages</button>
+            <button class="subtab stg-subtab" data-sub="mails">Mails</button>
+            <button class="subtab stg-subtab" data-sub="questionnaires">Questionnaires</button>
+          </div>
+
+          <!-- Sous-onglet Stages -->
+          <div id="stg-sub-stages" class="stg-sub">
+            <!-- Liste (masquée quand un stage est ouvert) -->
+            <div id="stg-list-wrap">
+              <div class="rg-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                  <h2 style="margin:0">Catégories</h2>
+                  <button id="stg-cat-new" class="ghost">+ Nouvelle catégorie</button>
+                </div>
+                <p class="muted" style="margin:.3rem 0;font-size:.86rem">Les modèles de base. Chaque stage hérite du prix, repas, t-shirt et des mails de sa catégorie.</p>
+                <div id="stg-cat-list"></div>
+              </div>
+
+              <div class="rg-card" style="margin-top:16px">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                  <h2 style="margin:0">Stages</h2>
+                  <button id="stg-new" class="primary">+ Nouveau stage</button>
+                </div>
+                <div class="table-wrap" style="margin-top:10px">
+                  <table class="crm-table">
+                    <thead><tr><th>Stage</th><th>Catégorie</th><th>Dates</th><th>Jours</th><th>Prix</th><th>Inscrits</th><th>Sur le site</th></tr></thead>
+                    <tbody id="stg-rows"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Détail d'un stage -->
+            <div id="stg-detail" class="hidden">
+              <button id="stg-detail-back" class="ghost">← Retour à la liste</button>
+              <div class="rg-card" style="margin-top:10px">
+                <h2 id="stg-detail-title" style="margin-top:0"></h2>
+                <div id="stg-detail-meta" class="muted" style="font-size:.9rem;margin-bottom:10px"></div>
+                <label class="gz-mail-lbl">Programme du stage</label>
+                <textarea id="stg-program" rows="5" style="width:100%;box-sizing:border-box"></textarea>
+                <div style="margin-top:8px"><button id="stg-program-save" class="ghost">Enregistrer le programme</button></div>
+              </div>
+              <div class="rg-card" style="margin-top:14px">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                  <h3 style="margin:0">Inscrits (<span id="stg-reg-count">0</span>)</h3>
+                  <button id="stg-reg-add" class="ghost">+ Ajouter un inscrit</button>
+                </div>
+                <div class="table-wrap" style="margin-top:10px">
+                  <table class="crm-table" id="stg-reg-table">
+                    <thead><tr>
+                      <th>Nom</th><th>Naissance</th><th>Mail</th><th>T-shirt</th><th>Repas</th>
+                      <th>Commentaire</th><th>Rabais</th><th>Prix</th><th>Facture</th><th>Payé</th><th></th>
+                    </tr></thead>
+                    <tbody id="stg-reg-rows"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sous-onglet Mails -->
+          <div id="stg-sub-mails" class="stg-sub hidden">
+            <h2 style="margin-top:0">Mails des stages</h2>
+            <p class="muted" style="margin-top:0;font-size:.88rem">
+              4 mails par catégorie. Variables : <code>{prenom}</code> <code>{nom}</code> <code>{stage}</code>
+              <code>{date_debut}</code> <code>{date_fin}</code> <code>{prix}</code> <code>{lien_sondage}</code>.
+              Envoi réel + facture bexio branchés en production.
+            </p>
+            <label class="gz-mail-lbl">Catégorie</label>
+            <select id="stg-mail-cat" style="max-width:340px"></select>
+            <div id="stg-mail-list" style="margin-top:12px"></div>
+          </div>
+
+          <!-- Sous-onglet Questionnaires -->
+          <div id="stg-sub-questionnaires" class="stg-sub hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+              <h2 style="margin:0">Questionnaires de satisfaction</h2>
+              <button id="stg-survey-new" class="primary">+ Nouveau questionnaire</button>
+            </div>
+            <p class="muted" style="margin-top:.3rem;font-size:.88rem">
+              Lie un questionnaire au mail de remerciement d'une catégorie via <code>{lien_sondage}</code>.
+            </p>
+            <div id="stg-survey-list"></div>
+          </div>
         </div>
 
         <!-- ---- Vue Caisse ---- -->
