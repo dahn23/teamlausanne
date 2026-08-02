@@ -660,6 +660,8 @@ function initCours(roles) {
   $("course-form").addEventListener("submit", saveCourse);
   $("c-del").addEventListener("click", deleteCourse);
   $("c-children").addEventListener("click", updateCount);
+  $("att-close").addEventListener("click", () => $("att-modal").classList.add("hidden"));
+  $("att-modal").addEventListener("click", (e) => { if (e.target === $("att-modal")) $("att-modal").classList.add("hidden"); });
 
   loadTypes();
   loadCoursesDay();
@@ -726,10 +728,56 @@ async function loadCoursesDay() {
       <div class="cs-main"><b>${esc(c.title || type?.name || "Cours")}</b>
         <span class="muted">${type ? esc(type.name) + " · " : ""}Courts ${cts || "—"}</span></div>
       <div class="cs-badges"><span>👤 ${nc}</span><span>🧒 ${np}</span></div>
+      <button type="button" class="att-btn" data-att="${c.id}">✅ Présences</button>
     </div>`;
   }).join("") : '<p class="muted">Aucun cours ce jour.</p>';
   if (isHeadUser) $("cs-list").querySelectorAll(".cs-card").forEach((el) =>
     el.addEventListener("click", () => editCourse(el.dataset.id)));
+  $("cs-list").querySelectorAll(".att-btn").forEach((b) =>
+    b.addEventListener("click", (e) => { e.stopPropagation(); openAttendance(b.dataset.att); }));
+}
+
+// ---- Présences ----
+let attCourse = null;
+const ATT_STATUS = [["present", "Présent"], ["absent", "Absent"], ["late", "En retard"]];
+
+async function openAttendance(courseId) {
+  const course = (await sb.from("courses").select("*").eq("id", courseId).single()).data;
+  attCourse = course;
+  const [parts, coaches, att] = await Promise.all([
+    sb.from("course_participants").select("child_person_id").eq("course_id", courseId).then((r) => (r.data || []).map((x) => x.child_person_id)),
+    sb.from("course_coaches").select("coach_person_id").eq("course_id", courseId).then((r) => (r.data || []).map((x) => x.coach_person_id)),
+    sb.from("attendance").select("*").eq("course_id", courseId).then((r) => r.data || []),
+  ]);
+  const statusOf = (pid) => att.find((a) => a.person_id === pid)?.status || null;
+  const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : "—"; };
+
+  $("att-title").textContent = `Présences — ${course.title || "cours"} (${course.start_time.slice(0, 5)})`;
+  const openAt = new Date(`${course.course_date}T${course.start_time}`); openAt.setMinutes(openAt.getMinutes() - 5);
+  const early = new Date() < openAt;
+  $("att-note").textContent = early
+    ? `Le pointage des enfants ouvre à ${pad2(openAt.getHours())}:${pad2(openAt.getMinutes())} (5 min avant). Head coach/admin : à tout moment.`
+    : "Cliquez pour marquer présent / absent / en retard.";
+
+  $("att-children").innerHTML = parts.length ? parts.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), false)).join("") : '<p class="muted" style="font-size:.85rem">Aucun enfant.</p>';
+  $("att-coaches").innerHTML = coaches.length ? coaches.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), true)).join("") : '<p class="muted" style="font-size:.85rem">Aucun coach.</p>';
+  $("att-modal").querySelectorAll(".att-set").forEach((b) =>
+    b.addEventListener("click", () => markAtt(b.dataset.person, b.dataset.status, b.dataset.coach === "1")));
+  $("att-modal").classList.remove("hidden");
+}
+
+function attRow(pid, name, status, isCoach) {
+  const btns = ATT_STATUS.map(([s, l]) =>
+    `<button type="button" class="att-set st-${s} ${status === s ? "on" : ""}" data-person="${pid}" data-status="${s}" data-coach="${isCoach ? 1 : 0}">${l}</button>`).join("");
+  return `<div class="att-row"><span class="att-name">${esc(name)}</span><div class="att-btns">${btns}</div></div>`;
+}
+
+async function markAtt(personId, status, isCoach) {
+  const { error } = await sb.rpc("mark_attendance", {
+    p_course: attCourse.id, p_person: personId, p_status: status, p_is_coach: isCoach,
+  });
+  if (error) { alert(error.message); return; }
+  openAttendance(attCourse.id); // refresh
 }
 
 function renderChips(containerId, items, selected) {

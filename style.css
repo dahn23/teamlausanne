@@ -162,6 +162,19 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
   font-size:.85rem;color:var(--ink);cursor:pointer;font-weight:600}
 .chip:hover{border-color:var(--blue)}
 .chip.sel{background:var(--blue);color:#fff;border-color:var(--blue)}
+.att-btn{background:#eef1f7;color:var(--blue-ink);font-weight:700;padding:8px 12px;font-size:.82rem}
+.att-btn:hover{background:#dde3ef}
+.att-h{margin:16px 0 8px;font-size:.95rem;color:var(--blue-ink)}
+.att-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.att-name{font-size:.92rem}
+.att-btns{display:flex;gap:6px}
+.att-set{background:#f1f3f9;color:var(--muted);border:1px solid var(--line);padding:6px 12px;
+  font-size:.82rem;font-weight:700;border-radius:8px}
+.att-set:hover{border-color:var(--blue)}
+.att-set.st-present.on{background:#0b6b3a;color:#fff;border-color:#0b6b3a}
+.att-set.st-absent.on{background:#b3261e;color:#fff;border-color:#b3261e}
+.att-set.st-late.on{background:#e08a00;color:#fff;border-color:#e08a00}
 
 /* =====================================================================
    SITE DYNAMIQUE — 3 mondes (Club · Académie · Tournoi)
