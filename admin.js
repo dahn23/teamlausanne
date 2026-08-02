@@ -799,6 +799,7 @@ async function initGameZone(roles) {
     document.querySelector('#view-gamezone .subtab[data-sub="participants"]')?.classList.add("hidden");
     document.querySelector('#view-gamezone .subtab[data-sub="financier"]')?.classList.add("hidden");
     document.querySelector('#view-gamezone .subtab[data-sub="communication"]')?.classList.add("hidden");
+    document.querySelector('#view-gamezone .subtab[data-sub="sondages"]')?.classList.add("hidden");
     $("gz-bm-card")?.classList.add("hidden");
     $("gz-official-box")?.classList.add("hidden");
   }
@@ -809,6 +810,7 @@ async function initGameZone(roles) {
     th.addEventListener("click", () => { gzPartSort = th.dataset.sort; renderParts(); }));
   $("gz-season-new").addEventListener("click", createSeason);
   $("gz-cat-new").addEventListener("click", createCat);
+  $("gz-survey-new").addEventListener("click", createSurvey);
   document.querySelectorAll("#view-gamezone .subtab").forEach((b) =>
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-gamezone .subtab").forEach((x) => x.classList.toggle("active", x === b));
@@ -817,6 +819,7 @@ async function initGameZone(roles) {
       if (b.dataset.sub === "participants") loadParticipantsTab();
       if (b.dataset.sub === "financier") loadFinanceTab();
       if (b.dataset.sub === "communication") loadMailTab();
+      if (b.dataset.sub === "sondages") loadSurveyTab();
     }));
   $("gz-detail-back").addEventListener("click", closeDetail);
   $("gz-resp-add").addEventListener("click", addResponsable);
@@ -1386,6 +1389,168 @@ async function removeMailImage(key) {
   await sb.from("gz_email_templates").update({ image_url: null }).eq("key", key);
   const m = gzMails.find((x) => x.key === key); if (m) m.image_url = null;
   renderMailCards();
+}
+
+// ---- Sondages ----
+let gzSurveys = [], gzSurveyQ = {};
+const SITE_ORIGIN = location.origin;
+
+async function loadSurveyTab() {
+  const [{ data: surveys }, { data: qs }] = await Promise.all([
+    sb.from("gz_surveys").select("*").order("created_at", { ascending: false }),
+    sb.from("gz_survey_questions").select("*").order("position"),
+  ]);
+  gzSurveys = surveys || [];
+  gzSurveyQ = {};
+  for (const q of qs || []) (gzSurveyQ[q.survey_id] || (gzSurveyQ[q.survey_id] = [])).push(q);
+  renderSurveys();
+}
+
+function renderSurveys() {
+  if (!gzSurveys.length) { $("gz-survey-list").innerHTML = '<p class="muted">Aucun sondage. Clique « + Nouveau sondage ».</p>'; return; }
+  $("gz-survey-list").innerHTML = gzSurveys.map((s) => {
+    const qs = gzSurveyQ[s.id] || [];
+    const link = `${SITE_ORIGIN}/sondage.html?s=${s.id}`;
+    const qhtml = qs.map((q) => {
+      const opts = q.qtype === "choice" ? ` <span class="muted">(${(q.options || []).map(esc).join(" · ")})</span>` : q.qtype === "rating" ? ' <span class="muted">(note 1–5)</span>' : ' <span class="muted">(texte libre)</span>';
+      return `<li>${esc(q.label)}${opts} <button class="fam-del gz-q-del" data-id="${q.id}" data-s="${s.id}">✕</button></li>`;
+    }).join("");
+    return `<div class="gz-survey-card" data-id="${s.id}">
+      <div class="gz-mail-head">
+        <input type="text" class="gz-survey-title" value="${esc(s.title)}" style="font-weight:800;flex:1;margin-right:10px"/>
+        <label class="gz-mail-en"><input type="checkbox" class="gz-survey-active" ${s.active ? "checked" : ""}/> Actif</label>
+      </div>
+      <label class="gz-mail-lbl">Intro (optionnel)</label>
+      <input type="text" class="gz-survey-intro" value="${esc(s.intro || "")}"/>
+      <label class="gz-mail-lbl">Questions</label>
+      <ol class="gz-survey-qs">${qhtml || '<li class="muted">Aucune question.</li>'}</ol>
+      <button class="ghost gz-q-add" data-id="${s.id}">+ Ajouter une question</button>
+      <div class="gz-mail-foot">
+        <div class="muted" style="font-size:.8rem">Lien : <a href="${link}" target="_blank" rel="noopener">${link}</a></div>
+        <div style="display:flex;gap:8px">
+          <button class="ghost gz-survey-results" data-id="${s.id}">Résultats</button>
+          <button class="primary gz-survey-save" data-id="${s.id}">Enregistrer</button>
+          <button class="fam-del gz-survey-del" data-id="${s.id}">Supprimer</button>
+        </div>
+      </div>
+      <div class="gz-survey-res hidden" id="gz-res-${s.id}"></div>
+    </div>`;
+  }).join("");
+  const L = $("gz-survey-list");
+  L.querySelectorAll(".gz-survey-save").forEach((b) => b.addEventListener("click", () => saveSurvey(b.dataset.id)));
+  L.querySelectorAll(".gz-survey-del").forEach((b) => b.addEventListener("click", () => delSurvey(b.dataset.id)));
+  L.querySelectorAll(".gz-q-add").forEach((b) => b.addEventListener("click", () => addQuestion(b.dataset.id)));
+  L.querySelectorAll(".gz-q-del").forEach((b) => b.addEventListener("click", () => delQuestion(b.dataset.id, b.dataset.s)));
+  L.querySelectorAll(".gz-survey-results").forEach((b) => b.addEventListener("click", () => showSurveyResults(b.dataset.id)));
+}
+
+async function createSurvey() {
+  const title = prompt("Titre du sondage :", "Sondage de satisfaction");
+  if (!title) return;
+  const { error } = await sb.from("gz_surveys").insert({ title });
+  if (error) return alert(error.message);
+  loadSurveyTab();
+}
+
+async function saveSurvey(id) {
+  const card = $("gz-survey-list").querySelector(`.gz-survey-card[data-id="${id}"]`);
+  const patch = {
+    title: card.querySelector(".gz-survey-title").value.trim(),
+    intro: card.querySelector(".gz-survey-intro").value.trim() || null,
+    active: card.querySelector(".gz-survey-active").checked,
+  };
+  const btn = card.querySelector(".gz-survey-save");
+  btn.textContent = "…";
+  const { error } = await sb.from("gz_surveys").update(patch).eq("id", id);
+  btn.textContent = error ? "Erreur" : "Enregistré ✓";
+  if (!error) Object.assign(gzSurveys.find((x) => x.id === id), patch);
+  setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
+}
+
+async function delSurvey(id) {
+  if (!confirm("Supprimer ce sondage et toutes ses réponses ?")) return;
+  await sb.from("gz_surveys").delete().eq("id", id);
+  loadSurveyTab();
+}
+
+async function addQuestion(sid) {
+  const label = prompt("Question :");
+  if (!label) return;
+  const t = (prompt("Type — tape : choix / texte / note", "choix") || "").toLowerCase().trim();
+  const qtype = t.startsWith("t") ? "text" : t.startsWith("n") ? "rating" : "choice";
+  let options = [];
+  if (qtype === "choice") {
+    const o = prompt("Réponses possibles, séparées par des virgules :", "Oui, Non");
+    options = (o || "").split(",").map((x) => x.trim()).filter(Boolean);
+    if (!options.length) return alert("Au moins une réponse est nécessaire.");
+  }
+  const pos = (gzSurveyQ[sid] || []).length;
+  const { error } = await sb.from("gz_survey_questions").insert({ survey_id: sid, label, qtype, options, position: pos });
+  if (error) return alert(error.message);
+  loadSurveyTab();
+}
+
+async function delQuestion(qid) {
+  if (!confirm("Supprimer cette question ?")) return;
+  await sb.from("gz_survey_questions").delete().eq("id", qid);
+  loadSurveyTab();
+}
+
+async function showSurveyResults(sid) {
+  const box = $("gz-res-" + sid);
+  if (!box.classList.contains("hidden")) { box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  box.innerHTML = '<p class="muted">Chargement…</p>';
+  const [{ data: resp }, { data: ans }] = await Promise.all([
+    sb.from("gz_survey_responses").select("id,submitted_at,tournament_id").eq("survey_id", sid),
+    sb.from("gz_survey_answers").select("question_id,value,response_id"),
+  ]);
+  const respIds = new Set((resp || []).map((r) => r.id));
+  const answers = (ans || []).filter((a) => respIds.has(a.response_id));
+  box.dataset.resp = JSON.stringify(resp || []);
+  box.dataset.ans = JSON.stringify(answers);
+  const dates = (resp || []).map((r) => r.submitted_at).sort();
+  const min = dates[0] ? dates[0].slice(0, 10) : "";
+  const max = dates[dates.length - 1] ? dates[dates.length - 1].slice(0, 10) : "";
+  box.innerHTML = `
+    <div class="gz-res-filter">
+      <label>Du <input type="date" class="gz-res-from" value="${min}"/></label>
+      <label>au <input type="date" class="gz-res-to" value="${max}"/></label>
+    </div>
+    <div class="gz-res-body"></div>`;
+  const redraw = () => renderSurveyResults(sid, box);
+  box.querySelector(".gz-res-from").addEventListener("change", redraw);
+  box.querySelector(".gz-res-to").addEventListener("change", redraw);
+  redraw();
+}
+
+function renderSurveyResults(sid, box) {
+  const resp = JSON.parse(box.dataset.resp || "[]");
+  const answers = JSON.parse(box.dataset.ans || "[]");
+  const from = box.querySelector(".gz-res-from").value;
+  const to = box.querySelector(".gz-res-to").value;
+  const inRange = (d) => (!from || d.slice(0, 10) >= from) && (!to || d.slice(0, 10) <= to);
+  const okResp = new Set(resp.filter((r) => inRange(r.submitted_at)).map((r) => r.id));
+  const okAns = answers.filter((a) => okResp.has(a.response_id));
+  const qs = gzSurveyQ[sid] || [];
+  let html = `<p><b>${okResp.size}</b> sondage(s) rempli(s) sur la période.</p>`;
+  for (const q of qs) {
+    const qa = okAns.filter((a) => a.question_id === q.id);
+    html += `<div class="gz-res-q"><b>${esc(q.label)}</b>`;
+    if (q.qtype === "choice" || q.qtype === "rating") {
+      const buckets = q.qtype === "rating" ? ["1", "2", "3", "4", "5"] : (q.options || []);
+      const counts = {}; qa.forEach((a) => (counts[a.value] = (counts[a.value] || 0) + 1));
+      const tot = qa.length || 1;
+      html += "<ul class='gz-res-bars'>" + buckets.map((opt) => {
+        const c = counts[opt] || 0; const pct = Math.round((c / tot) * 100);
+        return `<li><span class="gz-res-lbl">${esc(opt)}</span><span class="gz-res-bar"><span style="width:${pct}%"></span></span><span class="gz-res-n">${c} (${pct}%)</span></li>`;
+      }).join("") + "</ul>";
+    } else {
+      html += qa.length ? "<ul class='gz-res-txt'>" + qa.map((a) => `<li>${esc(a.value || "")}</li>`).join("") + "</ul>" : '<p class="muted">Aucune réponse.</p>';
+    }
+    html += "</div>";
+  }
+  box.querySelector(".gz-res-body").innerHTML = html;
 }
 
 async function loadSeasons() {

@@ -176,6 +176,7 @@
             <button class="subtab" data-sub="participants">Participants</button>
             <button class="subtab" data-sub="financier">Financier</button>
             <button class="subtab" data-sub="communication">Communication</button>
+            <button class="subtab" data-sub="sondages">Sondages</button>
             <button class="subtab" data-sub="caisse">Caisse</button>
             <button class="subtab" data-sub="reglages">Réglages</button>
           </div>
@@ -306,6 +307,18 @@
               </table>
             </div>
             <p id="gz-part-count" class="muted" style="font-size:.85rem"></p>
+          </div>
+
+          <!-- Sous-onglet Sondages -->
+          <div id="gz-sub-sondages" class="gz-sub hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+              <h2 style="margin:0">Sondages</h2>
+              <button id="gz-survey-new" class="primary">+ Nouveau sondage</button>
+            </div>
+            <p class="muted" style="margin-top:.3rem;font-size:.88rem">
+              Utilise le lien <code>{lien_sondage}</code> dans les e-mails de remerciement / vainqueur pour renvoyer vers un sondage actif.
+            </p>
+            <div id="gz-survey-list"></div>
           </div>
 
           <!-- Sous-onglet Communication -->
