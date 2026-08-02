@@ -171,50 +171,51 @@
         <!-- ---- Vue GameZone ---- -->
         <div id="view-gamezone" class="view hidden">
           <h1>GameZone</h1>
-          <p class="muted" style="margin-top:0">Tournois juniors : saisons, tarifs, import des inscrits, responsables.</p>
-
-          <div class="rg-card">
-            <div class="crm-head" style="margin-bottom:12px">
-              <h2 style="margin:0">Saisons</h2>
-              <button id="gz-season-new">+ Nouvelle saison</button>
-            </div>
-            <div class="table-wrap">
-              <table class="crm-table">
-                <thead><tr><th>Nom</th><th>Début</th><th>Fin</th><th>Semaines</th><th>Courante</th><th></th></tr></thead>
-                <tbody id="gz-seasons-rows"></tbody>
-              </table>
-            </div>
+          <div class="subnav">
+            <button class="subtab active" data-sub="tournois">Tournois</button>
+            <button class="subtab" data-sub="reglages">Réglages</button>
           </div>
 
-          <div class="rg-card">
-            <div class="crm-head" style="margin-bottom:12px">
-              <h2 style="margin:0">Catégories de tarifs</h2>
-              <button id="gz-cat-new">+ Nouvelle catégorie</button>
-            </div>
-            <div id="gz-cats"></div>
-          </div>
-
-          <div class="rg-card">
-            <div class="crm-head" style="margin-bottom:12px">
+          <!-- Sous-onglet Tournois -->
+          <div id="gz-sub-tournois" class="gz-sub">
+            <div class="crm-head" style="margin-bottom:6px">
               <h2 style="margin:0">Tournois</h2>
               <span id="gz-tourn-count" class="muted"></span>
             </div>
-            <div class="table-wrap">
-              <table class="crm-table">
-                <thead><tr><th>Tournoi</th><th>Date</th><th>Tirage</th><th>Statut</th><th>Inscrits</th><th>Sélectionnés</th></tr></thead>
-                <tbody id="gz-tournaments-rows"></tbody>
-              </table>
+            <div id="gz-tournaments-groups"></div>
+
+            <div class="rg-card" style="margin-top:18px">
+              <h2 style="margin-top:0">Import « 1 clic » (bookmarklet)</h2>
+              <ol class="muted" style="font-size:.9rem;line-height:1.7;padding-left:18px">
+                <li>Glissez ce bouton dans votre barre de favoris : <span id="gz-bm-holder"></span></li>
+                <li>Connectez-vous sur Swiss Tennis, ouvrez votre <b>liste de tournois</b>.</li>
+                <li>Cliquez le favori → une petite fenêtre importe tout automatiquement.</li>
+              </ol>
+              <p id="gz-bm-note" class="muted" style="font-size:.82rem"></p>
             </div>
           </div>
 
-          <div class="rg-card">
-            <h2 style="margin-top:0">Import des inscrits — bookmarklet « 1 clic »</h2>
-            <ol class="muted" style="font-size:.9rem;line-height:1.7;padding-left:18px">
-              <li>Glissez ce bouton dans votre barre de favoris : <span id="gz-bm-holder"></span></li>
-              <li>Connectez-vous sur Swiss Tennis, ouvrez votre <b>liste de tournois</b>.</li>
-              <li>Cliquez le favori → tous les inscrits sont importés ici automatiquement.</li>
-            </ol>
-            <p id="gz-bm-note" class="muted" style="font-size:.82rem"></p>
+          <!-- Sous-onglet Réglages -->
+          <div id="gz-sub-reglages" class="gz-sub hidden">
+            <div class="rg-card">
+              <div class="crm-head" style="margin-bottom:12px">
+                <h2 style="margin:0">Saisons</h2>
+                <button id="gz-season-new">+ Nouvelle saison</button>
+              </div>
+              <div class="table-wrap">
+                <table class="crm-table">
+                  <thead><tr><th>Nom</th><th>Début</th><th>Fin</th><th>Semaines</th><th>Courante</th><th></th></tr></thead>
+                  <tbody id="gz-seasons-rows"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="rg-card">
+              <div class="crm-head" style="margin-bottom:12px">
+                <h2 style="margin:0">Catégories de tarifs</h2>
+                <button id="gz-cat-new">+ Nouvelle catégorie</button>
+              </div>
+              <div id="gz-cats"></div>
+            </div>
           </div>
         </div>
 

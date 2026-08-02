@@ -4,8 +4,21 @@
     const base = "/advantage/servlet/";
     const g = async (u) => await (await fetch(u, { credentials: "include" })).text();
     if (!/swisstennis/.test(location.host)) { alert("Ouvre d'abord ta liste de tournois Swiss Tennis (connecté), puis clique ce favori."); return; }
-    const listH = await g(base + "MyTournamentList?lang=F");
+    let listH = await g(base + "MyTournamentList?lang=F");
     if (/Login Zone/i.test(listH)) { alert("Tu n'es pas connecté à Swiss Tennis. Connecte-toi puis réessaie."); return; }
+    // Basculer sur le compte « Team Lausanne » si un autre est actif
+    try {
+      const rd = new DOMParser().parseFromString(listH, "text/html").querySelector("[data-realms]");
+      if (rd) {
+        const names = [...(rd.getAttribute("data-realms") || "").matchAll(/:([^,\]]+?)\s*\(\d+\)/g)].map((m) => m[1].trim());
+        const idx = names.findIndex((n) => /team lausanne/i.test(n));
+        const sel = parseInt(rd.getAttribute("selected-realm-index") || "-1", 10);
+        if (idx >= 0 && idx !== sel) {
+          await fetch(base + "SwitchRealm?Lang=F", { method: "POST", credentials: "include", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "Lang=F&realmIndex=" + idx });
+          listH = await g(base + "MyTournamentList?lang=F");
+        }
+      }
+    } catch (e) { /* pas de bascule possible */ }
     const ld = new DOMParser().parseFromString(listH, "text/html");
     const ids = [...new Set([...ld.querySelectorAll('a[href*="tournament=Id"]')].map((a) => (a.getAttribute("href").match(/Id(\d+)/) || [])[1]).filter(Boolean))];
     if (!ids.length) { alert("Aucun tournoi trouvé sur la page."); return; }

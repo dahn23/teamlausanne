@@ -139,6 +139,17 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .fam-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .fam-add select{flex:1;min-width:140px}
 
+/* ---- GameZone : sous-onglets ---- */
+.subnav{display:flex;gap:6px;border-bottom:2px solid var(--line);margin:0 0 18px}
+.subtab{background:transparent;color:var(--muted);font-weight:700;padding:10px 18px;
+  border-radius:8px 8px 0 0;border:0;position:relative;top:2px}
+.subtab:hover{background:#f1f3f9;color:var(--ink)}
+.subtab.active{color:var(--blue);border-bottom:2px solid var(--blue)}
+.gz-season-h{margin:18px 0 8px;font-size:1.1rem;color:var(--blue-ink)}
+.gz-badge{display:inline-block;font-size:.66rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.4px;background:var(--blue);color:#fff;padding:2px 7px;border-radius:999px;vertical-align:1px}
+.gz-badge.off{background:#c9ccd6;color:#42474f}
+
 /* ---- Cours ---- */
 .ct-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
 .ct-add input[type=text],.ct-add input:not([type]){flex:1;min-width:160px}

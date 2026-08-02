@@ -789,6 +789,12 @@ async function markAtt(personId, status, isCoach) {
 function initGameZone() {
   $("gz-season-new").addEventListener("click", createSeason);
   $("gz-cat-new").addEventListener("click", createCat);
+  document.querySelectorAll("#view-gamezone .subtab").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#view-gamezone .subtab").forEach((x) => x.classList.toggle("active", x === b));
+      $("gz-sub-tournois").classList.toggle("hidden", b.dataset.sub !== "tournois");
+      $("gz-sub-reglages").classList.toggle("hidden", b.dataset.sub !== "reglages");
+    }));
   loadSeasons();
   loadCats();
   loadTournaments();
@@ -819,8 +825,11 @@ async function loadBookmarklet() {
 }
 
 async function loadTournaments() {
-  const { data: tournaments } = await sb.from("gz_tournaments").select("*").order("tournament_date", { ascending: true, nullsFirst: false });
-  const { data: entries } = await sb.from("gz_entries").select("tournament_id,participant_id,confirmed");
+  const [{ data: tournaments }, { data: entries }, { data: seasons }] = await Promise.all([
+    sb.from("gz_tournaments").select("*").order("tournament_date", { ascending: true, nullsFirst: false }),
+    sb.from("gz_entries").select("tournament_id,participant_id,confirmed"),
+    sb.from("gz_seasons").select("id,name,start_date").order("start_date", { ascending: false }),
+  ]);
   const counts = {};
   for (const e of entries || []) {
     const c = counts[e.tournament_id] || (counts[e.tournament_id] = { p: new Set(), s: new Set() });
@@ -829,14 +838,26 @@ async function loadTournaments() {
   }
   const rows = tournaments || [];
   $("gz-tourn-count").textContent = rows.length ? `${rows.length} tournoi(s)` : "";
-  $("gz-tournaments-rows").innerHTML = rows.length ? rows.map((t) => {
-    const c = counts[t.id] || { p: new Set(), s: new Set() };
-    const drawn = /peuvent être joués|visibles au public/i.test(t.status || "");
-    return `<tr>
-      <td>${esc(t.name || "—")}</td><td>${t.tournament_date || "—"}</td><td>${t.draw_date || "—"}</td>
-      <td>${esc(t.status || "—")}${drawn ? " ✅" : ""}</td>
-      <td>${c.p.size}</td><td>${c.s.size}</td></tr>`;
-  }).join("") : '<tr><td colspan="6" class="muted">Aucun tournoi importé.</td></tr>';
+  const seasonName = {};
+  for (const s of seasons || []) seasonName[s.id] = s.name;
+  const groups = {};
+  for (const t of rows) { const k = t.season_id || "none"; (groups[k] || (groups[k] = [])).push(t); }
+  const order = (seasons || []).map((s) => s.id).concat("none");
+  let html = "";
+  for (const sid of order) {
+    const g = groups[sid];
+    if (!g || !g.length) continue;
+    html += `<h3 class="gz-season-h">${sid === "none" ? "Hors saison" : esc(seasonName[sid] || "—")} <span class="muted" style="font-weight:400">(${g.length})</span></h3>`;
+    html += `<div class="table-wrap" style="margin-bottom:16px"><table class="crm-table"><thead><tr><th>Tournoi</th><th>Date</th><th>Statut</th><th>Inscrits</th><th>Sélect.</th></tr></thead><tbody>`;
+    for (const t of g) {
+      const c = counts[t.id] || { p: new Set(), s: new Set() };
+      const drawn = /peuvent être joués|visibles au public/i.test((t.status || "") + JSON.stringify(t.epreuves || ""));
+      const badge = t.is_gamezone ? '<span class="gz-badge">GameZone</span>' : '<span class="gz-badge off">autre</span>';
+      html += `<tr><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date || "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✅" : ""}</td><td>${c.p.size}</td><td>${c.s.size}</td></tr>`;
+    }
+    html += "</tbody></table></div>";
+  }
+  $("gz-tournaments-groups").innerHTML = html || '<p class="muted">Aucun tournoi importé. Utilisez le bookmarklet ci-dessous.</p>';
 }
 
 async function loadSeasons() {
