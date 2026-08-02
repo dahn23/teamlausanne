@@ -174,6 +174,7 @@
           <div class="subnav">
             <button class="subtab active" data-sub="tournois">Tournois</button>
             <button class="subtab" data-sub="participants">Participants</button>
+            <button class="subtab" data-sub="financier">Financier</button>
             <button class="subtab" data-sub="caisse">Caisse</button>
             <button class="subtab" data-sub="reglages">Réglages</button>
           </div>
@@ -304,6 +305,23 @@
               </table>
             </div>
             <p id="gz-part-count" class="muted" style="font-size:.85rem"></p>
+          </div>
+
+          <!-- Sous-onglet Résumé financier -->
+          <div id="gz-sub-financier" class="gz-sub hidden">
+            <div class="crm-head" style="margin-bottom:10px">
+              <h2 style="margin:0">Résumé financier</h2>
+              <select id="gz-fin-season"></select>
+            </div>
+            <div class="table-wrap">
+              <table class="crm-table">
+                <thead>
+                  <tr><th>Tournoi</th><th>Date</th><th>Présents</th><th>Twint</th><th>Cash</th><th>Carte</th><th>Total</th><th>Salaires</th><th>Net</th><th>Responsables</th></tr>
+                  <tr id="gz-fin-totals" class="gz-total"></tr>
+                </thead>
+                <tbody id="gz-fin-rows"></tbody>
+              </table>
+            </div>
           </div>
 
           <!-- Sous-onglet Caisse (admin) -->

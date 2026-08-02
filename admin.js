@@ -797,9 +797,11 @@ async function initGameZone(roles) {
   if (!gzIsOfficial) {
     document.querySelector('#view-gamezone .subtab[data-sub="reglages"]')?.classList.add("hidden");
     document.querySelector('#view-gamezone .subtab[data-sub="participants"]')?.classList.add("hidden");
+    document.querySelector('#view-gamezone .subtab[data-sub="financier"]')?.classList.add("hidden");
     $("gz-bm-card")?.classList.add("hidden");
     $("gz-official-box")?.classList.add("hidden");
   }
+  $("gz-fin-season").addEventListener("change", renderFinance);
   if (!gzIsAdmin) document.querySelector('#view-gamezone .subtab[data-sub="caisse"]')?.classList.add("hidden");
   $("gz-part-search").addEventListener("input", renderParts);
   document.querySelectorAll('#gz-sub-participants th[data-sort]').forEach((th) =>
@@ -812,6 +814,7 @@ async function initGameZone(roles) {
       document.querySelectorAll("#view-gamezone .gz-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "gz-sub-" + b.dataset.sub));
       if (b.dataset.sub === "caisse") loadCaisseTab();
       if (b.dataset.sub === "participants") loadParticipantsTab();
+      if (b.dataset.sub === "financier") loadFinanceTab();
     }));
   $("gz-detail-back").addEventListener("click", closeDetail);
   $("gz-resp-add").addEventListener("click", addResponsable);
@@ -1268,6 +1271,45 @@ function renderParts() {
     <td>${p.part}</td><td>${p.vic > 0 ? "🏆 " + p.vic : "0"}</td>
     <td>${p.credit_chf > 0 ? p.credit_chf + " CHF" : ""}</td><td class="muted" style="font-size:.82rem">${esc(p.comment || "")}</td></tr>`).join("");
   $("gz-part-count").textContent = `${rows.length} participant(s)`;
+}
+
+// ---- Résumé financier ----
+let gzFin = [], gzFinMgrs = {}, gzFinSeasonsLoaded = false;
+
+async function loadFinanceTab() {
+  const [{ data: fin }, { data: mgrs }, { data: seasons }] = await Promise.all([
+    sb.from("gz_tournament_finance").select("*"),
+    sb.from("gz_managers").select("tournament_id,person_id"),
+    sb.from("gz_seasons").select("id,name,start_date,end_date").order("start_date", { ascending: false }),
+  ]);
+  const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : ""; };
+  gzFinMgrs = {};
+  for (const m of mgrs || []) { (gzFinMgrs[m.tournament_id] || (gzFinMgrs[m.tournament_id] = [])).push(nameOf(m.person_id)); }
+  gzFin = fin || [];
+  if (!gzFinSeasonsLoaded) {
+    $("gz-fin-season").innerHTML = '<option value="">Toutes les saisons</option>' +
+      (seasons || []).map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("");
+    gzFinSeasonsLoaded = true;
+  }
+  renderFinance();
+}
+
+function renderFinance() {
+  const sid = $("gz-fin-season").value;
+  const rows = gzFin.filter((r) => !sid || r.season_id === sid)
+    .sort((a, b) => String(b.tournament_date || "").localeCompare(String(a.tournament_date || "")));
+  const T = { presents: 0, twint: 0, cash: 0, carte: 0, total: 0, salaires: 0, net: 0 };
+  const html = rows.map((r) => {
+    const twint = Number(r.twint), cash = Number(r.cash), carte = Number(r.carte), sal = Number(r.salaires);
+    const total = twint + cash + carte, net = total - sal;
+    T.presents += r.presents; T.twint += twint; T.cash += cash; T.carte += carte; T.total += total; T.salaires += sal; T.net += net;
+    return `<tr><td>${esc(r.name || "—")}</td><td>${r.tournament_date || "—"}</td><td>${r.presents}</td>
+      <td>${twint}</td><td>${cash}</td><td>${carte}</td><td><b>${total}</b></td><td>${sal}</td><td>${net}</td>
+      <td class="muted" style="font-size:.8rem">${(gzFinMgrs[r.tournament_id] || []).join(", ")}</td></tr>`;
+  }).join("");
+  $("gz-fin-rows").innerHTML = html || '<tr><td colspan="10" class="muted">Aucun tournoi.</td></tr>';
+  $("gz-fin-totals").innerHTML =
+    `<td colspan="2">TOTAL — ${rows.length} tournoi(s)</td><td>${T.presents}</td><td>${T.twint}</td><td>${T.cash}</td><td>${T.carte}</td><td>${T.total}</td><td>${T.salaires}</td><td>${T.net}</td><td></td>`;
 }
 
 async function loadSeasons() {
