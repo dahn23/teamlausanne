@@ -791,6 +791,28 @@ function initGameZone() {
   $("gz-cat-new").addEventListener("click", createCat);
   loadSeasons();
   loadCats();
+  loadTournaments();
+}
+
+async function loadTournaments() {
+  const { data: tournaments } = await sb.from("gz_tournaments").select("*").order("tournament_date", { ascending: true, nullsFirst: false });
+  const { data: entries } = await sb.from("gz_entries").select("tournament_id,participant_id,confirmed");
+  const counts = {};
+  for (const e of entries || []) {
+    const c = counts[e.tournament_id] || (counts[e.tournament_id] = { p: new Set(), s: new Set() });
+    c.p.add(e.participant_id);
+    if (e.confirmed) c.s.add(e.participant_id);
+  }
+  const rows = tournaments || [];
+  $("gz-tourn-count").textContent = rows.length ? `${rows.length} tournoi(s)` : "";
+  $("gz-tournaments-rows").innerHTML = rows.length ? rows.map((t) => {
+    const c = counts[t.id] || { p: new Set(), s: new Set() };
+    const drawn = /peuvent être joués|visibles au public/i.test(t.status || "");
+    return `<tr>
+      <td>${esc(t.name || "—")}</td><td>${t.tournament_date || "—"}</td><td>${t.draw_date || "—"}</td>
+      <td>${esc(t.status || "—")}${drawn ? " ✅" : ""}</td>
+      <td>${c.p.size}</td><td>${c.s.size}</td></tr>`;
+  }).join("") : '<tr><td colspan="6" class="muted">Aucun tournoi importé.</td></tr>';
 }
 
 async function loadSeasons() {
