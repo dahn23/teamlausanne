@@ -976,10 +976,18 @@ function renderMgr() {
     const method = (m) => `<option value="${m}" ${st.pay_method === m ? "selected" : ""}>${m}</option>`;
     return `<tr data-pid="${p.id}">
       <td><b>${esc(p.last_name)} ${esc(p.first_name)}</b>${st.is_winner ? " 🏆" : ""}</td>
-      <td class="muted" style="font-size:.8rem">${esc(p.club || "")}${p.credit_chf > 0 ? ` · crédit ${p.credit_chf} CHF` : ""}${p.comment ? " · " + esc(p.comment) : ""}</td>
+      <td class="muted" style="font-size:.8rem">
+        ${esc(p.club || "")}
+        <div class="gz-credit-line">
+          ${p.credit_chf > 0 ? `<b class="gz-credit">crédit ${p.credit_chf} CHF</b> <button type="button" class="gz-credit-use gz-mini">utiliser</button>` : ""}
+          <button type="button" class="gz-credit-add gz-mini">+ crédit</button>
+          <button type="button" class="gz-comment-edit gz-mini">✎ note</button>
+        </div>
+        ${p.comment ? `<div class="gz-comment">📝 ${esc(p.comment)}</div>` : ""}
+      </td>
       <td style="text-align:center"><input type="checkbox" class="gz-absent" ${st.absent ? "checked" : ""} /></td>
       <td><select class="gz-amount" ${st.absent ? "disabled" : ""}>${amtOpts}</select></td>
-      <td><select class="gz-method" ${st.absent ? "disabled" : ""}><option value="">méthode</option>${method("cash")}${method("twint")}${method("carte")}</select></td>
+      <td><select class="gz-method" ${st.absent ? "disabled" : ""}><option value="">méthode</option>${method("cash")}${method("twint")}${method("carte")}<option value="credit" ${st.pay_method === "credit" ? "selected" : ""}>crédit</option></select></td>
       <td class="gz-winner-cell" style="text-align:center">${mgrIsGz ? `
         <label><input type="checkbox" class="gz-winner" ${st.is_winner ? "checked" : ""} /> 🏆</label>
         <div class="gz-photo-wrap" style="${st.is_winner ? "" : "display:none"}">
@@ -996,8 +1004,50 @@ function renderMgr() {
       btn.addEventListener("click", () => file.click());
       file.addEventListener("change", () => uploadPhoto(tr, file));
     }
+    tr.querySelector(".gz-credit-add")?.addEventListener("click", () => grantCredit(tr.dataset.pid));
+    tr.querySelector(".gz-credit-use")?.addEventListener("click", () => spendCredit(tr.dataset.pid));
+    tr.querySelector(".gz-comment-edit")?.addEventListener("click", () => editComment(tr.dataset.pid));
   });
   updateMgrTotals();
+}
+
+function mgrPlayer(pid) { return mgrPlayers.find((x) => x.p.id === pid); }
+
+async function grantCredit(pid) {
+  const mp = mgrPlayer(pid); if (!mp) return;
+  const v = prompt(`Ajouter un crédit à ${mp.p.first_name} (CHF) :`, "");
+  const amt = Number(v);
+  if (!amt) return;
+  const nc = Number(mp.p.credit_chf || 0) + amt;
+  await sb.from("gz_participants").update({ credit_chf: nc }).eq("id", pid);
+  mp.p.credit_chf = nc;
+  renderMgr();
+}
+
+async function spendCredit(pid) {
+  const mp = mgrPlayer(pid); if (!mp) return;
+  const credit = Number(mp.p.credit_chf || 0);
+  if (credit <= 0) return;
+  const v = prompt(`Montant du crédit à utiliser (max ${credit} CHF) :`, String(credit));
+  const amt = Math.min(Number(v) || 0, credit);
+  if (!amt) return;
+  await sb.from("gz_participants").update({ credit_chf: credit - amt }).eq("id", pid);
+  await sb.from("gz_player_status").upsert({
+    tournament_id: mgrTid, participant_id: pid, absent: false,
+    amount_paid: amt, pay_method: "credit", updated_at: new Date().toISOString(),
+  }, { onConflict: "tournament_id,participant_id" });
+  mp.p.credit_chf = credit - amt;
+  mp.st = { ...mp.st, absent: false, amount_paid: amt, pay_method: "credit" };
+  renderMgr();
+}
+
+async function editComment(pid) {
+  const mp = mgrPlayer(pid); if (!mp) return;
+  const v = prompt(`Note libre pour ${mp.p.first_name} ${mp.p.last_name} :`, mp.p.comment || "");
+  if (v === null) return;
+  await sb.from("gz_participants").update({ comment: v.trim() || null }).eq("id", pid);
+  mp.p.comment = v.trim() || null;
+  renderMgr();
 }
 
 async function uploadPhoto(tr, file) {
