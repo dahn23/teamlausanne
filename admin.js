@@ -24,15 +24,15 @@ if (session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "roles", "resa", "cours", "gamezone", "stats", "reglages"],
-  admin:      ["membres", "roles", "resa", "cours", "gamezone", "stats", "reglages"],
-  secretaire: ["membres", "resa", "stats"],
+  superadmin: ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stats", "reglages"],
+  admin:      ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stats", "reglages"],
+  secretaire: ["membres", "resa", "caisse", "stats"],
   head_coach: ["resa", "cours"],
   coach:      ["resa", "cours"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["gamezone", "GameZone"], ["stats", "Statistiques"], ["reglages", "Réglages"]];
+const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stats", "Statistiques"], ["reglages", "Réglages"]];
 const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["organisateur", "Official"], ["responsable", "Responsable"]];
 const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "membre", "organisateur", "responsable"];
 
@@ -67,6 +67,7 @@ async function init(roles) {
   document.querySelectorAll(".side-item[data-view]").forEach((b) =>
     b.addEventListener("click", () => showView(b.dataset.view)));
   $("rg-save").addEventListener("click", saveSettings);
+  $("gz-mov-add").addEventListener("click", addMovement);
   await loadSettings();
   applyTabAccess(roles);
   loadPeople();
@@ -84,6 +85,7 @@ function showView(view) {
     b.classList.toggle("active", b.dataset.view === view));
   document.querySelectorAll(".view").forEach((v) =>
     v.classList.toggle("hidden", v.id !== "view-" + view));
+  if (view === "caisse") loadCaisseTab();
 }
 
 // ===================================================================
@@ -793,7 +795,6 @@ async function initGameZone(roles) {
   gzIsOfficial = gzRoles.some((r) => ["superadmin", "admin", "organisateur"].includes(r));
   const { data: prof } = await sb.from("profiles").select("person_id").eq("user_id", meId).maybeSingle();
   gzPersonId = prof?.person_id || null;
-  const gzIsAdmin = gzRoles.some((r) => ["superadmin", "admin"].includes(r));
   if (!gzIsOfficial) {
     document.querySelector('#view-gamezone .subtab[data-sub="reglages"]')?.classList.add("hidden");
     document.querySelector('#view-gamezone .subtab[data-sub="participants"]')?.classList.add("hidden");
@@ -805,7 +806,6 @@ async function initGameZone(roles) {
     $("gz-official-box")?.classList.add("hidden");
   }
   $("gz-fin-season").addEventListener("change", renderFinance);
-  if (!gzIsAdmin) document.querySelector('#view-gamezone .subtab[data-sub="caisse"]')?.classList.add("hidden");
   $("gz-part-search").addEventListener("input", renderParts);
   document.querySelectorAll('#gz-sub-participants th[data-sort]').forEach((th) =>
     th.addEventListener("click", () => { gzPartSort = th.dataset.sort; renderParts(); }));
@@ -816,7 +816,6 @@ async function initGameZone(roles) {
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-gamezone .subtab").forEach((x) => x.classList.toggle("active", x === b));
       document.querySelectorAll("#view-gamezone .gz-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "gz-sub-" + b.dataset.sub));
-      if (b.dataset.sub === "caisse") loadCaisseTab();
       if (b.dataset.sub === "participants") loadParticipantsTab();
       if (b.dataset.sub === "financier") loadFinanceTab();
       if (b.dataset.sub === "communication") loadMailTab();
@@ -1216,7 +1215,10 @@ async function closeTournament() {
   const { data: cz } = await sb.from("gz_caisse").select("closed").eq("tournament_id", mgrTid).maybeSingle();
   await saveCaisse();
   if (!cz?.closed) {
-    await sb.from("gz_caisse_ledger").insert({ tournament_id: mgrTid, label: mgrTournamentName, amount: c.cashIn - c.cashOut, created_by: meId });
+    // Passe par une fonction SECURITY DEFINER : le responsable du tournoi peut
+    // poster ce mouvement de clôture sans avoir un accès général à la caisse.
+    const { error: ce } = await sb.rpc("gz_add_tournament_caisse", { p_tournament: mgrTid, p_amount: c.cashIn - c.cashOut, p_label: mgrTournamentName });
+    if (ce) { alert("Caisse : " + ce.message); return; }
   }
   await sb.from("gz_caisse").update({ closed: true, closed_at: new Date().toISOString() }).eq("tournament_id", mgrTid);
   await sb.from("gz_tournaments").update({ status: "Clôturé" }).eq("id", mgrTid);
