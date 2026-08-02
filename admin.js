@@ -17,11 +17,33 @@ if (session) {
   } else {
     $("console").classList.remove("hidden");
     meId = session.user.id;
-    init();
+    init(roles);
   }
 }
 
-async function init() {
+// Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
+// les écritures en base ; ceci masque l'UI selon le rôle).
+const TAB_ACCESS = {
+  membres:  ["superadmin", "admin", "secretaire"],
+  resa:     ["superadmin", "admin", "secretaire", "head_coach", "coach"],
+  stats:    ["superadmin", "admin", "secretaire"],
+  reglages: ["superadmin", "admin"],
+};
+
+function applyTabAccess(roles) {
+  let first = null;
+  document.querySelectorAll(".side-item[data-view]").forEach((b) => {
+    const v = b.dataset.view;
+    if (v === "bientot") return;
+    const allowed = (TAB_ACCESS[v] || []).some((r) => roles.includes(r));
+    b.classList.toggle("hidden", !allowed);
+    if (allowed && !first) first = v;
+  });
+  if (first) showView(first);
+}
+
+async function init(roles) {
+  applyTabAccess(roles);
   $("logout").addEventListener("click", async () => {
     await sb.auth.signOut();
     location.href = "index.html";
