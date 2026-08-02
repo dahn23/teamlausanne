@@ -792,6 +792,31 @@ function initGameZone() {
   loadSeasons();
   loadCats();
   loadTournaments();
+  loadBookmarklet();
+}
+
+async function loadBookmarklet() {
+  const { data } = await sb.from("gz_config").select("import_key").maybeSingle();
+  if (!data) { $("gz-bm-note").textContent = "Clé d'import indisponible (droits admin requis)."; return; }
+  let src;
+  try { src = await (await fetch("bookmarklet.js")).text(); }
+  catch (_e) { $("gz-bm-note").textContent = "Impossible de charger le bookmarklet."; return; }
+  const code = src
+    .replace("__KEY__", data.import_key)
+    .replace("__FN__", "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/gz-import")
+    .replace("__AK__", "sb_publishable_nsRKXBFgwmDjtmvS3mFc0w_Q4pi_qxK");
+  const a = document.createElement("a");
+  a.href = "javascript:" + encodeURIComponent(code);
+  a.textContent = "🎾 Importer GameZone";
+  a.className = "btn-prod";
+  a.style.textDecoration = "none";
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("Ne cliquez pas ici : GLISSEZ ce bouton dans votre barre de favoris, puis utilisez-le une fois connecté sur la page Swiss Tennis.");
+  });
+  $("gz-bm-holder").innerHTML = "";
+  $("gz-bm-holder").appendChild(a);
+  $("gz-bm-note").textContent = "Astuce : glissez-le dans la barre de favoris (ou clic droit → Ajouter aux favoris).";
 }
 
 async function loadTournaments() {
