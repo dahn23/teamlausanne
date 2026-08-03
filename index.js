@@ -132,8 +132,10 @@ const WORLDS = {
         head: ["Année", "Simple", "Double"],
         rows: [["2025", `${FLAG_CH} Henry Bernet`, `${FLAG_IE} Charles Barry · ${FLAG_FR} Max Westphal`]] },
       { type: "gallery", anchor: "photos", items: [
-        "assets/photos/open-trophy.jpg", "assets/photos/open-double1.jpg",
-        "assets/photos/open-double2.jpg", "assets/photos/open-player.jpg",
+        "assets/photos/open-trophy.jpg",
+        { src: "assets/photos/open-double1.jpg", pos: "center 22%" },
+        { src: "assets/photos/open-double2.jpg", pos: "center 12%" },
+        { src: "assets/photos/open-player.jpg", pos: "center 28%" },
       ]},
       { type: "features", anchor: "infos", title: "Infos pratiques", items: [
         ["Dates", "Du 23 au 30 août 2026."],
@@ -478,8 +480,11 @@ function sectionHTML(sec) {
             <figcaption><b>${esc(c.name)}</b><span>${esc(c.role)}</span></figcaption></figure>`).join("")}</div></section>`;
 
     case "gallery":
-      return `<section class="wsec"><div class="gallery">${sec.items.map((src) =>
-        `<div class="gphoto" style="background-image:url('${src}')"></div>`).join("")}</div></section>`;
+      return `<section class="wsec"><div class="gallery">${sec.items.map((it) => {
+        const src = typeof it === "string" ? it : it.src;
+        const pos = (typeof it === "object" && it.pos) ? `;background-position:${it.pos}` : "";
+        return `<div class="gphoto" style="background-image:url('${src}')${pos}"></div>`;
+      }).join("")}</div></section>`;
 
     default: return "";
   }
