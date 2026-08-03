@@ -19,8 +19,8 @@ const WORLDS = {
     cta: [{ label: "Réserver un court", type: "login" }],
     sections: [
       { type: "split", title: "Votre club, toute l'année", photo: "assets/photos/p5.jpg", body: [
-        "Devenez membre du Lausanne-Sports Tennis et accédez à l'ensemble des courts, intérieurs comme extérieurs, été comme hiver.",
-        "Réservez votre terrain en ligne en quelques secondes et profitez d'un club-house et d'un restaurant au cœur des Plaines-du-Loup.",
+        "Devenez membre du Lausanne-Sports Tennis : jouez librement sur tous les courts extérieurs durant tout l'été, et profitez de conditions avantageuses sur les courts couverts en hiver.",
+        "L'adhésion est payante (cotisation annuelle). Elle vous ouvre la réservation en ligne, le club-house et le restaurant, au cœur des Plaines-du-Loup.",
       ], link: { label: "Réserver un court", action: "login" } },
       { type: "features", title: "Le club, c'est…", items: [
         ["Devenir membre", "Accès à tous les courts, intérieurs et extérieurs, toute l'année."],
@@ -56,7 +56,7 @@ const WORLDS = {
   },
 
   academie: {
-    tag: "L'Académie", logo: "assets/logo-academie.webp",
+    tag: "Academy", logo: "assets/logo-academie.webp",
     slogan: "Grandir. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
     hero: "assets/photos/p6.jpg",
@@ -70,12 +70,9 @@ const WORLDS = {
         { name: "KidsTennis", meta: "dès 5 ans", detail: "L'apprentissage par le jeu pour les plus jeunes.", href: "#kids", photo: "assets/photos/kids3.jpg" },
         { name: "Sport-études", meta: "14–19 ans", detail: "Études et tennis intensif dans un cadre optimal.", href: "#sport-etudes", photo: "assets/photos/coach1.jpg" },
         { name: "Pro U18 & Pro", meta: "haut niveau", detail: "Le grand saut vers le circuit professionnel.", href: "#pro", photo: "assets/photos/coach2.jpg" },
-        { name: "Game Zone", meta: "chaque week-end", detail: "Des tournois juniors et un classement de saison.", href: "#gamezone", photo: "assets/photos/kids2.jpg" },
       ]},
       { type: "offers", title: "Cours & filières", items: [
-        { name: "Cours en groupe", meta: "tous niveaux", detail: "Cours pour tous, encadrés par niveau et par âge." },
-        { name: "Cours privés", meta: "sur mesure", detail: "Leçons individuelles selon vos objectifs." },
-        { name: "Loisir", meta: "", detail: "Progresser à son rythme, dans le plaisir du jeu." },
+        { name: "Club", meta: "", detail: "Progresser à son rythme, dans le plaisir du jeu." },
         { name: "Compétition", meta: "", detail: "Filière encadrée pour les joueurs de compétition." },
         { name: "Performance", meta: "haut niveau", detail: "Encadrement renforcé vers le meilleur niveau." },
         { name: "Stages", meta: "vacances", detail: "10 semaines de stages, de KidsTennis à Train Like a Pro." },

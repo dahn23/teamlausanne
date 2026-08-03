@@ -12,6 +12,9 @@
   --radius:14px; --shadow:0 2px 14px rgba(20,26,46,.08);
 }
 *{box-sizing:border-box}
+/* Icône inline (remplace les emoji dans les titres/labels) */
+.hi{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.14em;margin-right:.42em;flex-shrink:0}
+.hi *{vector-effect:non-scaling-stroke}
 html,body{margin:0;height:100%}
 body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   color:var(--ink);background:var(--bg);-webkit-text-size-adjust:100%}

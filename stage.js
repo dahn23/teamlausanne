@@ -28,9 +28,9 @@ function render() {
     const d = days(s.start_date, s.end_date);
     const price = effPrice(c.price || 0, d);
     const dates = s.start_date === s.end_date ? s.start_date : `${s.start_date} → ${s.end_date}`;
-    const badges = `${c.meal ? '<span class="stg-tag">🍽 Repas inclus</span>' : ""}${c.tshirt ? '<span class="stg-tag">👕 T-shirt offert</span>' : ""}`;
+    const badges = `${c.meal ? '<span class="stg-tag">Repas inclus</span>' : ""}${c.tshirt ? '<span class="stg-tag">T-shirt offert</span>' : ""}`;
     return `<article class="stg-pub-card">
-      ${c.image_url ? `<img src="${esc(c.image_url)}" alt="" class="stg-pub-img" loading="lazy"/>` : '<div class="stg-pub-img stg-pub-noimg">🎾</div>'}
+      ${c.image_url ? `<img src="${esc(c.image_url)}" alt="" class="stg-pub-img" loading="lazy"/>` : '<div class="stg-pub-img stg-pub-noimg"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg></div>'}
       <div class="stg-pub-body">
         <h3>${esc(s.title || c.name || "Stage")}</h3>
         <div class="stg-pub-dates">${dates} · ${d} jour(s)</div>

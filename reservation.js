@@ -135,7 +135,7 @@ function shiftDay(delta) {
 async function loadDay() {
   const date = $("date").value;
   const season = seasonOf(date);
-  $("season-tag").textContent = season === "ete" ? "☀️ Été" : "❄️ Hiver";
+  $("season-tag").textContent = season === "ete" ? "Été" : "Hiver";
 
   const col = season === "ete" ? "open_summer" : "open_winter";
   const { data: allCourts, error: cErr } = await sb.from("courts").select("*")

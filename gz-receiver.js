@@ -20,7 +20,7 @@ window.addEventListener("message", async (e) => {
     const j = await r.json();
     if (j.ok) {
       const total = j.report.reduce((a, x) => a + x.players, 0);
-      st.textContent = `✅ Terminé : ${j.report.length} tournoi(s), ${total} inscrits au total. Vous pouvez fermer cette fenêtre et rafraîchir l'onglet GameZone.`;
+      st.textContent = `✓ Terminé : ${j.report.length} tournoi(s), ${total} inscrits au total. Vous pouvez fermer cette fenêtre et rafraîchir l'onglet GameZone.`;
     } else {
       st.textContent = "Erreur : " + (j.error || JSON.stringify(j));
     }

@@ -6,9 +6,12 @@ import { sb } from "./common.js";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+const CUP = (color, size) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/><path d="M8 5.5H5V7a3 3 0 0 0 3 3M16 5.5h3V7a3 3 0 0 1-3 3"/><path d="M10 13.5V16h4v-2.5M8 20h8M12 16v4"/></svg>`;
+const MEDAL = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#c8901f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M8.5 3l3.5 6 3.5-6"/><circle cx="12" cy="15" r="5"/></svg>`;
+
 function trophies(w) {
-  const cup = w >= 10 ? "🏆" : w >= 5 ? "🥈" : "";
-  const medals = "🏅".repeat(Math.min(w, 12)) + (w > 12 ? "…" : "");
+  const cup = w >= 10 ? CUP("#c8901f", 20) : w >= 5 ? CUP("#9aa3ad", 17) : "";
+  const medals = MEDAL.repeat(Math.min(w, 12)) + (w > 12 ? " …" : "");
   return `${cup ? `<span class="gz-cup">${cup}</span>` : ""}<span class="gz-medals">${medals}</span>`;
 }
 

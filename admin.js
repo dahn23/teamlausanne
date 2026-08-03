@@ -2,6 +2,8 @@
 import { sb, requireLogin, myRoles, hasAny, STAFF_ROLES } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
+// Petite coupe SVG (remplace l'emoji 🏆 dans les tableaux)
+const ICO_CUP = '<svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-1px" fill="none" stroke="#c8901f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/><path d="M8 5.5H5V7a3 3 0 0 0 3 3M16 5.5h3V7a3 3 0 0 1-3 3"/><path d="M10 13.5V16h4v-2.5M8 20h8M12 16v4"/></svg>';
 let people = [];
 let meId = null;
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -225,7 +227,7 @@ function shiftResa(delta) {
 async function loadResaDay() {
   const date = $("resa-date").value;
   const season = seasonA(date);
-  $("resa-season").textContent = season === "ete" ? "☀️ Été" : "❄️ Hiver";
+  $("resa-season").textContent = season === "ete" ? "Été" : "Hiver";
   const col = season === "ete" ? "open_summer" : "open_winter";
   resaCourts = resaCourtsAll.filter((c) => c[col]);
   const { data: bookings } = await sb.from("court_bookings").select("*").eq("booking_date", date);
@@ -612,7 +614,7 @@ async function loadFamily(id) {
   $("family-list").innerHTML = rows.length ? rows.map((g) => {
     const isParent = g.guardian_id === id;
     const other = isParent ? g.child_id : g.guardian_id;
-    const label = isParent ? `👨‍👧 Enfant : ${nameOf(other)}` : `🧑 Parent/tuteur : ${nameOf(other)}`;
+    const label = isParent ? `Enfant : ${nameOf(other)}` : `Parent/tuteur : ${nameOf(other)}`;
     return `<div class="fam-item"><span>${label}</span><button type="button" class="fam-del" data-g="${g.guardian_id}" data-c="${g.child_id}">✕</button></div>`;
   }).join("") : '<p class="muted" style="font-size:.85rem;margin:0">Aucun lien.</p>';
   $("family-list").querySelectorAll(".fam-del").forEach((b) =>
@@ -734,8 +736,8 @@ async function loadCoursesDay() {
       <div class="cs-time">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
       <div class="cs-main"><b>${esc(c.title || type?.name || "Cours")}</b>
         <span class="muted">${type ? esc(type.name) + " · " : ""}Courts ${cts || "—"}</span></div>
-      <div class="cs-badges"><span>👤 ${nc}</span><span>🧒 ${np}</span></div>
-      <button type="button" class="att-btn" data-att="${c.id}">✅ Présences</button>
+      <div class="cs-badges"><span>${nc} coach(s)</span><span>${np} élève(s)</span></div>
+      <button type="button" class="att-btn" data-att="${c.id}">Présences</button>
     </div>`;
   }).join("") : '<p class="muted">Aucun cours ce jour.</p>';
   if (isHeadUser) $("cs-list").querySelectorAll(".cs-card").forEach((el) =>
@@ -858,7 +860,7 @@ async function loadBookmarklet() {
     .replace("__RCV__", location.origin + "/gz-receiver.html");
   const a = document.createElement("a");
   a.href = "javascript:" + encodeURIComponent(code);
-  a.textContent = "🎾 Importer GameZone";
+  a.textContent = "Importer GameZone";
   a.className = "btn-prod";
   a.style.textDecoration = "none";
   a.addEventListener("click", (e) => {
@@ -907,7 +909,7 @@ async function loadTournaments() {
       ti += c.p; ts += c.s;
       const drawn = /peuvent être joués|visibles au public/i.test((t.status || "") + JSON.stringify(t.epreuves || ""));
       const badge = t.is_gamezone ? '<span class="gz-badge">GameZone</span>' : '<span class="gz-badge off">autre</span>';
-      html += `<tr class="gz-trow" data-tid="${t.id}"><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date || "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✅" : ""}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
+      html += `<tr class="gz-trow" data-tid="${t.id}"><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date || "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✓" : ""}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
     }
     html += `<tr class="gz-total"><td colspan="3">Total — ${g.length} tournoi(s)</td><td>${ti}</td><td>${ts}</td></tr>`;
     html += "</tbody></table></div>";
@@ -995,7 +997,7 @@ function renderMgr() {
       .concat(opts.map((o) => `<option value="${o.amount}" ${Number(st.amount_paid) === Number(o.amount) ? "selected" : ""}>${esc(o.label)} — ${o.amount}</option>`)).join("");
     const method = (m) => `<option value="${m}" ${st.pay_method === m ? "selected" : ""}>${m}</option>`;
     return `<tr data-pid="${p.id}">
-      <td><b>${esc(p.last_name)} ${esc(p.first_name)}</b>${st.is_winner ? " 🏆" : ""}</td>
+      <td><b>${esc(p.last_name)} ${esc(p.first_name)}</b>${st.is_winner ? " " + ICO_CUP : ""}</td>
       <td class="muted" style="font-size:.8rem">
         ${esc(p.club || "")}
         <div class="gz-credit-line">
@@ -1003,16 +1005,16 @@ function renderMgr() {
           <button type="button" class="gz-credit-add gz-mini">+ crédit</button>
           <button type="button" class="gz-comment-edit gz-mini">✎ note</button>
         </div>
-        ${p.comment ? `<div class="gz-comment">📝 ${esc(p.comment)}</div>` : ""}
+        ${p.comment ? `<div class="gz-comment">${esc(p.comment)}</div>` : ""}
       </td>
       <td style="text-align:center"><input type="checkbox" class="gz-absent" ${st.absent ? "checked" : ""} /></td>
       <td><select class="gz-amount" ${st.absent ? "disabled" : ""}>${amtOpts}</select></td>
       <td><select class="gz-method" ${st.absent ? "disabled" : ""}><option value="">méthode</option>${method("cash")}${method("twint")}${method("carte")}<option value="credit" ${st.pay_method === "credit" ? "selected" : ""}>crédit</option></select></td>
       <td class="gz-winner-cell" style="text-align:center">${mgrIsGz ? `
-        <label><input type="checkbox" class="gz-winner" ${st.is_winner ? "checked" : ""} /> 🏆</label>
+        <label title="Vainqueur"><input type="checkbox" class="gz-winner" ${st.is_winner ? "checked" : ""} /> ${ICO_CUP}</label>
         <div class="gz-photo-wrap" style="${st.is_winner ? "" : "display:none"}">
           ${st.photo_url ? `<img src="${st.photo_url}" class="gz-photo-thumb" />` : ""}
-          <button type="button" class="gz-photo-btn">${st.photo_url ? "Refaire" : "📷 Photo"}</button>
+          <button type="button" class="gz-photo-btn">${st.photo_url ? "Refaire" : "Photo"}</button>
           <input type="file" accept="image/*" capture="environment" class="gz-photo-file" style="display:none" />
         </div>` : ""}</td>
     </tr>`;
@@ -1113,7 +1115,7 @@ function updateMgrTotals() {
   });
   const tot = t.cash + t.twint + t.carte;
   $("gz-mgr-totals").innerHTML =
-    `<span>💵 Cash : <b>${t.cash} CHF</b></span><span>📱 Twint : <b>${t.twint} CHF</b></span><span>💳 Carte : <b>${t.carte} CHF</b></span><span>Σ Total : <b>${tot} CHF</b></span>`;
+    `<span>Cash : <b>${t.cash} CHF</b></span><span>Twint : <b>${t.twint} CHF</b></span><span>Carte : <b>${t.carte} CHF</b></span><span>Total : <b>${tot} CHF</b></span>`;
   mgrCashPlayers = t.cash;
   computeCaisse();
 }
@@ -1213,7 +1215,7 @@ async function closeTournament() {
   let warn = "";
   if (mgrIsGz && winnersNoPhoto > 0) warn += `\n• ${winnersNoPhoto} vainqueur(s) sans photo.`;
   if (c.counted !== null && c.diff !== 0) warn += `\n• La caisse comptée ne correspond pas (écart ${c.diff > 0 ? "+" : ""}${c.diff} CHF).`;
-  if (warn && !confirm("⚠️ Attention :" + warn + "\n\nClôturer le tournoi quand même ?")) return;
+  if (warn && !confirm("Attention :" + warn + "\n\nClôturer le tournoi quand même ?")) return;
   const { data: cz } = await sb.from("gz_caisse").select("closed").eq("tournament_id", mgrTid).maybeSingle();
   await saveCaisse();
   if (!cz?.closed) {
@@ -1279,7 +1281,7 @@ function renderParts() {
   $("gz-part-rows").innerHTML = rows.map((p) => `<tr>
     <td>${esc(p.last_name)}</td><td>${esc(p.first_name)}</td><td>${esc(p.email || "")}</td>
     <td>${p.birthdate || ""}</td><td>${esc(p.phone || "")}</td>
-    <td>${p.part}</td><td>${p.vic > 0 ? "🏆 " + p.vic : "0"}</td>
+    <td>${p.part}</td><td>${p.vic > 0 ? ICO_CUP + " " + p.vic : "0"}</td>
     <td>${p.credit_chf > 0 ? p.credit_chf + " CHF" : ""}</td><td class="muted" style="font-size:.82rem">${esc(p.comment || "")}</td></tr>`).join("");
   $("gz-part-count").textContent = `${rows.length} participant(s)`;
 }
@@ -1859,7 +1861,7 @@ async function copyWeek() {
 
   // Avertissement AVANT toute écriture
   let msg = `Semaine cible : ${tgtMon}.\n${toCreate.length} cours à copier.`;
-  if (conflicts.length) msg += `\n\n⚠️ ${conflicts.length} cours en CONFLIT (ignorés, rien ne sera écrasé) :\n` + conflicts.join("\n");
+  if (conflicts.length) msg += `\n\n${conflicts.length} cours en CONFLIT (ignorés, rien ne sera écrasé) :\n` + conflicts.join("\n");
   if (!toCreate.length) { alert(msg + "\n\nRien à copier."); return; }
   if (!confirm(msg + "\n\nContinuer ?")) return;
 
@@ -2130,7 +2132,7 @@ async function openStage(id) {
   const days = stgDays(s.start_date, s.end_date);
   const price = stgEffPrice(cat.price || 0, days);
   $("stg-detail-title").textContent = (s.title || cat.name || "Stage");
-  $("stg-detail-meta").innerHTML = `${esc(cat.name || "")} · ${s.start_date}${s.end_date !== s.start_date ? " → " + s.end_date : ""} · ${days} jour(s) · <b>${price} CHF</b>${days < 5 ? " (pro-rata)" : ""}${cat.meal ? " · 🍽 repas" : ""}${cat.tshirt ? " · 👕 t-shirt" : ""}`;
+  $("stg-detail-meta").innerHTML = `${esc(cat.name || "")} · ${s.start_date}${s.end_date !== s.start_date ? " → " + s.end_date : ""} · ${days} jour(s) · <b>${price} CHF</b>${days < 5 ? " (pro-rata)" : ""}${cat.meal ? " · repas" : ""}${cat.tshirt ? " · t-shirt" : ""}`;
   $("stg-program").value = s.program || "";
   $("stg-list-wrap").classList.add("hidden");
   $("stg-detail").classList.remove("hidden");
@@ -2287,7 +2289,7 @@ function renderStageMails(catId) {
       ${surveyOpts}
       <div class="gz-mail-foot">
         <div class="gz-mail-img">
-          ${m.attachment_url ? `<a href="${m.attachment_url}" target="_blank" rel="noopener" class="muted">📎 pièce jointe</a>` : ""}
+          ${m.attachment_url ? `<a href="${m.attachment_url}" target="_blank" rel="noopener" class="muted">Pièce jointe</a>` : ""}
           <button type="button" class="ghost stg-mail-attbtn">${m.attachment_url ? "Changer la pièce jointe" : "Joindre un PDF / image"}</button>
           <input type="file" accept="application/pdf,image/*" class="stg-mail-file hidden"/>
         </div>
