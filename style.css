@@ -388,6 +388,10 @@ body[data-world="academie"] .sw.active{color:var(--fluo-ink)}
 .btn-login{padding:10px 18px;background:var(--accent)}
 body[data-world="academie"] .btn-login{color:var(--fluo-ink)}
 .btn-login:hover{filter:brightness(.92)}
+.btn-contact{padding:9px 17px;background:#fff;color:var(--blue);border:2px solid var(--blue);
+  border-radius:999px;font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:-.3px;
+  font-size:.95rem;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
+.btn-contact:hover{background:var(--blue);color:#fff}
 
 /* Hero plein écran avec photo */
 .hero{position:relative;min-height:74vh;display:flex;align-items:center;
@@ -534,6 +538,16 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 .ranking tbody tr:nth-child(even){background:#f7f9fc}
 .flag{vertical-align:-2px;margin-right:6px;border-radius:2px;overflow:hidden}
 .btn-cta-nav{font-size:.9rem;padding:9px 18px;text-transform:none;font-style:normal;letter-spacing:0}
+/* Aftermovie (iframe YouTube dans un split) */
+.split-video{position:relative;padding:0;overflow:hidden;min-height:340px}
+.split-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+@media(max-width:760px){.split-video{min-height:56vw}}
+/* Pilule de carrousel non cliquable : pas de flèche « lien » */
+.ccard-pill-static .ccard-arrow{display:none}
+/* Footer : texte lisible + blanc au survol (pas de bleu sur bleu) */
+.foot a{color:#dfe4ff;transition:color .15s}
+.foot a:hover{color:#fff}
+.foot .flow-step:hover h3,.foot .flow-step:hover p{color:var(--blue-ink)}
 
 @media (max-width:720px){
   .split{grid-template-columns:1fr}

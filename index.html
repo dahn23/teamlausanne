@@ -41,14 +41,6 @@
       </div>
       <div class="sw-wrap">
         <button class="sw" data-world="tournoi" role="tab">Lausanne Open</button>
-        <div class="sw-menu">
-          <a data-goto="tournoi" data-anchor="presentation">Présentation</a>
-          <a href="https://www.itftennis.com/en/tournament/m25-lausanne/sui/2026/m-itf-sui-2026-004/" target="_blank" rel="noopener">Site ITF</a>
-          <a data-goto="tournoi" data-anchor="palmares">Palmarès</a>
-          <a data-goto="tournoi" data-anchor="photos">Photos</a>
-          <a data-goto="tournoi" data-anchor="infos">Infos pratiques</a>
-          <a data-goto="tournoi" data-anchor="partenaires">Partenaires du tournoi</a>
-        </div>
       </div>
       <div class="sw-wrap">
         <button class="sw" data-world="business" role="tab">Business &amp; partenaires</button>
@@ -61,6 +53,7 @@
         </div>
       </div>
     </div>
+    <a href="contact.html" class="btn-contact">Contact</a>
     <button id="open-login" class="btn-login">Réserver</button>
   </header>
 
@@ -126,23 +119,6 @@
       </label>
       <button type="submit" id="login-btn">Se connecter</button>
       <p id="login-error" class="error" hidden></p>
-    </form>
-  </div>
-
-  <!-- ---------- Formulaire de contact ---------- -->
-  <div id="contact-modal" class="modal hidden">
-    <form id="contact-form" class="card">
-      <button type="button" id="close-contact" class="modal-close" aria-label="Fermer">×</button>
-      <h2 class="brand blue">Nous écrire</h2>
-      <p id="contact-source-label" class="muted" style="margin:.2rem 0 .6rem"></p>
-      <label>Nom<input type="text" id="c-name" required /></label>
-      <label>Email<input type="email" id="c-email" autocomplete="email" required /></label>
-      <label>Message<textarea id="c-message" rows="4" required></textarea></label>
-      <button type="submit" id="contact-btn">Envoyer</button>
-      <p id="contact-error" class="error" hidden></p>
-      <div id="contact-done" class="hidden">
-        <p style="margin:.4rem 0">Message envoyé, merci ! Nous vous répondrons rapidement.</p>
-      </div>
     </form>
   </div>
 

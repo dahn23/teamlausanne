@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#123cc4" />
+  <title>Contact — Team Lausanne</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="public" data-world="club">
+  <header class="nav">
+    <a href="index.html" class="nav-brand-link">← Team Lausanne</a>
+    <a href="index.html" class="btn-contact" style="margin-left:auto">Accueil</a>
+    <a href="reservation.html" class="btn-login">Réserver</a>
+  </header>
+
+  <section class="hero stg-hero">
+    <div class="hero-bg" style="background-image:url('assets/webflow/cta-young.jpg')"></div>
+    <div class="hero-scrim"></div>
+    <div class="hero-content">
+      <p class="hero-tag">Contact</p>
+      <h1 class="hero-slogan">Écrivez-nous</h1>
+      <p class="hero-desc">Une question, une demande ? Remplissez le formulaire, nous vous répondrons rapidement.</p>
+    </div>
+  </section>
+
+  <main class="world-main">
+    <section class="wsec" style="max-width:560px;margin:0 auto">
+      <form id="c-form" style="display:flex;flex-direction:column;gap:14px">
+        <p id="c-src" class="muted" style="margin:0"></p>
+        <label>Nom<input type="text" id="c-name" required /></label>
+        <label>Email<input type="email" id="c-email" autocomplete="email" required /></label>
+        <label>Message<textarea id="c-message" rows="5" required></textarea></label>
+        <button type="submit" id="c-btn">Envoyer</button>
+        <p id="c-error" class="error" hidden></p>
+      </form>
+      <div id="c-done" class="hidden" style="text-align:center;padding:20px 0">
+        <p style="font-size:1.15rem">Message envoyé, merci !</p>
+        <p class="muted">Nous vous répondrons rapidement. <a href="index.html">Retour à l'accueil</a></p>
+      </div>
+      <div class="contact-card" style="margin-top:22px">
+        <p><b>Team Lausanne</b><br />Route des Plaines-du-Loup 8, 1018 Lausanne</p>
+        <p><a href="tel:+41216461350">+41 21 646 13 50</a></p>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="contact.js"></script>
+</body>
+</html>

@@ -117,7 +117,7 @@ const WORLDS = {
     cta: [],
     sections: [
       { type: "stats", anchor: "tournoi", items: [["23–30 août", "2026"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
-      { type: "split", anchor: "presentation", title: "Le grand rendez-vous du tennis vaudois masculin", photo: "assets/photos/coach2.jpg", body: [
+      { type: "split", anchor: "presentation", title: "Le grand rendez-vous du tennis vaudois masculin", video: "Pw8oWWAlv40", body: [
         "Le Lausanne Open réunit chaque année plusieurs dizaines de joueurs de toutes nationalités, pour la plupart classés à l'ATP, sur les courts de la Pontaise.",
         "L'accès est entièrement gratuit, toute la semaine.",
       ], link: { label: "Site & résultats ITF ↗", href: ITF_URL } },
@@ -130,8 +130,7 @@ const WORLDS = {
         ]},
       { type: "ranking", anchor: "palmares", title: "Palmarès",
         head: ["Année", "Simple", "Double"],
-        rows: [["2025", `${FLAG_CH} Henry Bernet`, `${FLAG_IE} Charles Barry · ${FLAG_FR} Max Westphal`]],
-        note: "Palmarès complet à compléter." },
+        rows: [["2025", `${FLAG_CH} Henry Bernet`, `${FLAG_IE} Charles Barry · ${FLAG_FR} Max Westphal`]] },
       { type: "gallery", anchor: "photos", items: [
         "assets/webflow/event-open.jpg", "assets/webflow/tennis-day.webp",
         "assets/webflow/cta-young.jpg", "assets/webflow/coaching-technique.jpg",
@@ -338,8 +337,10 @@ function sectionWrap(sec) {
 function sectionHTML(sec) {
   switch (sec.type) {
     case "split":
-      return `<section class="split">
-        <div class="split-media" style="background-image:url('${sec.photo}')"></div>
+      return `<section class="split${sec.video ? " split-hasvideo" : ""}">
+        ${sec.video
+          ? `<div class="split-media split-video"><iframe src="https://www.youtube.com/embed/${esc(sec.video)}" title="${esc(sec.title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
+          : `<div class="split-media" style="background-image:url('${sec.photo}')"></div>`}
         <div class="split-body"><h2>${esc(sec.title)}</h2>
           ${sec.body.map((p) => `<p>${esc(p)}</p>`).join("")}${linkHTML(sec.link)}</div>
       </section>`;
@@ -569,36 +570,10 @@ $("login-form").addEventListener("submit", async (e) => {
 // On NE redirige plus automatiquement : on reste sur le site vitrine même connecté.
 getSession().then((s) => { hasSession = !!s; });
 
-// ---- Formulaire de contact (écrit dans contact_messages ; envoi mail = prod) ----
-const contactModal = $("contact-modal");
-let contactSource = "";
+// ---- Contact : page à part (contact.html?src=…) ----
 function openContact(source) {
-  contactSource = source || "Contact";
-  $("contact-source-label").textContent = "Formulaire : " + contactSource + " → " + CONTACT_TARGET;
-  $("contact-form").reset();
-  $("contact-form").querySelectorAll("label,button[type=submit]").forEach((el) => el.classList.remove("hidden"));
-  $("contact-done").classList.add("hidden");
-  $("contact-error").hidden = true;
-  contactModal.classList.remove("hidden");
+  location.href = "contact.html?src=" + encodeURIComponent(source || "Contact");
 }
-function closeContact() { contactModal.classList.add("hidden"); }
-$("close-contact").addEventListener("click", closeContact);
-contactModal.addEventListener("click", (e) => { if (e.target === contactModal) closeContact(); });
-$("contact-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const err = $("contact-error"); err.hidden = true;
-  const btn = $("contact-btn"); btn.disabled = true; btn.textContent = "Envoi…";
-  const { error } = await sb.from("contact_messages").insert({
-    source: contactSource,
-    name: $("c-name").value.trim(),
-    email: $("c-email").value.trim(),
-    message: $("c-message").value.trim() || null,
-  });
-  btn.disabled = false; btn.textContent = "Envoyer";
-  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
-  $("contact-form").querySelectorAll("label,button[type=submit]").forEach((el) => el.classList.add("hidden"));
-  $("contact-done").classList.remove("hidden");
-});
 
 // ---- Inscription à un stage (page détail #stages) ----
 let stgCats = {}, stgSessions = [], stgCurrent = null;
