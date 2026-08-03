@@ -351,17 +351,23 @@ function renderDetail(id) {
   animate();
 }
 
-let revealIO;
+let revealCheck = null;
 function animate() {
   for (const el of [$("hero-content"), $("world-main")]) {
     el.classList.remove("fade-in"); void el.offsetWidth; el.classList.add("fade-in");
   }
-  // Révélation au défilement, section par section.
-  if (revealIO) revealIO.disconnect();
-  revealIO = new IntersectionObserver((entries) => {
-    for (const e of entries) if (e.isIntersecting) { e.target.classList.add("in"); revealIO.unobserve(e.target); }
-  }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
-  document.querySelectorAll("#world-main > section").forEach((s) => { s.classList.add("reveal"); revealIO.observe(s); });
+  // Révélation au défilement (approche scroll : robuste, jamais de contenu
+  // bloqué invisible même si un observer échoue).
+  if (revealCheck) window.removeEventListener("scroll", revealCheck);
+  const secs = [...document.querySelectorAll("#world-main > section")];
+  secs.forEach((s) => s.classList.add("reveal"));
+  revealCheck = () => {
+    for (const s of secs)
+      if (!s.classList.contains("in") && s.getBoundingClientRect().top < window.innerHeight * 0.88) s.classList.add("in");
+    if (secs.every((s) => s.classList.contains("in"))) { window.removeEventListener("scroll", revealCheck); revealCheck = null; }
+  };
+  revealCheck();
+  window.addEventListener("scroll", revealCheck, { passive: true });
 }
 
 function route() {
