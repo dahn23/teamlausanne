@@ -60,7 +60,7 @@ const WORLDS = {
     slogan: "Grandir. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
     hero: "assets/photos/p6.jpg",
-    cta: [{ label: "Nous contacter", type: "mail" }],
+    cta: [{ label: "Nos stages", type: "stages" }, { label: "Nous contacter", type: "mail" }],
     sections: [
       { type: "rich", title: "Notre philosophie", body: [
         "Team Lausanne propose un encadrement complet du tennis, adapté à chaque âge et à chaque niveau de jeu.",
@@ -360,7 +360,10 @@ function route() {
 const modal = $("login-modal");
 const openModal = () => modal.classList.remove("hidden");
 const closeModal = () => modal.classList.add("hidden");
-$("open-login").addEventListener("click", openModal);
+// Si déjà connecté : le bouton mène à l'espace membre au lieu d'ouvrir le login.
+let hasSession = false;
+const memberAction = () => { if (hasSession) location.href = "reservation.html"; else openModal(); };
+$("open-login").addEventListener("click", memberAction);
 $("close-login").addEventListener("click", closeModal);
 modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
 
@@ -373,18 +376,23 @@ $("login-form").addEventListener("submit", async (e) => {
   if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
   location.href = "reservation.html";
 });
-getSession().then((s) => { if (s) location.href = "reservation.html"; });
+// On NE redirige plus automatiquement : on reste sur le site vitrine même connecté.
+getSession().then((s) => {
+  hasSession = !!s;
+  if (s) $("open-login").textContent = "Mon espace";
+});
 
 // ===================================================================
 //  Interactions globales (délégation)
 // ===================================================================
 document.addEventListener("click", (e) => {
   const login = e.target.closest("[data-login]");
-  if (login) { openModal(); return; }
+  if (login) { memberAction(); return; }
   const cta = e.target.closest("[data-cta]");
   if (cta) {
     const t = cta.dataset.cta;
-    if (t === "login") openModal();
+    if (t === "login") memberAction();
+    else if (t === "stages") location.href = "stages.html";
     else if (t === "mail") location.href = `mailto:${CONTACT_MAIL}`;
     else if (t === "mailopen") location.href = `mailto:${OPEN_MAIL}`;
     return;
