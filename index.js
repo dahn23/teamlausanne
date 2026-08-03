@@ -97,7 +97,7 @@ const WORLDS = {
           { name: "Compétition", photo: "assets/webflow/prog-competition.webp" },
           { name: "Loisir / Club", photo: "assets/webflow/prog-club.webp" },
           { name: "Game Zone", photo: "assets/webflow/event-gamezone.webp", href: "#gamezone" },
-          { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "stages.html" },
+          { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "#stages" },
         ]},
       { type: "coaches", anchor: "coaches", title: "Notre équipe de coachs", items: [
         { name: "Mariano Palena", role: "Head Coach", photo: "assets/webflow/coach-mariano.jpg" },
@@ -203,6 +203,22 @@ const DETAILS = {
         ["Vers 17h", "On termine par la finale du double."],
       ]},
       { type: "gallery", items: ["assets/webflow/tennis-day.webp", "assets/webflow/prog-kids.webp"] },
+    ],
+  },
+  stages: {
+    world: "academie", title: "Nos stages", subtitle: "Vacances scolaires — dix semaines de stages à Lausanne",
+    hero: "assets/webflow/stage-discovery.webp",
+    sections: [
+      { type: "formules", title: "Les formules",
+        intro: "Du mini-tennis à l'entraînement de compétiteur, choisis la formule selon ton âge et tes envies, encadré par nos coachs aux Plaines-du-Loup. <b>−20 % dès la 2ᵉ semaine</b> ou pour un 2ᵉ membre de la famille.",
+        items: [
+          { name: "KidsTennis", age: "4 à 9 ans", lines: ["9h00–12h00", "1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "250 CHF" },
+          { name: "Loisirs", age: "9 à 18 ans", lines: ["9h00–17h00", "3h de tennis + 3h30 d'activité", "Repas inclus"], price: "450 CHF" },
+          { name: "Loisirs ½ journée", age: "9 à 18 ans", lines: ["9h00–12h00 ou 14h00–17h00", "1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "290 CHF" },
+          { name: "Entraîne-toi comme un pro", age: "10 à 19 ans · dès R7", lines: ["9h00–17h00", "4h de tennis + 1h30 physique + 1h d'activité", "Repas inclus · option privé +240 CHF (3h)"], price: "790 CHF", pro: true },
+          { name: "Stage adultes", age: "18 ans et +", lines: ["18h15–19h45 · semaines 4, 5 et 9", "1h30 de tennis par jour"], price: "240 CHF" },
+        ]},
+      { type: "stageform", title: "Réserve ta place" },
     ],
   },
   "sport-etudes": {
@@ -417,6 +433,19 @@ function sectionHTML(sec) {
             ${pill(o)}</article>`).join("")}</div></section>`;
     }
 
+    case "formules":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        ${sec.intro ? `<p class="stg-intro">${sec.intro}</p>` : ""}
+        <div class="formula-grid">${sec.items.map((f) =>
+          `<div class="formula${f.pro ? " formula-pro" : ""}"><h3>${esc(f.name)}</h3>
+            <div class="formula-age">${esc(f.age)}</div>
+            <ul>${f.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>
+            <div class="formula-price">${esc(f.price)}</div></div>`).join("")}</div></section>`;
+
+    case "stageform":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <div id="stgp-list" class="stg-pub-list"><p class="muted">Chargement…</p></div></section>`;
+
     case "logos":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div class="logo-wall">${sec.items.map((src) => `<img src="${src}" alt="" loading="lazy" />`).join("")}</div></section>`;
@@ -486,6 +515,7 @@ function renderDetail(id) {
   paintHero({ logo: w.logo, hero: d.hero, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML });
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();
+  if ($("stgp-list")) stgLoad();
 }
 
 let revealCheck = null;
@@ -570,6 +600,68 @@ $("contact-form").addEventListener("submit", async (e) => {
   $("contact-done").classList.remove("hidden");
 });
 
+// ---- Inscription à un stage (page détail #stages) ----
+let stgCats = {}, stgSessions = [], stgCurrent = null;
+const stgDays = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000) + 1);
+const stgEff = (p, d) => Math.round(Number(p) * Math.min(d, 5) / 5 * 100) / 100;
+
+async function stgLoad() {
+  const [{ data: cs }, { data: ss }] = await Promise.all([
+    sb.from("stage_categories").select("*"),
+    sb.from("stage_sessions").select("*").order("start_date"),
+  ]);
+  stgCats = {};
+  for (const c of cs || []) stgCats[c.id] = c;
+  stgSessions = ss || [];
+  stgRenderList();
+}
+function stgRenderList() {
+  const L = $("stgp-list"); if (!L) return;
+  if (!stgSessions.length) { L.innerHTML = '<p class="muted">Aucun stage ouvert aux inscriptions pour le moment. Reviens bientôt !</p>'; return; }
+  L.innerHTML = stgSessions.map((s) => {
+    const c = stgCats[s.category_id] || {}, d = stgDays(s.start_date, s.end_date), price = stgEff(c.price || 0, d);
+    const dates = s.start_date === s.end_date ? s.start_date : `${s.start_date} → ${s.end_date}`;
+    const badges = `${c.meal ? '<span class="stg-tag">Repas inclus</span>' : ""}${c.tshirt ? '<span class="stg-tag">T-shirt offert</span>' : ""}`;
+    return `<article class="stg-pub-card">
+      ${c.image_url ? `<img src="${c.image_url}" alt="" class="stg-pub-img" loading="lazy"/>` : '<div class="stg-pub-img stg-pub-noimg"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg></div>'}
+      <div class="stg-pub-body"><h3>${esc(s.title || c.name || "Stage")}</h3>
+        <div class="stg-pub-dates">${dates} · ${d} jour(s)</div>
+        <div class="stg-pub-badges">${badges}</div>
+        <div class="stg-pub-foot"><span class="stg-pub-price">${price} CHF</span>
+          <button class="stg-pub-cta" data-stg="${s.id}">S'inscrire</button></div></div></article>`;
+  }).join("");
+  L.querySelectorAll(".stg-pub-cta").forEach((b) => b.addEventListener("click", () => stgOpenForm(b.dataset.stg)));
+}
+function stgOpenForm(id) {
+  stgCurrent = stgSessions.find((s) => s.id === id);
+  const c = stgCats[stgCurrent.category_id] || {}, d = stgDays(stgCurrent.start_date, stgCurrent.end_date), price = stgEff(c.price || 0, d);
+  $("stgp-modal-title").textContent = stgCurrent.title || c.name || "Stage";
+  $("stgp-modal-meta").innerHTML = `${stgCurrent.start_date}${stgCurrent.end_date !== stgCurrent.start_date ? " → " + stgCurrent.end_date : ""} · <b>${price} CHF</b>`;
+  $("f-tshirt-wrap").classList.toggle("hidden", !c.tshirt);
+  $("f-meal-wrap").classList.toggle("hidden", !c.meal);
+  $("stgp-form").reset(); $("f-meal-text").disabled = true;
+  $("stgp-form").classList.remove("hidden"); $("stgp-done").classList.add("hidden"); $("stgp-error").hidden = true;
+  $("stgp-modal").classList.remove("hidden");
+}
+function stgCloseForm() { $("stgp-modal").classList.add("hidden"); stgCurrent = null; }
+$("stgp-close").addEventListener("click", stgCloseForm);
+$("stgp-modal").addEventListener("click", (e) => { if (e.target === $("stgp-modal")) stgCloseForm(); });
+document.addEventListener("change", (e) => { if (e.target.name === "meal") $("f-meal-text").disabled = e.target.value !== "autre"; });
+$("stgp-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = $("stgp-error"); err.hidden = true;
+  const c = stgCats[stgCurrent.category_id] || {};
+  let meal = null;
+  if (c.meal) { const sel = document.querySelector('input[name="meal"]:checked')?.value; meal = sel === "autre" ? ($("f-meal-text").value.trim() || "À préciser") : "Aucune"; }
+  const row = { stage_id: stgCurrent.id, first_name: $("f-first").value.trim(), last_name: $("f-last").value.trim(),
+    email: $("f-email").value.trim(), birth_date: $("f-birth").value || null,
+    tshirt_size: c.tshirt ? ($("f-tshirt").value || null) : null, meal_restriction: meal, comment: $("f-comment").value.trim() || null };
+  const btn = e.target.querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = "Envoi…";
+  const { error } = await sb.from("stage_registrations").insert(row);
+  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer mon inscription"; return; }
+  $("stgp-form").classList.add("hidden"); $("stgp-done").classList.remove("hidden");
+});
+
 // ===================================================================
 //  Interactions globales (délégation)
 // ===================================================================
@@ -582,7 +674,7 @@ document.addEventListener("click", (e) => {
   if (cta) {
     const t = cta.dataset.cta;
     if (t === "login") memberAction();
-    else if (t === "stages") location.href = "stages.html";
+    else if (t === "stages") location.hash = "stages";
     return;
   }
   const scroll = e.target.closest("[data-scroll]");

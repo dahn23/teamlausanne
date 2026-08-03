@@ -2,110 +2,12 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#123cc4" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Nos stages — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css" />
+  <script>location.replace("index.html#stages");</script>
+  <link rel="canonical" href="index.html#stages" />
 </head>
-<body class="public" data-world="academie">
-  <header class="nav">
-    <a href="index.html" class="nav-brand-link">← Team Lausanne</a>
-    <a href="index.html#academie" class="btn-login" style="margin-left:auto">Academy</a>
-    <a href="reservation.html" class="btn-cta btn-cta-nav">Réserver</a>
-  </header>
-
-  <!-- Hero -->
-  <section class="hero stg-hero">
-    <div class="hero-bg" style="background-image:url('assets/webflow/stage-discovery.webp')"></div>
-    <div class="hero-scrim"></div>
-    <div class="hero-content">
-      <p class="hero-tag">Vacances scolaires</p>
-      <h1 class="hero-slogan">Nos stages</h1>
-      <p class="hero-desc">Dix semaines de stages à Lausanne, du mini-tennis à l'entraînement de compétiteur. Progresser, s'amuser, se dépenser — ensemble.</p>
-    </div>
-  </section>
-
-  <main class="world-main">
-    <!-- Explication + formules -->
-    <section class="wsec">
-      <h2>Les formules</h2>
-      <p class="stg-intro">Chaque semaine, choisis la formule qui te correspond selon ton âge et tes envies.
-        Tennis, activités et bonne humeur, encadrés par nos coachs, aux Plaines-du-Loup.
-        <b>−20 % dès la 2ᵉ semaine</b> ou pour un 2ᵉ membre de la famille.</p>
-      <div class="formula-grid">
-        <div class="formula">
-          <h3>KidsTennis</h3><div class="formula-age">4 à 9 ans</div>
-          <ul><li>9h00–12h00</li><li>1h30 de tennis + 1h30 d'activité</li><li>Repas non inclus</li></ul>
-          <div class="formula-price">250 CHF</div>
-        </div>
-        <div class="formula">
-          <h3>Loisirs</h3><div class="formula-age">9 à 18 ans</div>
-          <ul><li>9h00–17h00</li><li>3h de tennis + 3h30 d'activité</li><li>Repas inclus</li></ul>
-          <div class="formula-price">450 CHF</div>
-        </div>
-        <div class="formula">
-          <h3>Loisirs ½ journée</h3><div class="formula-age">9 à 18 ans</div>
-          <ul><li>9h00–12h00 ou 14h00–17h00</li><li>1h30 de tennis + 1h30 d'activité</li><li>Repas non inclus</li></ul>
-          <div class="formula-price">290 CHF</div>
-        </div>
-        <div class="formula formula-pro">
-          <h3>Entraîne-toi comme un pro</h3><div class="formula-age">10 à 19 ans · dès R7</div>
-          <ul><li>9h00–17h00</li><li>4h de tennis + 1h30 physique + 1h d'activité</li><li>Repas inclus · option privé +240 CHF (3h)</li></ul>
-          <div class="formula-price">790 CHF</div>
-        </div>
-        <div class="formula">
-          <h3>Stage adultes</h3><div class="formula-age">18 ans et +</div>
-          <ul><li>18h15–19h45 · semaines 4, 5 et 9</li><li>1h30 de tennis par jour</li></ul>
-          <div class="formula-price">240 CHF</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Inscription : liste des stages ouverts (ou message si aucun) -->
-    <section class="wsec">
-      <h2>Réserve ta place</h2>
-      <div id="stgp-list" class="stg-pub-list"><p class="muted">Chargement…</p></div>
-    </section>
-  </main>
-
-  <!-- Modale d'inscription -->
-  <div id="stgp-modal" class="modal hidden">
-    <div class="modal-box">
-      <button id="stgp-close" class="modal-x" aria-label="Fermer">✕</button>
-      <h2 id="stgp-modal-title" style="margin-top:0"></h2>
-      <div id="stgp-modal-meta" class="muted" style="margin-bottom:12px"></div>
-      <form id="stgp-form" style="display:flex;flex-direction:column;gap:12px">
-        <div class="stg-form-grid">
-          <label>Prénom<input type="text" id="f-first" required /></label>
-          <label>Nom<input type="text" id="f-last" required /></label>
-        </div>
-        <div class="stg-form-grid">
-          <label>Email<input type="email" id="f-email" required /></label>
-          <label>Date de naissance<input type="date" id="f-birth" required /></label>
-        </div>
-        <label id="f-tshirt-wrap" class="hidden">Taille de t-shirt (offert)
-          <select id="f-tshirt">
-            <option value="">— choisir —</option>
-            <option>4-6 ans</option><option>8-10 ans</option><option>12-14 ans</option>
-            <option>S</option><option>M</option><option>L</option><option>XL</option>
-          </select>
-        </label>
-        <div id="f-meal-wrap" class="hidden">
-          <span class="stg-lbl">Restriction / allergie alimentaire</span>
-          <label class="stg-radio"><input type="radio" name="meal" value="aucune" checked /> Aucune</label>
-          <label class="stg-radio"><input type="radio" name="meal" value="autre" /> À préciser :</label>
-          <input type="text" id="f-meal-text" placeholder="Allergie, régime…" disabled />
-        </div>
-        <label>Commentaire (optionnel)<textarea id="f-comment" rows="3"></textarea></label>
-        <button type="submit">Envoyer mon inscription</button>
-        <p id="stgp-error" class="error" hidden></p>
-      </form>
-      <div id="stgp-done" class="hidden">
-        <p style="font-size:1.1rem">Inscription reçue, merci !</p>
-        <p class="muted">Tu recevras un email de confirmation avec la facture. À très bientôt !</p>
-      </div>
-    </div>
-  </div>
-  <script type="module" src="stage.js"></script>
+<body>
+  <p style="font-family:system-ui;padding:24px">Redirection vers <a href="index.html#stages">nos stages</a>…</p>
 </body>
 </html>
