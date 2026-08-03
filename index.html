@@ -15,32 +15,53 @@
     </div>
     <div class="switcher" role="tablist" aria-label="Choisir un univers">
       <div class="sw-wrap">
-        <button class="sw" data-world="club" role="tab">Le Club</button>
+        <button class="sw" data-world="club" role="tab">Club</button>
         <div class="sw-menu">
-          <a data-goto="club" data-anchor="cotisation">Cotisation</a>
+          <a data-goto="club" data-anchor="cotisation">Devenir membre</a>
+          <a data-goto="club" data-anchor="vie">Vie du club</a>
+          <a data-goto="club" data-anchor="agenda">Agenda</a>
+          <a data-goto="club" data-anchor="cotisation">Tarifs et cotisations</a>
+          <a data-login>Réserver un court</a>
+          <a data-goto="club" data-anchor="installations">Installations</a>
           <a data-goto="club" data-anchor="comite">Comité</a>
-          <a data-goto="club" data-anchor="contact">Emplacement</a>
-          <a data-goto="club" data-anchor="contact">Contact</a>
+          <a data-goto="club" data-anchor="resto">Restaurant</a>
         </div>
       </div>
       <div class="sw-wrap">
         <button class="sw" data-world="academie" role="tab">Academy</button>
         <div class="sw-menu">
-          <a data-goto="academie" data-anchor="programmes">Programmes</a>
-          <a href="#gamezone">Game Zone</a>
+          <a href="#pro">Team PRO</a>
+          <a href="#pro">Team PRO U18</a>
+          <a href="#sport-etudes">Sport-études</a>
+          <a href="#kids">Cours juniors</a>
           <a href="stages.html">Stages</a>
+          <a data-goto="academie" data-anchor="coaches">Coachs</a>
+          <a href="#gamezone">GameZone</a>
         </div>
       </div>
       <div class="sw-wrap">
-        <button class="sw" data-world="tournoi" role="tab">Le Tournoi</button>
+        <button class="sw" data-world="tournoi" role="tab">Lausanne Open</button>
         <div class="sw-menu">
-          <a data-goto="tournoi" data-anchor="tournoi">Le tournoi</a>
-          <a data-goto="tournoi" data-anchor="vip">VIP · Tennis &amp; Lunch</a>
-          <a data-scroll="foot-sponsors">Partenaires</a>
+          <a data-goto="tournoi" data-anchor="presentation">Présentation</a>
+          <a href="https://www.itftennis.com/en/tournament/m25-lausanne/sui/2026/m-itf-sui-2026-004/" target="_blank" rel="noopener">Site ITF</a>
+          <a data-goto="tournoi" data-anchor="palmares">Palmarès</a>
+          <a data-goto="tournoi" data-anchor="photos">Photos</a>
+          <a data-goto="tournoi" data-anchor="infos">Infos pratiques</a>
+          <a data-goto="tournoi" data-anchor="partenaires">Partenaires du tournoi</a>
+        </div>
+      </div>
+      <div class="sw-wrap">
+        <button class="sw" data-world="business" role="tab">Business &amp; partenaires</button>
+        <div class="sw-menu">
+          <a data-goto="business" data-anchor="presidents">Club des Présidents</a>
+          <a data-goto="business" data-anchor="sponsors">Nos sponsors</a>
+          <a data-goto="business" data-anchor="avantages">Avantages &amp; offres partenaires</a>
+          <a data-goto="business" data-anchor="devenir">Devenir partenaire</a>
+          <a data-goto="business" data-anchor="privatisation">Privatisations / événements</a>
         </div>
       </div>
     </div>
-    <button id="open-login" class="btn-login">Espace membres</button>
+    <button id="open-login" class="btn-login">Réserver</button>
   </header>
 
   <!-- ---------- Hero dynamique ---------- -->
@@ -73,22 +94,9 @@
         <div class="flow-arrow">→</div>
         <button class="flow-step academie" data-world="academie"><span>2</span><h3>On progresse</h3><p>Academy</p></button>
         <div class="flow-arrow">→</div>
-        <button class="flow-step" data-world="tournoi"><span>3</span><h3>On vibre</h3><p>Le Tournoi</p></button>
+        <button class="flow-step" data-world="tournoi"><span>3</span><h3>On vibre</h3><p>Lausanne Open</p></button>
       </div>
     </section>
-
-    <div class="foot-sponsors">
-      <span class="foot-sponsors-label">Nos partenaires</span>
-      <div class="sponsor-wall">
-        <img src="assets/webflow/sp-lausanne-sport.png" alt="Lausanne-Sport" />
-        <img src="assets/webflow/sp-ville-lausanne.png" alt="Ville de Lausanne" />
-        <img src="assets/webflow/sp-vaud.png" alt="Canton de Vaud" />
-        <img src="assets/webflow/sp-aquatis.png" alt="Aquatis" />
-        <img src="assets/webflow/sp-isaac.png" alt="Isaac" />
-        <img src="assets/webflow/sp-sil.png" alt="SIL" />
-        <img src="assets/webflow/sp-les-roches.png" alt="Les Roches" />
-      </div>
-    </div>
 
     <div class="foot-cols">
       <div>
@@ -97,8 +105,8 @@
         +41 21 646 13 50 · admin@lstennis.ch
       </div>
       <div>
-        <b>Trois mondes, un lieu</b><br />
-        Le Club · Academy · Le Tournoi<br />
+        <b>Un lieu, plusieurs mondes</b><br />
+        Club · Academy · Lausanne Open · Business<br />
         <span class="muted">Jouer. Grandir. Vibrer. Ensemble.</span>
       </div>
     </div>

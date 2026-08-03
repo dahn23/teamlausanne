@@ -30,6 +30,17 @@ const WORLDS = {
           { name: "Interclubs", photo: "assets/webflow/prog-competition.webp" },
           { name: "Restaurant & club-house", photo: "assets/webflow/cta-young.jpg" },
         ]},
+      { type: "instagram", anchor: "vie", title: "Vie du club", handle: "lausanne_sports_tennis",
+        photos: ["assets/webflow/tennis-day.webp", "assets/webflow/prog-club.webp",
+          "assets/webflow/coaching-technique.jpg", "assets/webflow/physical-training.jpg",
+          "assets/webflow/stage-development.webp", "assets/webflow/cta-young.jpg"] },
+      { type: "agenda", anchor: "agenda", title: "Agenda du club", items: [
+        { date: "À venir", title: "Apéro d'ouverture", detail: "Le coup d'envoi de la saison, entre membres." },
+        { date: "À venir", title: "Soirée des membres", detail: "Une soirée conviviale pour toute la communauté du club." },
+        { date: "À venir", title: "Repas canadien", detail: "Chacun apporte un plat à partager." },
+        { date: "À venir", title: "Repas de soutien", detail: "Un moment festif au profit du club." },
+        { date: "Saison", title: "Interclubs & animations", detail: "Matchs par équipes et animations tout au long de l'année." },
+      ], note: "Dates précises communiquées prochainement." },
       { type: "timeline", title: "Notre histoire", items: [
         ["1911", "Fondation par des personnalités du Montriond F.C. Premier court au chemin du Signal, puis deux courts aux Plaines-du-Loup."],
         ["1939", "Le club compte déjà 8 terrains."],
@@ -39,7 +50,7 @@ const WORLDS = {
         ["1991", "Première bulle hivernale."],
         ["2004", "Halle couverte avec deux courts en synthétique."],
       ], note: "Le club a vu passer de grands noms : Thierry Grin (finaliste de Coupe Davis 1992), Marie-Gaïané Mikaelian et Timea Bacsinszky." },
-      { type: "features", title: "Nos infrastructures", items: [
+      { type: "features", anchor: "installations", title: "Nos installations", items: [
         ["12 courts", "8 en terre battue, 2 en dur (halle), 2 en synthétique."],
         ["Bulle d'hiver", "4 courts en terre battue couverts et chauffés l'hiver."],
         ["Restaurant", "Restauration et club-house ouverts aux membres et visiteurs."],
@@ -51,6 +62,12 @@ const WORLDS = {
           ["Philémon Isakov", "Compétition"], ["Loïc Colotti", "Communication"],
           ["Serge Devaud", "Membre consultant"]],
         honor: ["Serge Devaud", "Françoise Tribolet", "Remo Zeraschi"] },
+      { type: "restaurant", anchor: "resto", title: "Le restaurant du club",
+        body: [
+          "Le club-house et son restaurant vous accueillent au cœur des Plaines-du-Loup, membres comme visiteurs.",
+          "Une cuisine conviviale à deux pas des courts, pour se retrouver avant ou après le jeu.",
+        ],
+        hours: "Nom du restaurant, horaires et téléphone direct : à compléter." },
       { type: "contact", anchor: "contact", title: "Contact & accès",
         lines: ["Lausanne-Sports Tennis", "Stade de la Pontaise", "Route des Plaines-du-Loup 8", "1018 Lausanne"],
         phone: "+41 21 646 13 50", email: CONTACT_MAIL, hours: "Secrétariat : lun–ven, 15h00–17h00" },
@@ -79,7 +96,7 @@ const WORLDS = {
           { name: "Game Zone", photo: "assets/webflow/event-gamezone.webp", href: "#gamezone" },
           { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "stages.html" },
         ]},
-      { type: "coaches", title: "Notre équipe de coachs", items: [
+      { type: "coaches", anchor: "coaches", title: "Notre équipe de coachs", items: [
         { name: "Mariano Palena", role: "Head Coach", photo: "assets/webflow/coach-mariano.jpg" },
         { name: "Yann Perez", role: "Coach", photo: "assets/webflow/coach-yann.jpg" },
         { name: "Loris Gander", role: "Coach", photo: "assets/webflow/coach-loris.jpg" },
@@ -90,35 +107,75 @@ const WORLDS = {
   },
 
   tournoi: {
-    tag: "Le Tournoi", logo: "assets/logo-open.webp",
+    tag: "Lausanne Open", logo: "assets/logo-open.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
     desc: "Lausanne Open — l'unique tournoi international de tennis masculin du canton de Vaud. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
     hero: "assets/photos/p2.jpg",
-    cta: [{ label: "Infos & billetterie", type: "mailopen" }],
+    cta: [],
     sections: [
       { type: "stats", anchor: "tournoi", items: [["23–30 août", "2026"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
-      { type: "split", title: "Le grand rendez-vous du tennis vaudois", photo: "assets/photos/coach2.jpg", body: [
+      { type: "split", anchor: "presentation", title: "Le grand rendez-vous du tennis vaudois masculin", photo: "assets/photos/coach2.jpg", body: [
         "Le Lausanne Open réunit chaque année plusieurs dizaines de joueurs de toutes nationalités, pour la plupart classés à l'ATP, sur les courts de la Pontaise.",
-        "Vainqueur 2025 : Henry Bernet, joueur suisse de 18 ans. L'accès est entièrement gratuit, toute la semaine.",
-      ], link: { label: "Tableau & résultats ITF ↗", href: ITF_URL } },
+        "L'accès est entièrement gratuit, toute la semaine.",
+      ], link: { label: "Site & résultats ITF ↗", href: ITF_URL } },
       { type: "carousel", eyebrow: "Lausanne Open", title: "Une semaine d'événements",
-        sub: "Entrée libre toute la semaine, animations grand public et hospitalité VIP.",
+        sub: "Entrée libre toute la semaine, animations grand public et hospitalité.",
         items: [
           { name: "Le tournoi", photo: "assets/webflow/event-open.jpg", href: ITF_URL },
           { name: "Journée Team Lausanne", photo: "assets/webflow/tennis-day.webp" },
-          { name: "Game Zone juniors", photo: "assets/webflow/event-gamezone.webp" },
           { name: "VIP · Tennis & Lunch", photo: "assets/webflow/cta-young.jpg" },
         ]},
-      { type: "rich", anchor: "vip", title: "VIP · Tennis & Lunch", body: [
-        "Une expérience d'hospitalité unique : « Tennis & Lunch » du lundi au vendredi, sur invitation personnalisée.",
-        "Des offres de partenariat sur mesure sont disponibles : naming du court central et de la zone VIP, banderoles, stands, visibilité digitale…",
-      ], link: { label: "Nous contacter", href: "mailto:" + OPEN_MAIL } },
-      { type: "sponsors", title: "Ils soutiennent le tournoi", items: [
+      { type: "ranking", anchor: "palmares", title: "Palmarès",
+        head: ["Année", "Vainqueur"],
+        rows: [["2025", "Henry Bernet (SUI, 18 ans)"]],
+        note: "Palmarès complet à compléter." },
+      { type: "gallery", anchor: "photos", items: [
+        "assets/webflow/event-open.jpg", "assets/webflow/tennis-day.webp",
+        "assets/webflow/cta-young.jpg", "assets/webflow/coaching-technique.jpg",
+      ]},
+      { type: "features", anchor: "infos", title: "Infos pratiques", items: [
+        ["Dates", "Du 23 au 30 août 2026."],
+        ["Entrée libre", "Accès gratuit toute la semaine, sans billet."],
+        ["Lieu", "TC Lausanne-Sports, Plaines-du-Loup, 1018 Lausanne."],
+        ["Contact", OPEN_MAIL],
+      ]},
+      { type: "sponsors", anchor: "partenaires", title: "Partenaires du tournoi", items: [
         "Team Lausanne", "Canton de Vaud", "Swiss Tennis", "Ville de Lausanne",
         "Services Industriels de Lausanne", "SVR Vins", "Cafés Cuéndet",
         "Fondation Sport et Solidarité", "Isaac", "PhysioPlus Lausanne",
         "Les Roches", "Boissons Gros de Vaud", "Chopfab Boxer", "Aquatis Hôtel", "Bertholet Mathis",
       ]},
+    ],
+  },
+
+  business: {
+    tag: "Business & partenaires", logo: "assets/logo-club.webp",
+    slogan: "S'associer. Rayonner. Ensemble.",
+    desc: "Associez votre entreprise à un club historique et à une académie de formation reconnue, au cœur de Lausanne.",
+    hero: "assets/webflow/cta-young.jpg",
+    cta: [{ label: "Devenir partenaire", type: "mailopen" }],
+    sections: [
+      { type: "rich", anchor: "presidents", title: "Club des Présidents", body: [
+        "Le Club des Présidents réunit les dirigeantes et dirigeants d'entreprise qui soutiennent le club et l'académie.",
+        "Un réseau privilégié : rencontres, moments conviviaux autour du tennis et visibilité auprès d'une communauté engagée.",
+      ], link: { label: "Rejoindre le Club des Présidents", href: "mailto:" + CONTACT_MAIL } },
+      { type: "logos", anchor: "sponsors", title: "Nos sponsors", items: [
+        "assets/webflow/sp-lausanne-sport.png", "assets/webflow/sp-ville-lausanne.png",
+        "assets/webflow/sp-vaud.png", "assets/webflow/sp-aquatis.png",
+        "assets/webflow/sp-isaac.png", "assets/webflow/sp-sil.png", "assets/webflow/sp-les-roches.png",
+      ]},
+      { type: "features", anchor: "avantages", title: "Avantages & offres partenaires", items: [
+        ["Visibilité", "Présence sur les courts, le site et les supports de communication."],
+        ["Réseau", "Accès au Club des Présidents et aux événements du club."],
+        ["Hospitalité", "Invitations au Lausanne Open et moments privilégiés."],
+        ["Sur mesure", "Des formules de partenariat adaptées à vos objectifs."],
+      ]},
+      { type: "rich", anchor: "devenir", title: "Devenir partenaire", body: [
+        "Vous souhaitez associer votre marque au tennis lausannois ? Construisons ensemble un partenariat qui vous ressemble.",
+      ], link: { label: "Nous contacter", href: "mailto:" + CONTACT_MAIL } },
+      { type: "rich", anchor: "privatisation", title: "Privatisations & événements d'entreprise", body: [
+        "Organisez votre événement d'entreprise au club : séminaire, team-building tennis, apéritif ou repas dans un cadre unique aux Plaines-du-Loup.",
+      ], link: { label: "Demander une offre", href: "mailto:" + CONTACT_MAIL } },
     ],
   },
 };
@@ -336,6 +393,30 @@ function sectionHTML(sec) {
             ${pill(o)}</article>`).join("")}</div></section>`;
     }
 
+    case "logos":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <div class="logo-wall">${sec.items.map((src) => `<img src="${src}" alt="" loading="lazy" />`).join("")}</div></section>`;
+
+    case "agenda":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <div class="agenda">${sec.items.map((e) =>
+          `<div class="ag-item"><div class="ag-date">${esc(e.date)}</div>
+            <div class="ag-body"><b>${esc(e.title)}</b>${e.detail ? `<span>${esc(e.detail)}</span>` : ""}</div></div>`).join("")}</div>
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
+
+    case "restaurant":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <div class="resto">${sec.photo ? `<div class="resto-photo" style="background-image:url('${sec.photo}')"></div>` : ""}
+          <div class="resto-body">${sec.body.map((p) => `<p>${esc(p)}</p>`).join("")}
+            ${sec.phone ? `<p><b>Tél. direct :</b> <a href="tel:${esc(sec.phone.replace(/\s/g, ""))}">${esc(sec.phone)}</a></p>` : ""}
+            ${sec.hours ? `<p class="muted">${esc(sec.hours)}</p>` : ""}</div></div></section>`;
+
+    case "instagram":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <p class="wsec-sub">La vie du club en images — suivez <a href="https://instagram.com/${esc(sec.handle)}" target="_blank" rel="noopener">@${esc(sec.handle)}</a>.</p>
+        <div class="ig-grid">${(sec.photos || []).map((src) =>
+          `<a class="ig-cell" href="https://instagram.com/${esc(sec.handle)}" target="_blank" rel="noopener" style="background-image:url('${src}')"></a>`).join("")}</div></section>`;
+
     case "coaches":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div class="coach-grid">${sec.items.map((c) =>
@@ -430,10 +511,7 @@ $("login-form").addEventListener("submit", async (e) => {
   location.href = "reservation.html";
 });
 // On NE redirige plus automatiquement : on reste sur le site vitrine même connecté.
-getSession().then((s) => {
-  hasSession = !!s;
-  if (s) $("open-login").textContent = "Mon espace";
-});
+getSession().then((s) => { hasSession = !!s; });
 
 // ===================================================================
 //  Interactions globales (délégation)

@@ -362,6 +362,29 @@ body[data-world="academie"] .sw.active{color:var(--fluo-ink)}
   font-size:.9rem;font-weight:700;cursor:pointer;white-space:nowrap;text-transform:none;font-style:normal}
 .sw-menu a:hover{background:#eef1f7;color:var(--blue-ink)}
 @media (max-width:760px){.sw-menu{display:none}}
+/* Sections Business / Club ajoutées */
+.wsec-sub{color:var(--muted);margin:-6px 0 16px;font-size:1rem}
+.wsec-sub a{color:var(--blue-ink);font-weight:700}
+.logo-wall{display:flex;flex-wrap:wrap;gap:34px;align-items:center;justify-content:center;
+  background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px 30px}
+.logo-wall img{height:46px;width:auto;max-width:150px;object-fit:contain;filter:grayscale(1);opacity:.75;transition:.2s}
+.logo-wall img:hover{filter:none;opacity:1}
+.agenda{display:flex;flex-direction:column;gap:10px}
+.ag-item{display:flex;gap:16px;align-items:center;background:#fff;border:1px solid var(--line);
+  border-left:4px solid var(--blue);border-radius:12px;padding:14px 18px}
+.ag-date{flex:0 0 92px;font-weight:800;color:var(--blue-ink);font-style:italic;
+  text-transform:uppercase;font-size:.82rem}
+.ag-body{display:flex;flex-direction:column}
+.ag-body b{font-size:1.02rem}
+.ag-body span{color:var(--muted);font-size:.9rem}
+.resto{display:flex;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.resto-photo{flex:1 1 300px;min-height:240px;background-size:cover;background-position:center}
+.resto-body{flex:1 1 340px;padding:30px}
+.resto-body p{color:#2c3240;line-height:1.6;margin:0 0 12px}
+.ig-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.ig-cell{aspect-ratio:1;background-size:cover;background-position:center;border-radius:12px;display:block}
+.ig-cell:hover{opacity:.9}
 .btn-login{padding:10px 18px;background:var(--accent)}
 body[data-world="academie"] .btn-login{color:var(--fluo-ink)}
 .btn-login:hover{filter:brightness(.92)}
@@ -563,21 +586,24 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 .reveal{opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s cubic-bezier(.22,.61,.36,1)}
 .reveal.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
-/* Cadre vert fluo autour du hero */
-.hero::after{content:"";position:absolute;inset:16px;border:3px solid var(--fluo-d);
+/* Cadre autour du hero — bleu par défaut, vert fluo seulement pour l'Academy */
+.hero::after{content:"";position:absolute;inset:16px;border:3px solid var(--blue);
   border-radius:16px;z-index:2;pointer-events:none}
+body[data-world="academie"] .hero::after{border-color:var(--fluo-d)}
 /* Carrousel de programmes (bandeau bleu foncé) */
 .carousel-sec{background:var(--blue-ink);color:#fff;border-radius:24px;padding:46px 0 38px}
 .carousel-head{max-width:820px;margin:0 auto 28px;text-align:center;padding:0 22px}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;text-transform:uppercase;
-  letter-spacing:.12em;font-size:.74rem;font-weight:800;color:var(--fluo-d);margin-bottom:14px}
-.eyebrow::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--fluo-d)}
+  letter-spacing:.12em;font-size:.74rem;font-weight:800;color:#7da2ff;margin-bottom:14px}
+.eyebrow::before{content:"";width:9px;height:9px;border-radius:50%;background:#7da2ff}
+body[data-world="academie"] .eyebrow{color:var(--fluo-d)}
+body[data-world="academie"] .eyebrow::before{background:var(--fluo-d)}
 .carousel-sec h2{font-size:clamp(1.7rem,4vw,2.6rem);margin:0 0 12px;color:#fff}
 .carousel-sub{color:rgba(255,255,255,.82);font-size:1.02rem;margin:0 auto;max-width:620px;line-height:1.5}
 .carousel{display:flex;gap:18px;overflow-x:auto;padding:6px 22px 16px;
-  scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:var(--fluo-d) transparent}
+  scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:#7da2ff transparent}
 .carousel::-webkit-scrollbar{height:8px}
-.carousel::-webkit-scrollbar-thumb{background:var(--fluo-d);border-radius:8px}
+.carousel::-webkit-scrollbar-thumb{background:#7da2ff;border-radius:8px}
 .ccard{position:relative;flex:0 0 clamp(240px,72vw,300px);scroll-snap-align:start;
   border-radius:18px;overflow:hidden;aspect-ratio:3/4;box-shadow:0 12px 28px rgba(0,0,0,.3)}
 .ccard-media{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s}
@@ -587,13 +613,14 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
   text-decoration:none;font-size:.95rem;border:0;cursor:pointer}
 .ccard-pill-static{cursor:default}
 .ccard-arrow{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
-  border-radius:50%;background:var(--fluo-d);color:var(--fluo-ink);font-size:.9rem;font-weight:700}
+  border-radius:50%;background:var(--blue);color:#fff;font-size:.9rem;font-weight:700}
+body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fluo-ink)}
 .ccard-pill-static .ccard-arrow{background:#eef1f7;color:var(--muted)}
 /* « Un lieu, trois mondes » dans le footer bleu */
 .foot .coherence{padding:8px 22px 40px}
 .foot .coherence h2{color:#fff}
 .foot .coherence-sub{color:rgba(255,255,255,.78)}
-.foot .flow-arrow{color:var(--fluo-d)}
+.foot .flow-arrow{color:#7da2ff}
 /* Page Stages publique */
 .nav-brand-link{color:var(--blue-ink);font-weight:800;font-style:italic;text-decoration:none;font-size:1.05rem}
 .stg-hero{min-height:46vh}
