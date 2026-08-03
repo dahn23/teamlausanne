@@ -1,9 +1,11 @@
-// Site public dynamique : 3 mondes + pages détaillées (routage par ancre).
+// Site public dynamique : mondes + pages détaillées (routage par ancre).
 import { sb, getSession } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
-const CONTACT_MAIL = "admin@lstennis.ch";
-const OPEN_MAIL = "info@lausanneopen.ch";
+const CONTACT_TARGET = "info@teamlausanne.ch"; // destinataire de tous les formulaires
+const FLAG_CH = '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="Suisse"><rect width="16" height="16" rx="2" fill="#d52b1e"/><rect x="6.6" y="3" width="2.8" height="10" fill="#fff"/><rect x="3" y="6.6" width="10" height="2.8" fill="#fff"/></svg>';
+const ITF_URL = "https://www.itftennis.com/en/tournament/m25-lausanne/sui/2026/m-itf-sui-2026-004/";
+const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 const ITF_URL = "https://www.itftennis.com/en/tournament/m25-lausanne/sui/2026/m-itf-sui-2026-004/";
 const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 
@@ -62,15 +64,16 @@ const WORLDS = {
           ["Philémon Isakov", "Compétition"], ["Loïc Colotti", "Communication"],
           ["Serge Devaud", "Membre consultant"]],
         honor: ["Serge Devaud", "Françoise Tribolet", "Remo Zeraschi"] },
-      { type: "restaurant", anchor: "resto", title: "Le restaurant du club",
+      { type: "restaurant", anchor: "resto", title: "Restaurant du Tennis Lausanne-Sports",
         body: [
-          "Le club-house et son restaurant vous accueillent au cœur des Plaines-du-Loup, membres comme visiteurs.",
-          "Une cuisine conviviale à deux pas des courts, pour se retrouver avant ou après le jeu.",
+          "Chez Paco & Victor — le club-house et son restaurant vous accueillent au cœur des Plaines-du-Loup, membres comme visiteurs.",
+          "Formule à volonté · Terrasse · Idéal pour regarder le sport. À deux pas des courts, pour se retrouver avant ou après le jeu.",
         ],
-        hours: "Nom du restaurant, horaires et téléphone direct : à compléter." },
+        phone: "+41 21 646 13 48",
+        hours: "Lun 07h30–20h00 · Mar–Ven 07h30–00h00 · Sam–Dim 09h00–19h00" },
       { type: "contact", anchor: "contact", title: "Contact & accès",
         lines: ["Lausanne-Sports Tennis", "Stade de la Pontaise", "Route des Plaines-du-Loup 8", "1018 Lausanne"],
-        phone: "+41 21 646 13 50", email: CONTACT_MAIL, hours: "Secrétariat : lun–ven, 15h00–17h00" },
+        phone: "+41 21 646 13 50", contact: "Club — Contact", hours: "Secrétariat : lun–ven, 15h00–17h00" },
     ],
   },
 
@@ -79,7 +82,7 @@ const WORLDS = {
     slogan: "Grandir. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
     hero: "assets/webflow/hero-academy.webp",
-    cta: [{ label: "Nos stages", type: "stages" }, { label: "Nous contacter", type: "mail" }],
+    cta: [{ label: "Nos stages", type: "stages" }, { label: "Nous contacter", type: "contact", source: "Academy — Contact" }],
     sections: [
       { type: "rich", title: "Notre philosophie", body: [
         "Team Lausanne propose un encadrement complet du tennis, adapté à chaque âge et à chaque niveau de jeu.",
@@ -121,13 +124,13 @@ const WORLDS = {
       { type: "carousel", eyebrow: "Lausanne Open", title: "Une semaine d'événements",
         sub: "Entrée libre toute la semaine, animations grand public et hospitalité.",
         items: [
-          { name: "Le tournoi", photo: "assets/webflow/event-open.jpg", href: ITF_URL },
-          { name: "Journée Team Lausanne", photo: "assets/webflow/tennis-day.webp" },
-          { name: "VIP · Tennis & Lunch", photo: "assets/webflow/cta-young.jpg" },
+          { name: "Initiation pour les écoles", photo: "assets/webflow/prog-kids.webp" },
+          { name: "Journée Team Lausanne", photo: "assets/webflow/tennis-day.webp", href: "#journee-team-lausanne" },
+          { name: "VIP · Tennis & Lunch", photo: "assets/webflow/cta-young.jpg", goto: { world: "business", anchor: "devenir" } },
         ]},
       { type: "ranking", anchor: "palmares", title: "Palmarès",
-        head: ["Année", "Vainqueur"],
-        rows: [["2025", "Henry Bernet (SUI, 18 ans)"]],
+        head: ["Année", "Simple", "Double"],
+        rows: [["2025", `${FLAG_CH} Henry Bernet`, "Charles Barry (IRL) · Max Westphal (FRA)"]],
         note: "Palmarès complet à compléter." },
       { type: "gallery", anchor: "photos", items: [
         "assets/webflow/event-open.jpg", "assets/webflow/tennis-day.webp",
@@ -137,7 +140,7 @@ const WORLDS = {
         ["Dates", "Du 23 au 30 août 2026."],
         ["Entrée libre", "Accès gratuit toute la semaine, sans billet."],
         ["Lieu", "TC Lausanne-Sports, Plaines-du-Loup, 1018 Lausanne."],
-        ["Contact", OPEN_MAIL],
+        ["Contact", "Via le formulaire de contact"],
       ]},
       { type: "sponsors", anchor: "partenaires", title: "Partenaires du tournoi", items: [
         "Team Lausanne", "Canton de Vaud", "Swiss Tennis", "Ville de Lausanne",
@@ -153,12 +156,12 @@ const WORLDS = {
     slogan: "S'associer. Rayonner. Ensemble.",
     desc: "Associez votre entreprise à un club historique et à une académie de formation reconnue, au cœur de Lausanne.",
     hero: "assets/webflow/cta-young.jpg",
-    cta: [{ label: "Devenir partenaire", type: "mailopen" }],
+    cta: [{ label: "Devenir partenaire", type: "contact", source: "Devenir partenaire" }],
     sections: [
       { type: "rich", anchor: "presidents", title: "Club des Présidents", body: [
         "Le Club des Présidents réunit les dirigeantes et dirigeants d'entreprise qui soutiennent le club et l'académie.",
         "Un réseau privilégié : rencontres, moments conviviaux autour du tennis et visibilité auprès d'une communauté engagée.",
-      ], link: { label: "Rejoindre le Club des Présidents", href: "mailto:" + CONTACT_MAIL } },
+      ], link: { label: "Rejoindre le Club des Présidents", contact: "Club des Présidents" } },
       { type: "logos", anchor: "sponsors", title: "Nos sponsors", items: [
         "assets/webflow/sp-lausanne-sport.png", "assets/webflow/sp-ville-lausanne.png",
         "assets/webflow/sp-vaud.png", "assets/webflow/sp-aquatis.png",
@@ -172,10 +175,10 @@ const WORLDS = {
       ]},
       { type: "rich", anchor: "devenir", title: "Devenir partenaire", body: [
         "Vous souhaitez associer votre marque au tennis lausannois ? Construisons ensemble un partenariat qui vous ressemble.",
-      ], link: { label: "Nous contacter", href: "mailto:" + CONTACT_MAIL } },
+      ], link: { label: "Nous contacter", contact: "Devenir partenaire" } },
       { type: "rich", anchor: "privatisation", title: "Privatisations & événements d'entreprise", body: [
         "Organisez votre événement d'entreprise au club : séminaire, team-building tennis, apéritif ou repas dans un cadre unique aux Plaines-du-Loup.",
-      ], link: { label: "Demander une offre", href: "mailto:" + CONTACT_MAIL } },
+      ], link: { label: "Demander une offre", contact: "Privatisations / événements d'entreprise" } },
     ],
   },
 };
@@ -184,6 +187,24 @@ const WORLDS = {
 //  PAGES DÉTAILLÉES
 // ===================================================================
 const DETAILS = {
+  "journee-team-lausanne": {
+    world: "tournoi", title: "Journée Team Lausanne", subtitle: "Samedi, en marge du Lausanne Open — ouvert à toutes et tous",
+    hero: "assets/webflow/tennis-day.webp",
+    sections: [
+      { type: "rich", title: "Une journée de fête autour du tennis", body: [
+        "En marge du Lausanne Open, la Journée Team Lausanne met le tennis à la portée de tous, petits et grands, dans une ambiance conviviale.",
+        "Venez jouer, tester, apprendre et vibrer — l'accès est libre.",
+      ]},
+      { type: "features", title: "Au programme", items: [
+        ["Dès 11h", "Jouez avec nos meilleurs joueurs."],
+        ["Radar", "Testez la vitesse de votre service."],
+        ["Les petits", "Initiation pour les enfants."],
+        ["Tennis-fauteuil", "Exhibition entre les deux demi-finales."],
+        ["Vers 17h", "On termine par la finale du double."],
+      ]},
+      { type: "gallery", items: ["assets/webflow/tennis-day.webp", "assets/webflow/prog-kids.webp"] },
+    ],
+  },
   "sport-etudes": {
     world: "academie", title: "Sport-études", subtitle: "Concilier études et tennis, au plus haut niveau",
     hero: "assets/photos/coach1.jpg",
@@ -286,7 +307,9 @@ function linkHTML(link) {
   if (!link) return "";
   if (link.action === "login")
     return `<button class="wsec-link" data-login>${esc(link.label)}</button>`;
-  const ext = link.href.startsWith("http") || link.href.startsWith("mailto");
+  if (link.contact)
+    return `<button class="wsec-link" data-contact="${esc(link.contact)}">${esc(link.label)}</button>`;
+  const ext = link.href.startsWith("http");
   return `<a class="wsec-link" href="${esc(link.href)}"${ext ? ' target="_blank" rel="noopener"' : ""}>${esc(link.label)}</a>`;
 }
 
@@ -343,9 +366,9 @@ function sectionHTML(sec) {
     case "contact":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div class="contact-card"><p>${sec.lines.map(esc).join("<br>")}</p>
-          <p><a href="tel:${esc(sec.phone.replace(/\s/g, ""))}">${esc(sec.phone)}</a> ·
-             <a href="mailto:${esc(sec.email)}">${esc(sec.email)}</a></p>
-          ${sec.hours ? `<p class="muted">${esc(sec.hours)}</p>` : ""}</div></section>`;
+          <p><a href="tel:${esc(sec.phone.replace(/\s/g, ""))}">${esc(sec.phone)}</a></p>
+          ${sec.hours ? `<p class="muted">${esc(sec.hours)}</p>` : ""}
+          <button class="wsec-link" data-contact="${esc(sec.contact || sec.title)}">Nous écrire</button></div></section>`;
 
     case "rich":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
@@ -365,7 +388,7 @@ function sectionHTML(sec) {
     case "ranking":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <table class="ranking"><thead><tr>${sec.head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
-        <tbody>${sec.rows.map(([n, v]) => `<tr><td>${esc(n)}</td><td>${esc(v)}</td></tr>`).join("")}</tbody></table>
+        <tbody>${sec.rows.map((row) => `<tr>${row.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
 
     case "sponsors":
@@ -377,6 +400,7 @@ function sectionHTML(sec) {
       const pill = (o) => {
         const inner = `${esc(o.name)}<span class="ccard-arrow" aria-hidden="true">↗</span>`;
         if (o.login) return `<button class="ccard-pill" data-login>${inner}</button>`;
+        if (o.goto) return `<button class="ccard-pill" data-goto="${esc(o.goto.world)}" data-anchor="${esc(o.goto.anchor)}">${inner}</button>`;
         if (!o.href) return `<span class="ccard-pill ccard-pill-static">${inner}</span>`;
         const ext = o.href.startsWith("http");
         const tgt = ext ? ' target="_blank" rel="noopener"' : "";
@@ -445,7 +469,9 @@ function renderWorld(key) {
   const w = WORLDS[key];
   document.body.dataset.world = key;
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === key));
-  const ctaHTML = w.cta.map((c) => `<button class="btn-cta" data-cta="${c.type}">${esc(c.label)}</button>`).join("");
+  const ctaHTML = w.cta.map((c) => c.type === "contact"
+    ? `<button class="btn-cta" data-contact="${esc(c.source)}">${esc(c.label)}</button>`
+    : `<button class="btn-cta" data-cta="${c.type}">${esc(c.label)}</button>`).join("");
   paintHero({ logo: w.logo, hero: w.hero, tag: w.tag, slogan: w.slogan, desc: w.desc, ctaHTML });
   $("world-main").innerHTML = w.sections.map(sectionWrap).join("");
   animate();
@@ -513,19 +539,50 @@ $("login-form").addEventListener("submit", async (e) => {
 // On NE redirige plus automatiquement : on reste sur le site vitrine même connecté.
 getSession().then((s) => { hasSession = !!s; });
 
+// ---- Formulaire de contact (écrit dans contact_messages ; envoi mail = prod) ----
+const contactModal = $("contact-modal");
+let contactSource = "";
+function openContact(source) {
+  contactSource = source || "Contact";
+  $("contact-source-label").textContent = "Formulaire : " + contactSource + " → " + CONTACT_TARGET;
+  $("contact-form").reset();
+  $("contact-form").querySelectorAll("label,button[type=submit]").forEach((el) => el.classList.remove("hidden"));
+  $("contact-done").classList.add("hidden");
+  $("contact-error").hidden = true;
+  contactModal.classList.remove("hidden");
+}
+function closeContact() { contactModal.classList.add("hidden"); }
+$("close-contact").addEventListener("click", closeContact);
+contactModal.addEventListener("click", (e) => { if (e.target === contactModal) closeContact(); });
+$("contact-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = $("contact-error"); err.hidden = true;
+  const btn = $("contact-btn"); btn.disabled = true; btn.textContent = "Envoi…";
+  const { error } = await sb.from("contact_messages").insert({
+    source: contactSource,
+    name: $("c-name").value.trim(),
+    email: $("c-email").value.trim(),
+    message: $("c-message").value.trim() || null,
+  });
+  btn.disabled = false; btn.textContent = "Envoyer";
+  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
+  $("contact-form").querySelectorAll("label,button[type=submit]").forEach((el) => el.classList.add("hidden"));
+  $("contact-done").classList.remove("hidden");
+});
+
 // ===================================================================
 //  Interactions globales (délégation)
 // ===================================================================
 document.addEventListener("click", (e) => {
   const login = e.target.closest("[data-login]");
   if (login) { memberAction(); return; }
+  const contact = e.target.closest("[data-contact]");
+  if (contact) { openContact(contact.dataset.contact); return; }
   const cta = e.target.closest("[data-cta]");
   if (cta) {
     const t = cta.dataset.cta;
     if (t === "login") memberAction();
     else if (t === "stages") location.href = "stages.html";
-    else if (t === "mail") location.href = `mailto:${CONTACT_MAIL}`;
-    else if (t === "mailopen") location.href = `mailto:${OPEN_MAIL}`;
     return;
   }
   const scroll = e.target.closest("[data-scroll]");

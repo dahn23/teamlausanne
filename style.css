@@ -530,8 +530,9 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 .ranking th{background:var(--blue-ink);color:#fff;text-align:left;padding:12px 16px;
   font-style:italic;text-transform:uppercase;letter-spacing:.3px;font-size:.82rem}
 .ranking td{padding:11px 16px;border-top:1px solid var(--line);color:#2c3240}
+.ranking td:first-child{font-weight:800;color:var(--blue-ink);width:96px;white-space:nowrap}
 .ranking tbody tr:nth-child(even){background:#f7f9fc}
-.ranking td:last-child{font-weight:800;color:var(--accent-ink);width:110px}
+.flag{vertical-align:-2px;margin-right:6px;border-radius:2px}
 
 @media (max-width:720px){
   .split{grid-template-columns:1fr}
