@@ -6,8 +6,6 @@ const CONTACT_TARGET = "info@teamlausanne.ch"; // destinataire de tous les formu
 const FLAG_CH = '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="Suisse"><rect width="16" height="16" rx="2" fill="#d52b1e"/><rect x="6.6" y="3" width="2.8" height="10" fill="#fff"/><rect x="3" y="6.6" width="10" height="2.8" fill="#fff"/></svg>';
 const ITF_URL = "https://www.itftennis.com/en/tournament/m25-lausanne/sui/2026/m-itf-sui-2026-004/";
 const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
-const ITF_URL = "https://www.itftennis.com/en/tournament/m25-lausanne/sui/2026/m-itf-sui-2026-004/";
-const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 
 // ===================================================================
 //  MONDES
