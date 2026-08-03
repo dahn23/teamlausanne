@@ -59,7 +59,7 @@ const WORLDS = {
     tag: "Academy", logo: "assets/logo-academie.webp",
     slogan: "Grandir. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
-    hero: "assets/photos/p6.jpg",
+    hero: "assets/webflow/hero-academy.webp",
     cta: [{ label: "Nos stages", type: "stages" }, { label: "Nous contacter", type: "mail" }],
     sections: [
       { type: "rich", title: "Notre philosophie", body: [
@@ -67,15 +67,22 @@ const WORLDS = {
         "Nous accompagnons le développement de chaque joueuse et joueur, de l'initiation jusqu'à la compétition professionnelle, au sein d'une véritable pyramide de formation.",
       ]},
       { type: "cards", title: "Nos programmes", items: [
-        { name: "KidsTennis", meta: "dès 5 ans", detail: "L'apprentissage par le jeu pour les plus jeunes.", href: "#kids", photo: "assets/photos/kids3.jpg" },
-        { name: "Sport-études", meta: "14–19 ans", detail: "Études et tennis intensif dans un cadre optimal.", href: "#sport-etudes", photo: "assets/photos/coach1.jpg" },
-        { name: "Pro U18 & Pro", meta: "haut niveau", detail: "Le grand saut vers le circuit professionnel.", href: "#pro", photo: "assets/photos/coach2.jpg" },
+        { name: "KidsTennis", meta: "dès 5 ans", detail: "L'apprentissage par le jeu pour les plus jeunes.", href: "#kids", photo: "assets/webflow/prog-kids.webp" },
+        { name: "Sport-études", meta: "14–19 ans", detail: "Études et tennis intensif dans un cadre optimal.", href: "#sport-etudes", photo: "assets/webflow/sport-studies.jpg" },
+        { name: "Pro U18 & Pro", meta: "haut niveau", detail: "Le grand saut vers le circuit professionnel.", href: "#pro", photo: "assets/webflow/prog-performance.webp" },
       ]},
       { type: "offers", title: "Cours & filières", items: [
         { name: "Club", meta: "", detail: "Progresser à son rythme, dans le plaisir du jeu." },
         { name: "Compétition", meta: "", detail: "Filière encadrée pour les joueurs de compétition." },
         { name: "Performance", meta: "haut niveau", detail: "Encadrement renforcé vers le meilleur niveau." },
         { name: "Stages", meta: "vacances", detail: "10 semaines de stages, de KidsTennis à Train Like a Pro." },
+      ]},
+      { type: "coaches", title: "Notre équipe de coachs", items: [
+        { name: "Mariano Palena", role: "Head Coach", photo: "assets/webflow/coach-mariano.jpg" },
+        { name: "Yann Perez", role: "Coach", photo: "assets/webflow/coach-yann.jpg" },
+        { name: "Loris Gander", role: "Coach", photo: "assets/webflow/coach-loris.jpg" },
+        { name: "Séline Rivarolli", role: "Coach jeunesse", photo: "assets/webflow/coach-seline.jpg" },
+        { name: "Talia Picci", role: "Coach junior", photo: "assets/webflow/coach-talia.jpg" },
       ]},
     ],
   },
@@ -299,6 +306,12 @@ function sectionHTML(sec) {
         <div class="sponsor-wall">${sec.items.map((n) =>
           `<div class="sponsor">${esc(n)}</div>`).join("")}</div></section>`;
 
+    case "coaches":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <div class="coach-grid">${sec.items.map((c) =>
+          `<figure class="coach"><div class="coach-photo" style="background-image:url('${c.photo}')"></div>
+            <figcaption><b>${esc(c.name)}</b><span>${esc(c.role)}</span></figcaption></figure>`).join("")}</div></section>`;
+
     case "gallery":
       return `<section class="wsec"><div class="gallery">${sec.items.map((src) =>
         `<div class="gphoto" style="background-image:url('${src}')"></div>`).join("")}</div></section>`;
@@ -338,10 +351,17 @@ function renderDetail(id) {
   animate();
 }
 
+let revealIO;
 function animate() {
   for (const el of [$("hero-content"), $("world-main")]) {
     el.classList.remove("fade-in"); void el.offsetWidth; el.classList.add("fade-in");
   }
+  // Révélation au défilement, section par section.
+  if (revealIO) revealIO.disconnect();
+  revealIO = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add("in"); revealIO.unobserve(e.target); }
+  }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+  document.querySelectorAll("#world-main > section").forEach((s) => { s.classList.add("reveal"); revealIO.observe(s); });
 }
 
 function route() {

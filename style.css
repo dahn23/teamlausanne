@@ -529,6 +529,28 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
   justify-content:space-between;font-size:.92rem;line-height:1.7}
 .foot-copy{text-align:center;margin:28px 0 0;opacity:.6;font-size:.82rem}
 .brand.blue{color:var(--blue)}
+/* Footer : sponsors communs + sélecteur 3 mondes */
+.foot-sponsors{max-width:1040px;margin:0 auto 34px;text-align:center}
+.foot-sponsors-label{display:block;text-transform:uppercase;letter-spacing:.09em;font-size:.72rem;opacity:.7;margin-bottom:14px}
+.foot-sponsors .sponsor-wall{display:flex;flex-wrap:wrap;gap:30px;align-items:center;justify-content:center;background:#fff;border-radius:16px;padding:22px 28px}
+.foot-sponsors .sponsor-wall img{height:40px;width:auto;max-width:140px;object-fit:contain;filter:grayscale(1);opacity:.72;transition:filter .2s,opacity .2s}
+.foot-sponsors .sponsor-wall img:hover{filter:none;opacity:1}
+.foot-worlds{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.foot-switcher{display:flex;gap:8px;flex-wrap:wrap}
+.foot-switcher .sw{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.22);padding:7px 15px;border-radius:22px;font-weight:600;font-size:.85rem}
+.foot-switcher .sw:hover{background:rgba(255,255,255,.18)}
+.foot-switcher .sw.active{background:#fff;color:var(--blue-ink);border-color:transparent}
+/* Coachs (Academy) */
+.coach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:22px}
+.coach{margin:0;text-align:center}
+.coach-photo{width:100%;aspect-ratio:3/4;background-size:cover;background-position:center top;border-radius:16px;box-shadow:var(--shadow)}
+.coach figcaption{margin-top:10px;display:flex;flex-direction:column;gap:2px}
+.coach figcaption b{font-size:1rem}
+.coach figcaption span{color:var(--muted);font-size:.85rem}
+/* Révélation au défilement */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s cubic-bezier(.22,.61,.36,1)}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 
 @media (max-width:640px){
   .nav{flex-wrap:wrap;gap:10px}
