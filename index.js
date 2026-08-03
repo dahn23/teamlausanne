@@ -3,7 +3,9 @@ import { sb, getSession } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 const CONTACT_TARGET = "info@teamlausanne.ch"; // destinataire de tous les formulaires
-const FLAG_CH = '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="Suisse"><rect width="16" height="16" rx="2" fill="#d52b1e"/><rect x="6.6" y="3" width="2.8" height="10" fill="#fff"/><rect x="3" y="6.6" width="10" height="2.8" fill="#fff"/></svg>';
+const FLAG_CH = '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="Suisse"><rect width="16" height="16" fill="#d52b1e"/><rect x="6.6" y="3" width="2.8" height="10" fill="#fff"/><rect x="3" y="6.6" width="10" height="2.8" fill="#fff"/></svg>';
+const FLAG_IE = '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="Irlande"><rect width="16" height="16" fill="#fff"/><rect width="5.33" height="16" fill="#169b62"/><rect x="10.67" width="5.33" height="16" fill="#ff883e"/></svg>';
+const FLAG_FR = '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="France"><rect width="16" height="16" fill="#fff"/><rect width="5.33" height="16" fill="#0055a4"/><rect x="10.67" width="5.33" height="16" fill="#ef4135"/></svg>';
 const ITF_URL = "https://www.itftennis.com/en/tournament/m25-lausanne/sui/2026/m-itf-sui-2026-004/";
 const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 
@@ -128,7 +130,7 @@ const WORLDS = {
         ]},
       { type: "ranking", anchor: "palmares", title: "Palmarès",
         head: ["Année", "Simple", "Double"],
-        rows: [["2025", `${FLAG_CH} Henry Bernet`, "Charles Barry (IRL) · Max Westphal (FRA)"]],
+        rows: [["2025", `${FLAG_CH} Henry Bernet`, `${FLAG_IE} Charles Barry · ${FLAG_FR} Max Westphal`]],
         note: "Palmarès complet à compléter." },
       { type: "gallery", anchor: "photos", items: [
         "assets/webflow/event-open.jpg", "assets/webflow/tennis-day.webp",
