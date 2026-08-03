@@ -113,7 +113,7 @@ const WORLDS = {
     tag: "Lausanne Open", logo: "assets/logo-open.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
     desc: "Lausanne Open — l'unique tournoi international de tennis masculin du canton de Vaud. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
-    hero: "assets/photos/p2.jpg",
+    hero: "assets/photos/open-serve.jpg",
     cta: [],
     sections: [
       { type: "stats", anchor: "tournoi", items: [["23–30 août", "2026"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
@@ -124,16 +124,16 @@ const WORLDS = {
       { type: "carousel", eyebrow: "Lausanne Open", title: "Une semaine d'événements",
         sub: "Entrée libre toute la semaine, animations grand public et hospitalité.",
         items: [
-          { name: "Initiation pour les écoles", photo: "assets/webflow/prog-kids.webp" },
-          { name: "Journée Team Lausanne", photo: "assets/webflow/tennis-day.webp", href: "#journee-team-lausanne" },
-          { name: "VIP · Tennis & Lunch", photo: "assets/webflow/cta-young.jpg", goto: { world: "business", anchor: "devenir" } },
+          { name: "Initiation pour les écoles", photo: "assets/photos/open-kids.jpg" },
+          { name: "Journée Team Lausanne", photo: "assets/photos/open-wheelchair.jpg", href: "#journee-team-lausanne" },
+          { name: "VIP · Tennis & Lunch", photo: "assets/photos/open-lunch.jpg", goto: { world: "business", anchor: "devenir" } },
         ]},
       { type: "ranking", anchor: "palmares", title: "Palmarès",
         head: ["Année", "Simple", "Double"],
         rows: [["2025", `${FLAG_CH} Henry Bernet`, `${FLAG_IE} Charles Barry · ${FLAG_FR} Max Westphal`]] },
       { type: "gallery", anchor: "photos", items: [
-        "assets/webflow/event-open.jpg", "assets/webflow/tennis-day.webp",
-        "assets/webflow/cta-young.jpg", "assets/webflow/coaching-technique.jpg",
+        "assets/photos/open-trophy.jpg", "assets/photos/open-double1.jpg",
+        "assets/photos/open-double2.jpg", "assets/photos/open-player.jpg",
       ]},
       { type: "features", anchor: "infos", title: "Infos pratiques", items: [
         ["Dates", "Du 23 au 30 août 2026."],
@@ -144,8 +144,8 @@ const WORLDS = {
       { type: "sponsors", anchor: "partenaires", title: "Partenaires du tournoi", items: [
         "Team Lausanne", "Canton de Vaud", "Swiss Tennis", "Ville de Lausanne",
         "Services Industriels de Lausanne", "SVR Vins", "Cafés Cuéndet",
-        "Fondation Sport et Solidarité", "Isaac", "PhysioPlus Lausanne",
-        "Les Roches", "Boissons Gros de Vaud", "Chopfab Boxer", "Aquatis Hôtel", "Bertholet Mathis",
+        "Fondation Sport et Solidarité", "PhysioPlus Lausanne", "Boissons Gros de Vaud",
+        "BS Architectes", "Garage-carrosserie de la Plaine", "Ibis Hotels", "Fonds du Sport vaudois",
       ]},
     ],
   },
@@ -188,7 +188,7 @@ const WORLDS = {
 const DETAILS = {
   "journee-team-lausanne": {
     world: "tournoi", title: "Journée Team Lausanne", subtitle: "Samedi, en marge du Lausanne Open — ouvert à toutes et tous",
-    hero: "assets/webflow/tennis-day.webp",
+    hero: "assets/photos/open-wheelchair.jpg",
     sections: [
       { type: "rich", title: "Une journée de fête autour du tennis", body: [
         "En marge du Lausanne Open, la Journée Team Lausanne met le tennis à la portée de tous, petits et grands, dans une ambiance conviviale.",
@@ -201,7 +201,7 @@ const DETAILS = {
         ["Tennis-fauteuil", "Exhibition entre les deux demi-finales."],
         ["Vers 17h", "On termine par la finale du double."],
       ]},
-      { type: "gallery", items: ["assets/webflow/tennis-day.webp", "assets/webflow/prog-kids.webp"] },
+      { type: "gallery", items: ["assets/photos/open-wheelchair.jpg", "assets/photos/open-kids.jpg"] },
     ],
   },
   stages: {
