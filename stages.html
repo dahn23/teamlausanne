@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#123cc4" />
+  <title>Nos stages — Team Lausanne</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="public" data-world="academie">
+  <section class="screen stg-pub">
+    <header class="stg-pub-head">
+      <h1 class="brand">🎓 Nos stages</h1>
+      <p class="muted">Réserve ta place pour les prochains stages du Team Lausanne.</p>
+    </header>
+    <div id="stgp-list" class="stg-pub-list"><p class="muted">Chargement…</p></div>
+  </section>
+
+  <!-- Modale d'inscription -->
+  <div id="stgp-modal" class="modal hidden">
+    <div class="modal-box">
+      <button id="stgp-close" class="modal-x" aria-label="Fermer">✕</button>
+      <h2 id="stgp-modal-title" style="margin-top:0"></h2>
+      <div id="stgp-modal-meta" class="muted" style="margin-bottom:12px"></div>
+      <form id="stgp-form" style="display:flex;flex-direction:column;gap:12px">
+        <div class="stg-form-grid">
+          <label>Prénom<input type="text" id="f-first" required /></label>
+          <label>Nom<input type="text" id="f-last" required /></label>
+        </div>
+        <div class="stg-form-grid">
+          <label>Email<input type="email" id="f-email" required /></label>
+          <label>Date de naissance<input type="date" id="f-birth" required /></label>
+        </div>
+        <label id="f-tshirt-wrap" class="hidden">Taille de t-shirt (offert)
+          <select id="f-tshirt">
+            <option value="">— choisir —</option>
+            <option>4-6 ans</option><option>8-10 ans</option><option>12-14 ans</option>
+            <option>S</option><option>M</option><option>L</option><option>XL</option>
+          </select>
+        </label>
+        <div id="f-meal-wrap" class="hidden">
+          <span class="stg-lbl">Restriction / allergie alimentaire</span>
+          <label class="stg-radio"><input type="radio" name="meal" value="aucune" checked /> Aucune</label>
+          <label class="stg-radio"><input type="radio" name="meal" value="autre" /> À préciser :</label>
+          <input type="text" id="f-meal-text" placeholder="Allergie, régime…" disabled />
+        </div>
+        <label>Commentaire (optionnel)<textarea id="f-comment" rows="3"></textarea></label>
+        <button type="submit">Envoyer mon inscription</button>
+        <p id="stgp-error" class="error" hidden></p>
+      </form>
+      <div id="stgp-done" class="hidden">
+        <p style="font-size:1.1rem">🎾 Inscription reçue, merci !</p>
+        <p class="muted">Tu recevras un email de confirmation avec la facture. À très bientôt !</p>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="stage.js"></script>
+</body>
+</html>

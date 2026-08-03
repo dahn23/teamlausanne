@@ -235,6 +235,34 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .stg-cmt{max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #stg-reg-table td{vertical-align:middle}
 .stg-mail-card .stg-mail-subject,.stg-mail-card .stg-mail-body{width:100%;box-sizing:border-box}
+/* Page publique stages */
+.stg-pub{max-width:960px;margin:0 auto;padding:24px 18px 60px}
+.stg-pub-head{text-align:center;margin-bottom:1.4rem}
+.stg-pub-head .brand{font-size:2rem}
+.stg-pub-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.stg-pub-card{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;display:flex;flex-direction:column;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.stg-pub-img{width:100%;height:150px;object-fit:cover}
+.stg-pub-noimg{display:flex;align-items:center;justify-content:center;font-size:2.4rem;background:#eef1f7}
+.stg-pub-body{padding:14px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.stg-pub-body h3{margin:0;font-size:1.1rem}
+.stg-pub-dates{font-weight:700;color:var(--blue-ink);font-size:.9rem}
+.stg-pub-badges{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0}
+.stg-tag{font-size:.72rem;font-weight:700;background:#eef1f7;color:var(--blue-ink);padding:3px 9px;border-radius:20px}
+.stg-pub-foot{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:8px}
+.stg-pub-price{font-size:1.2rem;font-weight:800}
+.stg-pub-cta{background:var(--fluo-d);color:var(--fluo-ink);font-weight:800;border:0;padding:9px 16px;border-radius:10px;cursor:pointer}
+.stg-pub-cta:hover{filter:brightness(.95)}
+/* Modale d'inscription */
+.modal-box{position:relative;background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:22px 24px}
+.modal-x{position:absolute;top:10px;right:12px;background:transparent;color:var(--muted);font-size:1.1rem;border:0;cursor:pointer}
+.modal-x:hover{color:var(--ink)}
+.stg-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stg-form-grid label,#stgp-form>label{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:.85rem}
+#stgp-form input,#stgp-form select,#stgp-form textarea{width:100%;box-sizing:border-box;font-family:inherit}
+.stg-lbl{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
+.stg-radio{display:inline-flex;align-items:center;gap:6px;margin-right:14px;font-weight:600;font-size:.9rem}
+#f-meal-text{margin-top:8px}
+@media(max-width:480px){.stg-form-grid{grid-template-columns:1fr}}
 .gz-mgr-foot{grid-column:1/-1;display:flex;align-items:center;gap:14px;margin-top:4px}
 .gz-credit-line{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:3px}
 .gz-mini{background:#eef1f7;color:var(--blue-ink);font-size:.7rem;padding:3px 7px;font-weight:700;border-radius:6px}
