@@ -40,21 +40,21 @@
   <!-- ---------- Contenu dynamique du monde ---------- -->
   <main id="world-main" class="world-main"></main>
 
-  <!-- ---------- Bandeau cohérence (commun) ---------- -->
-  <section class="coherence">
-    <h2>Un lieu, trois mondes</h2>
-    <p class="coherence-sub">Tout se joue au même endroit, aux Plaines-du-Loup à Lausanne.
-      Le club où l'on joue, l'académie où l'on progresse, le tournoi où l'on vibre.</p>
-    <div class="flow">
-      <button class="flow-step" data-world="club"><span>1</span><h3>On joue</h3><p>Le Club</p></button>
-      <div class="flow-arrow">→</div>
-      <button class="flow-step academie" data-world="academie"><span>2</span><h3>On progresse</h3><p>L'Académie</p></button>
-      <div class="flow-arrow">→</div>
-      <button class="flow-step" data-world="tournoi"><span>3</span><h3>On vibre</h3><p>Le Tournoi</p></button>
-    </div>
-  </section>
-
   <footer class="foot">
+    <!-- Un lieu, trois mondes (le sélecteur commun, dans le footer) -->
+    <section class="coherence">
+      <h2>Un lieu, trois mondes</h2>
+      <p class="coherence-sub">Tout se joue au même endroit, aux Plaines-du-Loup à Lausanne.
+        Le club où l'on joue, l'academy où l'on progresse, le tournoi où l'on vibre.</p>
+      <div class="flow">
+        <button class="flow-step" data-world="club"><span>1</span><h3>On joue</h3><p>Le Club</p></button>
+        <div class="flow-arrow">→</div>
+        <button class="flow-step academie" data-world="academie"><span>2</span><h3>On progresse</h3><p>Academy</p></button>
+        <div class="flow-arrow">→</div>
+        <button class="flow-step" data-world="tournoi"><span>3</span><h3>On vibre</h3><p>Le Tournoi</p></button>
+      </div>
+    </section>
+
     <div class="foot-sponsors">
       <span class="foot-sponsors-label">Nos partenaires</span>
       <div class="sponsor-wall">
@@ -74,13 +74,9 @@
         Route des Plaines-du-Loup 8<br />1018 Lausanne<br />
         +41 21 646 13 50 · admin@lstennis.ch
       </div>
-      <div class="foot-worlds">
-        <b>Trois mondes, un lieu</b>
-        <div class="foot-switcher">
-          <button class="sw" data-world="club">Le Club</button>
-          <button class="sw" data-world="academie">Academy</button>
-          <button class="sw" data-world="tournoi">Le Tournoi</button>
-        </div>
+      <div>
+        <b>Trois mondes, un lieu</b><br />
+        Le Club · Academy · Le Tournoi<br />
         <span class="muted">Jouer. Grandir. Vibrer. Ensemble.</span>
       </div>
     </div>

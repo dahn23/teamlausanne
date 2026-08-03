@@ -22,12 +22,14 @@ const WORLDS = {
         "Devenez membre du Lausanne-Sports Tennis : jouez librement sur tous les courts extérieurs durant tout l'été, et profitez de conditions avantageuses sur les courts couverts en hiver.",
         "L'adhésion est payante (cotisation annuelle). Elle vous ouvre la réservation en ligne, le club-house et le restaurant, au cœur des Plaines-du-Loup.",
       ], link: { label: "Réserver un court", action: "login" } },
-      { type: "features", title: "Le club, c'est…", items: [
-        ["Devenir membre", "Accès à tous les courts, intérieurs et extérieurs, toute l'année."],
-        ["Jouer librement", "Réservation en ligne en quelques secondes, été comme hiver."],
-        ["Interclubs", "Portez les couleurs du club en championnat suisse par équipes."],
-        ["Restaurant & club-house", "Un lieu de vie convivial au cœur des Plaines-du-Loup."],
-      ]},
+      { type: "carousel", eyebrow: "Le club", title: "Jouer toute l'année, à deux pas du centre",
+        sub: "Devenez membre et profitez de tous les courts, du club-house et de la compétition.",
+        items: [
+          { name: "Devenir membre", photo: "assets/webflow/prog-club.webp", href: "#academie" },
+          { name: "Jouer librement", photo: "assets/webflow/tennis-day.webp", login: true },
+          { name: "Interclubs", photo: "assets/webflow/prog-competition.webp" },
+          { name: "Restaurant & club-house", photo: "assets/webflow/cta-young.jpg" },
+        ]},
       { type: "timeline", title: "Notre histoire", items: [
         ["1911", "Fondation par des personnalités du Montriond F.C. Premier court au chemin du Signal, puis deux courts aux Plaines-du-Loup."],
         ["1939", "Le club compte déjà 8 terrains."],
@@ -66,17 +68,17 @@ const WORLDS = {
         "Team Lausanne propose un encadrement complet du tennis, adapté à chaque âge et à chaque niveau de jeu.",
         "Nous accompagnons le développement de chaque joueuse et joueur, de l'initiation jusqu'à la compétition professionnelle, au sein d'une véritable pyramide de formation.",
       ]},
-      { type: "cards", title: "Nos programmes", items: [
-        { name: "KidsTennis", meta: "dès 5 ans", detail: "L'apprentissage par le jeu pour les plus jeunes.", href: "#kids", photo: "assets/webflow/prog-kids.webp" },
-        { name: "Sport-études", meta: "14–19 ans", detail: "Études et tennis intensif dans un cadre optimal.", href: "#sport-etudes", photo: "assets/webflow/sport-studies.jpg" },
-        { name: "Pro U18 & Pro", meta: "haut niveau", detail: "Le grand saut vers le circuit professionnel.", href: "#pro", photo: "assets/webflow/prog-performance.webp" },
-      ]},
-      { type: "offers", title: "Cours & filières", items: [
-        { name: "Club", meta: "", detail: "Progresser à son rythme, dans le plaisir du jeu." },
-        { name: "Compétition", meta: "", detail: "Filière encadrée pour les joueurs de compétition." },
-        { name: "Performance", meta: "haut niveau", detail: "Encadrement renforcé vers le meilleur niveau." },
-        { name: "Stages", meta: "vacances", detail: "10 semaines de stages, de KidsTennis à Train Like a Pro." },
-      ]},
+      { type: "carousel", eyebrow: "Cours pour tous", title: "Un programme pour chaque niveau",
+        sub: "Du premier échange à la compétition, un parcours clair pour progresser avec plaisir.",
+        items: [
+          { name: "KidsTennis", photo: "assets/webflow/prog-kids.webp", href: "#kids" },
+          { name: "Sport-études", photo: "assets/webflow/sport-studies.jpg", href: "#sport-etudes" },
+          { name: "Pro U18 & Pro", photo: "assets/webflow/prog-performance.webp", href: "#pro" },
+          { name: "Compétition", photo: "assets/webflow/prog-competition.webp" },
+          { name: "Loisir / Club", photo: "assets/webflow/prog-club.webp" },
+          { name: "Game Zone", photo: "assets/webflow/event-gamezone.webp", href: "#gamezone" },
+          { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "stages.html" },
+        ]},
       { type: "coaches", title: "Notre équipe de coachs", items: [
         { name: "Mariano Palena", role: "Head Coach", photo: "assets/webflow/coach-mariano.jpg" },
         { name: "Yann Perez", role: "Coach", photo: "assets/webflow/coach-yann.jpg" },
@@ -99,12 +101,14 @@ const WORLDS = {
         "Le Lausanne Open réunit chaque année plusieurs dizaines de joueurs de toutes nationalités, pour la plupart classés à l'ATP, sur les courts de la Pontaise.",
         "Vainqueur 2025 : Henry Bernet, joueur suisse de 18 ans. L'accès est entièrement gratuit, toute la semaine.",
       ], link: { label: "Tableau & résultats ITF ↗", href: ITF_URL } },
-      { type: "features", title: "Une semaine d'événements", items: [
-        ["Entrée libre", "L'accès au tournoi est gratuit toute la semaine, sans billet."],
-        ["Journée Team Lausanne", "Samedi 29 août dès 11h : animations, mini-tennis et exhibition en fauteuil roulant."],
-        ["Initiation écoles", "Les écoles de la région s'initient au tennis, encadrées par des coachs certifié·e·s."],
-        ["VIP · Tennis & Lunch", "Vivez le tournoi au plus près des joueurs, du lundi au vendredi."],
-      ]},
+      { type: "carousel", eyebrow: "Lausanne Open", title: "Une semaine d'événements",
+        sub: "Entrée libre toute la semaine, animations grand public et hospitalité VIP.",
+        items: [
+          { name: "Le tournoi", photo: "assets/webflow/event-open.jpg", href: ITF_URL },
+          { name: "Journée Team Lausanne", photo: "assets/webflow/tennis-day.webp" },
+          { name: "Game Zone juniors", photo: "assets/webflow/event-gamezone.webp" },
+          { name: "VIP · Tennis & Lunch", photo: "assets/webflow/cta-young.jpg" },
+        ]},
       { type: "rich", title: "VIP · Tennis & Lunch", body: [
         "Une expérience d'hospitalité unique : « Tennis & Lunch » du lundi au vendredi, sur invitation personnalisée.",
         "Des offres de partenariat sur mesure sont disponibles : naming du court central et de la zone VIP, banderoles, stands, visibilité digitale…",
@@ -305,6 +309,26 @@ function sectionHTML(sec) {
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div class="sponsor-wall">${sec.items.map((n) =>
           `<div class="sponsor">${esc(n)}</div>`).join("")}</div></section>`;
+
+    case "carousel": {
+      const pill = (o) => {
+        const inner = `${esc(o.name)}<span class="ccard-arrow" aria-hidden="true">↗</span>`;
+        if (o.login) return `<button class="ccard-pill" data-login>${inner}</button>`;
+        if (!o.href) return `<span class="ccard-pill ccard-pill-static">${inner}</span>`;
+        const ext = o.href.startsWith("http");
+        const tgt = ext ? ' target="_blank" rel="noopener"' : "";
+        return `<a class="ccard-pill" href="${esc(o.href)}"${tgt}>${inner}</a>`;
+      };
+      return `<section class="wsec carousel-sec">
+        <div class="carousel-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.sub ? `<p class="carousel-sub">${esc(sec.sub)}</p>` : ""}
+        </div>
+        <div class="carousel">${sec.items.map((o) =>
+          `<article class="ccard"><div class="ccard-media" style="background-image:url('${o.photo}')"></div>
+            ${pill(o)}</article>`).join("")}</div></section>`;
+    }
 
     case "coaches":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>

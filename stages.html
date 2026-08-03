@@ -2,19 +2,70 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#123cc4" />
   <title>Nos stages — Team Lausanne</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body class="public" data-world="academie">
-  <section class="screen stg-pub">
-    <header class="stg-pub-head">
-      <h1 class="brand"><svg class="hi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l10 5-10 5L2 9l10-5z"/><path d="M6 11v4.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V11"/></svg>Nos stages</h1>
-      <p class="muted">Réserve ta place pour les prochains stages du Team Lausanne.</p>
-    </header>
-    <div id="stgp-list" class="stg-pub-list"><p class="muted">Chargement…</p></div>
+  <header class="nav">
+    <a href="index.html" class="nav-brand-link">← Team Lausanne</a>
+    <a href="index.html#academie" class="btn-login">L'academy</a>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero stg-hero">
+    <div class="hero-bg" style="background-image:url('assets/webflow/stage-discovery.webp')"></div>
+    <div class="hero-scrim"></div>
+    <div class="hero-content">
+      <p class="hero-tag">Vacances scolaires</p>
+      <h1 class="hero-slogan">Nos stages</h1>
+      <p class="hero-desc">Dix semaines de stages à Lausanne, du mini-tennis à l'entraînement de compétiteur. Progresser, s'amuser, se dépenser — ensemble.</p>
+    </div>
   </section>
+
+  <main class="world-main">
+    <!-- Explication + formules -->
+    <section class="wsec">
+      <h2>Les formules</h2>
+      <p class="stg-intro">Chaque semaine, choisis la formule qui te correspond selon ton âge et tes envies.
+        Tennis, activités et bonne humeur, encadrés par nos coachs, aux Plaines-du-Loup.
+        <b>−20 % dès la 2ᵉ semaine</b> ou pour un 2ᵉ membre de la famille.</p>
+      <div class="formula-grid">
+        <div class="formula">
+          <h3>KidsTennis</h3><div class="formula-age">4 à 9 ans</div>
+          <ul><li>9h00–12h00</li><li>1h30 de tennis + 1h30 d'activité</li><li>Repas non inclus</li></ul>
+          <div class="formula-price">250 CHF</div>
+        </div>
+        <div class="formula">
+          <h3>Loisirs</h3><div class="formula-age">9 à 18 ans</div>
+          <ul><li>9h00–17h00</li><li>3h de tennis + 3h30 d'activité</li><li>Repas inclus</li></ul>
+          <div class="formula-price">450 CHF</div>
+        </div>
+        <div class="formula">
+          <h3>Loisirs ½ journée</h3><div class="formula-age">9 à 18 ans</div>
+          <ul><li>9h00–12h00 ou 14h00–17h00</li><li>1h30 de tennis + 1h30 d'activité</li><li>Repas non inclus</li></ul>
+          <div class="formula-price">290 CHF</div>
+        </div>
+        <div class="formula formula-pro">
+          <h3>Entraîne-toi comme un pro</h3><div class="formula-age">10 à 19 ans · dès R7</div>
+          <ul><li>9h00–17h00</li><li>4h de tennis + 1h30 physique + 1h d'activité</li><li>Repas inclus · option privé +240 CHF (3h)</li></ul>
+          <div class="formula-price">790 CHF</div>
+        </div>
+        <div class="formula">
+          <h3>Stage adultes</h3><div class="formula-age">18 ans et +</div>
+          <ul><li>18h15–19h45 · semaines 4, 5 et 9</li><li>1h30 de tennis par jour</li></ul>
+          <div class="formula-price">240 CHF</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Inscription : liste des stages ouverts (ou message si aucun) -->
+    <section class="wsec">
+      <h2>Réserve ta place</h2>
+      <div id="stgp-list" class="stg-pub-list"><p class="muted">Chargement…</p></div>
+    </section>
+  </main>
 
   <!-- Modale d'inscription -->
   <div id="stgp-modal" class="modal hidden">
