@@ -547,6 +547,9 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 /* Footer : texte lisible + blanc au survol (pas de bleu sur bleu) */
 .foot a{color:#dfe4ff;transition:color .15s}
 .foot a:hover{color:#fff}
+/* Le texte d'intro (paragraphe) passe blanc au survol */
+.foot .coherence-sub,.foot-cols>div,.foot-cols .muted{transition:color .15s}
+.foot .coherence-sub:hover,.foot-cols>div:hover,.foot-cols>div:hover .muted{color:#fff}
 .foot .flow-step:hover h3,.foot .flow-step:hover p{color:var(--blue-ink)}
 
 @media (max-width:720px){
