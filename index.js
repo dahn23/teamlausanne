@@ -18,7 +18,7 @@ const WORLDS = {
     hero: "assets/photos/p1.jpg",
     cta: [{ label: "Réserver un court", type: "login" }],
     sections: [
-      { type: "split", title: "Votre club, toute l'année", photo: "assets/photos/p5.jpg", body: [
+      { type: "split", anchor: "cotisation", title: "Votre club, toute l'année", photo: "assets/photos/p5.jpg", body: [
         "Devenez membre du Lausanne-Sports Tennis : jouez librement sur tous les courts extérieurs durant tout l'été, et profitez de conditions avantageuses sur les courts couverts en hiver.",
         "L'adhésion est payante (cotisation annuelle). Elle vous ouvre la réservation en ligne, le club-house et le restaurant, au cœur des Plaines-du-Loup.",
       ], link: { label: "Réserver un court", action: "login" } },
@@ -45,13 +45,13 @@ const WORLDS = {
         ["Restaurant", "Restauration et club-house ouverts aux membres et visiteurs."],
         ["Réservation en ligne", "Réservez votre terrain d'un clic, depuis votre mobile."],
       ]},
-      { type: "committee", title: "Le comité",
+      { type: "committee", anchor: "comite", title: "Le comité",
         members: [["Kazem Huber", "Président"], ["Bertrand Gygax", "Vice-président"],
           ["Arsalan Huber", "Trésorier"], ["Laurent Aubert", "Infrastructures"],
           ["Philémon Isakov", "Compétition"], ["Loïc Colotti", "Communication"],
           ["Serge Devaud", "Membre consultant"]],
         honor: ["Serge Devaud", "Françoise Tribolet", "Remo Zeraschi"] },
-      { type: "contact", title: "Contact & accès",
+      { type: "contact", anchor: "contact", title: "Contact & accès",
         lines: ["Lausanne-Sports Tennis", "Stade de la Pontaise", "Route des Plaines-du-Loup 8", "1018 Lausanne"],
         phone: "+41 21 646 13 50", email: CONTACT_MAIL, hours: "Secrétariat : lun–ven, 15h00–17h00" },
     ],
@@ -68,7 +68,7 @@ const WORLDS = {
         "Team Lausanne propose un encadrement complet du tennis, adapté à chaque âge et à chaque niveau de jeu.",
         "Nous accompagnons le développement de chaque joueuse et joueur, de l'initiation jusqu'à la compétition professionnelle, au sein d'une véritable pyramide de formation.",
       ]},
-      { type: "carousel", eyebrow: "Cours pour tous", title: "Un programme pour chaque niveau",
+      { type: "carousel", anchor: "programmes", eyebrow: "Cours pour tous", title: "Un programme pour chaque niveau",
         sub: "Du premier échange à la compétition, un parcours clair pour progresser avec plaisir.",
         items: [
           { name: "KidsTennis", photo: "assets/webflow/prog-kids.webp", href: "#kids" },
@@ -96,7 +96,7 @@ const WORLDS = {
     hero: "assets/photos/p2.jpg",
     cta: [{ label: "Infos & billetterie", type: "mailopen" }],
     sections: [
-      { type: "stats", items: [["23–30 août", "2026"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
+      { type: "stats", anchor: "tournoi", items: [["23–30 août", "2026"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
       { type: "split", title: "Le grand rendez-vous du tennis vaudois", photo: "assets/photos/coach2.jpg", body: [
         "Le Lausanne Open réunit chaque année plusieurs dizaines de joueurs de toutes nationalités, pour la plupart classés à l'ATP, sur les courts de la Pontaise.",
         "Vainqueur 2025 : Henry Bernet, joueur suisse de 18 ans. L'accès est entièrement gratuit, toute la semaine.",
@@ -109,7 +109,7 @@ const WORLDS = {
           { name: "Game Zone juniors", photo: "assets/webflow/event-gamezone.webp" },
           { name: "VIP · Tennis & Lunch", photo: "assets/webflow/cta-young.jpg" },
         ]},
-      { type: "rich", title: "VIP · Tennis & Lunch", body: [
+      { type: "rich", anchor: "vip", title: "VIP · Tennis & Lunch", body: [
         "Une expérience d'hospitalité unique : « Tennis & Lunch » du lundi au vendredi, sur invitation personnalisée.",
         "Des offres de partenariat sur mesure sont disponibles : naming du court central et de la zone VIP, banderoles, stands, visibilité digitale…",
       ], link: { label: "Nous contacter", href: "mailto:" + OPEN_MAIL } },
@@ -231,6 +231,12 @@ function linkHTML(link) {
     return `<button class="wsec-link" data-login>${esc(link.label)}</button>`;
   const ext = link.href.startsWith("http") || link.href.startsWith("mailto");
   return `<a class="wsec-link" href="${esc(link.href)}"${ext ? ' target="_blank" rel="noopener"' : ""}>${esc(link.label)}</a>`;
+}
+
+function sectionWrap(sec) {
+  let html = sectionHTML(sec);
+  if (sec.anchor) html = html.replace("<section ", `<section data-anchor="${sec.anchor}" `);
+  return html;
 }
 
 function sectionHTML(sec) {
@@ -360,7 +366,7 @@ function renderWorld(key) {
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === key));
   const ctaHTML = w.cta.map((c) => `<button class="btn-cta" data-cta="${c.type}">${esc(c.label)}</button>`).join("");
   paintHero({ logo: w.logo, hero: w.hero, tag: w.tag, slogan: w.slogan, desc: w.desc, ctaHTML });
-  $("world-main").innerHTML = w.sections.map(sectionHTML).join("");
+  $("world-main").innerHTML = w.sections.map(sectionWrap).join("");
   animate();
 }
 
@@ -371,7 +377,7 @@ function renderDetail(id) {
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === d.world));
   const ctaHTML = `<button class="btn-cta ghost" data-back="${d.world}">← Retour à ${esc(w.tag.toLowerCase())}</button>`;
   paintHero({ logo: w.logo, hero: d.hero, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML });
-  $("world-main").innerHTML = d.sections.map(sectionHTML).join("");
+  $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();
 }
 
@@ -442,6 +448,16 @@ document.addEventListener("click", (e) => {
     else if (t === "stages") location.href = "stages.html";
     else if (t === "mail") location.href = `mailto:${CONTACT_MAIL}`;
     else if (t === "mailopen") location.href = `mailto:${OPEN_MAIL}`;
+    return;
+  }
+  const scroll = e.target.closest("[data-scroll]");
+  if (scroll) { document.querySelector("." + scroll.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  const goto = e.target.closest("[data-goto]");
+  if (goto) {
+    const w = goto.dataset.goto, a = goto.dataset.anchor;
+    history.replaceState(null, "", "#" + w);
+    renderWorld(w);
+    requestAnimationFrame(() => document.querySelector(`[data-anchor="${a}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
     return;
   }
   const back = e.target.closest("[data-back]");

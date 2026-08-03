@@ -14,9 +14,31 @@
       <img id="nav-logo" class="nav-logo" src="assets/logo-club.webp" alt="" />
     </div>
     <div class="switcher" role="tablist" aria-label="Choisir un univers">
-      <button class="sw" data-world="club" role="tab">Le Club</button>
-      <button class="sw" data-world="academie" role="tab">Academy</button>
-      <button class="sw" data-world="tournoi" role="tab">Le Tournoi</button>
+      <div class="sw-wrap">
+        <button class="sw" data-world="club" role="tab">Le Club</button>
+        <div class="sw-menu">
+          <a data-goto="club" data-anchor="cotisation">Cotisation</a>
+          <a data-goto="club" data-anchor="comite">Comité</a>
+          <a data-goto="club" data-anchor="contact">Emplacement</a>
+          <a data-goto="club" data-anchor="contact">Contact</a>
+        </div>
+      </div>
+      <div class="sw-wrap">
+        <button class="sw" data-world="academie" role="tab">Academy</button>
+        <div class="sw-menu">
+          <a data-goto="academie" data-anchor="programmes">Programmes</a>
+          <a href="#gamezone">Game Zone</a>
+          <a href="stages.html">Stages</a>
+        </div>
+      </div>
+      <div class="sw-wrap">
+        <button class="sw" data-world="tournoi" role="tab">Le Tournoi</button>
+        <div class="sw-menu">
+          <a data-goto="tournoi" data-anchor="tournoi">Le tournoi</a>
+          <a data-goto="tournoi" data-anchor="vip">VIP · Tennis &amp; Lunch</a>
+          <a data-scroll="foot-sponsors">Partenaires</a>
+        </div>
+      </div>
     </div>
     <button id="open-login" class="btn-login">Espace membres</button>
   </header>

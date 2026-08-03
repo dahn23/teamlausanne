@@ -350,6 +350,18 @@ body[data-world="tournoi"]{--scrim:rgba(6,12,45,.68)}
 .sw:hover{background:#f1f3f9;color:var(--ink)}
 .sw.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 body[data-world="academie"] .sw.active{color:var(--fluo-ink)}
+/* Menus rapides au survol des mondes */
+.sw-wrap{position:relative;display:flex}
+.sw-menu{position:absolute;top:100%;left:50%;transform:translateX(-50%) translateY(8px);
+  background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 32px rgba(20,26,46,.18);
+  padding:6px;min-width:190px;display:flex;flex-direction:column;
+  opacity:0;visibility:hidden;transition:opacity .16s ease,transform .16s ease;z-index:40}
+.sw-menu::before{content:"";position:absolute;top:-10px;left:0;right:0;height:10px}
+.sw-wrap:hover .sw-menu,.sw-wrap:focus-within .sw-menu{opacity:1;visibility:visible;transform:translateX(-50%) translateY(4px)}
+.sw-menu a{padding:9px 12px;border-radius:8px;color:var(--ink);text-decoration:none;
+  font-size:.9rem;font-weight:700;cursor:pointer;white-space:nowrap;text-transform:none;font-style:normal}
+.sw-menu a:hover{background:#eef1f7;color:var(--blue-ink)}
+@media (max-width:760px){.sw-menu{display:none}}
 .btn-login{padding:10px 18px;background:var(--accent)}
 body[data-world="academie"] .btn-login{color:var(--fluo-ink)}
 .btn-login:hover{filter:brightness(.92)}
