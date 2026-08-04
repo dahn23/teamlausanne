@@ -2561,6 +2561,7 @@ function renderStageCats() {
         <label>Prix (CHF)<input type="number" class="stg-cat-price" value="${c.price}"/></label>
         <label class="stg-inline"><input type="checkbox" class="stg-cat-meal" ${c.meal ? "checked" : ""}/> Repas</label>
         <label class="stg-inline"><input type="checkbox" class="stg-cat-tshirt" ${c.tshirt ? "checked" : ""}/> Offrir un t-shirt</label>
+        <label class="stg-inline"><input type="checkbox" class="stg-cat-ranking" ${c.ask_ranking ? "checked" : ""}/> Demander le classement</label>
       </div>
       <div class="gz-mail-foot">
         <div class="gz-mail-img">
@@ -2601,6 +2602,7 @@ async function saveStageCat(id, card) {
     price: Number(card.querySelector(".stg-cat-price").value) || 0,
     meal: card.querySelector(".stg-cat-meal").checked,
     tshirt: card.querySelector(".stg-cat-tshirt").checked,
+    ask_ranking: card.querySelector(".stg-cat-ranking").checked,
     active: card.querySelector(".stg-cat-active").checked,
   };
   const btn = card.querySelector(".stg-cat-save");
@@ -2803,7 +2805,7 @@ function renderRegistrants() {
       <td>${esc(r.email || "—")}</td>
       <td>${cat.tshirt ? esc(r.tshirt_size || "—") : "—"}</td>
       <td>${cat.meal ? esc(r.meal_restriction || "—") : "—"}</td>
-      <td class="stg-cmt">${esc(r.comment || "")}</td>
+      <td class="stg-cmt">${r.ranking ? `<b>Classement : ${esc(r.ranking)}</b>${r.comment ? "<br>" : ""}` : ""}${esc(r.comment || "")}</td>
       <td>${rebate}</td>
       <td><b>${price}</b></td>
       <td>${invoice}</td>
