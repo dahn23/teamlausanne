@@ -56,8 +56,9 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .spacer{flex:1}
 .toolbar{display:flex;align-items:center;gap:8px;padding:12px 14px;flex-wrap:wrap}
 .toolbar input[type=date]{flex:1;min-width:150px}
-.tag{font-size:.8rem;padding:4px 10px;border-radius:999px;background:#eef3f0;
-  color:var(--green);font-weight:600}
+.tag{font-size:.8rem;padding:4px 12px;border-radius:999px;background:#eef3f0;
+  color:var(--green);font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.season-ico{width:15px;height:15px;flex-shrink:0}
 
 .grid-wrap{overflow:auto;padding:0 14px 14px}
 .grid{display:grid;gap:4px;min-width:max-content}

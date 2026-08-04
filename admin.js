@@ -241,7 +241,9 @@ function shiftResa(delta) {
 async function loadResaDay() {
   const date = $("resa-date").value;
   const season = seasonA(date);
-  $("resa-season").textContent = season === "ete" ? "Été" : "Hiver";
+  const sunIco = '<svg class="season-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"/></svg>';
+  const snowIco = '<svg class="season-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M3.4 7l17.2 10M20.6 7L3.4 17"/><path d="M12 5l-2.2 2.2M12 5l2.2 2.2M12 19l-2.2-2.2M12 19l2.2 2.2"/></svg>';
+  $("resa-season").innerHTML = season === "ete" ? sunIco + "Été" : snowIco + "Hiver";
   const col = season === "ete" ? "open_summer" : "open_winter";
   resaCourts = resaCourtsAll.filter((c) => c[col]);
   const { data: bookings } = await sb.from("court_bookings").select("*").eq("booking_date", date);
