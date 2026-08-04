@@ -15,18 +15,25 @@ function trophies(w) {
   return `${cup ? `<span class="gz-cup">${cup}</span>` : ""}<span class="gz-medals">${medals}</span>`;
 }
 
+const PREVIEW = 12;
 async function loadRanking(season) {
   const { data, error } = await sb.rpc("gz_public_ranking", { p_season: season || null });
-  if (error) { $("gzp-ranking").innerHTML = `<p class="muted">Classement indisponible.</p>`; return; }
+  if (error) { $("gzp-ranking").innerHTML = `<p class="muted">Liste indisponible.</p>`; return; }
   const rows = data || [];
   if (!rows.length) { $("gzp-ranking").innerHTML = `<p class="muted">Pas encore de vainqueur cette saison.</p>`; return; }
-  $("gzp-ranking").innerHTML = rows.map((r, i) => `
+  const row = (r, i) => `
     <div class="gz-rank-row${i < 3 ? " top" : ""}">
-      <span class="gz-rank-pos">${i + 1}</span>
+      <span class="gz-rank-pos">${r.wins}</span>
       <span class="gz-rank-name">${esc(r.first_name)} ${esc(r.last_name)}</span>
       <span class="gz-rank-tro">${trophies(Number(r.wins))}</span>
-      <span class="gz-rank-w">${r.wins}</span>
-    </div>`).join("");
+    </div>`;
+  const shown = rows.slice(0, PREVIEW).map(row).join("");
+  const rest = rows.slice(PREVIEW).map(row).join("");
+  $("gzp-ranking").innerHTML = shown +
+    (rest ? `<div id="gzp-more" class="hidden">${rest}</div>
+      <button type="button" id="gzp-showall" class="gz-showall">Afficher tous les vainqueurs (${rows.length})</button>` : "");
+  const btn = $("gzp-showall");
+  if (btn) btn.addEventListener("click", () => { $("gzp-more").classList.remove("hidden"); btn.remove(); });
 }
 
 async function loadPhotos(season) {

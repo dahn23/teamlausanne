@@ -216,7 +216,12 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .gz-pub-rank{display:flex;flex-direction:column;gap:6px}
 .gz-rank-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fff}
 .gz-rank-row.top{background:linear-gradient(90deg,#fffdf2,#fff);border-color:#ecd98a}
-.gz-rank-pos{flex:0 0 28px;font-weight:800;color:var(--muted);text-align:center}
+.gz-rank-pos{flex:0 0 36px;width:36px;height:36px;border-radius:50%;background:var(--blue);color:#fff;
+  font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.95rem}
+.gz-rank-row.top .gz-rank-pos{background:var(--blue-ink)}
+.gz-showall{display:block;margin:14px auto 0;background:var(--blue);color:#fff;font-weight:800;
+  padding:11px 22px;border:0;border-radius:999px;cursor:pointer}
+.gz-showall:hover{background:var(--blue-d)}
 .gz-rank-name{flex:1;font-weight:700}
 .gz-rank-tro{flex:0 0 auto;font-size:1.05rem;letter-spacing:1px;white-space:nowrap;overflow:hidden;max-width:45vw}
 .gz-cup{margin-right:4px}

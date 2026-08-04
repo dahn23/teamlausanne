@@ -392,23 +392,16 @@ const DETAILS = {
     ],
   },
   gamezone: {
-    world: "academie", title: "Game Zone", subtitle: "Des tournois juniors chaque week-end",
+    world: "academie", title: "Game Zone", subtitle: "Des tournois juniors presque tous les week-ends",
     hero: "assets/photos/kids2.jpg",
     sections: [
       { type: "rich", title: "Le concept", body: [
-        "Chaque week-end, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant·e.",
-        "Le format idéal pour se lancer en compétition, cumuler de l'expérience et grimper au classement de la saison.",
+        "Presque tous les week-ends, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant·e.",
+        "Le format idéal pour se lancer en compétition et cumuler de l'expérience — et aller décrocher la grande coupe à la 10ᵉ victoire ! Une petite coupe est déjà remise dès 5 victoires, et une médaille à chaque victoire.",
       ], link: { label: "Consulter les prochains tournois ↗", href: GAMEZONE_URL } },
-      { type: "podium", title: "Classement 2025 / 2026", items: [
-        ["Vincent Rauschert", "9 victoires"], ["Maxime Dietschy", "7 victoires"], ["Fabien Jaton", "7 victoires"],
-      ]},
-      { type: "ranking", title: "Les meilleurs de la saison",
-        head: ["Joueur·euse", "Victoires"],
-        rows: [
-          ["Alexandre Josserand", "4"], ["Ilian Benboubker", "4"], ["Isaac Silmont", "4"],
-          ["Jack Doriel", "4"], ["José Matias Herrera Arriagada", "4"], ["Karl Isgren", "4"],
-          ["Matias Gerard", "4"], ["Melwan Gamba", "4"],
-        ], note: "Suivis de plus de 200 joueuses et joueurs classés sur la saison." },
+      { type: "podium", title: "Nos plus grands vainqueurs", items: [
+        ["Vincent Rauschert", 9], ["Maxime Dietschy", 7], ["Fabien Jaton", 7],
+      ], link: { label: "Afficher tous les vainqueurs ↗", href: "gamezone.html" } },
       { type: "gallery", items: ["assets/photos/kids1.jpg", "assets/photos/p4.jpg"] },
     ],
   },
@@ -501,9 +494,10 @@ function sectionHTML(sec) {
 
     case "podium":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
-        <div class="podium">${sec.items.map(([n, v], i) =>
-          `<div class="pod pod-${i + 1}"><div class="pod-rank">${i + 1}</div>
-            <b>${esc(n)}</b><span>${esc(v)}</span></div>`).join("")}</div></section>`;
+        <div class="podium">${sec.items.map(([n, w], i) =>
+          `<div class="pod pod-${i + 1}"><div class="pod-rank">${esc(String(w))}</div>
+            <b>${esc(n)}</b><span>victoires</span></div>`).join("")}</div>
+        ${linkHTML(sec.link)}</section>`;
 
     case "ranking":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
