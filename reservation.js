@@ -11,11 +11,13 @@ const todayISO = () => isoLocal(new Date());
 
 let me = null;
 let isMember = false;       // membre ou staff → tarif membre
+let isCoachPrivate = false; // coach autorisé aux heures privées (quotas illimités)
 let settings = {};
 let courts = [];
 let membersList = [];       // annuaire des membres (choix du partenaire)
 let invitationsUsed = 0;    // invitations déjà utilisées cette saison d'été
 let pending = null;         // créneau en cours de réservation
+let dayBookings = [];       // réservations du jour affiché (pour vérifier l'adjacence)
 
 // ---- Réglages ----
 async function loadSettings() {
@@ -68,6 +70,7 @@ if (me) {
   $("logout").classList.remove("hidden");
   const roles = await myRoles();
   isMember = hasAny(roles, [...STAFF_ROLES, "membre"]);
+  isCoachPrivate = hasAny(roles, ["coach_prive"]);
   if (hasAny(roles, STAFF_ROLES)) $("admin-link").classList.remove("hidden");
 }
 await loadSettings();
@@ -118,7 +121,7 @@ function initUI() {
   // ---- Modale partenaire (membre) ----
   document.querySelector("[data-close-partner]").addEventListener("click", closePartner);
   $("partner-modal").addEventListener("click", (e) => { if (e.target === $("partner-modal")) closePartner(); });
-  document.querySelectorAll('input[name="ptype"]').forEach((r) =>
+  document.querySelectorAll('input[name="ptype"], input[name="pdur"]').forEach((r) =>
     r.addEventListener("change", refreshPartner));
   $("partner-confirm").addEventListener("click", confirmPartner);
 }
@@ -147,7 +150,15 @@ async function loadDay() {
     .eq("booking_date", date);
   if (bErr) { alert("Erreur réservations : " + bErr.message); return; }
 
+  dayBookings = bookings || [];
   drawGrid(date, season, bookings);
+}
+
+// Quota selon le profil (coach privé illimité / membre / non-membre).
+function quotaProfile() { return isCoachPrivate ? "coach" : isMember ? "member" : "nonmember"; }
+function slotFree(courtId, hour) {
+  const s = pad(hour) + ":15:00", e = pad(hour + 1) + ":15:00";
+  return !dayBookings.some((b) => b.court_id === courtId && b.start_time < e && b.end_time > s);
 }
 
 function drawGrid(date, season, bookings) {
@@ -215,11 +226,16 @@ function onSlot(court, date, hour, price) {
   $("choice-modal").classList.remove("hidden");
 }
 
-// ---- Flux membre : choix du partenaire ----
+// ---- Flux membre : durée + choix du partenaire ----
 function openPartner(court, date, hour) {
   pending = { court, date, hour, season: seasonOf(date) };
   $("partner-error").hidden = true;
-  $("partner-slot").textContent = `${court.name} · le ${date} de ${pad(hour)}:15 à ${pad(hour + 1)}:15`;
+  // 2 heures possibles ? (créneau suivant libre et dans la grille)
+  const can2 = hour <= 20 && slotFree(court.id, hour + 1);
+  const r2 = document.querySelector('input[name="pdur"][value="2"]');
+  r2.disabled = !can2;
+  r2.closest(".pc-opt").classList.toggle("pc-disabled", !can2);
+  document.querySelector('input[name="pdur"][value="1"]').checked = true;
   document.querySelector('input[name="ptype"][value="member"]').checked = true;
   $("partner-select").value = "";
   $("partner-guest-name").value = "";
@@ -228,8 +244,14 @@ function openPartner(court, date, hour) {
 }
 function closePartner() { $("partner-modal").classList.add("hidden"); }
 
-function partnerType() {
-  return document.querySelector('input[name="ptype"]:checked').value;
+const partnerType = () => document.querySelector('input[name="ptype"]:checked').value;
+const partnerDur = () => Number(document.querySelector('input[name="pdur"]:checked').value);
+
+function slotPrices() {
+  const { court, date, hour, season } = pending;
+  const p1 = priceFor(court, date, hour, season, "m_m") || 0;
+  const p2 = partnerDur() === 2 ? (priceFor(court, date, hour + 1, season, "second") || 0) : 0;
+  return { p1, p2, total: p1 + p2 };
 }
 
 function refreshPartner() {
@@ -237,15 +259,19 @@ function refreshPartner() {
   $("partner-member-box").classList.toggle("hidden", t !== "member");
   $("partner-guest-box").classList.toggle("hidden", t !== "guest");
   const q = settings.quotas || {};
-  const invMax = q.invitations_per_season_member ?? 2;
+  const { hour } = pending;
+  $("dur-note").textContent = partnerDur() === 2
+    ? `Créneaux ${pad(hour)}:15 → ${pad(hour + 2)}:15 · 2ᵉ heure au tarif réduit.`
+    : (hour <= 20 && slotFree(pending.court.id, hour + 1) ? "" : "2ᵉ heure indisponible (créneau suivant occupé).");
   if (t === "guest") {
+    const invMax = q.invitations_per_season_member ?? 2;
     const left = Math.max(0, invMax - invitationsUsed);
-    $("invite-note").textContent = `Invitations gratuites restantes cette saison d'été : ${left} / ${invMax}.`;
-    $("partner-price").textContent = "Invitation — gratuit";
-  } else {
-    const p = priceFor(pending.court, pending.date, pending.hour, pending.season, "m_m");
-    $("partner-price").textContent = p === 0 ? "Tarif membre : gratuit" : `Tarif membre : ${p} CHF`;
+    $("invite-note").textContent = `Un invité compte comme un membre (tarif membre/membre). Invitations restantes cette saison d'été : ${left} / ${invMax}.`;
   }
+  const { p1, p2, total } = slotPrices();
+  $("partner-price").textContent = partnerDur() === 2
+    ? `Tarif : ${p1} + ${p2} = ${total} CHF`
+    : (total === 0 ? "Tarif : gratuit" : `Tarif : ${total} CHF`);
 }
 
 async function confirmPartner() {
@@ -253,45 +279,51 @@ async function confirmPartner() {
   const q = settings.quotas || {};
   const { court, date, hour, season } = pending;
   const t = partnerType();
+  const dur = partnerDur();
+  const prof = quotaProfile();
+  const advMax = q[`advance_days_${prof}`] ?? 7;
+  const maxHours = q[`max_hours_${prof}`]; // null = illimité
 
-  // fenêtre de réservation à l'avance (membre)
+  // fenêtre à l'avance
   const days = Math.round((new Date(date + "T00:00:00") - new Date(todayISO() + "T00:00:00")) / 86400000);
-  if (days > (q.advance_days_member ?? 7))
-    return fail(err, `Un membre peut réserver au maximum ${q.advance_days_member ?? 7} jours à l'avance.`);
   if (days < 0) return fail(err, "Cette date est passée.");
+  if (days > advMax) return fail(err, `Réservation possible au maximum ${advMax} jours à l'avance.`);
 
-  // heures simultanées
-  const { count } = await sb.from("court_bookings")
-    .select("id", { count: "exact", head: true })
-    .eq("created_by", me.id).gte("booking_date", todayISO());
-  if ((count ?? 0) >= (q.max_hours_member ?? 2))
-    return fail(err, `Vous avez déjà ${q.max_hours_member ?? 2} réservation(s) en cours (maximum atteint).`);
+  // 2 heures : le créneau suivant doit être libre et dans la grille
+  if (dur === 2 && !(hour <= 20 && slotFree(court.id, hour + 1)))
+    return fail(err, "La 2ᵉ heure n'est plus disponible.");
 
-  const row = {
-    court_id: court.id, booking_date: date,
-    start_time: pad(hour) + ":15:00", end_time: pad(hour + 1) + ":15:00",
-    kind: "libre", created_by: me.id,
-  };
+  // réservations en cours (max) — count actuel + durée demandée
+  if (maxHours != null) {
+    const { count } = await sb.from("court_bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("created_by", me.id).gte("booking_date", todayISO());
+    if ((count ?? 0) + dur > maxHours)
+      return fail(err, `Maximum ${maxHours} réservation(s) en cours — vous en avez déjà ${count ?? 0}.`);
+  }
 
+  // partenaire
+  let partner = {};
   if (t === "guest") {
     if (invitationsUsed >= (q.invitations_per_season_member ?? 2))
-      return fail(err, "Quota d'invitations gratuites atteint pour cette saison d'été.");
-    row.is_invitation = true;
-    row.partner_is_member = false;
-    row.partner_name = $("partner-guest-name").value.trim() || null;
-    row.payer_category = "m_guest";
-    row.price_chf = 0;
+      return fail(err, "Quota d'invitations atteint pour cette saison d'été.");
+    partner = { is_invitation: true, partner_is_member: false, partner_name: $("partner-guest-name").value.trim() || null };
   } else {
     const pid = $("partner-select").value;
     if (!pid) return fail(err, "Choisissez le membre avec qui vous jouez.");
-    row.partner_person_id = pid;
-    row.partner_is_member = true;
-    row.partner_name = membersList.find((m) => m.person_id === pid)?.full_name || null;
-    row.payer_category = "m_m";
-    row.price_chf = priceFor(court, date, hour, season, "m_m");
+    partner = { partner_person_id: pid, partner_is_member: true, partner_name: membersList.find((m) => m.person_id === pid)?.full_name || null };
   }
 
-  const { error } = await sb.from("court_bookings").insert(row);
+  const { p1, p2 } = slotPrices();
+  const mkRow = (h, price) => ({
+    court_id: court.id, booking_date: date,
+    start_time: pad(h) + ":15:00", end_time: pad(h + 1) + ":15:00",
+    kind: "libre", created_by: me.id, payer_category: "m_m", price_chf: price, ...partner,
+  });
+  const rows = [mkRow(hour, p1)];
+  if (dur === 2) rows.push(mkRow(hour + 1, p2));
+
+  const { error } = await sb.from("court_bookings").insert(rows);
   if (error) return fail(err, error.code === "23P01" ? "Ce créneau vient d'être pris." : error.message);
   if (t === "guest") invitationsUsed++;
   closePartner();

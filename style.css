@@ -122,6 +122,7 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .legend-note{display:block;width:100%;margin-top:8px;color:var(--muted);font-size:.8rem;line-height:1.4}
 .partner-choice{display:flex;flex-direction:column;gap:8px;margin:12px 0}
 .pc-opt{display:flex;align-items:center;gap:8px;font-size:.95rem;cursor:pointer}
+.pc-opt.pc-disabled{opacity:.45;cursor:not-allowed}
 #partner-select,#partner-guest-name{width:100%}
 .partner-price{font-weight:800;color:var(--blue-ink);margin:14px 0 6px}
 .rslot.rfree{background:#eef1f7;color:#aeb6c6;cursor:pointer;user-select:none}

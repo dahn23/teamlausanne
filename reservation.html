@@ -60,9 +60,14 @@
       <button type="button" class="modal-close" data-close-partner aria-label="Fermer">×</button>
       <h2>Avec qui jouez-vous ?</h2>
       <p id="partner-slot" class="muted"></p>
+      <div class="partner-choice" id="partner-duration">
+        <label class="pc-opt"><input type="radio" name="pdur" value="1" checked /> 1 heure</label>
+        <label class="pc-opt"><input type="radio" name="pdur" value="2" /> 2 heures consécutives</label>
+      </div>
+      <p id="dur-note" class="muted" style="font-size:.82rem;margin:-4px 0 10px"></p>
       <div class="partner-choice">
         <label class="pc-opt"><input type="radio" name="ptype" value="member" checked /> Un autre membre</label>
-        <label class="pc-opt"><input type="radio" name="ptype" value="guest" /> Un non-membre (invitation)</label>
+        <label class="pc-opt"><input type="radio" name="ptype" value="guest" /> Un invité (non-membre)</label>
       </div>
       <div id="partner-member-box">
         <select id="partner-select"><option value="">— Choisir un membre —</option></select>
