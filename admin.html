@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
   <section id="console" class="screen hidden">
@@ -39,6 +40,7 @@
             <h1>Membres</h1>
             <div class="crm-actions">
               <input id="search" type="search" placeholder="Rechercher…" />
+              <button id="import-people" class="ghost">Importer (Excel)</button>
               <button id="new-person">+ Nouveau</button>
             </div>
           </div>
@@ -647,6 +649,31 @@
       </div>
       <p id="person-error" class="error" hidden></p>
     </form>
+  </div>
+
+  <!-- ---- Import Excel des membres ---- -->
+  <div id="import-modal" class="modal hidden">
+    <div class="card wide">
+      <button type="button" id="import-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2>Importer des membres (Excel)</h2>
+      <p class="muted" style="margin:0 0 12px">
+        Le fichier sert de <b>référence</b> : téléchargez le modèle, remplissez-le dans Excel, puis réimportez-le.
+        Colonnes attendues : <b>Prénom, Nom, Naissance, Genre, Email, Téléphone, AVS, Adresse, NPA, Ville, Rôles, Notes</b>.
+        La colonne <b>Rôles</b> peut contenir plusieurs rôles séparés par une virgule (ex. <i>kidstennis, competition</i>).
+      </p>
+      <div class="import-actions">
+        <button type="button" id="import-template" class="ghost">⬇ Télécharger le modèle</button>
+        <button type="button" id="import-file-btn">📄 Choisir un fichier .xlsx / .csv</button>
+        <input type="file" id="import-file" accept=".xlsx,.xls,.csv" class="hidden" />
+      </div>
+      <div id="import-summary" class="import-summary" hidden></div>
+      <div id="import-preview" class="import-preview"></div>
+      <div class="form-foot">
+        <span class="spacer"></span>
+        <button type="button" id="import-confirm" disabled>Importer</button>
+      </div>
+      <p id="import-error" class="error" hidden></p>
+    </div>
   </div>
 
   <!-- ---- Réservation staff (création / édition) ---- -->

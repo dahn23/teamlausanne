@@ -130,8 +130,12 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .cr-ledger{margin-top:10px}
 .cr-row{display:flex;justify-content:space-between;gap:10px;font-size:.86rem;padding:5px 0;border-top:1px solid var(--line)}
 /* CRM : filtres rôles + colonnes */
-.people-filters{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
-.chip.filt{font-size:.78rem;padding:5px 11px}
+.people-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%;
+  margin:0 0 16px;padding:12px 14px;background:#f6f8fc;border:1px solid var(--line);border-radius:12px}
+.filters-lbl{font-size:.8rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-right:2px}
+.chip.filt{flex:0 0 auto;white-space:nowrap;font-size:.8rem;padding:6px 12px}
+.chip.filt.reset{background:#fff}
+.chip.filt.reset.sel{background:var(--blue);color:#fff}
 .role-cell{max-width:280px}
 .role-badge{display:inline-block;background:#eef1f7;color:var(--blue-ink);font-size:.72rem;font-weight:700;
   padding:2px 8px;border-radius:999px;margin:1px 2px;white-space:nowrap}
@@ -206,6 +210,15 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .media-del{background:transparent;border:0;border-top:1px solid var(--line);color:var(--muted);
   font-size:.78rem;font-weight:700;padding:7px;cursor:pointer}
 .media-del:hover{color:#c0392b;background:#fbf1f1}
+.import-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.import-summary{background:#f6f8fc;border:1px solid var(--line);border-radius:10px;padding:10px 14px;
+  margin-bottom:12px;font-size:.9rem}
+.import-preview{max-height:46vh;overflow:auto}
+.import-preview .crm-table{font-size:.85rem}
+.imp-ok{color:#1c7d38;font-weight:700}
+.imp-warn{color:#a9721a;font-weight:700}
+.imp-bad{color:#b23838;font-weight:700}
+.imp-row-bad{background:#fdf3f3}
 .p-photo-preview.empty::after{content:"?";display:flex;align-items:center;justify-content:center;height:100%;color:#9aa6c4;font-weight:800;font-size:1.4rem}
 #partner-select,#partner-guest-name{width:100%}
 .partner-price{font-weight:800;color:var(--blue-ink);margin:14px 0 6px}

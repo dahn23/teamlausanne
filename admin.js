@@ -81,6 +81,13 @@ async function init(roles) {
     location.href = "index.html";
   });
   $("new-person").addEventListener("click", () => openPerson(null));
+  $("import-people").addEventListener("click", openImport);
+  $("import-close").addEventListener("click", () => $("import-modal").classList.add("hidden"));
+  $("import-modal").addEventListener("click", (e) => { if (e.target === $("import-modal")) $("import-modal").classList.add("hidden"); });
+  $("import-template").addEventListener("click", downloadTemplate);
+  $("import-file-btn").addEventListener("click", () => $("import-file").click());
+  $("import-file").addEventListener("change", onImportFile);
+  $("import-confirm").addEventListener("click", confirmImport);
   $("close-person").addEventListener("click", closePerson);
   $("person-modal").addEventListener("click", (e) => { if (e.target === $("person-modal")) closePerson(); });
   $("person-form").addEventListener("submit", savePerson);
@@ -611,13 +618,166 @@ async function loadPeople() {
 
 function renderFilters() {
   const box = $("people-filters"); if (!box) return;
-  box.innerHTML = PERSON_ROLES.map(([v, l]) =>
+  const all = `<button type="button" class="chip filt reset${activeFilters.size ? "" : " sel"}" data-role="">Tout</button>`;
+  box.innerHTML = `<span class="filters-lbl">Filtrer&nbsp;:</span>` + all + PERSON_ROLES.map(([v, l]) =>
     `<button type="button" class="chip filt${activeFilters.has(v) ? " sel" : ""}" data-role="${v}">${esc(l)}</button>`).join("");
   box.querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => {
     const r = b.dataset.role;
-    activeFilters.has(r) ? activeFilters.delete(r) : activeFilters.add(r);
+    if (!r) activeFilters.clear();
+    else activeFilters.has(r) ? activeFilters.delete(r) : activeFilters.add(r);
     renderFilters(); renderRows();
   }));
+}
+
+// ===================================================================
+//  Import Excel / CSV des membres
+// ===================================================================
+const IMPORT_HEADERS = ["Prénom", "Nom", "Naissance", "Genre", "Email", "Téléphone", "AVS", "Adresse", "NPA", "Ville", "Rôles", "Notes"];
+const norm = (s) => (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+const HEADER_MAP = {
+  prenom: "first", nom: "last", naissance: "birth", "date de naissance": "birth",
+  genre: "gender", sexe: "gender", email: "email", "e-mail": "email", courriel: "email",
+  telephone: "phone", tel: "phone", portable: "phone", natel: "phone",
+  avs: "avs", "n avs": "avs", "no avs": "avs", "n° avs": "avs",
+  adresse: "address", npa: "postal", "code postal": "postal", ville: "city",
+  roles: "roles", role: "roles", notes: "notes", remarques: "notes", note: "notes",
+};
+// lookup rôle : par valeur OU par libellé
+const ROLE_LOOKUP = (() => {
+  const m = {};
+  for (const [v, l] of PERSON_ROLES) { m[norm(v)] = v; m[norm(l)] = v; }
+  m[norm("headcoach")] = "head-coach"; m[norm("coach prive")] = "coach-prive";
+  m[norm("sport-etudes")] = "sport-etudes"; m[norm("sport etudes")] = "sport-etudes";
+  m[norm("prou18")] = "pro-u18"; m[norm("pro u18")] = "pro-u18";
+  return m;
+})();
+let importRows = [];
+
+function importParseDate(v) {
+  if (v == null || v === "") return null;
+  if (v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${pad2(v.getMonth() + 1)}-${pad2(v.getDate())}`;
+  if (typeof v === "number") { const d = new Date(Date.UTC(1899, 11, 30) + v * 86400000); return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`; }
+  const s = v.toString().trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${pad2(+m[2])}-${pad2(+m[3])}`;
+  m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
+  if (m) { let y = +m[3]; if (y < 100) y += y < 30 ? 2000 : 1900; return `${y}-${pad2(+m[2])}-${pad2(+m[1])}`; }
+  return null;
+}
+function importParseGender(v) {
+  const n = norm(v);
+  if (["f", "femme", "fille", "féminin", "feminin"].includes(n)) return "F";
+  if (["m", "homme", "garcon", "garçon", "masculin", "h"].includes(n)) return "M";
+  if (n === "x" || n === "autre") return "X";
+  return null;
+}
+function importParseRoles(v) {
+  if (!v) return { ok: [], bad: [] };
+  const parts = v.toString().split(/[,;|\/]+/).map((x) => x.trim()).filter(Boolean);
+  const ok = [], bad = [];
+  for (const p of parts) { const r = ROLE_LOOKUP[norm(p)]; if (r) { if (!ok.includes(r)) ok.push(r); } else bad.push(p); }
+  return { ok, bad };
+}
+function openImport() {
+  $("import-error").hidden = true;
+  $("import-summary").hidden = true;
+  $("import-preview").innerHTML = "";
+  $("import-confirm").disabled = true;
+  $("import-file").value = "";
+  importRows = [];
+  $("import-modal").classList.remove("hidden");
+}
+function downloadTemplate() {
+  if (!window.XLSX) { alert("Le module Excel n'est pas encore chargé, réessayez dans un instant."); return; }
+  const example = ["Zoé", "Dupont", "15.03.2014", "F", "zoe@example.com", "079 123 45 67", "", "Ch. du Tennis 1", "1006", "Lausanne", "kidstennis, competition", ""];
+  const ws = XLSX.utils.aoa_to_sheet([IMPORT_HEADERS, example]);
+  ws["!cols"] = IMPORT_HEADERS.map(() => ({ wch: 16 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Membres");
+  XLSX.writeFile(wb, "teamlausanne_membres_modele.xlsx");
+}
+async function onImportFile(e) {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  $("import-error").hidden = true;
+  if (!window.XLSX) { $("import-error").textContent = "Module Excel non chargé, réessayez."; $("import-error").hidden = false; return; }
+  const buf = await f.arrayBuffer();
+  let wb;
+  try { wb = XLSX.read(buf, { type: "array", cellDates: true }); }
+  catch (err) { $("import-error").textContent = "Lecture impossible : " + err.message; $("import-error").hidden = false; return; }
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: false });
+  if (raw.length < 2) { $("import-error").textContent = "Le fichier semble vide (pas de lignes de données)."; $("import-error").hidden = false; return; }
+  const headers = raw[0].map((h) => HEADER_MAP[norm(h)] || null);
+  const existingEmails = new Set(people.map((p) => norm(p.email)).filter(Boolean));
+  const existingNames = new Set(people.map((p) => norm(p.first_name) + "|" + norm(p.last_name)));
+  importRows = raw.slice(1).map((cells) => {
+    const o = { first: "", last: "", birth: null, gender: null, email: "", phone: "", avs: "", address: "", postal: "", city: "", roles: { ok: [], bad: [] }, notes: "" };
+    headers.forEach((key, i) => {
+      if (!key) return;
+      const val = cells[i];
+      if (key === "birth") o.birth = importParseDate(val);
+      else if (key === "gender") o.gender = importParseGender(val);
+      else if (key === "roles") o.roles = importParseRoles(val);
+      else o[key] = (val == null ? "" : val.toString().trim());
+    });
+    const errs = [];
+    if (!o.first || !o.last) errs.push("Prénom/Nom manquant");
+    const dup = (o.email && existingEmails.has(norm(o.email))) || existingNames.has(norm(o.first) + "|" + norm(o.last));
+    o._errs = errs; o._dup = dup;
+    return o;
+  }).filter((o) => o.first || o.last || o.email); // ignore lignes totalement vides
+  renderImportPreview();
+}
+function renderImportPreview() {
+  const valid = importRows.filter((o) => o._errs.length === 0);
+  const dups = valid.filter((o) => o._dup).length;
+  const bad = importRows.length - valid.length;
+  const badRoles = [...new Set(importRows.flatMap((o) => o.roles.bad))];
+  const s = $("import-summary");
+  s.hidden = false;
+  s.innerHTML = `<b>${valid.length}</b> fiche(s) prête(s) à importer`
+    + (bad ? ` · <span class="imp-warn">${bad} ignorée(s)</span>` : "")
+    + (dups ? ` · <span class="imp-warn">${dups} doublon(s) possible(s)</span>` : "")
+    + (badRoles.length ? `<br><span class="imp-warn">Rôles non reconnus (ignorés) : ${esc(badRoles.join(", "))}</span>` : "");
+  const rowsHtml = importRows.slice(0, 40).map((o) => {
+    const st = o._errs.length ? `<span class="imp-bad">${esc(o._errs.join(", "))}</span>`
+      : o._dup ? `<span class="imp-warn">doublon ?</span>` : `<span class="imp-ok">OK</span>`;
+    return `<tr class="${o._errs.length ? "imp-row-bad" : ""}"><td>${esc(o.first)}</td><td>${esc(o.last)}</td>
+      <td>${o.birth || ""}</td><td>${esc(o.email)}</td>
+      <td>${o.roles.ok.map((r) => `<span class="role-badge">${esc(roleLabel(r))}</span>`).join(" ")}</td>
+      <td>${st}</td></tr>`;
+  }).join("");
+  $("import-preview").innerHTML = `<div class="table-wrap"><table class="crm-table"><thead><tr>
+    <th>Prénom</th><th>Nom</th><th>Naissance</th><th>Email</th><th>Rôles</th><th>Statut</th></tr></thead>
+    <tbody>${rowsHtml}</tbody></table></div>`
+    + (importRows.length > 40 ? `<p class="muted" style="font-size:.82rem">… et ${importRows.length - 40} autre(s) ligne(s).</p>` : "");
+  $("import-confirm").disabled = valid.length === 0;
+  $("import-confirm").textContent = `Importer ${valid.length} fiche(s)`;
+}
+async function confirmImport() {
+  const valid = importRows.filter((o) => o._errs.length === 0);
+  if (!valid.length) return;
+  const btn = $("import-confirm"); btn.disabled = true;
+  let done = 0, fail = 0;
+  for (const o of valid) {
+    btn.textContent = `Import… ${done + 1}/${valid.length}`;
+    const row = {
+      first_name: o.first, last_name: o.last, birthdate: o.birth, gender: o.gender,
+      email: o.email || null, phone: o.phone || null, avs: o.avs || null,
+      address: o.address || null, postal_code: o.postal || null, city: o.city || null,
+      notes: o.notes || null, is_active: true,
+    };
+    const res = await sb.from("people").insert(row).select("id").single();
+    if (res.error) { fail++; continue; }
+    if (o.roles.ok.length) {
+      await sb.from("person_roles").insert(o.roles.ok.map((role) => ({ person_id: res.data.id, role })));
+    }
+    done++;
+  }
+  $("import-modal").classList.add("hidden");
+  await loadPeople();
+  alert(`✓ ${done} fiche(s) importée(s)` + (fail ? `\n${fail} échec(s).` : ""));
 }
 
 function renderRows() {
