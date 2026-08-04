@@ -85,11 +85,11 @@ const WORLDS = {
     cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Nous contacter", type: "contact", source: "Academy — Contact" }],
     sections: [
       { type: "rich", anchor: "philosophie", title: "Notre philosophie", body: [
-        "Team Lausanne propose un encadrement complet du tennis, adapté à chaque âge et à chaque niveau de jeu.",
-        "Nous accompagnons le développement de chaque joueuse et joueur, de l'initiation jusqu'à la compétition professionnelle, au sein d'une véritable pyramide de formation.",
+        "Team Lausanne propose un encadrement complet du tennis, adapté à chaque âge et à chaque niveau de jeu, au sein d'une véritable pyramide de formation.",
+        "Notre objectif : amener chaque jeune à un niveau au moins suffisant pour rejoindre une université américaine (NCAA) s'il le souhaite, une fois sa maturité suisse ou son baccalauréat français en poche.",
       ]},
       { type: "pyramid", title: "Notre stratégie de formation",
-        sub: "Une progression par sélection, où chacun trouve sa place — l'âge n'est pas un frein.",
+        sub: "À chaque étape, le volume d'entraînements et de tournois augmente progressivement : le jeune teste ainsi sa motivation dans le tennis — notre principal critère de sélection.",
         levels: [
           { name: "Pro · NCAA (USA) · Formation coach", meta: "dès 18 ans", href: "#pro" },
           { name: "Sport-études & Pro U18", meta: "places limitées", href: "#sport-etudes" },
@@ -97,7 +97,11 @@ const WORLDS = {
           { name: "Compétition", meta: "≈ 10–13 ans · 16 places", href: "#competition" },
           { name: "KidsTennis", meta: "4–10 ans · ouvert à tous", href: "#kids" },
         ],
-        note: "L'âge n'est qu'un repère : la progression s'adapte à chacun, à 1–2 ans près, comme une évolution. Les joueuses et joueurs qui ne rejoignent pas une filière sélective poursuivent en Club." },
+        club: { title: "Filière Club", href: "#club", body: [
+          "En parallèle de la pyramide de sélection, la filière Club s'adresse à celles et ceux qui veulent développer leur tennis à leur rythme, une ou plusieurs fois par semaine.",
+          "Avec la possibilité de disputer quelques compétitions ponctuelles — dont les interclubs, pour les membres du club.",
+        ]},
+        note: "L'âge n'est qu'un repère : la progression s'adapte à chacun, à 1–2 ans près. Celles et ceux qui ne rejoignent pas une filière sélective poursuivent en Club." },
       { type: "carousel", anchor: "programmes", eyebrow: "Cours pour tous", title: "Un programme pour chaque niveau",
         sub: "Du premier échange à la performance, un parcours clair pour progresser avec plaisir.",
         items: [
@@ -115,12 +119,10 @@ const WORLDS = {
       { type: "team", title: "Team Sport-études, Pro & Pro U18",
         sub: "Nos joueuses et joueurs des filières élite (photos et noms à venir).", count: 15 },
       { type: "coaches", anchor: "coaches", title: "Notre équipe de coachs",
-        sub: "Certains de nos coachs proposent des <b>cours privés</b> — contactez-les directement.",
-        note: "Numéros de téléphone à compléter.",
         items: [
-          { name: "Mariano Palena", role: "Head Coach", photo: "assets/webflow/coach-mariano.jpg", private: true },
-          { name: "Yann Perez", role: "Coach", photo: "assets/webflow/coach-yann.jpg", private: true },
-          { name: "Loris Gander", role: "Coach", photo: "assets/webflow/coach-loris.jpg", private: true },
+          { name: "Mariano Palena", role: "Head Coach", photo: "assets/webflow/coach-mariano.jpg" },
+          { name: "Yann Perez", role: "Coach", photo: "assets/webflow/coach-yann.jpg" },
+          { name: "Loris Gander", role: "Coach", photo: "assets/webflow/coach-loris.jpg" },
           { name: "Séline Rivarolli", role: "Coach jeunesse", photo: "assets/webflow/coach-seline.jpg" },
           { name: "Talia Picci", role: "Coach junior", photo: "assets/webflow/coach-talia.jpg" },
         ]},
@@ -542,13 +544,20 @@ function sectionHTML(sec) {
     case "pyramid":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         ${sec.sub ? `<p class="wsec-sub">${esc(sec.sub)}</p>` : ""}
-        <div class="pyramid">${sec.levels.map((l, i) => {
-          const w = sec.levels.length > 1 ? 46 + i * (54 / (sec.levels.length - 1)) : 100;
-          const inner = `<b>${esc(l.name)}</b><span>${esc(l.meta)}</span>`;
-          return l.href
-            ? `<a class="pyr-level" href="${esc(l.href)}" style="width:${w}%">${inner}<span class="pyr-arrow">↗</span></a>`
-            : `<div class="pyr-level" style="width:${w}%">${inner}</div>`;
-        }).join("")}</div>
+        <div class="pyramid-wrap">
+          <div class="pyramid">${sec.levels.map((l, i) => {
+            const w = sec.levels.length > 1 ? 46 + i * (54 / (sec.levels.length - 1)) : 100;
+            const inner = `<b>${esc(l.name)}</b><span>${esc(l.meta)}</span>`;
+            return l.href
+              ? `<a class="pyr-level" href="${esc(l.href)}" style="width:${w}%">${inner}<span class="pyr-arrow">↗</span></a>`
+              : `<div class="pyr-level" style="width:${w}%">${inner}</div>`;
+          }).join("")}</div>
+          ${sec.club ? `<aside class="pyr-club">
+            <h3>${esc(sec.club.title)}</h3>
+            ${sec.club.body.map((p) => `<p>${esc(p)}</p>`).join("")}
+            ${sec.club.href ? `<a class="pyr-club-link" href="${esc(sec.club.href)}">Découvrir le Club ↗</a>` : ""}
+          </aside>` : ""}
+        </div>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
 
     case "team": {
