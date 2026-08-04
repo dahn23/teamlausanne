@@ -72,7 +72,7 @@ const WORLDS = {
         phone: "+41 21 646 13 48",
         hours: "Lun 07h30–20h00 · Mar–Ven 07h30–00h00 · Sam–Dim 09h00–19h00" },
       { type: "contact", anchor: "contact", title: "Contact & accès",
-        lines: ["Lausanne-Sports Tennis", "Stade de la Pontaise", "Route des Plaines-du-Loup 8", "1018 Lausanne"],
+        lines: ["Lausanne-Sports Tennis", "Stade de la Pontaise", "Route des Plaines-du-Loup 7", "1018 Lausanne"],
         phone: "+41 21 646 13 50", contact: "Club — Contact", hours: "Secrétariat : lun–ven, 15h00–17h00" },
     ],
   },

@@ -385,7 +385,8 @@ body[data-world="academie"] .sw.active{color:var(--fluo-ink)}
 .ig-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .ig-cell{aspect-ratio:1;background-size:cover;background-position:center;border-radius:12px;display:block}
 .ig-cell:hover{opacity:.9}
-.btn-login{padding:10px 18px;background:var(--accent)}
+.btn-login{padding:10px 18px;background:var(--accent);color:#fff;text-decoration:none;
+  border-radius:10px;font-weight:600;display:inline-flex;align-items:center;white-space:nowrap;cursor:pointer}
 body[data-world="academie"] .btn-login{color:var(--fluo-ink)}
 .btn-login:hover{filter:brightness(.92)}
 .btn-contact{padding:9px 17px;background:#fff;color:var(--blue);border:2px solid var(--blue);
