@@ -327,7 +327,7 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
   border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:.92rem}
 .ct-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
 .ct-item .muted{margin-left:auto}
-.ct-item .fam-del{margin-left:8px}
+.ct-item .fam-del{margin-left:auto}
 .cs-list{display:flex;flex-direction:column;gap:8px}
 .cs-card{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
   border-left:5px solid #0b6b3a;border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow);cursor:pointer}

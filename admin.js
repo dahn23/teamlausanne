@@ -729,7 +729,7 @@ async function loadTypes() {
   courseTypes = data || [];
   $("ct-list").innerHTML = courseTypes.length ? courseTypes.map((t) =>
     `<div class="ct-item"><span class="ct-dot" style="background:${t.color}"></span>
-      <b>${esc(t.name)}</b><span class="muted">${t.price_chf != null ? t.price_chf + " CHF" : "—"}</span>
+      <b>${esc(t.name)}</b>
       ${isAdminUser ? `<button type="button" class="fam-del" data-id="${t.id}">✕</button>` : ""}</div>`).join("")
     : '<p class="muted" style="font-size:.85rem">Aucun type de cours.</p>';
   $("ct-list").querySelectorAll(".fam-del").forEach((b) => b.addEventListener("click", () => deleteType(b.dataset.id)));
@@ -740,12 +740,9 @@ async function loadTypes() {
 async function addType() {
   const name = $("ct-name").value.trim();
   if (!name) return;
-  const { error } = await sb.from("course_types").insert({
-    name, color: $("ct-color").value,
-    price_chf: $("ct-price").value ? Number($("ct-price").value) : null,
-  });
+  const { error } = await sb.from("course_types").insert({ name, color: $("ct-color").value });
   if (error) { alert("Impossible : " + (error.code === "23505" ? "ce type existe déjà." : error.message)); return; }
-  $("ct-name").value = ""; $("ct-price").value = "";
+  $("ct-name").value = "";
   loadTypes();
 }
 async function deleteType(id) {
