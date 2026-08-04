@@ -26,15 +26,15 @@ export function frDate(d) {
   const dt = d instanceof Date ? d : new Date(String(d).length <= 10 ? String(d) + "T00:00:00" : d);
   if (isNaN(dt)) {
     const s = String(d).slice(0, 10).split("-");
-    return s.length === 3 ? `${s[2]}-${s[1]}-${s[0]}` : String(d);
+    return s.length === 3 ? `${s[2]}.${s[1]}.${s[0]}` : String(d);
   }
-  return `${pad2(dt.getDate())}-${pad2(dt.getMonth() + 1)}-${dt.getFullYear()}`;
+  return `${pad2(dt.getDate())}.${pad2(dt.getMonth() + 1)}.${dt.getFullYear()}`;
 }
 export function frDateTime(d) {
   if (!d) return "";
   const dt = d instanceof Date ? d : new Date(d);
   if (isNaN(dt)) return frDate(d);
-  return `${pad2(dt.getDate())}-${pad2(dt.getMonth() + 1)}-${dt.getFullYear()} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
+  return `${pad2(dt.getDate())}.${pad2(dt.getMonth() + 1)}.${dt.getFullYear()} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
 }
 // Pluriel correct : « 1 jour », « 5 jours »
 export const jours = (d) => `${d} jour${d > 1 ? "s" : ""}`;
