@@ -222,6 +222,13 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .gz-showall{display:block;margin:14px auto 0;background:var(--blue);color:#fff;font-weight:800;
   padding:11px 22px;border:0;border-radius:999px;cursor:pointer}
 .gz-showall:hover{background:var(--blue-d)}
+/* Carrousel animé des photos de vainqueurs (page détail GameZone) */
+.gz-carousel{overflow:hidden;border-radius:16px;margin:2px 0}
+.gzc-track{display:flex;gap:14px;width:max-content;animation:gzscroll 45s linear infinite}
+.gz-carousel:hover .gzc-track{animation-play-state:paused}
+.gzc-card img{height:220px;width:auto;border-radius:14px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,.16)}
+@keyframes gzscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.gzc-track{animation:none}}
 .gz-rank-name{flex:1;font-weight:700}
 .gz-rank-tro{flex:0 0 auto;font-size:1.05rem;letter-spacing:1px;white-space:nowrap;overflow:hidden;max-width:45vw}
 .gz-cup{margin-right:4px}

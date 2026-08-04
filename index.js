@@ -408,10 +408,8 @@ const DETAILS = {
         "Presque tous les week-ends, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant·e.",
         "Le format idéal pour se lancer en compétition et cumuler de l'expérience — et aller décrocher la grande coupe à la 10ᵉ victoire ! Une petite coupe est déjà remise dès 5 victoires, et une médaille à chaque victoire.",
       ], link: { label: "Consulter les prochains tournois ↗", href: GAMEZONE_URL } },
-      { type: "podium", title: "Nos plus grands vainqueurs", items: [
-        ["Vincent Rauschert", 9], ["Maxime Dietschy", 7], ["Fabien Jaton", 7],
-      ], link: { label: "Afficher tous les vainqueurs ↗", href: "gamezone.html" } },
-      { type: "gallery", items: ["assets/photos/kids1.jpg", "assets/photos/p4.jpg"] },
+      { type: "gzphotos" },
+      { type: "gzwinners", title: "Nos vainqueurs de la saison" },
     ],
   },
 };
@@ -554,6 +552,13 @@ function sectionHTML(sec) {
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div id="stgp-list" class="stg-pub-list"><p class="muted">Chargement…</p></div></section>`;
 
+    case "gzphotos":
+      return `<section class="wsec"><div id="gz-photos-carousel" class="gz-carousel"></div></section>`;
+
+    case "gzwinners":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <div id="gz-winners"><p class="muted">Chargement…</p></div></section>`;
+
     case "logos":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div class="logo-wall">${sec.items.map((src) => `<img src="${src}" alt="" loading="lazy" />`).join("")}</div></section>`;
@@ -659,6 +664,7 @@ function renderDetail(id) {
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();
   if ($("stgp-list")) stgLoad();
+  if ($("gz-winners") || $("gz-photos-carousel")) loadGamezone();
 }
 
 let revealCheck = null;
@@ -778,6 +784,42 @@ $("stgp-form").addEventListener("submit", async (e) => {
   if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer mon inscription"; return; }
   $("stgp-form").classList.add("hidden"); $("stgp-done").classList.remove("hidden");
 });
+
+// ---- GameZone : photos (carrousel animé) + tableau des vainqueurs ----
+const GZ_CUP = (color, size) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/><path d="M8 5.5H5V7a3 3 0 0 0 3 3M16 5.5h3V7a3 3 0 0 1-3 3"/><path d="M10 13.5V16h4v-2.5M8 20h8M12 16v4"/></svg>`;
+const gzCups = (w) => (w >= 10 ? GZ_CUP("#c8901f", 18) : w >= 5 ? GZ_CUP("#9aa3ad", 16) : "");
+
+async function loadGamezone() {
+  const { data: seasons } = await sb.rpc("gz_public_seasons");
+  const cur = (seasons || []).find((s) => s.is_current) || (seasons || [])[0];
+  const seasonId = cur ? cur.id : null;
+  loadGzPhotos(seasonId);
+  loadGzWinners(seasonId);
+}
+
+async function loadGzPhotos(seasonId) {
+  const wrap = $("gz-photos-carousel"); if (!wrap) return;
+  const { data } = await sb.rpc("gz_public_winner_photos", { p_season: seasonId });
+  const rows = data || [];
+  if (!rows.length) { wrap.innerHTML = `<p class="muted">Les photos des vainqueurs apparaîtront ici.</p>`; return; }
+  const imgs = rows.map((p) => `<div class="gzc-card"><img src="${esc(p.photo_url)}" loading="lazy" alt="Vainqueur GameZone"/></div>`).join("");
+  wrap.innerHTML = `<div class="gzc-track">${imgs}${imgs}</div>`;
+}
+
+async function loadGzWinners(seasonId) {
+  const box = $("gz-winners"); if (!box) return;
+  const { data, error } = await sb.rpc("gz_public_ranking", { p_season: seasonId });
+  const rows = error ? [] : (data || []);
+  if (!rows.length) { box.innerHTML = `<p class="muted">Pas encore de vainqueur cette saison.</p>`; return; }
+  const PREVIEW = 10;
+  const tr = (r, hidden) => `<tr${hidden ? ' class="gzw-hidden hidden"' : ""}><td>${esc(r.first_name)} ${esc(r.last_name)}</td><td>${gzCups(Number(r.wins))} ${r.wins}</td></tr>`;
+  const body = rows.map((r, i) => tr(r, i >= PREVIEW)).join("");
+  const hasMore = rows.length > PREVIEW;
+  box.innerHTML = `<table class="ranking"><thead><tr><th>Joueur·euse</th><th>Victoires</th></tr></thead><tbody>${body}</tbody></table>
+    ${hasMore ? `<button type="button" id="gzw-more-btn" class="gz-showall">+ Afficher tous les vainqueurs (${rows.length})</button>` : ""}`;
+  const btn = $("gzw-more-btn");
+  if (btn) btn.addEventListener("click", () => { box.querySelectorAll(".gzw-hidden").forEach((el) => el.classList.remove("hidden")); btn.remove(); });
+}
 
 // ===================================================================
 //  Interactions globales (délégation)
