@@ -413,8 +413,12 @@ label.stg-cat-opt span{font-weight:600}
 .stg-cat-info{font-size:.82rem;margin-top:-4px;min-height:1em}
 #stgp-form input,#stgp-form select,#stgp-form textarea{width:100%;box-sizing:border-box;font-family:inherit}
 .stg-lbl{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
-.stg-radio{display:inline-flex;align-items:center;gap:6px;margin-right:14px;font-weight:600;font-size:.9rem}
-#f-meal-text{margin-top:8px}
+.stg-radio{display:inline-flex;align-items:center;gap:6px;margin-right:18px;font-weight:600;font-size:.9rem;
+  white-space:nowrap;flex-shrink:0}
+.stg-radio input{flex-shrink:0;margin:0}
+#f-meal-wrap{display:flex;flex-wrap:wrap;align-items:center;gap:6px 4px}
+#f-meal-wrap .stg-lbl{flex-basis:100%}
+#f-meal-text{margin-top:0;flex:1;min-width:160px}
 @media(max-width:480px){.stg-form-grid{grid-template-columns:1fr}}
 .gz-mgr-foot{grid-column:1/-1;display:flex;align-items:center;gap:14px;margin-top:4px}
 .gz-credit-line{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:3px}
