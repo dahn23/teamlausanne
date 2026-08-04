@@ -563,11 +563,10 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 /* Le texte d'intro (paragraphe) passe blanc au survol */
 .foot .coherence-sub,.foot-cols>div,.foot-cols .muted{transition:color .15s}
 .foot .coherence-sub:hover,.foot-cols>div:hover,.foot-cols>div:hover .muted{color:#fff}
-/* Les cartes « 3 mondes » sont des <button> : garder le fond blanc au survol
-   (sinon button:hover les passe en bleu et le texte foncé disparaît). */
-.foot .flow-step:hover{background:var(--card)}
-.foot .flow-step:hover h3{color:var(--blue-ink)}
-.foot .flow-step:hover p{color:var(--muted)}
+/* Cartes « 3 mondes » : au survol, fond bleu + texte blanc. */
+.foot .flow-step:hover{background:var(--blue)}
+.foot .flow-step:hover h3,.foot .flow-step:hover p{color:#fff}
+.foot .flow-step:hover span{background:#fff;color:var(--blue-ink)}
 
 @media (max-width:720px){
   .split{grid-template-columns:1fr}
