@@ -26,15 +26,15 @@ if (session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stages", "stats", "reglages"],
-  admin:      ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stages", "stats", "reglages"],
+  superadmin: ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stages", "stats"],
+  admin:      ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stages", "stats"],
   secretaire: ["membres", "resa", "caisse", "stages", "stats"],
   head_coach: ["resa", "cours", "stages"],
   coach:      ["resa", "cours"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Statistiques"], ["reglages", "Réglages"]];
+const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Statistiques"]];
 const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["organisateur", "Official"], ["responsable", "Responsable"]];
 const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "membre", "organisateur", "responsable"];
 
@@ -73,7 +73,7 @@ async function init(roles) {
   await loadSettings();
   applyTabAccess(roles);
   loadPeople();
-  initResa();
+  initResa(roles);
   initStats();
   initRoles();
   initCours(roles);
@@ -114,9 +114,11 @@ async function loadSettings() {
   const q = settings.quotas || {};
   $("rg-max-m").value = q.max_hours_member ?? 2;
   $("rg-max-nm").value = q.max_hours_nonmember ?? 2;
+  $("rg-max-coach").value = q.max_hours_coach == null ? "" : q.max_hours_coach;
   $("rg-inv").value = q.invitations_per_season_member ?? 2;
   $("rg-adv-m").value = q.advance_days_member ?? 7;
-  $("rg-adv-nm").value = q.advance_days_nonmember ?? 3;
+  $("rg-adv-nm").value = q.advance_days_nonmember ?? 2;
+  $("rg-adv-coach").value = q.advance_days_coach ?? 14;
 
   const v = settings.visibility || {};
   $("rg-names-member").checked = v.show_names_to_member ?? true;
@@ -162,8 +164,10 @@ async function saveSettings() {
     { key: "season", value: { winter_start: $("rg-winter-start").value, winter_end: $("rg-winter-end").value } },
     { key: "quotas", value: {
       max_hours_member: Number($("rg-max-m").value), max_hours_nonmember: Number($("rg-max-nm").value),
+      max_hours_coach: $("rg-max-coach").value === "" ? null : Number($("rg-max-coach").value),
       invitations_per_season_member: Number($("rg-inv").value),
-      advance_days_member: Number($("rg-adv-m").value), advance_days_nonmember: Number($("rg-adv-nm").value) } },
+      advance_days_member: Number($("rg-adv-m").value), advance_days_nonmember: Number($("rg-adv-nm").value),
+      advance_days_coach: Number($("rg-adv-coach").value) } },
     { key: "visibility", value: { show_names_to_member: $("rg-names-member").checked, show_names_to_client: $("rg-names-client").checked } },
     { key: "confirmation_email", value: { subject: $("rg-mail-subject").value, body: $("rg-mail-body").value } },
     { key: "pricing", value: pricing },
@@ -189,7 +193,16 @@ function seasonA(iso) {
   return (x >= a || x <= b) ? "hiver" : "ete";
 }
 
-async function initResa() {
+async function initResa(roles) {
+  // Sous-onglets Jour / Réglages ; les Réglages sont réservés aux admins.
+  const isAdminUser = (roles || []).some((r) => ["superadmin", "admin"].includes(r));
+  if (!isAdminUser) document.querySelector('#view-resa .resa-subtab[data-sub="reglages"]')?.classList.add("hidden");
+  document.querySelectorAll("#view-resa .resa-subtab").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#view-resa .resa-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      document.querySelectorAll("#view-resa .resa-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "resa-sub-" + b.dataset.sub));
+    }));
+
   const { data } = await sb.from("courts").select("*").eq("is_active", true).order("display_order");
   resaCourtsAll = data || [];
   $("r-court").innerHTML = resaCourtsAll.map((c) => `<option value="${c.id}">${c.name}</option>`).join("");

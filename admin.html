@@ -28,7 +28,6 @@
         <button class="side-item" data-view="caisse"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6.5A1.5 1.5 0 0 1 4.5 5H16"/><rect x="3" y="8" width="18" height="11" rx="2"/><circle cx="16.5" cy="13.5" r="1.3"/></svg><span class="side-label">Caisse</span></button>
         <button class="side-item" data-view="stages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l10 5-10 5L2 9l10-5z"/><path d="M6 11v4.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V11"/><path d="M22 9v5"/></svg><span class="side-label">Stages</span></button>
         <button class="side-item" data-view="stats"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20v-6M12 20V8M18 20v-9"/></svg><span class="side-label">Statistiques</span></button>
-        <button class="side-item" data-view="reglages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg><span class="side-label">Réglages</span></button>
         <button class="side-item" data-view="bientot" disabled><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19"/></svg><span class="side-label">Finances (bientôt)</span></button>
         <button class="side-item" data-view="bientot" disabled><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11"/></svg><span class="side-label">Cours (bientôt)</span></button>
       </aside>
@@ -51,54 +50,6 @@
               <tbody id="people-rows"></tbody>
             </table>
             <p id="empty-msg" class="muted" hidden>Aucun membre. Cliquez « + Nouveau » pour commencer.</p>
-          </div>
-        </div>
-
-        <!-- ---- Vue Réglages (réservation) ---- -->
-        <div id="view-reglages" class="view hidden">
-          <h1>Réglages de la réservation</h1>
-
-          <div class="rg-card">
-            <h2>Saison d'hiver</h2>
-            <div class="rg-row">
-              <label>Début<input type="date" id="rg-winter-start" /></label>
-              <label>Fin<input type="date" id="rg-winter-end" /></label>
-              <span id="rg-weeks" class="rg-weeks"></span>
-            </div>
-          </div>
-
-          <div class="rg-card">
-            <h2>Quotas & règles</h2>
-            <div class="rg-grid">
-              <label>Heures simultanées — membre<input type="number" id="rg-max-m" min="0" /></label>
-              <label>Heures simultanées — non-membre<input type="number" id="rg-max-nm" min="0" /></label>
-              <label>Invitations / saison (été) — membre<input type="number" id="rg-inv" min="0" /></label>
-              <label>Réservation à l'avance — membre (jours)<input type="number" id="rg-adv-m" min="0" /></label>
-              <label>Réservation à l'avance — non-membre (jours)<input type="number" id="rg-adv-nm" min="0" /></label>
-            </div>
-          </div>
-
-          <div class="rg-card">
-            <h2>Visibilité des noms</h2>
-            <label class="rg-check"><input type="checkbox" id="rg-names-member" /> Un membre voit qui a réservé</label>
-            <label class="rg-check"><input type="checkbox" id="rg-names-client" /> Un client / externe voit qui a réservé</label>
-          </div>
-
-          <div class="rg-card">
-            <h2>Tarifs (CHF)</h2>
-            <p class="muted" style="font-size:.88rem;margin-top:0">Colonnes : membre/membre · 2ᵉ heure consécutive · membre/invité · externe.</p>
-            <div id="rg-pricing"></div>
-          </div>
-
-          <div class="rg-card">
-            <h2>Email de confirmation</h2>
-            <label>Objet<input type="text" id="rg-mail-subject" /></label>
-            <label>Message<textarea id="rg-mail-body" rows="5"></textarea></label>
-          </div>
-
-          <div class="rg-foot">
-            <button id="rg-save">Enregistrer les réglages</button>
-            <span id="rg-status" class="muted"></span>
           </div>
         </div>
 
@@ -128,19 +79,75 @@
 
         <!-- ---- Vue Réservations (staff) ---- -->
         <div id="view-resa" class="view hidden">
-          <div class="crm-head">
-            <h1>Réservations</h1>
-            <div class="crm-actions">
+          <div class="crm-head"><h1>Réservations</h1></div>
+          <div class="subnav">
+            <button class="subtab resa-subtab active" data-sub="jour">Jour</button>
+            <button class="subtab resa-subtab" data-sub="reglages">Réglages</button>
+          </div>
+
+          <!-- Sous-onglet Jour -->
+          <div id="resa-sub-jour" class="resa-sub">
+            <div class="crm-actions" style="margin-bottom:10px">
               <button id="resa-prev" class="nav" aria-label="Jour précédent">‹</button>
               <input type="date" id="resa-date" />
               <button id="resa-next" class="nav" aria-label="Jour suivant">›</button>
               <span id="resa-season" class="tag"></span>
               <button id="resa-new">+ Nouvelle</button>
             </div>
+            <p class="muted" style="font-size:.86rem;margin:0 0 10px">
+              Glissez sur la grille pour choisir un créneau, ou cliquez une case. Cliquez une réservation pour la modifier.
+              <span class="sfc-legend"><span class="sfc-dot sfc-terre"></span>Terre battue <span class="sfc-dot sfc-gazon"></span>Gazon synthétique <span class="sfc-dot sfc-dur"></span>Dur (indoor)</span></p>
+            <div class="grid-wrap"><div id="resa-grid" class="rgrid"></div></div>
           </div>
-          <p class="muted" style="font-size:.86rem;margin:0 0 10px">
-            Glissez sur la grille pour choisir un créneau, ou cliquez une case. Cliquez une réservation pour la modifier.</p>
-          <div class="grid-wrap"><div id="resa-grid" class="rgrid"></div></div>
+
+          <!-- Sous-onglet Réglages -->
+          <div id="resa-sub-reglages" class="resa-sub hidden">
+            <div class="rg-card">
+              <h2>Saison d'hiver</h2>
+              <div class="rg-row">
+                <label>Début<input type="date" id="rg-winter-start" /></label>
+                <label>Fin<input type="date" id="rg-winter-end" /></label>
+                <span id="rg-weeks" class="rg-weeks"></span>
+              </div>
+            </div>
+
+            <div class="rg-card">
+              <h2>Quotas & règles</h2>
+              <p class="muted" style="font-size:.86rem;margin-top:0">« En cours » = réservations actives simultanées. Coach = coach autorisé aux heures privées.</p>
+              <div class="rg-grid">
+                <label>Réservations en cours max — membre<input type="number" id="rg-max-m" min="0" /></label>
+                <label>Réservations en cours max — client<input type="number" id="rg-max-nm" min="0" /></label>
+                <label>Réservations en cours max — coach <span class="muted">(vide = illimité)</span><input type="number" id="rg-max-coach" min="0" placeholder="illimité" /></label>
+                <label>Réservation à l'avance — membre (jours)<input type="number" id="rg-adv-m" min="0" /></label>
+                <label>Réservation à l'avance — client (jours)<input type="number" id="rg-adv-nm" min="0" /></label>
+                <label>Réservation à l'avance — coach (jours)<input type="number" id="rg-adv-coach" min="0" /></label>
+                <label>Invitations / saison (été) — membre<input type="number" id="rg-inv" min="0" /></label>
+              </div>
+            </div>
+
+            <div class="rg-card">
+              <h2>Visibilité des noms</h2>
+              <label class="rg-check"><input type="checkbox" id="rg-names-member" /> Un membre voit qui a réservé</label>
+              <label class="rg-check"><input type="checkbox" id="rg-names-client" /> Un client / externe voit qui a réservé</label>
+            </div>
+
+            <div class="rg-card">
+              <h2>Tarifs (CHF)</h2>
+              <p class="muted" style="font-size:.88rem;margin-top:0">Colonnes : membre/membre · 2ᵉ heure consécutive · membre/invité · externe. Lignes : par zone (hiver / été ext. / été halle) et heure creuse / pleine.</p>
+              <div id="rg-pricing"></div>
+            </div>
+
+            <div class="rg-card">
+              <h2>Email de confirmation</h2>
+              <label>Objet<input type="text" id="rg-mail-subject" /></label>
+              <label>Message<textarea id="rg-mail-body" rows="5"></textarea></label>
+            </div>
+
+            <div class="rg-foot">
+              <button id="rg-save">Enregistrer les réglages</button>
+              <span id="rg-status" class="muted"></span>
+            </div>
+          </div>
         </div>
 
         <!-- ---- Vue Cours ---- -->
