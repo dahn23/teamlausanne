@@ -2489,7 +2489,8 @@ async function invitePerson() {
 // ===================================================================
 //  Stages
 // ===================================================================
-let stgCats = [], stgSessions = [], stgCounts = {}, stgCurrent = null, stgRegs = [];
+let stgCats = [], stgSessions = [], stgCounts = {}, stgCurrent = null, stgRegs = [], stgSessionCats = {};
+const stgActiveCats = () => stgCats.filter((c) => c.active);
 
 const stgDays = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000) + 1);
 const stgEffPrice = (price, days) => Math.round(Number(price) * Math.min(days, 5) / 5 * 100) / 100;
@@ -2500,29 +2501,42 @@ function initStages() {
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-stages .stg-subtab").forEach((x) => x.classList.toggle("active", x === b));
       document.querySelectorAll("#view-stages .stg-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "stg-sub-" + b.dataset.sub));
-      if (b.dataset.sub === "stages") loadStagesTab();
+      if (b.dataset.sub === "stages" || b.dataset.sub === "categories") loadStagesTab();
       if (b.dataset.sub === "mails") loadStageMails();
       if (b.dataset.sub === "questionnaires") loadSurveyTab("stage");
     }));
   $("stg-cat-new").addEventListener("click", createStageCat);
-  $("stg-new").addEventListener("click", createStage);
+  $("stg-new").addEventListener("click", () => openStageModal(null));
   $("stg-detail-back").addEventListener("click", closeStageDetail);
+  $("stg-detail-edit").addEventListener("click", () => openStageModal(stgCurrent));
   $("stg-program-save").addEventListener("click", saveProgram);
-  $("stg-reg-add").addEventListener("click", addRegistrant);
+  $("stg-reg-add").addEventListener("click", openRegModal);
   $("stg-survey-new").addEventListener("click", () => createSurvey("stage"));
   $("stg-mail-cat").addEventListener("change", () => renderStageMails($("stg-mail-cat").value));
+  // Modal stage
+  $("stage-close").addEventListener("click", () => $("stage-modal").classList.add("hidden"));
+  $("stage-modal").addEventListener("click", (e) => { if (e.target === $("stage-modal")) $("stage-modal").classList.add("hidden"); });
+  $("stage-form").addEventListener("submit", saveStage);
+  $("stage-delete").addEventListener("click", deleteStage);
+  // Modal inscrit
+  $("reg-close").addEventListener("click", () => $("reg-modal").classList.add("hidden"));
+  $("reg-modal").addEventListener("click", (e) => { if (e.target === $("reg-modal")) $("reg-modal").classList.add("hidden"); });
+  $("reg-form").addEventListener("submit", saveReg);
 }
 
 async function loadStagesTab() {
-  const [{ data: cats }, { data: sessions }, { data: regs }] = await Promise.all([
+  const [{ data: cats }, { data: sessions }, { data: regs }, { data: links }] = await Promise.all([
     sb.from("stage_categories").select("*").order("sort_order"),
     sb.from("stage_sessions").select("*").order("start_date", { ascending: false }),
     sb.from("stage_registrations").select("stage_id"),
+    sb.from("stage_session_categories").select("session_id,category_id"),
   ]);
   stgCats = cats || [];
   stgSessions = sessions || [];
   stgCounts = {};
   for (const r of regs || []) stgCounts[r.stage_id] = (stgCounts[r.stage_id] || 0) + 1;
+  stgSessionCats = {};
+  for (const l of links || []) (stgSessionCats[l.session_id] = stgSessionCats[l.session_id] || []).push(l.category_id);
   renderStageCats();
   renderStageList();
 }
@@ -2565,12 +2579,13 @@ function renderStageCats() {
 }
 
 async function createStageCat() {
-  const name = prompt("Nom de la catégorie :");
-  if (!name) return;
   const sort = (stgCats.at(-1)?.sort_order || stgCats.length) + 1;
-  const { error } = await sb.from("stage_categories").insert({ name, sort_order: sort });
+  const { error } = await sb.from("stage_categories").insert({ name: "Nouvelle catégorie", sort_order: sort });
   if (error) return alert(error.message);
-  loadStagesTab();
+  await loadStagesTab();
+  // ouvre l'édition inline de la nouvelle carte
+  const last = $("stg-cat-list").querySelector(".stg-cat-card:last-child .stg-cat-name");
+  if (last) { last.focus(); last.select(); }
 }
 
 async function saveStageCat(id, card) {
@@ -2617,18 +2632,21 @@ function stgVisLabel(s) {
   return today <= limit ? "Visible (auto)" : "Masqué (auto, J-3)";
 }
 
+function stgCatBadges(sessionId) {
+  const ids = stgSessionCats[sessionId] || [];
+  if (!ids.length) return '<span class="muted">— aucune —</span>';
+  return ids.map((id) => `<span class="role-badge">${esc(stgCatById(id).name || "?")}</span>`).join(" ");
+}
+
 function renderStageList() {
   $("stg-rows").innerHTML = stgSessions.map((s) => {
-    const cat = stgCatById(s.category_id);
     const days = stgDays(s.start_date, s.end_date);
-    const price = stgEffPrice(cat.price || 0, days);
     const dates = s.start_date === s.end_date ? s.start_date : `${s.start_date} → ${s.end_date}`;
     return `<tr class="stg-row" data-id="${s.id}">
-      <td><b>${esc(s.title || cat.name || "Stage")}</b></td>
-      <td>${esc(cat.name || "—")}</td>
+      <td><b>${esc(s.title || "Stage")}</b></td>
       <td>${dates}</td>
       <td>${days}${days < 5 ? " <span class='muted'>(pro-rata)</span>" : ""}</td>
-      <td>${price} CHF</td>
+      <td class="role-cell">${stgCatBadges(s.id)}</td>
       <td>${stgCounts[s.id] || 0}</td>
       <td>
         <select class="stg-vis" data-id="${s.id}">
@@ -2639,7 +2657,7 @@ function renderStageList() {
         <div class="muted" style="font-size:.72rem">${stgVisLabel(s)}</div>
       </td>
     </tr>`;
-  }).join("") || '<tr><td colspan="7" class="muted">Aucun stage.</td></tr>';
+  }).join("") || '<tr><td colspan="6" class="muted">Aucun stage.</td></tr>';
   $("stg-rows").querySelectorAll(".stg-row").forEach((tr) =>
     tr.addEventListener("click", (e) => { if (e.target.closest(".stg-vis")) return; openStage(tr.dataset.id); }));
   $("stg-rows").querySelectorAll(".stg-vis").forEach((sel) =>
@@ -2654,19 +2672,59 @@ async function setStageVisibility(id, val) {
   renderStageList();
 }
 
-async function createStage() {
-  if (!stgCats.length) return alert("Crée d'abord une catégorie.");
-  const catName = prompt("Catégorie du stage — tape le nom exact parmi :\n" + stgCats.map((c) => c.name).join(", "), stgCats[0].name);
-  if (!catName) return;
-  const cat = stgCats.find((c) => c.name.toLowerCase() === catName.trim().toLowerCase());
-  if (!cat) return alert("Catégorie introuvable.");
-  const start = prompt("Date de début (AAAA-MM-JJ) :");
-  if (!start || !/^\d{4}-\d{2}-\d{2}$/.test(start)) return alert("Date de début invalide.");
-  const end = prompt("Date de fin (AAAA-MM-JJ) :", start);
-  if (!end || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return alert("Date de fin invalide.");
-  if (end < start) return alert("La date de fin précède le début.");
-  const { error } = await sb.from("stage_sessions").insert({ category_id: cat.id, start_date: start, end_date: end });
+// ---- Modal création / édition d'un stage (semaine) ----
+function openStageModal(id) {
+  if (!stgActiveCats().length) return alert("Crée d'abord au moins une catégorie active (onglet Catégories).");
+  $("stage-error").hidden = true;
+  const s = id ? stgSessions.find((x) => x.id === id) : null;
+  $("stg-f-id").value = id || "";
+  $("stage-modal-title").textContent = s ? "Modifier le stage" : "Nouveau stage";
+  $("stg-f-name").value = s?.title || "";
+  $("stg-f-start").value = s?.start_date || "";
+  $("stg-f-end").value = s?.end_date || "";
+  $("stage-delete").classList.toggle("hidden", !s);
+  const selected = new Set(id ? (stgSessionCats[id] || []) : []);
+  $("stg-f-cats").innerHTML = stgActiveCats().map((c) =>
+    `<label class="stg-cat-opt"><input type="checkbox" value="${c.id}"${selected.has(c.id) ? " checked" : ""}/>
+      <span><b>${esc(c.name)}</b> <span class="muted">${c.price} CHF${c.meal ? " · repas" : ""}${c.tshirt ? " · t-shirt" : ""}</span></span></label>`).join("");
+  $("stage-modal").classList.remove("hidden");
+}
+
+async function saveStage(e) {
+  e.preventDefault();
+  const err = $("stage-error"); err.hidden = true;
+  const id = $("stg-f-id").value;
+  const name = $("stg-f-name").value.trim();
+  const start = $("stg-f-start").value, end = $("stg-f-end").value;
+  if (!name || !start || !end) { err.textContent = "Nom et dates obligatoires."; err.hidden = false; return; }
+  if (end < start) { err.textContent = "La date de fin précède le début."; err.hidden = false; return; }
+  const catIds = [...$("stg-f-cats").querySelectorAll("input:checked")].map((c) => c.value);
+  if (!catIds.length) { err.textContent = "Coche au moins une catégorie ouverte à l'inscription."; err.hidden = false; return; }
+  let sid = id;
+  const patch = { title: name, start_date: start, end_date: end };
+  if (id) { const { error } = await sb.from("stage_sessions").update(patch).eq("id", id); if (error) { err.textContent = error.message; err.hidden = false; return; } }
+  else {
+    const res = await sb.from("stage_sessions").insert({ ...patch, visibility_mode: "auto" }).select("id").single();
+    if (res.error) { err.textContent = res.error.message; err.hidden = false; return; }
+    sid = res.data.id;
+  }
+  // remplace les catégories ouvertes
+  await sb.from("stage_session_categories").delete().eq("session_id", sid);
+  await sb.from("stage_session_categories").insert(catIds.map((cid) => ({ session_id: sid, category_id: cid })));
+  $("stage-modal").classList.add("hidden");
+  await loadStagesTab();
+  if (id && stgCurrent === id) openStage(id); // rafraîchit le détail ouvert
+}
+
+async function deleteStage() {
+  const id = $("stg-f-id").value;
+  if (!id || !confirm("Supprimer ce stage et tous ses inscrits ?")) return;
+  await sb.from("stage_registrations").delete().eq("stage_id", id);
+  await sb.from("stage_session_categories").delete().eq("session_id", id);
+  const { error } = await sb.from("stage_sessions").delete().eq("id", id);
   if (error) return alert(error.message);
+  $("stage-modal").classList.add("hidden");
+  closeStageDetail();
   loadStagesTab();
 }
 
@@ -2674,11 +2732,14 @@ async function createStage() {
 async function openStage(id) {
   stgCurrent = id;
   const s = stgSessions.find((x) => x.id === id);
-  const cat = stgCatById(s.category_id);
   const days = stgDays(s.start_date, s.end_date);
-  const price = stgEffPrice(cat.price || 0, days);
-  $("stg-detail-title").textContent = (s.title || cat.name || "Stage");
-  $("stg-detail-meta").innerHTML = `${esc(cat.name || "")} · ${s.start_date}${s.end_date !== s.start_date ? " → " + s.end_date : ""} · ${days} jour(s) · <b>${price} CHF</b>${days < 5 ? " (pro-rata)" : ""}${cat.meal ? " · repas" : ""}${cat.tshirt ? " · t-shirt" : ""}`;
+  const catList = (stgSessionCats[id] || []).map((cid) => {
+    const c = stgCatById(cid);
+    return `${esc(c.name || "?")} <span class="muted">(${stgEffPrice(c.price || 0, days)} CHF)</span>`;
+  });
+  $("stg-detail-title").textContent = (s.title || "Stage");
+  $("stg-detail-meta").innerHTML = `${s.start_date}${s.end_date !== s.start_date ? " → " + s.end_date : ""} · ${days} jour(s)${days < 5 ? " (pro-rata)" : ""}<br>`
+    + `Catégories : ${catList.length ? catList.join(" · ") : '<span class="muted">aucune</span>'}`;
   $("stg-program").value = s.program || "";
   $("stg-list-wrap").classList.add("hidden");
   $("stg-detail").classList.remove("hidden");
@@ -2706,13 +2767,24 @@ async function loadRegistrations() {
   renderRegistrants();
 }
 
+function stgRegPrice(r, days) {
+  const cat = stgCatById(r.category_id);
+  const base = stgEffPrice(cat.price || 0, days);
+  return Math.round(base * (1 - (r.discount_pct || 0) / 100) * 100) / 100;
+}
+
 function renderRegistrants() {
   const s = stgSessions.find((x) => x.id === stgCurrent);
-  const cat = stgCatById(s.category_id);
-  const base = stgEffPrice(cat.price || 0, stgDays(s.start_date, s.end_date));
+  const days = stgDays(s.start_date, s.end_date);
+  const openCats = (stgSessionCats[stgCurrent] || []).map((id) => stgCatById(id)).filter((c) => c.id);
   $("stg-reg-count").textContent = stgRegs.length;
   $("stg-reg-rows").innerHTML = stgRegs.map((r) => {
-    const price = Math.round(base * (1 - r.discount_pct / 100) * 100) / 100;
+    const cat = stgCatById(r.category_id);
+    const price = stgRegPrice(r, days);
+    const catSel = `<select class="stg-reg-cat" data-id="${r.id}">
+      ${openCats.map((c) => `<option value="${c.id}"${c.id === r.category_id ? " selected" : ""}>${esc(c.name)}</option>`).join("")}
+      ${cat.id && !openCats.some((c) => c.id === cat.id) ? `<option value="${cat.id}" selected>${esc(cat.name)} (fermée)</option>` : ""}
+    </select>`;
     const rebate = r.discount_pct ? `−${r.discount_pct}% <span class="muted">(${esc(r.discount_reason || "")})</span> <button class="fam-del stg-reb-del" data-id="${r.id}">✕</button>`
       : `<button class="ghost stg-reb-add" data-id="${r.id}">−20%</button>`;
     const invoice = r.invoice_created
@@ -2721,6 +2793,7 @@ function renderRegistrants() {
     return `<tr data-id="${r.id}">
       <td><b>${esc(r.first_name)} ${esc(r.last_name)}</b></td>
       <td>${r.birth_date || "—"}</td>
+      <td>${catSel}</td>
       <td>${esc(r.email || "—")}</td>
       <td>${cat.tshirt ? esc(r.tshirt_size || "—") : "—"}</td>
       <td>${cat.meal ? esc(r.meal_restriction || "—") : "—"}</td>
@@ -2731,8 +2804,9 @@ function renderRegistrants() {
       <td><input type="checkbox" class="stg-paid" data-id="${r.id}" ${r.paid ? "checked" : ""}/></td>
       <td><button class="fam-del stg-reg-del" data-id="${r.id}">✕</button></td>
     </tr>`;
-  }).join("") || '<tr><td colspan="11" class="muted">Aucun inscrit.</td></tr>';
+  }).join("") || '<tr><td colspan="12" class="muted">Aucun inscrit.</td></tr>';
   const T = $("stg-reg-rows");
+  T.querySelectorAll(".stg-reg-cat").forEach((sel) => sel.addEventListener("change", () => changeRegCat(sel.dataset.id, sel.value)));
   T.querySelectorAll(".stg-reb-add").forEach((b) => b.addEventListener("click", () => setDiscount(b.dataset.id)));
   T.querySelectorAll(".stg-reb-del").forEach((b) => b.addEventListener("click", () => removeDiscount(b.dataset.id)));
   T.querySelectorAll(".stg-inv").forEach((b) => b.addEventListener("click", () => createInvoice(b.dataset.id)));
@@ -2740,14 +2814,36 @@ function renderRegistrants() {
   T.querySelectorAll(".stg-reg-del").forEach((b) => b.addEventListener("click", () => delRegistrant(b.dataset.id)));
 }
 
-async function addRegistrant() {
-  const first = prompt("Prénom :"); if (!first) return;
-  const last = prompt("Nom :"); if (!last) return;
-  const email = prompt("Email (optionnel) :") || null;
-  const birth = prompt("Date de naissance (AAAA-MM-JJ, optionnel) :") || null;
-  const { error } = await sb.from("stage_registrations").insert({ stage_id: stgCurrent, first_name: first.trim(), last_name: last.trim(), email, birth_date: birth && /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth : null });
-  if (error) return alert(error.message);
+async function changeRegCat(id, catId) {
+  await sb.from("stage_registrations").update({ category_id: catId }).eq("id", id);
+  const r = stgRegs.find((x) => x.id === id); if (r) r.category_id = catId;
+  renderRegistrants();
+}
+
+// ---- Modal ajout d'un inscrit ----
+function openRegModal() {
+  const openCats = (stgSessionCats[stgCurrent] || []).map((id) => stgCatById(id)).filter((c) => c.id);
+  if (!openCats.length) return alert("Ce stage n'a aucune catégorie ouverte. Ajoute-en via « Modifier le stage ».");
+  $("reg-error").hidden = true;
+  $("reg-f-first").value = ""; $("reg-f-last").value = ""; $("reg-f-email").value = ""; $("reg-f-birth").value = "";
+  $("reg-f-cat").innerHTML = openCats.map((c) => `<option value="${c.id}">${esc(c.name)} — ${c.price} CHF</option>`).join("");
+  $("reg-modal").classList.remove("hidden");
+}
+
+async function saveReg(e) {
+  e.preventDefault();
+  const err = $("reg-error"); err.hidden = true;
+  const first = $("reg-f-first").value.trim(), last = $("reg-f-last").value.trim();
+  if (!first || !last) { err.textContent = "Prénom et nom obligatoires."; err.hidden = false; return; }
+  const { error } = await sb.from("stage_registrations").insert({
+    stage_id: stgCurrent, first_name: first, last_name: last,
+    email: $("reg-f-email").value.trim() || null,
+    birth_date: $("reg-f-birth").value || null,
+    category_id: $("reg-f-cat").value || null,
+  });
+  if (error) { err.textContent = error.message; err.hidden = false; return; }
   stgCounts[stgCurrent] = (stgCounts[stgCurrent] || 0) + 1;
+  $("reg-modal").classList.add("hidden");
   loadRegistrations();
 }
 

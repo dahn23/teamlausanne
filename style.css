@@ -365,6 +365,17 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .stg-cat-grid{display:flex;gap:18px;flex-wrap:wrap;align-items:end;margin:.5rem 0}
 .stg-cat-grid label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:700;color:var(--muted)}
 .stg-cat-grid .stg-cat-price{width:120px}
+.stg-card-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.check-spacer{display:none}
+@media(min-width:601px){.check-spacer{display:block}}
+.stg-cat-check{display:flex;flex-direction:column;gap:8px}
+label.stg-cat-opt{display:flex;flex-direction:row;align-items:center;gap:10px;padding:9px 12px;
+  border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;
+  font-weight:600;font-size:.9rem;color:var(--ink)}
+label.stg-cat-opt:hover{border-color:var(--blue)}
+label.stg-cat-opt input{width:18px;height:18px;flex-shrink:0}
+label.stg-cat-opt span{font-weight:600}
+.stg-reg-cat{max-width:150px}
 .stg-inline{flex-direction:row!important;align-items:center;gap:6px!important}
 .stg-row{cursor:pointer}
 .stg-row:hover{background:#f5f7fd}
