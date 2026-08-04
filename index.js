@@ -803,7 +803,9 @@ async function loadGzPhotos(seasonId) {
   const rows = data || [];
   if (!rows.length) { wrap.innerHTML = `<p class="muted">Les photos des vainqueurs apparaîtront ici.</p>`; return; }
   const imgs = rows.map((p) => `<div class="gzc-card"><img src="${esc(p.photo_url)}" loading="lazy" alt="Vainqueur GameZone"/></div>`).join("");
-  wrap.innerHTML = `<div class="gzc-track">${imgs}${imgs}</div>`;
+  // Peu de photos → statique (pas de duplication ni d'animation) ; sinon défilement animé.
+  if (rows.length < 5) wrap.innerHTML = `<div class="gzc-track gzc-static">${imgs}</div>`;
+  else wrap.innerHTML = `<div class="gzc-track">${imgs}${imgs}</div>`;
 }
 
 async function loadGzWinners(seasonId) {

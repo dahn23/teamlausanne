@@ -248,6 +248,7 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .gz-carousel:hover .gzc-track{animation-play-state:paused}
 .gzc-card img{height:220px;width:auto;border-radius:14px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,.16)}
 @keyframes gzscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.gzc-track.gzc-static{animation:none;width:auto;justify-content:center;flex-wrap:wrap}
 @media(prefers-reduced-motion:reduce){.gzc-track{animation:none}}
 .gz-rank-name{flex:1;font-weight:700}
 .gz-rank-tro{flex:0 0 auto;font-size:1.05rem;letter-spacing:1px;white-space:nowrap;overflow:hidden;max-width:45vw}
