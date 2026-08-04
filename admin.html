@@ -531,6 +531,11 @@
       <button type="button" id="close-person" class="modal-close" aria-label="Fermer">×</button>
       <h2 id="person-title">Nouvelle personne</h2>
       <input type="hidden" id="p-id" />
+      <div class="ptabs" id="p-tabs">
+        <button type="button" class="ptab active" data-ptab="info">Info</button>
+        <button type="button" class="ptab" data-ptab="obj">Objectifs</button>
+      </div>
+      <div id="ptab-info" class="ptab-panel">
       <div class="form-grid">
         <label>Prénom *<input id="p-first" required /></label>
         <label>Nom *<input id="p-last" required /></label>
@@ -599,6 +604,17 @@
           <button type="button" id="cr-add-btn">Recharger</button>
         </div>
         <div id="cr-ledger" class="cr-ledger"></div>
+      </div>
+      </div><!-- /ptab-info -->
+
+      <div id="ptab-obj" class="ptab-panel hidden">
+        <p class="muted" style="font-size:.85rem;margin:0 0 10px">Objectifs et remarques du staff (coach / head coach / admin). Les plus récents en haut.</p>
+        <div class="obj-add">
+          <textarea id="obj-body" rows="2" placeholder="Nouvel objectif / remarque…"></textarea>
+          <button type="button" id="obj-add-btn">Ajouter</button>
+        </div>
+        <div id="obj-list" class="obj-list"></div>
+        <p id="obj-need-save" class="muted" hidden style="font-size:.85rem">Enregistrez d'abord la personne pour ajouter des objectifs.</p>
       </div>
 
       <div class="form-foot">

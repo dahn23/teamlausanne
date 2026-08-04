@@ -6,6 +6,8 @@ const $ = (id) => document.getElementById(id);
 const ICO_CUP = '<svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-1px" fill="none" stroke="#c8901f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/><path d="M8 5.5H5V7a3 3 0 0 0 3 3M16 5.5h3V7a3 3 0 0 1-3 3"/><path d="M10 13.5V16h4v-2.5M8 20h8M12 16v4"/></svg>';
 let people = [];
 let meId = null;
+let meEmail = null;
+let meName = null;
 const pad2 = (n) => String(n).padStart(2, "0");
 
 // ---- Garde d'accès : connecté + rôle staff ----
@@ -19,6 +21,15 @@ if (session) {
   } else {
     $("console").classList.remove("hidden");
     meId = session.user.id;
+    meEmail = session.user.email;
+    meName = meEmail;
+    try {
+      const { data: prof } = await sb.from("profiles").select("person_id").eq("user_id", meId).maybeSingle();
+      if (prof?.person_id) {
+        const { data: me } = await sb.from("people").select("first_name,last_name").eq("id", prof.person_id).maybeSingle();
+        if (me) meName = `${me.first_name || ""} ${me.last_name || ""}`.trim() || meEmail;
+      }
+    } catch (_) {}
     init(roles);
   }
 }
@@ -77,6 +88,9 @@ async function init(roles) {
   $("invite-person").addEventListener("click", invitePerson);
   $("fam-add-btn").addEventListener("click", addFamily);
   $("cr-add-btn").addEventListener("click", rechargeCredit);
+  document.querySelectorAll("#p-tabs .ptab").forEach((b) =>
+    b.addEventListener("click", () => setPersonTab(b.dataset.ptab)));
+  $("obj-add-btn").addEventListener("click", addObjective);
   $("p-photo-btn").addEventListener("click", () => $("p-photo-file").click());
   $("p-photo-file").addEventListener("change", () => uploadPersonPhoto($("p-photo-file")));
   $("search").addEventListener("input", renderRows);
@@ -667,7 +681,74 @@ function openPerson(p) {
   $("family-section").classList.toggle("hidden", !p);
   $("credit-section").classList.toggle("hidden", !p);
   if (p) { populateFamPersons(p.id); loadFamily(p.id); loadCredit(p.id); }
+  setPersonTab("info");
+  loadObjectives(p ? p.id : null);
   $("person-modal").classList.remove("hidden");
+}
+
+// ---- Onglets de la fiche ----
+function setPersonTab(tab) {
+  document.querySelectorAll("#p-tabs .ptab").forEach((b) =>
+    b.classList.toggle("active", b.dataset.ptab === tab));
+  $("ptab-info").classList.toggle("hidden", tab !== "info");
+  $("ptab-obj").classList.toggle("hidden", tab !== "obj");
+}
+
+// ---- Objectifs ----
+async function loadObjectives(personId) {
+  const list = $("obj-list");
+  const hasP = !!personId;
+  $("obj-body").disabled = !hasP;
+  $("obj-add-btn").disabled = !hasP;
+  $("obj-need-save").hidden = hasP;
+  if (!hasP) { list.innerHTML = ""; return; }
+  const { data, error } = await sb.from("person_objectives")
+    .select("*").eq("person_id", personId).order("created_at", { ascending: false });
+  if (error) { list.innerHTML = `<p class="obj-empty">Erreur : ${esc(error.message)}</p>`; return; }
+  if (!data.length) { list.innerHTML = `<p class="obj-empty">Aucun objectif pour le moment.</p>`; return; }
+  list.innerHTML = data.map((o) => {
+    const mine = o.created_by === meId;
+    const dt = new Date(o.created_at).toLocaleString("fr-CH", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const edited = o.updated_at && o.updated_at !== o.created_at ? ' <span class="muted">(modifié)</span>' : "";
+    return `<div class="obj-item" data-oid="${o.id}">
+      <div class="obj-meta"><b>${esc(o.author_name || "—")}</b><span>${dt}${edited}</span></div>
+      <div class="obj-body">${esc(o.body)}</div>
+      ${mine ? `<div class="obj-acts"><button type="button" class="edit">Modifier</button><button type="button" class="del">Supprimer</button></div>` : ""}
+    </div>`;
+  }).join("");
+  list.querySelectorAll(".obj-item .edit").forEach((b) =>
+    b.addEventListener("click", () => editObjective(b.closest(".obj-item").dataset.oid)));
+  list.querySelectorAll(".obj-item .del").forEach((b) =>
+    b.addEventListener("click", () => deleteObjective(b.closest(".obj-item").dataset.oid)));
+}
+async function addObjective() {
+  const id = $("p-id").value;
+  const body = $("obj-body").value.trim();
+  if (!id || !body) return;
+  const { error } = await sb.from("person_objectives").insert({
+    person_id: id, body, author_name: meName, created_by: meId,
+  });
+  if (error) { alert("Objectif : " + error.message); return; }
+  $("obj-body").value = "";
+  loadObjectives(id);
+}
+async function editObjective(oid) {
+  const el = document.querySelector(`.obj-item[data-oid="${oid}"] .obj-body`);
+  const current = el ? el.textContent : "";
+  const next = prompt("Modifier l'objectif :", current);
+  if (next === null) return;
+  const body = next.trim();
+  if (!body) return;
+  const { error } = await sb.from("person_objectives")
+    .update({ body, updated_at: new Date().toISOString() }).eq("id", oid);
+  if (error) { alert("Objectif : " + error.message); return; }
+  loadObjectives($("p-id").value);
+}
+async function deleteObjective(oid) {
+  if (!confirm("Supprimer cet objectif ?")) return;
+  const { error } = await sb.from("person_objectives").delete().eq("id", oid);
+  if (error) { alert("Objectif : " + error.message); return; }
+  loadObjectives($("p-id").value);
 }
 
 let personPhotoUrl = null;
