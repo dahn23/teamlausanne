@@ -42,14 +42,15 @@
               <button id="new-person">+ Nouveau</button>
             </div>
           </div>
+          <div id="people-filters" class="people-filters"></div>
           <div class="table-wrap">
             <table class="crm-table">
               <thead>
-                <tr><th>Nom</th><th>Catégorie</th><th>Email</th><th>Téléphone</th><th>Actif</th></tr>
+                <tr><th>Nom</th><th>Prénom</th><th>Email</th><th>Téléphone</th><th>Naissance</th><th>Rôles</th></tr>
               </thead>
               <tbody id="people-rows"></tbody>
             </table>
-            <p id="empty-msg" class="muted" hidden>Aucun membre. Cliquez « + Nouveau » pour commencer.</p>
+            <p id="empty-msg" class="muted" hidden>Aucune personne. Cliquez « + Nouveau » pour commencer.</p>
           </div>
         </div>
 
@@ -546,15 +547,35 @@
             <option value="staff">Staff</option>
           </select>
         </label>
-        <label>Email<input id="p-email" type="email" /></label>
-        <label>Téléphone<input id="p-phone" /></label>
+        <label>Email principal<input id="p-email" type="email" /></label>
+        <label>Téléphone principal<input id="p-phone" /></label>
+        <label>N° AVS<input id="p-avs" placeholder="756.XXXX.XXXX.XX" /></label>
         <label>Adresse<input id="p-address" /></label>
         <label>NPA<input id="p-postal" /></label>
         <label>Ville<input id="p-city" /></label>
         <label>ID bexio<input id="p-bexio" type="number" /></label>
         <label class="check"><input id="p-active" type="checkbox" checked /> Actif</label>
       </div>
-      <label>Notes<textarea id="p-notes" rows="2"></textarea></label>
+      <div class="pgrid2">
+        <label>Emails secondaires <span class="muted">(un par ligne)</span><textarea id="p-emails" rows="2"></textarea></label>
+        <label>Téléphones secondaires <span class="muted">(un par ligne)</span><textarea id="p-phones" rows="2"></textarea></label>
+      </div>
+      <label>Notes (champ libre)<textarea id="p-notes" rows="2"></textarea></label>
+
+      <div class="p-photo-block">
+        <span class="pgrid2-lbl">Photo</span>
+        <div class="p-photo-row">
+          <div id="p-photo-preview" class="p-photo-preview"></div>
+          <button type="button" id="p-photo-btn" class="ghost">Prendre / choisir une photo</button>
+          <input type="file" id="p-photo-file" accept="image/*" capture="environment" class="hidden" />
+        </div>
+      </div>
+
+      <div class="rg-card" style="margin-top:12px">
+        <h3 style="margin:0 0 8px;font-size:1rem">Rôles</h3>
+        <p class="muted" style="font-size:.85rem;margin:0 0 8px">Cumulables. Ils déterminent les onglets de la fiche et (plus tard) les accès.</p>
+        <div id="p-roles" class="chip-select"></div>
+      </div>
 
       <div id="family-section" class="fam-section hidden">
         <h3 class="fam-title">Liens familiaux (parent ↔ junior)</h3>

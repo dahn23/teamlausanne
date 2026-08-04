@@ -37,6 +37,17 @@ const DEFAULT_TAB_ACCESS = {
 const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Statistiques"]];
 const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["organisateur", "Official"], ["responsable", "Responsable"]];
 const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "membre", "organisateur", "responsable"];
+// Rôles/tags d'une personne (cumulables) — pilotent filtres + onglets de la fiche.
+const PERSON_ROLES = [
+  ["membre", "Membre"], ["client", "Client"], ["coach", "Coach"], ["coach-prive", "Coach avec autorisation"],
+  ["head-coach", "Head coach"], ["official", "Official"], ["responsable-tournoi", "Responsable tournoi"],
+  ["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"],
+  ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"],
+  ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
+];
+const roleLabel = (r) => (PERSON_ROLES.find(([v]) => v === r) || [r, r])[1];
+let peopleRoles = {};            // person_id -> [role,…]
+const activeFilters = new Set(); // filtres rôle actifs
 
 const tabAccessMap = () => settings.tab_access || DEFAULT_TAB_ACCESS;
 
@@ -66,6 +77,8 @@ async function init(roles) {
   $("invite-person").addEventListener("click", invitePerson);
   $("fam-add-btn").addEventListener("click", addFamily);
   $("cr-add-btn").addEventListener("click", rechargeCredit);
+  $("p-photo-btn").addEventListener("click", () => $("p-photo-file").click());
+  $("p-photo-file").addEventListener("change", () => uploadPersonPhoto($("p-photo-file")));
   $("search").addEventListener("input", renderRows);
   document.querySelectorAll(".side-item[data-view]").forEach((b) =>
     b.addEventListener("click", () => showView(b.dataset.view)));
@@ -568,30 +581,55 @@ async function toggleRole(c) {
 }
 
 async function loadPeople() {
-  const { data, error } = await sb
-    .from("people").select("*")
-    .order("last_name").order("first_name");
+  const [{ data, error }, { data: pr }] = await Promise.all([
+    sb.from("people").select("*").order("last_name").order("first_name"),
+    sb.from("person_roles").select("person_id,role"),
+  ]);
   if (error) { alert("Erreur chargement : " + error.message); return; }
   people = data || [];
+  peopleRoles = {};
+  for (const r of pr || []) (peopleRoles[r.person_id] || (peopleRoles[r.person_id] = [])).push(r.role);
+  renderFilters();
   renderRows();
+}
+
+function renderFilters() {
+  const box = $("people-filters"); if (!box) return;
+  box.innerHTML = PERSON_ROLES.map(([v, l]) =>
+    `<button type="button" class="chip filt${activeFilters.has(v) ? " sel" : ""}" data-role="${v}">${esc(l)}</button>`).join("");
+  box.querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => {
+    const r = b.dataset.role;
+    activeFilters.has(r) ? activeFilters.delete(r) : activeFilters.add(r);
+    renderFilters(); renderRows();
+  }));
 }
 
 function renderRows() {
   const q = $("search").value.trim().toLowerCase();
-  const rows = people.filter((p) =>
-    !q || (`${p.first_name} ${p.last_name} ${p.email || ""}`).toLowerCase().includes(q)
-  );
+  const rows = people.filter((p) => {
+    const roles = peopleRoles[p.id] || [];
+    if (activeFilters.size && ![...activeFilters].every((f) => roles.includes(f))) return false;
+    if (!q) return true;
+    const emails = [p.email, ...(p.emails || [])].join(" ");
+    const phones = [p.phone, ...(p.phones || [])].join(" ");
+    return (`${p.first_name} ${p.last_name} ${emails} ${phones}`).toLowerCase().includes(q);
+  });
   const tbody = $("people-rows");
   tbody.innerHTML = "";
   $("empty-msg").hidden = rows.length > 0;
   for (const p of rows) {
+    const roles = peopleRoles[p.id] || [];
+    const emails = [p.email, ...(p.emails || [])].filter(Boolean);
+    const phones = [p.phone, ...(p.phones || [])].filter(Boolean);
+    const rolesHtml = roles.map((r) => `<span class="role-badge">${esc(roleLabel(r))}</span>`).join(" ");
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${esc(p.last_name)} ${esc(p.first_name)}</td>
-      <td>${esc(p.category || "")}</td>
-      <td>${esc(p.email || "")}</td>
-      <td>${esc(p.phone || "")}</td>
-      <td>${p.is_active ? "✓" : "—"}</td>`;
+      <td>${esc(p.last_name)}</td>
+      <td>${esc(p.first_name)}</td>
+      <td>${esc(emails[0] || "")}${emails.length > 1 ? ` <span class="muted">+${emails.length - 1}</span>` : ""}</td>
+      <td>${esc(phones[0] || "")}${phones.length > 1 ? ` <span class="muted">+${phones.length - 1}</span>` : ""}</td>
+      <td>${p.birthdate || ""}</td>
+      <td class="role-cell">${rolesHtml}</td>`;
     tr.addEventListener("click", () => openPerson(p));
     tbody.appendChild(tr);
   }
@@ -614,16 +652,49 @@ function openPerson(p) {
   $("p-category").value = p?.category || "";
   $("p-email").value = p?.email || "";
   $("p-phone").value = p?.phone || "";
+  $("p-avs").value = p?.avs || "";
+  $("p-emails").value = (p?.emails || []).join("\n");
+  $("p-phones").value = (p?.phones || []).join("\n");
   $("p-address").value = p?.address || "";
   $("p-postal").value = p?.postal_code || "";
   $("p-city").value = p?.city || "";
   $("p-bexio").value = p?.bexio_contact_id || "";
   $("p-active").checked = p ? p.is_active : true;
   $("p-notes").value = p?.notes || "";
+  personPhotoUrl = p?.photo_url || null;
+  renderPersonPhoto();
+  renderPersonRoles(p ? (peopleRoles[p.id] || []) : []);
   $("family-section").classList.toggle("hidden", !p);
   $("credit-section").classList.toggle("hidden", !p);
   if (p) { populateFamPersons(p.id); loadFamily(p.id); loadCredit(p.id); }
   $("person-modal").classList.remove("hidden");
+}
+
+let personPhotoUrl = null;
+let personRolesSel = new Set();
+function renderPersonPhoto() {
+  const box = $("p-photo-preview");
+  box.innerHTML = personPhotoUrl ? `<img src="${personPhotoUrl}" alt="" />` : "";
+  box.classList.toggle("empty", !personPhotoUrl);
+}
+function renderPersonRoles(roles) {
+  personRolesSel = new Set(roles);
+  $("p-roles").innerHTML = PERSON_ROLES.map(([v, l]) =>
+    `<button type="button" class="chip${personRolesSel.has(v) ? " sel" : ""}" data-role="${v}">${esc(l)}</button>`).join("");
+  $("p-roles").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => {
+    const r = b.dataset.role;
+    personRolesSel.has(r) ? personRolesSel.delete(r) : personRolesSel.add(r);
+    b.classList.toggle("sel");
+  }));
+}
+async function uploadPersonPhoto(file) {
+  if (!file.files || !file.files[0]) return;
+  const f = file.files[0];
+  const path = `people/${$("p-id").value || "new"}-${Date.now()}`;
+  const { error } = await sb.storage.from("gz-photos").upload(path, f, { upsert: true, contentType: f.type });
+  if (error) { alert("Photo : " + error.message); return; }
+  personPhotoUrl = sb.storage.from("gz-photos").getPublicUrl(path).data.publicUrl;
+  renderPersonPhoto();
 }
 
 async function loadCredit(personId) {
@@ -1941,6 +2012,7 @@ async function savePerson(e) {
   e.preventDefault();
   const err = $("person-error");
   err.hidden = true;
+  const lines = (id) => $(id).value.split("\n").map((x) => x.trim()).filter(Boolean);
   const row = {
     first_name: $("p-first").value.trim(),
     last_name: $("p-last").value.trim(),
@@ -1949,6 +2021,10 @@ async function savePerson(e) {
     category: $("p-category").value || null,
     email: $("p-email").value.trim() || null,
     phone: $("p-phone").value.trim() || null,
+    avs: $("p-avs").value.trim() || null,
+    emails: lines("p-emails"),
+    phones: lines("p-phones"),
+    photo_url: personPhotoUrl,
     address: $("p-address").value.trim() || null,
     postal_code: $("p-postal").value.trim() || null,
     city: $("p-city").value.trim() || null,
@@ -1956,12 +2032,20 @@ async function savePerson(e) {
     is_active: $("p-active").checked,
     notes: $("p-notes").value.trim() || null,
   };
-  const id = $("p-id").value;
-  const q = id
-    ? sb.from("people").update(row).eq("id", id)
-    : sb.from("people").insert(row);
-  const { error } = await q;
+  let id = $("p-id").value;
+  let error;
+  if (id) ({ error } = await sb.from("people").update(row).eq("id", id));
+  else {
+    const res = await sb.from("people").insert(row).select("id").single();
+    error = res.error; id = res.data?.id;
+  }
   if (error) { err.textContent = "Enregistrement impossible : " + error.message; err.hidden = false; return; }
+  // Rôles : on remplace l'ensemble
+  if (id) {
+    await sb.from("person_roles").delete().eq("person_id", id);
+    const rr = [...personRolesSel].map((role) => ({ person_id: id, role }));
+    if (rr.length) await sb.from("person_roles").insert(rr);
+  }
   closePerson();
   loadPeople();
 }
