@@ -97,7 +97,7 @@ const WORLDS = {
           { name: "Compétition", meta: "≈ 10–13 ans · 16 places", href: "#competition" },
           { name: "KidsTennis", meta: "4–10 ans · ouvert à tous", href: "#kids" },
         ],
-        club: { title: "Filière Club", href: "#club", body: [
+        club: { title: "Filière Club", href: "#club-academy", body: [
           "En parallèle de la pyramide de sélection, la filière Club s'adresse à celles et ceux qui veulent développer leur tennis à leur rythme, une ou plusieurs fois par semaine.",
           "Avec la possibilité de disputer quelques compétitions ponctuelles — dont les interclubs, pour les membres du club.",
         ]},
@@ -106,6 +106,7 @@ const WORLDS = {
         sub: "Du premier échange à la performance, un parcours clair pour progresser avec plaisir.",
         items: [
           { name: "KidsTennis", photo: "assets/webflow/prog-kids.webp", href: "#kids" },
+          { name: "Club", photo: "assets/webflow/prog-club.webp", href: "#club-academy" },
           { name: "Compétition", photo: "assets/webflow/prog-competition.webp", href: "#competition" },
           { name: "Performance", photo: "assets/webflow/prog-performance.webp", href: "#performance" },
           { name: "Sport-études", photo: "assets/webflow/sport-studies.jpg", href: "#sport-etudes" },
@@ -339,23 +340,55 @@ const DETAILS = {
     ],
   },
   kids: {
-    world: "academie", title: "KidsTennis", subtitle: "Le tennis des enfants, dès 5 ans",
+    world: "academie", title: "KidsTennis", subtitle: "Les cours juniors des 4–9 ans, toute l'année",
     hero: "assets/photos/kids3.jpg",
     sections: [
       { type: "rich", title: "Apprendre en s'amusant", body: [
-        "KidsTennis initie les enfants dès 5 ans au tennis de façon ludique et progressive.",
-        "Le jeu avant tout : coordination, motricité et plaisir, avec du matériel adapté à chaque âge et de petits groupes.",
+        "KidsTennis initie les enfants de 4 à 9 ans au tennis de façon ludique et progressive, tout au long de l'année scolaire.",
+        "Le jeu avant tout : coordination, motricité et plaisir, avec du matériel adapté à chaque âge et un encadrement de proximité.",
       ]},
-      { type: "features", title: "Notre approche", items: [
-        ["Par le jeu", "Des exercices ludiques pour progresser sans s'en rendre compte."],
-        ["Matériel adapté", "Raquettes et balles évolutives (rouge, orange, vert)."],
-        ["Petits groupes", "Un encadrement de proximité pour chaque enfant."],
-        ["Progression", "Un parcours clair vers la compétition et la Game Zone."],
+      { type: "features", title: "L'offre", items: [
+        ["4–9 ans", "Cours juniors sur toute la saison (31 août 2026 → 2 juillet 2027)."],
+        ["45 minutes", "Une séance de 45 minutes par semaine."],
+        ["1 coach / 4 enfants", "Un suivi personnalisé en tout petit groupe."],
+        ["Offert", "T-shirt Team Lausanne offert, raquette prêtée si besoin."],
+      ]},
+      { type: "features", title: "Horaires", items: [
+        ["Mercredi", "13h15–14h00 ou 14h00–14h45."],
+        ["Mardi ou jeudi", "16h30–17h15."],
+        ["Sur mesure", "Cours supplémentaires possibles en fin d'après-midi."],
       ], link: { label: "Nous écrire", contact: "Cours juniors" } },
-      { type: "offers", title: "KidsTennis en stage", items: [
-        { name: "Stage KidsTennis", meta: "4–9 ans", detail: "Le matin, 9h–12h : 1h30 de tennis + 1h30 d'activité. 250 CHF / semaine." },
-      ], note: "–20 % dès la 2ᵉ semaine ou pour plusieurs enfants d'une même famille." },
+      { type: "rich", title: "Tarif", body: [
+        "CHF 490.– pour la saison complète, soit environ 44 CHF par mois.",
+      ]},
       { type: "gallery", items: ["assets/photos/kids1.jpg", "assets/photos/kids2.jpg"] },
+    ],
+  },
+  "club-academy": {
+    world: "academie", title: "Club", subtitle: "L'entraînement à son rythme, toute l'année",
+    hero: "assets/webflow/prog-club.webp",
+    sections: [
+      { type: "rich", title: "Jouer et progresser, sans pression", body: [
+        "L'offre Club s'adresse à celles et ceux qui veulent jouer 1 heure par semaine toute l'année — débutants comme plus avancés.",
+        "Un entraînement régulier pour progresser à son rythme, avec la possibilité d'ajouter une deuxième séance par semaine.",
+      ]},
+      { type: "features", title: "L'offre", items: [
+        ["Toute l'année", "Du 31 août 2026 au 2 juillet 2027."],
+        ["1h / semaine", "Possibilité de prendre 2 entraînements par semaine."],
+        ["1 coach / 4 jeunes", "Un encadrement de proximité."],
+        ["Offert", "T-shirt Team Lausanne offert."],
+      ]},
+      { type: "features", title: "Horaires", items: [
+        ["Lun · Mar · Jeu · Ven", "17h15 – 19h15."],
+        ["Mercredi", "13h15 – 19h15."],
+      ]},
+      { type: "ranking", title: "Tarifs · saison 2026/27", head: ["Jour", "Prix / saison"], rows: [
+        ["Lundi", "770.–"], ["Mardi", "815.–"], ["Mercredi", "815.–"], ["Jeudi", "790.–"], ["Vendredi", "770.–"],
+      ]},
+      { type: "features", title: "Et la compétition ?", items: [
+        ["Ponctuelle", "Quelques compétitions au fil de la saison, selon l'envie."],
+        ["Interclubs", "Pour les membres du club, participation aux interclubs."],
+      ], link: { label: "Nous écrire", contact: "Cours juniors" } },
     ],
   },
   gamezone: {
