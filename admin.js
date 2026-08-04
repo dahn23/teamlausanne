@@ -215,6 +215,7 @@ async function initResa(roles) {
   $("resa-date").addEventListener("change", loadResaDay);
   $("resa-prev").addEventListener("click", () => shiftResa(-1));
   $("resa-next").addEventListener("click", () => shiftResa(1));
+  $("resa-today").addEventListener("click", () => { $("resa-date").value = isoA(new Date()); loadResaDay(); });
   $("resa-new").addEventListener("click", () => openResaCreate(resaCourtsAll[0]?.id, 8, 1));
   $("resa-close").addEventListener("click", closeResa);
   $("resa-modal").addEventListener("click", (e) => { if (e.target === $("resa-modal")) closeResa(); });
