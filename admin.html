@@ -570,6 +570,17 @@
         </div>
       </div>
 
+      <div id="credit-section" class="fam-section hidden">
+        <h3 class="fam-title">Crédit prépayé</h3>
+        <p class="credit-balance">Solde : <b id="cr-balance">—</b></p>
+        <div class="fam-add">
+          <input type="number" id="cr-amount" placeholder="Montant (CHF)" min="0" style="width:150px" />
+          <input type="text" id="cr-reason" placeholder="Motif (ex. recharge caisse)" style="flex:1;min-width:150px" />
+          <button type="button" id="cr-add-btn">Recharger</button>
+        </div>
+        <div id="cr-ledger" class="cr-ledger"></div>
+      </div>
+
       <div class="form-foot">
         <button type="button" id="delete-person" class="danger hidden">Supprimer</button>
         <button type="button" id="invite-person" class="ghost hidden">Inviter par email</button>

@@ -18,6 +18,7 @@ let membersList = [];       // annuaire des membres (choix du partenaire)
 let invitationsUsed = 0;    // invitations déjà utilisées cette saison d'été
 let pending = null;         // créneau en cours de réservation
 let dayBookings = [];       // réservations du jour affiché (pour vérifier l'adjacence)
+let myCredit = 0;           // solde de crédit prépayé de l'utilisateur connecté
 
 // ---- Réglages ----
 async function loadSettings() {
@@ -75,8 +76,17 @@ if (me) {
 }
 await loadSettings();
 if (me && isMember) await loadMemberData();
+if (me) await refreshCredit();
 initUI();
 loadDay();
+
+async function refreshCredit() {
+  const { data } = await sb.rpc("wallet_my_balance");
+  myCredit = Number(data ?? 0);
+  const tag = $("credit-tag");
+  tag.textContent = `Crédit : ${myCredit} CHF`;
+  tag.classList.remove("hidden");
+}
 
 async function loadMemberData() {
   const { data: mem } = await sb.rpc("list_members");
@@ -314,7 +324,11 @@ async function confirmPartner() {
     partner = { partner_person_id: pid, partner_is_member: true, partner_name: membersList.find((m) => m.person_id === pid)?.full_name || null };
   }
 
-  const { p1, p2 } = slotPrices();
+  const { p1, p2, total } = slotPrices();
+  // Réservation payante → réglée avec le crédit prépayé
+  if (total > 0 && myCredit < total)
+    return fail(err, `Crédit insuffisant (solde ${myCredit} CHF). Rechargez votre crédit à l'accueil.`);
+
   const mkRow = (h, price) => ({
     court_id: court.id, booking_date: date,
     start_time: pad(h) + ":15:00", end_time: pad(h + 1) + ":15:00",
@@ -323,8 +337,13 @@ async function confirmPartner() {
   const rows = [mkRow(hour, p1)];
   if (dur === 2) rows.push(mkRow(hour + 1, p2));
 
-  const { error } = await sb.from("court_bookings").insert(rows);
+  const { data: inserted, error } = await sb.from("court_bookings").insert(rows).select("id");
   if (error) return fail(err, error.code === "23P01" ? "Ce créneau vient d'être pris." : error.message);
+  if (total > 0) {
+    const { error: de } = await sb.rpc("wallet_debit", { p_amount: total, p_reason: "Réservation court", p_booking: inserted?.[0]?.id || null });
+    if (de) { await sb.from("court_bookings").delete().in("id", (inserted || []).map((x) => x.id)); return fail(err, `Crédit insuffisant (solde ${myCredit} CHF).`); }
+    await refreshCredit();
+  }
   if (t === "guest") invitationsUsed++;
   closePartner();
   loadDay();

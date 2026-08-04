@@ -123,6 +123,10 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .partner-choice{display:flex;flex-direction:column;gap:8px;margin:12px 0}
 .pc-opt{display:flex;align-items:center;gap:8px;font-size:.95rem;cursor:pointer}
 .pc-opt.pc-disabled{opacity:.45;cursor:not-allowed}
+.credit-tag{background:#e6f2ea;color:#0b6b3a;font-weight:800;font-size:.82rem;padding:5px 12px;border-radius:999px;white-space:nowrap}
+.credit-balance{margin:4px 0 10px;font-size:1.05rem}
+.cr-ledger{margin-top:10px}
+.cr-row{display:flex;justify-content:space-between;gap:10px;font-size:.86rem;padding:5px 0;border-top:1px solid var(--line)}
 #partner-select,#partner-guest-name{width:100%}
 .partner-price{font-weight:800;color:var(--blue-ink);margin:14px 0 6px}
 .rslot.rfree{background:#eef1f7;color:#aeb6c6;cursor:pointer;user-select:none}

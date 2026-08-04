@@ -65,6 +65,7 @@ async function init(roles) {
   $("delete-person").addEventListener("click", deletePerson);
   $("invite-person").addEventListener("click", invitePerson);
   $("fam-add-btn").addEventListener("click", addFamily);
+  $("cr-add-btn").addEventListener("click", rechargeCredit);
   $("search").addEventListener("input", renderRows);
   document.querySelectorAll(".side-item[data-view]").forEach((b) =>
     b.addEventListener("click", () => showView(b.dataset.view)));
@@ -618,8 +619,34 @@ function openPerson(p) {
   $("p-active").checked = p ? p.is_active : true;
   $("p-notes").value = p?.notes || "";
   $("family-section").classList.toggle("hidden", !p);
-  if (p) { populateFamPersons(p.id); loadFamily(p.id); }
+  $("credit-section").classList.toggle("hidden", !p);
+  if (p) { populateFamPersons(p.id); loadFamily(p.id); loadCredit(p.id); }
   $("person-modal").classList.remove("hidden");
+}
+
+async function loadCredit(personId) {
+  $("cr-amount").value = ""; $("cr-reason").value = "";
+  const [{ data: bal }, { data: led }] = await Promise.all([
+    sb.rpc("wallet_balance", { p_person: personId }),
+    sb.from("wallet_ledger").select("amount,reason,created_at").eq("person_id", personId).order("created_at", { ascending: false }).limit(12),
+  ]);
+  $("cr-balance").textContent = `${Number(bal ?? 0)} CHF`;
+  const rows = led || [];
+  $("cr-ledger").innerHTML = rows.length ? rows.map((r) =>
+    `<div class="cr-row"><span>${(r.created_at || "").slice(0, 10)} · ${esc(r.reason || "")}</span>
+      <b style="color:${r.amount >= 0 ? "#0b6b3a" : "#b3261e"}">${r.amount >= 0 ? "+" : ""}${r.amount}</b></div>`).join("")
+    : '<p class="muted" style="font-size:.85rem;margin:6px 0 0">Aucun mouvement.</p>';
+}
+
+async function rechargeCredit() {
+  const id = $("p-id").value; if (!id) return;
+  const amount = Number($("cr-amount").value);
+  if (!amount || amount <= 0) { alert("Montant invalide."); return; }
+  const { error } = await sb.from("wallet_ledger").insert({
+    person_id: id, amount, reason: $("cr-reason").value.trim() || "Recharge", created_by: meId,
+  });
+  if (error) { alert("Recharge impossible : " + error.message); return; }
+  loadCredit(id);
 }
 
 function populateFamPersons(selfId) {
