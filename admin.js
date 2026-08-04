@@ -681,8 +681,13 @@ function openPerson(p) {
   $("family-section").classList.toggle("hidden", !p);
   $("credit-section").classList.toggle("hidden", !p);
   if (p) { populateFamPersons(p.id); loadFamily(p.id); loadCredit(p.id); }
+  const roles = p ? (peopleRoles[p.id] || []) : [];
+  // Onglet Réservations : visible si membre/client (ou si des résas existent — persistance)
+  const resaByRole = roles.includes("membre") || roles.includes("client");
+  showPersonTab("resa", resaByRole);
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
+  if (p) loadReservations(p.id, resaByRole); else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; }
   $("person-modal").classList.remove("hidden");
 }
 
@@ -690,8 +695,64 @@ function openPerson(p) {
 function setPersonTab(tab) {
   document.querySelectorAll("#p-tabs .ptab").forEach((b) =>
     b.classList.toggle("active", b.dataset.ptab === tab));
-  $("ptab-info").classList.toggle("hidden", tab !== "info");
-  $("ptab-obj").classList.toggle("hidden", tab !== "obj");
+  document.querySelectorAll("#person-modal .ptab-panel").forEach((p) =>
+    p.classList.toggle("hidden", p.id !== `ptab-${tab}`));
+}
+function showPersonTab(tab, show) {
+  const btn = document.querySelector(`#p-tabs .ptab[data-ptab="${tab}"]`);
+  if (btn) btn.classList.toggle("hidden", !show);
+}
+
+// ---- Réservations d'une personne ----
+function seasonOf(d) {
+  const dt = new Date(d), m = dt.getMonth() + 1, day = dt.getDate();
+  const ete = (m > 4 && m < 10) || (m === 4 && day >= 15) || (m === 10 && day < 15);
+  return ete ? "ete" : "hiver";
+}
+async function loadReservations(personId, showByRole) {
+  const list = $("resa-list"), stats = $("resa-stats");
+  // Compte lié à la personne (les comptes membres ne sont pas encore câblés → repli sur partenaire)
+  let userId = null;
+  try {
+    const { data: prof } = await sb.from("profiles").select("user_id").eq("person_id", personId).maybeSingle();
+    if (prof) userId = prof.user_id;
+  } catch (_) {}
+  let q = sb.from("court_bookings")
+    .select("booking_date,start_time,end_time,price_chf,kind,title,partner_person_id,booked_by,courts(name)")
+    .order("booking_date", { ascending: false }).order("start_time", { ascending: false });
+  q = userId ? q.or(`booked_by.eq.${userId},partner_person_id.eq.${personId}`)
+             : q.eq("partner_person_id", personId);
+  const { data, error } = await q;
+  const rows = error ? [] : (data || []);
+  showPersonTab("resa", showByRole || rows.length > 0);
+  if (error) { stats.innerHTML = ""; list.innerHTML = `<p class="obj-empty">Erreur : ${esc(error.message)}</p>`; return; }
+  if (!rows.length) { stats.innerHTML = ""; list.innerHTML = `<p class="obj-empty">Aucune réservation.</p>`; return; }
+  // Stats par année + saison
+  const agg = {};
+  for (const b of rows) {
+    const y = (b.booking_date || "").slice(0, 4);
+    const s = seasonOf(b.booking_date);
+    const key = `${y}|${s}`;
+    (agg[key] = agg[key] || { count: 0, sum: 0 });
+    agg[key].count++; agg[key].sum += Number(b.price_chf || 0);
+  }
+  const keys = Object.keys(agg).sort().reverse();
+  stats.innerHTML = keys.map((k) => {
+    const [y, s] = k.split("|");
+    const a = agg[k];
+    const lbl = s === "ete" ? "Été" : "Hiver";
+    return `<div class="resa-stat"><div class="resa-stat-h">${y} · ${lbl}</div>
+      <div class="resa-stat-n">${a.count} résa${a.count > 1 ? "s" : ""}</div>
+      <div class="resa-stat-s">${a.sum.toFixed(2)} CHF</div></div>`;
+  }).join("");
+  list.innerHTML = rows.map((b) => {
+    const d = b.booking_date ? new Date(b.booking_date).toLocaleDateString("fr-CH", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+    const h = `${(b.start_time || "").slice(0, 5)}–${(b.end_time || "").slice(0, 5)}`;
+    const court = b.courts?.name || "Court";
+    const price = b.price_chf != null ? `${Number(b.price_chf).toFixed(2)} CHF` : "—";
+    return `<div class="resa-row"><span class="resa-d">${d}</span><span class="resa-h">${h}</span>
+      <span class="resa-c">${esc(court)}</span><span class="resa-p">${price}</span></div>`;
+  }).join("");
 }
 
 // ---- Objectifs ----
