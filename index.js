@@ -82,30 +82,48 @@ const WORLDS = {
     slogan: "Grandir. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
     hero: "assets/webflow/hero-academy.webp",
-    cta: [{ label: "Nos stages", type: "stages" }, { label: "Nous contacter", type: "contact", source: "Academy — Contact" }],
+    cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Nous contacter", type: "contact", source: "Academy — Contact" }],
     sections: [
-      { type: "rich", title: "Notre philosophie", body: [
+      { type: "rich", anchor: "philosophie", title: "Notre philosophie", body: [
         "Team Lausanne propose un encadrement complet du tennis, adapté à chaque âge et à chaque niveau de jeu.",
         "Nous accompagnons le développement de chaque joueuse et joueur, de l'initiation jusqu'à la compétition professionnelle, au sein d'une véritable pyramide de formation.",
       ]},
+      { type: "pyramid", title: "Notre stratégie de formation",
+        sub: "Une progression par sélection, où chacun trouve sa place — l'âge n'est pas un frein.",
+        levels: [
+          { name: "Pro · NCAA (USA) · Formation coach", meta: "dès 18 ans", href: "#pro" },
+          { name: "Sport-études & Pro U18", meta: "places limitées", href: "#sport-etudes" },
+          { name: "Performance", meta: "≈ 12–15 ans · 8 places", href: "#performance" },
+          { name: "Compétition", meta: "≈ 10–13 ans · 16 places", href: "#competition" },
+          { name: "KidsTennis", meta: "4–10 ans · ouvert à tous", href: "#kids" },
+        ],
+        note: "L'âge n'est qu'un repère : la progression s'adapte à chacun, à 1–2 ans près, comme une évolution. Les joueuses et joueurs qui ne rejoignent pas une filière sélective poursuivent en Club." },
       { type: "carousel", anchor: "programmes", eyebrow: "Cours pour tous", title: "Un programme pour chaque niveau",
-        sub: "Du premier échange à la compétition, un parcours clair pour progresser avec plaisir.",
+        sub: "Du premier échange à la performance, un parcours clair pour progresser avec plaisir.",
         items: [
           { name: "KidsTennis", photo: "assets/webflow/prog-kids.webp", href: "#kids" },
+          { name: "Compétition", photo: "assets/webflow/prog-competition.webp", href: "#competition" },
+          { name: "Performance", photo: "assets/webflow/prog-performance.webp", href: "#performance" },
           { name: "Sport-études", photo: "assets/webflow/sport-studies.jpg", href: "#sport-etudes" },
-          { name: "Pro U18 & Pro", photo: "assets/webflow/prog-performance.webp", href: "#pro" },
-          { name: "Compétition", photo: "assets/webflow/prog-competition.webp" },
-          { name: "Loisir / Club", photo: "assets/webflow/prog-club.webp" },
+          { name: "Pro U18", photo: "assets/webflow/coaching-technique.jpg", href: "#pro-u18" },
+          { name: "Pro", photo: "assets/webflow/physical-training.jpg", href: "#pro" },
           { name: "Game Zone", photo: "assets/webflow/event-gamezone.webp", href: "#gamezone" },
           { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "#stages" },
         ]},
-      { type: "coaches", anchor: "coaches", title: "Notre équipe de coachs", items: [
-        { name: "Mariano Palena", role: "Head Coach", photo: "assets/webflow/coach-mariano.jpg" },
-        { name: "Yann Perez", role: "Coach", photo: "assets/webflow/coach-yann.jpg" },
-        { name: "Loris Gander", role: "Coach", photo: "assets/webflow/coach-loris.jpg" },
-        { name: "Séline Rivarolli", role: "Coach jeunesse", photo: "assets/webflow/coach-seline.jpg" },
-        { name: "Talia Picci", role: "Coach junior", photo: "assets/webflow/coach-talia.jpg" },
-      ]},
+      { type: "team", title: "Team Compétition & Performance",
+        sub: "Nos jeunes des filières sélectives Compétition et Performance (photos et noms à venir).", count: 20 },
+      { type: "team", title: "Team Sport-études, Pro & Pro U18",
+        sub: "Nos joueuses et joueurs des filières élite (photos et noms à venir).", count: 15 },
+      { type: "coaches", anchor: "coaches", title: "Notre équipe de coachs",
+        sub: "Certains de nos coachs proposent des <b>cours privés</b> — contactez-les directement.",
+        note: "Numéros de téléphone à compléter.",
+        items: [
+          { name: "Mariano Palena", role: "Head Coach", photo: "assets/webflow/coach-mariano.jpg", private: true },
+          { name: "Yann Perez", role: "Coach", photo: "assets/webflow/coach-yann.jpg", private: true },
+          { name: "Loris Gander", role: "Coach", photo: "assets/webflow/coach-loris.jpg", private: true },
+          { name: "Séline Rivarolli", role: "Coach jeunesse", photo: "assets/webflow/coach-seline.jpg" },
+          { name: "Talia Picci", role: "Coach junior", photo: "assets/webflow/coach-talia.jpg" },
+        ]},
     ],
   },
 
@@ -240,18 +258,51 @@ const DETAILS = {
       { type: "rich", title: "Et après ?", body: [
         "Le programme développe autonomie, discipline et gestion du temps.",
         "Débouchés : université suisse, institutions américaines (NCAA) ou carrière tennistique professionnelle.",
-      ], note: "Dès 21'600 CHF / année (10 mensualités possibles), repas de midi inclus." },
+      ], note: "Repas de midi inclus.", link: { label: "Nous contacter", contact: "Sport-études" } },
       { type: "gallery", items: ["assets/photos/p6.jpg", "assets/photos/coach3.jpg"] },
     ],
   },
-  pro: {
-    world: "academie", title: "Pro U18 & Pro", subtitle: "Le grand saut vers le circuit professionnel",
-    hero: "assets/photos/coach2.jpg",
+  competition: {
+    world: "academie", title: "Compétition", subtitle: "L'entrée en compétition, dès ~10 ans",
+    hero: "assets/webflow/prog-competition.webp",
     sections: [
-      { type: "stats", items: [["46", "semaines en Suisse"], ["15", "tournois / an"], ["2×", "sessions / jour"], ["dès 34 800.–", "CHF / an"]] },
-      { type: "offers", title: "Deux programmes", items: [
-        { name: "Pro U18", meta: "après la scolarité", detail: "Deux entraînements par jour et 15 semaines par an sur le circuit ITF junior pour monter dans la hiérarchie mondiale." },
-        { name: "Pro", meta: "circuit ITF / ATP", detail: "Viser les points ATP, participer activement au circuit ITF et progresser au classement mondial." },
+      { type: "rich", title: "Entrer en compétition", body: [
+        "La filière Compétition accueille les jeunes d'environ 10 à 13 ans qui veulent se mesurer aux autres et progresser dans un cadre encadré.",
+        "16 places par sélection. L'âge reste un simple repère : celles et ceux qui ne rejoignent pas la filière poursuivent en Club.",
+      ]},
+      { type: "features", title: "Le programme", items: [
+        ["≈ 10–13 ans", "Filière sélective, 16 places."],
+        ["Encadrement", "Entraînements réguliers en petits groupes de niveau."],
+        ["Compétition", "Tournois juniors et GameZone tout au long de la saison."],
+        ["Progression", "Passerelle naturelle vers la filière Performance."],
+      ], link: { label: "Nous contacter", contact: "Compétition" } },
+      { type: "gallery", items: ["assets/webflow/prog-competition.webp", "assets/photos/kids2.jpg"] },
+    ],
+  },
+  performance: {
+    world: "academie", title: "Performance", subtitle: "La filière élite junior, ~12–15 ans",
+    hero: "assets/webflow/prog-performance.webp",
+    sections: [
+      { type: "rich", title: "Viser le meilleur niveau", body: [
+        "La filière Performance s'adresse aux jeunes d'environ 12 à 15 ans prêts à s'investir davantage. Elle se chevauche avec la Compétition : l'âge n'est pas un frein, c'est une évolution qui s'adapte à 1–2 ans près.",
+        "8 places par sélection. Les autres poursuivent en Club ou en Compétition.",
+      ]},
+      { type: "features", title: "Le programme", items: [
+        ["≈ 12–15 ans", "Filière élite, 8 places."],
+        ["Volume", "Charge d'entraînement renforcée, physique intégré."],
+        ["Suivi", "Encadrement rapproché et planification individualisée."],
+        ["Objectif", "Accès au Sport-études et à la voie Pro U18."],
+      ], link: { label: "Nous contacter", contact: "Performance" } },
+      { type: "gallery", items: ["assets/webflow/prog-performance.webp", "assets/photos/coach1.jpg"] },
+    ],
+  },
+  "pro-u18": {
+    world: "academie", title: "Pro U18", subtitle: "Après la scolarité, viser le circuit ITF junior",
+    hero: "assets/webflow/coaching-technique.jpg",
+    sections: [
+      { type: "rich", title: "Monter dans la hiérarchie mondiale", body: [
+        "Après la scolarité obligatoire, le programme Pro U18 permet de s'entraîner à plein temps tout en participant au circuit ITF junior.",
+        "Cinq semaines de tournois à l'étranger par an, deux entraînements quotidiens et un suivi rapproché pour progresser au classement mondial.",
       ]},
       { type: "features", title: "Une journée type", items: [
         ["09h00–10h00", "Préparation physique (mercredi : 14h–16h)."],
@@ -259,16 +310,30 @@ const DETAILS = {
         ["13h15–15h15", "Tennis, session de l'après-midi."],
         ["Suivi", "Rapports bihebdomadaires et planification annuelle."],
       ]},
-      { type: "features", title: "Services inclus", items: [
-        ["Médical & physio", "Suivi médical, physiothérapie et tests physiques réguliers."],
-        ["Préparation mentale", "Un accompagnement mental intégré au programme."],
+      { type: "features", title: "Ce qui est inclus", items: [
+        ["Médical & physio", "Suivi médical, physiothérapie et tests réguliers."],
+        ["Préparation mentale", "Un accompagnement mental intégré."],
         ["Cordage & équipement", "Cordages et vêtements fournis."],
-        ["Repas", "Repas de midi du lundi au vendredi."],
+        ["Tournois", "5 semaines de tournois à l'étranger par an."],
+      ], link: { label: "Nous contacter", contact: "Pro U18" } },
+      { type: "gallery", items: ["assets/photos/coach3.jpg", "assets/webflow/physical-training.jpg"] },
+    ],
+  },
+  pro: {
+    world: "academie", title: "Pro", subtitle: "Un accompagnement sur mesure vers le circuit professionnel",
+    hero: "assets/photos/coach2.jpg",
+    sections: [
+      { type: "rich", title: "Du sur-mesure", body: [
+        "Au niveau professionnel, il n'y a pas d'offre standard : chaque joueuse et joueur bénéficie d'un programme entièrement personnalisé.",
+        "L'encadrement s'adapte aux déplacements à l'étranger, au calendrier de tournois, aux objectifs de classement et au projet de chacun — entraînement, préparation physique et mentale, physiothérapie, logistique.",
+      ], link: { label: "Nous contacter", contact: "Pro" } },
+      { type: "features", title: "Ce que nous adaptons", items: [
+        ["Calendrier", "Programme construit autour de vos tournois et déplacements."],
+        ["Encadrement", "Coach référent, physique, mental et physio selon les besoins."],
+        ["Objectifs", "Points ATP/WTA, classement, préparation de saison."],
+        ["Flexibilité", "Sessions ajustées à votre rythme et vos absences."],
       ]},
-      { type: "rich", title: "Accessible à tous les talents", body: [
-        "Des solutions de soutien financier existent pour permettre aux jeunes de réaliser leurs ambitions sportives.",
-      ], note: "Forfait dès 34'800 CHF / an. Option heures privées : 2'800 CHF (80 CHF/h sur 35 semaines). Frais à l'étranger à charge du joueur." },
-      { type: "gallery", items: ["assets/photos/coach3.jpg", "assets/photos/p2.jpg"] },
+      { type: "gallery", items: ["assets/photos/coach2.jpg", "assets/photos/open-serve.jpg"] },
     ],
   },
   kids: {
@@ -474,11 +539,36 @@ function sectionHTML(sec) {
         <div class="ig-grid">${(sec.photos || []).map((src) =>
           `<a class="ig-cell" href="https://instagram.com/${esc(sec.handle)}" target="_blank" rel="noopener" style="background-image:url('${src}')"></a>`).join("")}</div></section>`;
 
+    case "pyramid":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        ${sec.sub ? `<p class="wsec-sub">${esc(sec.sub)}</p>` : ""}
+        <div class="pyramid">${sec.levels.map((l, i) => {
+          const w = sec.levels.length > 1 ? 46 + i * (54 / (sec.levels.length - 1)) : 100;
+          const inner = `<b>${esc(l.name)}</b><span>${esc(l.meta)}</span>`;
+          return l.href
+            ? `<a class="pyr-level" href="${esc(l.href)}" style="width:${w}%">${inner}<span class="pyr-arrow">↗</span></a>`
+            : `<div class="pyr-level" style="width:${w}%">${inner}</div>`;
+        }).join("")}</div>
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
+
+    case "team": {
+      const n = sec.count || (sec.items ? sec.items.length : 0);
+      const av = '<div class="coach-photo ph-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="8.5" r="3.7"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></div>';
+      const tiles = Array.from({ length: n }, () => `<figure class="coach team-ph">${av}<figcaption><b>À venir</b><span>Team member</span></figcaption></figure>`).join("");
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        ${sec.sub ? `<p class="wsec-sub">${esc(sec.sub)}</p>` : ""}
+        <div class="coach-grid">${tiles}</div></section>`;
+    }
+
     case "coaches":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        ${sec.sub ? `<p class="wsec-sub">${sec.sub}</p>` : ""}
         <div class="coach-grid">${sec.items.map((c) =>
           `<figure class="coach"><div class="coach-photo" style="background-image:url('${c.photo}')"></div>
-            <figcaption><b>${esc(c.name)}</b><span>${esc(c.role)}</span></figcaption></figure>`).join("")}</div></section>`;
+            <figcaption><b>${esc(c.name)}</b><span>${esc(c.role)}</span>
+              ${c.private ? `<span class="coach-priv">Cours privés · ${c.phone ? `<a href="tel:${esc(c.phone.replace(/\s/g, ""))}">${esc(c.phone)}</a>` : "sur demande"}</span>` : ""}
+            </figcaption></figure>`).join("")}</div>
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
 
     case "gallery":
       return `<section class="wsec"><div class="gallery">${sec.items.map((it) => {
@@ -656,6 +746,7 @@ document.addEventListener("click", (e) => {
     const t = cta.dataset.cta;
     if (t === "login") memberAction();
     else if (t === "stages") location.hash = "stages";
+    else if (t === "gamezone") location.hash = "gamezone";
     return;
   }
   const scroll = e.target.closest("[data-scroll]");
