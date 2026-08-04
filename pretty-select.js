@@ -138,11 +138,10 @@ function scan(root = document) {
 // Embellit l'existant + tout <select> ajouté dynamiquement (tableaux, modales…)
 function init() {
   scan();
-  let pending = false;
+  let t = null;
   const obs = new MutationObserver(() => {
-    if (pending) return;
-    pending = true;
-    requestAnimationFrame(() => { pending = false; scan(); });
+    if (t) return;
+    t = setTimeout(() => { t = null; scan(); }, 50);
   });
   obs.observe(document.body, { childList: true, subtree: true });
 }
