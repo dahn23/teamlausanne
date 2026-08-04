@@ -94,6 +94,15 @@ button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
 .rcell.corner{background:transparent}
 .rhead{background:#eef1f7;font-weight:800;color:var(--blue-ink);position:sticky;top:0;z-index:2;
   flex-direction:column;line-height:1.05;font-style:italic}
+/* Couleur = surface du court (bande basse discrète) */
+.rhead.sfc-terre{background:#fdeee0;box-shadow:inset 0 -3px 0 #e0872f}
+.rhead.sfc-gazon{background:#e7f5e9;box-shadow:inset 0 -3px 0 #46a555}
+.rhead.sfc-dur{background:#e6eefc;box-shadow:inset 0 -3px 0 #2f5fd0}
+.rhead .cn-short{display:none}
+@media(max-width:640px){
+  .rhead .cn-full{display:none}
+  .rhead .cn-short{display:inline;font-size:.9rem}
+}
 .rhour{background:#eef1f7;color:var(--muted);font-weight:700;position:sticky;left:0;z-index:1;font-size:.72rem}
 .rslot{cursor:pointer;transition:outline .1s}
 .rslot.creuse{background:#bcd3ff;color:#0f2050}

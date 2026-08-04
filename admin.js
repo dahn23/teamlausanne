@@ -239,7 +239,14 @@ function drawResaGrid(date, bookings) {
   grid.style.gridTemplateColumns = `64px repeat(${resaCourts.length}, minmax(74px,1fr))`;
   grid.innerHTML = "";
   grid.appendChild(rcell("", "rcell corner"));
-  for (const c of resaCourts) grid.appendChild(rcell(c.name.replace("Court ", "C"), "rcell rhead"));
+  for (const c of resaCourts) {
+    const el = document.createElement("div");
+    el.className = "rcell rhead " + surfaceClass(c.surface);
+    const n = c.name.replace("Court ", "");
+    el.innerHTML = `<span class="cn-full">Court&nbsp;${n}</span><span class="cn-short">${n}</span>`;
+    el.title = `${c.name} · ${c.surface}`;
+    grid.appendChild(el);
+  }
 
   for (let h = 8; h <= 21; h++) {
     grid.appendChild(rcell(pad2(h) + ":15", "rcell rhour"));
@@ -268,6 +275,7 @@ function drawResaGrid(date, bookings) {
 
 const kindLabel = (k) => ({ cours: "Cours", tournoi: "Tournoi", maintenance: "Maintenance", libre: "Réservé" }[k] || "Réservé");
 function rcell(text, cls) { const el = document.createElement("div"); el.className = cls; el.textContent = text; return el; }
+function surfaceClass(s) { return /terre/i.test(s) ? "sfc-terre" : /gazon|synth/i.test(s) ? "sfc-gazon" : "sfc-dur"; }
 
 // ---- Sélection à la souris ----
 function startDrag(court, h) { drag = { court, h1: h, h2: h }; paintDrag(); }

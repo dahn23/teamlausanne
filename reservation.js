@@ -158,9 +158,16 @@ function drawGrid(date, season, bookings) {
   grid.style.gridTemplateColumns = `64px repeat(${courts.length}, minmax(72px,1fr))`;
   grid.innerHTML = "";
 
-  // en-tête : coin + noms de courts
+  // en-tête : coin + noms de courts (couleur = surface)
   grid.appendChild(cell("", "rcell corner"));
-  for (const c of courts) grid.appendChild(cell(c.name.replace("Court ", "C"), "rcell rhead", c.surface));
+  for (const c of courts) {
+    const el = document.createElement("div");
+    el.className = "rcell rhead " + surfaceClass(c.surface);
+    const n = c.name.replace("Court ", "");
+    el.innerHTML = `<span class="cn-full">Court&nbsp;${n}</span><span class="cn-short">${n}</span>`;
+    el.title = `${c.name} · ${c.surface}`;
+    grid.appendChild(el);
+  }
 
   for (const h of hours) {
     grid.appendChild(cell(pad(h) + ":15", "rcell rhour"));
@@ -189,6 +196,9 @@ function drawGrid(date, season, bookings) {
   }
 }
 
+function surfaceClass(s) {
+  return /terre/i.test(s) ? "sfc-terre" : /gazon|synth/i.test(s) ? "sfc-gazon" : "sfc-dur";
+}
 function cell(text, cls, title) {
   const el = document.createElement("div");
   el.className = cls;
