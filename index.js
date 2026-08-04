@@ -676,3 +676,11 @@ document.addEventListener("click", (e) => {
 
 window.addEventListener("hashchange", route);
 route();
+
+// Arrivée depuis une autre page avec ?at=<ancre> : défiler vers la section.
+(() => {
+  const at = new URLSearchParams(location.search).get("at");
+  if (!at) return;
+  requestAnimationFrame(() => document.querySelector(`[data-anchor="${at}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  history.replaceState(null, "", location.pathname + location.hash);
+})();
