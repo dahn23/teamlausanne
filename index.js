@@ -82,7 +82,7 @@ const WORLDS = {
     slogan: "Grandir. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
     hero: "assets/webflow/hero-academy.webp",
-    cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Nous contacter", type: "contact", source: "Academy — Contact" }],
+    cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Nous contacter", type: "contact", source: "Renseignement pour l'Academy" }],
     sections: [
       { type: "rich", anchor: "philosophie", title: "Notre philosophie", body: [
         "Team Lausanne propose un encadrement complet du tennis, adapté à chaque âge et à chaque niveau de jeu, au sein d'une véritable pyramide de formation.",
@@ -238,7 +238,7 @@ const DETAILS = {
           { name: "Loisirs ½ journée", age: "9 à 18 ans", lines: ["9h00–12h00 ou 14h00–17h00", "1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "290 CHF" },
           { name: "Entraîne-toi comme un pro", age: "10 à 19 ans · dès R7", lines: ["9h00–17h00", "4h de tennis + 1h30 physique + 1h d'activité", "Repas inclus · option privé +240 CHF (3h)"], price: "790 CHF", pro: true },
           { name: "Stage adultes", age: "18 ans et +", lines: ["18h15–19h45 · semaines 4, 5 et 9", "1h30 de tennis par jour"], price: "240 CHF" },
-        ]},
+        ], link: { label: "Une question ? Nous écrire", contact: "Renseignement pour les stages" } },
       { type: "stageform", title: "Réserve ta place" },
     ],
   },
@@ -260,7 +260,7 @@ const DETAILS = {
       { type: "rich", title: "Et après ?", body: [
         "Le programme développe autonomie, discipline et gestion du temps.",
         "Débouchés : université suisse, institutions américaines (NCAA) ou carrière tennistique professionnelle.",
-      ], note: "Repas de midi inclus.", link: { label: "Nous contacter", contact: "Sport-études" } },
+      ], note: "Repas de midi inclus.", link: { label: "Nous écrire", contact: "Renseignement pour l'Academy" } },
       { type: "gallery", items: ["assets/photos/p6.jpg", "assets/photos/coach3.jpg"] },
     ],
   },
@@ -277,7 +277,7 @@ const DETAILS = {
         ["Encadrement", "Entraînements réguliers en petits groupes de niveau."],
         ["Compétition", "Tournois juniors et GameZone tout au long de la saison."],
         ["Progression", "Passerelle naturelle vers la filière Performance."],
-      ], link: { label: "Nous contacter", contact: "Compétition" } },
+      ], link: { label: "Nous écrire", contact: "Cours juniors" } },
       { type: "gallery", items: ["assets/webflow/prog-competition.webp", "assets/photos/kids2.jpg"] },
     ],
   },
@@ -294,7 +294,7 @@ const DETAILS = {
         ["Volume", "Charge d'entraînement renforcée, physique intégré."],
         ["Suivi", "Encadrement rapproché et planification individualisée."],
         ["Objectif", "Accès au Sport-études et à la voie Pro U18."],
-      ], link: { label: "Nous contacter", contact: "Performance" } },
+      ], link: { label: "Nous écrire", contact: "Cours juniors" } },
       { type: "gallery", items: ["assets/webflow/prog-performance.webp", "assets/photos/coach1.jpg"] },
     ],
   },
@@ -317,7 +317,7 @@ const DETAILS = {
         ["Préparation mentale", "Un accompagnement mental intégré."],
         ["Cordage & équipement", "Cordages et vêtements fournis."],
         ["Tournois", "5 semaines de tournois à l'étranger par an."],
-      ], link: { label: "Nous contacter", contact: "Pro U18" } },
+      ], link: { label: "Nous écrire", contact: "Renseignement pour l'Academy" } },
       { type: "gallery", items: ["assets/photos/coach3.jpg", "assets/webflow/physical-training.jpg"] },
     ],
   },
@@ -328,7 +328,7 @@ const DETAILS = {
       { type: "rich", title: "Du sur-mesure", body: [
         "Au niveau professionnel, il n'y a pas d'offre standard : chaque joueuse et joueur bénéficie d'un programme entièrement personnalisé.",
         "L'encadrement s'adapte aux déplacements à l'étranger, au calendrier de tournois, aux objectifs de classement et au projet de chacun — entraînement, préparation physique et mentale, physiothérapie, logistique.",
-      ], link: { label: "Nous contacter", contact: "Pro" } },
+      ], link: { label: "Nous écrire", contact: "Renseignement pour l'Academy" } },
       { type: "features", title: "Ce que nous adaptons", items: [
         ["Calendrier", "Programme construit autour de vos tournois et déplacements."],
         ["Encadrement", "Coach référent, physique, mental et physio selon les besoins."],
@@ -351,7 +351,7 @@ const DETAILS = {
         ["Matériel adapté", "Raquettes et balles évolutives (rouge, orange, vert)."],
         ["Petits groupes", "Un encadrement de proximité pour chaque enfant."],
         ["Progression", "Un parcours clair vers la compétition et la Game Zone."],
-      ]},
+      ], link: { label: "Nous écrire", contact: "Cours juniors" } },
       { type: "offers", title: "KidsTennis en stage", items: [
         { name: "Stage KidsTennis", meta: "4–9 ans", detail: "Le matin, 9h–12h : 1h30 de tennis + 1h30 d'activité. 250 CHF / semaine." },
       ], note: "–20 % dès la 2ᵉ semaine ou pour plusieurs enfants d'une même famille." },
@@ -511,7 +511,8 @@ function sectionHTML(sec) {
           `<div class="formula${f.pro ? " formula-pro" : ""}"><h3>${esc(f.name)}</h3>
             <div class="formula-age">${esc(f.age)}</div>
             <ul>${f.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>
-            <div class="formula-price">${esc(f.price)}</div></div>`).join("")}</div></section>`;
+            <div class="formula-price">${esc(f.price)}</div></div>`).join("")}</div>
+        ${linkHTML(sec.link)}</section>`;
 
     case "stageform":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>

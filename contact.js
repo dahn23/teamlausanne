@@ -5,22 +5,23 @@ import { sb } from "./common.js";
 const $ = (id) => document.getElementById(id);
 
 // Présélection du sujet selon d'où vient la personne (?src=…)
-const src = (new URLSearchParams(location.search).get("src") || "").toLowerCase();
+const rawSrc = new URLSearchParams(location.search).get("src") || "";
+const src = rawSrc.toLowerCase();
+const options = [...$("c-subject").options].map((o) => o.value);
 const map = [
+  [/stage/, "Renseignement pour les stages"],
   [/partenaire|sponsor|privatis/, "Sponsoring & partenariat"],
   [/président|president/, "Club des Présidents"],
   [/vip|lunch/, "Lunch VIP du Lausanne Open"],
-  [/academy|académie/, "Renseignement pour l'Academy"],
-  [/junior|cours/, "Cours juniors"],
+  [/junior|kids|compétition|competition|performance/, "Cours juniors"],
+  [/academy|académie|sport|pro/, "Renseignement pour l'Academy"],
   [/réserv|reserv|court/, "Réservation de courts"],
   [/factur/, "Facturation"],
   [/club/, "Inscription au club"],
 ];
-const preset = (map.find(([re]) => re.test(src)) || [])[1];
-if (preset) {
-  const opt = [...$("c-subject").options].find((o) => o.value === preset);
-  if (opt) $("c-subject").value = preset;
-}
+// D'abord un match exact avec une option, sinon par mots-clés.
+const preset = options.find((v) => v.toLowerCase() === src) || (map.find(([re]) => re.test(src)) || [])[1];
+if (preset && options.includes(preset)) $("c-subject").value = preset;
 
 $("c-form").addEventListener("submit", async (e) => {
   e.preventDefault();
