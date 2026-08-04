@@ -2,6 +2,7 @@
 // Ne lit que des fonctions SECURITY DEFINER exposant nom + victoires + photo
 // (aucune donnée de contact / finance). Photos sans nom (décharge parentale).
 import { sb } from "./common.js";
+import "./pretty-select.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

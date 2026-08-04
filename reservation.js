@@ -2,6 +2,7 @@
 // Courts en colonnes, heures en :15 (08:15 → 21:15). Prix et couleurs
 // (creuse/pleine) calculés depuis les réglages paramétrables (app_settings).
 import { sb, getSession, myRoles, hasAny, STAFF_ROLES } from "./common.js";
+import "./pretty-select.js";
 
 const $ = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, "0");

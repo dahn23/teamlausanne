@@ -1,6 +1,7 @@
 // Page de contact : écrit dans contact_messages (source = sujet choisi).
 // Envoi mail réel vers info@teamlausanne.ch = prod SMTP.
 import { sb } from "./common.js";
+import "./pretty-select.js";
 
 const $ = (id) => document.getElementById(id);
 

@@ -1,5 +1,6 @@
 // Console admin — CRM membres (accès staff uniquement).
 import { sb, requireLogin, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours } from "./common.js";
+import "./pretty-select.js";
 
 const $ = (id) => document.getElementById(id);
 // Petite coupe SVG (remplace l'emoji 🏆 dans les tableaux)

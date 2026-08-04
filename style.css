@@ -417,6 +417,31 @@ label.stg-cat-opt span{font-weight:600}
 #stgp-form input,#stgp-form select,#stgp-form textarea{width:100%;box-sizing:border-box;font-family:inherit}
 /* Cases à cocher / radios : ne PAS les étirer à 100% (sinon le libellé est écrasé) */
 #stgp-form input[type=checkbox],#stgp-form input[type=radio]{width:18px;height:18px;flex:0 0 auto;margin:0;padding:0}
+
+/* ===== Menus déroulants stylés (pretty-select) ===== */
+.ps-wrap{position:relative;width:100%}
+select.ps-native{display:none}
+.ps-trigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font:inherit;font-weight:400;text-align:left;padding:10px 12px;border:1px solid var(--line);
+  border-radius:10px;background:#fff;color:var(--ink);cursor:pointer;line-height:1.3}
+.ps-trigger:hover{border-color:var(--blue)}
+.ps-wrap.open .ps-trigger{border-color:var(--blue);box-shadow:0 0 0 3px rgba(53,99,233,.15)}
+.ps-trigger:disabled{background:#f2f4f8;color:var(--muted);cursor:not-allowed}
+.ps-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps-val.ps-ph{color:#9aa6c4}
+.ps-chevron{flex-shrink:0;color:var(--blue);transition:transform .18s ease}
+.ps-wrap.open .ps-chevron{transform:rotate(180deg)}
+.ps-list{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:80;background:#fff;
+  border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px rgba(20,30,60,.18);
+  padding:6px;max-height:280px;overflow:auto}
+.ps-wrap.ps-up .ps-list{top:auto;bottom:calc(100% + 5px)}
+.ps-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;
+  border-radius:8px;cursor:pointer;font-size:.92rem;color:var(--ink);line-height:1.3}
+.ps-opt:hover,.ps-opt.active{background:#eef3ff}
+.ps-opt.sel{font-weight:700;color:var(--blue-ink)}
+.ps-opt.sel::after{content:"✓";color:var(--blue);font-weight:800}
+.ps-opt.dis{opacity:.45;cursor:default}
+.ps-opt.dis:hover{background:transparent}
 .stg-lbl{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
 .stg-radio{display:inline-flex;align-items:center;gap:6px;margin-right:18px;font-weight:600;font-size:.9rem;
   white-space:nowrap;flex-shrink:0}
