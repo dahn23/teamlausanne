@@ -369,7 +369,7 @@ const DETAILS = {
     hero: "assets/webflow/prog-club.webp",
     sections: [
       { type: "rich", title: "Jouer et progresser, sans pression", body: [
-        "L'offre Club s'adresse à celles et ceux qui veulent jouer 1 heure par semaine toute l'année — débutants comme plus avancés.",
+        "L'offre Club s'adresse à celles et ceux qui veulent jouer 1 ou plusieurs heures par semaine toute l'année — débutants comme plus avancés.",
         "Un entraînement régulier pour progresser à son rythme, avec la possibilité d'ajouter une deuxième séance par semaine.",
       ]},
       { type: "features", title: "L'offre", items: [
@@ -386,8 +386,8 @@ const DETAILS = {
         ["Lundi", "770.–"], ["Mardi", "815.–"], ["Mercredi", "815.–"], ["Jeudi", "790.–"], ["Vendredi", "770.–"],
       ]},
       { type: "features", title: "Et la compétition ?", items: [
-        ["Ponctuelle", "Quelques compétitions au fil de la saison, selon l'envie."],
-        ["Interclubs", "Pour les membres du club, participation aux interclubs."],
+        ["Ponctuelle", "Quelques compétitions au fil de la saison, selon l'envie et sans obligation."],
+        ["Interclubs", "Pour les membres du club, possibilité de participer aux interclubs selon disponibilité."],
       ], link: { label: "Nous écrire", contact: "Cours juniors" } },
     ],
   },
