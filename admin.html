@@ -21,7 +21,7 @@
 
     <div class="admin-body">
       <aside class="side">
-        <button class="side-item active" data-view="membres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="9" cy="7.5" r="3.2"/><path d="M22 19v-1a4 4 0 0 0-3-3.87"/><path d="M16 3.7a4 4 0 0 1 0 7.6"/></svg><span class="side-label">Membres</span></button>
+        <button class="side-item active" data-view="membres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="9" cy="7.5" r="3.2"/><path d="M22 19v-1a4 4 0 0 0-3-3.87"/><path d="M16 3.7a4 4 0 0 1 0 7.6"/></svg><span class="side-label">Répertoire</span></button>
         <button class="side-item" data-view="roles"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"/><path d="M9.2 12l1.9 1.9L15 10"/></svg><span class="side-label">Rôles &amp; accès</span></button>
         <button class="side-item" data-view="resa"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg><span class="side-label">Réservations</span></button>
         <button class="side-item" data-view="cours"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg><span class="side-label">Cours</span></button>
@@ -36,23 +36,29 @@
       <main class="admin-main">
         <!-- ---- Vue Membres (CRM) ---- -->
         <div id="view-membres" class="view">
-          <div class="crm-head">
-            <h1>Membres</h1>
-            <div class="crm-actions">
-              <input id="search" type="search" placeholder="Rechercher…" />
-              <button id="import-people" class="ghost">Importer (Excel)</button>
-              <button id="new-person">+ Nouveau</button>
+          <div id="people-list-wrap">
+            <div class="crm-head">
+              <h1>Répertoire</h1>
+              <div class="crm-actions">
+                <input id="search" type="search" placeholder="Rechercher…" />
+                <button id="import-people" class="ghost">Importer (Excel)</button>
+                <button id="new-person">+ Nouveau</button>
+              </div>
+            </div>
+            <div id="people-filters" class="people-filters"></div>
+            <div class="table-wrap">
+              <table class="crm-table">
+                <thead>
+                  <tr><th>Nom</th><th>Prénom</th><th>Email</th><th>Téléphone</th><th>Naissance</th><th>Rôles</th></tr>
+                </thead>
+                <tbody id="people-rows"></tbody>
+              </table>
+              <p id="empty-msg" class="muted" hidden>Aucune fiche. Cliquez « + Nouveau » pour commencer.</p>
             </div>
           </div>
-          <div id="people-filters" class="people-filters"></div>
-          <div class="table-wrap">
-            <table class="crm-table">
-              <thead>
-                <tr><th>Nom</th><th>Prénom</th><th>Email</th><th>Téléphone</th><th>Naissance</th><th>Rôles</th></tr>
-              </thead>
-              <tbody id="people-rows"></tbody>
-            </table>
-            <p id="empty-msg" class="muted" hidden>Aucune personne. Cliquez « + Nouveau » pour commencer.</p>
+          <!-- Fiche en pleine page (le formulaire y est déplacé au chargement) -->
+          <div id="people-detail" class="hidden">
+            <button type="button" id="close-person" class="ghost stg-back">← Retour au répertoire</button>
           </div>
         </div>
 
@@ -535,10 +541,9 @@
 
   <div id="loader" class="screen center">Chargement…</div>
 
-  <!-- ---- Fiche personne (ajout / édition) ---- -->
-  <div id="person-modal" class="modal hidden">
-    <form id="person-form" class="card wide">
-      <button type="button" id="close-person" class="modal-close" aria-label="Fermer">×</button>
+  <!-- ---- Fiche personne (le <form> est déplacé dans #people-detail au chargement) ---- -->
+  <div id="person-holder" class="hidden">
+    <form id="person-form" class="card person-page">
       <h2 id="person-title">Nouvelle personne</h2>
       <input type="hidden" id="p-id" />
       <div class="ptabs" id="p-tabs">

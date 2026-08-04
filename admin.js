@@ -88,8 +88,9 @@ async function init(roles) {
   $("import-file-btn").addEventListener("click", () => $("import-file").click());
   $("import-file").addEventListener("change", onImportFile);
   $("import-confirm").addEventListener("click", confirmImport);
+  // La fiche s'affiche en pleine page : on déplace le <form> dans #people-detail
+  $("people-detail").appendChild($("person-form"));
   $("close-person").addEventListener("click", closePerson);
-  $("person-modal").addEventListener("click", (e) => { if (e.target === $("person-modal")) closePerson(); });
   $("person-form").addEventListener("submit", savePerson);
   $("delete-person").addEventListener("click", deletePerson);
   $("invite-person").addEventListener("click", invitePerson);
@@ -854,14 +855,16 @@ function openPerson(p) {
   loadMedia(p ? p.id : null);
   if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); }
   else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; }
-  $("person-modal").classList.remove("hidden");
+  $("people-list-wrap").classList.add("hidden");
+  $("people-detail").classList.remove("hidden");
+  window.scrollTo(0, 0);
 }
 
 // ---- Onglets de la fiche ----
 function setPersonTab(tab) {
   document.querySelectorAll("#p-tabs .ptab").forEach((b) =>
     b.classList.toggle("active", b.dataset.ptab === tab));
-  document.querySelectorAll("#person-modal .ptab-panel").forEach((p) =>
+  document.querySelectorAll("#person-form .ptab-panel").forEach((p) =>
     p.classList.toggle("hidden", p.id !== `ptab-${tab}`));
 }
 function showPersonTab(tab, show) {
@@ -2421,7 +2424,10 @@ async function copyWeek() {
 }
 function failC(el, msg) { el.textContent = msg; el.hidden = false; }
 
-function closePerson() { $("person-modal").classList.add("hidden"); }
+function closePerson() {
+  $("people-detail").classList.add("hidden");
+  $("people-list-wrap").classList.remove("hidden");
+}
 
 async function savePerson(e) {
   e.preventDefault();
