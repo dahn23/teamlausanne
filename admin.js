@@ -711,18 +711,11 @@ function seasonOf(d) {
 }
 async function loadReservations(personId, showByRole) {
   const list = $("resa-list"), stats = $("resa-stats");
-  // Compte lié à la personne (les comptes membres ne sont pas encore câblés → repli sur partenaire)
-  let userId = null;
-  try {
-    const { data: prof } = await sb.from("profiles").select("user_id").eq("person_id", personId).maybeSingle();
-    if (prof) userId = prof.user_id;
-  } catch (_) {}
-  let q = sb.from("court_bookings")
+  // booked_by = la personne concernée ; partner_person_id = quand elle est l'invitée/partenaire
+  const { data, error } = await sb.from("court_bookings")
     .select("booking_date,start_time,end_time,price_chf,kind,title,partner_person_id,booked_by,courts(name)")
+    .or(`booked_by.eq.${personId},partner_person_id.eq.${personId}`)
     .order("booking_date", { ascending: false }).order("start_time", { ascending: false });
-  q = userId ? q.or(`booked_by.eq.${userId},partner_person_id.eq.${personId}`)
-             : q.eq("partner_person_id", personId);
-  const { data, error } = await q;
   const rows = error ? [] : (data || []);
   showPersonTab("resa", showByRole || rows.length > 0);
   if (error) { stats.innerHTML = ""; list.innerHTML = `<p class="obj-empty">Erreur : ${esc(error.message)}</p>`; return; }
