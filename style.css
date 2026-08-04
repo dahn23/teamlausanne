@@ -48,6 +48,7 @@ button.ghost{background:transparent;color:var(--muted);padding:6px 10px}
 button.ghost:hover{color:var(--ink)}
 button.nav{background:#fff;color:var(--green);border:1px solid var(--line);
   width:40px;padding:8px;font-size:1.2rem;line-height:1}
+button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 
 /* ---- App ---- */
 .topbar{display:flex;align-items:center;gap:10px;padding:12px 14px;
