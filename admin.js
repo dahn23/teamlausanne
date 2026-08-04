@@ -2524,6 +2524,8 @@ function initStages() {
   $("stage-modal").addEventListener("click", (e) => { if (e.target === $("stage-modal")) $("stage-modal").classList.add("hidden"); });
   $("stage-form").addEventListener("submit", saveStage);
   $("stage-delete").addEventListener("click", deleteStage);
+  $("stg-f-photo-btn").addEventListener("click", () => $("stg-f-photo-file").click());
+  $("stg-f-photo-file").addEventListener("change", (e) => uploadStageImage(e.target));
   // Modal inscrit
   $("reg-close").addEventListener("click", () => $("reg-modal").classList.add("hidden"));
   $("reg-modal").addEventListener("click", (e) => { if (e.target === $("reg-modal")) $("reg-modal").classList.add("hidden"); });
@@ -2681,6 +2683,24 @@ async function setStageVisibility(id, val) {
 }
 
 // ---- Modal création / édition d'un stage (semaine) ----
+let stageImageUrl = null;
+function renderStageImage() {
+  const box = $("stg-f-photo-preview");
+  box.innerHTML = stageImageUrl ? `<img src="${stageImageUrl}" alt="" />` : "";
+  box.classList.toggle("empty", !stageImageUrl);
+}
+async function uploadStageImage(input) {
+  if (!input.files || !input.files[0]) return;
+  const f = input.files[0];
+  $("stg-f-photo-status").textContent = "Envoi…";
+  const path = `stages/session-${Date.now()}`;
+  const up = await sb.storage.from("gz-photos").upload(path, f, { upsert: true, contentType: f.type });
+  if (up.error) { $("stg-f-photo-status").textContent = "Erreur : " + up.error.message; return; }
+  stageImageUrl = sb.storage.from("gz-photos").getPublicUrl(path).data.publicUrl;
+  input.value = "";
+  $("stg-f-photo-status").textContent = "";
+  renderStageImage();
+}
 function openStageModal(id) {
   if (!stgActiveCats().length) return alert("Crée d'abord au moins une catégorie active (onglet Catégories).");
   $("stage-error").hidden = true;
@@ -2690,6 +2710,9 @@ function openStageModal(id) {
   $("stg-f-name").value = s?.title || "";
   $("stg-f-start").value = s?.start_date || "";
   $("stg-f-end").value = s?.end_date || "";
+  stageImageUrl = s?.image_url || null;
+  $("stg-f-photo-status").textContent = "";
+  renderStageImage();
   $("stage-delete").classList.toggle("hidden", !s);
   const selected = new Set(id ? (stgSessionCats[id] || []) : []);
   $("stg-f-cats").innerHTML = stgActiveCats().map((c) =>
@@ -2709,7 +2732,7 @@ async function saveStage(e) {
   const catIds = [...$("stg-f-cats").querySelectorAll("input:checked")].map((c) => c.value);
   if (!catIds.length) { err.textContent = "Coche au moins une catégorie ouverte à l'inscription."; err.hidden = false; return; }
   let sid = id;
-  const patch = { title: name, start_date: start, end_date: end };
+  const patch = { title: name, start_date: start, end_date: end, image_url: stageImageUrl };
   if (id) { const { error } = await sb.from("stage_sessions").update(patch).eq("id", id); if (error) { err.textContent = error.message; err.hidden = false; return; } }
   else {
     const res = await sb.from("stage_sessions").insert({ ...patch, visibility_mode: "auto" }).select("id").single();

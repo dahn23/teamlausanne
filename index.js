@@ -754,7 +754,7 @@ function stgRenderList() {
     const oc = stgOpenCats(s);
     const prices = oc.map((c) => stgEff(c.price || 0, d));
     const priceLbl = prices.length ? (Math.min(...prices) === Math.max(...prices) ? `${prices[0]} CHF` : `dès ${Math.min(...prices)} CHF`) : "—";
-    const img = oc.find((c) => c.image_url)?.image_url;
+    const img = s.image_url || oc.find((c) => c.image_url)?.image_url;
     const dates = s.start_date === s.end_date ? s.start_date : `${s.start_date} → ${s.end_date}`;
     const badges = oc.map((c) => `<span class="stg-tag">${esc(c.name)}</span>`).join("");
     return `<article class="stg-pub-card">

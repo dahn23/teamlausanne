@@ -701,6 +701,15 @@
         <label>Date de début *<input id="stg-f-start" type="date" required /></label>
         <label>Date de fin *<input id="stg-f-end" type="date" required /></label>
       </div>
+      <div class="p-photo-block">
+        <span class="pgrid2-lbl">Photo du stage <span class="muted" style="font-weight:400">(affichée sur le site public)</span></span>
+        <div class="p-photo-row">
+          <div id="stg-f-photo-preview" class="stg-photo-preview"></div>
+          <button type="button" id="stg-f-photo-btn" class="ghost">Prendre / choisir une photo</button>
+          <input type="file" id="stg-f-photo-file" accept="image/*" capture="environment" class="hidden" />
+          <span id="stg-f-photo-status" class="muted" style="font-size:.85rem"></span>
+        </div>
+      </div>
       <div class="rg-card" style="margin-top:6px">
         <h3 style="margin:0 0 4px;font-size:1rem">Catégories ouvertes à l'inscription</h3>
         <p class="muted" style="margin:0 0 10px;font-size:.85rem">Coche les catégories disponibles pendant cette semaine.</p>
