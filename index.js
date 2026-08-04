@@ -1,5 +1,5 @@
 // Site public dynamique : mondes + pages détaillées (routage par ancre).
-import { sb, getSession } from "./common.js";
+import { sb, getSession, frDate, jours } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 const CONTACT_TARGET = "info@teamlausanne.ch"; // destinataire de tous les formulaires
@@ -755,12 +755,12 @@ function stgRenderList() {
     const prices = oc.map((c) => stgEff(c.price || 0, d));
     const priceLbl = prices.length ? (Math.min(...prices) === Math.max(...prices) ? `${prices[0]} CHF` : `dès ${Math.min(...prices)} CHF`) : "—";
     const img = s.image_url || oc.find((c) => c.image_url)?.image_url;
-    const dates = s.start_date === s.end_date ? s.start_date : `${s.start_date} → ${s.end_date}`;
+    const dates = s.start_date === s.end_date ? frDate(s.start_date) : `${frDate(s.start_date)} → ${frDate(s.end_date)}`;
     const badges = oc.map((c) => `<span class="stg-tag">${esc(c.name)}</span>`).join("");
     return `<article class="stg-pub-card">
       ${img ? `<img src="${img}" alt="" class="stg-pub-img" loading="lazy"/>` : '<div class="stg-pub-img stg-pub-noimg"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg></div>'}
       <div class="stg-pub-body"><h3>${esc(s.title || "Stage")}</h3>
-        <div class="stg-pub-dates">${dates} · ${d} jour(s)</div>
+        <div class="stg-pub-dates">${dates} · ${jours(d)}</div>
         <div class="stg-pub-badges">${badges}</div>
         <div class="stg-pub-foot"><span class="stg-pub-price">${priceLbl}</span>
           <button class="stg-pub-cta" data-stg="${s.id}">S'inscrire</button></div></div></article>`;
@@ -770,9 +770,15 @@ function stgRenderList() {
 // Applique la catégorie choisie : prix + champs conditionnels
 function stgApplyCat() {
   const c = stgCats[$("f-category").value] || {};
-  const d = stgDays(stgCurrent.start_date, stgCurrent.end_date), price = stgEff(c.price || 0, d);
-  const dates = `${stgCurrent.start_date}${stgCurrent.end_date !== stgCurrent.start_date ? " → " + stgCurrent.end_date : ""}`;
-  $("stgp-modal-meta").innerHTML = `${dates} · ${d} jour(s) · <b>${price} CHF</b>`;
+  const d = stgDays(stgCurrent.start_date, stgCurrent.end_date), base = stgEff(c.price || 0, d);
+  const addon = Number(c.private_addon_price) || 0;
+  // Option heures privées (ex. « Entraîne-toi comme un pro »)
+  $("f-addon-wrap").classList.toggle("hidden", !addon);
+  if (addon) $("f-addon-label").textContent = `Ajouter 3h de tennis privé (+${addon} CHF)`;
+  else $("f-addon").checked = false;
+  const price = base + (addon && $("f-addon").checked ? addon : 0);
+  const dates = `${frDate(stgCurrent.start_date)}${stgCurrent.end_date !== stgCurrent.start_date ? " → " + frDate(stgCurrent.end_date) : ""}`;
+  $("stgp-modal-meta").innerHTML = `${dates} · ${jours(d)} · <b>${price} CHF</b>`;
   $("f-cat-info").textContent = [c.meal ? "repas inclus" : "", c.tshirt ? "t-shirt offert" : ""].filter(Boolean).join(" · ");
   $("f-tshirt-wrap").classList.toggle("hidden", !c.tshirt);
   $("f-meal-wrap").classList.toggle("hidden", !c.meal);
@@ -792,6 +798,7 @@ function stgCloseForm() { $("stgp-modal").classList.add("hidden"); stgCurrent = 
 $("stgp-close").addEventListener("click", stgCloseForm);
 $("stgp-modal").addEventListener("click", (e) => { if (e.target === $("stgp-modal")) stgCloseForm(); });
 $("f-category").addEventListener("change", stgApplyCat);
+$("f-addon").addEventListener("change", stgApplyCat);
 document.addEventListener("change", (e) => { if (e.target.name === "meal") $("f-meal-text").disabled = e.target.value !== "autre"; });
 $("stgp-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -800,11 +807,13 @@ $("stgp-form").addEventListener("submit", async (e) => {
   if (!c.id) { err.textContent = "Choisis une catégorie."; err.hidden = false; return; }
   let meal = null;
   if (c.meal) { const sel = document.querySelector('input[name="meal"]:checked')?.value; meal = sel === "autre" ? ($("f-meal-text").value.trim() || "À préciser") : "Aucune"; }
+  const addon = Number(c.private_addon_price) || 0;
   const row = { stage_id: stgCurrent.id, category_id: c.id,
     first_name: $("f-first").value.trim(), last_name: $("f-last").value.trim(),
     email: $("f-email").value.trim(), birth_date: $("f-birth").value || null,
     tshirt_size: c.tshirt ? ($("f-tshirt").value || null) : null, meal_restriction: meal,
     ranking: c.ask_ranking ? ($("f-ranking").value.trim() || null) : null,
+    private_addon: addon > 0 && $("f-addon").checked,
     comment: $("f-comment").value.trim() || null };
   const btn = e.target.querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = "Envoi…";
   const { error } = await sb.from("stage_registrations").insert(row);

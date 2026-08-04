@@ -411,6 +411,9 @@ label.stg-cat-opt span{font-weight:600}
 .stg-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .stg-form-grid label,#stgp-form>label{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:.85rem}
 .stg-cat-info{font-size:.82rem;margin-top:-4px;min-height:1em}
+.stg-addon{background:#f6f8fc;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stg-addon-check{display:flex;flex-direction:row;align-items:center;gap:8px;font-weight:700;font-size:.9rem;cursor:pointer}
+.stg-addon-check input{width:18px;height:18px;flex-shrink:0;margin:0}
 #stgp-form input,#stgp-form select,#stgp-form textarea{width:100%;box-sizing:border-box;font-family:inherit}
 .stg-lbl{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
 .stg-radio{display:inline-flex;align-items:center;gap:6px;margin-right:18px;font-weight:600;font-size:.9rem;

@@ -1,5 +1,5 @@
 // Console admin — CRM membres (accès staff uniquement).
-import { sb, requireLogin, myRoles, hasAny, STAFF_ROLES } from "./common.js";
+import { sb, requireLogin, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 // Petite coupe SVG (remplace l'emoji 🏆 dans les tableaux)
@@ -745,7 +745,7 @@ function renderImportPreview() {
     const st = o._errs.length ? `<span class="imp-bad">${esc(o._errs.join(", "))}</span>`
       : o._dup ? `<span class="imp-warn">doublon ?</span>` : `<span class="imp-ok">OK</span>`;
     return `<tr class="${o._errs.length ? "imp-row-bad" : ""}"><td>${esc(o.first)}</td><td>${esc(o.last)}</td>
-      <td>${o.birth || ""}</td><td>${esc(o.email)}</td>
+      <td>${frDate(o.birth)}</td><td>${esc(o.email)}</td>
       <td>${o.roles.ok.map((r) => `<span class="role-badge">${esc(roleLabel(r))}</span>`).join(" ")}</td>
       <td>${st}</td></tr>`;
   }).join("");
@@ -805,7 +805,7 @@ function renderRows() {
       <td>${esc(p.first_name)}</td>
       <td>${esc(emails[0] || "")}${emails.length > 1 ? ` <span class="muted">+${emails.length - 1}</span>` : ""}</td>
       <td>${esc(phones[0] || "")}${phones.length > 1 ? ` <span class="muted">+${phones.length - 1}</span>` : ""}</td>
-      <td>${p.birthdate || ""}</td>
+      <td>${frDate(p.birthdate)}</td>
       <td class="role-cell">${rolesHtml}</td>`;
     tr.addEventListener("click", () => openPerson(p));
     tbody.appendChild(tr);
@@ -960,7 +960,7 @@ async function loadCourses(personId, showByRole) {
     const abs = g.items.filter((i) => i.status === "absent").length;
     const pct = tot ? Math.round((pres / tot) * 100) : 0;
     const list = g.items.map((i) => {
-      const d = i.date ? new Date(i.date).toLocaleDateString("fr-CH", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+      const d = i.date ? frDate(i.date) : "—";
       const h = `${(i.start || "").slice(0, 5)}–${(i.end || "").slice(0, 5)}`;
       return `<div class="att-row"><span class="att-d">${d}</span><span class="att-h">${h}</span>
         <span class="att-badge ${stClass[i.status] || ""}">${stLabel[i.status] || i.status}</span></div>`;
@@ -1013,7 +1013,7 @@ async function loadReservations(personId, showByRole) {
       <div class="resa-stat-s">${a.sum.toFixed(2)} CHF</div></div>`;
   }).join("");
   list.innerHTML = rows.map((b) => {
-    const d = b.booking_date ? new Date(b.booking_date).toLocaleDateString("fr-CH", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+    const d = b.booking_date ? frDate(b.booking_date) : "—";
     const h = `${(b.start_time || "").slice(0, 5)}–${(b.end_time || "").slice(0, 5)}`;
     const court = b.courts?.name || "Court";
     const price = b.price_chf != null ? `${Number(b.price_chf).toFixed(2)} CHF` : "—";
@@ -1036,7 +1036,7 @@ async function loadObjectives(personId) {
   if (!data.length) { list.innerHTML = `<p class="obj-empty">Aucun objectif pour le moment.</p>`; return; }
   list.innerHTML = data.map((o) => {
     const mine = o.created_by === meId;
-    const dt = new Date(o.created_at).toLocaleString("fr-CH", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const dt = frDateTime(o.created_at);
     const edited = o.updated_at && o.updated_at !== o.created_at ? ' <span class="muted">(modifié)</span>' : "";
     return `<div class="obj-item" data-oid="${o.id}">
       <div class="obj-meta"><b>${esc(o.author_name || "—")}</b><span>${dt}${edited}</span></div>
@@ -1124,7 +1124,7 @@ async function loadCredit(personId) {
   $("cr-balance").textContent = `${Number(bal ?? 0)} CHF`;
   const rows = led || [];
   $("cr-ledger").innerHTML = rows.length ? rows.map((r) =>
-    `<div class="cr-row"><span>${(r.created_at || "").slice(0, 10)} · ${esc(r.reason || "")}</span>
+    `<div class="cr-row"><span>${frDate(r.created_at)} · ${esc(r.reason || "")}</span>
       <b style="color:${r.amount >= 0 ? "#0b6b3a" : "#b3261e"}">${r.amount >= 0 ? "+" : ""}${r.amount}</b></div>`).join("")
     : '<p class="muted" style="font-size:.85rem;margin:6px 0 0">Aucun mouvement.</p>';
 }
@@ -1774,7 +1774,7 @@ async function loadCaisseTab() {
   const withRun = rows.map((r) => { run += Number(r.amount); return { ...r, run }; });
   $("gz-till-balance").textContent = run + " CHF";
   $("gz-ledger-rows").innerHTML = withRun.length ? withRun.slice().reverse().map((r) =>
-    `<tr><td>${(r.created_at || "").slice(0, 10)}</td><td>${esc(r.label || "—")}</td>
+    `<tr><td>${frDate(r.created_at)}</td><td>${esc(r.label || "—")}</td>
       <td style="font-weight:700;color:${r.amount >= 0 ? "#0b6b3a" : "#b3261e"}">${r.amount >= 0 ? "+" : ""}${r.amount}</td>
       <td>${r.run}</td><td><button type="button" class="fam-del gz-mov-del" data-id="${r.id}">✕</button></td></tr>`).join("")
     : '<tr><td colspan="5" class="muted">Aucun mouvement.</td></tr>';
@@ -2166,7 +2166,7 @@ async function loadSeasons() {
   $("gz-seasons-rows").innerHTML = rows.length ? rows.map((s) => {
     const weeks = Math.round((new Date(s.end_date) - new Date(s.start_date)) / 86400000 / 7 * 10) / 10;
     return `<tr>
-      <td>${esc(s.name)}</td><td>${s.start_date}</td><td>${s.end_date}</td><td>${weeks}</td>
+      <td>${esc(s.name)}</td><td>${frDate(s.start_date)}</td><td>${frDate(s.end_date)}</td><td>${weeks}</td>
       <td>${s.is_current ? "✓ courante" : `<button class="ghost gz-set-cur" data-id="${s.id}">définir</button>`}</td>
       <td><button class="fam-del gz-del-season" data-id="${s.id}">✕</button></td></tr>`;
   }).join("") : '<tr><td colspan="6" class="muted">Aucune saison.</td></tr>';
@@ -2564,6 +2564,7 @@ function renderStageCats() {
         <label class="stg-inline"><input type="checkbox" class="stg-cat-meal" ${c.meal ? "checked" : ""}/> Repas</label>
         <label class="stg-inline"><input type="checkbox" class="stg-cat-tshirt" ${c.tshirt ? "checked" : ""}/> Offrir un t-shirt</label>
         <label class="stg-inline"><input type="checkbox" class="stg-cat-ranking" ${c.ask_ranking ? "checked" : ""}/> Demander le classement</label>
+        <label>Option 3h privé (+CHF)<input type="number" class="stg-cat-addon" style="width:120px" value="${c.private_addon_price ?? ""}" placeholder="—"/></label>
       </div>
       <div class="gz-mail-foot">
         <div class="gz-mail-img">
@@ -2605,6 +2606,7 @@ async function saveStageCat(id, card) {
     meal: card.querySelector(".stg-cat-meal").checked,
     tshirt: card.querySelector(".stg-cat-tshirt").checked,
     ask_ranking: card.querySelector(".stg-cat-ranking").checked,
+    private_addon_price: card.querySelector(".stg-cat-addon").value ? Number(card.querySelector(".stg-cat-addon").value) : null,
     active: card.querySelector(".stg-cat-active").checked,
   };
   const btn = card.querySelector(".stg-cat-save");
@@ -2651,11 +2653,11 @@ function stgCatBadges(sessionId) {
 function renderStageList() {
   $("stg-rows").innerHTML = stgSessions.map((s) => {
     const days = stgDays(s.start_date, s.end_date);
-    const dates = s.start_date === s.end_date ? s.start_date : `${s.start_date} → ${s.end_date}`;
+    const dates = s.start_date === s.end_date ? frDate(s.start_date) : `${frDate(s.start_date)} → ${frDate(s.end_date)}`;
     return `<tr class="stg-row" data-id="${s.id}">
       <td><b>${esc(s.title || "Stage")}</b></td>
       <td>${dates}</td>
-      <td>${days}${days < 5 ? " <span class='muted'>(pro-rata)</span>" : ""}</td>
+      <td>${jours(days)}${days < 5 ? " <span class='muted'>(pro-rata)</span>" : ""}</td>
       <td class="role-cell">${stgCatBadges(s.id)}</td>
       <td>${stgCounts[s.id] || 0}</td>
       <td>
@@ -2769,7 +2771,7 @@ async function openStage(id) {
     return `${esc(c.name || "?")} <span class="muted">(${stgEffPrice(c.price || 0, days)} CHF)</span>`;
   });
   $("stg-detail-title").textContent = (s.title || "Stage");
-  $("stg-detail-meta").innerHTML = `${s.start_date}${s.end_date !== s.start_date ? " → " + s.end_date : ""} · ${days} jour(s)${days < 5 ? " (pro-rata)" : ""}<br>`
+  $("stg-detail-meta").innerHTML = `${frDate(s.start_date)}${s.end_date !== s.start_date ? " → " + frDate(s.end_date) : ""} · ${jours(days)}${days < 5 ? " (pro-rata)" : ""}<br>`
     + `Catégories : ${catList.length ? catList.join(" · ") : '<span class="muted">aucune</span>'}`;
   $("stg-program").value = s.program || "";
   $("stg-list-wrap").classList.add("hidden");
@@ -2801,7 +2803,9 @@ async function loadRegistrations() {
 function stgRegPrice(r, days) {
   const cat = stgCatById(r.category_id);
   const base = stgEffPrice(cat.price || 0, days);
-  return Math.round(base * (1 - (r.discount_pct || 0) / 100) * 100) / 100;
+  const discounted = base * (1 - (r.discount_pct || 0) / 100);
+  const addon = r.private_addon ? Number(cat.private_addon_price || 0) : 0;
+  return Math.round((discounted + addon) * 100) / 100;
 }
 
 function renderRegistrants() {
@@ -2819,16 +2823,16 @@ function renderRegistrants() {
     const rebate = r.discount_pct ? `−${r.discount_pct}% <span class="muted">(${esc(r.discount_reason || "")})</span> <button class="fam-del stg-reb-del" data-id="${r.id}">✕</button>`
       : `<button class="ghost stg-reb-add" data-id="${r.id}">−20%</button>`;
     const invoice = r.invoice_created
-      ? `<span class="muted">Facturé${r.invoice_sent_at ? " le " + r.invoice_sent_at.slice(0, 10) : ""}</span>`
+      ? `<span class="muted">Facturé${r.invoice_sent_at ? " le " + frDate(r.invoice_sent_at) : ""}</span>`
       : `<button class="ghost stg-inv" data-id="${r.id}">Créer facture + mail</button>`;
     return `<tr data-id="${r.id}">
       <td><b>${esc(r.first_name)} ${esc(r.last_name)}</b></td>
-      <td>${r.birth_date || "—"}</td>
+      <td>${r.birth_date ? frDate(r.birth_date) : "—"}</td>
       <td>${catSel}</td>
       <td>${esc(r.email || "—")}</td>
       <td>${cat.tshirt ? esc(r.tshirt_size || "—") : "—"}</td>
       <td>${cat.meal ? esc(r.meal_restriction || "—") : "—"}</td>
-      <td class="stg-cmt">${r.ranking ? `<b>Classement : ${esc(r.ranking)}</b>${r.comment ? "<br>" : ""}` : ""}${esc(r.comment || "")}</td>
+      <td class="stg-cmt">${r.private_addon ? `<span class="stg-tag">+3h privé</span> ` : ""}${r.ranking ? `<b>Classement : ${esc(r.ranking)}</b>${r.comment ? "<br>" : ""}` : ""}${esc(r.comment || "")}</td>
       <td>${rebate}</td>
       <td><b>${price}</b></td>
       <td>${invoice}</td>
