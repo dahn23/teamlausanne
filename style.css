@@ -405,6 +405,11 @@ body[data-world="academie"] .btn-login{color:var(--fluo-ink)}
 .cform input:focus,.cform select:focus,.cform textarea:focus{background:#fff;border-color:var(--blue)}
 .cform button[type=submit]{margin-top:4px}
 @media(max-width:520px){.cf-row{grid-template-columns:1fr}}
+/* Bouton de contact (mène au formulaire) */
+.contact-cta{display:inline-flex;align-items:center;gap:8px;margin-top:16px;
+  background:var(--blue);color:#fff;font-weight:800;font-style:italic;text-transform:uppercase;
+  letter-spacing:-.3px;padding:12px 24px;border:0;border-radius:999px;cursor:pointer}
+.contact-cta:hover{background:var(--blue-d)}
 
 /* Hero plein écran avec photo */
 .hero{position:relative;min-height:74vh;display:flex;align-items:center;

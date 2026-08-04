@@ -141,8 +141,8 @@ const WORLDS = {
         ["Dates", "Du 23 au 30 août 2026."],
         ["Entrée libre", "Accès gratuit toute la semaine, sans billet."],
         ["Lieu", "TC Lausanne-Sports, Plaines-du-Loup, 1018 Lausanne."],
-        ["Contact", "Via le formulaire de contact"],
-      ]},
+        ["Une question ?", "Écrivez-nous, nous répondons rapidement."],
+      ], link: { label: "Nous écrire", contact: "Lausanne Open" } },
       { type: "sponsors", anchor: "partenaires", title: "Partenaires du tournoi", items: [
         "Team Lausanne", "Canton de Vaud", "Swiss Tennis", "Ville de Lausanne",
         "Services Industriels de Lausanne", "SVR Vins", "Cafés Cuéndet",
@@ -325,7 +325,7 @@ function linkHTML(link) {
   if (link.action === "login")
     return `<button class="wsec-link" data-login>${esc(link.label)}</button>`;
   if (link.contact)
-    return `<button class="wsec-link" data-contact="${esc(link.contact)}">${esc(link.label)}</button>`;
+    return `<button class="contact-cta" data-contact="${esc(link.contact)}">${esc(link.label)}</button>`;
   const ext = link.href.startsWith("http");
   return `<a class="wsec-link" href="${esc(link.href)}"${ext ? ' target="_blank" rel="noopener"' : ""}>${esc(link.label)}</a>`;
 }
@@ -350,7 +350,8 @@ function sectionHTML(sec) {
     case "features":
       return `<section class="wsec">${sec.title ? `<h2>${esc(sec.title)}</h2>` : ""}
         <div class="feature-grid">${sec.items.map(([h, t]) =>
-          `<div class="feature"><h3>${esc(h)}</h3><p>${esc(t)}</p></div>`).join("")}</div></section>`;
+          `<div class="feature"><h3>${esc(h)}</h3><p>${esc(t)}</p></div>`).join("")}</div>
+        ${linkHTML(sec.link)}</section>`;
 
     case "cards":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
@@ -387,7 +388,7 @@ function sectionHTML(sec) {
         <div class="contact-card"><p>${sec.lines.map(esc).join("<br>")}</p>
           <p><a href="tel:${esc(sec.phone.replace(/\s/g, ""))}">${esc(sec.phone)}</a></p>
           ${sec.hours ? `<p class="muted">${esc(sec.hours)}</p>` : ""}
-          <button class="wsec-link" data-contact="${esc(sec.contact || sec.title)}">Nous écrire</button></div></section>`;
+          <button class="contact-cta" data-contact="${esc(sec.contact || sec.title)}">Nous écrire</button></div></section>`;
 
     case "rich":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
