@@ -535,6 +535,7 @@
         <button type="button" class="ptab active" data-ptab="info">Info</button>
         <button type="button" class="ptab" data-ptab="resa">Réservations</button>
         <button type="button" class="ptab" data-ptab="cours">Cours</button>
+        <button type="button" class="ptab" data-ptab="media">Photos / vidéos</button>
         <button type="button" class="ptab" data-ptab="obj">Objectifs</button>
       </div>
       <div id="ptab-info" class="ptab-panel">
@@ -616,6 +617,16 @@
 
       <div id="ptab-cours" class="ptab-panel hidden">
         <div id="cours-content"></div>
+      </div>
+
+      <div id="ptab-media" class="ptab-panel hidden">
+        <div class="media-add">
+          <button type="button" id="media-btn" class="ghost">Ajouter une photo / vidéo</button>
+          <input type="file" id="media-file" accept="image/*,video/*" capture="environment" class="hidden" />
+          <span id="media-status" class="muted" style="font-size:.85rem"></span>
+        </div>
+        <div id="media-grid" class="media-grid"></div>
+        <p id="media-need-save" class="muted" hidden style="font-size:.85rem">Enregistrez d'abord la personne pour ajouter des médias.</p>
       </div>
 
       <div id="ptab-obj" class="ptab-panel hidden">

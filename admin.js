@@ -91,6 +91,8 @@ async function init(roles) {
   document.querySelectorAll("#p-tabs .ptab").forEach((b) =>
     b.addEventListener("click", () => setPersonTab(b.dataset.ptab)));
   $("obj-add-btn").addEventListener("click", addObjective);
+  $("media-btn").addEventListener("click", () => $("media-file").click());
+  $("media-file").addEventListener("change", (e) => uploadMedia(e.target));
   $("p-photo-btn").addEventListener("click", () => $("p-photo-file").click());
   $("p-photo-file").addEventListener("change", () => uploadPersonPhoto($("p-photo-file")));
   $("search").addEventListener("input", renderRows);
@@ -689,6 +691,7 @@ function openPerson(p) {
   showPersonTab("cours", coursByRole);
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
+  loadMedia(p ? p.id : null);
   if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); }
   else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; }
   $("person-modal").classList.remove("hidden");
@@ -708,6 +711,63 @@ function showPersonTab(tab, show) {
 
 // Rôles qui font apparaître l'onglet Cours
 const COURSE_ROLES = ["kidstennis", "club", "competition", "performance", "sport-etudes", "pro-u18", "pro"];
+
+// ---- Photos / vidéos d'une personne ----
+async function loadMedia(personId) {
+  const grid = $("media-grid");
+  const has = !!personId;
+  $("media-btn").disabled = !has;
+  $("media-need-save").hidden = has;
+  $("media-status").textContent = "";
+  if (!has) { grid.innerHTML = ""; return; }
+  const { data, error } = await sb.from("person_media")
+    .select("*").eq("person_id", personId).order("created_at", { ascending: false });
+  if (error) { grid.innerHTML = `<p class="obj-empty">Erreur : ${esc(error.message)}</p>`; return; }
+  if (!data.length) { grid.innerHTML = `<p class="obj-empty">Aucune photo ni vidéo.</p>`; return; }
+  grid.innerHTML = data.map((m) => {
+    const media = m.kind === "video"
+      ? `<video src="${esc(m.url)}" controls preload="metadata"></video>`
+      : `<img src="${esc(m.url)}" alt="" />`;
+    const badge = m.is_profile ? `<span class="media-badge">Profil</span>` : "";
+    return `<div class="media-card" data-mid="${m.id}">
+      <div class="media-thumb">${media}${badge}</div>
+      <textarea class="media-comment" rows="2" placeholder="Commentaire…">${esc(m.comment || "")}</textarea>
+      <button type="button" class="media-del" data-url="${esc(m.storage_path || "")}">Supprimer</button>
+    </div>`;
+  }).join("");
+  grid.querySelectorAll(".media-comment").forEach((t) =>
+    t.addEventListener("blur", () => saveMediaComment(t.closest(".media-card").dataset.mid, t.value)));
+  grid.querySelectorAll(".media-del").forEach((b) =>
+    b.addEventListener("click", () => deleteMedia(b.closest(".media-card").dataset.mid, b.dataset.url)));
+}
+async function uploadMedia(fileInput) {
+  const id = $("p-id").value;
+  if (!id || !fileInput.files || !fileInput.files[0]) return;
+  const f = fileInput.files[0];
+  const kind = f.type.startsWith("video") ? "video" : "image";
+  $("media-status").textContent = "Envoi…";
+  const path = `people/${id}/media/${Date.now()}-${f.name.replace(/[^\w.\-]/g, "_")}`;
+  const up = await sb.storage.from("gz-photos").upload(path, f, { upsert: true, contentType: f.type });
+  if (up.error) { $("media-status").textContent = "Erreur : " + up.error.message; return; }
+  const url = sb.storage.from("gz-photos").getPublicUrl(path).data.publicUrl;
+  const { error } = await sb.from("person_media").insert({ person_id: id, url, storage_path: path, kind, created_by: meId });
+  fileInput.value = "";
+  $("media-status").textContent = error ? "Erreur : " + error.message : "";
+  loadMedia(id);
+}
+async function saveMediaComment(mid, comment) {
+  const { error } = await sb.from("person_media").update({ comment: comment.trim() || null }).eq("id", mid);
+  if (error) { $("media-status").textContent = "Commentaire : " + error.message; return; }
+  $("media-status").textContent = "✓ Commentaire enregistré";
+  setTimeout(() => { if ($("media-status").textContent.startsWith("✓")) $("media-status").textContent = ""; }, 1500);
+}
+async function deleteMedia(mid, storagePath) {
+  if (!confirm("Supprimer ce média ?")) return;
+  if (storagePath) await sb.storage.from("gz-photos").remove([storagePath]);
+  const { error } = await sb.from("person_media").delete().eq("id", mid);
+  if (error) { $("media-status").textContent = "Suppression : " + error.message; return; }
+  loadMedia($("p-id").value);
+}
 
 // ---- Cours suivis (présences) d'une personne ----
 async function loadCourses(personId, showByRole) {
@@ -881,6 +941,15 @@ async function uploadPersonPhoto(file) {
   if (error) { alert("Photo : " + error.message); return; }
   personPhotoUrl = sb.storage.from("gz-photos").getPublicUrl(path).data.publicUrl;
   renderPersonPhoto();
+  // La photo de profil s'ajoute aussi dans l'onglet Photos / vidéos (commentaire éditable)
+  const id = $("p-id").value;
+  if (id) {
+    await sb.from("person_media").insert({
+      person_id: id, url: personPhotoUrl, storage_path: path, kind: "image",
+      is_profile: true, comment: "Photo de profil", created_by: meId,
+    });
+    loadMedia(id);
+  }
 }
 
 async function loadCredit(personId) {
