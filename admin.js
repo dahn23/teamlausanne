@@ -684,10 +684,13 @@ function openPerson(p) {
   const roles = p ? (peopleRoles[p.id] || []) : [];
   // Onglet Réservations : visible si membre/client (ou si des résas existent — persistance)
   const resaByRole = roles.includes("membre") || roles.includes("client");
+  const coursByRole = COURSE_ROLES.some((r) => roles.includes(r));
   showPersonTab("resa", resaByRole);
+  showPersonTab("cours", coursByRole);
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
-  if (p) loadReservations(p.id, resaByRole); else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; }
+  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); }
+  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; }
   $("person-modal").classList.remove("hidden");
 }
 
@@ -701,6 +704,54 @@ function setPersonTab(tab) {
 function showPersonTab(tab, show) {
   const btn = document.querySelector(`#p-tabs .ptab[data-ptab="${tab}"]`);
   if (btn) btn.classList.toggle("hidden", !show);
+}
+
+// Rôles qui font apparaître l'onglet Cours
+const COURSE_ROLES = ["kidstennis", "club", "competition", "performance", "sport-etudes", "pro-u18", "pro"];
+
+// ---- Cours suivis (présences) d'une personne ----
+async function loadCourses(personId, showByRole) {
+  const box = $("cours-content");
+  const { data, error } = await sb.from("attendance")
+    .select("status,courses(course_date,start_time,end_time,title,course_type_id,course_types(name,color))")
+    .eq("person_id", personId).eq("is_coach", false);
+  const rows = error ? [] : (data || []).filter((a) => a.courses);
+  showPersonTab("cours", showByRole || rows.length > 0);
+  if (error) { box.innerHTML = `<p class="obj-empty">Erreur : ${esc(error.message)}</p>`; return; }
+  if (!rows.length) { box.innerHTML = `<p class="obj-empty">Aucun cours suivi.</p>`; return; }
+  // Regroupe par type de cours
+  const groups = {};
+  for (const a of rows) {
+    const c = a.courses;
+    const tid = c.course_type_id || "?";
+    const g = (groups[tid] = groups[tid] || { name: c.course_types?.name || "Cours", color: c.course_types?.color || "#3563E9", items: [] });
+    g.items.push({ date: c.course_date, start: c.start_time, end: c.end_time, title: c.title, status: a.status });
+  }
+  const stLabel = { present: "Présent", late: "En retard", absent: "Absent" };
+  const stClass = { present: "att-present", late: "att-late", absent: "att-absent" };
+  box.innerHTML = Object.values(groups).map((g) => {
+    g.items.sort((x, y) => (y.date || "").localeCompare(x.date || "") || (y.start || "").localeCompare(x.start || ""));
+    const tot = g.items.length;
+    const pres = g.items.filter((i) => i.status === "present").length;
+    const late = g.items.filter((i) => i.status === "late").length;
+    const abs = g.items.filter((i) => i.status === "absent").length;
+    const pct = tot ? Math.round((pres / tot) * 100) : 0;
+    const list = g.items.map((i) => {
+      const d = i.date ? new Date(i.date).toLocaleDateString("fr-CH", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+      const h = `${(i.start || "").slice(0, 5)}–${(i.end || "").slice(0, 5)}`;
+      return `<div class="att-row"><span class="att-d">${d}</span><span class="att-h">${h}</span>
+        <span class="att-badge ${stClass[i.status] || ""}">${stLabel[i.status] || i.status}</span></div>`;
+    }).join("");
+    return `<div class="cours-group">
+      <div class="cours-group-h">
+        <span class="cours-dot" style="background:${esc(g.color)}"></span>
+        <b>${esc(g.name)}</b>
+        <span class="cours-pct">${pct}% présent</span>
+        <span class="cours-brk">${pres} présent · ${late} retard · ${abs} absent · ${tot} cours</span>
+      </div>
+      <div class="att-list">${list}</div>
+    </div>`;
+  }).join("");
 }
 
 // ---- Réservations d'une personne ----
