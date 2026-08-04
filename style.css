@@ -392,6 +392,19 @@ body[data-world="academie"] .btn-login{color:var(--fluo-ink)}
   border-radius:999px;font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:-.3px;
   font-size:.95rem;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
 .btn-contact:hover{background:var(--blue);color:#fff}
+/* Nav en liens (pages contact/stages) */
+.nav-brand a{display:inline-flex;text-decoration:none}
+.switcher a.sw{text-decoration:none}
+/* Formulaire de contact soigné */
+.cform{display:flex;flex-direction:column;gap:16px}
+.cf-field{display:flex;flex-direction:column;gap:7px}
+.cf-field>span{font-weight:700;font-size:.9rem;color:var(--blue-ink)}
+.cf-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cform input,.cform select,.cform textarea{width:100%;box-sizing:border-box;
+  border:1.5px solid #cbd5f0;background:#f7f9ff}
+.cform input:focus,.cform select:focus,.cform textarea:focus{background:#fff;border-color:var(--blue)}
+.cform button[type=submit]{margin-top:4px}
+@media(max-width:520px){.cf-row{grid-template-columns:1fr}}
 
 /* Hero plein écran avec photo */
 .hero{position:relative;min-height:74vh;display:flex;align-items:center;
