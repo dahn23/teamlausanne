@@ -336,6 +336,15 @@ const DETAILS = {
         ["Objectifs", "Points ATP/WTA, classement, préparation de saison."],
         ["Flexibilité", "Sessions ajustées à votre rythme et vos absences."],
       ]},
+      { type: "rich", title: "Une solution 360°, y compris financière", body: [
+        "Le tennis professionnel a un coût. Nous construisons ensemble une solution 360° qui inclut la partie financière, pour vous permettre de vous concentrer sur le jeu.",
+      ]},
+      { type: "features", title: "Des solutions de financement", items: [
+        ["Interclubs", "Financement via la participation aux interclubs."],
+        ["Cours rémunérés", "Donner des cours de tennis rémunérés au sein de l'académie."],
+        ["Journées GameZone", "Organiser des journées de tournoi GameZone."],
+        ["Formations coaching", "Prise en charge de formations de coaching."],
+      ], link: { label: "Nous écrire", contact: "Renseignement pour l'Academy" } },
       { type: "gallery", items: ["assets/photos/coach2.jpg", "assets/photos/open-serve.jpg"] },
     ],
   },
