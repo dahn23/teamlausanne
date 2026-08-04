@@ -415,6 +415,8 @@ label.stg-cat-opt span{font-weight:600}
 .stg-addon-check{display:flex;flex-direction:row;align-items:center;gap:8px;font-weight:700;font-size:.9rem;cursor:pointer}
 .stg-addon-check input{width:18px;height:18px;flex-shrink:0;margin:0}
 #stgp-form input,#stgp-form select,#stgp-form textarea{width:100%;box-sizing:border-box;font-family:inherit}
+/* Cases à cocher / radios : ne PAS les étirer à 100% (sinon le libellé est écrasé) */
+#stgp-form input[type=checkbox],#stgp-form input[type=radio]{width:18px;height:18px;flex:0 0 auto;margin:0;padding:0}
 .stg-lbl{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
 .stg-radio{display:inline-flex;align-items:center;gap:6px;margin-right:18px;font-weight:600;font-size:.9rem;
   white-space:nowrap;flex-shrink:0}
