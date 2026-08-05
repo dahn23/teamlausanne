@@ -1,6 +1,7 @@
 // Site public dynamique : mondes + pages détaillées (routage par ancre).
 import { sb, getSession, frDate, jours } from "./common.js";
 import "./pretty-select.js";
+import "./pretty-date.js";
 
 const $ = (id) => document.getElementById(id);
 const CONTACT_TARGET = "info@teamlausanne.ch"; // destinataire de tous les formulaires

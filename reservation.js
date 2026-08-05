@@ -3,6 +3,7 @@
 // (creuse/pleine) calculés depuis les réglages paramétrables (app_settings).
 import { sb, getSession, myRoles, hasAny, STAFF_ROLES } from "./common.js";
 import "./pretty-select.js";
+import "./pretty-date.js";
 
 const $ = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, "0");

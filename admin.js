@@ -1,6 +1,7 @@
 // Console admin — CRM membres (accès staff uniquement).
 import { sb, requireLogin, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours } from "./common.js";
 import "./pretty-select.js";
+import "./pretty-date.js";
 
 const $ = (id) => document.getElementById(id);
 // Petite coupe SVG (remplace l'emoji 🏆 dans les tableaux)
@@ -372,6 +373,8 @@ function openResaCreate(courtId, hour, dur) {
 }
 
 function editBooking(b, hour) {
+  // Un cours : on ouvre l'éditeur de cours complet (coachs, élèves, présences)
+  if (b.course_id && isHeadUser) { editCourse(b.course_id); return; }
   $("r-error").hidden = true;
   $("resa-title").textContent = "Modifier la réservation";
   $("r-id").value = b.id; $("r-recid").value = b.recurrence_id || "";
@@ -1286,6 +1289,14 @@ function attChip(course, coachIds, pid, isCoach, status) {
     title="${esc(personName(pid))}">${esc(personName(pid))}</button>`;
 }
 
+// Une colonne (Coachs ou Élèves) de pastilles de présence. statusFn(pid) → statut.
+function attCol(course, coachIds, list, isCoach, title, statusFn) {
+  return `<div class="cs-att-col"><div class="cs-att-h">${title}</div>
+    <div class="cs-att-items">${list.length
+      ? list.map((pid) => attChip(course, coachIds, pid, isCoach, statusFn(pid))).join("")
+      : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`;
+}
+
 async function loadCoursesDay() {
   const date = $("cs-date").value;
   const { data: courses } = await sb.from("courses").select("*").eq("course_date", date).order("start_time");
@@ -1301,11 +1312,7 @@ async function loadCoursesDay() {
   }
   const courtName = (id) => (resaCourtsAll.find((c) => c.id === id)?.name || "?").replace("Court ", "C");
   const attOf = (cid, pid) => att.find((a) => a.course_id === cid && a.person_id === pid)?.status || "";
-  const col = (course, coachIds, list, isCoach, title) => `
-    <div class="cs-att-col"><div class="cs-att-h">${title}</div>
-      <div class="cs-att-items">${list.length
-        ? list.map((pid) => attChip(course, coachIds, pid, isCoach, attOf(course.id, pid))).join("")
-        : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`;
+  const col = (course, coachIds, list, isCoach, title) => attCol(course, coachIds, list, isCoach, title, (pid) => attOf(course.id, pid));
 
   $("cs-list").innerHTML = (courses || []).length ? (courses || []).map((c) => {
     const cts = books.filter((b) => b.course_id === c.id).map((b) => courtName(b.court_id)).join(", ");
@@ -2355,17 +2362,28 @@ function openCourse(course, related) {
   renderChips("c-children", people.filter((p) => hasRoleIn(p.id, COURSE_ROLES)).map((p) => [p.id, `${p.last_name} ${p.first_name}`]), related?.children);
   updateCount();
   $("c-del").classList.toggle("hidden", !course);
+  // Présences (seulement en édition d'un cours existant)
+  $("c-att-block").classList.toggle("hidden", !course);
+  if (course) renderCourseAtt(course, related?.coaches || [], related?.children || [], related?.attendance || []);
   $("course-modal").classList.remove("hidden");
+}
+
+function renderCourseAtt(course, coachIds, childIds, att) {
+  const statusOf = (pid) => att.find((a) => a.person_id === pid)?.status || "";
+  $("c-att").innerHTML = attCol(course, coachIds, coachIds, true, "Coachs", statusOf)
+    + attCol(course, coachIds, childIds, false, "Élèves", statusOf);
+  $("c-att").querySelectorAll(".att-chip").forEach((ch) => ch.addEventListener("click", () => cycleAtt(ch)));
 }
 
 async function editCourse(id) {
   const course = (await sb.from("courses").select("*").eq("id", id).single()).data;
-  const [courts, coaches, children] = await Promise.all([
+  const [courts, coaches, children, attendance] = await Promise.all([
     sb.from("court_bookings").select("court_id").eq("course_id", id).then((r) => (r.data || []).map((x) => String(x.court_id))),
     sb.from("course_coaches").select("coach_person_id").eq("course_id", id).then((r) => (r.data || []).map((x) => x.coach_person_id)),
     sb.from("course_participants").select("child_person_id").eq("course_id", id).then((r) => (r.data || []).map((x) => x.child_person_id)),
+    sb.from("attendance").select("person_id,status").eq("course_id", id).then((r) => r.data || []),
   ]);
-  openCourse(course, { courts, coaches, children });
+  openCourse(course, { courts, coaches, children, attendance });
 }
 
 async function saveCourse(e) {
