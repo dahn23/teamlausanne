@@ -49,7 +49,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["phystests", "Tests physiques"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Statistiques"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["phystests", "Tests phys."], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
 const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["organisateur", "Official"], ["responsable", "Responsable"]];
 const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "membre", "organisateur", "responsable"];
 // Rôles/tags d'une personne (cumulables) — pilotent filtres + onglets de la fiche.
@@ -743,7 +743,7 @@ function renderAccessMatrix() {
     html += `<tr><td>${rl}</td>` + ADMIN_TABS.map(([tk]) =>
       `<td style="text-align:center"><input type="checkbox" class="acc" data-role="${rk}" data-tab="${tk}" ${(access[rk] || []).includes(tk) ? "checked" : ""} /></td>`).join("") + "</tr>";
   }
-  $("access-matrix").innerHTML = html + "</tbody></table>";
+  $("access-matrix").innerHTML = '<div class="table-wrap">' + html + "</tbody></table></div>";
 }
 
 async function saveAccess() {
