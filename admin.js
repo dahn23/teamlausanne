@@ -41,15 +41,15 @@ if (session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stages", "stats"],
-  admin:      ["membres", "roles", "resa", "cours", "gamezone", "caisse", "stages", "stats"],
+  superadmin: ["membres", "roles", "resa", "cours", "phystests", "gamezone", "caisse", "stages", "stats"],
+  admin:      ["membres", "roles", "resa", "cours", "phystests", "gamezone", "caisse", "stages", "stats"],
   secretaire: ["membres", "resa", "caisse", "stages", "stats"],
-  head_coach: ["resa", "cours", "stages"],
-  coach:      ["resa", "cours"],
+  head_coach: ["resa", "cours", "phystests", "stages"],
+  coach:      ["resa", "cours", "phystests"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Statistiques"]];
+const ADMIN_TABS = [["membres", "Membres"], ["roles", "Rôles & accès"], ["resa", "Réservations"], ["cours", "Cours"], ["phystests", "Tests physiques"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Statistiques"]];
 const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["organisateur", "Official"], ["responsable", "Responsable"]];
 const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "membre", "organisateur", "responsable"];
 // Rôles/tags d'une personne (cumulables) — pilotent filtres + onglets de la fiche.
@@ -121,6 +121,7 @@ async function init(roles) {
   initCours(roles);
   initGameZone(roles);
   initStages();
+  initPhys();
 }
 
 // ---- Bascule de vues ----
@@ -132,6 +133,7 @@ function showView(view) {
     v.classList.toggle("hidden", v.id !== "view-" + view));
   if (view === "caisse") loadCaisseTab();
   if (view === "stages") loadStagesTab();
+  if (view === "phystests") loadPhysResults();
 }
 
 // ===================================================================
@@ -3140,5 +3142,198 @@ async function uploadStageMailAttach(catId, type, file) {
   const url = sb.storage.from("gz-photos").getPublicUrl(path).data.publicUrl;
   await sb.from("stage_email_templates").upsert({ category_id: catId, type, attachment_url: url }, { onConflict: "category_id,type" });
   await loadStageMails();
+}
+
+// ===================================================================
+//  Tests physiques
+// ===================================================================
+const PHYS_YOUTH_ROLES = ["sport-etudes", "pro", "competition", "performance", "pro-u18"];
+let physTests = [];
+
+function initPhys() {
+  document.querySelectorAll("#view-phystests .phys-subtab").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#view-phystests .phys-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      document.querySelectorAll("#view-phystests .phys-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "phys-sub-" + b.dataset.sub));
+      if (b.dataset.sub === "results") loadPhysResults();
+      if (b.dataset.sub === "templates") loadPhysTemplates();
+    }));
+  $("phys-fill-new").addEventListener("click", openPhysFill);
+  $("phys-tpl-new").addEventListener("click", createPhysTemplate);
+  $("phys-fill-close").addEventListener("click", () => $("phys-fill-modal").classList.add("hidden"));
+  $("phys-fill-modal").addEventListener("click", (e) => { if (e.target === $("phys-fill-modal")) $("phys-fill-modal").classList.add("hidden"); });
+  $("phys-fill-form").addEventListener("submit", savePhysFill);
+  $("pf-test").addEventListener("change", renderPhysFillQuestions);
+  $("phys-result-close").addEventListener("click", () => $("phys-result-modal").classList.add("hidden"));
+  $("phys-result-modal").addEventListener("click", (e) => { if (e.target === $("phys-result-modal")) $("phys-result-modal").classList.add("hidden"); });
+  $("pr-del").addEventListener("click", () => deletePhysResult($("pr-del").dataset.id));
+}
+
+async function loadPhysResults() {
+  const { data, error } = await sb.from("phys_results").select("*").order("filled_at", { ascending: false });
+  const rows = error ? [] : (data || []);
+  $("phys-results-rows").innerHTML = rows.length ? rows.map((r) => `
+    <tr class="phys-res-row" data-id="${r.id}">
+      <td><b>${esc(personName(r.person_id))}</b></td>
+      <td>${esc(r.test_name || "—")}</td>
+      <td>${esc(r.coach_name || "—")}</td>
+      <td>${frDateTime(r.filled_at)}</td>
+    </tr>`).join("") : '<tr><td colspan="4" class="muted">Aucun test rempli.</td></tr>';
+  $("phys-results-rows").querySelectorAll(".phys-res-row").forEach((tr) =>
+    tr.addEventListener("click", () => openPhysResult(tr.dataset.id)));
+}
+
+async function openPhysResult(id) {
+  const r = (await sb.from("phys_results").select("*").eq("id", id).single()).data;
+  if (!r) return;
+  const answers = (await sb.from("phys_answers").select("*").eq("result_id", id).order("sort_order")).data || [];
+  $("pr-title").textContent = r.test_name || "Test";
+  $("pr-meta").innerHTML = `${esc(personName(r.person_id))} · rempli par <b>${esc(r.coach_name || "—")}</b> · ${frDateTime(r.filled_at)}`;
+  $("pr-answers").innerHTML = answers.length ? answers.map((a) => {
+    const v = a.answer_type === "number" ? (a.value_num ?? "—") : (a.value_text || "—");
+    return `<div class="phys-ans"><span class="phys-ans-q">${esc(a.label || "")}</span><span class="phys-ans-v">${esc(v)}</span></div>`;
+  }).join("") : '<p class="muted">Aucune réponse.</p>';
+  $("pr-del").dataset.id = id;
+  $("phys-result-modal").classList.remove("hidden");
+}
+
+async function deletePhysResult(id) {
+  if (!id || !confirm("Supprimer ce test rempli ?")) return;
+  const { error } = await sb.from("phys_results").delete().eq("id", id);
+  if (error) { alert(error.message); return; }
+  $("phys-result-modal").classList.add("hidden");
+  loadPhysResults();
+}
+
+async function loadPhysTemplates() {
+  const [{ data: tests }, { data: qs }] = await Promise.all([
+    sb.from("phys_tests").select("*").order("sort_order").order("created_at"),
+    sb.from("phys_test_questions").select("*").order("sort_order"),
+  ]);
+  physTests = tests || [];
+  const qByTest = {};
+  for (const q of qs || []) (qByTest[q.test_id] = qByTest[q.test_id] || []).push(q);
+  $("phys-tpl-list").innerHTML = physTests.length ? physTests.map((t) => `
+    <div class="phys-tpl-card" data-id="${t.id}">
+      <div class="phys-tpl-head">
+        <input type="text" class="phys-tpl-name" value="${esc(t.name)}" placeholder="Nom du test" />
+        <label class="stg-inline"><input type="checkbox" class="phys-tpl-active" ${t.active ? "checked" : ""}/> Actif</label>
+      </div>
+      <div class="phys-q-rows">${(qByTest[t.id] || []).map((q) => physQRow(q.label, q.answer_type)).join("")}</div>
+      <button type="button" class="ghost phys-q-add">+ Question</button>
+      <div class="phys-tpl-foot">
+        <button type="button" class="primary phys-tpl-save">Enregistrer</button>
+        <button type="button" class="fam-del phys-tpl-del">Supprimer</button>
+      </div>
+    </div>`).join("") : '<p class="muted">Aucun test. Cliquez « + Nouveau test ».</p>';
+  $("phys-tpl-list").querySelectorAll(".phys-tpl-card").forEach((card) => {
+    const id = card.dataset.id;
+    card.querySelector(".phys-q-add").addEventListener("click", () => {
+      card.querySelector(".phys-q-rows").insertAdjacentHTML("beforeend", physQRow("", "text"));
+      wirePhysQRows(card);
+    });
+    card.querySelector(".phys-tpl-save").addEventListener("click", () => savePhysTemplate(id, card));
+    card.querySelector(".phys-tpl-del").addEventListener("click", () => deletePhysTemplate(id));
+    wirePhysQRows(card);
+  });
+}
+
+function physQRow(label, type) {
+  return `<div class="phys-q-row">
+    <input type="text" class="phys-q-label" value="${esc(label)}" placeholder="Question (ex. Sprint 20 m)" />
+    <select class="phys-q-type">
+      <option value="text"${type === "text" ? " selected" : ""}>Texte</option>
+      <option value="number"${type === "number" ? " selected" : ""}>Numérique</option>
+    </select>
+    <button type="button" class="fam-del phys-q-del">✕</button>
+  </div>`;
+}
+function wirePhysQRows(card) {
+  card.querySelectorAll(".phys-q-del").forEach((b) => { b.onclick = () => b.closest(".phys-q-row").remove(); });
+}
+
+async function createPhysTemplate() {
+  const sort = (physTests.at(-1)?.sort_order || physTests.length) + 1;
+  const { error } = await sb.from("phys_tests").insert({ name: "Nouveau test", sort_order: sort });
+  if (error) { alert(error.message); return; }
+  await loadPhysTemplates();
+  const last = $("phys-tpl-list").querySelector(".phys-tpl-card:last-child .phys-tpl-name");
+  if (last) { last.focus(); last.select(); }
+}
+
+async function savePhysTemplate(id, card) {
+  const name = card.querySelector(".phys-tpl-name").value.trim() || "Test";
+  const active = card.querySelector(".phys-tpl-active").checked;
+  const questions = [...card.querySelectorAll(".phys-q-row")].map((row, i) => ({
+    test_id: id,
+    label: row.querySelector(".phys-q-label").value.trim(),
+    answer_type: row.querySelector(".phys-q-type").value,
+    sort_order: i,
+  })).filter((q) => q.label);
+  const btn = card.querySelector(".phys-tpl-save");
+  btn.textContent = "…";
+  await sb.from("phys_tests").update({ name, active }).eq("id", id);
+  await sb.from("phys_test_questions").delete().eq("test_id", id);
+  if (questions.length) await sb.from("phys_test_questions").insert(questions);
+  btn.textContent = "Enregistré ✓";
+  setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
+}
+
+async function deletePhysTemplate(id) {
+  if (!confirm("Supprimer ce modèle de test ? (les tests déjà remplis sont conservés)")) return;
+  const { error } = await sb.from("phys_tests").delete().eq("id", id);
+  if (error) { alert(error.message); return; }
+  loadPhysTemplates();
+}
+
+async function openPhysFill() {
+  $("pf-error").hidden = true;
+  const youths = people.filter((p) => hasRoleIn(p.id, PHYS_YOUTH_ROLES))
+    .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+  $("pf-person").innerHTML = '<option value="">— Choisir un jeune —</option>'
+    + youths.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
+  const { data: tests } = await sb.from("phys_tests").select("*").eq("active", true).order("sort_order").order("created_at");
+  physTests = tests || [];
+  $("pf-test").innerHTML = '<option value="">— Choisir un test —</option>'
+    + physTests.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+  $("pf-questions").innerHTML = "";
+  $("phys-fill-modal").classList.remove("hidden");
+}
+
+async function renderPhysFillQuestions() {
+  const tid = $("pf-test").value;
+  if (!tid) { $("pf-questions").innerHTML = ""; return; }
+  const qs = (await sb.from("phys_test_questions").select("*").eq("test_id", tid).order("sort_order")).data || [];
+  $("pf-questions").innerHTML = qs.length ? qs.map((q) => `
+    <label class="pf-q">${esc(q.label)}${q.answer_type === "number" ? ' <span class="muted">(nombre)</span>' : ""}
+      <input class="pf-a" data-qid="${q.id}" data-type="${q.answer_type}" data-label="${esc(q.label)}"
+        type="${q.answer_type === "number" ? "number" : "text"}" step="any" />
+    </label>`).join("") : '<p class="muted" style="font-size:.85rem">Ce test n\'a pas encore de questions.</p>';
+}
+
+async function savePhysFill(e) {
+  e.preventDefault();
+  const err = $("pf-error"); err.hidden = true;
+  const pid = $("pf-person").value, tid = $("pf-test").value;
+  if (!pid || !tid) { err.textContent = "Choisis un jeune et un test."; err.hidden = false; return; }
+  const testName = $("pf-test").options[$("pf-test").selectedIndex]?.textContent || "Test";
+  const res = await sb.from("phys_results").insert({
+    test_id: tid, test_name: testName, person_id: pid,
+    coach_person_id: myPersonId, coach_name: meName, created_by: meId,
+  }).select("id").single();
+  if (res.error) { err.textContent = res.error.message; err.hidden = false; return; }
+  const answers = [...$("pf-questions").querySelectorAll(".pf-a")].map((inp, i) => {
+    const num = inp.dataset.type === "number";
+    return {
+      result_id: res.data.id, question_id: inp.dataset.qid, label: inp.dataset.label,
+      answer_type: inp.dataset.type,
+      value_text: num ? null : (inp.value.trim() || null),
+      value_num: num ? (inp.value === "" ? null : Number(inp.value)) : null,
+      sort_order: i,
+    };
+  });
+  if (answers.length) await sb.from("phys_answers").insert(answers);
+  $("phys-fill-modal").classList.add("hidden");
+  loadPhysResults();
 }
 
