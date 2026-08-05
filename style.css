@@ -491,6 +491,21 @@ input.pd-native{display:none}
 .phys-ans{display:flex;justify-content:space-between;gap:16px;padding:9px 4px;border-bottom:1px solid var(--line)}
 .phys-ans-q{color:var(--ink)}
 .phys-ans-v{font-weight:800;color:var(--blue-ink);text-align:right}
+/* ===== Saisons (fiche) ===== */
+.ss-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.ss-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--line);
+  border-radius:10px;background:#fff}
+.ss-row.ss-cur{border-color:var(--blue);box-shadow:inset 3px 0 0 var(--blue)}
+.ss-season{font-weight:800;color:var(--blue-ink);min-width:64px}
+.ss-paid{display:flex;align-items:center;gap:6px;font-weight:600;font-size:.88rem}
+.ss-paid input{width:16px;height:16px}
+.ss-status{flex:1}
+.ss-tag{display:inline-block;font-size:.75rem;font-weight:800;padding:2px 9px;border-radius:999px}
+.ss-tag.ss-ok{background:#e3f6e8;color:#1c7d38}
+.ss-tag.ss-warn{background:#fdf2dc;color:#a9721a}
+.ss-tag.ss-role{background:#eef1f7;color:var(--blue-ink)}
+.ss-intent{max-width:170px}
+.ss-add{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
 .stg-lbl{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
 .stg-radio{display:inline-flex;align-items:center;gap:6px;margin-right:18px;font-weight:600;font-size:.9rem;
   white-space:nowrap;flex-shrink:0}

@@ -594,6 +594,7 @@
       <input type="hidden" id="p-id" />
       <div class="ptabs" id="p-tabs">
         <button type="button" class="ptab active" data-ptab="info">Info</button>
+        <button type="button" class="ptab" data-ptab="seasons">Saisons</button>
         <button type="button" class="ptab" data-ptab="resa">Réservations</button>
         <button type="button" class="ptab" data-ptab="cours">Cours</button>
         <button type="button" class="ptab" data-ptab="media">Photos / vidéos</button>
@@ -664,6 +665,29 @@
         <div id="cr-ledger" class="cr-ledger"></div>
       </div>
       </div><!-- /ptab-info -->
+
+      <div id="ptab-seasons" class="ptab-panel hidden">
+        <p class="muted" style="font-size:.85rem;margin:0 0 12px">Historique par saison (source de vérité). Cotisation : 1er avril → 31 mars. Cours juniors : 20 août → 19 août.</p>
+
+        <div class="rg-card">
+          <h3 style="margin:0 0 8px;font-size:1rem">Cotisation (membre)</h3>
+          <div id="ss-cot-list" class="ss-list"></div>
+          <div class="ss-add">
+            <select id="ss-cot-season"></select>
+            <button type="button" id="ss-cot-add" class="ghost">+ Membre pour cette saison</button>
+          </div>
+        </div>
+
+        <div class="rg-card" style="margin-top:14px">
+          <h3 style="margin:0 0 8px;font-size:1rem">Cours juniors</h3>
+          <div id="ss-jun-list" class="ss-list"></div>
+          <div class="ss-add">
+            <select id="ss-jun-season"></select>
+            <select id="ss-jun-role"></select>
+            <button type="button" id="ss-jun-add" class="ghost">+ Ajouter</button>
+          </div>
+        </div>
+      </div>
 
       <div id="ptab-resa" class="ptab-panel hidden">
         <div id="resa-stats" class="resa-stats"></div>

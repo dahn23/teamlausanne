@@ -61,6 +61,28 @@ const PERSON_ROLES = [
   ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
 ];
 const roleLabel = (r) => (PERSON_ROLES.find(([v]) => v === r) || [r, r])[1];
+
+// ---- Rôles saisonniers (source de vérité = table role_periods, par saison) ----
+const SEASONAL_COTISATION = ["membre"];
+const SEASONAL_JUNIORS = ["kidstennis", "club", "competition", "performance", "sport-etudes", "pro-u18", "pro"];
+const SEASONAL_ROLES = [...SEASONAL_COTISATION, ...SEASONAL_JUNIORS];
+const seasonTypeOf = (role) => SEASONAL_COTISATION.includes(role) ? "cotisation" : SEASONAL_JUNIORS.includes(role) ? "juniors" : null;
+const INTENTS = [["reste", "Reste"], ["monte", "Monte"], ["descend", "Descend"], ["part", "Part"], ["a-decider", "À décider"]];
+const intentLabel = (v) => (INTENTS.find(([x]) => x === v) || ["", "—"])[1];
+// Cotisation : 1 avr → 31 mars. Juniors : 20 août → 19 août. Étiquette « 2026/27 ».
+function seasonFor(type, dateStr) {
+  const d = dateStr ? new Date(dateStr + "T00:00:00") : new Date();
+  const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+  const startY = type === "cotisation" ? (m >= 4 ? y : y - 1) : ((m > 8 || (m === 8 && day >= 20)) ? y : y - 1);
+  return seasonByStartYear(type, startY);
+}
+function seasonByStartYear(type, startY) {
+  const label = `${startY}/${String(startY + 1).slice(2)}`;
+  const start = type === "cotisation" ? `${startY}-04-01` : `${startY}-08-20`;
+  const end = type === "cotisation" ? `${startY + 1}-03-31` : `${startY + 1}-08-19`;
+  return { type, label, start, end, startY };
+}
+
 let peopleRoles = {};            // person_id -> [role,…]
 const activeFilters = new Set(); // filtres rôle actifs
 
@@ -109,6 +131,11 @@ async function init(roles) {
   document.querySelectorAll("#p-tabs .ptab").forEach((b) =>
     b.addEventListener("click", () => setPersonTab(b.dataset.ptab)));
   $("obj-add-btn").addEventListener("click", addObjective);
+  $("ss-cot-season").innerHTML = seasonOptions("cotisation");
+  $("ss-jun-season").innerHTML = seasonOptions("juniors");
+  $("ss-jun-role").innerHTML = SEASONAL_JUNIORS.map((r) => `<option value="${r}">${esc(roleLabel(r))}</option>`).join("");
+  $("ss-cot-add").addEventListener("click", () => addSeasonRole("cotisation", "membre"));
+  $("ss-jun-add").addEventListener("click", () => addSeasonRole("juniors", $("ss-jun-role").value));
   $("media-btn").addEventListener("click", () => $("media-file").click());
   $("media-file").addEventListener("change", (e) => uploadMedia(e.target));
   $("p-photo-btn").addEventListener("click", () => $("p-photo-file").click());
@@ -637,14 +664,23 @@ async function toggleRole(c) {
 }
 
 async function loadPeople() {
-  const [{ data, error }, { data: pr }] = await Promise.all([
+  const cot = seasonFor("cotisation"), jun = seasonFor("juniors");
+  const [{ data, error }, { data: pr }, { data: rp }] = await Promise.all([
     sb.from("people").select("*").order("last_name").order("first_name"),
     sb.from("person_roles").select("person_id,role"),
+    sb.from("role_periods").select("person_id,role,season_type,season_label,paid").in("season_label", [cot.label, jun.label]),
   ]);
   if (error) { alert("Erreur chargement : " + error.message); return; }
   people = data || [];
   peopleRoles = {};
-  for (const r of pr || []) (peopleRoles[r.person_id] || (peopleRoles[r.person_id] = [])).push(r.role);
+  const add = (pid, role) => { const a = (peopleRoles[pid] || (peopleRoles[pid] = [])); if (!a.includes(role)) a.push(role); };
+  for (const r of pr || []) add(r.person_id, r.role);
+  // Rôles saisonniers actifs de la saison EN COURS (source de vérité)
+  for (const r of rp || []) {
+    const okCot = r.season_type === "cotisation" && r.season_label === cot.label;
+    const okJun = r.season_type === "juniors" && r.season_label === jun.label;
+    if (okCot || okJun) add(r.person_id, r.role);
+  }
   renderFilters();
   renderRows();
 }
@@ -881,6 +917,7 @@ function openPerson(p) {
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
+  loadSeasons(p ? p.id : null);
   if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); }
   else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
@@ -1107,6 +1144,77 @@ async function deleteObjective(oid) {
   const { error } = await sb.from("person_objectives").delete().eq("id", oid);
   if (error) { alert("Objectif : " + error.message); return; }
   loadObjectives($("p-id").value);
+}
+
+// ---- Saisons (rôles saisonniers = source de vérité) ----
+function seasonOptions(type) {
+  const cur = seasonFor(type);
+  let opts = "";
+  for (let n = 1; n >= -2; n--) {
+    const s = seasonByStartYear(type, cur.startY + n);
+    opts += `<option value="${s.startY}"${n === 0 ? " selected" : ""}>${s.label}${n === 0 ? " (en cours)" : n === 1 ? " (à venir)" : ""}</option>`;
+  }
+  return opts;
+}
+async function loadSeasons(personId) {
+  const enable = !!personId;
+  ["ss-cot-add", "ss-jun-add", "ss-cot-season", "ss-jun-season", "ss-jun-role"].forEach((id) => { $(id).disabled = !enable; });
+  if (!enable) { $("ss-cot-list").innerHTML = '<p class="muted" style="font-size:.85rem">Enregistrez d\'abord la personne.</p>'; $("ss-jun-list").innerHTML = ""; return; }
+  const { data } = await sb.from("role_periods").select("*").eq("person_id", personId);
+  const rows = data || [];
+  const cur = { cotisation: seasonFor("cotisation").label, juniors: seasonFor("juniors").label };
+  const intentSel = (r) => `<select class="ss-intent" data-id="${r.id}">
+    <option value="">Intention suivante…</option>
+    ${INTENTS.map(([v, l]) => `<option value="${v}"${r.next_intent === v ? " selected" : ""}>${l}</option>`).join("")}</select>`;
+
+  const cots = rows.filter((r) => r.season_type === "cotisation").sort((a, b) => b.season_label.localeCompare(a.season_label));
+  $("ss-cot-list").innerHTML = cots.length ? cots.map((r) => `
+    <div class="ss-row${r.season_label === cur.cotisation ? " ss-cur" : ""}">
+      <span class="ss-season">${r.season_label}</span>
+      <label class="ss-paid"><input type="checkbox" class="ss-paid-chk" data-id="${r.id}" ${r.paid ? "checked" : ""}/> Payé</label>
+      <span class="ss-status">${r.paid ? '<span class="ss-tag ss-ok">Membre</span>' : '<span class="ss-tag ss-warn">Non payé</span>'}</span>
+      ${intentSel(r)}
+      <button type="button" class="fam-del ss-del" data-id="${r.id}">✕</button>
+    </div>`).join("") : '<p class="muted" style="font-size:.85rem">Aucune cotisation enregistrée.</p>';
+
+  const juns = rows.filter((r) => r.season_type === "juniors").sort((a, b) => b.season_label.localeCompare(a.season_label) || a.role.localeCompare(b.role));
+  $("ss-jun-list").innerHTML = juns.length ? juns.map((r) => `
+    <div class="ss-row${r.season_label === cur.juniors ? " ss-cur" : ""}">
+      <span class="ss-season">${r.season_label}</span>
+      <span class="ss-status"><span class="ss-tag ss-role">${esc(roleLabel(r.role))}</span></span>
+      ${intentSel(r)}
+      <button type="button" class="fam-del ss-del" data-id="${r.id}">✕</button>
+    </div>`).join("") : '<p class="muted" style="font-size:.85rem">Aucune filière enregistrée.</p>';
+
+  $("ptab-seasons").querySelectorAll(".ss-del").forEach((b) => b.addEventListener("click", () => deleteSeasonPeriod(b.dataset.id)));
+  $("ptab-seasons").querySelectorAll(".ss-paid-chk").forEach((c) => c.addEventListener("change", () => updateSeasonPeriod(c.dataset.id, { paid: c.checked })));
+  $("ptab-seasons").querySelectorAll(".ss-intent").forEach((s) => s.addEventListener("change", () => updateSeasonPeriod(s.dataset.id, { next_intent: s.value || null })));
+}
+async function addSeasonRole(type, role) {
+  const pid = $("p-id").value;
+  if (!pid || !role) return;
+  const startY = Number($(type === "cotisation" ? "ss-cot-season" : "ss-jun-season").value);
+  const s = seasonByStartYear(type, startY);
+  const { error } = await sb.from("role_periods").insert({
+    person_id: pid, role, season_type: type, season_label: s.label,
+    season_start: s.start, season_end: s.end, created_by: meId,
+  });
+  if (error) { alert(error.code === "23505" ? "Déjà enregistré pour cette saison." : error.message); return; }
+  loadSeasons(pid);
+  loadPeople();
+}
+async function updateSeasonPeriod(id, patch) {
+  const { error } = await sb.from("role_periods").update(patch).eq("id", id);
+  if (error) { alert(error.message); return; }
+  loadSeasons($("p-id").value);
+  if ("paid" in patch) loadPeople();
+}
+async function deleteSeasonPeriod(id) {
+  if (!confirm("Retirer cette saison ?")) return;
+  const { error } = await sb.from("role_periods").delete().eq("id", id);
+  if (error) { alert(error.message); return; }
+  loadSeasons($("p-id").value);
+  loadPeople();
 }
 
 let personPhotoUrl = null;
