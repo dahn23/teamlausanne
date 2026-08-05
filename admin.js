@@ -69,18 +69,28 @@ const SEASONAL_ROLES = [...SEASONAL_COTISATION, ...SEASONAL_JUNIORS];
 const seasonTypeOf = (role) => SEASONAL_COTISATION.includes(role) ? "cotisation" : SEASONAL_JUNIORS.includes(role) ? "juniors" : null;
 const INTENTS = [["reste", "Reste"], ["monte", "Monte"], ["descend", "Descend"], ["part", "Part"], ["a-decider", "À décider"]];
 const intentLabel = (v) => (INTENTS.find(([x]) => x === v) || ["", "—"])[1];
-// Cotisation : 1 avr → 31 mars. Juniors : 20 août → 19 août. Étiquette « 2026/27 ».
+// Paramètres des deux temporalités (réglables dans Réglages › Temporalités).
+// Cotisation par défaut : 1 avr (grâce 1 mai). Juniors : 20 août.
+function seasonCfg() {
+  const t = (typeof settings !== "undefined" && settings.temporalites) || {};
+  return {
+    cotisation: { m: t.cot_month || 4, d: t.cot_day || 1, graceM: t.grace_month || 5, graceD: t.grace_day || 1 },
+    juniors: { m: t.jun_month || 8, d: t.jun_day || 20 },
+  };
+}
 function seasonFor(type, dateStr) {
   const d = dateStr ? new Date(dateStr + "T00:00:00") : new Date();
   const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
-  const startY = type === "cotisation" ? (m >= 4 ? y : y - 1) : ((m > 8 || (m === 8 && day >= 20)) ? y : y - 1);
-  return seasonByStartYear(type, startY);
+  const p = seasonCfg()[type];
+  const after = m > p.m || (m === p.m && day >= p.d);
+  return seasonByStartYear(type, after ? y : y - 1);
 }
 function seasonByStartYear(type, startY) {
-  const label = `${startY}/${String(startY + 1).slice(2)}`;
-  const start = type === "cotisation" ? `${startY}-04-01` : `${startY}-08-20`;
-  const end = type === "cotisation" ? `${startY + 1}-03-31` : `${startY + 1}-08-19`;
-  return { type, label, start, end, startY };
+  const p = seasonCfg()[type];
+  const start = `${startY}-${pad2(p.m)}-${pad2(p.d)}`;
+  const e = new Date(startY + 1, p.m - 1, p.d); e.setDate(e.getDate() - 1);
+  const end = `${e.getFullYear()}-${pad2(e.getMonth() + 1)}-${pad2(e.getDate())}`;
+  return { type, label: `${startY}/${String(startY + 1).slice(2)}`, start, end, startY };
 }
 
 let peopleRoles = {};            // person_id -> [role,…]
@@ -614,10 +624,52 @@ function barsFrom(rows, suffix) {
 // ===================================================================
 //  Rôles & accès
 // ===================================================================
+const MONTH_NAMES = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 function initRoles() {
   renderAccessMatrix();
   $("access-save").addEventListener("click", saveAccess);
   loadAccounts();
+  // Sous-onglets Réglages
+  document.querySelectorAll("#view-roles .rg-subtab").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#view-roles .rg-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      document.querySelectorAll("#view-roles .rg-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "rg-sub-" + b.dataset.sub));
+      if (b.dataset.sub === "temporalites") loadTemporalites();
+    }));
+  const monthOpts = MONTH_NAMES.map((n, i) => `<option value="${i + 1}">${n}</option>`).join("");
+  ["tp-cot-month", "tp-grace-month", "tp-jun-month"].forEach((id) => { $(id).innerHTML = monthOpts; });
+  ["tp-cot-day", "tp-cot-month", "tp-grace-day", "tp-grace-month", "tp-jun-day", "tp-jun-month"].forEach((id) =>
+    $(id).addEventListener("change", tpPreview));
+  $("tp-save").addEventListener("click", saveTemporalites);
+}
+
+function loadTemporalites() {
+  const c = seasonCfg();
+  $("tp-cot-day").value = c.cotisation.d; $("tp-cot-month").value = c.cotisation.m;
+  $("tp-grace-day").value = c.cotisation.graceM ? c.cotisation.graceD : 1; $("tp-grace-month").value = c.cotisation.graceM;
+  $("tp-jun-day").value = c.juniors.d; $("tp-jun-month").value = c.juniors.m;
+  tpPreview();
+}
+function tpPreview() {
+  const cot = seasonFor("cotisation"), jun = seasonFor("juniors");
+  $("tp-cot-preview").textContent = `Saison en cours : ${cot.label} (${frDate(cot.start)} → ${frDate(cot.end)}). Grâce jusqu'au ${$("tp-grace-day").value}.${pad2(+$("tp-grace-month").value)}.`;
+  $("tp-jun-preview").textContent = `Saison en cours : ${jun.label} (${frDate(jun.start)} → ${frDate(jun.end)}).`;
+}
+async function saveTemporalites() {
+  const value = {
+    cot_day: +$("tp-cot-day").value || 1, cot_month: +$("tp-cot-month").value || 4,
+    grace_day: +$("tp-grace-day").value || 1, grace_month: +$("tp-grace-month").value || 5,
+    jun_day: +$("tp-jun-day").value || 20, jun_month: +$("tp-jun-month").value || 8,
+  };
+  const btn = $("tp-save"); btn.disabled = true; $("tp-status").textContent = "…";
+  const { error } = await sb.from("app_settings").upsert({ key: "temporalites", value }, { onConflict: "key" });
+  btn.disabled = false;
+  if (error) { $("tp-status").textContent = "Erreur : " + error.message; return; }
+  settings.temporalites = value;
+  $("tp-status").textContent = "Enregistré ✓";
+  tpPreview();
+  loadPeople(); // recalcule les rôles courants avec les nouvelles dates
+  setTimeout(() => ($("tp-status").textContent = ""), 1800);
 }
 
 function renderAccessMatrix() {
