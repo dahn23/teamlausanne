@@ -131,9 +131,6 @@ async function init(roles) {
   document.querySelectorAll("#p-tabs .ptab").forEach((b) =>
     b.addEventListener("click", () => setPersonTab(b.dataset.ptab)));
   $("obj-add-btn").addEventListener("click", addObjective);
-  $("ss-cot-season").innerHTML = seasonOptions("cotisation");
-  $("ss-jun-season").innerHTML = seasonOptions("juniors");
-  $("ss-jun-role").innerHTML = SEASONAL_JUNIORS.map((r) => `<option value="${r}">${esc(roleLabel(r))}</option>`).join("");
   $("ss-cot-add").addEventListener("click", () => addSeasonRole("cotisation", "membre"));
   $("ss-jun-add").addEventListener("click", () => addSeasonRole("juniors", $("ss-jun-role").value));
   $("media-btn").addEventListener("click", () => $("media-file").click());
@@ -1156,7 +1153,14 @@ function seasonOptions(type) {
   }
   return opts;
 }
+let ssSelectsReady = false;
 async function loadPersonSeasons(personId) {
+  if (!ssSelectsReady) {
+    $("ss-cot-season").innerHTML = seasonOptions("cotisation");
+    $("ss-jun-season").innerHTML = seasonOptions("juniors");
+    $("ss-jun-role").innerHTML = SEASONAL_JUNIORS.map((r) => `<option value="${r}">${esc(roleLabel(r))}</option>`).join("");
+    ssSelectsReady = true;
+  }
   const enable = !!personId;
   ["ss-cot-add", "ss-jun-add", "ss-cot-season", "ss-jun-season", "ss-jun-role"].forEach((id) => { $(id).disabled = !enable; });
   if (!enable) { $("ss-cot-list").innerHTML = '<p class="muted" style="font-size:.85rem">Enregistrez d\'abord la personne.</p>'; $("ss-jun-list").innerHTML = ""; return; }
