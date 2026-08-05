@@ -2515,7 +2515,7 @@ async function cwGo() {
   }
   cwConflicts = conflicts;
   $("cw-summary").hidden = false;
-  $("cw-summary").innerHTML = `<b>${toCreate.length}</b> cours seront copiés vers la semaine du <b>${frDate(cwTgtMon)}</b>.`
+  $("cw-summary").innerHTML = `<b>${toCreate.length}</b> cours ${toCreate.length > 1 ? "seront copiés" : "sera copié"} vers la semaine du <b>${frDate(cwTgtMon)}</b>.`
     + (conflicts.length ? `<div class="cw-warn">${conflicts.length} en conflit (ignorés, rien n'est écrasé) :<br>${conflicts.map(esc).join("<br>")}</div>` : "");
   if (!toCreate.length) { $("cw-go").disabled = true; $("cw-go").textContent = "Rien à copier"; return; }
   cwToCreate = toCreate;
