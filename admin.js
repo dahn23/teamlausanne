@@ -917,7 +917,7 @@ function openPerson(p) {
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
-  loadSeasons(p ? p.id : null);
+  loadPersonSeasons(p ? p.id : null);
   if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); }
   else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
@@ -1156,7 +1156,7 @@ function seasonOptions(type) {
   }
   return opts;
 }
-async function loadSeasons(personId) {
+async function loadPersonSeasons(personId) {
   const enable = !!personId;
   ["ss-cot-add", "ss-jun-add", "ss-cot-season", "ss-jun-season", "ss-jun-role"].forEach((id) => { $(id).disabled = !enable; });
   if (!enable) { $("ss-cot-list").innerHTML = '<p class="muted" style="font-size:.85rem">Enregistrez d\'abord la personne.</p>'; $("ss-jun-list").innerHTML = ""; return; }
@@ -1200,20 +1200,20 @@ async function addSeasonRole(type, role) {
     season_start: s.start, season_end: s.end, created_by: meId,
   });
   if (error) { alert(error.code === "23505" ? "Déjà enregistré pour cette saison." : error.message); return; }
-  loadSeasons(pid);
+  loadPersonSeasons(pid);
   loadPeople();
 }
 async function updateSeasonPeriod(id, patch) {
   const { error } = await sb.from("role_periods").update(patch).eq("id", id);
   if (error) { alert(error.message); return; }
-  loadSeasons($("p-id").value);
+  loadPersonSeasons($("p-id").value);
   if ("paid" in patch) loadPeople();
 }
 async function deleteSeasonPeriod(id) {
   if (!confirm("Retirer cette saison ?")) return;
   const { error } = await sb.from("role_periods").delete().eq("id", id);
   if (error) { alert(error.message); return; }
-  loadSeasons($("p-id").value);
+  loadPersonSeasons($("p-id").value);
   loadPeople();
 }
 
