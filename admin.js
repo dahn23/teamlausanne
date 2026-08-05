@@ -1154,7 +1154,9 @@ async function loadFamily(id) {
   $("family-list").innerHTML = rows.length ? rows.map((g) => {
     const isParent = g.guardian_id === id;
     const other = isParent ? g.child_id : g.guardian_id;
-    const label = isParent ? `Enfant : ${nameOf(other)}` : `Parent/tuteur : ${nameOf(other)}`;
+    const label = g.relation === "sibling"
+      ? `Frère / sœur : ${nameOf(other)}`
+      : (isParent ? `Enfant : ${nameOf(other)}` : `Parent/tuteur : ${nameOf(other)}`);
     return `<div class="fam-item"><span>${label}</span><button type="button" class="fam-del" data-g="${g.guardian_id}" data-c="${g.child_id}">✕</button></div>`;
   }).join("") : '<p class="muted" style="font-size:.85rem;margin:0">Aucun lien.</p>';
   $("family-list").querySelectorAll(".fam-del").forEach((b) =>
@@ -1166,9 +1168,17 @@ async function addFamily() {
   if (!id) { alert("Enregistrez d'abord la fiche."); return; }
   const other = $("fam-person").value;
   if (!other) return;
-  const row = $("fam-dir").value === "child"
-    ? { guardian_id: id, child_id: other, relation: "parent" }
-    : { guardian_id: other, child_id: id, relation: "parent" };
+  const dir = $("fam-dir").value;
+  let row;
+  if (dir === "sibling") {
+    // Lien non orienté : on ordonne les ids pour éviter les doublons A-B / B-A
+    const [a, b] = [id, other].sort();
+    row = { guardian_id: a, child_id: b, relation: "sibling" };
+  } else if (dir === "child") {
+    row = { guardian_id: id, child_id: other, relation: "parent" };
+  } else {
+    row = { guardian_id: other, child_id: id, relation: "parent" };
+  }
   const { error } = await sb.from("guardianships").insert(row);
   if (error) { alert("Lien impossible : " + (error.code === "23505" ? "ce lien existe déjà." : error.message)); return; }
   $("fam-person").value = "";

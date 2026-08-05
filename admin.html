@@ -601,12 +601,14 @@
       </div>
 
       <div id="family-section" class="fam-section hidden">
-        <h3 class="fam-title">Liens familiaux (parent ↔ junior)</h3>
+        <h3 class="fam-title">Liens familiaux</h3>
+        <p class="muted" style="font-size:.85rem;margin:0 0 8px">Parent ↔ enfant, ou frère/sœur directement (utile quand le parent n'est pas connu). Sert de base aux rabais famille.</p>
         <div id="family-list" class="fam-list"></div>
         <div class="fam-add">
           <select id="fam-dir">
             <option value="child">Cette personne est le parent/tuteur de →</option>
             <option value="guardian">Cette personne est l'enfant de ←</option>
+            <option value="sibling">Frère / sœur (même famille) de ↔</option>
           </select>
           <select id="fam-person"></select>
           <button type="button" id="fam-add-btn">Lier</button>
