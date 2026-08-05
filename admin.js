@@ -1278,8 +1278,9 @@ function renderPersonPhoto() {
   box.classList.toggle("empty", !personPhotoUrl);
 }
 function renderPersonRoles(roles) {
-  personRolesSel = new Set(roles);
-  $("p-roles").innerHTML = PERSON_ROLES.map(([v, l]) =>
+  // Les rôles saisonniers (membre + filières juniors) se gèrent dans l'onglet Saisons.
+  personRolesSel = new Set((roles || []).filter((r) => !SEASONAL_ROLES.includes(r)));
+  $("p-roles").innerHTML = PERSON_ROLES.filter(([v]) => !SEASONAL_ROLES.includes(v)).map(([v, l]) =>
     `<button type="button" class="chip${personRolesSel.has(v) ? " sel" : ""}" data-role="${v}">${esc(l)}</button>`).join("");
   $("p-roles").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => {
     const r = b.dataset.role;
