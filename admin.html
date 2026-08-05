@@ -68,7 +68,7 @@
           <div class="crm-head"><h1>Réglages</h1></div>
           <div class="subnav">
             <button class="subtab rg-subtab active" data-sub="acces">Accès & rôles</button>
-            <button class="subtab rg-subtab" data-sub="temporalites">Temporalités</button>
+            <button class="subtab rg-subtab" data-sub="seasons">Saisons</button>
           </div>
 
           <div id="rg-sub-acces" class="rg-sub">
@@ -93,30 +93,27 @@
             </div>
           </div>
 
-          <div id="rg-sub-temporalites" class="rg-sub hidden">
+          <div id="rg-sub-seasons" class="rg-sub hidden">
             <div class="rg-card">
-              <h2 style="margin-top:0">Temporalités (saisons)</h2>
-              <p class="muted" style="font-size:.88rem;margin-top:0">Deux calendriers <b>indépendants</b>. Le rôle « actuel » d'une personne se calcule à partir de ces dates.</p>
+              <h2 style="margin-top:0">Saisons</h2>
+              <p class="muted" style="font-size:.88rem;margin-top:0">Deux calendriers <b>indépendants</b>. La saison « en cours » = celle qui contient la date d'aujourd'hui. Créez chaque saison avec ses dates ; l'historique est conservé.</p>
 
-              <h3 style="margin:14px 0 6px;font-size:1rem">Cotisation (membre)</h3>
-              <div class="tp-grid">
-                <label>Début de l'année — jour<input type="number" id="tp-cot-day" min="1" max="31" /></label>
-                <label>Début — mois<select id="tp-cot-month"></select></label>
-                <label>Grâce jusqu'au — jour<input type="number" id="tp-grace-day" min="1" max="31" /></label>
-                <label>Grâce — mois<select id="tp-grace-month"></select></label>
+              <h3 style="margin:14px 0 6px;font-size:1rem">Cotisation (membre) <span class="muted" style="font-weight:400">— 1er avril → 31 mars</span></h3>
+              <div id="rg-cot-seasons" class="rg-season-list"></div>
+              <div class="rg-season-add">
+                <input id="rg-cot-label" placeholder="Étiquette (ex. 2026/27)" />
+                <input type="date" id="rg-cot-start" />
+                <input type="date" id="rg-cot-end" />
+                <button id="rg-cot-add" class="ghost">+ Créer</button>
               </div>
-              <p class="muted" id="tp-cot-preview" style="font-size:.85rem"></p>
 
-              <h3 style="margin:16px 0 6px;font-size:1rem">Cours juniors</h3>
-              <div class="tp-grid">
-                <label>Début de l'année — jour<input type="number" id="tp-jun-day" min="1" max="31" /></label>
-                <label>Début — mois<select id="tp-jun-month"></select></label>
-              </div>
-              <p class="muted" id="tp-jun-preview" style="font-size:.85rem"></p>
-
-              <div class="rg-foot" style="margin-top:14px">
-                <button id="tp-save">Enregistrer les temporalités</button>
-                <span id="tp-status" class="muted"></span>
+              <h3 style="margin:18px 0 6px;font-size:1rem">Cours juniors <span class="muted" style="font-weight:400">— 20 août → 19 août</span></h3>
+              <div id="rg-jun-seasons" class="rg-season-list"></div>
+              <div class="rg-season-add">
+                <input id="rg-jun-label" placeholder="Étiquette (ex. 2026/27)" />
+                <input type="date" id="rg-jun-start" />
+                <input type="date" id="rg-jun-end" />
+                <button id="rg-jun-add" class="ghost">+ Créer</button>
               </div>
             </div>
           </div>

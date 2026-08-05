@@ -69,28 +69,18 @@ const SEASONAL_ROLES = [...SEASONAL_COTISATION, ...SEASONAL_JUNIORS];
 const seasonTypeOf = (role) => SEASONAL_COTISATION.includes(role) ? "cotisation" : SEASONAL_JUNIORS.includes(role) ? "juniors" : null;
 const INTENTS = [["reste", "Reste"], ["monte", "Monte"], ["descend", "Descend"], ["part", "Part"], ["a-decider", "À décider"]];
 const intentLabel = (v) => (INTENTS.find(([x]) => x === v) || ["", "—"])[1];
-// Paramètres des deux temporalités (réglables dans Réglages › Temporalités).
-// Cotisation par défaut : 1 avr (grâce 1 mai). Juniors : 20 août.
-function seasonCfg() {
-  const t = (typeof settings !== "undefined" && settings.temporalites) || {};
-  return {
-    cotisation: { m: t.cot_month || 4, d: t.cot_day || 1, graceM: t.grace_month || 5, graceD: t.grace_day || 1 },
-    juniors: { m: t.jun_month || 8, d: t.jun_day || 20 },
-  };
+// Saisons = table `seasons` (créées explicitement dans Réglages › Saisons).
+let seasons = [];
+async function loadSeasonsList() {
+  const { data } = await sb.from("seasons").select("*").order("start_date", { ascending: false });
+  seasons = data || [];
 }
-function seasonFor(type, dateStr) {
-  const d = dateStr ? new Date(dateStr + "T00:00:00") : new Date();
-  const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
-  const p = seasonCfg()[type];
-  const after = m > p.m || (m === p.m && day >= p.d);
-  return seasonByStartYear(type, after ? y : y - 1);
-}
-function seasonByStartYear(type, startY) {
-  const p = seasonCfg()[type];
-  const start = `${startY}-${pad2(p.m)}-${pad2(p.d)}`;
-  const e = new Date(startY + 1, p.m - 1, p.d); e.setDate(e.getDate() - 1);
-  const end = `${e.getFullYear()}-${pad2(e.getMonth() + 1)}-${pad2(e.getDate())}`;
-  return { type, label: `${startY}/${String(startY + 1).slice(2)}`, start, end, startY };
+const seasonsOf = (kind) => seasons.filter((s) => s.kind === kind);
+function currentSeason(kind) {
+  const today = new Date().toISOString().slice(0, 10);
+  const list = seasonsOf(kind);
+  return list.find((s) => s.start_date <= today && today <= s.end_date)
+    || list.filter((s) => s.start_date <= today)[0] || null; // list est triée desc
 }
 
 let peopleRoles = {};            // person_id -> [role,…]
@@ -624,52 +614,74 @@ function barsFrom(rows, suffix) {
 // ===================================================================
 //  Rôles & accès
 // ===================================================================
-const MONTH_NAMES = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 function initRoles() {
   renderAccessMatrix();
   $("access-save").addEventListener("click", saveAccess);
   loadAccounts();
-  // Sous-onglets Réglages
   document.querySelectorAll("#view-roles .rg-subtab").forEach((b) =>
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-roles .rg-subtab").forEach((x) => x.classList.toggle("active", x === b));
       document.querySelectorAll("#view-roles .rg-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "rg-sub-" + b.dataset.sub));
-      if (b.dataset.sub === "temporalites") loadTemporalites();
+      if (b.dataset.sub === "seasons") loadSeasonsManage();
     }));
-  const monthOpts = MONTH_NAMES.map((n, i) => `<option value="${i + 1}">${n}</option>`).join("");
-  ["tp-cot-month", "tp-grace-month", "tp-jun-month"].forEach((id) => { $(id).innerHTML = monthOpts; });
-  ["tp-cot-day", "tp-cot-month", "tp-grace-day", "tp-grace-month", "tp-jun-day", "tp-jun-month"].forEach((id) =>
-    $(id).addEventListener("change", tpPreview));
-  $("tp-save").addEventListener("click", saveTemporalites);
+  $("rg-cot-add").addEventListener("click", () => addRoleSeason("cotisation"));
+  $("rg-jun-add").addEventListener("click", () => addRoleSeason("juniors"));
 }
 
-function loadTemporalites() {
-  const c = seasonCfg();
-  $("tp-cot-day").value = c.cotisation.d; $("tp-cot-month").value = c.cotisation.m;
-  $("tp-grace-day").value = c.cotisation.graceM ? c.cotisation.graceD : 1; $("tp-grace-month").value = c.cotisation.graceM;
-  $("tp-jun-day").value = c.juniors.d; $("tp-jun-month").value = c.juniors.m;
-  tpPreview();
-}
-function tpPreview() {
-  const cot = seasonFor("cotisation"), jun = seasonFor("juniors");
-  $("tp-cot-preview").textContent = `Saison en cours : ${cot.label} (${frDate(cot.start)} → ${frDate(cot.end)}). Grâce jusqu'au ${$("tp-grace-day").value}.${pad2(+$("tp-grace-month").value)}.`;
-  $("tp-jun-preview").textContent = `Saison en cours : ${jun.label} (${frDate(jun.start)} → ${frDate(jun.end)}).`;
-}
-async function saveTemporalites() {
-  const value = {
-    cot_day: +$("tp-cot-day").value || 1, cot_month: +$("tp-cot-month").value || 4,
-    grace_day: +$("tp-grace-day").value || 1, grace_month: +$("tp-grace-month").value || 5,
-    jun_day: +$("tp-jun-day").value || 20, jun_month: +$("tp-jun-month").value || 8,
+async function loadSeasonsManage() {
+  await loadSeasonsList();
+  const render = (kind, containerId) => {
+    const cur = currentSeason(kind);
+    const list = seasonsOf(kind);
+    $(containerId).innerHTML = list.length ? list.map((s) => `
+      <div class="rg-season-row${cur && s.id === cur.id ? " ss-cur" : ""}" data-id="${s.id}">
+        <input class="rgs-label" value="${esc(s.label)}" />
+        <input type="date" class="rgs-start" value="${s.start_date}" />
+        <span class="rgs-arrow">→</span>
+        <input type="date" class="rgs-end" value="${s.end_date}" />
+        ${cur && s.id === cur.id ? '<span class="ss-tag ss-ok">en cours</span>' : ""}
+        <button type="button" class="ghost rgs-save">Enregistrer</button>
+        <button type="button" class="fam-del rgs-del">✕</button>
+      </div>`).join("") : '<p class="muted" style="font-size:.85rem">Aucune saison.</p>';
+    $(containerId).querySelectorAll(".rg-season-row").forEach((row) => {
+      row.querySelector(".rgs-save").addEventListener("click", () => saveRoleSeason(row));
+      row.querySelector(".rgs-del").addEventListener("click", () => delRoleSeason(row.dataset.id));
+    });
   };
-  const btn = $("tp-save"); btn.disabled = true; $("tp-status").textContent = "…";
-  const { error } = await sb.from("app_settings").upsert({ key: "temporalites", value }, { onConflict: "key" });
-  btn.disabled = false;
-  if (error) { $("tp-status").textContent = "Erreur : " + error.message; return; }
-  settings.temporalites = value;
-  $("tp-status").textContent = "Enregistré ✓";
-  tpPreview();
-  loadPeople(); // recalcule les rôles courants avec les nouvelles dates
-  setTimeout(() => ($("tp-status").textContent = ""), 1800);
+  render("cotisation", "rg-cot-seasons");
+  render("juniors", "rg-jun-seasons");
+}
+async function addRoleSeason(kind) {
+  const p = kind === "cotisation" ? "cot" : "jun";
+  const label = $(`rg-${p}-label`).value.trim();
+  const start = $(`rg-${p}-start`).value, end = $(`rg-${p}-end`).value;
+  if (!label || !start || !end) { alert("Étiquette + date de début + date de fin obligatoires."); return; }
+  if (end < start) { alert("La date de fin précède le début."); return; }
+  const { error } = await sb.from("seasons").insert({ kind, label, start_date: start, end_date: end });
+  if (error) { alert(error.message); return; }
+  $(`rg-${p}-label`).value = ""; $(`rg-${p}-start`).value = ""; $(`rg-${p}-end`).value = "";
+  loadSeasonsManage();
+  loadPeople();
+}
+async function saveRoleSeason(row) {
+  const patch = {
+    label: row.querySelector(".rgs-label").value.trim(),
+    start_date: row.querySelector(".rgs-start").value,
+    end_date: row.querySelector(".rgs-end").value,
+  };
+  if (!patch.label || !patch.start_date || !patch.end_date) { alert("Champs obligatoires."); return; }
+  const btn = row.querySelector(".rgs-save"); btn.textContent = "…";
+  const { error } = await sb.from("seasons").update(patch).eq("id", row.dataset.id);
+  btn.textContent = error ? "Erreur" : "Enregistré ✓";
+  if (!error) { await loadSeasonsList(); loadPeople(); }
+  setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
+}
+async function delRoleSeason(id) {
+  if (!confirm("Supprimer cette saison ? (les affectations de cette saison seront aussi supprimées)")) return;
+  const { error } = await sb.from("seasons").delete().eq("id", id);
+  if (error) { alert(error.message); return; }
+  loadSeasonsManage();
+  loadPeople();
 }
 
 function renderAccessMatrix() {
@@ -713,23 +725,19 @@ async function toggleRole(c) {
 }
 
 async function loadPeople() {
-  const cot = seasonFor("cotisation"), jun = seasonFor("juniors");
+  await loadSeasonsList();
+  const curIds = [currentSeason("cotisation"), currentSeason("juniors")].filter(Boolean).map((s) => s.id);
   const [{ data, error }, { data: pr }, { data: rp }] = await Promise.all([
     sb.from("people").select("*").order("last_name").order("first_name"),
     sb.from("person_roles").select("person_id,role"),
-    sb.from("role_periods").select("person_id,role,season_type,season_label,paid").in("season_label", [cot.label, jun.label]),
+    curIds.length ? sb.from("role_periods").select("person_id,role,season_id").in("season_id", curIds) : Promise.resolve({ data: [] }),
   ]);
   if (error) { alert("Erreur chargement : " + error.message); return; }
   people = data || [];
   peopleRoles = {};
   const add = (pid, role) => { const a = (peopleRoles[pid] || (peopleRoles[pid] = [])); if (!a.includes(role)) a.push(role); };
   for (const r of pr || []) add(r.person_id, r.role);
-  // Rôles saisonniers actifs de la saison EN COURS (source de vérité)
-  for (const r of rp || []) {
-    const okCot = r.season_type === "cotisation" && r.season_label === cot.label;
-    const okJun = r.season_type === "juniors" && r.season_label === jun.label;
-    if (okCot || okJun) add(r.person_id, r.role);
-  }
+  for (const r of rp || []) add(r.person_id, r.role); // rôles saisonniers de la saison EN COURS
   renderFilters();
   renderRows();
 }
@@ -1195,48 +1203,40 @@ async function deleteObjective(oid) {
   loadObjectives($("p-id").value);
 }
 
-// ---- Saisons (rôles saisonniers = source de vérité) ----
-function seasonOptions(type) {
-  const cur = seasonFor(type);
-  let opts = "";
-  for (let n = 1; n >= -2; n--) {
-    const s = seasonByStartYear(type, cur.startY + n);
-    opts += `<option value="${s.startY}"${n === 0 ? " selected" : ""}>${s.label}${n === 0 ? " (en cours)" : n === 1 ? " (à venir)" : ""}</option>`;
-  }
-  return opts;
+// ---- Saisons (rôles saisonniers = source de vérité, rattachés à une saison) ----
+function seasonOpt(s, curId) {
+  return `<option value="${s.id}"${s.id === curId ? " selected" : ""}>${esc(s.label)}${s.id === curId ? " (en cours)" : ""}</option>`;
 }
-let ssSelectsReady = false;
 async function loadPersonSeasons(personId) {
-  if (!ssSelectsReady) {
-    $("ss-cot-season").innerHTML = seasonOptions("cotisation");
-    $("ss-jun-season").innerHTML = seasonOptions("juniors");
-    $("ss-jun-role").innerHTML = SEASONAL_JUNIORS.map((r) => `<option value="${r}">${esc(roleLabel(r))}</option>`).join("");
-    ssSelectsReady = true;
-  }
+  const curCot = currentSeason("cotisation"), curJun = currentSeason("juniors");
+  const cotS = seasonsOf("cotisation"), junS = seasonsOf("juniors");
+  $("ss-cot-season").innerHTML = cotS.length ? cotS.map((s) => seasonOpt(s, curCot?.id)).join("") : '<option value="">— aucune saison —</option>';
+  $("ss-jun-season").innerHTML = junS.length ? junS.map((s) => seasonOpt(s, curJun?.id)).join("") : '<option value="">— aucune saison —</option>';
+  $("ss-jun-role").innerHTML = SEASONAL_JUNIORS.map((r) => `<option value="${r}">${esc(roleLabel(r))}</option>`).join("");
   const enable = !!personId;
   ["ss-cot-add", "ss-jun-add", "ss-cot-season", "ss-jun-season", "ss-jun-role"].forEach((id) => { $(id).disabled = !enable; });
   if (!enable) { $("ss-cot-list").innerHTML = '<p class="muted" style="font-size:.85rem">Enregistrez d\'abord la personne.</p>'; $("ss-jun-list").innerHTML = ""; return; }
-  const { data } = await sb.from("role_periods").select("*").eq("person_id", personId);
-  const rows = data || [];
-  const cur = { cotisation: seasonFor("cotisation").label, juniors: seasonFor("juniors").label };
+
+  const { data } = await sb.from("role_periods").select("*, seasons(id,kind,label,start_date)").eq("person_id", personId);
+  const rows = (data || []).filter((r) => r.seasons);
   const intentSel = (r) => `<select class="ss-intent" data-id="${r.id}">
     <option value="">Intention suivante…</option>
     ${INTENTS.map(([v, l]) => `<option value="${v}"${r.next_intent === v ? " selected" : ""}>${l}</option>`).join("")}</select>`;
 
-  const cots = rows.filter((r) => r.season_type === "cotisation").sort((a, b) => b.season_label.localeCompare(a.season_label));
+  const cots = rows.filter((r) => r.seasons.kind === "cotisation").sort((a, b) => b.seasons.start_date.localeCompare(a.seasons.start_date));
   $("ss-cot-list").innerHTML = cots.length ? cots.map((r) => `
-    <div class="ss-row${r.season_label === cur.cotisation ? " ss-cur" : ""}">
-      <span class="ss-season">${r.season_label}</span>
+    <div class="ss-row${r.season_id === curCot?.id ? " ss-cur" : ""}">
+      <span class="ss-season">${esc(r.seasons.label)}</span>
       <label class="ss-paid"><input type="checkbox" class="ss-paid-chk" data-id="${r.id}" ${r.paid ? "checked" : ""}/> Payé</label>
       <span class="ss-status">${r.paid ? '<span class="ss-tag ss-ok">Membre</span>' : '<span class="ss-tag ss-warn">Non payé</span>'}</span>
       ${intentSel(r)}
       <button type="button" class="fam-del ss-del" data-id="${r.id}">✕</button>
     </div>`).join("") : '<p class="muted" style="font-size:.85rem">Aucune cotisation enregistrée.</p>';
 
-  const juns = rows.filter((r) => r.season_type === "juniors").sort((a, b) => b.season_label.localeCompare(a.season_label) || a.role.localeCompare(b.role));
+  const juns = rows.filter((r) => r.seasons.kind === "juniors").sort((a, b) => b.seasons.start_date.localeCompare(a.seasons.start_date) || a.role.localeCompare(b.role));
   $("ss-jun-list").innerHTML = juns.length ? juns.map((r) => `
-    <div class="ss-row${r.season_label === cur.juniors ? " ss-cur" : ""}">
-      <span class="ss-season">${r.season_label}</span>
+    <div class="ss-row${r.season_id === curJun?.id ? " ss-cur" : ""}">
+      <span class="ss-season">${esc(r.seasons.label)}</span>
       <span class="ss-status"><span class="ss-tag ss-role">${esc(roleLabel(r.role))}</span></span>
       ${intentSel(r)}
       <button type="button" class="fam-del ss-del" data-id="${r.id}">✕</button>
@@ -1246,15 +1246,12 @@ async function loadPersonSeasons(personId) {
   $("ptab-seasons").querySelectorAll(".ss-paid-chk").forEach((c) => c.addEventListener("change", () => updateSeasonPeriod(c.dataset.id, { paid: c.checked })));
   $("ptab-seasons").querySelectorAll(".ss-intent").forEach((s) => s.addEventListener("change", () => updateSeasonPeriod(s.dataset.id, { next_intent: s.value || null })));
 }
-async function addSeasonRole(type, role) {
+async function addSeasonRole(kind, role) {
   const pid = $("p-id").value;
+  const seasonId = $(kind === "cotisation" ? "ss-cot-season" : "ss-jun-season").value;
   if (!pid || !role) return;
-  const startY = Number($(type === "cotisation" ? "ss-cot-season" : "ss-jun-season").value);
-  const s = seasonByStartYear(type, startY);
-  const { error } = await sb.from("role_periods").insert({
-    person_id: pid, role, season_type: type, season_label: s.label,
-    season_start: s.start, season_end: s.end, created_by: meId,
-  });
+  if (!seasonId) { alert("Crée d'abord une saison dans Réglages › Saisons."); return; }
+  const { error } = await sb.from("role_periods").insert({ person_id: pid, season_id: seasonId, role, created_by: meId });
   if (error) { alert(error.code === "23505" ? "Déjà enregistré pour cette saison." : error.message); return; }
   loadPersonSeasons(pid);
   loadPeople();

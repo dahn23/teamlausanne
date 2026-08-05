@@ -506,10 +506,14 @@ input.pd-native{display:none}
 .ss-tag.ss-role{background:#eef1f7;color:var(--blue-ink)}
 .ss-intent{max-width:170px}
 .ss-add{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
-.tp-grid{display:flex;gap:14px;flex-wrap:wrap}
-.tp-grid label{display:flex;flex-direction:column;gap:5px;font-size:.85rem;font-weight:700;color:var(--muted)}
-.tp-grid input{width:90px}
-.tp-grid select{min-width:130px}
+.rg-season-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.rg-season-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;
+  border:1px solid var(--line);border-radius:10px;background:#fff}
+.rg-season-row.ss-cur{border-color:var(--blue);box-shadow:inset 3px 0 0 var(--blue)}
+.rg-season-row .rgs-label{width:120px;font-weight:700}
+.rgs-arrow{color:var(--muted)}
+.rg-season-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.rg-season-add input:not([type=date]){width:170px}
 .stg-lbl{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
 .stg-radio{display:inline-flex;align-items:center;gap:6px;margin-right:18px;font-weight:600;font-size:.9rem;
   white-space:nowrap;flex-shrink:0}
