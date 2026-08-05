@@ -1205,6 +1205,11 @@ function initCours(roles) {
   $("c-start").innerHTML = QH.map((t) => `<option value="${t}">${t}</option>`).join("");
   $("c-end").innerHTML = QH.map((t) => `<option value="${t}">${t}</option>`).join("");
 
+  document.querySelectorAll("#view-cours .cours-subtab").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#view-cours .cours-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      document.querySelectorAll("#view-cours .cours-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "cours-sub-" + b.dataset.sub));
+    }));
   $("ct-add-btn").addEventListener("click", addType);
   $("cs-date").value = isoA(new Date());
   $("cs-date").addEventListener("change", loadCoursesDay);

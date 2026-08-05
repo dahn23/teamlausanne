@@ -161,28 +161,40 @@
 
         <!-- ---- Vue Cours ---- -->
         <div id="view-cours" class="view hidden">
-          <div class="rg-card" id="ct-card">
-            <h2>Types de cours</h2>
-            <p class="muted" style="font-size:.88rem;margin-top:0">Créés par admin/superadmin — ils impacteront le paiement.</p>
-            <div id="ct-list"></div>
-            <div class="ct-add">
-              <input id="ct-name" placeholder="Nom du type (ex. École de tennis)" />
-              <input id="ct-color" type="color" value="#0b6b3a" />
-              <button type="button" id="ct-add-btn">Ajouter</button>
-            </div>
+          <div class="crm-head"><h1>Cours</h1></div>
+          <div class="subnav">
+            <button class="subtab cours-subtab active" data-sub="planning">Planning</button>
+            <button class="subtab cours-subtab" data-sub="types">Types de cours</button>
           </div>
 
-          <div class="crm-head">
-            <h1 style="flex:1">Planning des cours</h1>
-            <div class="crm-actions">
-              <button id="cs-prev" class="nav" aria-label="Jour précédent">‹</button>
-              <input type="date" id="cs-date" />
-              <button id="cs-next" class="nav" aria-label="Jour suivant">›</button>
-              <button id="cs-copy" class="ghost">Copier la semaine</button>
-              <button id="cs-new">+ Nouveau cours</button>
+          <!-- Sous-onglet Planning -->
+          <div id="cours-sub-planning" class="cours-sub">
+            <div class="crm-head">
+              <h2 style="flex:1;margin:0">Planning des cours</h2>
+              <div class="crm-actions">
+                <button id="cs-prev" class="nav" aria-label="Jour précédent">‹</button>
+                <input type="date" id="cs-date" />
+                <button id="cs-next" class="nav" aria-label="Jour suivant">›</button>
+                <button id="cs-copy" class="ghost">Copier la semaine</button>
+                <button id="cs-new">+ Nouveau cours</button>
+              </div>
+            </div>
+            <div id="cs-list" class="cs-list"></div>
+          </div>
+
+          <!-- Sous-onglet Types de cours -->
+          <div id="cours-sub-types" class="cours-sub hidden">
+            <div class="rg-card" id="ct-card">
+              <h2 style="margin-top:0">Types de cours</h2>
+              <p class="muted" style="font-size:.88rem;margin-top:0">Créés par admin/superadmin — ils impacteront le paiement.</p>
+              <div id="ct-list"></div>
+              <div class="ct-add">
+                <input id="ct-name" placeholder="Nom du type (ex. École de tennis)" />
+                <input id="ct-color" type="color" value="#0b6b3a" />
+                <button type="button" id="ct-add-btn">Ajouter</button>
+              </div>
             </div>
           </div>
-          <div id="cs-list" class="cs-list"></div>
         </div>
 
         <!-- ---- Vue GameZone ---- -->

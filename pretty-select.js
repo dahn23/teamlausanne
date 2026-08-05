@@ -124,6 +124,19 @@ function enhance(select) {
   const mo = new MutationObserver(() => { renderTrigger(); if (!list.hidden) buildList(); });
   mo.observe(select, { childList: true, attributes: true, attributeFilter: ["disabled"] });
 
+  // Quand le code fait `select.value = …` ou `.selectedIndex = …` (sans événement
+  // `change`), on rafraîchit quand même l'affichage stylé.
+  const proto = HTMLSelectElement.prototype;
+  ["value", "selectedIndex"].forEach((prop) => {
+    const d = Object.getOwnPropertyDescriptor(proto, prop);
+    if (!d || !d.set) return;
+    Object.defineProperty(select, prop, {
+      configurable: true,
+      get() { return d.get.call(this); },
+      set(v) { d.set.call(this, v); renderTrigger(); if (!list.hidden) buildList(); },
+    });
+  });
+
   renderTrigger();
 }
 
