@@ -514,6 +514,8 @@ input.pd-native{display:none}
 .rgs-arrow{color:var(--muted)}
 .rg-season-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px}
 .rg-season-add input:not([type=date]){width:170px}
+.bsc-lbl{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:700;color:var(--muted)}
+.bsc-lbl select{min-width:160px}
 .stg-lbl{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
 .stg-radio{display:inline-flex;align-items:center;gap:6px;margin-right:18px;font-weight:600;font-size:.9rem;
   white-space:nowrap;flex-shrink:0}

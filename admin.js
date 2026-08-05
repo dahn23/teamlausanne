@@ -626,6 +626,8 @@ function initRoles() {
     }));
   $("rg-cot-add").addEventListener("click", () => addRoleSeason("cotisation"));
   $("rg-jun-add").addEventListener("click", () => addRoleSeason("juniors"));
+  $("bsc-load").addEventListener("click", bscLoad);
+  $("bsc-apply").addEventListener("click", bscApply);
 }
 
 async function loadSeasonsManage() {
@@ -650,6 +652,55 @@ async function loadSeasonsManage() {
   };
   render("cotisation", "rg-cot-seasons");
   render("juniors", "rg-jun-seasons");
+  // Selects de la bascule
+  const allOpts = seasons.map((s) => `<option value="${s.id}">${esc(s.label)} · ${s.kind}</option>`).join("");
+  $("bsc-src").innerHTML = allOpts; $("bsc-tgt").innerHTML = allOpts;
+  $("bsc-list").innerHTML = ""; $("bsc-foot").classList.add("hidden");
+}
+
+async function bscLoad() {
+  const src = seasons.find((s) => s.id === $("bsc-src").value), tgt = seasons.find((s) => s.id === $("bsc-tgt").value);
+  if (!src || !tgt) return;
+  if (src.id === tgt.id) { alert("Choisis deux saisons différentes."); return; }
+  if (src.kind !== tgt.kind) { alert("Les deux saisons doivent être du même type (cotisation ou juniors)."); return; }
+  const { data } = await sb.from("role_periods").select("*, people(id,first_name,last_name)").eq("season_id", src.id);
+  const rows = (data || []).filter((r) => r.people);
+  if (!rows.length) { $("bsc-list").innerHTML = '<p class="muted" style="font-size:.85rem">Personne dans cette saison.</p>'; $("bsc-foot").classList.add("hidden"); return; }
+  const isJun = src.kind === "juniors";
+  $("bsc-list").innerHTML = `<div class="table-wrap"><table class="crm-table"><thead><tr><th></th><th>Personne</th><th>Actuel</th><th>Intention</th><th>${isJun ? "Filière cible" : "Rôle"}</th></tr></thead><tbody>`
+    + rows.map((r) => {
+      const carry = r.next_intent !== "part";
+      const roleCell = isJun
+        ? `<select class="bsc-role">${SEASONAL_JUNIORS.map((x) => `<option value="${x}"${x === r.role ? " selected" : ""}>${esc(roleLabel(x))}</option>`).join("")}</select>`
+        : "Membre";
+      return `<tr data-person="${r.people.id}" data-role="${r.role}">
+        <td><input type="checkbox" class="bsc-chk"${carry ? " checked" : ""}/></td>
+        <td>${esc(r.people.last_name)} ${esc(r.people.first_name)}</td>
+        <td>${esc(roleLabel(r.role))}</td>
+        <td>${r.next_intent ? intentLabel(r.next_intent) : "—"}</td>
+        <td>${roleCell}</td></tr>`;
+    }).join("") + "</tbody></table></div>";
+  $("bsc-foot").classList.remove("hidden");
+  $("bsc-status").textContent = "";
+  $("bsc-apply").dataset.tgt = tgt.id; $("bsc-apply").dataset.kind = src.kind;
+}
+
+async function bscApply() {
+  const tgtId = $("bsc-apply").dataset.tgt, kind = $("bsc-apply").dataset.kind;
+  if (!tgtId) return;
+  const rows = [...$("bsc-list").querySelectorAll("tbody tr")].filter((tr) => tr.querySelector(".bsc-chk").checked);
+  if (!rows.length) { alert("Personne à reconduire (coche au moins un)."); return; }
+  const btn = $("bsc-apply"); btn.disabled = true; $("bsc-status").textContent = "…";
+  const inserts = rows.map((tr) => ({
+    person_id: tr.dataset.person, season_id: tgtId, created_by: meId,
+    role: kind === "juniors" ? tr.querySelector(".bsc-role").value : "membre",
+    ...(kind === "cotisation" ? { paid: false } : {}),
+  }));
+  const { error } = await sb.from("role_periods").upsert(inserts, { onConflict: "person_id,role,season_id", ignoreDuplicates: true });
+  btn.disabled = false;
+  if (error) { $("bsc-status").textContent = "Erreur : " + error.message; return; }
+  $("bsc-status").textContent = `✓ ${inserts.length} personne(s) reconduite(s) vers la nouvelle saison.`;
+  loadPeople();
 }
 async function addRoleSeason(kind) {
   const p = kind === "cotisation" ? "cot" : "jun";

@@ -116,6 +116,21 @@
                 <button id="rg-jun-add" class="ghost">+ Créer</button>
               </div>
             </div>
+
+            <div class="rg-card" style="margin-top:16px">
+              <h2 style="margin-top:0">Bascule / reconduction</h2>
+              <p class="muted" style="font-size:.88rem;margin-top:0">Reporter les gens d'une saison vers une autre (même type), selon leur intention. « Part » n'est pas coché ; « monte / descend » : ajuste la filière.</p>
+              <div class="rg-season-add">
+                <label class="bsc-lbl">De<select id="bsc-src"></select></label>
+                <label class="bsc-lbl">vers<select id="bsc-tgt"></select></label>
+                <button id="bsc-load" class="ghost">Charger</button>
+              </div>
+              <div id="bsc-list" style="margin-top:10px"></div>
+              <div id="bsc-foot" class="rg-foot hidden" style="margin-top:12px">
+                <button id="bsc-apply">Appliquer la reconduction</button>
+                <span id="bsc-status" class="muted"></span>
+              </div>
+            </div>
           </div>
         </div>
 
