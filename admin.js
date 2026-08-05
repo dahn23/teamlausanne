@@ -68,11 +68,17 @@ const tabAccessMap = () => settings.tab_access || DEFAULT_TAB_ACCESS;
 
 function applyTabAccess(roles) {
   const access = tabAccessMap();
+  // Onglets déjà configurés dans le réglage stocké (toutes rôles confondus).
+  // Un onglet NON connu (nouveau module) retombe sur l'accès par défaut,
+  // pour apparaître sans devoir re-régler la matrice à chaque ajout.
+  const known = new Set(Object.values(access).flat());
+  const allowedFor = (v) => roles.some((r) =>
+    (known.has(v) ? (access[r] || []) : (DEFAULT_TAB_ACCESS[r] || [])).includes(v));
   let first = null;
   document.querySelectorAll(".side-item[data-view]").forEach((b) => {
     const v = b.dataset.view;
     if (v === "bientot") return;
-    const allowed = roles.some((r) => (access[r] || []).includes(v));
+    const allowed = allowedFor(v);
     b.classList.toggle("hidden", !allowed);
     if (allowed && !first) first = v;
   });
