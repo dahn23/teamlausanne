@@ -827,7 +827,6 @@ function openPerson(p) {
   $("p-last").value = p?.last_name || "";
   $("p-birth").value = p?.birthdate || "";
   $("p-gender").value = p?.gender || "";
-  $("p-category").value = p?.category || "";
   $("p-email").value = p?.email || "";
   $("p-phone").value = p?.phone || "";
   $("p-avs").value = p?.avs || "";
@@ -875,6 +874,8 @@ function showPersonTab(tab, show) {
 
 // Rôles qui font apparaître l'onglet Cours
 const COURSE_ROLES = ["kidstennis", "club", "competition", "performance", "sport-etudes", "pro-u18", "pro"];
+const COACH_ROLES = ["coach", "head-coach", "coach-prive"];
+const hasRoleIn = (pid, list) => (peopleRoles[pid] || []).some((r) => list.includes(r));
 
 // ---- Photos / vidéos d'une personne ----
 async function loadMedia(personId) {
@@ -2292,8 +2293,8 @@ function openCourse(course, related) {
   $("c-end").value = course ? course.end_time.slice(0, 5) : "18:00";
   $("c-color").value = course?.color || "#0b6b3a";
   renderChips("c-courts", resaCourtsAll.map((c) => [c.id, c.name.replace("Court ", "C")]), related?.courts);
-  renderChips("c-coaches", people.filter((p) => p.category === "staff").map((p) => [p.id, `${p.last_name} ${p.first_name}`]), related?.coaches);
-  renderChips("c-children", people.filter((p) => p.category === "junior").map((p) => [p.id, `${p.last_name} ${p.first_name}`]), related?.children);
+  renderChips("c-coaches", people.filter((p) => hasRoleIn(p.id, COACH_ROLES)).map((p) => [p.id, `${p.last_name} ${p.first_name}`]), related?.coaches);
+  renderChips("c-children", people.filter((p) => hasRoleIn(p.id, COURSE_ROLES)).map((p) => [p.id, `${p.last_name} ${p.first_name}`]), related?.children);
   updateCount();
   $("c-del").classList.toggle("hidden", !course);
   $("course-modal").classList.remove("hidden");
@@ -2450,7 +2451,6 @@ async function savePerson(e) {
     last_name: $("p-last").value.trim(),
     birthdate: $("p-birth").value || null,
     gender: $("p-gender").value || null,
-    category: $("p-category").value || null,
     email: $("p-email").value.trim() || null,
     phone: $("p-phone").value.trim() || null,
     avs: $("p-avs").value.trim() || null,
