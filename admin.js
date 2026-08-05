@@ -796,18 +796,15 @@ function renderRows() {
   tbody.innerHTML = "";
   $("empty-msg").hidden = rows.length > 0;
   for (const p of rows) {
-    const roles = peopleRoles[p.id] || [];
     const emails = [p.email, ...(p.emails || [])].filter(Boolean);
     const phones = [p.phone, ...(p.phones || [])].filter(Boolean);
-    const rolesHtml = roles.map((r) => `<span class="role-badge">${esc(roleLabel(r))}</span>`).join(" ");
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${esc(p.last_name)}</td>
       <td>${esc(p.first_name)}</td>
       <td>${esc(emails[0] || "")}${emails.length > 1 ? ` <span class="muted">+${emails.length - 1}</span>` : ""}</td>
       <td>${esc(phones[0] || "")}${phones.length > 1 ? ` <span class="muted">+${phones.length - 1}</span>` : ""}</td>
-      <td>${frDate(p.birthdate)}</td>
-      <td class="role-cell">${rolesHtml}</td>`;
+      <td>${frDate(p.birthdate)}</td>`;
     tr.addEventListener("click", () => openPerson(p));
     tbody.appendChild(tr);
   }
