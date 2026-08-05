@@ -813,6 +813,24 @@
     </form>
   </div>
 
+  <!-- ---- Copier la semaine ---- -->
+  <div id="copyweek-modal" class="modal hidden">
+    <div class="card">
+      <button type="button" id="cw-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 style="margin-top:0">Copier la semaine</h2>
+      <p class="muted" id="cw-src" style="margin:0 0 12px"></p>
+      <label>Semaine cible <span class="muted">(n'importe quelle date de cette semaine)</span>
+        <input type="date" id="cw-date" />
+      </label>
+      <div id="cw-summary" class="cw-summary" hidden></div>
+      <div class="form-foot">
+        <span class="spacer"></span>
+        <button type="button" id="cw-go">Vérifier</button>
+      </div>
+      <p id="cw-error" class="error" hidden></p>
+    </div>
+  </div>
+
   <!-- ---- Présences ---- -->
   <div id="att-modal" class="modal hidden">
     <div class="card wide">
