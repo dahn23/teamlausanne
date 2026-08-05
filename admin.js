@@ -9,6 +9,7 @@ let people = [];
 let meId = null;
 let meEmail = null;
 let meName = null;
+let myPersonId = null;
 const pad2 = (n) => String(n).padStart(2, "0");
 
 // ---- Garde d'accès : connecté + rôle staff ----
@@ -27,6 +28,7 @@ if (session) {
     try {
       const { data: prof } = await sb.from("profiles").select("person_id").eq("user_id", meId).maybeSingle();
       if (prof?.person_id) {
+        myPersonId = prof.person_id;
         const { data: me } = await sb.from("people").select("first_name,last_name").eq("id", prof.person_id).maybeSingle();
         if (me) meName = `${me.first_name || ""} ${me.last_name || ""}`.trim() || meEmail;
       }
@@ -1264,36 +1266,90 @@ function shiftCs(delta) {
   loadCoursesDay();
 }
 
+const personName = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : "—"; };
+
+// Peut-on marquer cette pastille ? (miroir de la RPC mark_attendance)
+function canMarkBox(course, coachIds, pid, isCoach) {
+  if (isHeadUser) return true;                     // head/admin/superadmin : tout, tout le temps
+  if (!myPersonId || !coachIds.includes(myPersonId)) return false; // doit être coach du cours
+  if (isCoach) return pid === myPersonId;          // un coach ne valide que sa propre présence
+  const start = new Date(`${course.course_date}T${course.start_time}`);
+  return Date.now() <= start.getTime() + 10 * 60000; // enfant : jusqu'à 10 min après le début
+}
+
+function attChip(course, coachIds, pid, isCoach, status) {
+  const can = canMarkBox(course, coachIds, pid, isCoach);
+  const cls = status === "present" ? "st-present" : status === "late" ? "st-late"
+    : status === "absent" ? "st-absent" : (can ? "st-none" : "st-locked");
+  return `<button type="button" class="att-chip ${cls}" data-course="${course.id}" data-person="${pid}"
+    data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}"
+    title="${esc(personName(pid))}">${esc(personName(pid))}</button>`;
+}
+
 async function loadCoursesDay() {
   const date = $("cs-date").value;
   const { data: courses } = await sb.from("courses").select("*").eq("course_date", date).order("start_time");
   const ids = (courses || []).map((c) => c.id);
-  let books = [], coaches = [], parts = [];
+  let books = [], coaches = [], parts = [], att = [];
   if (ids.length) {
-    [books, coaches, parts] = await Promise.all([
+    [books, coaches, parts, att] = await Promise.all([
       sb.from("court_bookings").select("court_id,course_id").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_participants").select("course_id,child_person_id").in("course_id", ids).then((r) => r.data || []),
+      sb.from("attendance").select("course_id,person_id,status").in("course_id", ids).then((r) => r.data || []),
     ]);
   }
   const courtName = (id) => (resaCourtsAll.find((c) => c.id === id)?.name || "?").replace("Court ", "C");
+  const attOf = (cid, pid) => att.find((a) => a.course_id === cid && a.person_id === pid)?.status || "";
+  const col = (course, coachIds, list, isCoach, title) => `
+    <div class="cs-att-col"><div class="cs-att-h">${title}</div>
+      <div class="cs-att-items">${list.length
+        ? list.map((pid) => attChip(course, coachIds, pid, isCoach, attOf(course.id, pid))).join("")
+        : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`;
+
   $("cs-list").innerHTML = (courses || []).length ? (courses || []).map((c) => {
     const cts = books.filter((b) => b.course_id === c.id).map((b) => courtName(b.court_id)).join(", ");
-    const nc = coaches.filter((x) => x.course_id === c.id).length;
-    const np = parts.filter((x) => x.course_id === c.id).length;
+    const coachIds = coaches.filter((x) => x.course_id === c.id).map((x) => x.coach_person_id);
+    const childIds = parts.filter((x) => x.course_id === c.id).map((x) => x.child_person_id);
     const type = courseTypes.find((t) => t.id === c.course_type_id);
+    const needMore = Math.max(coachIds.length, childIds.length) > 4;
     return `<div class="cs-card" data-id="${c.id}" style="border-left-color:${c.color || (type?.color) || "#0b6b3a"}">
-      <div class="cs-time">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
-      <div class="cs-main"><b>${esc(c.title || type?.name || "Cours")}</b>
-        <span class="muted">${type ? esc(type.name) + " · " : ""}Courts ${cts || "—"}</span></div>
-      <div class="cs-badges"><span>${nc} coach(s)</span><span>${np} élève(s)</span></div>
-      <button type="button" class="att-btn" data-att="${c.id}">Présences</button>
+      <div class="cs-card-top">
+        <div class="cs-time">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
+        <div class="cs-main"><b>${esc(c.title || type?.name || "Cours")}</b>
+          <span class="muted">${type ? esc(type.name) + " · " : ""}Courts ${cts || "—"}</span></div>
+        ${needMore ? '<button type="button" class="cs-more">Plus</button>' : ""}
+      </div>
+      <div class="cs-att">${col(c, coachIds, coachIds, true, "Coachs")}${col(c, coachIds, childIds, false, "Élèves")}</div>
     </div>`;
   }).join("") : '<p class="muted">Aucun cours ce jour.</p>';
-  if (isHeadUser) $("cs-list").querySelectorAll(".cs-card").forEach((el) =>
-    el.addEventListener("click", () => editCourse(el.dataset.id)));
-  $("cs-list").querySelectorAll(".att-btn").forEach((b) =>
-    b.addEventListener("click", (e) => { e.stopPropagation(); openAttendance(b.dataset.att); }));
+
+  const L = $("cs-list");
+  L.querySelectorAll(".att-chip").forEach((ch) => ch.addEventListener("click", (e) => { e.stopPropagation(); cycleAtt(ch); }));
+  L.querySelectorAll(".cs-more").forEach((b) => b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const card = b.closest(".cs-card");
+    b.textContent = card.classList.toggle("expanded") ? "Réduire" : "Plus";
+  }));
+  if (isHeadUser) L.querySelectorAll(".cs-card").forEach((el) =>
+    el.addEventListener("click", (e) => { if (e.target.closest(".att-chip,.cs-more")) return; editCourse(el.dataset.id); }));
+}
+
+// Clic sur une pastille : blanc → vert → rouge → orange → blanc
+async function cycleAtt(chip) {
+  if (chip.dataset.can !== "1") return; // verrouillé
+  const course = chip.dataset.course, pid = chip.dataset.person, isCoach = chip.dataset.coach === "1";
+  const cur = chip.dataset.status || "";
+  const next = cur === "" ? "present" : cur === "present" ? "absent" : cur === "absent" ? "late" : null;
+  chip.disabled = true;
+  const { error } = next === null
+    ? await sb.rpc("clear_attendance", { p_course: course, p_person: pid, p_is_coach: isCoach })
+    : await sb.rpc("mark_attendance", { p_course: course, p_person: pid, p_status: next, p_is_coach: isCoach });
+  chip.disabled = false;
+  if (error) { alert(error.message); return; }
+  chip.dataset.status = next || "";
+  chip.classList.remove("st-present", "st-late", "st-absent", "st-none", "st-locked");
+  chip.classList.add(next === "present" ? "st-present" : next === "late" ? "st-late" : next === "absent" ? "st-absent" : "st-none");
 }
 
 // ---- Présences ----

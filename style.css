@@ -472,13 +472,29 @@ select.ps-native{display:none}
 .ct-item .muted{margin-left:auto}
 .ct-item .fam-del{margin-left:auto}
 .cs-list{display:flex;flex-direction:column;gap:8px}
-.cs-card{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
+.cs-card{display:flex;flex-direction:column;gap:12px;background:var(--card);border:1px solid var(--line);
   border-left:5px solid #0b6b3a;border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow);cursor:pointer}
 .cs-card:hover{background:#f7f9fc}
+.cs-card-top{display:flex;align-items:center;gap:14px}
 .cs-time{font-weight:800;font-style:italic;color:var(--blue-ink);white-space:nowrap}
 .cs-main{flex:1;display:flex;flex-direction:column}
 .cs-main .muted{font-size:.85rem}
 .cs-badges{display:flex;gap:12px;font-size:.9rem;color:var(--muted)}
+.cs-more{background:#eef1f7;color:var(--blue-ink);font-weight:700;padding:7px 12px;font-size:.82rem;white-space:nowrap}
+.cs-more:hover{background:#dde3ef}
+.cs-att{display:flex;gap:24px;flex-wrap:wrap}
+.cs-att-col{flex:1;min-width:170px}
+.cs-att-h{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px}
+.cs-att-items{display:flex;flex-direction:column;gap:5px}
+.cs-card:not(.expanded) .cs-att-items > .att-chip:nth-child(n+5){display:none}
+.att-chip{text-align:left;font-weight:600;font-size:.86rem;padding:7px 11px;border-radius:8px;
+  border:1px solid var(--line);cursor:pointer;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.att-chip.st-none{background:#fff;color:var(--ink)}
+.att-chip.st-present{background:#e3f6e8;border-color:#bfe6ca;color:#1c7d38}
+.att-chip.st-late{background:#fdf2dc;border-color:#f2e0b0;color:#a9721a}
+.att-chip.st-absent{background:#fbe4e4;border-color:#f0c9c9;color:#b23838}
+.att-chip.st-locked{background:#eef0f4;border-color:var(--line);color:#aab2c4;cursor:not-allowed}
+.att-chip:not(.st-locked):hover{border-color:var(--blue)}
 .cs-lbl{display:block;font-size:.85rem;color:var(--muted);margin:12px 0 6px;font-weight:600}
 .chip-select{display:flex;flex-wrap:wrap;gap:8px}
 .chip{background:#eef1f7;border:1px solid var(--line);border-radius:999px;padding:7px 14px;
