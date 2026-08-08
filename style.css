@@ -483,8 +483,10 @@ input.pd-native{display:none}
 .phys-tpl-name{flex:1;font-weight:800}
 .phys-q-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
 .phys-q-row{display:flex;align-items:center;gap:8px}
-.phys-q-row .phys-q-label{flex:1;min-width:0}
+.phys-q-row .phys-q-label{flex:1;min-width:140px}
 .phys-q-row .phys-q-type{width:150px;flex-shrink:0}
+/* le menu "type" est embelli (pretty-select) → son conteneur ne doit pas manger toute la largeur */
+.phys-q-row .ps-wrap{flex:0 0 150px;width:150px}
 .phys-tpl-foot{display:flex;gap:10px}
 .pf-q{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:.9rem;margin-bottom:12px}
 .phys-answers{display:flex;flex-direction:column;gap:2px}
