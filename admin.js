@@ -1744,6 +1744,9 @@ async function initGameZone(roles) {
   $("gz-caisse-start").addEventListener("change", saveCaisse);
   $("gz-caisse-counted").addEventListener("change", saveCaisse);
   $("gz-close-tournament").addEventListener("click", closeTournament);
+  $("gz-text-form").addEventListener("submit", saveGzNote);
+  document.querySelector("[data-close-gztext]").addEventListener("click", () => $("gz-text-modal").classList.add("hidden"));
+  $("gz-text-modal").addEventListener("click", (e) => { if (e.target === $("gz-text-modal")) $("gz-text-modal").classList.add("hidden"); });
   loadSeasons();
   loadCats();
   loadTournaments();
@@ -1834,17 +1837,19 @@ async function openTournamentMgr(tid) {
   mgrCats = cats || [];
   $("gz-mgr-cat").innerHTML = '<option value="">— catégorie de tarifs —</option>' +
     mgrCats.map((c) => `<option value="${c.id}" ${c.id === t.price_category_id ? "selected" : ""}>${esc(c.name)}</option>`).join("");
-  const { data: entries } = await sb.from("gz_entries").select("participant_id").eq("tournament_id", tid).eq("confirmed", true);
+  const { data: entries } = await sb.from("gz_entries").select("participant_id,comment").eq("tournament_id", tid).eq("confirmed", true);
+  const remarkByPid = {};
+  for (const e of entries || []) { if (e.comment && !remarkByPid[e.participant_id]) remarkByPid[e.participant_id] = e.comment; }
   const ids = [...new Set((entries || []).map((e) => e.participant_id))];
   if (!ids.length) {
-    $("gz-mgr-players").innerHTML = '<tr><td colspan="6" class="muted">Aucun joueur sélectionné (tirage pas encore fait ?).</td></tr>';
+    $("gz-mgr-players").innerHTML = '<tr><td colspan="7" class="muted">Aucun joueur sélectionné (tirage pas encore fait ?).</td></tr>';
     $("gz-mgr-totals").innerHTML = "";
   } else {
     const { data: parts } = await sb.from("gz_participants").select("*").in("id", ids);
     const { data: statuses } = await sb.from("gz_player_status").select("*").eq("tournament_id", tid);
     const stMap = {}; for (const s of statuses || []) stMap[s.participant_id] = s;
     mgrPlayers = (parts || []).sort((a, b) => (a.last_name + a.first_name).localeCompare(b.last_name + b.first_name))
-      .map((p) => ({ p, st: stMap[p.id] || {} }));
+      .map((p) => ({ p, st: stMap[p.id] || {}, remark: remarkByPid[p.id] || null }));
     renderMgr();
   }
   $("gz-close-status").textContent = "";
@@ -1894,26 +1899,37 @@ function priceOpts() {
   return cat && Array.isArray(cat.prices) ? cat.prices : [];
 }
 
+const gzShort = (s, n = 34) => { s = String(s || ""); return s.length > n ? esc(s.slice(0, n)) + "…" : esc(s); };
+// Couleur de ligne : payé = vert clair, absent = rouge clair (pour voir qui est coché)
+function gzRowClass(st) {
+  if (st.absent) return "gz-abs";
+  if (st.amount_paid != null) return "gz-paid";
+  return "";
+}
+
 function renderMgr() {
   const opts = priceOpts();
-  $("gz-mgr-players").innerHTML = mgrPlayers.map(({ p, st }) => {
+  $("gz-mgr-players").innerHTML = mgrPlayers.map(({ p, st, remark }) => {
     const amtOpts = ['<option value="">—</option>', '<option value="0">Gratuit</option>']
       .concat(opts.map((o) => `<option value="${o.amount}" ${Number(st.amount_paid) === Number(o.amount) ? "selected" : ""}>${esc(o.label)} — ${o.amount}</option>`)).join("");
     const method = (m) => `<option value="${m}" ${st.pay_method === m ? "selected" : ""}>${m}</option>`;
-    return `<tr data-pid="${p.id}">
-      <td><b>${esc(p.last_name)} ${esc(p.first_name)}</b>${st.is_winner ? " " + ICO_CUP : ""}</td>
-      <td class="muted" style="font-size:.8rem">
-        ${esc(p.club || "")}
-        <div class="gz-credit-line">
-          ${p.credit_chf > 0 ? `<b class="gz-credit">crédit ${p.credit_chf} CHF</b> <button type="button" class="gz-credit-use gz-mini">utiliser</button>` : ""}
-          <button type="button" class="gz-credit-add gz-mini">+ crédit</button>
-          <button type="button" class="gz-comment-edit gz-mini">✎ note</button>
+    const credit = Number(p.credit_chf || 0);
+    return `<tr data-pid="${p.id}" class="${gzRowClass(st)}">
+      <td class="gz-col-player">
+        <div class="gz-name"><b>${esc(p.last_name)} ${esc(p.first_name)}</b>${st.is_winner ? " " + ICO_CUP : ""}</div>
+        <div class="gz-sub">
+          ${p.club ? `<span class="gz-club">${esc(p.club)}</span>` : ""}
+          ${remark ? `<button type="button" class="gz-remark" title="Remarque importée (mytennis)">💬 ${gzShort(remark, 28)}</button>` : ""}
         </div>
-        ${p.comment ? `<div class="gz-comment">${esc(p.comment)}</div>` : ""}
       </td>
-      <td style="text-align:center"><input type="checkbox" class="gz-absent" ${st.absent ? "checked" : ""} /></td>
+      <td class="gz-col-note"><button type="button" class="gz-note-btn">${p.note ? gzShort(p.note, 24) : '<span class="muted">+ note</span>'}</button></td>
       <td><select class="gz-amount" ${st.absent ? "disabled" : ""}>${amtOpts}</select></td>
       <td><select class="gz-method" ${st.absent ? "disabled" : ""}><option value="">méthode</option>${method("cash")}${method("twint")}${method("carte")}<option value="credit" ${st.pay_method === "credit" ? "selected" : ""}>crédit</option></select></td>
+      <td class="gz-col-credit">
+        ${credit > 0 ? `<b class="gz-credit">${credit} CHF</b> <button type="button" class="gz-credit-use gz-mini">utiliser</button>` : `<span class="muted">—</span>`}
+        <button type="button" class="gz-credit-add gz-mini">+ crédit</button>
+      </td>
+      <td style="text-align:center"><input type="checkbox" class="gz-absent" ${st.absent ? "checked" : ""} /></td>
       <td class="gz-winner-cell" style="text-align:center">${mgrIsGz ? `
         <label title="Vainqueur"><input type="checkbox" class="gz-winner" ${st.is_winner ? "checked" : ""} /> ${ICO_CUP}</label>
         <div class="gz-photo-wrap" style="${st.is_winner ? "" : "display:none"}">
@@ -1932,7 +1948,8 @@ function renderMgr() {
     }
     tr.querySelector(".gz-credit-add")?.addEventListener("click", () => grantCredit(tr.dataset.pid));
     tr.querySelector(".gz-credit-use")?.addEventListener("click", () => spendCredit(tr.dataset.pid));
-    tr.querySelector(".gz-comment-edit")?.addEventListener("click", () => editComment(tr.dataset.pid));
+    tr.querySelector(".gz-note-btn")?.addEventListener("click", () => openNoteEditor(tr.dataset.pid));
+    tr.querySelector(".gz-remark")?.addEventListener("click", () => openRemarkView(tr.dataset.pid));
   });
   updateMgrTotals();
 }
@@ -1967,12 +1984,39 @@ async function spendCredit(pid) {
   renderMgr();
 }
 
-async function editComment(pid) {
+// Note interne (éditable) : popup avec textarea
+let gzTextPid = null;
+function openNoteEditor(pid) {
   const mp = mgrPlayer(pid); if (!mp) return;
-  const v = prompt(`Note libre pour ${mp.p.first_name} ${mp.p.last_name} :`, mp.p.comment || "");
-  if (v === null) return;
-  await sb.from("gz_participants").update({ comment: v.trim() || null }).eq("id", pid);
-  mp.p.comment = v.trim() || null;
+  gzTextPid = pid;
+  $("gz-text-title").textContent = "Note interne";
+  $("gz-text-who").textContent = `${mp.p.first_name} ${mp.p.last_name}`;
+  const ta = $("gz-text-area");
+  ta.value = mp.p.note || ""; ta.readOnly = false;
+  $("gz-text-actions").style.display = "";
+  $("gz-text-modal").classList.remove("hidden");
+  ta.focus();
+}
+// Remarque (importée mytennis) : popup lecture seule
+function openRemarkView(pid) {
+  const mp = mgrPlayer(pid); if (!mp) return;
+  gzTextPid = null;
+  $("gz-text-title").textContent = "Remarque (importée)";
+  $("gz-text-who").textContent = `${mp.p.first_name} ${mp.p.last_name}`;
+  const ta = $("gz-text-area");
+  ta.value = mp.remark || ""; ta.readOnly = true;
+  $("gz-text-actions").style.display = "none";
+  $("gz-text-modal").classList.remove("hidden");
+}
+async function saveGzNote(e) {
+  if (e) e.preventDefault();
+  if (!gzTextPid) { $("gz-text-modal").classList.add("hidden"); return; }
+  const mp = mgrPlayer(gzTextPid); if (!mp) { $("gz-text-modal").classList.add("hidden"); return; }
+  const v = $("gz-text-area").value.trim() || null;
+  const { error } = await sb.from("gz_participants").update({ note: v }).eq("id", gzTextPid);
+  if (error) { alert("Note : " + error.message); return; }
+  mp.p.note = v;
+  $("gz-text-modal").classList.add("hidden");
   renderMgr();
 }
 
@@ -2006,6 +2050,10 @@ async function saveStatus(tr) {
     absent, amount_paid: absent || amount === "" ? null : Number(amount),
     pay_method: absent || !method ? null : method, is_winner: winner, updated_at: new Date().toISOString(),
   }, { onConflict: "tournament_id,participant_id" });
+  // couleur de ligne : vert si payé, rouge si absent
+  tr.classList.remove("gz-paid", "gz-abs");
+  if (absent) tr.classList.add("gz-abs");
+  else if (amount !== "") tr.classList.add("gz-paid");
   updateMgrTotals();
 }
 
@@ -2177,9 +2225,9 @@ async function loadParticipantsTab() {
 function renderParts() {
   const q = $("gz-part-search").value.trim().toLowerCase();
   let rows = gzParts.filter((p) => !q ||
-    `${p.last_name} ${p.first_name} ${p.email || ""} ${p.phone || ""} ${p.city || ""} ${p.club || ""} ${p.comment || ""}`.toLowerCase().includes(q));
+    `${p.last_name} ${p.first_name} ${p.email || ""} ${p.phone || ""} ${p.city || ""} ${p.club || ""} ${p.note || ""}`.toLowerCase().includes(q));
   const val = (p) => ({ last: p.last_name, first: p.first_name, email: p.email, birth: p.birthdate,
-    phone: p.phone, part: p.part, vic: p.vic, credit: Number(p.credit_chf || 0), comment: p.comment }[gzPartSort]);
+    phone: p.phone, part: p.part, vic: p.vic, credit: Number(p.credit_chf || 0), note: p.note }[gzPartSort]);
   rows = rows.slice().sort((a, b) => {
     const x = val(a), y = val(b);
     if (["part", "vic", "credit"].includes(gzPartSort)) return (y || 0) - (x || 0);
@@ -2189,7 +2237,7 @@ function renderParts() {
     <td>${esc(p.last_name)}</td><td>${esc(p.first_name)}</td><td>${esc(p.email || "")}</td>
     <td>${p.birthdate || ""}</td><td>${esc(p.phone || "")}</td>
     <td>${p.part}</td><td>${p.vic > 0 ? ICO_CUP + " " + p.vic : "0"}</td>
-    <td>${p.credit_chf > 0 ? p.credit_chf + " CHF" : ""}</td><td class="muted" style="font-size:.82rem">${esc(p.comment || "")}</td></tr>`).join("");
+    <td>${p.credit_chf > 0 ? p.credit_chf + " CHF" : ""}</td><td class="muted" style="font-size:.82rem">${esc(p.note || "")}</td></tr>`).join("");
   $("gz-part-count").textContent = `${rows.length} participant(s)`;
 }
 

@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
       else {
         const { data: np } = await svc.from("gz_participants").insert({
           license_no: p.license, last_name: p.last, first_name: p.first, birthdate: p.birth,
-          email: p.email, phone: p.phone, city: p.city, club: p.club, ranking: p.ranking, comment: p.comment,
+          email: p.email, phone: p.phone, city: p.city, club: p.club, ranking: p.ranking,
         }).select("id").single();
         if (np) byLicense[p.license] = np.id;
       }
@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
     // inscriptions (remplacer pour ce tournoi)
     await svc.from("gz_entries").delete().eq("tournament_id", tid);
     const entries = players.filter((p) => p.license && byLicense[p.license])
-      .map((p) => ({ tournament_id: tid, participant_id: byLicense[p.license], epreuve: p.epreuve, confirmed: p.confirmed }));
+      .map((p) => ({ tournament_id: tid, participant_id: byLicense[p.license], epreuve: p.epreuve, confirmed: p.confirmed, comment: p.comment || null }));
     if (entries.length) await svc.from("gz_entries").insert(entries);
 
     const uniquePlayers = Object.keys(byLicense).length;

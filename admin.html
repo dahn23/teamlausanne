@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -411,9 +411,9 @@
                 </div>
               </div>
 
-              <div class="table-wrap">
+              <div class="table-wrap gz-mgr-wrap">
                 <table class="crm-table gz-mgr-table">
-                  <thead><tr><th>Joueur</th><th>Infos</th><th>Absent</th><th>Paiement</th><th>Méthode</th><th>Gagnant</th></tr></thead>
+                  <thead><tr><th>Joueur</th><th>Note</th><th>Prix</th><th>Paiement</th><th>Crédit</th><th>Absent</th><th>Victoire</th></tr></thead>
                   <tbody id="gz-mgr-players"></tbody>
                 </table>
               </div>
@@ -490,7 +490,7 @@
                   <th data-sort="last">Nom</th><th data-sort="first">Prénom</th><th data-sort="email">Email</th>
                   <th data-sort="birth">Naissance</th><th data-sort="phone">Téléphone</th>
                   <th data-sort="part">Particip.</th><th data-sort="vic">Victoires</th>
-                  <th data-sort="credit">Crédit</th><th data-sort="comment">Note</th>
+                  <th data-sort="credit">Crédit</th><th data-sort="note">Note</th>
                 </tr></thead>
                 <tbody id="gz-part-rows"></tbody>
               </table>
@@ -1111,6 +1111,19 @@
       <h3 class="att-h">Coachs</h3>
       <div id="att-coaches"></div>
     </div>
+  </div>
+
+  <!-- Popup remarque (lecture seule) / note interne (éditable) — GameZone joueurs -->
+  <div id="gz-text-modal" class="modal hidden">
+    <form class="card" id="gz-text-form">
+      <button type="button" class="modal-close" data-close-gztext aria-label="Fermer">×</button>
+      <h2 id="gz-text-title">Note</h2>
+      <p id="gz-text-who" class="muted" style="margin:-6px 0 8px"></p>
+      <textarea id="gz-text-area" rows="5" style="width:100%"></textarea>
+      <div id="gz-text-actions" style="display:flex;gap:8px;margin-top:10px">
+        <button type="submit" id="gz-text-save">Enregistrer</button>
+      </div>
+    </form>
   </div>
 
   <script type="module" src="admin.js"></script>

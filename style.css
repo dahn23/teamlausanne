@@ -93,8 +93,9 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .rgrid{display:grid;gap:3px;min-width:max-content}
 .rcell{border-radius:6px;padding:5px 3px;font-size:.75rem;text-align:center;
   display:flex;align-items:center;justify-content:center;min-height:36px}
-.rcell.corner{background:transparent}
-.rhead{background:#eef1f7;font-weight:800;color:var(--blue-ink);position:sticky;top:0;z-index:2;
+/* coin figé (haut-gauche) : opaque et au-dessus, sinon les en-têtes glissent dessous */
+.rcell.corner{background:#fff;position:sticky;left:0;top:0;z-index:6}
+.rhead{background:#eef1f7;font-weight:800;color:var(--blue-ink);position:sticky;top:0;z-index:4;
   flex-direction:column;line-height:1.05;font-style:italic}
 /* Couleur = surface du court (bande basse discrète) */
 .rhead.sfc-terre{background:#fdeee0;box-shadow:inset 0 -3px 0 #e0872f}
@@ -111,7 +112,8 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .sfc-dot.sfc-terre{background:#e0872f}
 .sfc-dot.sfc-gazon{background:#46a555}
 .sfc-dot.sfc-dur{background:#2f5fd0}
-.rhour{background:#eef1f7;color:var(--muted);font-weight:700;position:sticky;left:0;z-index:1;font-size:.72rem}
+.rhour{background:#eef1f7;color:var(--muted);font-weight:700;position:sticky;left:0;z-index:4;font-size:.72rem;
+  box-shadow:2px 0 5px -2px rgba(0,0,0,.18)}
 .rslot{cursor:pointer;transition:outline .1s}
 .rslot.creuse{background:#bcd3ff;color:#0f2050}
 .rslot.pleine{background:#1e3ad1;color:#fff}
@@ -582,6 +584,29 @@ input.pd-native{display:none}
 .gz-credit{color:#a15c00}
 .gz-comment{margin-top:3px;color:#2c3240;font-style:italic}
 .gz-credit-use{background:#fde8c8;color:#a15c00}
+/* Tableau joueurs (responsable) : colonne « Joueur » figée + scroll sur le reste + couleurs de ligne */
+.gz-mgr-wrap{overflow-x:auto}
+.gz-mgr-table{border-collapse:separate;border-spacing:0;min-width:660px}
+.gz-mgr-table th,.gz-mgr-table td{background:#fff}
+.gz-mgr-table th:first-child,.gz-mgr-table td:first-child{
+  position:sticky;left:0;z-index:2;min-width:148px;max-width:210px;box-shadow:1px 0 0 var(--line)}
+.gz-mgr-table thead th:first-child{z-index:3}
+.gz-mgr-table tr.gz-paid td{background:#e7f6ec}
+.gz-mgr-table tr.gz-abs td{background:#fbe9e9}
+.gz-mgr-table tr.gz-paid td:first-child{background:#e7f6ec}
+.gz-mgr-table tr.gz-abs td:first-child{background:#fbe9e9}
+.gz-name{font-size:.9rem;line-height:1.25}
+.gz-sub{display:flex;flex-direction:column;gap:3px;margin-top:3px}
+.gz-club{color:var(--muted);font-size:.76rem}
+.gz-remark{align-self:flex-start;max-width:100%;background:#eef3ff;color:#2b4a8b;font-size:.72rem;
+  padding:2px 8px;border-radius:6px;font-weight:600;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gz-remark:hover{background:#dfe8ff}
+.gz-note-btn{background:#f3f0ff;color:#5b3ca8;font-size:.78rem;padding:6px 9px;border-radius:7px;font-weight:700;
+  max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.gz-note-btn:hover{background:#e8e1ff}
+.gz-note-btn .muted{color:#9aa0ad;font-weight:600}
+.gz-col-credit{white-space:nowrap;font-size:.78rem}
+#gz-text-area{padding:10px;font-size:.9rem;border:1px solid var(--line);border-radius:8px;resize:vertical}
 .gz-till-balance{font-size:2rem;font-weight:800;font-style:italic;color:var(--blue-ink);margin:6px 0 14px}
 #gz-sub-participants th[data-sort]{cursor:pointer;user-select:none}
 #gz-sub-participants th[data-sort]:hover{color:var(--blue)}
