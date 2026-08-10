@@ -1741,6 +1741,11 @@ async function initGameZone(roles) {
   });
   $("gz-pay-add").addEventListener("click", addPayment);
   $("gz-sal-add").addEventListener("click", addSalary);
+  $("gz-sal-person").addEventListener("change", () => {
+    const other = $("gz-sal-person").value === "autre";
+    $("gz-sal-name").classList.toggle("hidden", !other);
+    if (other) $("gz-sal-name").focus();
+  });
   $("gz-caisse-start").addEventListener("change", saveCaisse);
   $("gz-caisse-counted").addEventListener("change", saveCaisse);
   $("gz-close-tournament").addEventListener("click", closeTournament);
@@ -2119,11 +2124,17 @@ async function addSalary() {
   if (!amount) return;
   const sel = $("gz-sal-person").value;
   let row = { tournament_id: mgrTid, amount };
-  if (sel === "autre") { const n = prompt("Nom du responsable :"); if (!n) return; row.name = n; }
+  if (sel === "autre") {
+    const n = $("gz-sal-name").value.trim();
+    if (!n) { alert("Saisissez un nom."); $("gz-sal-name").focus(); return; }
+    row.name = n;
+  }
   else if (sel) row.person_id = sel;
   else { alert("Choisissez un responsable."); return; }
   await sb.from("gz_salaries").insert(row);
   $("gz-sal-amount").value = "";
+  $("gz-sal-name").value = ""; $("gz-sal-name").classList.add("hidden");
+  $("gz-sal-person").value = "";
   mgrSalaries = (await sb.from("gz_salaries").select("*").eq("tournament_id", mgrTid).order("created_at")).data || [];
   renderSalaries(); computeCaisse();
 }
