@@ -2874,7 +2874,6 @@ function initStages() {
   $("stg-new").addEventListener("click", () => openStageModal(null));
   $("stg-detail-back").addEventListener("click", closeStageDetail);
   $("stg-detail-edit").addEventListener("click", () => openStageModal(stgCurrent));
-  $("stg-program-save").addEventListener("click", saveProgram);
   $("stg-reg-add").addEventListener("click", openRegModal);
   $("stg-survey-new").addEventListener("click", () => createSurvey("stage"));
   $("stg-mail-cat").addEventListener("change", () => renderStageMails($("stg-mail-cat").value));
@@ -3132,7 +3131,6 @@ async function openStage(id) {
   $("stg-detail-title").textContent = (s.title || "Stage");
   $("stg-detail-meta").innerHTML = `${frDate(s.start_date)}${s.end_date !== s.start_date ? " → " + frDate(s.end_date) : ""} · ${jours(days)}${days < 5 ? " (pro-rata)" : ""}<br>`
     + `Catégories : ${catList.length ? catList.join(" · ") : '<span class="muted">aucune</span>'}`;
-  $("stg-program").value = s.program || "";
   $("stg-list-wrap").classList.add("hidden");
   $("stg-detail").classList.remove("hidden");
   await loadRegistrations();
@@ -3142,15 +3140,6 @@ function closeStageDetail() {
   stgCurrent = null;
   $("stg-detail").classList.add("hidden");
   $("stg-list-wrap").classList.remove("hidden");
-}
-
-async function saveProgram() {
-  const btn = $("stg-program-save");
-  btn.textContent = "…";
-  const { error } = await sb.from("stage_sessions").update({ program: $("stg-program").value }).eq("id", stgCurrent);
-  const s = stgSessions.find((x) => x.id === stgCurrent); if (s && !error) s.program = $("stg-program").value;
-  btn.textContent = error ? "Erreur" : "Enregistré ✓";
-  setTimeout(() => (btn.textContent = "Enregistrer le programme"), 1500);
 }
 
 async function loadRegistrations() {
