@@ -493,6 +493,24 @@ input.pd-native{display:none}
 .phys-ans{display:flex;justify-content:space-between;gap:16px;padding:9px 4px;border-bottom:1px solid var(--line)}
 .phys-ans-q{color:var(--ink)}
 .phys-ans-v{font-weight:800;color:var(--blue-ink);text-align:right}
+/* ===== Études (calendrier + par jeune) ===== */
+.et-cal th,.et-cal td{text-align:center;white-space:nowrap;padding:6px 8px}
+.et-cal th:first-child,.et-cal td:first-child,.et-cal td:nth-child(2),.et-cal th:nth-child(2){text-align:left}
+.att-chip.et-cell{width:34px;height:30px;padding:0;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.et-profwrap{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.et-profwrap .ps-wrap{flex:0 0 auto;width:auto;min-width:92px}
+.et-prof-chip{display:inline-flex;align-items:center;gap:2px;background:#eef1f7;border-radius:999px;
+  padding:2px 4px 2px 9px;font-size:.78rem;font-weight:700;color:var(--blue-ink)}
+.et-prof-rm{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:0 3px;font-size:.8rem;line-height:1}
+.et-prof-rm:hover{color:#b23838}
+.et-stats{display:flex;gap:10px;flex-wrap:wrap}
+.et-stat{background:#f6f8fc;border:1px solid var(--line);border-radius:10px;padding:10px 16px;text-align:center;min-width:110px}
+.et-stat b{display:block;font-size:1.3rem;color:var(--blue-ink)}
+.et-stat span{font-size:.8rem;color:var(--muted)}
+.et-stat.st-present b{color:#1c7d38}
+.et-stat.st-late b{color:#a9721a}
+.et-stat.st-absent b{color:#b23838}
+.et-youth-row{cursor:pointer}
 /* ===== Saisons (fiche) ===== */
 .ss-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
 .ss-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--line);

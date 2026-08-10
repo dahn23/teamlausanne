@@ -41,24 +41,25 @@ if (session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "roles", "resa", "cours", "phystests", "gamezone", "caisse", "stages", "stats"],
-  admin:      ["membres", "roles", "resa", "cours", "phystests", "gamezone", "caisse", "stages", "stats"],
+  superadmin: ["membres", "roles", "resa", "cours", "phystests", "etudes", "gamezone", "caisse", "stages", "stats"],
+  admin:      ["membres", "roles", "resa", "cours", "phystests", "etudes", "gamezone", "caisse", "stages", "stats"],
   secretaire: ["membres", "resa", "caisse", "stages", "stats"],
   head_coach: ["resa", "cours", "phystests", "stages"],
   coach:      ["resa", "cours", "phystests"],
+  prof:       ["etudes"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["phystests", "Tests phys."], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
-const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["organisateur", "Official"], ["responsable", "Responsable"]];
-const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "membre", "organisateur", "responsable"];
+const ADMIN_TABS = [["membres", "Répertoire"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["phystests", "Tests phys."], ["etudes", "Études"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
+const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["prof", "Prof"], ["organisateur", "Official"], ["responsable", "Responsable"]];
+const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "prof", "membre", "organisateur", "responsable"];
 // Rôles/tags d'une personne (cumulables) — pilotent filtres + onglets de la fiche.
 const PERSON_ROLES = [
   ["membre", "Membre"], ["client", "Client"], ["coach", "Coach"], ["coach-prive", "Coach avec autorisation"],
   ["head-coach", "Head coach"], ["official", "Official"], ["responsable-tournoi", "Responsable tournoi"],
   ["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"],
   ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"],
-  ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
+  ["prof", "Prof"], ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
 ];
 const roleLabel = (r) => (PERSON_ROLES.find(([v]) => v === r) || [r, r])[1];
 
@@ -152,6 +153,7 @@ async function init(roles) {
   initGameZone(roles);
   initStages();
   initPhys();
+  initEtudes();
 }
 
 // ---- Bascule de vues ----
@@ -164,6 +166,7 @@ function showView(view) {
   if (view === "caisse") loadCaisseTab();
   if (view === "stages") loadStagesTab();
   if (view === "phystests") loadPhysResults();
+  if (view === "etudes") loadEtudesCalendar();
 }
 
 // ===================================================================
@@ -3554,5 +3557,186 @@ async function savePhysFill(e) {
   if (answers.length) await sb.from("phys_answers").insert(answers);
   $("phys-fill-modal").classList.add("hidden");
   loadPhysResults();
+}
+
+// ===================================================================
+//  Études (sport-études) — calendrier de présence + suivi par jeune
+// ===================================================================
+const ET_ORDER = ["", "present", "late", "absent", "not_planned"];
+const etNext = (s) => ET_ORDER[(ET_ORDER.indexOf(s || "") + 1) % ET_ORDER.length];
+const ET_CLS = { present: "st-present", late: "st-late", absent: "st-absent", not_planned: "st-locked", "": "st-none" };
+const ET_LBL = { present: "P", late: "R", absent: "A", not_planned: "—", "": "" };
+let etYouthId = null;
+
+function initEtudes() {
+  document.querySelectorAll("#view-etudes .et-subtab").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#view-etudes .et-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      document.querySelectorAll("#view-etudes .et-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "et-sub-" + b.dataset.sub));
+      if (b.dataset.sub === "calendrier") loadEtudesCalendar();
+      if (b.dataset.sub === "jeunes") loadEtudesYouths();
+    }));
+  $("et-season").addEventListener("change", loadEtudesCalendar);
+  $("et-season2").addEventListener("change", loadEtudesYouths);
+  $("et-add-day").addEventListener("click", addEtudesDay);
+  $("et-youth-back").addEventListener("click", () => { $("et-youth-detail").classList.add("hidden"); $("et-youth-list").classList.remove("hidden"); });
+  $("et-rem-add").addEventListener("click", addEtRemark);
+}
+
+function etPopulateSeasons() {
+  const cur = currentSeason("juniors")?.id;
+  const opts = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">— créez une saison juniors —</option>';
+  if (!$("et-season").options.length) $("et-season").innerHTML = opts;
+  if (!$("et-season2").options.length) $("et-season2").innerHTML = opts;
+}
+async function etYouthsForSeason(seasonId) {
+  if (!seasonId) return [];
+  const { data } = await sb.from("role_periods").select("person_id").eq("season_id", seasonId).eq("role", "sport-etudes");
+  const ids = new Set((data || []).map((r) => r.person_id));
+  return people.filter((p) => ids.has(p.id)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+}
+
+// ---- Sous-onglet Calendrier ----
+async function loadEtudesCalendar() {
+  await loadSeasonsList();
+  etPopulateSeasons();
+  const seasonId = $("et-season").value;
+  const cont = $("et-calendar");
+  if (!seasonId) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Crée d\'abord une saison juniors (Réglages › Saisons).</p>'; return; }
+  const youths = await etYouthsForSeason(seasonId);
+  const { data: days } = await sb.from("etudes_days").select("*").eq("season_id", seasonId).order("day");
+  const dayIds = (days || []).map((d) => d.id);
+  let profs = [], att = [];
+  if (dayIds.length) {
+    [profs, att] = await Promise.all([
+      sb.from("etudes_day_profs").select("*").in("day_id", dayIds).then((r) => r.data || []),
+      sb.from("etudes_attendance").select("*").in("day_id", dayIds).then((r) => r.data || []),
+    ]);
+  }
+  const attOf = (dayId, yid) => att.find((a) => a.day_id === dayId && a.youth_person_id === yid)?.status || "";
+  const profOptions = people.filter((p) => hasRoleIn(p.id, ["prof"]));
+  if (!(days || []).length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jour dans le calendrier. Ajoute un jour ci-dessus.</p>'; return; }
+  if (!youths.length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jeune en sport-études pour cette saison (à définir dans les fiches › Saisons).</p>'; return; }
+  let html = '<table class="crm-table et-cal"><thead><tr><th>Date</th><th>Prof(s)</th>'
+    + youths.map((y) => `<th title="${esc(y.last_name)} ${esc(y.first_name)}">${esc(y.last_name)} ${esc((y.first_name || "").slice(0, 1))}.</th>`).join("") + "</tr></thead><tbody>";
+  for (const d of days) {
+    const dp = profs.filter((p) => p.day_id === d.id);
+    html += `<tr><td>${frDate(d.day)}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions)}</td>`
+      + youths.map((y) => { const s = attOf(d.id, y.id); return `<td><button type="button" class="att-chip et-cell ${ET_CLS[s]}" data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
+      + "</tr>";
+  }
+  cont.innerHTML = html + "</tbody></table>";
+  cont.querySelectorAll(".et-cell").forEach((c) => c.addEventListener("click", () => etCycle(c)));
+  cont.querySelectorAll(".et-prof-rm").forEach((b) => b.addEventListener("click", async () => { await sb.from("etudes_day_profs").delete().eq("day_id", b.dataset.day).eq("prof_person_id", b.dataset.prof); loadEtudesCalendar(); }));
+  cont.querySelectorAll(".et-prof-add").forEach((s) => s.addEventListener("change", async () => { if (!s.value) return; await sb.from("etudes_day_profs").insert({ day_id: s.dataset.day, prof_person_id: s.value }); loadEtudesCalendar(); }));
+}
+function etProfCellHtml(dayId, dayProfs, profOptions) {
+  const chips = dayProfs.map((dp) => { const p = people.find((x) => x.id === dp.prof_person_id); return `<span class="et-prof-chip">${p ? esc(p.last_name) : "?"}<button type="button" class="et-prof-rm" data-day="${dayId}" data-prof="${dp.prof_person_id}">✕</button></span>`; }).join(" ");
+  const avail = profOptions.filter((p) => !dayProfs.some((dp) => dp.prof_person_id === p.id));
+  const sel = avail.length ? `<select class="et-prof-add" data-day="${dayId}"><option value="">+ prof</option>${avail.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")}</select>` : "";
+  return `<div class="et-profwrap">${chips}${sel}</div>`;
+}
+async function etCycle(cell) {
+  const next = etNext(cell.dataset.status);
+  const day = cell.dataset.day, youth = cell.dataset.youth;
+  let error;
+  if (next === "") ({ error } = await sb.from("etudes_attendance").delete().eq("day_id", day).eq("youth_person_id", youth));
+  else ({ error } = await sb.from("etudes_attendance").upsert({ day_id: day, youth_person_id: youth, status: next, marked_by: meId, marked_at: new Date().toISOString() }, { onConflict: "day_id,youth_person_id" }));
+  if (error) { alert(error.message); return; }
+  cell.dataset.status = next;
+  cell.className = "att-chip et-cell " + ET_CLS[next];
+  cell.textContent = ET_LBL[next];
+}
+async function addEtudesDay() {
+  const seasonId = $("et-season").value, day = $("et-newday").value;
+  if (!seasonId) { alert("Choisis une saison."); return; }
+  if (!day) { alert("Choisis une date."); return; }
+  const { error } = await sb.from("etudes_days").insert({ season_id: seasonId, day });
+  if (error) { alert(error.code === "23505" ? "Ce jour existe déjà." : error.message); return; }
+  $("et-newday").value = "";
+  loadEtudesCalendar();
+}
+
+// ---- Sous-onglet Par jeune ----
+async function loadEtudesYouths() {
+  await loadSeasonsList();
+  etPopulateSeasons();
+  $("et-youth-detail").classList.add("hidden");
+  $("et-youth-list").classList.remove("hidden");
+  const seasonId = $("et-season2").value;
+  const cont = $("et-youth-list");
+  if (!seasonId) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Crée une saison juniors.</p>'; return; }
+  const youths = await etYouthsForSeason(seasonId);
+  if (!youths.length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jeune en sport-études pour cette saison.</p>'; return; }
+  const { data: days } = await sb.from("etudes_days").select("id").eq("season_id", seasonId);
+  const dayIds = (days || []).map((d) => d.id);
+  let att = [];
+  if (dayIds.length) att = (await sb.from("etudes_attendance").select("youth_person_id,status").in("day_id", dayIds)).data || [];
+  const stat = (yid) => {
+    const rows = att.filter((a) => a.youth_person_id === yid && a.status !== "not_planned");
+    const n = rows.length;
+    const c = (s) => rows.filter((a) => a.status === s).length;
+    return { n, pres: n ? Math.round(c("present") / n * 100) : null, late: n ? Math.round(c("late") / n * 100) : null, abs: n ? Math.round(c("absent") / n * 100) : null };
+  };
+  cont.innerHTML = '<table class="crm-table"><thead><tr><th>Jeune</th><th>Présence</th><th>Retard</th><th>Absence</th><th>Jours</th></tr></thead><tbody>'
+    + youths.map((y) => { const s = stat(y.id); return `<tr class="et-youth-row" data-id="${y.id}"><td><b>${esc(y.last_name)} ${esc(y.first_name)}</b></td><td>${s.pres == null ? "—" : s.pres + "%"}</td><td>${s.late == null ? "—" : s.late + "%"}</td><td>${s.abs == null ? "—" : s.abs + "%"}</td><td>${s.n}</td></tr>`; }).join("")
+    + "</tbody></table>";
+  cont.querySelectorAll(".et-youth-row").forEach((tr) => tr.addEventListener("click", () => openEtudesYouth(tr.dataset.id)));
+}
+async function openEtudesYouth(yid) {
+  etYouthId = yid;
+  const seasonId = $("et-season2").value;
+  const p = people.find((x) => x.id === yid);
+  $("et-youth-name").textContent = p ? `${p.last_name} ${p.first_name}` : "—";
+  const { data: days } = await sb.from("etudes_days").select("id").eq("season_id", seasonId);
+  const dayIds = (days || []).map((d) => d.id);
+  let att = [];
+  if (dayIds.length) att = (await sb.from("etudes_attendance").select("status").in("day_id", dayIds).eq("youth_person_id", yid)).data || [];
+  const rows = att.filter((a) => a.status !== "not_planned"), n = rows.length;
+  const c = (s) => rows.filter((a) => a.status === s).length;
+  const pct = (x) => n ? Math.round(x / n * 100) : 0;
+  $("et-youth-stats").innerHTML = n ? `
+    <div class="et-stat st-present"><b>${pct(c("present"))}%</b><span>présent (${c("present")})</span></div>
+    <div class="et-stat st-late"><b>${pct(c("late"))}%</b><span>en retard (${c("late")})</span></div>
+    <div class="et-stat st-absent"><b>${pct(c("absent"))}%</b><span>absent (${c("absent")})</span></div>
+    <div class="et-stat"><b>${n}</b><span>jours comptés</span></div>` : '<p class="muted" style="font-size:.85rem">Aucune présence renseignée (les « pas prévu » ne comptent pas).</p>';
+  loadEtRemarks(yid);
+  $("et-youth-list").classList.add("hidden");
+  $("et-youth-detail").classList.remove("hidden");
+  window.scrollTo(0, 0);
+}
+async function loadEtRemarks(yid) {
+  const { data } = await sb.from("etudes_remarks").select("*").eq("youth_person_id", yid).order("created_at", { ascending: false });
+  const rows = data || [];
+  $("et-rem-list").innerHTML = rows.length ? rows.map((r) => {
+    const mine = r.created_by === meId;
+    const edited = r.updated_at && r.updated_at !== r.created_at ? ' <span class="muted">(modifié)</span>' : "";
+    return `<div class="obj-item" data-id="${r.id}"><div class="obj-meta"><b>${esc(r.prof_name || "—")}</b><span>${frDateTime(r.created_at)}${edited}</span></div>
+      <div class="obj-body">${esc(r.body)}</div>
+      ${mine ? `<div class="obj-acts"><button type="button" class="edit">Modifier</button><button type="button" class="del">Supprimer</button></div>` : ""}</div>`;
+  }).join("") : '<p class="obj-empty">Aucune remarque.</p>';
+  $("et-rem-list").querySelectorAll(".edit").forEach((b) => b.addEventListener("click", () => editEtRemark(b.closest(".obj-item").dataset.id)));
+  $("et-rem-list").querySelectorAll(".del").forEach((b) => b.addEventListener("click", () => delEtRemark(b.closest(".obj-item").dataset.id)));
+}
+async function addEtRemark() {
+  const body = $("et-rem-body").value.trim();
+  if (!etYouthId || !body) return;
+  const { error } = await sb.from("etudes_remarks").insert({ youth_person_id: etYouthId, body, prof_name: meName, prof_person_id: myPersonId, created_by: meId });
+  if (error) { alert(error.message); return; }
+  $("et-rem-body").value = "";
+  loadEtRemarks(etYouthId);
+}
+async function editEtRemark(id) {
+  const el = document.querySelector(`#et-rem-list .obj-item[data-id="${id}"] .obj-body`);
+  const next = prompt("Modifier la remarque :", el ? el.textContent : "");
+  if (next === null) return;
+  const body = next.trim(); if (!body) return;
+  await sb.from("etudes_remarks").update({ body, updated_at: new Date().toISOString() }).eq("id", id);
+  loadEtRemarks(etYouthId);
+}
+async function delEtRemark(id) {
+  if (!confirm("Supprimer cette remarque ?")) return;
+  await sb.from("etudes_remarks").delete().eq("id", id);
+  loadEtRemarks(etYouthId);
 }
 
