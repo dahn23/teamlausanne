@@ -33,7 +33,6 @@
         <button class="side-item" data-view="stages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l10 5-10 5L2 9l10-5z"/><path d="M6 11v4.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V11"/><path d="M22 9v5"/></svg><span class="side-label">Stages</span></button>
         <button class="side-item" data-view="stats"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20v-6M12 20V8M18 20v-9"/></svg><span class="side-label">Statistiques</span></button>
         <button class="side-item" data-view="bientot" disabled><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19"/></svg><span class="side-label">Finances (bientôt)</span></button>
-        <button class="side-item" data-view="bientot" disabled><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11"/></svg><span class="side-label">Cours (bientôt)</span></button>
       </aside>
 
       <main class="admin-main">
@@ -706,6 +705,18 @@
   </div>
 
   <div id="loader" class="screen center">Chargement…</div>
+
+  <!-- ---- Connexion (accès direct à /admin sans session) ---- -->
+  <div id="admin-login" class="screen center hidden">
+    <form id="login-form" class="card">
+      <h2 class="brand blue">Console admin</h2>
+      <p class="muted" style="margin-top:-6px">Connexion réservée au staff.</p>
+      <label>Email<input type="email" id="email" autocomplete="email" required /></label>
+      <label>Mot de passe<input type="password" id="password" autocomplete="current-password" required /></label>
+      <button type="submit" id="login-btn">Se connecter</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </div>
 
   <!-- ---- Fiche personne (le <form> est déplacé dans #people-detail au chargement) ---- -->
   <div id="person-holder" class="hidden">

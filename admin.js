@@ -1,5 +1,5 @@
 // Console admin — CRM membres (accès staff uniquement).
-import { sb, requireLogin, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours } from "./common.js";
+import { sb, getSession, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours } from "./common.js";
 import "./pretty-select.js";
 import "./pretty-date.js";
 
@@ -14,8 +14,22 @@ let myPersonId = null;
 const pad2 = (n) => String(n).padStart(2, "0");
 
 // ---- Garde d'accès : connecté + rôle staff ----
-const session = await requireLogin();
-if (session) {
+// Accès direct à /admin sans session → on affiche un formulaire de connexion
+// (pas de redirection vers l'accueil).
+const session = await getSession();
+if (!session) {
+  $("loader").classList.add("hidden");
+  $("admin-login").classList.remove("hidden");
+  $("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = $("login-error"); err.hidden = true; $("login-btn").disabled = true;
+    const { error } = await sb.auth.signInWithPassword({
+      email: $("email").value.trim(), password: $("password").value });
+    $("login-btn").disabled = false;
+    if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
+    location.reload();
+  });
+} else {
   $("who").textContent = session.user.email;
   const roles = await myRoles();
   $("loader").classList.add("hidden");
