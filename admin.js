@@ -1924,7 +1924,7 @@ function renderMgr() {
       </td>
       <td class="gz-col-note"><button type="button" class="gz-note-btn">${p.note ? gzShort(p.note, 24) : '<span class="muted">+ note</span>'}</button></td>
       <td><select class="gz-amount" ${st.absent ? "disabled" : ""}>${amtOpts}</select></td>
-      <td><select class="gz-method" ${st.absent ? "disabled" : ""}><option value="">méthode</option>${method("cash")}${method("twint")}${method("carte")}<option value="credit" ${st.pay_method === "credit" ? "selected" : ""}>crédit</option></select></td>
+      <td><select class="gz-method" ${st.absent ? "disabled" : ""}><option value="">méthode</option>${method("cash")}${method("twint")}${method("carte")}</select></td>
       <td class="gz-col-credit">
         ${credit > 0 ? `<b class="gz-credit">${credit} CHF</b> <button type="button" class="gz-credit-use gz-mini">utiliser</button>` : `<span class="muted">—</span>`}
         <button type="button" class="gz-credit-add gz-mini">+ crédit</button>
@@ -1977,10 +1977,10 @@ async function spendCredit(pid) {
   await sb.from("gz_participants").update({ credit_chf: credit - amt }).eq("id", pid);
   await sb.from("gz_player_status").upsert({
     tournament_id: mgrTid, participant_id: pid, absent: false,
-    amount_paid: amt, pay_method: "credit", updated_at: new Date().toISOString(),
+    amount_paid: amt, pay_method: null, updated_at: new Date().toISOString(),
   }, { onConflict: "tournament_id,participant_id" });
   mp.p.credit_chf = credit - amt;
-  mp.st = { ...mp.st, absent: false, amount_paid: amt, pay_method: "credit" };
+  mp.st = { ...mp.st, absent: false, amount_paid: amt, pay_method: null };
   renderMgr();
 }
 

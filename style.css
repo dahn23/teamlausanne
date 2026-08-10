@@ -589,13 +589,15 @@ input.pd-native{display:none}
 .gz-mgr-table{border-collapse:separate;border-spacing:0;min-width:660px}
 .gz-mgr-table th,.gz-mgr-table td{background:#fff}
 .gz-mgr-table th:first-child,.gz-mgr-table td:first-child{
-  position:sticky;left:0;z-index:2;min-width:148px;max-width:210px;box-shadow:1px 0 0 var(--line)}
+  position:sticky;left:0;z-index:2;min-width:112px;max-width:150px;
+  border-right:2px solid #c2c9d6;box-shadow:5px 0 7px -4px rgba(0,0,0,.28)}
 .gz-mgr-table thead th:first-child{z-index:3}
 .gz-mgr-table tr.gz-paid td{background:#e7f6ec}
 .gz-mgr-table tr.gz-abs td{background:#fbe9e9}
 .gz-mgr-table tr.gz-paid td:first-child{background:#e7f6ec}
 .gz-mgr-table tr.gz-abs td:first-child{background:#fbe9e9}
-.gz-name{font-size:.9rem;line-height:1.25}
+.gz-mgr-table td:first-child{padding-left:8px;padding-right:8px}
+.gz-name{font-size:.82rem;line-height:1.2}
 .gz-sub{display:flex;flex-direction:column;gap:3px;margin-top:3px}
 .gz-club{color:var(--muted);font-size:.76rem}
 .gz-remark{align-self:flex-start;max-width:100%;background:#eef3ff;color:#2b4a8b;font-size:.72rem;
