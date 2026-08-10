@@ -26,6 +26,16 @@
     .pr-slogan{font-size:clamp(1rem,2.4vw,1.35rem);font-weight:800;font-style:italic;letter-spacing:-.01em}
     .pr-slogan .dot{color:var(--fluo)}
 
+    /* Box halle couverte */
+    .pr-indoor{max-width:1080px;margin:-26px auto 0;padding:0 18px;position:relative;z-index:3}
+    .pr-indoor-inner{background:#fff;border:1px solid var(--line);border-left:5px solid var(--fluo-d);
+      border-radius:16px;padding:18px 22px;box-shadow:var(--shadow);display:flex;gap:16px;align-items:center}
+    .pr-indoor .ic{width:46px;height:46px;flex-shrink:0;border-radius:12px;background:#eef3ff;
+      display:flex;align-items:center;justify-content:center;color:var(--blue)}
+    .pr-indoor .ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .pr-indoor b{color:var(--blue-ink);font-size:1.02rem}
+    .pr-indoor p{margin:3px 0 0;color:#41485f;font-size:.94rem;line-height:1.4}
+
     .pr-wrap{max-width:1080px;margin:0 auto;padding:0 18px}
     .pr-sec{padding:56px 0}
     .pr-eyebrow{color:var(--blue);font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:.82rem;margin:0 0 6px}
@@ -120,7 +130,7 @@
 
   <!-- HERO -->
   <section class="hero pr-hero">
-    <div class="hero-bg" style="background-image:url('assets/webflow/event-open.jpg')"></div>
+    <div class="hero-bg" style="background-image:url('assets/presidents/brand.jpg')"></div>
     <div class="hero-scrim"></div>
     <div class="hero-content">
       <p class="pr-badge">Offre exclusive · Networking</p>
@@ -141,6 +151,17 @@
       <span class="pr-slogan">On joue, on échange, on fait grandir les jeunes<span class="dot">.</span></span>
     </div>
   </section>
+
+  <!-- BOX HALLE COUVERTE -->
+  <div class="pr-indoor">
+    <div class="pr-indoor-inner">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h14v-9.5"/><path d="M9.5 20v-5h5v5"/></svg></div>
+      <div>
+        <b>On joue dans une halle couverte, été comme hiver.</b>
+        <p>Aucune séance annulée pour cause de météo : votre rendez-vous du vendredi est garanti toute la saison.</p>
+      </div>
+    </div>
+  </div>
 
   <!-- AVANTAGES -->
   <section class="pr-sec">
@@ -189,9 +210,9 @@
       <p class="pr-eyebrow">Le rituel du vendredi</p>
       <h2 class="pr-h2">2h30 pour jouer et créer du lien</h2>
       <div class="pr-timeline">
-        <div class="pr-step"><div class="t">10h00</div><div class="l">On entre sur le court</div><p class="d">Échauffement et mise en jeu, encadrés par les coachs.</p></div>
-        <div class="pr-step"><div class="t">10h – 12h</div><div class="l">On joue, on s'amuse</div><p class="d">Parties nivelées, du rythme, la thématique du jour.</p></div>
-        <div class="pr-step"><div class="t">12h – 12h30</div><div class="l">Apéro dînatoire</div><p class="d">Sur le court, pour discuter et prolonger les rencontres.</p></div>
+        <div class="pr-step"><div class="t">10h00 – 10h10</div><div class="l">Présentation</div><p class="d">La séance du jour et le partenaire invité.</p></div>
+        <div class="pr-step"><div class="t">10h10 – 12h00</div><div class="l">On joue</div><p class="d">Parties nivelées, du rythme, encadrées par les coachs.</p></div>
+        <div class="pr-step"><div class="t">12h00 – 12h30</div><div class="l">Apéro dînatoire</div><p class="d">Sur le court, pour prolonger les échanges.</p></div>
       </div>
     </div>
   </section>
@@ -202,9 +223,9 @@
       <p class="pr-eyebrow">L'ambiance</p>
       <h2 class="pr-h2">Du beau jeu, de belles rencontres</h2>
       <div class="pr-gallery">
-        <div class="pr-shot"><img src="assets/webflow/coaching-technique.jpg" alt="Coaching sur le court" loading="lazy" /><span>Encadré par des coachs</span></div>
-        <div class="pr-shot"><img src="assets/webflow/tennis-day.webp" alt="Ambiance tennis" loading="lazy" /><span>Un vendredi convivial</span></div>
-        <div class="pr-shot"><img src="assets/webflow/event-open.jpg" alt="Événement Lausanne Open" loading="lazy" /><span>L'esprit Team Lausanne</span></div>
+        <div class="pr-shot"><img src="assets/presidents/coach.jpg" alt="Coach sur le court" loading="lazy" /><span>Encadré par des coachs</span></div>
+        <div class="pr-shot"><img src="assets/presidents/notes.jpg" alt="La thématique du jour" loading="lazy" /><span>Une thématique par vendredi</span></div>
+        <div class="pr-shot"><img src="assets/presidents/brand.jpg" alt="Team Lausanne" loading="lazy" /><span>L'esprit Team Lausanne</span></div>
       </div>
     </div>
   </section>
@@ -231,7 +252,7 @@
         <h2 class="pr-h2" style="margin:0">Les vendredis de la saison</h2>
         <span class="pr-fri-count">28 vendredis</span>
       </div>
-      <p class="pr-lead" style="margin-top:10px">De la rentrée d'automne à l'été, hors vacances scolaires vaudoises et jours fériés. Vous choisissez ceux qui vous arrangent — vos 15 crédits font le reste.</p>
+      <p class="pr-lead" style="margin-top:10px">De la rentrée d'automne à l'été, hors vacances scolaires vaudoises et jours fériés. Vous <b>réservez vos spots directement sur l'application</b> — vos 15 crédits font le reste.</p>
       <div class="pr-months">
         <div class="pr-month"><b>Octobre 2026</b><div class="pr-days"><span class="pr-day">Ve 30</span></div></div>
         <div class="pr-month"><b>Novembre 2026</b><div class="pr-days"><span class="pr-day">Ve 6</span><span class="pr-day">Ve 13</span><span class="pr-day">Ve 20</span><span class="pr-day">Ve 27</span></div></div>
