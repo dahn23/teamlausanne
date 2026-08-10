@@ -74,7 +74,7 @@ if (me) {
   const roles = await myRoles();
   isMember = hasAny(roles, [...STAFF_ROLES, "membre"]);
   isCoachPrivate = hasAny(roles, ["coach_prive"]);
-  if (hasAny(roles, STAFF_ROLES)) $("admin-link").classList.remove("hidden");
+  // Pas de lien vers la console admin : on y accède seulement en tapant /admin.
 }
 await loadSettings();
 if (me && isMember) await loadMemberData();
