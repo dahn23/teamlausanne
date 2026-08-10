@@ -720,6 +720,7 @@
         <button type="button" class="ptab" data-ptab="phys">Tests physiques</button>
         <button type="button" class="ptab" data-ptab="etudes">Études</button>
         <button type="button" class="ptab" data-ptab="mental">Mental</button>
+        <button type="button" class="ptab" data-ptab="stages">Stages</button>
         <button type="button" class="ptab" data-ptab="media">Photos / vidéos</button>
         <button type="button" class="ptab" data-ptab="obj">Objectifs</button>
       </div>
@@ -845,6 +846,15 @@
           <button type="button" id="pm-cmt-add">Ajouter</button>
         </div>
         <div id="pm-cmt-list" class="obj-list"></div>
+      </div>
+
+      <div id="ptab-stages" class="ptab-panel hidden">
+        <h3 style="margin:0 0 8px">Participations aux stages</h3>
+        <div id="ps-participations" class="table-wrap"></div>
+        <div id="ps-coaching-block" class="hidden">
+          <h3 style="margin:16px 0 8px">Coaching de stages</h3>
+          <div id="ps-coaching" class="table-wrap"></div>
+        </div>
       </div>
 
       <div id="ptab-media" class="ptab-panel hidden">
@@ -977,6 +987,21 @@
       <div id="pr-meta" class="muted" style="font-size:.9rem;margin-bottom:12px"></div>
       <div id="pr-answers" class="phys-answers"></div>
       <div class="form-foot"><button type="button" id="pr-del" class="danger">Supprimer</button><span class="spacer"></span></div>
+    </div>
+  </div>
+
+  <!-- ---- Lier un inscrit à une fiche (déduplication) ---- -->
+  <div id="stlink-modal" class="modal hidden">
+    <div class="card wide">
+      <button type="button" id="stlink-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 style="margin-top:0">Lier l'inscrit à une fiche</h2>
+      <div id="stlink-info" class="muted" style="margin-bottom:12px"></div>
+      <h3 style="margin:0 0 6px;font-size:1rem">Fiches ressemblantes</h3>
+      <div id="stlink-suggestions"></div>
+      <div class="form-foot" style="margin-top:14px">
+        <button type="button" id="stlink-create">Créer une nouvelle fiche</button>
+        <span class="spacer"></span>
+      </div>
     </div>
   </div>
 

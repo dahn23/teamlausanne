@@ -1037,12 +1037,13 @@ function openPerson(p) {
   showPersonTab("phys", physByRole);
   showPersonTab("etudes", etudesByRole);
   showPersonTab("mental", mentalByRole);
+  showPersonTab("stages", false);
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
-  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonMental(p.id, mentalByRole); }
-  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("pe-rem-list").innerHTML = ""; $("pm-cmt-list").innerHTML = ""; }
+  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonMental(p.id, mentalByRole); loadPersonStages(p.id); }
+  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("pe-rem-list").innerHTML = ""; $("pm-cmt-list").innerHTML = ""; $("ps-participations").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -2888,6 +2889,9 @@ function initStages() {
   $("reg-close").addEventListener("click", () => $("reg-modal").classList.add("hidden"));
   $("reg-modal").addEventListener("click", (e) => { if (e.target === $("reg-modal")) $("reg-modal").classList.add("hidden"); });
   $("reg-form").addEventListener("submit", saveReg);
+  $("stlink-close").addEventListener("click", () => $("stlink-modal").classList.add("hidden"));
+  $("stlink-modal").addEventListener("click", (e) => { if (e.target === $("stlink-modal")) $("stlink-modal").classList.add("hidden"); });
+  $("stlink-create").addEventListener("click", createPersonFromReg);
 }
 
 async function loadStagesTab() {
@@ -3215,7 +3219,7 @@ function stgRegRow(r, cat, days) {
   const invoice = r.invoice_created ? `<span class="muted">Facturé${r.invoice_sent_at ? " le " + frDate(r.invoice_sent_at) : ""}</span>`
     : `<button class="ghost stg-inv" data-id="${r.id}">Facture + mail</button>`;
   return `<tr data-id="${r.id}">
-    <td><b>${esc(r.first_name)} ${esc(r.last_name)}</b></td>
+    <td><b>${esc(r.first_name)} ${esc(r.last_name)}</b> ${r.person_id ? '<span class="stg-linked" title="Lié à une fiche du répertoire">✓ fiche</span>' : `<button class="ghost stg-link" data-id="${r.id}">Lier</button>`}</td>
     <td>${r.birth_date ? frDate(r.birth_date) : "—"}</td>
     <td>${esc(r.email || "—")}</td>
     ${cat.tshirt ? `<td>${esc(r.tshirt_size || "—")}</td>` : ""}
@@ -3228,9 +3232,13 @@ function stgRegRow(r, cat, days) {
     <td><button class="fam-del stg-reg-del" data-id="${r.id}">✕</button></td>
   </tr>`;
 }
+function stgCoachOptions(selectedId) {
+  const coaches = people.filter((p) => hasRoleIn(p.id, COACH_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+  return '<option value="">— choisir un coach —</option>' + coaches.map((p) => `<option value="${p.id}"${p.id === selectedId ? " selected" : ""}>${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
+}
 function stgCoachRow(x) {
   return `<div class="stg-coach-row" data-id="${x.id}">
-    <input class="stg-coach-name" placeholder="Nom du coach" value="${esc(x.name || "")}" />
+    <select class="stg-coach-sel">${stgCoachOptions(x.coach_person_id)}</select>
     <input type="number" class="stg-coach-fee" placeholder="Tarif total (CHF)" value="${x.fee ?? ""}" />
     <input class="stg-coach-note" placeholder="Note (ex. lun–jeu seulement)" value="${esc(x.note || "")}" />
     <button type="button" class="fam-del stg-coach-del" data-id="${x.id}">✕</button>
@@ -3245,8 +3253,9 @@ function wireStageDetail() {
   D.querySelectorAll(".stg-reg-del").forEach((b) => b.addEventListener("click", () => delRegistrant(b.dataset.id)));
   D.querySelectorAll(".stg-coach-add").forEach((b) => b.addEventListener("click", () => addStageStaff(b.dataset.cat)));
   D.querySelectorAll(".stg-coach-del").forEach((b) => b.addEventListener("click", () => delStageStaff(b.dataset.id)));
-  D.querySelectorAll(".stg-coach-row").forEach((row) => row.querySelectorAll("input").forEach((el) =>
+  D.querySelectorAll(".stg-coach-row").forEach((row) => row.querySelectorAll("input,select").forEach((el) =>
     el.addEventListener("change", () => saveStageStaff(row.dataset.id, row))));
+  D.querySelectorAll(".stg-link").forEach((b) => b.addEventListener("click", () => openStageLink(b.dataset.id)));
 }
 
 async function addStageStaff(catId) {
@@ -3255,8 +3264,11 @@ async function addStageStaff(catId) {
   loadRegistrations();
 }
 async function saveStageStaff(id, row) {
+  const cid = row.querySelector(".stg-coach-sel").value || null;
+  const p = cid ? people.find((x) => x.id === cid) : null;
   const patch = {
-    name: row.querySelector(".stg-coach-name").value.trim() || null,
+    coach_person_id: cid,
+    name: p ? `${p.last_name} ${p.first_name}` : null,
     fee: Number(row.querySelector(".stg-coach-fee").value) || 0,
     note: row.querySelector(".stg-coach-note").value.trim() || null,
   };
@@ -3269,6 +3281,70 @@ async function delStageStaff(id) {
   const { error } = await sb.from("stage_staff").delete().eq("id", id);
   if (error) { alert(error.message); return; }
   loadRegistrations();
+}
+
+// ---- Lier un inscrit à une fiche (déduplication par suggestions) ----
+let stLinkRegId = null;
+function matchScore(reg, p) {
+  const eq = (a, b) => a && b && norm(a) === norm(b);
+  let s = 0; const reasons = [];
+  if (eq(reg.last_name, p.last_name)) { s += 3; reasons.push("nom"); }
+  if (eq(reg.first_name, p.first_name)) { s += 3; reasons.push("prénom"); }
+  if (reg.birth_date && p.birthdate && reg.birth_date === p.birthdate) { s += 3; reasons.push("naissance"); }
+  const emails = [p.email, ...(p.emails || [])].filter(Boolean).map(norm);
+  if (reg.email && emails.includes(norm(reg.email))) { s += 2; reasons.push("email"); }
+  return { s, reasons };
+}
+function openStageLink(regId) {
+  const r = stgRegs.find((x) => x.id === regId); if (!r) return;
+  stLinkRegId = regId;
+  $("stlink-info").innerHTML = `Inscrit : <b>${esc(r.first_name)} ${esc(r.last_name)}</b>${r.birth_date ? " · né(e) le " + frDate(r.birth_date) : ""}${r.email ? " · " + esc(r.email) : ""}`;
+  const scored = people.map((p) => ({ p, ...matchScore(r, p) })).filter((x) => x.s >= 5).sort((a, b) => b.s - a.s).slice(0, 6);
+  $("stlink-suggestions").innerHTML = scored.length ? scored.map((x) => {
+    const lvl = x.s >= 8 ? "fort" : x.s >= 6 ? "probable" : "possible";
+    const cls = x.s >= 8 ? "ss-ok" : x.s >= 6 ? "ss-warn" : "ss-role";
+    return `<div class="stlink-row">
+      <div><b>${esc(x.p.last_name)} ${esc(x.p.first_name)}</b> <span class="muted">${x.p.birthdate ? frDate(x.p.birthdate) : ""}${x.p.email ? " · " + esc(x.p.email) : ""}</span><br>
+        <span class="ss-tag ${cls}">${lvl}</span> <span class="muted" style="font-size:.78rem">correspond : ${x.reasons.join(", ")}</span></div>
+      <button type="button" class="stlink-pick" data-id="${x.p.id}">Lier</button></div>`;
+  }).join("") : '<p class="muted" style="font-size:.85rem">Aucune fiche ressemblante trouvée. Crée une nouvelle fiche.</p>';
+  $("stlink-suggestions").querySelectorAll(".stlink-pick").forEach((b) => b.addEventListener("click", () => linkRegToPerson(regId, b.dataset.id)));
+  $("stlink-modal").classList.remove("hidden");
+}
+async function linkRegToPerson(regId, personId) {
+  const { error } = await sb.from("stage_registrations").update({ person_id: personId }).eq("id", regId);
+  if (error) { alert(error.message); return; }
+  $("stlink-modal").classList.add("hidden");
+  loadRegistrations();
+}
+async function createPersonFromReg() {
+  const r = stgRegs.find((x) => x.id === stLinkRegId); if (!r) return;
+  const res = await sb.from("people").insert({ first_name: r.first_name, last_name: r.last_name, birthdate: r.birth_date || null, email: r.email || null, is_active: true }).select("id").single();
+  if (res.error) { alert(res.error.message); return; }
+  await sb.from("stage_registrations").update({ person_id: res.data.id }).eq("id", stLinkRegId);
+  $("stlink-modal").classList.add("hidden");
+  await loadPeople();
+  loadRegistrations();
+}
+
+// ---- Onglet Stages de la fiche (jeune + coach) ----
+async function loadPersonStages(personId) {
+  if (!personId) { $("ps-participations").innerHTML = ""; $("ps-coaching").innerHTML = ""; showPersonTab("stages", false); return; }
+  const [{ data: regs }, { data: staff }] = await Promise.all([
+    sb.from("stage_registrations").select("*, stage_sessions(title,start_date,end_date), stage_categories(name,price,private_addon_price)").eq("person_id", personId),
+    sb.from("stage_staff").select("*, stage_sessions(title,start_date,end_date), stage_categories(name)").eq("coach_person_id", personId),
+  ]);
+  const R = regs || [], S = staff || [];
+  showPersonTab("stages", R.length + S.length > 0);
+  $("ps-participations").innerHTML = R.length ? '<table class="crm-table"><thead><tr><th>Stage</th><th>Dates</th><th>Catégorie</th><th>Payé</th><th>Prix</th></tr></thead><tbody>'
+    + R.map((r) => {
+      const s = r.stage_sessions, c = r.stage_categories, days = s ? stgDays(s.start_date, s.end_date) : 5;
+      const base = stgEffPrice(c?.price || 0, days), disc = base * (1 - (r.discount_pct || 0) / 100), addon = r.private_addon ? Number(c?.private_addon_price || 0) : 0;
+      return `<tr><td><b>${esc(s?.title || "Stage")}</b></td><td>${s ? frDate(s.start_date) + " → " + frDate(s.end_date) : "—"}</td><td>${esc(c?.name || "—")}</td><td>${r.paid ? '<span class="ss-tag ss-ok">payé</span>' : '<span class="ss-tag ss-warn">en attente</span>'}</td><td><b>${round2(disc + addon)} CHF</b></td></tr>`;
+    }).join("") + "</tbody></table>" : '<p class="muted" style="font-size:.85rem">Aucune participation à un stage.</p>';
+  $("ps-coaching-block").classList.toggle("hidden", !S.length);
+  $("ps-coaching").innerHTML = S.length ? '<table class="crm-table"><thead><tr><th>Stage</th><th>Dates</th><th>Catégorie</th><th>Tarif reçu</th></tr></thead><tbody>'
+    + S.map((x) => { const s = x.stage_sessions; return `<tr><td><b>${esc(s?.title || "Stage")}</b></td><td>${s ? frDate(s.start_date) + " → " + frDate(s.end_date) : "—"}</td><td>${esc(x.stage_categories?.name || "—")}</td><td><b>${round2(x.fee || 0)} CHF</b></td></tr>`; }).join("") + "</tbody></table>" : "";
 }
 
 // ---- Modal ajout d'un inscrit ----

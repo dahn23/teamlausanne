@@ -539,6 +539,9 @@ input.pd-native{display:none}
 .stg-coach-row .stg-coach-name{flex:1;min-width:150px}
 .stg-coach-row .stg-coach-fee{width:130px}
 .stg-coach-row .stg-coach-note{flex:2;min-width:180px}
+.stg-coach-row .stg-coach-sel,.stg-coach-row .ps-wrap{flex:1;min-width:160px}
+.stg-linked{font-size:.72rem;font-weight:700;color:#1c7d38;background:#e3f6e8;border-radius:999px;padding:1px 8px}
+.stlink-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 /* ===== Saisons (fiche) ===== */
 .ss-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
 .ss-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--line);
