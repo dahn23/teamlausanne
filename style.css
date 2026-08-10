@@ -511,6 +511,15 @@ input.pd-native{display:none}
 .et-stat.st-late b{color:#a9721a}
 .et-stat.st-absent b{color:#b23838}
 .et-youth-row{cursor:pointer}
+/* ===== Mental (calendrier éditable) ===== */
+.mn-cal td,.mn-cal th{vertical-align:top;padding:6px}
+.mn-cal .mn-txt{width:210px;min-width:170px;resize:vertical;font-size:.82rem;line-height:1.35;
+  border:1px solid var(--line);border-radius:8px;padding:6px 8px;box-sizing:border-box}
+.mn-cal .mn-num{width:54px}
+.mn-cal .mn-date{width:145px}
+.mn-cell.mn-saved{outline:2px solid #1c7d38}
+.mn-cal .pd-wrap{width:150px}
+.mn-part-row{cursor:pointer}
 /* ===== Saisons (fiche) ===== */
 .ss-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
 .ss-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--line);

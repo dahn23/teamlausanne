@@ -41,25 +41,26 @@ if (session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "roles", "resa", "cours", "phystests", "etudes", "gamezone", "caisse", "stages", "stats"],
-  admin:      ["membres", "roles", "resa", "cours", "phystests", "etudes", "gamezone", "caisse", "stages", "stats"],
+  superadmin: ["membres", "roles", "resa", "cours", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
+  admin:      ["membres", "roles", "resa", "cours", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
   secretaire: ["membres", "resa", "caisse", "stages", "stats"],
-  head_coach: ["resa", "cours", "phystests", "stages"],
+  head_coach: ["resa", "cours", "phystests", "mental", "stages"],
   coach:      ["resa", "cours", "phystests"],
   prof:       ["etudes"],
+  coach_mental: ["mental"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["phystests", "Tests phys."], ["etudes", "Études"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
-const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["prof", "Prof"], ["organisateur", "Official"], ["responsable", "Responsable"]];
-const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "prof", "membre", "organisateur", "responsable"];
+const ADMIN_TABS = [["membres", "Répertoire"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
+const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["prof", "Prof"], ["coach_mental", "Coach mental"], ["organisateur", "Official"], ["responsable", "Responsable"]];
+const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "prof", "coach_mental", "membre", "organisateur", "responsable"];
 // Rôles/tags d'une personne (cumulables) — pilotent filtres + onglets de la fiche.
 const PERSON_ROLES = [
   ["membre", "Membre"], ["client", "Client"], ["coach", "Coach"], ["coach-prive", "Coach avec autorisation"],
   ["head-coach", "Head coach"], ["official", "Official"], ["responsable-tournoi", "Responsable tournoi"],
   ["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"],
   ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"],
-  ["prof", "Prof"], ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
+  ["prof", "Prof"], ["coach-mental", "Coach mental"], ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
 ];
 const roleLabel = (r) => (PERSON_ROLES.find(([v]) => v === r) || [r, r])[1];
 
@@ -138,6 +139,7 @@ async function init(roles) {
   $("media-file").addEventListener("change", (e) => uploadMedia(e.target));
   $("pp-fill").addEventListener("click", () => openPhysFillFor($("p-id").value));
   $("pe-rem-add").addEventListener("click", peAddRemark);
+  $("pm-cmt-add").addEventListener("click", () => mentalAddComment($("p-id").value, "pm-cmt-body", () => loadPersonMental($("p-id").value, true)));
   $("p-photo-btn").addEventListener("click", () => $("p-photo-file").click());
   $("p-photo-file").addEventListener("change", () => uploadPersonPhoto($("p-photo-file")));
   $("search").addEventListener("input", renderRows);
@@ -156,6 +158,7 @@ async function init(roles) {
   initStages();
   initPhys();
   initEtudes();
+  initMental();
 }
 
 // ---- Bascule de vues ----
@@ -169,6 +172,7 @@ function showView(view) {
   if (view === "stages") loadStagesTab();
   if (view === "phystests") loadPhysResults();
   if (view === "etudes") loadEtudesCalendar();
+  if (view === "mental") loadMentalCalendar();
 }
 
 // ===================================================================
@@ -1027,16 +1031,18 @@ function openPerson(p) {
   const coursByRole = COURSE_ROLES.some((r) => roles.includes(r));
   const physByRole = COURSE_ROLES.some((r) => roles.includes(r)); // tests physiques = tous les jeunes
   const etudesByRole = roles.includes("sport-etudes");            // études = sport-études uniquement
+  const mentalByRole = MENTAL_YOUTH_ROLES.some((r) => roles.includes(r)); // mental = sport-études/pro/proU18
   showPersonTab("resa", resaByRole);
   showPersonTab("cours", coursByRole);
   showPersonTab("phys", physByRole);
   showPersonTab("etudes", etudesByRole);
+  showPersonTab("mental", mentalByRole);
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
-  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); }
-  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("pe-rem-list").innerHTML = ""; }
+  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonMental(p.id, mentalByRole); }
+  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("pe-rem-list").innerHTML = ""; $("pm-cmt-list").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -3640,6 +3646,157 @@ async function peDelRemark(id) {
   if (!confirm("Supprimer cette remarque ?")) return;
   await sb.from("etudes_remarks").delete().eq("id", id);
   loadPeRemarks(peYouthId);
+}
+
+// ===================================================================
+//  Mental (préparation mentale)
+// ===================================================================
+const MENTAL_YOUTH_ROLES = ["sport-etudes", "pro", "pro-u18"];
+const MN_FIELDS = [
+  { k: "session_no", h: "N°", type: "num" }, { k: "theme", h: "Thème" }, { k: "objectifs", h: "Objectifs" },
+  { k: "routines", h: "Routines semaine" }, { k: "inputs", h: "Inputs mental" }, { k: "entrainement", h: "Entraînement" },
+  { k: "partage", h: "Partage & cahier" }, { k: "retour_calme", h: "Retour au calme" }, { k: "day", h: "Date", type: "date" },
+];
+let mnYouthId = null;
+
+function initMental() {
+  document.querySelectorAll("#view-mental .mn-subtab").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#view-mental .mn-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      document.querySelectorAll("#view-mental .mn-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "mn-sub-" + b.dataset.sub));
+      if (b.dataset.sub === "calendrier") loadMentalCalendar();
+      if (b.dataset.sub === "participants") loadMentalParticipants();
+    }));
+  $("mn-season").addEventListener("change", loadMentalCalendar);
+  $("mn-season2").addEventListener("change", loadMentalParticipants);
+  $("mn-add-session").addEventListener("click", addMentalSession);
+  $("mn-part-back").addEventListener("click", () => { $("mn-part-detail").classList.add("hidden"); $("mn-part-list").classList.remove("hidden"); });
+  $("mn-cmt-add").addEventListener("click", () => mentalAddComment(mnYouthId, "mn-cmt-body", () => loadMnComments(mnYouthId)));
+}
+function mnPopulateSeasons() {
+  const cur = currentSeason("juniors")?.id;
+  const opts = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">— créez une saison juniors —</option>';
+  if (!$("mn-season").options.length) $("mn-season").innerHTML = opts;
+  if (!$("mn-season2").options.length) $("mn-season2").innerHTML = opts;
+}
+
+// ---- Calendrier (éditable) ----
+async function loadMentalCalendar() {
+  await loadSeasonsList();
+  mnPopulateSeasons();
+  const seasonId = $("mn-season").value, cont = $("mn-calendar");
+  if (!seasonId) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Crée d\'abord une saison juniors (Réglages › Saisons).</p>'; return; }
+  const { data } = await sb.from("mental_sessions").select("*").eq("season_id", seasonId).order("sort_order").order("day");
+  const rows = data || [];
+  let html = '<table class="crm-table mn-cal"><thead><tr>' + MN_FIELDS.map((f) => `<th>${f.h}</th>`).join("") + "<th></th></tr></thead><tbody>";
+  for (const r of rows) {
+    html += "<tr>" + MN_FIELDS.map((f) => {
+      if (f.type === "date") return `<td><input type="date" class="mn-cell mn-date" data-id="${r.id}" data-field="day" value="${r.day || ""}" /></td>`;
+      if (f.type === "num") return `<td><input type="number" class="mn-cell mn-num" data-id="${r.id}" data-field="session_no" value="${r.session_no ?? ""}" /></td>`;
+      return `<td><textarea class="mn-cell mn-txt" data-id="${r.id}" data-field="${f.k}" rows="3">${esc(r[f.k] || "")}</textarea></td>`;
+    }).join("") + `<td><button type="button" class="fam-del mn-del" data-id="${r.id}">✕</button></td></tr>`;
+  }
+  cont.innerHTML = rows.length ? html + "</tbody></table>" : '<p class="muted" style="font-size:.85rem">Aucune séance. Clique « + Ajouter une séance ».</p>';
+  cont.querySelectorAll(".mn-cell").forEach((c) => c.addEventListener("change", () => saveMentalCell(c)));
+  cont.querySelectorAll(".mn-del").forEach((b) => b.addEventListener("click", () => delMentalSession(b.dataset.id)));
+}
+async function saveMentalCell(cell) {
+  const id = cell.dataset.id, field = cell.dataset.field;
+  let value = cell.value;
+  if (field === "session_no") value = value === "" ? null : Number(value);
+  if (field === "day") value = value || null;
+  const { error } = await sb.from("mental_sessions").update({ [field]: value }).eq("id", id);
+  if (error) { alert(error.message); return; }
+  cell.classList.add("mn-saved"); setTimeout(() => cell.classList.remove("mn-saved"), 700);
+}
+async function addMentalSession() {
+  const seasonId = $("mn-season").value;
+  if (!seasonId) { alert("Choisis une saison."); return; }
+  const { data } = await sb.from("mental_sessions").select("sort_order,session_no").eq("season_id", seasonId).order("sort_order", { ascending: false }).limit(1);
+  const last = data && data[0];
+  const { error } = await sb.from("mental_sessions").insert({ season_id: seasonId, sort_order: (last?.sort_order || 0) + 1, session_no: (last?.session_no || 0) + 1 });
+  if (error) { alert(error.message); return; }
+  loadMentalCalendar();
+}
+async function delMentalSession(id) {
+  if (!confirm("Supprimer cette séance ?")) return;
+  const { error } = await sb.from("mental_sessions").delete().eq("id", id);
+  if (error) { alert(error.message); return; }
+  loadMentalCalendar();
+}
+
+// ---- Participants ----
+async function loadMentalParticipants() {
+  await loadSeasonsList();
+  mnPopulateSeasons();
+  $("mn-part-detail").classList.add("hidden");
+  $("mn-part-list").classList.remove("hidden");
+  const seasonId = $("mn-season2").value, cont = $("mn-part-list");
+  if (!seasonId) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Crée une saison juniors.</p>'; return; }
+  const { data } = await sb.from("role_periods").select("person_id,role").eq("season_id", seasonId).in("role", MENTAL_YOUTH_ROLES);
+  const ids = [...new Set((data || []).map((r) => r.person_id))];
+  const youths = people.filter((p) => ids.includes(p.id)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+  if (!youths.length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun participant (sport-études / pro / pro U18) pour cette saison.</p>'; return; }
+  const { data: cmts } = await sb.from("mental_comments").select("youth_person_id");
+  const cnt = {}; for (const c of cmts || []) cnt[c.youth_person_id] = (cnt[c.youth_person_id] || 0) + 1;
+  cont.innerHTML = '<table class="crm-table"><thead><tr><th>Jeune</th><th>Filière(s)</th><th>Commentaires</th></tr></thead><tbody>'
+    + youths.map((y) => { const roles = (data || []).filter((r) => r.person_id === y.id).map((r) => roleLabel(r.role)).join(", "); return `<tr class="mn-part-row" data-id="${y.id}"><td><b>${esc(y.last_name)} ${esc(y.first_name)}</b></td><td>${esc(roles)}</td><td>${cnt[y.id] || 0}</td></tr>`; }).join("")
+    + "</tbody></table>";
+  cont.querySelectorAll(".mn-part-row").forEach((tr) => tr.addEventListener("click", () => openMentalParticipant(tr.dataset.id)));
+}
+function openMentalParticipant(yid) {
+  const p = people.find((x) => x.id === yid);
+  $("mn-part-name").textContent = p ? `${p.last_name} ${p.first_name}` : "—";
+  loadMnComments(yid);
+  $("mn-part-list").classList.add("hidden");
+  $("mn-part-detail").classList.remove("hidden");
+  window.scrollTo(0, 0);
+}
+function loadMnComments(yid) { mnYouthId = yid; renderMentalComments(yid, "mn-cmt-list", () => loadMnComments(yid)); }
+
+// ---- Commentaires mental (partagés participants / fiche) ----
+async function renderMentalComments(youthId, listId, refresh) {
+  if (!youthId) { $(listId).innerHTML = ""; return; }
+  const { data } = await sb.from("mental_comments").select("*").eq("youth_person_id", youthId).order("created_at", { ascending: false });
+  const rows = data || [];
+  $(listId).innerHTML = rows.length ? rows.map((r) => {
+    const mine = r.created_by === meId;
+    const edited = r.updated_at && r.updated_at !== r.created_at ? ' <span class="muted">(modifié)</span>' : "";
+    return `<div class="obj-item" data-id="${r.id}"><div class="obj-meta"><b>${esc(r.author_name || "—")}</b><span>${frDateTime(r.created_at)}${edited}</span></div>
+      <div class="obj-body">${esc(r.body)}</div>
+      ${mine ? `<div class="obj-acts"><button type="button" class="edit">Modifier</button><button type="button" class="del">Supprimer</button></div>` : ""}</div>`;
+  }).join("") : '<p class="obj-empty">Aucun commentaire.</p>';
+  $(listId).querySelectorAll(".edit").forEach((b) => b.addEventListener("click", () => mentalEditComment(b.closest(".obj-item").dataset.id, refresh)));
+  $(listId).querySelectorAll(".del").forEach((b) => b.addEventListener("click", () => mentalDelComment(b.closest(".obj-item").dataset.id, refresh)));
+}
+async function mentalAddComment(youthId, bodyId, refresh) {
+  const body = $(bodyId).value.trim();
+  if (!youthId || !body) return;
+  const { error } = await sb.from("mental_comments").insert({ youth_person_id: youthId, body, author_name: meName, author_person_id: myPersonId, created_by: meId });
+  if (error) { alert(error.message); return; }
+  $(bodyId).value = "";
+  refresh();
+}
+async function mentalEditComment(id, refresh) {
+  const el = document.querySelector(`.obj-item[data-id="${id}"] .obj-body`);
+  const next = prompt("Modifier le commentaire :", el ? el.textContent : "");
+  if (next === null) return;
+  const body = next.trim(); if (!body) return;
+  await sb.from("mental_comments").update({ body, updated_at: new Date().toISOString() }).eq("id", id);
+  refresh();
+}
+async function mentalDelComment(id, refresh) {
+  if (!confirm("Supprimer ce commentaire ?")) return;
+  await sb.from("mental_comments").delete().eq("id", id);
+  refresh();
+}
+// Onglet Mental de la fiche du jeune
+let pmYouthId = null;
+async function loadPersonMental(personId, byRole) {
+  if (!personId) { $("pm-cmt-list").innerHTML = ""; return; }
+  pmYouthId = personId;
+  showPersonTab("mental", byRole);
+  renderMentalComments(personId, "pm-cmt-list", () => loadPersonMental(personId, byRole));
 }
 
 // ===================================================================
