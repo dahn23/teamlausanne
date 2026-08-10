@@ -1855,10 +1855,13 @@ async function loadResponsables(tid) {
     : '<span class="muted" style="font-size:.85rem">Aucun responsable nommé.</span>';
   $("gz-resp-list").querySelectorAll(".gz-resp-del").forEach((b) =>
     b.addEventListener("click", async () => { await sb.from("gz_managers").delete().eq("tournament_id", tid).eq("person_id", b.dataset.id); loadResponsables(tid); loadFinances(tid); }));
-  // liste des personnes (staff) à nommer
+  // liste des personnes taguées « Responsable tournoi »
   if (!$("gz-resp-select").dataset.loaded) {
-    const opts = people.filter((p) => p.id).map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
-    $("gz-resp-select").innerHTML = '<option value="">— choisir une personne —</option>' + opts;
+    const elig = people.filter((p) => p.id && hasRoleIn(p.id, ["responsable-tournoi"]));
+    const opts = elig.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
+    $("gz-resp-select").innerHTML = elig.length
+      ? '<option value="">— choisir une personne —</option>' + opts
+      : '<option value="">— aucun « Responsable tournoi » dans le répertoire —</option>';
     $("gz-resp-select").dataset.loaded = "1";
   }
 }
