@@ -36,6 +36,12 @@ if (!session) {
 } else {
   $("who").textContent = session.user.email;
   const roles = await myRoles();
+  // Être nommé responsable d'un tournoi NON clôturé ouvre l'accès GameZone
+  // automatiquement (pas besoin d'attribuer le rôle app « responsable » en plus).
+  try {
+    const { data: gzMgr } = await sb.rpc("gz_is_manager");
+    if (gzMgr === true && !roles.includes("responsable")) roles.push("responsable");
+  } catch (_) {}
   $("loader").classList.add("hidden");
   if (!hasAny(roles, CONSOLE_ROLES)) {
     $("denied").classList.remove("hidden");
