@@ -11,6 +11,7 @@ let meId = null;
 let meEmail = null;
 let meName = null;
 let myPersonId = null;
+let isGzManager = false;         // responsable d'au moins un tournoi non clôturé
 const pad2 = (n) => String(n).padStart(2, "0");
 // Rôles qui donnent accès à la console (staff + rôles à onglet dédié).
 // Un responsable de tournoi (rôle « responsable ») n'est pas staff mais a droit
@@ -36,14 +37,15 @@ if (!session) {
 } else {
   $("who").textContent = session.user.email;
   const roles = await myRoles();
-  // Être nommé responsable d'un tournoi NON clôturé ouvre l'accès GameZone
-  // automatiquement (pas besoin d'attribuer le rôle app « responsable » en plus).
+  // « Responsable de tournoi » = être nommé responsable d'un tournoi NON clôturé
+  // (table gz_managers). Ça ouvre l'accès GameZone (limité à ses tournois),
+  // sans rôle app à attribuer : une seule et même notion.
   try {
     const { data: gzMgr } = await sb.rpc("gz_is_manager");
-    if (gzMgr === true && !roles.includes("responsable")) roles.push("responsable");
+    isGzManager = gzMgr === true;
   } catch (_) {}
   $("loader").classList.add("hidden");
-  if (!hasAny(roles, CONSOLE_ROLES)) {
+  if (!hasAny(roles, CONSOLE_ROLES) && !isGzManager) {
     $("denied").classList.remove("hidden");
   } else {
     $("console").classList.remove("hidden");
@@ -76,12 +78,15 @@ const DEFAULT_TAB_ACCESS = {
   responsable:  ["gamezone"],
 };
 const ADMIN_TABS = [["membres", "Répertoire"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
-const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["prof", "Prof"], ["coach_mental", "Coach mental"], ["organisateur", "Official"], ["responsable", "Responsable"]];
-const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "prof", "coach_mental", "membre", "organisateur", "responsable"];
+// NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
+// « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
+// l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
+const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["prof", "Prof"], ["coach_mental", "Coach mental"], ["organisateur", "Official"]];
+const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "prof", "coach_mental", "membre", "organisateur"];
 // Rôles/tags d'une personne (cumulables) — pilotent filtres + onglets de la fiche.
 const PERSON_ROLES = [
   ["membre", "Membre"], ["client", "Client"], ["coach", "Coach"], ["coach-prive", "Coach avec autorisation"],
-  ["head-coach", "Head coach"], ["official", "Official"], ["responsable-tournoi", "Responsable tournoi"],
+  ["head-coach", "Head coach"], ["official", "Official"], ["responsable-tournoi", "Responsable de tournoi"],
   ["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"],
   ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"],
   ["prof", "Prof"], ["coach-mental", "Coach mental"], ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
@@ -126,7 +131,7 @@ function applyTabAccess(roles) {
   document.querySelectorAll(".side-item[data-view]").forEach((b) => {
     const v = b.dataset.view;
     if (v === "bientot") return;
-    const allowed = allowedFor(v);
+    const allowed = allowedFor(v) || (v === "gamezone" && isGzManager);
     b.classList.toggle("hidden", !allowed);
     if (allowed && !first) first = v;
   });
@@ -1871,7 +1876,7 @@ async function loadResponsables(tid) {
     const opts = elig.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
     $("gz-resp-select").innerHTML = elig.length
       ? '<option value="">— choisir une personne —</option>' + opts
-      : '<option value="">— aucun « Responsable tournoi » dans le répertoire —</option>';
+      : '<option value="">— aucun « Responsable de tournoi » dans le répertoire —</option>';
     $("gz-resp-select").dataset.loaded = "1";
   }
 }
