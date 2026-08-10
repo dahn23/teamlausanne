@@ -12,7 +12,7 @@ const isoLocal = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.get
 const todayISO = () => isoLocal(new Date());
 
 let me = null;
-let isMember = false;       // membre ou staff → tarif membre
+let isMember = false;       // cotisation payée (saison en cours) → tarif membre
 let isCoachPrivate = false; // coach autorisé aux heures privées (quotas illimités)
 let settings = {};
 let courts = [];
@@ -72,7 +72,10 @@ if (me) {
   $("login-top").classList.add("hidden");
   $("logout").classList.remove("hidden");
   const roles = await myRoles();
-  isMember = hasAny(roles, [...STAFF_ROLES, "membre"]);
+  // Tarif « membre » = uniquement si cotisation PAYÉE pour la saison en cours
+  // (le statut staff/coach ne donne PAS le tarif membre).
+  const { data: paidMember } = await sb.rpc("is_paid_member");
+  isMember = paidMember === true;
   isCoachPrivate = hasAny(roles, ["coach_prive"]);
   // Pas de lien vers la console admin : on y accède seulement en tapant /admin.
 }
