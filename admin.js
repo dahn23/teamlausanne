@@ -1279,7 +1279,7 @@ async function loadPersonSeasons(personId) {
   const cotS = seasonsOf("cotisation"), junS = seasonsOf("juniors");
   $("ss-cot-season").innerHTML = cotS.length ? cotS.map((s) => seasonOpt(s, curCot?.id)).join("") : '<option value="">— aucune saison —</option>';
   $("ss-jun-season").innerHTML = junS.length ? junS.map((s) => seasonOpt(s, curJun?.id)).join("") : '<option value="">— aucune saison —</option>';
-  $("ss-jun-role").innerHTML = SEASONAL_JUNIORS.map((r) => `<option value="${r}">${esc(roleLabel(r))}</option>`).join("");
+  $("ss-jun-role").innerHTML = '<option value="">— Choisir une filière —</option>' + SEASONAL_JUNIORS.map((r) => `<option value="${r}">${esc(roleLabel(r))}</option>`).join("");
   const enable = !!personId;
   ["ss-cot-add", "ss-jun-add", "ss-cot-season", "ss-jun-season", "ss-jun-role"].forEach((id) => { $(id).disabled = !enable; });
   if (!enable) { $("ss-cot-list").innerHTML = '<p class="muted" style="font-size:.85rem">Enregistrez d\'abord la personne.</p>'; $("ss-jun-list").innerHTML = ""; return; }
