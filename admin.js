@@ -136,6 +136,8 @@ async function init(roles) {
   $("ss-jun-add").addEventListener("click", () => addSeasonRole("juniors", $("ss-jun-role").value));
   $("media-btn").addEventListener("click", () => $("media-file").click());
   $("media-file").addEventListener("change", (e) => uploadMedia(e.target));
+  $("pp-fill").addEventListener("click", () => openPhysFillFor($("p-id").value));
+  $("pe-rem-add").addEventListener("click", peAddRemark);
   $("p-photo-btn").addEventListener("click", () => $("p-photo-file").click());
   $("p-photo-file").addEventListener("change", () => uploadPersonPhoto($("p-photo-file")));
   $("search").addEventListener("input", renderRows);
@@ -1023,14 +1025,18 @@ function openPerson(p) {
   // Onglet Réservations : visible si membre/client (ou si des résas existent — persistance)
   const resaByRole = roles.includes("membre") || roles.includes("client");
   const coursByRole = COURSE_ROLES.some((r) => roles.includes(r));
+  const physByRole = COURSE_ROLES.some((r) => roles.includes(r)); // tests physiques = tous les jeunes
+  const etudesByRole = roles.includes("sport-etudes");            // études = sport-études uniquement
   showPersonTab("resa", resaByRole);
   showPersonTab("cours", coursByRole);
+  showPersonTab("phys", physByRole);
+  showPersonTab("etudes", etudesByRole);
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
-  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); }
-  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; }
+  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); }
+  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("pe-rem-list").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -3369,7 +3375,7 @@ async function uploadStageMailAttach(catId, type, file) {
 // ===================================================================
 //  Tests physiques
 // ===================================================================
-const PHYS_YOUTH_ROLES = ["sport-etudes", "pro", "competition", "performance", "pro-u18"];
+const PHYS_YOUTH_ROLES = COURSE_ROLES; // tests physiques = tous les jeunes (toutes filières)
 let physTests = [];
 
 function initPhys() {
@@ -3508,18 +3514,24 @@ async function deletePhysTemplate(id) {
   loadPhysTemplates();
 }
 
-async function openPhysFill() {
+async function openPhysFill(preselectId) {
   $("pf-error").hidden = true;
-  const youths = people.filter((p) => hasRoleIn(p.id, PHYS_YOUTH_ROLES))
-    .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
-  $("pf-person").innerHTML = '<option value="">— Choisir un jeune —</option>'
-    + youths.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
+  // depuis une fiche, on force le jeune ; sinon on liste tous les jeunes
+  const list = preselectId ? people.filter((p) => p.id === preselectId)
+    : people.filter((p) => hasRoleIn(p.id, PHYS_YOUTH_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+  $("pf-person").innerHTML = (preselectId ? "" : '<option value="">— Choisir un jeune —</option>')
+    + list.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
+  if (preselectId) $("pf-person").value = preselectId;
   const { data: tests } = await sb.from("phys_tests").select("*").eq("active", true).order("sort_order").order("created_at");
   physTests = tests || [];
   $("pf-test").innerHTML = '<option value="">— Choisir un test —</option>'
     + physTests.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
   $("pf-questions").innerHTML = "";
   $("phys-fill-modal").classList.remove("hidden");
+}
+async function openPhysFillFor(personId) {
+  if (!personId) { alert("Enregistre d'abord la fiche."); return; }
+  await openPhysFill(personId);
 }
 
 async function renderPhysFillQuestions() {
@@ -3557,6 +3569,77 @@ async function savePhysFill(e) {
   if (answers.length) await sb.from("phys_answers").insert(answers);
   $("phys-fill-modal").classList.add("hidden");
   loadPhysResults();
+  // si on remplissait depuis une fiche ouverte, rafraîchir sa liste
+  if (!$("people-detail").classList.contains("hidden") && $("p-id").value === pid) loadPersonPhys(pid);
+}
+
+// ---- Onglets Tests physiques & Études de la fiche ----
+async function loadPersonPhys(personId, byRole) {
+  if (!personId) { $("pp-results").innerHTML = ""; return; }
+  const { data } = await sb.from("phys_results").select("*").eq("person_id", personId).order("filled_at", { ascending: false });
+  const rows = data || [];
+  showPersonTab("phys", byRole || rows.length > 0);
+  $("pp-results").innerHTML = rows.length ? '<table class="crm-table"><thead><tr><th>Test</th><th>Rempli par</th><th>Date</th></tr></thead><tbody>'
+    + rows.map((r) => `<tr class="pp-row" data-id="${r.id}"><td><b>${esc(r.test_name || "—")}</b></td><td>${esc(r.coach_name || "—")}</td><td>${frDateTime(r.filled_at)}</td></tr>`).join("")
+    + "</tbody></table>" : '<p class="muted" style="font-size:.85rem">Aucun test rempli.</p>';
+  $("pp-results").querySelectorAll(".pp-row").forEach((tr) => tr.addEventListener("click", () => openPhysResult(tr.dataset.id)));
+}
+
+let peYouthId = null;
+async function loadPersonEtudes(personId, byRole) {
+  if (!personId) { $("pe-stats").innerHTML = ""; $("pe-rem-list").innerHTML = ""; return; }
+  showPersonTab("etudes", byRole);
+  const season = currentSeason("juniors");
+  let n = 0, pr = 0, la = 0, ab = 0;
+  if (season) {
+    const { data: days } = await sb.from("etudes_days").select("id").eq("season_id", season.id);
+    const dayIds = (days || []).map((d) => d.id);
+    if (dayIds.length) {
+      const att = (await sb.from("etudes_attendance").select("status").in("day_id", dayIds).eq("youth_person_id", personId)).data || [];
+      const rows = att.filter((a) => a.status !== "not_planned"); n = rows.length;
+      pr = rows.filter((a) => a.status === "present").length; la = rows.filter((a) => a.status === "late").length; ab = rows.filter((a) => a.status === "absent").length;
+    }
+  }
+  const pct = (x) => n ? Math.round(x / n * 100) : 0;
+  $("pe-stats").innerHTML = (season ? `<div class="muted" style="width:100%;font-size:.82rem;margin-bottom:6px">Saison ${esc(season.label)}</div>` : "")
+    + (n ? `<div class="et-stat st-present"><b>${pct(pr)}%</b><span>présent (${pr})</span></div><div class="et-stat st-late"><b>${pct(la)}%</b><span>retard (${la})</span></div><div class="et-stat st-absent"><b>${pct(ab)}%</b><span>absent (${ab})</span></div><div class="et-stat"><b>${n}</b><span>jours</span></div>`
+      : '<p class="muted" style="font-size:.85rem">Aucune présence renseignée.</p>');
+  loadPeRemarks(personId);
+}
+async function loadPeRemarks(youthId) {
+  peYouthId = youthId;
+  const { data } = await sb.from("etudes_remarks").select("*").eq("youth_person_id", youthId).order("created_at", { ascending: false });
+  const rows = data || [];
+  $("pe-rem-list").innerHTML = rows.length ? rows.map((r) => {
+    const mine = r.created_by === meId;
+    const edited = r.updated_at && r.updated_at !== r.created_at ? ' <span class="muted">(modifié)</span>' : "";
+    return `<div class="obj-item" data-id="${r.id}"><div class="obj-meta"><b>${esc(r.prof_name || "—")}</b><span>${frDateTime(r.created_at)}${edited}</span></div>
+      <div class="obj-body">${esc(r.body)}</div>
+      ${mine ? `<div class="obj-acts"><button type="button" class="edit">Modifier</button><button type="button" class="del">Supprimer</button></div>` : ""}</div>`;
+  }).join("") : '<p class="obj-empty">Aucune remarque.</p>';
+  $("pe-rem-list").querySelectorAll(".edit").forEach((b) => b.addEventListener("click", () => peEditRemark(b.closest(".obj-item").dataset.id)));
+  $("pe-rem-list").querySelectorAll(".del").forEach((b) => b.addEventListener("click", () => peDelRemark(b.closest(".obj-item").dataset.id)));
+}
+async function peAddRemark() {
+  const body = $("pe-rem-body").value.trim();
+  if (!peYouthId || !body) return;
+  const { error } = await sb.from("etudes_remarks").insert({ youth_person_id: peYouthId, body, prof_name: meName, prof_person_id: myPersonId, created_by: meId });
+  if (error) { alert(error.message); return; }
+  $("pe-rem-body").value = "";
+  loadPeRemarks(peYouthId);
+}
+async function peEditRemark(id) {
+  const el = document.querySelector(`#pe-rem-list .obj-item[data-id="${id}"] .obj-body`);
+  const next = prompt("Modifier la remarque :", el ? el.textContent : "");
+  if (next === null) return;
+  const body = next.trim(); if (!body) return;
+  await sb.from("etudes_remarks").update({ body, updated_at: new Date().toISOString() }).eq("id", id);
+  loadPeRemarks(peYouthId);
+}
+async function peDelRemark(id) {
+  if (!confirm("Supprimer cette remarque ?")) return;
+  await sb.from("etudes_remarks").delete().eq("id", id);
+  loadPeRemarks(peYouthId);
 }
 
 // ===================================================================

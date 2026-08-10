@@ -686,6 +686,8 @@
         <button type="button" class="ptab" data-ptab="seasons">Saisons</button>
         <button type="button" class="ptab" data-ptab="resa">Réservations</button>
         <button type="button" class="ptab" data-ptab="cours">Cours</button>
+        <button type="button" class="ptab" data-ptab="phys">Tests physiques</button>
+        <button type="button" class="ptab" data-ptab="etudes">Études</button>
         <button type="button" class="ptab" data-ptab="media">Photos / vidéos</button>
         <button type="button" class="ptab" data-ptab="obj">Objectifs</button>
       </div>
@@ -785,6 +787,23 @@
 
       <div id="ptab-cours" class="ptab-panel hidden">
         <div id="cours-content"></div>
+      </div>
+
+      <div id="ptab-phys" class="ptab-panel hidden">
+        <div class="media-add">
+          <button type="button" id="pp-fill" class="ghost">+ Remplir un test</button>
+        </div>
+        <div id="pp-results" class="table-wrap"></div>
+      </div>
+
+      <div id="ptab-etudes" class="ptab-panel hidden">
+        <div id="pe-stats" class="et-stats"></div>
+        <h3 style="margin:14px 0 8px">Remarques</h3>
+        <div class="obj-add">
+          <textarea id="pe-rem-body" rows="2" placeholder="Nouvelle remarque…"></textarea>
+          <button type="button" id="pe-rem-add">Ajouter</button>
+        </div>
+        <div id="pe-rem-list" class="obj-list"></div>
       </div>
 
       <div id="ptab-media" class="ptab-panel hidden">
