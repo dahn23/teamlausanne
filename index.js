@@ -183,9 +183,9 @@ const WORLDS = {
     cta: [{ label: "Devenir partenaire", type: "contact", source: "Devenir partenaire" }],
     sections: [
       { type: "rich", anchor: "presidents", title: "Club des Présidents", body: [
-        "Le Club des Présidents réunit les dirigeantes et dirigeants d'entreprise qui soutiennent le club et l'académie.",
-        "Un réseau privilégié : rencontres, moments conviviaux autour du tennis et visibilité auprès d'une communauté engagée.",
-      ], link: { label: "Rejoindre le Club des Présidents", contact: "Club des Présidents" } },
+        "Une offre exclusive et networking : chaque vendredi matin, jouez 2h en halle couverte (été comme hiver), puis prolongez autour d'un apéro dînatoire sur le court.",
+        "15 crédits à utiliser librement pour inviter vos clients ou partenaires, des coachs pour animer, une thématique par vendredi — et un soutien reversé aux jeunes de l'académie.",
+      ], link: { label: "Rejoindre le Club des Présidents", href: "presidents.html" } },
       { type: "logos", anchor: "sponsors", title: "Nos sponsors", items: [
         "assets/webflow/sp-lausanne-sport.png", "assets/webflow/sp-ville-lausanne.png",
         "assets/webflow/sp-vaud.png", "assets/webflow/sp-aquatis.png",
@@ -201,7 +201,7 @@ const WORLDS = {
         "Vous souhaitez associer votre marque au tennis lausannois ? Construisons ensemble un partenariat qui vous ressemble.",
       ], link: { label: "Nous contacter", contact: "Devenir partenaire" } },
       { type: "rich", anchor: "privatisation", title: "Privatisations & événements d'entreprise", body: [
-        "Organisez votre événement d'entreprise au club : séminaire, team-building tennis, apéritif ou repas dans un cadre unique aux Plaines-du-Loup.",
+        "Organisez votre événement d'entreprise au club : entraînement privatisé pour votre entreprise, team-building tennis avec apéro ou repas, dans un cadre unique aux Plaines-du-Loup.",
       ], link: { label: "Demander une offre", contact: "Privatisations / événements d'entreprise" } },
     ],
   },
