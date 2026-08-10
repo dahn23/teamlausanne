@@ -3653,9 +3653,9 @@ async function peDelRemark(id) {
 // ===================================================================
 const MENTAL_YOUTH_ROLES = ["sport-etudes", "pro", "pro-u18"];
 const MN_FIELDS = [
-  { k: "session_no", h: "N°", type: "num" }, { k: "theme", h: "Thème" }, { k: "objectifs", h: "Objectifs" },
-  { k: "routines", h: "Routines semaine" }, { k: "inputs", h: "Inputs mental" }, { k: "entrainement", h: "Entraînement" },
-  { k: "partage", h: "Partage & cahier" }, { k: "retour_calme", h: "Retour au calme" }, { k: "day", h: "Date", type: "date" },
+  { k: "day", h: "Date", type: "date" }, { k: "session_no", h: "N°", type: "num" }, { k: "theme", h: "Thème" },
+  { k: "objectifs", h: "Objectifs" }, { k: "routines", h: "Routines semaine" }, { k: "inputs", h: "Inputs mental" },
+  { k: "entrainement", h: "Entraînement" }, { k: "partage", h: "Partage & cahier" }, { k: "retour_calme", h: "Retour au calme" },
 ];
 let mnYouthId = null;
 
