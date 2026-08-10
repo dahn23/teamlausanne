@@ -12,6 +12,10 @@ let meEmail = null;
 let meName = null;
 let myPersonId = null;
 const pad2 = (n) => String(n).padStart(2, "0");
+// Rôles qui donnent accès à la console (staff + rôles à onglet dédié).
+// Un responsable de tournoi (rôle « responsable ») n'est pas staff mais a droit
+// à l'onglet GameZone (limité à ses tournois — voir RLS gz_manages).
+const CONSOLE_ROLES = [...STAFF_ROLES, "prof", "coach_mental", "organisateur", "responsable"];
 
 // ---- Garde d'accès : connecté + rôle staff ----
 // Accès direct à /admin sans session → on affiche un formulaire de connexion
@@ -33,7 +37,7 @@ if (!session) {
   $("who").textContent = session.user.email;
   const roles = await myRoles();
   $("loader").classList.add("hidden");
-  if (!hasAny(roles, STAFF_ROLES)) {
+  if (!hasAny(roles, CONSOLE_ROLES)) {
     $("denied").classList.remove("hidden");
   } else {
     $("console").classList.remove("hidden");
@@ -2114,7 +2118,10 @@ async function closeTournament() {
     if (ce) { alert("Caisse : " + ce.message); return; }
   }
   await sb.from("gz_caisse").update({ closed: true, closed_at: new Date().toISOString() }).eq("tournament_id", mgrTid);
-  await sb.from("gz_tournaments").update({ status: "Clôturé" }).eq("id", mgrTid);
+  // Clôture via fonction SECURITY DEFINER : après passage à « Clôturé », le
+  // responsable perd l'accès RLS au tournoi — il ne peut donc pas faire cet UPDATE lui-même.
+  const { error: se } = await sb.rpc("gz_close_tournament", { p_tournament: mgrTid });
+  if (se) { alert("Clôture : " + se.message); return; }
   $("gz-close-status").textContent = "✓ Tournoi clôturé.";
   setTimeout(closeDetail, 1400);
 }
