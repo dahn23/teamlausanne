@@ -520,6 +520,25 @@ input.pd-native{display:none}
 .mn-cell.mn-saved{outline:2px solid #1c7d38}
 .mn-cal .pd-wrap{width:150px}
 .mn-part-row{cursor:pointer}
+/* ===== Stage : résumé financier + tuiles + boxes coachs ===== */
+.stg-fin-grid{display:flex;gap:10px;flex-wrap:wrap}
+.stg-fin{background:#f6f8fc;border:1px solid var(--line);border-radius:10px;padding:10px 16px;min-width:150px;
+  display:flex;flex-direction:column;gap:2px}
+.stg-fin span{font-size:.8rem;color:var(--muted)}
+.stg-fin b{font-size:1.15rem;color:var(--ink)}
+.stg-fin-total{background:var(--blue);border-color:var(--blue)}
+.stg-fin-total span,.stg-fin-total b{color:#fff}
+.stg-tiles{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.stg-tile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 18px;text-align:center;min-width:96px;box-shadow:var(--shadow)}
+.stg-tile b{display:block;font-size:1.5rem;color:var(--blue);font-weight:800}
+.stg-tile span{font-size:.78rem;color:var(--muted)}
+.stg-box{margin-top:12px}
+.stg-coaches{border-top:1px solid var(--line);margin-top:10px;padding-top:6px}
+.stg-coach-rows{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.stg-coach-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stg-coach-row .stg-coach-name{flex:1;min-width:150px}
+.stg-coach-row .stg-coach-fee{width:130px}
+.stg-coach-row .stg-coach-note{flex:2;min-width:180px}
 /* ===== Saisons (fiche) ===== */
 .ss-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
 .ss-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--line);

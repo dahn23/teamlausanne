@@ -2854,7 +2854,7 @@ async function invitePerson() {
 // ===================================================================
 //  Stages
 // ===================================================================
-let stgCats = [], stgSessions = [], stgCounts = {}, stgCurrent = null, stgRegs = [], stgSessionCats = {};
+let stgCats = [], stgSessions = [], stgCounts = {}, stgCurrent = null, stgRegs = [], stgSessionCats = {}, stgStaff = [];
 const stgActiveCats = () => stgCats.filter((c) => c.active);
 
 const stgDays = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000) + 1);
@@ -3143,17 +3143,22 @@ function closeStageDetail() {
 }
 
 async function loadRegistrations() {
-  const { data } = await sb.from("stage_registrations").select("*").eq("stage_id", stgCurrent).order("created_at");
-  stgRegs = data || [];
+  const [{ data: regs }, { data: staff }] = await Promise.all([
+    sb.from("stage_registrations").select("*").eq("stage_id", stgCurrent).order("created_at"),
+    sb.from("stage_staff").select("*").eq("session_id", stgCurrent).order("created_at"),
+  ]);
+  stgRegs = regs || [];
+  stgStaff = staff || [];
   renderRegistrants();
 }
 
+const round2 = (n) => Math.round(n * 100) / 100;
 function stgRegPrice(r, days) {
   const cat = stgCatById(r.category_id);
   const base = stgEffPrice(cat.price || 0, days);
   const discounted = base * (1 - (r.discount_pct || 0) / 100);
   const addon = r.private_addon ? Number(cat.private_addon_price || 0) : 0;
-  return Math.round((discounted + addon) * 100) / 100;
+  return round2(discounted + addon);
 }
 
 function renderRegistrants() {
@@ -3161,46 +3166,109 @@ function renderRegistrants() {
   const days = stgDays(s.start_date, s.end_date);
   const openCats = (stgSessionCats[stgCurrent] || []).map((id) => stgCatById(id)).filter((c) => c.id);
   $("stg-reg-count").textContent = stgRegs.length;
-  $("stg-reg-rows").innerHTML = stgRegs.map((r) => {
-    const cat = stgCatById(r.category_id);
-    const price = stgRegPrice(r, days);
-    const catSel = `<select class="stg-reg-cat" data-id="${r.id}">
-      ${openCats.map((c) => `<option value="${c.id}"${c.id === r.category_id ? " selected" : ""}>${esc(c.name)}</option>`).join("")}
-      ${cat.id && !openCats.some((c) => c.id === cat.id) ? `<option value="${cat.id}" selected>${esc(cat.name)} (fermée)</option>` : ""}
-    </select>`;
-    const rebate = r.discount_pct ? `−${r.discount_pct}% <span class="muted">(${esc(r.discount_reason || "")})</span> <button class="fam-del stg-reb-del" data-id="${r.id}">✕</button>`
-      : `<button class="ghost stg-reb-add" data-id="${r.id}">−20%</button>`;
-    const invoice = r.invoice_created
-      ? `<span class="muted">Facturé${r.invoice_sent_at ? " le " + frDate(r.invoice_sent_at) : ""}</span>`
-      : `<button class="ghost stg-inv" data-id="${r.id}">Créer facture + mail</button>`;
-    return `<tr data-id="${r.id}">
-      <td><b>${esc(r.first_name)} ${esc(r.last_name)}</b></td>
-      <td>${r.birth_date ? frDate(r.birth_date) : "—"}</td>
-      <td>${catSel}</td>
-      <td>${esc(r.email || "—")}</td>
-      <td>${cat.tshirt ? esc(r.tshirt_size || "—") : "—"}</td>
-      <td>${cat.meal ? esc(r.meal_restriction || "—") : "—"}</td>
-      <td class="stg-cmt">${r.private_addon ? `<span class="stg-tag">+3h privé</span> ` : ""}${r.ranking ? `<b>Classement : ${esc(r.ranking)}</b>${r.comment ? "<br>" : ""}` : ""}${esc(r.comment || "")}</td>
-      <td>${rebate}</td>
-      <td><b>${price}</b></td>
-      <td>${invoice}</td>
-      <td><input type="checkbox" class="stg-paid" data-id="${r.id}" ${r.paid ? "checked" : ""}/></td>
-      <td><button class="fam-del stg-reg-del" data-id="${r.id}">✕</button></td>
-    </tr>`;
-  }).join("") || '<tr><td colspan="12" class="muted">Aucun inscrit.</td></tr>';
-  const T = $("stg-reg-rows");
-  T.querySelectorAll(".stg-reg-cat").forEach((sel) => sel.addEventListener("change", () => changeRegCat(sel.dataset.id, sel.value)));
-  T.querySelectorAll(".stg-reb-add").forEach((b) => b.addEventListener("click", () => setDiscount(b.dataset.id)));
-  T.querySelectorAll(".stg-reb-del").forEach((b) => b.addEventListener("click", () => removeDiscount(b.dataset.id)));
-  T.querySelectorAll(".stg-inv").forEach((b) => b.addEventListener("click", () => createInvoice(b.dataset.id)));
-  T.querySelectorAll(".stg-paid").forEach((c) => c.addEventListener("change", () => togglePaid(c.dataset.id, c.checked)));
-  T.querySelectorAll(".stg-reg-del").forEach((b) => b.addEventListener("click", () => delRegistrant(b.dataset.id)));
+
+  // --- Résumé financier ---
+  const encaisse = stgRegs.filter((r) => r.paid).reduce((t, r) => t + stgRegPrice(r, days), 0);
+  const mealRegs = stgRegs.filter((r) => stgCatById(r.category_id).meal).length; // journée / pro
+  const repasCount = days * (stgStaff.length + mealRegs);
+  const repasCost = repasCount * 15;
+  const coachFees = stgStaff.reduce((t, x) => t + Number(x.fee || 0), 0);
+  const solde = round2(encaisse - repasCost - coachFees);
+  $("stg-finance").innerHTML = `
+    <h3 style="margin:0 0 10px">Résumé financier</h3>
+    <div class="stg-fin-grid">
+      <div class="stg-fin"><span>Encaissé (payé)</span><b>${round2(encaisse)} CHF</b></div>
+      <div class="stg-fin"><span>− Repas (${repasCount} × 15)</span><b>−${repasCost} CHF</b></div>
+      <div class="stg-fin"><span>− Tarifs coachs</span><b>−${round2(coachFees)} CHF</b></div>
+      <div class="stg-fin stg-fin-total"><span>Solde</span><b>${solde} CHF</b></div>
+    </div>
+    <p class="muted" style="font-size:.78rem;margin:8px 0 0">Repas = 15 CHF × ${jours(days)} × (${stgStaff.length} coach(s) + ${mealRegs} inscrit(s) journée/pro).</p>`;
+
+  // --- Tuiles récap ---
+  $("stg-cat-tiles").innerHTML = [`<div class="stg-tile"><b>${stgRegs.length}</b><span>participants</span></div>`]
+    .concat(openCats.map((c) => `<div class="stg-tile"><b>${stgRegs.filter((r) => r.category_id === c.id).length}</b><span>${esc(c.name)}</span></div>`)).join("");
+
+  // --- Une box par catégorie ---
+  $("stg-boxes").innerHTML = openCats.map((c) => {
+    const regs = stgRegs.filter((r) => r.category_id === c.id);
+    const coaches = stgStaff.filter((x) => x.category_id === c.id);
+    return `<div class="rg-card stg-box">
+      <div class="stg-card-head"><h3 style="margin:0">${esc(c.name)} (${regs.length}) <span class="muted" style="font-weight:400">· ${stgEffPrice(c.price || 0, days)} CHF${c.meal ? " · repas" : ""}${c.tshirt ? " · t-shirt" : ""}</span></h3></div>
+      <div class="table-wrap" style="margin-top:8px">
+        <table class="crm-table"><thead><tr><th>Nom</th><th>Naissance</th><th>Mail</th>${c.tshirt ? "<th>T-shirt</th>" : ""}${c.meal ? "<th>Repas</th>" : ""}<th>Commentaire</th><th>Rabais</th><th>Prix</th><th>Facture</th><th>Payé</th><th></th></tr></thead>
+        <tbody>${regs.length ? regs.map((r) => stgRegRow(r, c, days)).join("") : '<tr><td colspan="11" class="muted">Aucun inscrit.</td></tr>'}</tbody></table>
+      </div>
+      <div class="stg-coaches">
+        <div class="stg-card-head"><h4 style="margin:10px 0 4px">Coachs</h4><button type="button" class="ghost stg-coach-add" data-cat="${c.id}">+ Ajouter un coach</button></div>
+        <div class="stg-coach-rows">${coaches.map(stgCoachRow).join("") || '<p class="muted" style="font-size:.82rem;margin:0">Aucun coach.</p>'}</div>
+      </div>
+    </div>`;
+  }).join("") || '<p class="muted">Aucune catégorie ouverte pour ce stage.</p>';
+
+  wireStageDetail();
 }
 
-async function changeRegCat(id, catId) {
-  await sb.from("stage_registrations").update({ category_id: catId }).eq("id", id);
-  const r = stgRegs.find((x) => x.id === id); if (r) r.category_id = catId;
-  renderRegistrants();
+function stgRegRow(r, cat, days) {
+  const price = stgRegPrice(r, days);
+  const rebate = r.discount_pct ? `−${r.discount_pct}% <span class="muted">(${esc(r.discount_reason || "")})</span> <button class="fam-del stg-reb-del" data-id="${r.id}">✕</button>`
+    : `<button class="ghost stg-reb-add" data-id="${r.id}">−20%</button>`;
+  const invoice = r.invoice_created ? `<span class="muted">Facturé${r.invoice_sent_at ? " le " + frDate(r.invoice_sent_at) : ""}</span>`
+    : `<button class="ghost stg-inv" data-id="${r.id}">Facture + mail</button>`;
+  return `<tr data-id="${r.id}">
+    <td><b>${esc(r.first_name)} ${esc(r.last_name)}</b></td>
+    <td>${r.birth_date ? frDate(r.birth_date) : "—"}</td>
+    <td>${esc(r.email || "—")}</td>
+    ${cat.tshirt ? `<td>${esc(r.tshirt_size || "—")}</td>` : ""}
+    ${cat.meal ? `<td>${esc(r.meal_restriction || "—")}</td>` : ""}
+    <td class="stg-cmt">${r.private_addon ? '<span class="stg-tag">+3h privé</span> ' : ""}${r.ranking ? `<b>Classement : ${esc(r.ranking)}</b>${r.comment ? "<br>" : ""}` : ""}${esc(r.comment || "")}</td>
+    <td>${rebate}</td>
+    <td><b>${price}</b></td>
+    <td>${invoice}</td>
+    <td><input type="checkbox" class="stg-paid" data-id="${r.id}" ${r.paid ? "checked" : ""}/></td>
+    <td><button class="fam-del stg-reg-del" data-id="${r.id}">✕</button></td>
+  </tr>`;
+}
+function stgCoachRow(x) {
+  return `<div class="stg-coach-row" data-id="${x.id}">
+    <input class="stg-coach-name" placeholder="Nom du coach" value="${esc(x.name || "")}" />
+    <input type="number" class="stg-coach-fee" placeholder="Tarif total (CHF)" value="${x.fee ?? ""}" />
+    <input class="stg-coach-note" placeholder="Note (ex. lun–jeu seulement)" value="${esc(x.note || "")}" />
+    <button type="button" class="fam-del stg-coach-del" data-id="${x.id}">✕</button>
+  </div>`;
+}
+function wireStageDetail() {
+  const D = $("stg-boxes");
+  D.querySelectorAll(".stg-reb-add").forEach((b) => b.addEventListener("click", () => setDiscount(b.dataset.id)));
+  D.querySelectorAll(".stg-reb-del").forEach((b) => b.addEventListener("click", () => removeDiscount(b.dataset.id)));
+  D.querySelectorAll(".stg-inv").forEach((b) => b.addEventListener("click", () => createInvoice(b.dataset.id)));
+  D.querySelectorAll(".stg-paid").forEach((c) => c.addEventListener("change", () => togglePaid(c.dataset.id, c.checked)));
+  D.querySelectorAll(".stg-reg-del").forEach((b) => b.addEventListener("click", () => delRegistrant(b.dataset.id)));
+  D.querySelectorAll(".stg-coach-add").forEach((b) => b.addEventListener("click", () => addStageStaff(b.dataset.cat)));
+  D.querySelectorAll(".stg-coach-del").forEach((b) => b.addEventListener("click", () => delStageStaff(b.dataset.id)));
+  D.querySelectorAll(".stg-coach-row").forEach((row) => row.querySelectorAll("input").forEach((el) =>
+    el.addEventListener("change", () => saveStageStaff(row.dataset.id, row))));
+}
+
+async function addStageStaff(catId) {
+  const { error } = await sb.from("stage_staff").insert({ session_id: stgCurrent, category_id: catId, fee: 0 });
+  if (error) { alert(error.message); return; }
+  loadRegistrations();
+}
+async function saveStageStaff(id, row) {
+  const patch = {
+    name: row.querySelector(".stg-coach-name").value.trim() || null,
+    fee: Number(row.querySelector(".stg-coach-fee").value) || 0,
+    note: row.querySelector(".stg-coach-note").value.trim() || null,
+  };
+  const { error } = await sb.from("stage_staff").update(patch).eq("id", id);
+  if (error) { alert(error.message); return; }
+  const x = stgStaff.find((s) => s.id === id); if (x) Object.assign(x, patch);
+  renderRegistrants(); // met à jour le résumé financier
+}
+async function delStageStaff(id) {
+  const { error } = await sb.from("stage_staff").delete().eq("id", id);
+  if (error) { alert(error.message); return; }
+  loadRegistrations();
 }
 
 // ---- Modal ajout d'un inscrit ----
@@ -3256,6 +3324,7 @@ async function createInvoice(id) {
 async function togglePaid(id, paid) {
   await sb.from("stage_registrations").update({ paid, paid_at: paid ? new Date().toISOString() : null }).eq("id", id);
   const r = stgRegs.find((x) => x.id === id); r.paid = paid;
+  renderRegistrants(); // met à jour le résumé financier
 }
 
 async function delRegistrant(id) {

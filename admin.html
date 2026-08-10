@@ -597,21 +597,17 @@
                 </div>
                 <div id="stg-detail-meta" class="muted" style="font-size:.9rem;margin:6px 0 0"></div>
               </div>
-              <div class="rg-card" style="margin-top:14px">
-                <div class="stg-card-head">
-                  <h3 style="margin:0">Inscrits (<span id="stg-reg-count">0</span>)</h3>
-                  <button id="stg-reg-add" class="ghost">+ Ajouter un inscrit</button>
-                </div>
-                <div class="table-wrap" style="margin-top:10px">
-                  <table class="crm-table" id="stg-reg-table">
-                    <thead><tr>
-                      <th>Nom</th><th>Naissance</th><th>Catégorie</th><th>Mail</th><th>T-shirt</th><th>Repas</th>
-                      <th>Commentaire</th><th>Rabais</th><th>Prix</th><th>Facture</th><th>Payé</th><th></th>
-                    </tr></thead>
-                    <tbody id="stg-reg-rows"></tbody>
-                  </table>
-                </div>
+              <!-- Résumé financier -->
+              <div class="rg-card" id="stg-finance" style="margin-top:14px"></div>
+
+              <!-- Récap par catégorie (tuiles) -->
+              <div id="stg-cat-tiles" class="stg-tiles"></div>
+
+              <div class="stg-card-head" style="margin:14px 0 4px">
+                <h3 style="margin:0">Inscrits (<span id="stg-reg-count">0</span>)</h3>
+                <button id="stg-reg-add" class="ghost">+ Ajouter un inscrit</button>
               </div>
+              <div id="stg-boxes"></div>
             </div>
           </div>
 
