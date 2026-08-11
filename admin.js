@@ -4139,7 +4139,7 @@ async function loadEtudesReglages() {
   if (sum && sum.length) {
     const d = new Date(sum[0].start_date + "T00:00:00");
     while (d.getDay() !== 5) d.setDate(d.getDate() - 1); // vendredi précédant l'été
-    d.setDate(d.getDate() - 14);                          // 2 semaines avant
+    d.setDate(d.getDate() - 7);                           // 1 semaine avant
     to = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
   $("et-rg-to").value = to;
