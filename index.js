@@ -167,10 +167,18 @@ const WORLDS = {
         ["Une question ?", "Écrivez-nous, nous répondons rapidement."],
       ], link: { label: "Nous écrire", contact: "Lausanne Open" } },
       { type: "sponsors", anchor: "partenaires", title: "Partenaires du tournoi", items: [
-        "Team Lausanne", "Canton de Vaud", "Swiss Tennis", "Ville de Lausanne",
-        "Services Industriels de Lausanne", "SVR Vins", "Cafés Cuéndet",
-        "Fondation Sport et Solidarité", "PhysioPlus Lausanne", "Boissons Gros de Vaud",
-        "BS Architectes", "Garage-carrosserie de la Plaine", "Ibis Hotels", "Fonds du Sport vaudois",
+        { name: "Team Lausanne" },
+        { name: "Canton de Vaud", logo: "assets/webflow/sp-vaud.png", white: true },
+        { name: "Swiss Tennis", logo: "assets/sponsors/swiss-tennis.png", white: true },
+        { name: "Ville de Lausanne", logo: "assets/webflow/sp-ville-lausanne.png", white: true },
+        { name: "Services Industriels de Lausanne", logo: "assets/webflow/sp-sil.png", white: true },
+        { name: "SVR Vins", logo: "assets/sponsors/svr-vins.png" },
+        { name: "Fonds du Sport vaudois", logo: "assets/sponsors/fonds-sport.webp" },
+        { name: "Cafés Cuéndet" },
+        { name: "Boissons Gros de Vaud" },
+        { name: "BS Architectes" },
+        { name: "Garage-carrosserie de la Plaine" },
+        { name: "Ibis Hotels" },
       ]},
     ],
   },
@@ -516,8 +524,12 @@ function sectionHTML(sec) {
 
     case "sponsors":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
-        <div class="sponsor-wall">${sec.items.map((n) =>
-          `<div class="sponsor">${esc(n)}</div>`).join("")}</div></section>`;
+        <div class="sponsor-wall">${sec.items.map((s) => {
+          const o = typeof s === "string" ? { name: s } : s;
+          if (o.logo)
+            return `<div class="sponsor"><div class="sponsor-box"><img class="${o.white ? "sp-white" : ""}" src="${esc(o.logo)}" alt="${esc(o.name)}" loading="lazy" /></div><div class="sponsor-name">${esc(o.name)}</div></div>`;
+          return `<div class="sponsor"><div class="sponsor-box"><span class="sp-name-in">${esc(o.name)}</span></div></div>`;
+        }).join("")}</div></section>`;
 
     case "carousel": {
       const pill = (o) => {

@@ -893,12 +893,16 @@ body[data-world="academie"] .stat{color:var(--fluo-ink)}
 .contact-card a{color:var(--accent-ink);font-weight:700;text-decoration:none}
 
 /* Mur de sponsors */
-.sponsor-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.sponsor{background:#fff;border:1px solid var(--line);border-radius:12px;min-height:76px;
-  display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;
-  font-weight:800;font-style:italic;color:var(--blue-ink);font-size:.92rem;box-shadow:var(--shadow);
-  transition:transform .15s,border-color .15s}
-.sponsor:hover{transform:translateY(-3px);border-color:var(--accent)}
+.sponsor-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.sponsor{display:flex;flex-direction:column;align-items:center;gap:8px}
+.sponsor-box{width:100%;min-height:86px;background:var(--blue-ink);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;padding:16px 18px;box-shadow:var(--shadow);
+  transition:transform .15s}
+.sponsor:hover .sponsor-box{transform:translateY(-3px)}
+.sponsor-box img{max-height:48px;max-width:100%;width:auto;object-fit:contain}
+.sponsor-box img.sp-white{filter:brightness(0) invert(1)}
+.sponsor-box .sp-name-in{color:#fff;font-weight:800;font-style:italic;font-size:.92rem;text-align:center;line-height:1.2}
+.sponsor-name{color:var(--blue-ink);font-weight:700;font-size:.82rem;text-align:center;line-height:1.2}
 
 /* Sections "split" (photo + texte) */
 .split{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 48px;
