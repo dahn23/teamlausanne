@@ -801,7 +801,9 @@ const openModal = () => modal.classList.remove("hidden");
 const closeModal = () => modal.classList.add("hidden");
 // Si déjà connecté : le bouton mène à l'espace membre au lieu d'ouvrir le login.
 let hasSession = false;
-const memberAction = () => { if (hasSession) location.href = "reservation.html"; else openModal(); };
+// « Réserver » / « Jouer librement » : on va toujours sur la page de réservation
+// (publique). La connexion se fait là-bas, seulement au moment de réserver.
+const memberAction = () => { location.href = "reservation.html"; };
 $("open-login").addEventListener("click", memberAction);
 $("close-login").addEventListener("click", closeModal);
 modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
