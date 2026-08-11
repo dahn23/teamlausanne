@@ -167,18 +167,10 @@ const WORLDS = {
         ["Une question ?", "Écrivez-nous, nous répondons rapidement."],
       ], link: { label: "Nous écrire", contact: "Lausanne Open" } },
       { type: "sponsors", anchor: "partenaires", title: "Partenaires du tournoi", items: [
-        { name: "Team Lausanne" },
-        { name: "Canton de Vaud", logo: "assets/webflow/sp-vaud.png", white: true },
-        { name: "Swiss Tennis", logo: "assets/sponsors/swiss-tennis.png", white: true },
-        { name: "Ville de Lausanne", logo: "assets/webflow/sp-ville-lausanne.png", white: true },
-        { name: "Services Industriels de Lausanne", logo: "assets/webflow/sp-sil.png", white: true },
-        { name: "SVR Vins", logo: "assets/sponsors/svr-vins.png" },
-        { name: "Fonds du Sport vaudois", logo: "assets/sponsors/fonds-sport.webp" },
-        { name: "Cafés Cuéndet" },
-        { name: "Boissons Gros de Vaud" },
-        { name: "BS Architectes" },
-        { name: "Garage-carrosserie de la Plaine" },
-        { name: "Ibis Hotels" },
+        "Team Lausanne", "Canton de Vaud", "Swiss Tennis", "Ville de Lausanne",
+        "Services Industriels de Lausanne", "SVR Vins", "Cafés Cuéndet",
+        "Boissons Gros de Vaud", "BS Architectes", "Garage-carrosserie de la Plaine",
+        "Ibis Hotels", "Fonds du Sport vaudois", "Nestlé Community",
       ]},
     ],
   },
@@ -188,7 +180,7 @@ const WORLDS = {
     slogan: "S'associer. Rayonner. Ensemble.",
     desc: "Associez votre entreprise à un club historique et à une académie de formation reconnue, au cœur de Lausanne.",
     hero: "assets/webflow/cta-young.jpg",
-    cta: [{ label: "Devenir partenaire", type: "contact", source: "Devenir partenaire" }],
+    cta: [{ label: "Devenir partenaire", type: "scroll", target: "biz-contact" }],
     sections: [
       { type: "rich", anchor: "presidents", title: "Club des Présidents", body: [
         "Une offre exclusive et networking : chaque vendredi matin, jouez 2h en halle couverte (été comme hiver), puis prolongez autour d'un apéro dînatoire sur le court.",
@@ -207,10 +199,13 @@ const WORLDS = {
       ]},
       { type: "rich", anchor: "devenir", title: "Devenir partenaire", body: [
         "Vous souhaitez associer votre marque au tennis lausannois ? Construisons ensemble un partenariat qui vous ressemble.",
-      ], link: { label: "Nous contacter", contact: "Devenir partenaire" } },
+      ], link: { label: "Nous contacter", scroll: "biz-contact" } },
       { type: "rich", anchor: "privatisation", title: "Privatisations & événements d'entreprise", body: [
         "Organisez votre événement d'entreprise au club : entraînement privatisé pour votre entreprise, team-building tennis avec apéro ou repas, dans un cadre unique aux Plaines-du-Loup.",
-      ], link: { label: "Demander une offre", contact: "Privatisations / événements d'entreprise" } },
+      ], link: { label: "Demander une offre", scroll: "biz-contact" } },
+      { type: "contactform", anchor: "contact", title: "Parlons-en",
+        lead: "Devenir partenaire, privatiser un moment au club ou rejoindre le Club des Présidents ? Laissez-nous vos coordonnées, on vous rappelle — ou appelez directement Raphaël.",
+        person: "Raphaël Vergnaud", role: "Partenariats — Team Lausanne", tel: "+41799550694", telLabel: "079 955 06 94" },
     ],
   },
 };
@@ -436,6 +431,8 @@ function linkHTML(link) {
     return `<button class="wsec-link" data-login>${esc(link.label)}</button>`;
   if (link.contact)
     return `<button class="contact-cta" data-contact="${esc(link.contact)}">${esc(link.label)}</button>`;
+  if (link.scroll)
+    return `<button class="contact-cta" data-scroll="${esc(link.scroll)}">${esc(link.label)}</button>`;
   const ext = link.href.startsWith("http");
   return `<a class="wsec-link" href="${esc(link.href)}"${ext ? ' target="_blank" rel="noopener"' : ""}>${esc(link.label)}</a>`;
 }
@@ -524,12 +521,8 @@ function sectionHTML(sec) {
 
     case "sponsors":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
-        <div class="sponsor-wall">${sec.items.map((s) => {
-          const o = typeof s === "string" ? { name: s } : s;
-          if (o.logo)
-            return `<div class="sponsor"><div class="sponsor-box"><img class="${o.white ? "sp-white" : ""}" src="${esc(o.logo)}" alt="${esc(o.name)}" loading="lazy" /></div><div class="sponsor-name">${esc(o.name)}</div></div>`;
-          return `<div class="sponsor"><div class="sponsor-box"><span class="sp-name-in">${esc(o.name)}</span></div></div>`;
-        }).join("")}</div></section>`;
+        <div class="sponsor-wall">${sec.items.map((n) =>
+          `<div class="sponsor">${esc(n)}</div>`).join("")}</div></section>`;
 
     case "carousel": {
       const pill = (o) => {
@@ -642,6 +635,45 @@ function sectionHTML(sec) {
         return `<div class="gphoto" style="background-image:url('${src}')${pos}"></div>`;
       }).join("")}</div></section>`;
 
+    case "contactform":
+      return `<section class="wsec biz-contact" data-anchor="${esc(sec.anchor || "contact")}">
+        <h2>${esc(sec.title)}</h2>
+        ${sec.lead ? `<p class="muted" style="max-width:640px;margin:-6px 0 22px">${esc(sec.lead)}</p>` : ""}
+        <div class="biz-contact-grid">
+          <div class="biz-raph">
+            <div class="biz-raph-name">${esc(sec.person)}</div>
+            <div class="biz-raph-role">${esc(sec.role)}</div>
+            <a class="biz-phone" href="tel:${esc((sec.tel || "").replace(/\s/g, ""))}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L7.8 9.8a16 16 0 0 0 6 6l1.4-1.3a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg>
+              ${esc(sec.telLabel)}</a>
+          </div>
+          <form id="biz-form" class="cform">
+            <label class="cf-field"><span>Votre demande</span>
+              <select id="biz-subject">
+                <option>Devenir partenaire</option>
+                <option>Privatisation / événement d'entreprise</option>
+                <option>Club des Présidents</option>
+                <option>Sponsoring</option>
+                <option>Autre</option>
+              </select></label>
+            <div class="cf-row">
+              <label class="cf-field"><span>Nom et prénom</span><input type="text" id="biz-name" required /></label>
+              <label class="cf-field"><span>Entreprise / fonction</span><input type="text" id="biz-company" /></label>
+            </div>
+            <div class="cf-row">
+              <label class="cf-field"><span>Email</span><input type="email" id="biz-email" required /></label>
+              <label class="cf-field"><span>Téléphone</span><input type="tel" id="biz-phone" /></label>
+            </div>
+            <label class="cf-field"><span>Message</span><textarea id="biz-message" rows="4"></textarea></label>
+            <button type="submit" id="biz-btn">Envoyer ma demande</button>
+            <p id="biz-error" class="error" hidden></p>
+          </form>
+          <div id="biz-done" class="hidden biz-done">
+            <p style="font-size:1.15rem;font-weight:800;color:var(--blue-ink);margin:0 0 6px">Merci, c'est envoyé !</p>
+            <p class="muted" style="margin:0">Nous revenons vers vous très vite.</p>
+          </div>
+        </div></section>`;
+
     default: return "";
   }
 }
@@ -660,8 +692,9 @@ function renderWorld(key) {
   const w = WORLDS[key];
   document.body.dataset.world = key;
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === key));
-  const ctaHTML = w.cta.map((c) => c.type === "contact"
-    ? `<button class="btn-cta" data-contact="${esc(c.source)}">${esc(c.label)}</button>`
+  const ctaHTML = w.cta.map((c) =>
+    c.type === "contact" ? `<button class="btn-cta" data-contact="${esc(c.source)}">${esc(c.label)}</button>`
+    : c.type === "scroll" ? `<button class="btn-cta" data-scroll="${esc(c.target)}">${esc(c.label)}</button>`
     : `<button class="btn-cta" data-cta="${c.type}">${esc(c.label)}</button>`).join("");
   paintHero({ logo: w.logo, hero: w.hero, tag: w.tag, slogan: w.slogan, desc: w.desc, ctaHTML });
   $("world-main").innerHTML = w.sections.map(sectionWrap).join("");
@@ -903,6 +936,29 @@ document.addEventListener("click", (e) => {
   if (back) { location.hash = back.dataset.back; return; }
   const sw = e.target.closest(".sw, .flow-step");
   if (sw && sw.dataset.world) { location.hash = sw.dataset.world; }
+});
+
+// Formulaire de contact business (en bas de la page "business")
+document.addEventListener("submit", async (e) => {
+  if (e.target.id !== "biz-form") return;
+  e.preventDefault();
+  const err = $("biz-error"); err.hidden = true;
+  const btn = $("biz-btn"); btn.disabled = true; btn.textContent = "Envoi…";
+  const parts = [];
+  if ($("biz-company").value.trim()) parts.push("Entreprise / fonction : " + $("biz-company").value.trim());
+  if ($("biz-phone").value.trim()) parts.push("Téléphone : " + $("biz-phone").value.trim());
+  const m = $("biz-message").value.trim();
+  if (m) { if (parts.length) parts.push(""); parts.push(m); }
+  const { error } = await sb.from("contact_messages").insert({
+    source: "Business — " + $("biz-subject").value,
+    name: $("biz-name").value.trim(),
+    email: $("biz-email").value.trim(),
+    message: parts.join("\n") || null,
+  });
+  btn.disabled = false; btn.textContent = "Envoyer ma demande";
+  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
+  $("biz-form").classList.add("hidden");
+  $("biz-done").classList.remove("hidden");
 });
 
 window.addEventListener("hashchange", route);

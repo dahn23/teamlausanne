@@ -893,16 +893,21 @@ body[data-world="academie"] .stat{color:var(--fluo-ink)}
 .contact-card a{color:var(--accent-ink);font-weight:700;text-decoration:none}
 
 /* Mur de sponsors */
-.sponsor-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
-.sponsor{display:flex;flex-direction:column;align-items:center;gap:8px}
-.sponsor-box{width:100%;min-height:86px;background:var(--blue-ink);border-radius:12px;
-  display:flex;align-items:center;justify-content:center;padding:16px 18px;box-shadow:var(--shadow);
-  transition:transform .15s}
-.sponsor:hover .sponsor-box{transform:translateY(-3px)}
-.sponsor-box img{max-height:48px;max-width:100%;width:auto;object-fit:contain}
-.sponsor-box img.sp-white{filter:brightness(0) invert(1)}
-.sponsor-box .sp-name-in{color:#fff;font-weight:800;font-style:italic;font-size:.92rem;text-align:center;line-height:1.2}
-.sponsor-name{color:var(--blue-ink);font-weight:700;font-size:.82rem;text-align:center;line-height:1.2}
+.sponsor-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.sponsor{background:#fff;border:1px solid var(--line);border-radius:12px;min-height:76px;
+  display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;
+  font-weight:800;font-style:italic;color:var(--blue-ink);font-size:.92rem;box-shadow:var(--shadow);
+  transition:transform .15s,border-color .15s}
+.sponsor:hover{transform:translateY(-3px);border-color:var(--accent)}
+/* Formulaire de contact business (bas de page) */
+.biz-contact-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:26px;align-items:start}
+.biz-raph{background:var(--blue-ink);color:#fff;border-radius:16px;padding:22px}
+.biz-raph-name{font-weight:800;font-size:1.1rem}
+.biz-raph-role{color:rgba(255,255,255,.72);font-size:.9rem;margin:2px 0 14px}
+.biz-phone{display:inline-flex;align-items:center;gap:9px;background:var(--fluo);color:var(--fluo-ink);
+  font-weight:900;font-size:1.1rem;padding:11px 18px;border-radius:12px;text-decoration:none}
+.biz-done{grid-column:1/-1;background:var(--accent-soft);border-radius:16px;padding:24px;text-align:center}
+@media(max-width:720px){.biz-contact-grid{grid-template-columns:1fr}}
 
 /* Sections "split" (photo + texte) */
 .split{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 48px;
