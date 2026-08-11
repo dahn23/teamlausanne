@@ -1077,7 +1077,13 @@ body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fl
   .sw{padding:8px 12px;font-size:.85rem}
   .hero-logo{height:96px}
   .gallery{grid-template-columns:1fr}
-  .flow-arrow{transform:rotate(90deg)}
+  /* Les 3 mondes restent côte-à-côte en mobile (pas empilés) */
+  .flow{flex-wrap:nowrap;gap:5px;align-items:stretch}
+  .flow-step{min-width:0;flex:1 1 0;max-width:none;padding:14px 6px}
+  .flow-step span{width:28px;height:28px;font-size:.85rem;margin-bottom:7px}
+  .flow-step h3{font-size:.82rem}
+  .flow-step p{font-size:.7rem}
+  .flow-arrow{transform:none;font-size:1rem}
 }
 
 /* =====================================================================
