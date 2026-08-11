@@ -4053,6 +4053,7 @@ function initEtudes() {
   $("et-rem-add").addEventListener("click", addEtRemark);
   $("et-plan-apply").addEventListener("click", applyEtudesPlan);
   $("et-rg-generate").addEventListener("click", generateEtudesDays);
+  $("et-rg-season").addEventListener("change", loadEtudesReglages);
 }
 
 function etPopulateSeasons() {
@@ -4125,8 +4126,23 @@ async function loadEtudesReglages() {
   await loadSeasonsList();
   etPopulateSeasons();
   const s = seasonsOf("juniors").find((x) => x.id === $("et-rg-season").value) || currentSeason("juniors");
-  if (s) { $("et-rg-season").value = s.id; $("et-rg-from").value = s.start_date; $("et-rg-to").value = s.end_date; }
   $("et-rg-status").textContent = "";
+  if (!s) return;
+  $("et-rg-season").value = s.id;
+  // Règle : études du 1er septembre au vendredi 2 semaines avant les vacances d'été
+  const startYear = Number((s.label.match(/(\d{4})/) || [])[1]) || new Date(s.start_date + "T00:00:00").getFullYear();
+  const endYear = startYear + 1;
+  $("et-rg-from").value = `${startYear}-09-01`;
+  let to = s.end_date;
+  const { data: sum } = await sb.from("school_holidays").select("start_date")
+    .ilike("label", "Été %").gte("start_date", `${endYear}-06-01`).lte("start_date", `${endYear}-09-01`).order("start_date").limit(1);
+  if (sum && sum.length) {
+    const d = new Date(sum[0].start_date + "T00:00:00");
+    while (d.getDay() !== 5) d.setDate(d.getDate() - 1); // vendredi précédant l'été
+    d.setDate(d.getDate() - 14);                          // 2 semaines avant
+    to = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  $("et-rg-to").value = to;
 }
 async function generateEtudesDays() {
   const seasonId = $("et-rg-season").value;
