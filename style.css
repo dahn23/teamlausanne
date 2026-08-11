@@ -908,6 +908,23 @@ body[data-world="academie"] .stat{color:var(--fluo-ink)}
   font-weight:900;font-size:1.1rem;padding:11px 18px;border-radius:12px;text-decoration:none}
 .biz-done{grid-column:1/-1;background:var(--accent-soft);border-radius:16px;padding:24px;text-align:center}
 @media(max-width:720px){.biz-contact-grid{grid-template-columns:1fr}}
+/* Popup plan des courts (fond blanc) */
+.plan-card{position:relative;background:#fff;border-radius:16px;padding:14px;
+  max-width:min(94vw,1000px);max-height:90vh;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.plan-card img{display:block;max-width:100%;max-height:82vh;width:auto;height:auto;border-radius:8px}
+.plan-card .modal-x{position:absolute;top:-14px;right:-14px;background:#fff;color:var(--ink);
+  border:1px solid var(--line);width:36px;height:36px;border-radius:50%;box-shadow:var(--shadow);
+  font-size:1rem;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center}
+/* Liste de tarifs (devenir membre) */
+.pricing-list{max-width:560px}
+.pricing-row{display:flex;align-items:baseline;gap:6px;padding:9px 0;border-bottom:1px dashed var(--line)}
+.pl-label{color:var(--ink);font-weight:600}
+.pl-dots{flex:1}
+.pl-price{font-weight:800;color:var(--blue-ink);white-space:nowrap}
+/* Case règlement (formulaire d'adhésion) */
+.m-consent{display:flex;align-items:flex-start;gap:10px;font-size:.92rem;color:var(--ink)}
+.m-consent input{width:18px;height:18px;flex-shrink:0;margin-top:1px}
+.m-consent a{color:var(--blue);font-weight:700}
 
 /* Sections "split" (photo + texte) */
 .split{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 48px;

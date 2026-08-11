@@ -17,9 +17,9 @@ const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 const WORLDS = {
   club: {
     tag: "Le Club", logo: "assets/logo-club.webp",
-    slogan: "Jouer. S'amuser. Ensemble.",
+    slogan: "Votre club, toute l'année.",
     desc: "Le club de tennis historique de Lausanne, aux Plaines-du-Loup depuis 1911. Devenez membre, jouez librement toute l'année et vivez la compétition en interclubs.",
-    hero: "assets/photos/p1.jpg",
+    hero: "assets/club/hero-balls.jpg",
     cta: [{ label: "Réserver un court", type: "login" }],
     sections: [
       { type: "split", anchor: "cotisation", title: "Votre club, toute l'année", photo: "assets/photos/p5.jpg", body: [
@@ -29,22 +29,25 @@ const WORLDS = {
       { type: "carousel", eyebrow: "Le club", title: "Jouer toute l'année, à deux pas du centre",
         sub: "Devenez membre et profitez de tous les courts, du club-house et de la compétition.",
         items: [
-          { name: "Devenir membre", photo: "assets/webflow/prog-club.webp", href: "#academie" },
-          { name: "Jouer librement", photo: "assets/webflow/tennis-day.webp", login: true },
-          { name: "Interclubs", photo: "assets/webflow/prog-competition.webp" },
-          { name: "Restaurant & club-house", photo: "assets/webflow/cta-young.jpg" },
+          { name: "Devenir membre", photo: "assets/club/devenir-membre.png", href: "#devenir-membre" },
+          { name: "Jouer librement", photo: "assets/club/jouer-librement.jpg", login: true },
+          { name: "Interclubs 2027", photo: "assets/club/interclubs.jpg" },
+          { name: "Interclubs juniors 2027", photo: "assets/club/interclubs-juniors.jpg" },
+          { name: "Plan des courts", photo: "assets/club/plan-courts.webp", plan: true },
         ]},
       { type: "instagram", anchor: "vie", title: "Vie du club", handle: "lausanne_sports_tennis",
         photos: ["assets/webflow/tennis-day.webp", "assets/webflow/prog-club.webp",
           "assets/webflow/coaching-technique.jpg", "assets/webflow/physical-training.jpg",
           "assets/webflow/stage-development.webp", "assets/webflow/cta-young.jpg"] },
       { type: "agenda", anchor: "agenda", title: "Agenda du club", items: [
-        { date: "À venir", title: "Apéro d'ouverture", detail: "Le coup d'envoi de la saison, entre membres." },
-        { date: "À venir", title: "Soirée des membres", detail: "Une soirée conviviale pour toute la communauté du club." },
-        { date: "À venir", title: "Repas canadien", detail: "Chacun apporte un plat à partager." },
-        { date: "À venir", title: "Repas de soutien", detail: "Un moment festif au profit du club." },
-        { date: "Saison", title: "Interclubs & animations", detail: "Matchs par équipes et animations tout au long de l'année." },
-      ], note: "Dates précises communiquées prochainement." },
+        { date: "2 mai", title: "Apéro d'ouverture", detail: "& 1ʳᵉ rencontre de LNB" },
+        { date: "5 juin", title: "Buffet canadien", detail: "Joue avec la LNB !" },
+        { date: "28 juil. – 2 août", title: "Short Set Open", detail: "" },
+        { date: "23 – 30 août", title: "Lausanne Open", detail: "" },
+        { date: "Fin septembre", title: "Tournoi interne", detail: "" },
+        { date: "Fin septembre", title: "Assemblée générale", detail: "" },
+        { date: "À venir", title: "Repas de soutien", detail: "" },
+      ] },
       { type: "timeline", title: "Notre histoire", items: [
         ["1911", "Fondation par des personnalités du Montriond F.C. Premier court au chemin du Signal, puis deux courts aux Plaines-du-Loup."],
         ["1939", "Le club compte déjà 8 terrains."],
@@ -75,7 +78,7 @@ const WORLDS = {
         hours: "Lun 07h30–20h00 · Mar–Ven 07h30–00h00 · Sam–Dim 09h00–19h00" },
       { type: "contact", anchor: "contact", title: "Contact & accès",
         lines: ["Lausanne-Sports Tennis", "Stade de la Pontaise", "Route des Plaines-du-Loup 7", "1018 Lausanne"],
-        phone: "+41 21 646 13 50", contact: "Club — Contact", hours: "Secrétariat : lun–ven, 15h00–17h00" },
+        phone: "+41 21 646 13 50", contact: "Club — Contact", hours: "Secrétariat : lun–ven, 9h00–12h00 & 13h00–17h00" },
     ],
   },
 
@@ -209,6 +212,23 @@ const WORLDS = {
 //  PAGES DÉTAILLÉES
 // ===================================================================
 const DETAILS = {
+  "devenir-membre": {
+    world: "club", title: "Devenir membre", subtitle: "Rejoignez le Lausanne-Sports Tennis aux Plaines-du-Loup",
+    hero: "assets/club/devenir-membre.png",
+    sections: [
+      { type: "rich", title: "Jouez toute l'année", body: [
+        "En devenant membre du Lausanne-Sports Tennis, vous jouez librement sur les courts extérieurs tout l'été et profitez de conditions avantageuses sur les courts couverts en hiver.",
+        "L'adhésion vous ouvre la réservation en ligne, le club-house et le restaurant, au cœur des Plaines-du-Loup.",
+      ]},
+      { type: "pricing", title: "Tarifs d'adhésion — Cotisations", items: [
+        ["Actifs", "420.00 CHF"], ["Couples", "700.00 CHF"], ["Familles", "800.00 CHF"],
+        ["Étudiants, apprentis (25 ans max)", "270.00 CHF"], ["Juniors (jusqu'à 18 ans)", "150.00 CHF"],
+        ["Enfants (jusqu'à 12 ans)", "90.00 CHF"], ["Membres passifs", "60.00 CHF"],
+      ], note: "Cotisation annuelle. La demande ci-dessous ne vaut pas paiement : le secrétariat vous recontacte pour finaliser." },
+      { type: "memberform", title: "Demande d'adhésion",
+        lead: "Remplissez le formulaire, le secrétariat revient vers vous pour finaliser votre adhésion." },
+    ],
+  },
   "journee-team-lausanne": {
     world: "tournoi", title: "Journée Team Lausanne", subtitle: "Samedi, en marge du Lausanne Open — ouvert à toutes et tous",
     hero: "assets/photos/open-wheelchair.jpg",
@@ -522,6 +542,7 @@ function sectionHTML(sec) {
     case "carousel": {
       const pill = (o) => {
         const inner = `${esc(o.name)}<span class="ccard-arrow" aria-hidden="true">↗</span>`;
+        if (o.plan) return `<button class="ccard-pill" data-plan="${esc(o.photo)}">${inner}</button>`;
         if (o.login) return `<button class="ccard-pill" data-login>${inner}</button>`;
         if (o.goto) return `<button class="ccard-pill" data-goto="${esc(o.goto.world)}" data-anchor="${esc(o.goto.anchor)}">${inner}</button>`;
         if (!o.href) return `<span class="ccard-pill ccard-pill-static">${inner}</span>`;
@@ -553,6 +574,43 @@ function sectionHTML(sec) {
     case "stageform":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div id="stgp-list" class="stg-pub-list"><p class="muted">Chargement…</p></div></section>`;
+
+    case "pricing":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        <div class="pricing-list">${sec.items.map(([label, price]) =>
+          `<div class="pricing-row"><span class="pl-label">${esc(label)}</span><span class="pl-dots"></span><span class="pl-price">${esc(price)}</span></div>`).join("")}</div>
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
+
+    case "memberform":
+      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+        ${sec.lead ? `<p class="muted" style="max-width:640px;margin:-6px 0 22px">${esc(sec.lead)}</p>` : ""}
+        <form id="member-form" class="cform" style="max-width:720px">
+          <div class="cf-row">
+            <label class="cf-field"><span>Prénom</span><input type="text" id="m-first" required /></label>
+            <label class="cf-field"><span>Nom</span><input type="text" id="m-last" required /></label>
+          </div>
+          <div class="cf-row">
+            <label class="cf-field"><span>Email</span><input type="email" id="m-email" autocomplete="email" required /></label>
+            <label class="cf-field"><span>Téléphone</span><input type="tel" id="m-phone" autocomplete="tel" required /></label>
+          </div>
+          <div class="cf-row">
+            <label class="cf-field"><span>Date de naissance</span><input type="date" id="m-birth" required /></label>
+            <label class="cf-field"><span>Adresse</span><input type="text" id="m-address" required /></label>
+          </div>
+          <div class="cf-row">
+            <label class="cf-field"><span>NPA</span><input type="text" id="m-npa" required /></label>
+            <label class="cf-field"><span>Localité</span><input type="text" id="m-city" required /></label>
+          </div>
+          <label class="cf-field"><span>Message</span><textarea id="m-message" rows="3"></textarea></label>
+          <label class="m-consent"><input type="checkbox" id="m-consent" required />
+            <span>J'ai lu et j'accepte le <a href="assets/Reglement_TCLS_2026.pdf" target="_blank" rel="noopener">règlement du club (PDF)</a>.</span></label>
+          <button type="submit" id="m-btn">Envoyer ma demande d'adhésion</button>
+          <p id="m-error" class="error" hidden></p>
+        </form>
+        <div id="m-done" class="hidden" style="max-width:720px;background:var(--accent-soft);border-radius:16px;padding:24px;text-align:center">
+          <p style="font-size:1.15rem;font-weight:800;color:var(--blue-ink);margin:0 0 6px">Merci, votre demande est envoyée !</p>
+          <p class="muted" style="margin:0">Le secrétariat vous recontacte pour finaliser votre adhésion.</p>
+        </div></section>`;
 
     case "gzphotos":
       return `<section class="wsec"><div id="gz-photos-carousel" class="gz-carousel"></div></section>`;
@@ -917,6 +975,8 @@ document.addEventListener("click", (e) => {
     else if (t === "gamezone") location.hash = "gamezone";
     return;
   }
+  const plan = e.target.closest("[data-plan]");
+  if (plan) { $("plan-img").src = plan.dataset.plan; $("plan-modal").classList.remove("hidden"); return; }
   const scroll = e.target.closest("[data-scroll]");
   if (scroll) { document.querySelector("." + scroll.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
   const goto = e.target.closest("[data-goto]");
@@ -931,6 +991,37 @@ document.addEventListener("click", (e) => {
   if (back) { location.hash = back.dataset.back; return; }
   const sw = e.target.closest(".sw, .flow-step");
   if (sw && sw.dataset.world) { location.hash = sw.dataset.world; }
+});
+
+// Popup "Plan des courts" : fermeture
+$("plan-close").addEventListener("click", () => $("plan-modal").classList.add("hidden"));
+$("plan-modal").addEventListener("click", (e) => { if (e.target === $("plan-modal")) $("plan-modal").classList.add("hidden"); });
+
+// Formulaire de demande d'adhésion (page "Devenir membre")
+document.addEventListener("submit", async (e) => {
+  if (e.target.id !== "member-form") return;
+  e.preventDefault();
+  if (!$("m-consent").checked) { const er = $("m-error"); er.textContent = "Merci d'accepter le règlement du club."; er.hidden = false; return; }
+  const err = $("m-error"); err.hidden = true;
+  const btn = $("m-btn"); btn.disabled = true; btn.textContent = "Envoi…";
+  const v = (id) => $(id).value.trim();
+  const msg = [
+    "Téléphone : " + v("m-phone"),
+    "Date de naissance : " + v("m-birth"),
+    "Adresse : " + v("m-address") + ", " + v("m-npa") + " " + v("m-city"),
+    "Règlement du club : accepté ✔",
+    v("m-message") ? "\nMessage : " + v("m-message") : "",
+  ].join("\n");
+  const { error } = await sb.from("contact_messages").insert({
+    source: "Adhésion — Club",
+    name: v("m-first") + " " + v("m-last"),
+    email: v("m-email"),
+    message: msg,
+  });
+  btn.disabled = false; btn.textContent = "Envoyer ma demande d'adhésion";
+  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
+  $("member-form").classList.add("hidden");
+  $("m-done").classList.remove("hidden");
 });
 
 // Formulaire de contact business (en bas de la page "business")

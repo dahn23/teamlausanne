@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#123cc4" />
   <title>Team Lausanne — Club · Académie · Tournoi</title>
   <meta name="description" content="Aux Plaines-du-Loup à Lausanne : le club Lausanne-Sports Tennis, l'académie Team Lausanne et le tournoi Lausanne Open. Un lieu, trois mondes." />
-  <link rel="stylesheet" href="style.css?v=9" />
+  <link rel="stylesheet" href="style.css?v=10" />
 </head>
 <body class="public" data-world="club">
   <header class="nav">
@@ -107,6 +107,14 @@
     </div>
     <p class="foot-copy">© 2026 Team Lausanne — Club · Academy · Tournoi</p>
   </footer>
+
+  <!-- ---------- Plan des courts ---------- -->
+  <div id="plan-modal" class="modal hidden">
+    <div class="plan-card">
+      <button type="button" id="plan-close" class="modal-x" aria-label="Fermer">✕</button>
+      <img id="plan-img" src="" alt="Plan des courts — Team Lausanne, Plaines-du-Loup" />
+    </div>
+  </div>
 
   <!-- ---------- Connexion ---------- -->
   <div id="login-modal" class="modal hidden">
