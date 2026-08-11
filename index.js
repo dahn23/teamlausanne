@@ -22,7 +22,7 @@ const WORLDS = {
     hero: "assets/club/hero-balls.jpg",
     cta: [{ label: "Réserver un court", type: "login" }],
     sections: [
-      { type: "split", anchor: "cotisation", title: "Votre club, toute l'année", photo: "assets/photos/p5.jpg", body: [
+      { type: "split", anchor: "cotisation", title: "Votre club, toute l'année", photo: "assets/club/club-racket.jpg", body: [
         "Devenez membre du Lausanne-Sports Tennis : jouez librement sur tous les courts extérieurs durant tout l'été, et profitez de conditions avantageuses sur les courts couverts en hiver.",
         "L'adhésion est payante (cotisation annuelle). Elle vous ouvre la réservation en ligne, le club-house et le restaurant, au cœur des Plaines-du-Loup.",
       ], link: { label: "Réserver un court", action: "login" } },
@@ -31,9 +31,9 @@ const WORLDS = {
         items: [
           { name: "Devenir membre", photo: "assets/club/devenir-membre.png", href: "#devenir-membre" },
           { name: "Jouer librement", photo: "assets/club/jouer-librement.jpg", login: true },
+          { name: "Plan des courts", photo: "assets/club/plan-courts.webp", plan: true },
           { name: "Interclubs 2027", photo: "assets/club/interclubs.jpg" },
           { name: "Interclubs juniors 2027", photo: "assets/club/interclubs-juniors.jpg" },
-          { name: "Plan des courts", photo: "assets/club/plan-courts.webp", plan: true },
         ]},
       { type: "instagram", anchor: "vie", title: "Vie du club", handle: "lausanne_sports_tennis",
         photos: ["assets/webflow/tennis-day.webp", "assets/webflow/prog-club.webp",
@@ -214,7 +214,7 @@ const WORLDS = {
 const DETAILS = {
   "devenir-membre": {
     world: "club", title: "Devenir membre", subtitle: "Rejoignez le Lausanne-Sports Tennis aux Plaines-du-Loup",
-    hero: "assets/club/devenir-membre.png",
+    hero: "assets/club/devenir-hero.jpg",
     sections: [
       { type: "rich", title: "Jouez toute l'année", body: [
         "En devenant membre du Lausanne-Sports Tennis, vous jouez librement sur les courts extérieurs tout l'été et profitez de conditions avantageuses sur les courts couverts en hiver.",
@@ -557,7 +557,7 @@ function sectionHTML(sec) {
           ${sec.sub ? `<p class="carousel-sub">${esc(sec.sub)}</p>` : ""}
         </div>
         <div class="carousel">${sec.items.map((o) =>
-          `<article class="ccard"><div class="ccard-media" style="background-image:url('${o.photo}')"></div>
+          `<article class="ccard"><div class="ccard-media${o.plan ? " ccard-media-plan" : ""}" style="background-image:url('${o.photo}')"></div>
             ${pill(o)}</article>`).join("")}</div></section>`;
     }
 

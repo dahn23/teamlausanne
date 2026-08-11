@@ -908,6 +908,8 @@ body[data-world="academie"] .stat{color:var(--fluo-ink)}
   font-weight:900;font-size:1.1rem;padding:11px 18px;border-radius:12px;text-decoration:none}
 .biz-done{grid-column:1/-1;background:var(--accent-soft);border-radius:16px;padding:24px;text-align:center}
 @media(max-width:720px){.biz-contact-grid{grid-template-columns:1fr}}
+/* Tuile "Plan des courts" du carrousel : plan entier sur fond blanc */
+.ccard-media-plan{background-color:#fff;background-size:contain;background-repeat:no-repeat;background-position:center}
 /* Popup plan des courts (fond blanc) */
 .plan-card{position:relative;background:#fff;border-radius:16px;padding:14px;
   max-width:min(94vw,1000px);max-height:90vh;box-shadow:0 20px 60px rgba(0,0,0,.4)}
