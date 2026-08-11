@@ -285,6 +285,7 @@
           <div class="subnav">
             <button class="subtab et-subtab active" data-sub="calendrier">Calendrier</button>
             <button class="subtab et-subtab" data-sub="jeunes">Par jeune</button>
+            <button class="subtab et-subtab" data-sub="profs">Profs</button>
             <button class="subtab et-subtab" data-sub="reglages">Réglages</button>
           </div>
 
@@ -333,6 +334,32 @@
                 <div id="et-rem-list" class="obj-list"></div>
               </div>
             </div>
+          </div>
+
+          <div id="et-sub-profs" class="et-sub hidden">
+            <div class="crm-actions" style="margin-bottom:10px"><label class="bsc-lbl">Saison<select id="et-pf-season"></select></label></div>
+            <div class="rg-card">
+              <h3 style="margin-top:0">Attribuer un prof à des jours</h3>
+              <p class="muted" style="font-size:.85rem;margin:0 0 10px">Choisis un prof, les jours de la semaine et la période. Il est ajouté (ou retiré) comme prof pour ces jours — les autres profs déjà assignés ne bougent pas.</p>
+              <label class="bsc-lbl">Prof<select id="et-pf-prof"></select></label>
+              <div class="et-plan-days" style="margin-top:12px">
+                <label><input type="checkbox" class="et-pf-dow" value="1" checked /> Lun</label>
+                <label><input type="checkbox" class="et-pf-dow" value="2" checked /> Mar</label>
+                <label><input type="checkbox" class="et-pf-dow" value="3" checked /> Mer</label>
+                <label><input type="checkbox" class="et-pf-dow" value="4" checked /> Jeu</label>
+                <label><input type="checkbox" class="et-pf-dow" value="5" checked /> Ven</label>
+              </div>
+              <div class="et-plan-range">
+                <label>Du <input type="date" id="et-pf-from" /></label>
+                <label>Au <input type="date" id="et-pf-to" /></label>
+              </div>
+              <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <button type="button" id="et-pf-apply">Attribuer</button>
+                <button type="button" id="et-pf-remove" class="ghost">Retirer</button>
+                <span id="et-pf-status" class="muted" style="font-size:.85rem"></span>
+              </div>
+            </div>
+            <div id="et-pf-list" class="table-wrap" style="margin-top:14px"></div>
           </div>
 
           <div id="et-sub-reglages" class="et-sub hidden">

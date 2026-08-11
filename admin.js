@@ -4045,6 +4045,7 @@ function initEtudes() {
       document.querySelectorAll("#view-etudes .et-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "et-sub-" + b.dataset.sub));
       if (b.dataset.sub === "calendrier") loadEtudesCalendar();
       if (b.dataset.sub === "jeunes") loadEtudesYouths();
+      if (b.dataset.sub === "profs") loadEtudesProfs();
       if (b.dataset.sub === "reglages") loadEtudesReglages();
     }));
   $("et-season").addEventListener("change", loadEtudesCalendar);
@@ -4054,6 +4055,9 @@ function initEtudes() {
   $("et-plan-apply").addEventListener("click", applyEtudesPlan);
   $("et-rg-generate").addEventListener("click", generateEtudesDays);
   $("et-rg-season").addEventListener("change", loadEtudesReglages);
+  $("et-pf-season").addEventListener("change", loadEtudesProfs);
+  $("et-pf-apply").addEventListener("click", () => assignEtudesProf(false));
+  $("et-pf-remove").addEventListener("click", () => assignEtudesProf(true));
 }
 
 function etPopulateSeasons() {
@@ -4062,6 +4066,7 @@ function etPopulateSeasons() {
   if (!$("et-season").options.length) $("et-season").innerHTML = opts;
   if (!$("et-season2").options.length) $("et-season2").innerHTML = opts;
   if ($("et-rg-season") && !$("et-rg-season").options.length) $("et-rg-season").innerHTML = opts;
+  if ($("et-pf-season") && !$("et-pf-season").options.length) $("et-pf-season").innerHTML = opts;
 }
 async function etYouthsForSeason(seasonId) {
   if (!seasonId) return [];
@@ -4156,6 +4161,43 @@ async function generateEtudesDays() {
   if (error) { $("et-rg-status").textContent = "Erreur : " + error.message; return; }
   $("et-rg-status").textContent = `✓ ${data} jour(s) ajouté(s) (hors vacances). Onglet Calendrier pour voir.`;
 }
+// ---- Profs : attribuer un prof à des jours sur une période ----
+async function loadEtudesProfs() {
+  await loadSeasonsList();
+  etPopulateSeasons();
+  $("et-pf-status").textContent = "";
+  const seasonId = $("et-pf-season").value;
+  const profs = people.filter((p) => hasRoleIn(p.id, ["prof"]));
+  $("et-pf-prof").innerHTML = profs.length
+    ? profs.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")
+    : '<option value="">— aucun prof (taguer « Prof » dans une fiche) —</option>';
+  if (!seasonId) { $("et-pf-list").innerHTML = '<p class="muted" style="font-size:.85rem">Crée une saison juniors.</p>'; return; }
+  const { data: days } = await sb.from("etudes_days").select("id,day").eq("season_id", seasonId).order("day");
+  if (days && days.length) { $("et-pf-from").value = days[0].day; $("et-pf-to").value = days[days.length - 1].day; }
+  const dayIds = (days || []).map((d) => d.id);
+  let dp = [];
+  if (dayIds.length) dp = (await sb.from("etudes_day_profs").select("prof_person_id").in("day_id", dayIds)).data || [];
+  const cnt = {}; for (const r of dp) cnt[r.prof_person_id] = (cnt[r.prof_person_id] || 0) + 1;
+  $("et-pf-list").innerHTML = profs.length
+    ? '<table class="crm-table"><thead><tr><th>Prof</th><th>Jours assignés</th></tr></thead><tbody>'
+      + profs.map((p) => `<tr><td><b>${esc(p.last_name)} ${esc(p.first_name)}</b></td><td>${cnt[p.id] || 0}</td></tr>`).join("")
+      + "</tbody></table>"
+    : '<p class="muted" style="font-size:.85rem">Aucun prof taggé. Ajoute le tag « Prof » dans une fiche.</p>';
+}
+async function assignEtudesProf(remove) {
+  const seasonId = $("et-pf-season").value, prof = $("et-pf-prof").value;
+  const dows = [...document.querySelectorAll(".et-pf-dow:checked")].map((c) => Number(c.value));
+  const from = $("et-pf-from").value, to = $("et-pf-to").value;
+  if (!seasonId || !prof) { $("et-pf-status").textContent = "Choisis une saison et un prof."; return; }
+  if (!dows.length) { $("et-pf-status").textContent = "Coche au moins un jour."; return; }
+  if (!from || !to) { $("et-pf-status").textContent = "Choisis une période."; return; }
+  $("et-pf-status").textContent = remove ? "Retrait…" : "Attribution…";
+  const { data, error } = await sb.rpc("etudes_assign_prof", { p_prof: prof, p_season: seasonId, p_dows: dows, p_from: from, p_to: to, p_remove: !!remove });
+  if (error) { $("et-pf-status").textContent = "Erreur : " + error.message; return; }
+  $("et-pf-status").textContent = remove ? `✓ ${data} jour(s) retiré(s).` : `✓ ${data} jour(s) attribué(s).`;
+  loadEtudesProfs();
+}
+
 // ---- Planning par jeune : quels jours il vient (les autres = « pas prévu ») ----
 async function applyEtudesPlan() {
   const seasonId = $("et-season2").value;
