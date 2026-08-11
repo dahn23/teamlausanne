@@ -4034,6 +4034,8 @@ const ET_ORDER = ["", "present", "late", "absent", "not_planned"];
 const etNext = (s) => ET_ORDER[(ET_ORDER.indexOf(s || "") + 1) % ET_ORDER.length];
 const ET_CLS = { present: "st-present", late: "st-late", absent: "st-absent", not_planned: "st-locked", "": "st-none" };
 const ET_LBL = { present: "P", late: "R", absent: "A", not_planned: "—", "": "" };
+// Jour de la semaine (abréviation FR) à partir d'une date ISO 'YYYY-MM-DD'
+const etDow = (iso) => ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][new Date(iso + "T00:00:00").getDay()];
 let etYouthId = null;
 
 function initEtudes() {
@@ -4043,12 +4045,14 @@ function initEtudes() {
       document.querySelectorAll("#view-etudes .et-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "et-sub-" + b.dataset.sub));
       if (b.dataset.sub === "calendrier") loadEtudesCalendar();
       if (b.dataset.sub === "jeunes") loadEtudesYouths();
+      if (b.dataset.sub === "reglages") loadEtudesReglages();
     }));
   $("et-season").addEventListener("change", loadEtudesCalendar);
   $("et-season2").addEventListener("change", loadEtudesYouths);
-  $("et-add-day").addEventListener("click", addEtudesDay);
   $("et-youth-back").addEventListener("click", () => { $("et-youth-detail").classList.add("hidden"); $("et-youth-list").classList.remove("hidden"); });
   $("et-rem-add").addEventListener("click", addEtRemark);
+  $("et-plan-apply").addEventListener("click", applyEtudesPlan);
+  $("et-rg-generate").addEventListener("click", generateEtudesDays);
 }
 
 function etPopulateSeasons() {
@@ -4056,6 +4060,7 @@ function etPopulateSeasons() {
   const opts = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">— créez une saison juniors —</option>';
   if (!$("et-season").options.length) $("et-season").innerHTML = opts;
   if (!$("et-season2").options.length) $("et-season2").innerHTML = opts;
+  if ($("et-rg-season") && !$("et-rg-season").options.length) $("et-rg-season").innerHTML = opts;
 }
 async function etYouthsForSeason(seasonId) {
   if (!seasonId) return [];
@@ -4089,7 +4094,7 @@ async function loadEtudesCalendar() {
     + youths.map((y) => `<th title="${esc(y.last_name)} ${esc(y.first_name)}">${esc(y.last_name)} ${esc((y.first_name || "").slice(0, 1))}.</th>`).join("") + "</tr></thead><tbody>";
   for (const d of days) {
     const dp = profs.filter((p) => p.day_id === d.id);
-    html += `<tr><td>${frDate(d.day)}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions)}</td>`
+    html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions)}</td>`
       + youths.map((y) => { const s = attOf(d.id, y.id); return `<td><button type="button" class="att-chip et-cell ${ET_CLS[s]}" data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
@@ -4115,14 +4120,38 @@ async function etCycle(cell) {
   cell.className = "att-chip et-cell " + ET_CLS[next];
   cell.textContent = ET_LBL[next];
 }
-async function addEtudesDay() {
-  const seasonId = $("et-season").value, day = $("et-newday").value;
-  if (!seasonId) { alert("Choisis une saison."); return; }
-  if (!day) { alert("Choisis une date."); return; }
-  const { error } = await sb.from("etudes_days").insert({ season_id: seasonId, day });
-  if (error) { alert(error.code === "23505" ? "Ce jour existe déjà." : error.message); return; }
-  $("et-newday").value = "";
-  loadEtudesCalendar();
+// ---- Réglages : générer le calendrier d'une saison ----
+async function loadEtudesReglages() {
+  await loadSeasonsList();
+  etPopulateSeasons();
+  const s = seasonsOf("juniors").find((x) => x.id === $("et-rg-season").value) || currentSeason("juniors");
+  if (s) { $("et-rg-season").value = s.id; $("et-rg-from").value = s.start_date; $("et-rg-to").value = s.end_date; }
+  $("et-rg-status").textContent = "";
+}
+async function generateEtudesDays() {
+  const seasonId = $("et-rg-season").value;
+  const dows = [...document.querySelectorAll(".et-rg-dow:checked")].map((c) => Number(c.value));
+  const from = $("et-rg-from").value, to = $("et-rg-to").value;
+  if (!seasonId) { $("et-rg-status").textContent = "Choisis une saison."; return; }
+  if (!dows.length) { $("et-rg-status").textContent = "Coche au moins un jour."; return; }
+  if (!from || !to) { $("et-rg-status").textContent = "Choisis une période."; return; }
+  $("et-rg-status").textContent = "Génération…";
+  const { data, error } = await sb.rpc("etudes_generate_days", { p_season: seasonId, p_dows: dows, p_from: from, p_to: to });
+  if (error) { $("et-rg-status").textContent = "Erreur : " + error.message; return; }
+  $("et-rg-status").textContent = `✓ ${data} jour(s) ajouté(s) (hors vacances). Onglet Calendrier pour voir.`;
+}
+// ---- Planning par jeune : quels jours il vient (les autres = « pas prévu ») ----
+async function applyEtudesPlan() {
+  const seasonId = $("et-season2").value;
+  if (!etYouthId || !seasonId) return;
+  const dows = [...document.querySelectorAll("#et-youth-detail .et-dow:checked")].map((c) => Number(c.value));
+  const from = $("et-plan-from").value, to = $("et-plan-to").value;
+  if (!from || !to) { $("et-plan-status").textContent = "Choisis une période."; return; }
+  $("et-plan-status").textContent = "Application…";
+  const { error } = await sb.rpc("etudes_apply_plan", { p_youth: etYouthId, p_season: seasonId, p_dows: dows, p_from: from, p_to: to });
+  if (error) { $("et-plan-status").textContent = "Erreur : " + error.message; return; }
+  const jl = dows.length ? dows.map((d) => ["", "Lun", "Mar", "Mer", "Jeu", "Ven"][d]).join(" · ") : "aucun jour";
+  $("et-plan-status").textContent = `✓ Appliqué (${jl}). Les autres jours de la période sont « pas prévu ».`;
 }
 
 // ---- Sous-onglet Par jeune ----
@@ -4156,8 +4185,12 @@ async function openEtudesYouth(yid) {
   const seasonId = $("et-season2").value;
   const p = people.find((x) => x.id === yid);
   $("et-youth-name").textContent = p ? `${p.last_name} ${p.first_name}` : "—";
-  const { data: days } = await sb.from("etudes_days").select("id").eq("season_id", seasonId);
+  const { data: days } = await sb.from("etudes_days").select("id,day").eq("season_id", seasonId).order("day");
   const dayIds = (days || []).map((d) => d.id);
+  // Planning : période par défaut = étendue de la saison ; cases décochées
+  if (days && days.length) { $("et-plan-from").value = days[0].day; $("et-plan-to").value = days[days.length - 1].day; }
+  document.querySelectorAll("#et-youth-detail .et-dow").forEach((c) => (c.checked = false));
+  $("et-plan-status").textContent = "";
   let att = [];
   if (dayIds.length) att = (await sb.from("etudes_attendance").select("status").in("day_id", dayIds).eq("youth_person_id", yid)).data || [];
   const rows = att.filter((a) => a.status !== "not_planned"), n = rows.length;

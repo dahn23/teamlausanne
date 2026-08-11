@@ -925,6 +925,12 @@ button.wsec-link{color:#fff;border-bottom:0}
 .pl-label{color:var(--ink);font-weight:600}
 .pl-dots{flex:1}
 .pl-price{font-weight:800;color:var(--blue-ink);white-space:nowrap}
+/* Planning Études (cases jours + période) */
+.et-plan-days{display:flex;gap:16px;flex-wrap:wrap}
+.et-plan-days label{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--ink)}
+.et-plan-days input,.et-plan-range input[type=checkbox]{width:17px;height:17px;flex-shrink:0}
+.et-plan-range{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+.et-plan-range label{display:inline-flex;align-items:center;gap:6px;font-size:.9rem}
 /* Case règlement (formulaire d'adhésion) */
 .m-consent{display:flex;align-items:flex-start;gap:10px;font-size:.92rem;color:var(--ink)}
 .m-consent input{width:18px;height:18px;flex-shrink:0;margin-top:1px}
