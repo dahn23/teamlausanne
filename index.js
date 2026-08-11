@@ -18,7 +18,7 @@ const WORLDS = {
   club: {
     tag: "Le Club", logo: "assets/logo-club.webp",
     slogan: "Votre club, toute l'année.",
-    desc: "Le club de tennis historique de Lausanne, aux Plaines-du-Loup depuis 1911. Devenez membre, jouez librement toute l'année et vivez la compétition en interclubs.",
+    desc: "Le club de tennis historique de Lausanne, aux Plaines-du-Loup depuis 1911. Devenez membre, jouez toute l'année et vivez la compétition en interclubs.",
     hero: "assets/club/hero-balls.jpg",
     cta: [{ label: "Réserver un court", type: "login" }],
     sections: [

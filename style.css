@@ -858,6 +858,8 @@ body[data-world="academie"] .stat{color:var(--fluo-ink)}
 .wsec-link{display:inline-block;margin-top:16px;color:var(--accent-ink);font-weight:800;
   font-style:italic;text-transform:uppercase;letter-spacing:-.2px;text-decoration:none;
   border-bottom:3px solid var(--accent);padding-bottom:2px}
+/* Variante bouton plein (ex. « Réserver un court ») : texte en blanc, sans soulignement */
+button.wsec-link{color:#fff;border-bottom:0}
 .rich{max-width:740px}
 .rich p{color:#2c3240;line-height:1.65;margin:0 0 12px;font-size:1.02rem}
 
