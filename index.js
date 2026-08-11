@@ -186,11 +186,6 @@ const WORLDS = {
         "Une offre exclusive et networking : chaque vendredi matin, jouez 2h en halle couverte (été comme hiver), puis prolongez autour d'un apéro dînatoire sur le court.",
         "15 crédits à utiliser librement pour inviter vos clients ou partenaires, des coachs pour animer, une thématique par vendredi — et un soutien reversé aux jeunes de l'académie.",
       ], link: { label: "Rejoindre le Club des Présidents", href: "presidents.html" } },
-      { type: "logos", anchor: "sponsors", title: "Nos sponsors", items: [
-        "assets/webflow/sp-lausanne-sport.png", "assets/webflow/sp-ville-lausanne.png",
-        "assets/webflow/sp-vaud.png", "assets/webflow/sp-aquatis.png",
-        "assets/webflow/sp-isaac.png", "assets/webflow/sp-sil.png", "assets/webflow/sp-les-roches.png",
-      ]},
       { type: "features", anchor: "avantages", title: "Avantages & offres partenaires", items: [
         ["Visibilité", "Présence sur les courts, le site et les supports de communication."],
         ["Réseau", "Accès au Club des Présidents et aux événements du club."],
