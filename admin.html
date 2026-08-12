@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=14" />
+  <link rel="stylesheet" href="style.css?v=15" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -326,12 +326,8 @@
                 <span id="et-plan-status" class="muted" style="margin-left:10px;font-size:.85rem"></span>
               </div>
               <div class="rg-card" style="margin-top:14px">
-                <h3 style="margin:0 0 8px">Remarques</h3>
-                <div class="obj-add">
-                  <textarea id="et-rem-body" rows="2" placeholder="Nouvelle remarque…"></textarea>
-                  <button type="button" id="et-rem-add">Ajouter</button>
-                </div>
-                <div id="et-rem-list" class="obj-list"></div>
+                <h3 style="margin:0 0 8px">Suivi du jeune</h3>
+                <div id="et-chan"></div>
               </div>
             </div>
           </div>
@@ -410,12 +406,8 @@
               <button type="button" id="mn-part-back" class="ghost stg-back">← Retour à la liste</button>
               <div class="rg-card" style="margin-top:10px">
                 <h2 id="mn-part-name" style="margin-top:0"></h2>
-                <h3 style="margin:0 0 8px">Commentaires</h3>
-                <div class="obj-add">
-                  <textarea id="mn-cmt-body" rows="2" placeholder="Nouveau commentaire…"></textarea>
-                  <button type="button" id="mn-cmt-add">Ajouter</button>
-                </div>
-                <div id="mn-cmt-list" class="obj-list"></div>
+                <h3 style="margin:0 0 8px">Suivi mental</h3>
+                <div id="mn-chan"></div>
               </div>
             </div>
           </div>
@@ -907,21 +899,13 @@
 
       <div id="ptab-etudes" class="ptab-panel hidden">
         <div id="pe-stats" class="et-stats"></div>
-        <h3 style="margin:14px 0 8px">Remarques</h3>
-        <div class="obj-add">
-          <textarea id="pe-rem-body" rows="2" placeholder="Nouvelle remarque…"></textarea>
-          <button type="button" id="pe-rem-add">Ajouter</button>
-        </div>
-        <div id="pe-rem-list" class="obj-list"></div>
+        <h3 style="margin:14px 0 8px">Suivi du jeune</h3>
+        <div id="pe-chan"></div>
       </div>
 
       <div id="ptab-mental" class="ptab-panel hidden">
-        <p class="muted" style="font-size:.85rem;margin:0 0 10px">Commentaires de préparation mentale (coach mental / head coach / admin).</p>
-        <div class="obj-add">
-          <textarea id="pm-cmt-body" rows="2" placeholder="Nouveau commentaire…"></textarea>
-          <button type="button" id="pm-cmt-add">Ajouter</button>
-        </div>
-        <div id="pm-cmt-list" class="obj-list"></div>
+        <h3 style="margin:0 0 8px">Suivi mental</h3>
+        <div id="pm-chan"></div>
       </div>
 
       <div id="ptab-stages" class="ptab-panel hidden">

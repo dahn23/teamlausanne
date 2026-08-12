@@ -167,8 +167,6 @@ async function init(roles) {
   $("media-btn").addEventListener("click", () => $("media-file").click());
   $("media-file").addEventListener("change", (e) => uploadMedia(e.target));
   $("pp-fill").addEventListener("click", () => openPhysFillFor($("p-id").value));
-  $("pe-rem-add").addEventListener("click", peAddRemark);
-  $("pm-cmt-add").addEventListener("click", () => mentalAddComment($("p-id").value, "pm-cmt-body", () => loadPersonMental($("p-id").value, true)));
   $("p-photo-btn").addEventListener("click", () => $("p-photo-file").click());
   $("p-photo-file").addEventListener("change", () => uploadPersonPhoto($("p-photo-file")));
   $("search").addEventListener("input", renderRows);
@@ -1072,7 +1070,7 @@ function openPerson(p) {
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
   if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonMental(p.id, mentalByRole); loadPersonStages(p.id); }
-  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("pe-rem-list").innerHTML = ""; $("pm-cmt-list").innerHTML = ""; $("ps-participations").innerHTML = ""; }
+  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("pe-chan").innerHTML = ""; $("pm-chan").innerHTML = ""; $("ps-participations").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -3821,7 +3819,7 @@ async function loadPersonPhys(personId, byRole) {
 
 let peYouthId = null;
 async function loadPersonEtudes(personId, byRole) {
-  if (!personId) { $("pe-stats").innerHTML = ""; $("pe-rem-list").innerHTML = ""; return; }
+  if (!personId) { $("pe-stats").innerHTML = ""; $("pe-chan").innerHTML = ""; return; }
   showPersonTab("etudes", byRole);
   const season = currentSeason("juniors");
   let n = 0, pr = 0, la = 0, ab = 0;
@@ -3838,7 +3836,7 @@ async function loadPersonEtudes(personId, byRole) {
   $("pe-stats").innerHTML = (season ? `<div class="muted" style="width:100%;font-size:.82rem;margin-bottom:6px">Saison ${esc(season.label)}</div>` : "")
     + (n ? `<div class="et-stat st-present"><b>${pct(pr)}%</b><span>présent (${pr})</span></div><div class="et-stat st-late"><b>${pct(la)}%</b><span>retard (${la})</span></div><div class="et-stat st-absent"><b>${pct(ab)}%</b><span>absent (${ab})</span></div><div class="et-stat"><b>${n}</b><span>jours</span></div>`
       : '<p class="muted" style="font-size:.85rem">Aucune présence renseignée.</p>');
-  loadPeRemarks(personId);
+  channelBox("pe-chan", "etudes_remarks", personId);
 }
 async function loadPeRemarks(youthId) {
   peYouthId = youthId;
@@ -3899,7 +3897,6 @@ function initMental() {
   $("mn-season2").addEventListener("change", loadMentalParticipants);
   $("mn-add-session").addEventListener("click", addMentalSession);
   $("mn-part-back").addEventListener("click", () => { $("mn-part-detail").classList.add("hidden"); $("mn-part-list").classList.remove("hidden"); });
-  $("mn-cmt-add").addEventListener("click", () => mentalAddComment(mnYouthId, "mn-cmt-body", () => loadMnComments(mnYouthId)));
 }
 function mnPopulateSeasons() {
   const cur = currentSeason("juniors")?.id;
@@ -3980,7 +3977,7 @@ function openMentalParticipant(yid) {
   $("mn-part-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
 }
-function loadMnComments(yid) { mnYouthId = yid; renderMentalComments(yid, "mn-cmt-list", () => loadMnComments(yid)); }
+function loadMnComments(yid) { mnYouthId = yid; channelBox("mn-chan", "mental_comments", yid); }
 
 // ---- Commentaires mental (partagés participants / fiche) ----
 async function renderMentalComments(youthId, listId, refresh) {
@@ -4021,10 +4018,10 @@ async function mentalDelComment(id, refresh) {
 // Onglet Mental de la fiche du jeune
 let pmYouthId = null;
 async function loadPersonMental(personId, byRole) {
-  if (!personId) { $("pm-cmt-list").innerHTML = ""; return; }
+  if (!personId) { $("pm-chan").innerHTML = ""; return; }
   pmYouthId = personId;
   showPersonTab("mental", byRole);
-  renderMentalComments(personId, "pm-cmt-list", () => loadPersonMental(personId, byRole));
+  channelBox("pm-chan", "mental_comments", personId);
 }
 
 // ===================================================================
@@ -4051,7 +4048,6 @@ function initEtudes() {
   $("et-season").addEventListener("change", loadEtudesCalendar);
   $("et-season2").addEventListener("change", loadEtudesYouths);
   $("et-youth-back").addEventListener("click", () => { $("et-youth-detail").classList.add("hidden"); $("et-youth-list").classList.remove("hidden"); });
-  $("et-rem-add").addEventListener("click", addEtRemark);
   $("et-plan-apply").addEventListener("click", applyEtudesPlan);
   $("et-rg-generate").addEventListener("click", generateEtudesDays);
   $("et-rg-season").addEventListener("change", loadEtudesReglages);
@@ -4259,11 +4255,70 @@ async function openEtudesYouth(yid) {
     <div class="et-stat st-late"><b>${pct(c("late"))}%</b><span>en retard (${c("late")})</span></div>
     <div class="et-stat st-absent"><b>${pct(c("absent"))}%</b><span>absent (${c("absent")})</span></div>
     <div class="et-stat"><b>${n}</b><span>jours comptés</span></div>` : '<p class="muted" style="font-size:.85rem">Aucune présence renseignée (les « pas prévu » ne comptent pas).</p>';
-  loadEtRemarks(yid);
+  channelBox("et-chan", "etudes_remarks", yid);
   $("et-youth-list").classList.add("hidden");
   $("et-youth-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
 }
+// ---- Composant « double canal » (interne / public) réutilisable ----
+// Utilisé dans : onglet Études, onglet Mental, fiche Études, fiche Mental.
+const CHAN_CFG = {
+  etudes_remarks: { author: "prof_name", authorId: "prof_person_id" },
+  mental_comments: { author: "author_name", authorId: "author_person_id" },
+};
+async function channelBox(mountId, table, youthId) {
+  const el = $(mountId);
+  if (!el) return;
+  if (!youthId) { el.innerHTML = ""; return; }
+  const cfg = CHAN_CFG[table];
+  const chan = el.dataset.chan === "public" ? "public" : "interne";
+  el.dataset.chan = chan;
+  const { data } = await sb.from(table).select("*").eq("youth_person_id", youthId).eq("channel", chan).order("created_at", { ascending: false });
+  const rows = data || [];
+  const items = rows.length ? rows.map((r) => {
+    const mine = r.created_by === meId;
+    const edited = r.updated_at && r.updated_at !== r.created_at ? ' <span class="muted">(modifié)</span>' : "";
+    return `<div class="obj-item" data-id="${r.id}"><div class="obj-meta"><b>${esc(r[cfg.author] || "—")}</b><span>${frDateTime(r.created_at)}${edited}</span></div>
+      <div class="obj-body">${esc(r.body)}</div>
+      ${mine ? `<div class="obj-acts"><button type="button" class="edit">Modifier</button><button type="button" class="del">Supprimer</button></div>` : ""}</div>`;
+  }).join("") : '<p class="obj-empty">Aucun message dans ce canal.</p>';
+  el.innerHTML = `
+    <div class="chan-tabs">
+      <button type="button" class="chan-tab ${chan === "interne" ? "active" : ""}" data-chan="interne">🔒 Interne</button>
+      <button type="button" class="chan-tab pub ${chan === "public" ? "active" : ""}" data-chan="public">🌐 Public</button>
+    </div>
+    <p class="chan-note ${chan}">${chan === "interne"
+      ? "Canal interne — visible par le staff, les profs et les coachs."
+      : "Canal public — visible aussi par le jeune concerné et ses parents."}</p>
+    <div class="obj-add"><textarea class="chan-body" rows="2" placeholder="${chan === "interne" ? "Note interne…" : "Message partagé au jeune / aux parents…"}"></textarea>
+      <button type="button" class="chan-add">Ajouter</button></div>
+    <div class="obj-list">${items}</div>`;
+  el.querySelectorAll(".chan-tab").forEach((b) => b.addEventListener("click", () => { el.dataset.chan = b.dataset.chan; channelBox(mountId, table, youthId); }));
+  el.querySelector(".chan-add").addEventListener("click", async () => {
+    const body = el.querySelector(".chan-body").value.trim(); if (!body) return;
+    const row = { youth_person_id: youthId, body, channel: chan, created_by: meId };
+    row[cfg.author] = meName; row[cfg.authorId] = myPersonId;
+    const { error } = await sb.from(table).insert(row);
+    if (error) { alert(error.message); return; }
+    channelBox(mountId, table, youthId);
+  });
+  el.querySelectorAll(".del").forEach((b) => b.addEventListener("click", async () => {
+    if (!confirm("Supprimer ce message ?")) return;
+    await sb.from(table).delete().eq("id", b.closest(".obj-item").dataset.id);
+    channelBox(mountId, table, youthId);
+  }));
+  el.querySelectorAll(".edit").forEach((b) => b.addEventListener("click", () => {
+    const item = b.closest(".obj-item"), id = item.dataset.id, cur = rows.find((r) => r.id === id);
+    item.querySelector(".obj-body").innerHTML = `<textarea class="chan-edit-body" rows="2" style="width:100%">${esc(cur.body)}</textarea>
+      <div style="margin-top:6px"><button type="button" class="chan-save">Enregistrer</button></div>`;
+    item.querySelector(".chan-save").addEventListener("click", async () => {
+      const nb = item.querySelector(".chan-edit-body").value.trim(); if (!nb) return;
+      await sb.from(table).update({ body: nb, updated_at: new Date().toISOString() }).eq("id", id);
+      channelBox(mountId, table, youthId);
+    });
+  }));
+}
+
 async function loadEtRemarks(yid) {
   const { data } = await sb.from("etudes_remarks").select("*").eq("youth_person_id", yid).order("created_at", { ascending: false });
   const rows = data || [];
