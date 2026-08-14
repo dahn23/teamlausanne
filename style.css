@@ -967,6 +967,15 @@ button.wsec-link{color:#fff;border-bottom:0}
 .mr-bar{flex:1;height:9px;background:#eef1f7;border-radius:6px;overflow:hidden}
 .mr-bar-fill{height:100%;border-radius:6px}
 .mr-bar-fill.coach{background:#1e3ad1}.mr-bar-fill.joueur{background:#46a555}
+.mr-link{margin-bottom:10px}
+.mr-link-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.mr-conf{font-size:.74rem;font-weight:700;background:#eef1f7;color:var(--muted);padding:2px 9px;border-radius:999px}
+.mr-link-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:.88rem}
+@media(max-width:560px){.mr-link-cols{grid-template-columns:1fr}}
+.mr-link-cols>div{background:#f7f9ff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.mr-link-acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.mr-link-yes{background:#0b6b3a;color:#fff;font-weight:700}
+.mr-link-yes:hover{background:#0a5c32}
 /* Double canal (interne / public) — suivi Mental & Études */
 .chan-tabs{display:inline-flex;gap:4px;background:#eef1f7;border-radius:10px;padding:4px;margin-bottom:8px}
 .chan-tab{background:transparent;color:var(--muted);font-weight:700;font-size:.85rem;padding:6px 14px;border-radius:8px;cursor:pointer;border:0}

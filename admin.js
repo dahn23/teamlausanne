@@ -69,7 +69,7 @@ if (!session) {
 const DEFAULT_TAB_ACCESS = {
   superadmin: ["membres", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
   admin:      ["membres", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
-  secretaire: ["membres", "resa", "caisse", "stages", "stats"],
+  secretaire: ["membres", "resa", "matchs", "caisse", "stages", "stats"],
   head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages"],
   coach:      ["resa", "cours", "matchs", "phystests"],
   prof:       ["etudes"],
@@ -186,7 +186,7 @@ async function init(roles) {
   initPhys();
   initEtudes();
   initMental();
-  initMatchs();
+  initMatchs(roles);
 }
 
 // ---- Bascule de vues ----
@@ -201,7 +201,7 @@ function showView(view) {
   if (view === "phystests") loadPhysResults();
   if (view === "etudes") loadEtudesCalendar();
   if (view === "mental") loadMentalCalendar();
-  if (view === "matchs") { mrRenderForm(); loadMatchList(); }
+  if (view === "matchs") mrActivateFirst();
 }
 
 // ===================================================================
@@ -3836,14 +3836,25 @@ const MR_TEXTS = [
   ["to_improve", "Ce qu'il doit améliorer"], ["three_positives", "3 choses positives de ce match"],
 ];
 
-function initMatchs() {
+function initMatchs(roles) {
+  // Remplir/lister = coachs & admin ; valider les correspondances = admin/superadmin/secrétariat
+  const canFill = hasAny(roles || [], ["coach", "head_coach", "admin", "superadmin"]);
+  const canValidate = hasAny(roles || [], ["admin", "superadmin", "secretaire"]);
+  const showSub = (sub, ok) => document.querySelector(`#view-matchs .mr-subtab[data-sub="${sub}"]`)?.classList.toggle("hidden", !ok);
+  showSub("new", canFill); showSub("list", canFill); showSub("links", canValidate);
   document.querySelectorAll("#view-matchs .mr-subtab").forEach((b) =>
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-matchs .mr-subtab").forEach((x) => x.classList.toggle("active", x === b));
       document.querySelectorAll("#view-matchs .mr-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "mr-sub-" + b.dataset.sub));
       if (b.dataset.sub === "new") mrRenderForm();
       if (b.dataset.sub === "list") loadMatchList();
+      if (b.dataset.sub === "links") loadMatchLinks();
     }));
+}
+// Active le premier sous-onglet visible (selon le rôle)
+function mrActivateFirst() {
+  const first = [...document.querySelectorAll("#view-matchs .mr-subtab")].find((b) => !b.classList.contains("hidden"));
+  if (first) first.click();
 }
 
 function mrRenderForm(prefillYouth) {
@@ -3891,36 +3902,67 @@ async function saveMatchReport() {
   for (const [k] of MR_TEXTS) row[k] = $("mr-" + k).value.trim() || null;
   for (const [k] of MR_RATINGS) row[k] = rating(k);
   $("mr-status").textContent = "Enregistrement…";
-  const { data, error } = await sb.from("match_reports").insert(row).select().single();
+  const { error } = await sb.from("match_reports").insert(row);
   if (error) { $("mr-status").textContent = "Erreur : " + error.message; return; }
-  await mrTryLink(data);
   mrRenderForm();
-  document.querySelector('#view-matchs .mr-subtab[data-sub="list"]')?.click();
+  const listTab = document.querySelector('#view-matchs .mr-subtab[data-sub="list"]');
+  if (listTab && !listTab.classList.contains("hidden")) listTab.click();
 }
 
 const mrNorm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const mrDaysApart = (a, b) => (!a || !b) ? 99 : Math.abs((new Date(a) - new Date(b)) / 86400000);
-async function mrTryLink(rep) {
-  const other = rep.author_role === "coach" ? "joueur" : "coach";
-  const { data } = await sb.from("match_reports").select("*").eq("youth_person_id", rep.youth_person_id).eq("author_role", other);
-  const cands = (data || []).map((c) => {
-    let s = 0;
-    const co = mrNorm(c.opponent), ro = mrNorm(rep.opponent);
-    if (co && co === ro) s += 3; else if (co && ro && (co.includes(ro) || ro.includes(co))) s += 2;
-    if (mrNorm(c.score) && mrNorm(c.score) === mrNorm(rep.score)) s += 2;
-    const d = mrDaysApart(c.match_date, rep.match_date);
-    if (d <= 1) s += 3; else if (d <= 3) s += 1;
-    return { c, s };
-  }).filter((x) => x.s >= 2).sort((a, b) => b.s - a.s);
-  if (!cands.length) return;
-  const top = cands[0];
-  if (top.s < 6) {
-    const ok = confirm(`Même match que la feuille de ${top.c.author_name || "?"} (${top.c.author_role}) — ${top.c.opponent || "?"}, ${top.c.score || "?"}, ${top.c.match_date ? frDate(top.c.match_date) : "?"} ?\n\nLier les deux feuilles pour les comparer ?`);
-    if (!ok) return;
+function mrPairScore(c, j) {
+  let s = 0;
+  const co = mrNorm(c.opponent), jo = mrNorm(j.opponent);
+  if (co && co === jo) s += 3; else if (co && jo && (co.includes(jo) || jo.includes(co))) s += 2;
+  if (mrNorm(c.score) && mrNorm(c.score) === mrNorm(j.score)) s += 2;
+  const d = mrDaysApart(c.match_date, j.match_date);
+  if (d <= 1) s += 3; else if (d <= 3) s += 1;
+  return s;
+}
+// Correspondances coach ↔ joueur à valider (admin/superadmin/secrétariat)
+async function loadMatchLinks() {
+  const cont = $("mr-links"); if (!cont) return;
+  const [{ data: reps }, { data: ign }] = await Promise.all([
+    sb.from("match_reports").select("*"),
+    sb.from("match_link_ignored").select("a_id,b_id"),
+  ]);
+  const ignored = new Set((ign || []).map((x) => [x.a_id, x.b_id].sort().join("|")));
+  const byYouth = {};
+  for (const r of reps || []) (byYouth[r.youth_person_id] = byYouth[r.youth_person_id] || []).push(r);
+  const pairs = [];
+  for (const yid in byYouth) {
+    const coaches = byYouth[yid].filter((r) => r.author_role === "coach");
+    const joueurs = byYouth[yid].filter((r) => r.author_role === "joueur");
+    for (const c of coaches) for (const j of joueurs) {
+      if (c.match_group_id && c.match_group_id === j.match_group_id) continue;
+      const key = [c.id, j.id].sort().join("|");
+      if (ignored.has(key)) continue;
+      const s = mrPairScore(c, j);
+      if (s >= 2) pairs.push({ c, j, s, key });
+    }
   }
-  const gid = top.c.match_group_id || (crypto.randomUUID ? crypto.randomUUID() : rep.id);
-  await sb.from("match_reports").update({ match_group_id: gid }).eq("id", rep.id);
-  if (!top.c.match_group_id) await sb.from("match_reports").update({ match_group_id: gid }).eq("id", top.c.id);
+  pairs.sort((a, b) => b.s - a.s);
+  const one = (r) => `<span class="mr-badge ${r.author_role}">${r.author_role}</span> ${esc(r.author_name || "—")}<br><span class="muted">vs ${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""} · ${esc(r.score || "—")} · ${r.match_date ? frDate(r.match_date) : "—"}</span>`;
+  cont.innerHTML = pairs.length
+    ? '<p class="muted" style="font-size:.85rem;margin:0 0 12px">Le système a repéré des feuilles coach et joueur qui pourraient concerner le même match. Validez pour les comparer.</p>'
+      + pairs.map((p) => `<div class="rg-card mr-link" data-c="${p.c.id}" data-j="${p.j.id}" data-a="${p.key.split("|")[0]}" data-b="${p.key.split("|")[1]}">
+        <div class="mr-link-head"><b>${esc(mrName(p.c.youth_person_id))}</b> <span class="mr-conf">confiance ${p.s}/8</span></div>
+        <div class="mr-link-cols"><div>${one(p.c)}</div><div>${one(p.j)}</div></div>
+        <div class="mr-link-acts"><button type="button" class="mr-link-yes">C'est le même match — lier</button><button type="button" class="ghost mr-link-no">Ignorer</button></div>
+      </div>`).join("")
+    : '<p class="muted" style="font-size:.85rem">Aucune correspondance à valider pour le moment.</p>';
+  cont.querySelectorAll(".mr-link").forEach((card) => {
+    card.querySelector(".mr-link-yes").addEventListener("click", async () => {
+      const gid = crypto.randomUUID();
+      await sb.from("match_reports").update({ match_group_id: gid }).in("id", [card.dataset.c, card.dataset.j]);
+      loadMatchLinks();
+    });
+    card.querySelector(".mr-link-no").addEventListener("click", async () => {
+      await sb.from("match_link_ignored").insert({ a_id: card.dataset.a, b_id: card.dataset.b });
+      loadMatchLinks();
+    });
+  });
 }
 
 const mrName = (id) => { const p = people.find((x) => x.id === id); return p ? `${p.last_name} ${p.first_name}` : "—"; };
