@@ -67,17 +67,17 @@ if (!session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "roles", "resa", "cours", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
-  admin:      ["membres", "roles", "resa", "cours", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
+  superadmin: ["membres", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
+  admin:      ["membres", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
   secretaire: ["membres", "resa", "caisse", "stages", "stats"],
-  head_coach: ["resa", "cours", "phystests", "mental", "stages"],
-  coach:      ["resa", "cours", "phystests"],
+  head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages"],
+  coach:      ["resa", "cours", "matchs", "phystests"],
   prof:       ["etudes"],
   coach_mental: ["mental"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -186,6 +186,7 @@ async function init(roles) {
   initPhys();
   initEtudes();
   initMental();
+  initMatchs();
 }
 
 // ---- Bascule de vues ----
@@ -200,6 +201,7 @@ function showView(view) {
   if (view === "phystests") loadPhysResults();
   if (view === "etudes") loadEtudesCalendar();
   if (view === "mental") loadMentalCalendar();
+  if (view === "matchs") { mrRenderForm(); loadMatchList(); }
 }
 
 // ===================================================================
@@ -1064,13 +1066,14 @@ function openPerson(p) {
   showPersonTab("phys", physByRole);
   showPersonTab("etudes", etudesByRole);
   showPersonTab("mental", mentalByRole);
+  showPersonTab("matchs", physByRole);
   showPersonTab("stages", false);
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
-  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonMental(p.id, mentalByRole); loadPersonStages(p.id); }
-  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("pe-chan").innerHTML = ""; $("pm-chan").innerHTML = ""; $("ps-participations").innerHTML = ""; }
+  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonMental(p.id, mentalByRole); loadPersonMatchs(p.id, physByRole); loadPersonStages(p.id); }
+  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("pe-chan").innerHTML = ""; $("pm-chan").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -3815,6 +3818,175 @@ async function loadPersonPhys(personId, byRole) {
     + rows.map((r) => `<tr class="pp-row" data-id="${r.id}"><td><b>${esc(r.test_name || "—")}</b></td><td>${esc(r.coach_name || "—")}</td><td>${frDateTime(r.filled_at)}</td></tr>`).join("")
     + "</tbody></table>" : '<p class="muted" style="font-size:.85rem">Aucun test rempli.</p>';
   $("pp-results").querySelectorAll(".pp-row").forEach((tr) => tr.addEventListener("click", () => openPhysResult(tr.dataset.id)));
+}
+
+// ===================================================================
+//  Feuille de match (match_reports)
+// ===================================================================
+const MR_RANKINGS = ["r9", "r8", "r7", "r6", "r5", "r4", "r3", "r2", "r1", "n4", "n3", "n2", "n1", "autre"];
+const MR_RATINGS = [
+  ["r_attitude", "Attitude sur le terrain"], ["r_mindset", "État d'esprit positif"],
+  ["r_legs", "Intensité des jambes"], ["r_relax", "Relâchement"],
+  ["r_objectives", "Tenir les objectifs"], ["r_combative", "Combatif"],
+];
+const MR_TEXTS = [
+  ["strategy_pre", "Stratégie d'avant match"], ["opp_sw", "Forces et faiblesses de l'adversaire"],
+  ["opp_style", "Style de jeu de l'adversaire"], ["how_won", "Comment il a gagné la majorité des points"],
+  ["how_lost", "Comment il a perdu la majorité des points"], ["did_well", "Ce qu'il a bien réussi à faire"],
+  ["to_improve", "Ce qu'il doit améliorer"], ["three_positives", "3 choses positives de ce match"],
+];
+
+function initMatchs() {
+  document.querySelectorAll("#view-matchs .mr-subtab").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#view-matchs .mr-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      document.querySelectorAll("#view-matchs .mr-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "mr-sub-" + b.dataset.sub));
+      if (b.dataset.sub === "new") mrRenderForm();
+      if (b.dataset.sub === "list") loadMatchList();
+    }));
+}
+
+function mrRenderForm(prefillYouth) {
+  const mount = $("mr-form-mount");
+  if (!mount) return;
+  const youths = people.filter((p) => hasRoleIn(p.id, COURSE_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+  const yopts = youths.map((p) => `<option value="${p.id}"${p.id === prefillYouth ? " selected" : ""}>${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
+  const rankOpts = MR_RANKINGS.map((r) => `<option value="${r}">${r === "autre" ? "Autre" : r.toUpperCase()}</option>`).join("");
+  mount.innerHTML = `
+    <div class="rg-card mr-form">
+      <div class="mr-grid">
+        <label>Point de vue<select id="mr-role"><option value="coach">Coach</option><option value="joueur">Joueur</option></select></label>
+        <label>Jeune concerné<select id="mr-youth">${yopts}</select></label>
+        <label>Date du match<input type="date" id="mr-date" /></label>
+        <label>Adversaire<input type="text" id="mr-opponent" /></label>
+        <label>Classement adversaire<select id="mr-rank"><option value="">—</option>${rankOpts}</select></label>
+        <label>Résultat<select id="mr-result"><option value="gagne">Gagné</option><option value="perdu">Perdu</option></select></label>
+        <label>Score<input type="text" id="mr-score" placeholder="ex. 6-3 6-4" /></label>
+      </div>
+      <div class="mr-texts">${MR_TEXTS.map(([k, l]) => `<label>${esc(l)}<textarea id="mr-${k}" rows="2"></textarea></label>`).join("")}</div>
+      <h4 class="mr-h">Évaluations (1 à 5)</h4>
+      <div class="mr-ratings">${MR_RATINGS.map(([k, l]) => `<div class="mr-rate"><span>${esc(l)}</span><div class="mr-stars" data-k="${k}">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="mr-star" data-v="${n}">${n}</button>`).join("")}</div></div>`).join("")}</div>
+      <label class="mr-comment">Commentaire<textarea id="mr-comment" rows="2"></textarea></label>
+      <div class="mr-actions"><button type="button" id="mr-save">Enregistrer la feuille</button><span id="mr-status" class="muted"></span></div>
+    </div>`;
+  $("mr-date").value = new Date().toISOString().slice(0, 10);
+  mount.querySelectorAll(".mr-stars").forEach((box) => box.querySelectorAll(".mr-star").forEach((b) => b.addEventListener("click", () => {
+    box.dataset.val = b.dataset.v;
+    box.querySelectorAll(".mr-star").forEach((x) => x.classList.toggle("on", Number(x.dataset.v) <= Number(b.dataset.v)));
+  })));
+  $("mr-save").addEventListener("click", saveMatchReport);
+}
+
+async function saveMatchReport() {
+  const youth = $("mr-youth").value;
+  if (!youth) { $("mr-status").textContent = "Choisis un jeune."; return; }
+  const rating = (k) => { const el = document.querySelector(`.mr-stars[data-k="${k}"]`); return el && el.dataset.val ? Number(el.dataset.val) : null; };
+  const row = {
+    youth_person_id: youth, author_role: $("mr-role").value,
+    author_person_id: myPersonId, author_name: meName, created_by: meId,
+    match_date: $("mr-date").value || null, opponent: $("mr-opponent").value.trim() || null,
+    opponent_ranking: $("mr-rank").value || null, result: $("mr-result").value,
+    score: $("mr-score").value.trim() || null, comment: $("mr-comment").value.trim() || null,
+  };
+  for (const [k] of MR_TEXTS) row[k] = $("mr-" + k).value.trim() || null;
+  for (const [k] of MR_RATINGS) row[k] = rating(k);
+  $("mr-status").textContent = "Enregistrement…";
+  const { data, error } = await sb.from("match_reports").insert(row).select().single();
+  if (error) { $("mr-status").textContent = "Erreur : " + error.message; return; }
+  await mrTryLink(data);
+  mrRenderForm();
+  document.querySelector('#view-matchs .mr-subtab[data-sub="list"]')?.click();
+}
+
+const mrNorm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const mrDaysApart = (a, b) => (!a || !b) ? 99 : Math.abs((new Date(a) - new Date(b)) / 86400000);
+async function mrTryLink(rep) {
+  const other = rep.author_role === "coach" ? "joueur" : "coach";
+  const { data } = await sb.from("match_reports").select("*").eq("youth_person_id", rep.youth_person_id).eq("author_role", other);
+  const cands = (data || []).map((c) => {
+    let s = 0;
+    const co = mrNorm(c.opponent), ro = mrNorm(rep.opponent);
+    if (co && co === ro) s += 3; else if (co && ro && (co.includes(ro) || ro.includes(co))) s += 2;
+    if (mrNorm(c.score) && mrNorm(c.score) === mrNorm(rep.score)) s += 2;
+    const d = mrDaysApart(c.match_date, rep.match_date);
+    if (d <= 1) s += 3; else if (d <= 3) s += 1;
+    return { c, s };
+  }).filter((x) => x.s >= 2).sort((a, b) => b.s - a.s);
+  if (!cands.length) return;
+  const top = cands[0];
+  if (top.s < 6) {
+    const ok = confirm(`Même match que la feuille de ${top.c.author_name || "?"} (${top.c.author_role}) — ${top.c.opponent || "?"}, ${top.c.score || "?"}, ${top.c.match_date ? frDate(top.c.match_date) : "?"} ?\n\nLier les deux feuilles pour les comparer ?`);
+    if (!ok) return;
+  }
+  const gid = top.c.match_group_id || (crypto.randomUUID ? crypto.randomUUID() : rep.id);
+  await sb.from("match_reports").update({ match_group_id: gid }).eq("id", rep.id);
+  if (!top.c.match_group_id) await sb.from("match_reports").update({ match_group_id: gid }).eq("id", top.c.id);
+}
+
+const mrName = (id) => { const p = people.find((x) => x.id === id); return p ? `${p.last_name} ${p.first_name}` : "—"; };
+async function loadMatchList() {
+  const cont = $("mr-list"); if (!cont) return;
+  const { data } = await sb.from("match_reports").select("*").order("created_at", { ascending: false });
+  const rows = data || [];
+  cont.innerHTML = rows.length
+    ? '<table class="crm-table"><thead><tr><th>Date / heure</th><th>Jeune</th><th>Rempli par</th><th>Adversaire</th><th>Résultat</th></tr></thead><tbody>'
+      + rows.map((r) => `<tr class="mr-row" data-id="${r.id}"><td>${frDateTime(r.created_at)}</td><td><b>${esc(mrName(r.youth_person_id))}</b></td>
+        <td>${esc(r.author_name || "—")} <span class="mr-badge ${r.author_role}">${r.author_role}</span></td>
+        <td>${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td>
+        <td>${r.result === "gagne" ? '<span class="mr-win">Gagné</span>' : '<span class="mr-loss">Perdu</span>'} ${esc(r.score || "")}</td></tr>`).join("")
+      + "</tbody></table>"
+    : '<p class="muted" style="font-size:.85rem">Aucune feuille de match remplie.</p>';
+  cont.querySelectorAll(".mr-row").forEach((tr) => tr.addEventListener("click", () => openMatchReport(tr.dataset.id)));
+}
+
+const mrStars = (v) => v ? "★".repeat(v) + "☆".repeat(5 - v) : "—";
+async function openMatchReport(id) {
+  const { data: r } = await sb.from("match_reports").select("*").eq("id", id).single();
+  if (!r) return;
+  const cont = $("mr-list");
+  cont.innerHTML = `<button type="button" class="ghost stg-back" id="mr-back">← Retour à la liste</button>
+    <div class="rg-card" style="margin-top:10px">
+      <h2 style="margin-top:0">${esc(mrName(r.youth_person_id))} <span class="mr-badge ${r.author_role}">${r.author_role}</span></h2>
+      <p class="muted">${r.match_date ? frDate(r.match_date) : ""} · vs <b>${esc(r.opponent || "—")}</b>${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""} · ${r.result === "gagne" ? "Gagné" : "Perdu"} ${esc(r.score || "")} · rempli par ${esc(r.author_name || "—")} le ${frDateTime(r.created_at)}</p>
+      ${MR_TEXTS.filter(([k]) => r[k]).map(([k, l]) => `<div class="mr-field"><b>${esc(l)}</b><p>${esc(r[k])}</p></div>`).join("")}
+      <div class="mr-ratings-view">${MR_RATINGS.map(([k, l]) => `<div class="mr-rv"><span>${esc(l)}</span><b>${mrStars(r[k])}</b></div>`).join("")}</div>
+      ${r.comment ? `<div class="mr-field"><b>Commentaire</b><p>${esc(r.comment)}</p></div>` : ""}
+      <button type="button" class="fam-del" id="mr-del" style="margin-top:14px">Supprimer cette feuille</button>
+    </div>`;
+  $("mr-back").addEventListener("click", loadMatchList);
+  $("mr-del").addEventListener("click", async () => { if (!confirm("Supprimer cette feuille ?")) return; await sb.from("match_reports").delete().eq("id", id); loadMatchList(); });
+}
+
+async function loadPersonMatchs(personId, byRole) {
+  const mount = $("mrf-mount"); if (!mount) return;
+  if (!personId) { mount.innerHTML = ""; return; }
+  const { data } = await sb.from("match_reports").select("*").eq("youth_person_id", personId).order("match_date", { ascending: false, nullsFirst: false });
+  const rows = data || [];
+  showPersonTab("matchs", byRole || rows.length > 0);
+  const wins = rows.filter((r) => r.result === "gagne").length, losses = rows.filter((r) => r.result === "perdu").length;
+  const avg = (list, k) => { const v = list.map((r) => r[k]).filter((x) => x != null); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length * 10) / 10 : null; };
+  const cR = rows.filter((r) => r.author_role === "coach"), jR = rows.filter((r) => r.author_role === "joueur");
+  const bar = (v, cls) => `<div class="mr-bar"><div class="mr-bar-fill ${cls}" style="width:${(v || 0) / 5 * 100}%"></div></div>`;
+  const hasComp = cR.length && jR.length;
+  const comp = MR_RATINGS.map(([k, l]) => {
+    const c = avg(cR, k), j = avg(jR, k);
+    return `<div class="mr-comp"><span class="mr-comp-l">${esc(l)}</span><div class="mr-comp-bars">
+      <div class="mr-comp-line"><span class="mr-tag coach">Coach ${c ?? "—"}</span>${bar(c, "coach")}</div>
+      <div class="mr-comp-line"><span class="mr-tag joueur">Joueur ${j ?? "—"}</span>${bar(j, "joueur")}</div></div></div>`;
+  }).join("");
+  mount.innerHTML = `
+    <div class="et-stats" style="margin-bottom:12px">
+      <div class="et-stat st-present"><b>${wins}</b><span>gagnés</span></div>
+      <div class="et-stat st-absent"><b>${losses}</b><span>perdus</span></div>
+      <div class="et-stat"><b>${rows.length}</b><span>feuilles</span></div>
+    </div>
+    ${rows.length ? `<h3 style="margin:10px 0 8px">Évaluation moyenne ${hasComp ? "— coach vs joueur" : ""}</h3>
+      ${hasComp ? `<p class="muted" style="font-size:.82rem;margin:0 0 8px">Compare la vision du coach et celle du joueur sur les mêmes critères.</p>` : ""}
+      <div class="mr-comp-wrap">${comp}</div>` : ""}
+    <h3 style="margin:16px 0 8px">Feuilles de match</h3>
+    ${rows.length ? '<div class="table-wrap"><table class="crm-table"><thead><tr><th>Date</th><th>Adversaire</th><th>Résultat</th><th>Par</th></tr></thead><tbody>'
+      + rows.map((r) => `<tr><td>${r.match_date ? frDate(r.match_date) : "—"}</td><td>${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td><td>${r.result === "gagne" ? "Gagné" : "Perdu"} ${esc(r.score || "")}</td><td><span class="mr-badge ${r.author_role}">${r.author_role}</span></td></tr>`).join("")
+      + "</tbody></table></div>" : '<p class="muted" style="font-size:.85rem">Aucune feuille de match.</p>'}`;
 }
 
 let peYouthId = null;

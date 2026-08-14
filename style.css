@@ -931,6 +931,42 @@ button.wsec-link{color:#fff;border-bottom:0}
 .et-plan-days input,.et-plan-range input[type=checkbox]{width:17px;height:17px;flex-shrink:0}
 .et-plan-range{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
 .et-plan-range label{display:inline-flex;align-items:center;gap:6px;font-size:.9rem}
+/* Feuille de match */
+.mr-form label{display:flex;flex-direction:column;gap:5px;font-size:.85rem;font-weight:700;color:var(--ink);margin-bottom:12px}
+.mr-form input,.mr-form textarea{padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:.9rem;font-family:inherit}
+.mr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 16px}
+.mr-texts{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+@media(max-width:640px){.mr-texts{grid-template-columns:1fr}}
+.mr-h{margin:6px 0 10px;color:var(--blue-ink)}
+.mr-ratings{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px 22px;margin-bottom:14px}
+.mr-rate{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.88rem}
+.mr-stars{display:inline-flex;gap:4px}
+.mr-star{width:30px;height:30px;border-radius:8px;background:#eef1f7;color:var(--muted);font-weight:800;cursor:pointer;border:0}
+.mr-star.on{background:var(--blue);color:#fff}
+.mr-comment{display:block;font-weight:700;font-size:.85rem}
+.mr-actions{display:flex;align-items:center;gap:12px;margin-top:12px}
+.mr-badge{display:inline-block;font-size:.7rem;font-weight:800;padding:1px 8px;border-radius:999px;text-transform:capitalize}
+.mr-badge.coach{background:#e6eefc;color:#1e3ad1}
+.mr-badge.joueur{background:#e7f6ec;color:#0b6b3a}
+.mr-win{color:#0b6b3a;font-weight:800}
+.mr-loss{color:#b23838;font-weight:800}
+.mr-field{margin:8px 0}
+.mr-field b{color:var(--blue-ink);font-size:.9rem}
+.mr-field p{margin:2px 0 0;color:#2c3240;white-space:pre-wrap}
+.mr-ratings-view{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 18px;margin:12px 0}
+.mr-rv{display:flex;justify-content:space-between;font-size:.88rem}
+.mr-rv b{color:#e0a300;letter-spacing:1px}
+.mr-comp-wrap{display:flex;flex-direction:column;gap:10px}
+.mr-comp{display:grid;grid-template-columns:180px 1fr;gap:10px;align-items:center}
+@media(max-width:560px){.mr-comp{grid-template-columns:1fr}}
+.mr-comp-l{font-size:.86rem;font-weight:600}
+.mr-comp-bars{display:flex;flex-direction:column;gap:4px}
+.mr-comp-line{display:flex;align-items:center;gap:8px}
+.mr-tag{font-size:.72rem;font-weight:700;width:84px;flex-shrink:0}
+.mr-tag.coach{color:#1e3ad1}.mr-tag.joueur{color:#0b6b3a}
+.mr-bar{flex:1;height:9px;background:#eef1f7;border-radius:6px;overflow:hidden}
+.mr-bar-fill{height:100%;border-radius:6px}
+.mr-bar-fill.coach{background:#1e3ad1}.mr-bar-fill.joueur{background:#46a555}
 /* Double canal (interne / public) — suivi Mental & Études */
 .chan-tabs{display:inline-flex;gap:4px;background:#eef1f7;border-radius:10px;padding:4px;margin-bottom:8px}
 .chan-tab{background:transparent;color:var(--muted);font-weight:700;font-size:.85rem;padding:6px 14px;border-radius:8px;cursor:pointer;border:0}
