@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=21" />
+  <link rel="stylesheet" href="style.css?v=22" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -22,6 +22,7 @@
     <div class="admin-body">
       <aside class="side">
         <button class="side-item active" data-view="membres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="9" cy="7.5" r="3.2"/><path d="M22 19v-1a4 4 0 0 0-3-3.87"/><path d="M16 3.7a4 4 0 0 1 0 7.6"/></svg><span class="side-label">Répertoire</span></button>
+        <button class="side-item" data-view="news"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M14 8.5a4 4 0 0 1 0 7"/><path d="M16.5 5.5a7 7 0 0 1 0 13"/></svg><span class="side-label">News</span></button>
         <button class="side-item" data-view="roles"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"/><path d="M9.2 12l1.9 1.9L15 10"/></svg><span class="side-label">Réglages</span></button>
         <button class="side-item" data-view="resa"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg><span class="side-label">Réservations</span></button>
         <button class="side-item" data-view="cours"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg><span class="side-label">Cours</span></button>
@@ -63,6 +64,16 @@
           <div id="people-detail" class="hidden">
             <button type="button" id="close-person" class="ghost stg-back">← Retour au répertoire</button>
           </div>
+        </div>
+
+        <!-- ---- Vue News ---- -->
+        <div id="view-news" class="view hidden">
+          <div class="crm-head">
+            <h1>News</h1>
+            <div class="crm-actions"><button id="news-new">+ Nouvelle news</button></div>
+          </div>
+          <p class="muted" style="margin:-6px 0 12px">Les actualités affichées dans « Mon espace » des jeunes et parents, selon les rôles ciblés.</p>
+          <div id="news-list" class="news-adm-list"></div>
         </div>
 
         <!-- ---- Vue Réglages (admin/superadmin) ---- -->
@@ -1199,6 +1210,34 @@
       <textarea id="gz-text-area" rows="5" style="width:100%"></textarea>
       <div id="gz-text-actions" style="display:flex;gap:8px;margin-top:10px">
         <button type="submit" id="gz-text-save">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ---- Éditeur de news ---- -->
+  <div id="news-modal" class="modal hidden">
+    <form class="card" id="news-form">
+      <button type="button" id="news-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="news-modal-title">Nouvelle news</h2>
+      <input type="hidden" id="n-id" />
+      <label>Titre<input id="n-title" required /></label>
+      <div class="news-img-row">
+        <img id="n-img-preview" class="news-img-preview hidden" alt="" />
+        <button type="button" id="n-img-btn" class="ghost">Ajouter une image</button>
+        <button type="button" id="n-img-clear" class="ghost hidden">Retirer l'image</button>
+        <input type="file" id="n-img-file" accept="image/*" class="hidden" />
+      </div>
+      <label>Texte<textarea id="n-body" rows="6" placeholder="Le contenu de l'actualité…"></textarea></label>
+      <div class="news-aud-wrap">
+        <span class="news-aud-lbl">Destinataires <span class="muted">— aucune coche = visible par tout le monde</span></span>
+        <div id="n-aud" class="news-aud-grid"></div>
+      </div>
+      <label class="news-pub"><input type="checkbox" id="n-published" /> <span>Publier (visible dans « Mon espace »)</span></label>
+      <p id="n-error" class="error" hidden></p>
+      <div class="form-foot">
+        <button type="button" id="n-delete" class="danger hidden">Supprimer</button>
+        <span class="spacer"></span>
+        <button type="submit" id="n-save">Enregistrer</button>
       </div>
     </form>
   </div>

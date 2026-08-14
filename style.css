@@ -1379,3 +1379,39 @@ body.portal{background:var(--bg)}
 .invite-linkrow{display:flex;gap:8px;margin-top:6px}
 .invite-linkrow input{flex:1;font-size:.82rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
 .invite-linkrow button{flex:0 0 auto;padding:8px 14px}
+
+/* ================= NEWS (console admin) ================= */
+.news-adm-list{display:flex;flex-direction:column;gap:10px}
+.news-adm-card{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:10px;cursor:pointer}
+.news-adm-card:hover{border-color:var(--blue)}
+.news-adm-thumb{width:74px;height:58px;border-radius:8px;object-fit:cover;flex:0 0 auto;background:#eef1ff}
+.news-adm-thumb.ph{display:flex;align-items:center;justify-content:center;font-size:1.5rem}
+.news-adm-info{flex:1;min-width:0}
+.news-adm-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.news-state{font-size:.7rem;font-weight:800;padding:1px 8px;border-radius:999px}
+.news-state.pub{background:#e6f4ec;color:#0b6b3a}
+.news-state.draft{background:#fdf0d9;color:#9a6a00}
+.news-adm-aud{margin:5px 0 2px;display:flex;flex-wrap:wrap;gap:4px}
+.news-adm-date{font-size:.8rem}
+/* éditeur */
+#news-form label{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:.9rem;margin-bottom:10px}
+#news-form > label input,#news-form textarea{width:100%}
+.news-img-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.news-img-preview{width:130px;height:86px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.news-aud-wrap{margin:2px 0 8px}
+.news-aud-lbl{font-weight:600;font-size:.9rem}
+.news-aud-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px;margin-top:8px}
+.news-aud-chk{display:flex;align-items:center;gap:6px;font-size:.88rem;font-weight:500}
+.news-aud-chk input{width:auto}
+.news-pub{flex-direction:row !important;align-items:center;gap:8px;font-weight:700}
+.news-pub input{width:auto}
+
+/* ================= NEWS (portail Mon espace) ================= */
+.pt-news-card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  margin-bottom:14px;box-shadow:0 6px 16px -12px rgba(15,31,110,.5)}
+.pt-news-img{width:100%;height:180px;object-fit:cover;display:block}
+.pt-news-body{padding:14px 16px}
+.pt-news-body h3{margin:0 0 2px;color:var(--blue-ink);font-size:1.12rem}
+.pt-news-date{color:var(--muted);font-size:.8rem;margin-bottom:8px}
+.pt-news-body p{margin:0;line-height:1.55}

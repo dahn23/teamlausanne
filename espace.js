@@ -157,20 +157,33 @@ function bindBot() {
 /* ============================================================
    ACCUEIL (news — à venir)
    ============================================================ */
-function renderAccueil() {
+async function renderAccueil() {
   const who = YOUTHS.length ? YOUTHS.map((y) => y.first_name).join(", ") : "";
   $("view-accueil").innerHTML = `
     <div class="pt-hello">
       <div>${mascot(72)}</div>
       <div>
         <h2>Bienvenue${who ? " — " + who : ""}&nbsp;!</h2>
-        <p class="muted">Ici tu retrouveras les <b>news du club</b>, tes cours, et bientôt un assistant.</p>
+        <p class="muted">Les actualités du club, tes cours, et bientôt un assistant.</p>
       </div>
     </div>
-    <div class="pt-empty">
-      <p>📣 Le fil d'actualités arrive très bientôt.</p>
-    </div>`;
+    <div id="pt-news"><p class="muted" style="text-align:center;padding:20px">Chargement des news…</p></div>`;
+  const { data, error } = await sb.rpc("portal_news");
+  const news = error ? [] : (data || []);
+  const box = document.getElementById("pt-news");
+  if (!box) return;
+  if (!news.length) { box.innerHTML = `<div class="pt-empty"><p>Aucune actualité pour le moment.</p></div>`; return; }
+  box.innerHTML = news.map((n) => `
+    <article class="pt-news-card">
+      ${n.image_url ? `<img class="pt-news-img" src="${escHtml(n.image_url)}" alt="" loading="lazy" />` : ""}
+      <div class="pt-news-body">
+        <h3>${escHtml(n.title)}</h3>
+        <div class="pt-news-date">${frShort((n.published_at || "").slice(0, 10))}</div>
+        ${n.body ? `<p>${escHtml(n.body).replace(/\n/g, "<br/>")}</p>` : ""}
+      </div>
+    </article>`).join("");
 }
+function escHtml(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
 /* ============================================================
    COURS — semaine, par jeune, avec auto-déclaration

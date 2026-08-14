@@ -67,9 +67,9 @@ if (!session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
-  admin:      ["membres", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
-  secretaire: ["membres", "resa", "matchs", "caisse", "stages", "stats"],
+  superadmin: ["membres", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
+  admin:      ["membres", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
+  secretaire: ["membres", "news", "resa", "matchs", "caisse", "stages", "stats"],
   head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages"],
   coach:      ["resa", "cours", "matchs", "phystests"],
   prof:       ["etudes"],
@@ -77,7 +77,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -174,6 +174,7 @@ async function init(roles) {
     b.addEventListener("click", () => showView(b.dataset.view)));
   $("rg-save").addEventListener("click", saveSettings);
   $("gz-mov-add").addEventListener("click", addMovement);
+  initNews();
   await loadSettings();
   applyTabAccess(roles);
   loadPeople();
@@ -202,6 +203,7 @@ function showView(view) {
   if (view === "etudes") loadEtudesCalendar();
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
+  if (view === "news") loadNews();
 }
 
 // ===================================================================
@@ -2967,6 +2969,115 @@ async function invitePerson() {
     $("p-invite-copy").textContent = "Copié ✓";
     setTimeout(() => { $("p-invite-copy").textContent = "Copier"; }, 1500);
   });
+}
+
+// ===================================================================
+//  News (actualités du portail « Mon espace »)
+// ===================================================================
+const NEWS_AUDIENCES = [["membre", "Membres"], ["kidstennis", "KidsTennis"], ["club", "Club"],
+  ["competition", "Compétition"], ["performance", "Performance"], ["sport-etudes", "Sport-études"],
+  ["pro-u18", "Pro U18"], ["pro", "Pro"]];
+const newsAudLabel = (a) => (NEWS_AUDIENCES.find(([v]) => v === a) || [a, a])[1];
+let newsList = [], newsImageUrl = null;
+
+function initNews() {
+  $("news-new").addEventListener("click", () => openNews(null));
+  $("news-close").addEventListener("click", closeNews);
+  $("news-form").addEventListener("submit", saveNews);
+  $("n-delete").addEventListener("click", deleteNews);
+  $("n-img-btn").addEventListener("click", () => $("n-img-file").click());
+  $("n-img-file").addEventListener("change", (e) => { if (e.target.files[0]) uploadNewsImage(e.target.files[0]); });
+  $("n-img-clear").addEventListener("click", () => { newsImageUrl = null; updateNewsImg(); });
+}
+
+async function loadNews() {
+  const { data } = await sb.from("news").select("*")
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  newsList = data || [];
+  const box = $("news-list");
+  if (!newsList.length) { box.innerHTML = `<p class="muted">Aucune news pour l'instant. Cliquez « + Nouvelle news ».</p>`; return; }
+  box.innerHTML = newsList.map((n) => {
+    const aud = (n.audiences && n.audiences.length)
+      ? n.audiences.map((a) => `<span class="role-badge">${esc(newsAudLabel(a))}</span>`).join(" ")
+      : `<span class="role-badge">Tout le monde</span>`;
+    return `<div class="news-adm-card" data-id="${n.id}">
+      ${n.image_url ? `<img class="news-adm-thumb" src="${esc(n.image_url)}" alt="" />` : `<div class="news-adm-thumb ph">📣</div>`}
+      <div class="news-adm-info">
+        <div class="news-adm-top"><b>${esc(n.title)}</b>
+          <span class="news-state ${n.published ? "pub" : "draft"}">${n.published ? "Publié" : "Brouillon"}</span></div>
+        <div class="news-adm-aud">${aud}</div>
+        <div class="muted news-adm-date">${n.published_at ? frDate(n.published_at) : "non publié"}</div>
+      </div></div>`;
+  }).join("");
+  box.querySelectorAll(".news-adm-card").forEach((c) =>
+    c.addEventListener("click", () => openNews(newsList.find((x) => x.id === c.dataset.id))));
+}
+
+function renderNewsAud(sel) {
+  $("n-aud").innerHTML = NEWS_AUDIENCES.map(([v, l]) =>
+    `<label class="news-aud-chk"><input type="checkbox" value="${v}"${sel.includes(v) ? " checked" : ""} /> ${esc(l)}</label>`).join("");
+}
+function updateNewsImg() {
+  const img = $("n-img-preview");
+  if (newsImageUrl) {
+    img.src = newsImageUrl; img.classList.remove("hidden");
+    $("n-img-clear").classList.remove("hidden"); $("n-img-btn").textContent = "Changer l'image";
+  } else {
+    img.classList.add("hidden"); $("n-img-clear").classList.add("hidden"); $("n-img-btn").textContent = "Ajouter une image";
+  }
+}
+function openNews(n) {
+  $("n-error").hidden = true;
+  $("news-modal-title").textContent = n ? "Modifier la news" : "Nouvelle news";
+  $("n-id").value = n?.id || "";
+  $("n-title").value = n?.title || "";
+  $("n-body").value = n?.body || "";
+  $("n-published").checked = !!n?.published;
+  newsImageUrl = n?.image_url || null;
+  updateNewsImg();
+  renderNewsAud(n?.audiences || []);
+  $("n-delete").classList.toggle("hidden", !n);
+  $("news-modal").classList.remove("hidden");
+}
+function closeNews() { $("news-modal").classList.add("hidden"); }
+
+async function uploadNewsImage(file) {
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `news/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await sb.storage.from("gz-photos").upload(path, file, { upsert: true, contentType: file.type });
+  if (error) { alert("Upload impossible : " + error.message); return; }
+  newsImageUrl = sb.storage.from("gz-photos").getPublicUrl(path).data.publicUrl;
+  updateNewsImg();
+}
+
+async function saveNews(e) {
+  e.preventDefault();
+  const err = $("n-error"); err.hidden = true;
+  const title = $("n-title").value.trim();
+  if (!title) { err.textContent = "Le titre est obligatoire."; err.hidden = false; return; }
+  const id = $("n-id").value;
+  const published = $("n-published").checked;
+  const wasPublished = id ? !!newsList.find((x) => x.id === id)?.published : false;
+  const row = {
+    title, body: $("n-body").value.trim() || null, image_url: newsImageUrl,
+    audiences: [...$("n-aud").querySelectorAll("input:checked")].map((i) => i.value),
+    published, updated_at: new Date().toISOString(),
+  };
+  if (published && !wasPublished) row.published_at = new Date().toISOString();
+  const res = id ? await sb.from("news").update(row).eq("id", id) : await sb.from("news").insert(row);
+  if (res.error) { err.textContent = "Enregistrement impossible : " + res.error.message; err.hidden = false; return; }
+  closeNews();
+  loadNews();
+}
+
+async function deleteNews() {
+  const id = $("n-id").value;
+  if (!id || !confirm("Supprimer cette news ?")) return;
+  const { error } = await sb.from("news").delete().eq("id", id);
+  if (error) { alert("Suppression impossible : " + error.message); return; }
+  closeNews();
+  loadNews();
 }
 
 // ===================================================================
