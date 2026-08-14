@@ -375,15 +375,150 @@ function renderReserver() {
 }
 
 /* ============================================================
-   STAGES (inscription — renvoie vers la page stages)
+   STAGES — inscription inline (mêmes tables que le site public)
    ============================================================ */
-function renderStages() {
+const stgDays = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000) + 1);
+const stgEff = (p, d) => Math.round(Number(p) * Math.min(d, 5) / 5 * 100) / 100;
+const frFull = (iso) => { const s = (iso || "").slice(0, 10).split("-"); return s.length === 3 ? `${s[2]}.${s[1]}.${s[0]}` : iso; };
+let stgCats = {}, stgSessions = [], stgLinks = {}, stgSession = null;
+const stgOpenCats = (s) => (stgLinks[s.id] || []).map((id) => stgCats[id]).filter(Boolean).sort((a, b) => (a.price || 0) - (b.price || 0));
+
+async function loadStgData() {
+  const [{ data: cs }, { data: ss }, { data: links }] = await Promise.all([
+    sb.from("stage_categories").select("*"),
+    sb.from("stage_sessions").select("*").order("start_date"),
+    sb.from("stage_session_categories").select("session_id,category_id"),
+  ]);
+  stgCats = {}; for (const c of cs || []) stgCats[c.id] = c;
+  stgLinks = {}; for (const l of links || []) (stgLinks[l.session_id] = stgLinks[l.session_id] || []).push(l.category_id);
+  stgSessions = (ss || []).filter((s) => (stgLinks[s.id] || []).length);
+}
+
+async function renderStages() {
+  $("view-stages").innerHTML = `<p class="muted" style="text-align:center;padding:20px">Chargement…</p>`;
+  await loadStgData();
+  drawStgList();
+}
+function drawStgList() {
+  const v = $("view-stages");
+  if (!stgSessions.length) { v.innerHTML = `<div class="pt-empty"><p>Aucun stage ouvert aux inscriptions pour le moment. Reviens bientôt !</p></div>`; return; }
+  v.innerHTML = stgSessions.map((s) => {
+    const d = stgDays(s.start_date, s.end_date), oc = stgOpenCats(s);
+    const prices = oc.map((c) => stgEff(c.price || 0, d));
+    const priceLbl = prices.length ? (Math.min(...prices) === Math.max(...prices) ? `${prices[0]} CHF` : `dès ${Math.min(...prices)} CHF`) : "—";
+    const img = s.image_url || oc.find((c) => c.image_url)?.image_url;
+    const dates = s.start_date === s.end_date ? frFull(s.start_date) : `${frFull(s.start_date)} → ${frFull(s.end_date)}`;
+    return `<article class="pt-stg-card">
+      ${img ? `<img class="pt-stg-img" src="${escHtml(img)}" alt="" loading="lazy"/>` : ""}
+      <div class="pt-stg-body">
+        <h3>${escHtml(s.title || "Stage")}</h3>
+        <div class="pt-stg-dates">${dates} · ${d} jour${d > 1 ? "s" : ""}</div>
+        <div class="pt-stg-badges">${oc.map((c) => `<span class="pt-stg-tag">${escHtml(c.name)}</span>`).join("")}</div>
+        <div class="pt-stg-foot"><span class="pt-stg-price">${priceLbl}</span>
+          <button class="pt-cta sm" data-stg="${s.id}">S'inscrire</button></div>
+      </div></article>`;
+  }).join("");
+  v.querySelectorAll("[data-stg]").forEach((b) => b.addEventListener("click", () => openStgForm(b.dataset.stg)));
+}
+
+async function openStgForm(id) {
+  stgSession = stgSessions.find((s) => s.id === id);
+  const oc = stgOpenCats(stgSession);
+  const acctEmail = (await sb.auth.getUser()).data.user?.email || "";
+  const youthOpts = YOUTHS.map((y) => `<option value="${y.person_id}">${escHtml(y.first_name)} ${escHtml(y.last_name)}</option>`).join("");
+  const catOpts = oc.map((c) => `<option value="${c.id}">${escHtml(c.name)} — ${stgEff(c.price || 0, stgDays(stgSession.start_date, stgSession.end_date))} CHF</option>`).join("");
   $("view-stages").innerHTML = `
-    <div class="pt-panel">
-      <h2>Stages & camps</h2>
-      <p class="muted">Inscris-toi aux prochains stages de l'académie.</p>
-      <a class="pt-cta" href="index.html#stages">Voir les stages & s'inscrire</a>
+    <button class="pt-back-btn" id="stg-back">← Retour aux stages</button>
+    <div class="pt-panel" style="text-align:left">
+      <h2 style="margin:0 0 4px">${escHtml(stgSession.title || "Stage")}</h2>
+      <div id="stg-meta" class="muted" style="margin-bottom:10px"></div>
+      <form id="stg-form" class="pt-form">
+        ${YOUTHS.length ? `<label>Participant<select id="sf-youth">${youthOpts}<option value="__other">Autre (préciser)</option></select></label>` : ""}
+        <div class="pt-form-row">
+          <label>Prénom<input id="sf-first" required/></label>
+          <label>Nom<input id="sf-last" required/></label>
+        </div>
+        <div class="pt-form-row">
+          <label>Email<input id="sf-email" type="email" value="${escHtml(acctEmail)}"/></label>
+          <label>Date de naissance<input id="sf-birth" type="date"/></label>
+        </div>
+        <label>Catégorie<select id="sf-cat">${catOpts}</select></label>
+        <label id="sf-tshirt-wrap" class="hidden">Taille de t-shirt (offert)<select id="sf-tshirt"><option value="">— choisir —</option><option>4-6 ans</option><option>8-10 ans</option><option>12-14 ans</option><option>S</option><option>M</option><option>L</option><option>XL</option></select></label>
+        <div id="sf-meal-wrap" class="hidden">
+          <span class="pt-form-lbl">Restriction / allergie alimentaire</span>
+          <label class="pt-radio"><input type="radio" name="sfmeal" value="aucune" checked/> Aucune</label>
+          <label class="pt-radio"><input type="radio" name="sfmeal" value="autre"/> À préciser :</label>
+          <input id="sf-meal-text" placeholder="Allergie, régime…" disabled/>
+        </div>
+        <label id="sf-rank-wrap" class="hidden">Classement tennis<input id="sf-rank" placeholder="ex. R4, N3, sans classement…"/></label>
+        <label id="sf-addon-wrap" class="hidden pt-addon"><input type="checkbox" id="sf-addon"/> <span id="sf-addon-label"></span></label>
+        <label>Commentaire (optionnel)<textarea id="sf-comment" rows="3"></textarea></label>
+        <button type="submit" id="sf-submit">Envoyer mon inscription</button>
+        <p id="sf-error" class="error" hidden></p>
+      </form>
+      <div id="stg-done" class="hidden pt-empty">
+        <p style="font-size:1.1rem">Inscription reçue, merci !</p>
+        <p class="muted">Tu recevras un email de confirmation avec la facture.</p>
+      </div>
     </div>`;
+  $("stg-back").addEventListener("click", drawStgList);
+  const applyChild = () => {
+    const yid = $("sf-youth")?.value;
+    if (yid && yid !== "__other") {
+      const y = YOUTHS.find((x) => x.person_id === yid);
+      $("sf-first").value = y.first_name; $("sf-last").value = y.last_name;
+      $("sf-first").readOnly = true; $("sf-last").readOnly = true;
+    } else {
+      $("sf-first").readOnly = false; $("sf-last").readOnly = false;
+      if (yid === "__other") { $("sf-first").value = ""; $("sf-last").value = ""; }
+    }
+  };
+  if ($("sf-youth")) { $("sf-youth").addEventListener("change", applyChild); applyChild(); }
+  $("sf-cat").addEventListener("change", applyStgCat);
+  $("sf-addon").addEventListener("change", applyStgCat);
+  document.querySelectorAll('input[name="sfmeal"]').forEach((r) =>
+    r.addEventListener("change", () => { $("sf-meal-text").disabled = document.querySelector('input[name="sfmeal"]:checked').value !== "autre"; }));
+  $("stg-form").addEventListener("submit", submitStg);
+  applyStgCat();
+}
+function applyStgCat() {
+  const c = stgCats[$("sf-cat").value] || {};
+  const d = stgDays(stgSession.start_date, stgSession.end_date), base = stgEff(c.price || 0, d);
+  const addon = Number(c.private_addon_price) || 0;
+  $("sf-addon-wrap").classList.toggle("hidden", !addon);
+  if (addon) $("sf-addon-label").textContent = `Ajouter 3h de tennis privé (+${addon} CHF)`; else $("sf-addon").checked = false;
+  const price = base + (addon && $("sf-addon").checked ? addon : 0);
+  const dates = `${frFull(stgSession.start_date)}${stgSession.end_date !== stgSession.start_date ? " → " + frFull(stgSession.end_date) : ""}`;
+  $("stg-meta").innerHTML = `${dates} · ${d} jour${d > 1 ? "s" : ""} · <b>${price} CHF</b>`;
+  $("sf-tshirt-wrap").classList.toggle("hidden", !c.tshirt);
+  $("sf-meal-wrap").classList.toggle("hidden", !c.meal);
+  $("sf-rank-wrap").classList.toggle("hidden", !c.ask_ranking);
+}
+async function submitStg(e) {
+  e.preventDefault();
+  const err = $("sf-error"); err.hidden = true;
+  const c = stgCats[$("sf-cat").value] || {};
+  if (!c.id) { err.textContent = "Choisis une catégorie."; err.hidden = false; return; }
+  let meal = null;
+  if (c.meal) { const sel = document.querySelector('input[name="sfmeal"]:checked')?.value; meal = sel === "autre" ? ($("sf-meal-text").value.trim() || "À préciser") : "Aucune"; }
+  const addon = Number(c.private_addon_price) || 0;
+  const yid = $("sf-youth")?.value;
+  const first = $("sf-first").value.trim(), last = $("sf-last").value.trim();
+  if (!first || !last) { err.textContent = "Prénom et nom requis."; err.hidden = false; return; }
+  const row = {
+    stage_id: stgSession.id, category_id: c.id, first_name: first, last_name: last,
+    email: $("sf-email").value.trim() || null, birth_date: $("sf-birth").value || null,
+    tshirt_size: c.tshirt ? ($("sf-tshirt").value || null) : null, meal_restriction: meal,
+    ranking: c.ask_ranking ? ($("sf-rank").value.trim() || null) : null,
+    private_addon: addon > 0 && $("sf-addon").checked,
+    comment: $("sf-comment").value.trim() || null,
+    person_id: (yid && yid !== "__other") ? yid : null,
+  };
+  const btn = $("sf-submit"); btn.disabled = true; btn.textContent = "Envoi…";
+  const { error } = await sb.from("stage_registrations").insert(row);
+  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer mon inscription"; return; }
+  $("stg-form").classList.add("hidden"); $("stg-done").classList.remove("hidden");
+  $("stg-meta").textContent = "";
 }
 
 /* ============================================================

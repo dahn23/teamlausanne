@@ -1438,3 +1438,26 @@ body.portal{background:var(--bg)}
 .pt-bot-quick{display:flex;flex-wrap:wrap;gap:6px;padding:10px;border-top:1px solid var(--line);background:#fff;max-height:44%;overflow-y:auto}
 .pt-qr{background:#eef1ff;color:var(--blue-ink);border:1px solid #dbe2ff;border-radius:999px;padding:7px 12px;font-size:.82rem;font-weight:600}
 .pt-qr:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* ---- Portail : Stages (inscription inline) ---- */
+.pt-stg-card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  margin-bottom:14px;box-shadow:0 6px 16px -12px rgba(15,31,110,.5)}
+.pt-stg-img{width:100%;height:150px;object-fit:cover;display:block}
+.pt-stg-body{padding:12px 14px}
+.pt-stg-body h3{margin:0 0 2px;color:var(--blue-ink)}
+.pt-stg-dates{color:var(--muted);font-size:.85rem}
+.pt-stg-badges{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.pt-stg-tag{background:#eef1ff;color:var(--blue-ink);font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:999px}
+.pt-stg-foot{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.pt-stg-price{font-weight:800;color:var(--blue-ink)}
+.pt-cta.sm{margin-top:0;padding:9px 16px;font-size:.9rem}
+.pt-back-btn{background:transparent;color:var(--blue);border:none;font-weight:700;padding:2px 0 10px;border-radius:0}
+.pt-back-btn:hover{background:transparent;color:var(--blue-d)}
+.pt-form{display:flex;flex-direction:column;gap:10px}
+.pt-form label{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:.9rem}
+.pt-form input,.pt-form select,.pt-form textarea{width:100%}
+.pt-form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pt-form-lbl{font-weight:600;font-size:.9rem}
+.pt-radio{flex-direction:row !important;align-items:center;gap:8px;font-weight:500 !important}
+.pt-radio input,.pt-addon input{width:auto !important}
+.pt-addon{flex-direction:row !important;align-items:center;gap:8px}
