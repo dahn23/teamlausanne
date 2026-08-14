@@ -93,8 +93,9 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .rgrid{display:grid;gap:3px;min-width:max-content}
 .rcell{border-radius:6px;padding:5px 3px;font-size:.75rem;text-align:center;
   display:flex;align-items:center;justify-content:center;min-height:36px}
-/* coin figé (haut-gauche) : opaque et au-dessus, sinon les en-têtes glissent dessous */
-.rcell.corner{background:#fff;position:sticky;left:0;top:0;z-index:6}
+/* coin figé (haut-gauche) : opaque et au-dessus, sinon les en-têtes glissent dessous.
+   Le box-shadow étalé (spread) comble les gaps de la grille autour de la case. */
+.rcell.corner{background:#fff;position:sticky;left:0;top:0;z-index:6;box-shadow:0 0 0 3px #fff}
 .rhead{background:#eef1f7;font-weight:800;color:var(--blue-ink);position:sticky;top:0;z-index:4;
   flex-direction:column;line-height:1.05;font-style:italic}
 /* Couleur = surface du court (bande basse discrète) */
@@ -113,7 +114,7 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .sfc-dot.sfc-gazon{background:#46a555}
 .sfc-dot.sfc-dur{background:#2f5fd0}
 .rhour{background:#eef1f7;color:var(--muted);font-weight:700;position:sticky;left:0;z-index:4;font-size:.72rem;
-  box-shadow:2px 0 5px -2px rgba(0,0,0,.18)}
+  box-shadow:0 0 0 3px #eef1f7, 5px 0 7px -3px rgba(0,0,0,.22)}
 .rslot{cursor:pointer;transition:outline .1s}
 .rslot.creuse{background:#bcd3ff;color:#0f2050}
 .rslot.pleine{background:#1e3ad1;color:#fff}
