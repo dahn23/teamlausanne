@@ -1245,3 +1245,130 @@ button.danger:hover{background:#8f1e17}
   .side-item .side-label{display:none}
   .form-grid{grid-template-columns:1fr}
 }
+
+/* ================= PORTAIL MEMBRE (Mon espace) ================= */
+body.portal{background:var(--bg)}
+.portal .hidden{display:none !important}
+.mascot{display:block}
+
+/* ---- Connexion ---- */
+.pt-login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
+.pt-login-card{background:var(--card);border:1px solid var(--line);border-radius:20px;
+  padding:26px 22px 22px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:12px;
+  box-shadow:0 18px 50px -22px rgba(15,31,110,.4);text-align:center}
+.pt-login-mascot{display:flex;justify-content:center;margin-bottom:2px}
+.pt-login-card h1{margin:0;font-size:1.5rem;color:var(--blue)}
+.pt-login-card label{display:flex;flex-direction:column;gap:5px;text-align:left;font-weight:600;font-size:.9rem}
+.pt-login-card .pt-back{margin-top:4px;color:var(--muted);text-decoration:none;font-size:.88rem}
+
+/* ---- Cadre appli ---- */
+.pt-app{min-height:100dvh;max-width:640px;margin:0 auto;padding-bottom:calc(78px + env(safe-area-inset-bottom))}
+.pt-top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;
+  background:var(--blue);color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top))}
+.pt-logo{height:26px;filter:brightness(0) invert(1)}
+.pt-top-title{font-weight:800;font-size:1.05rem;flex:1}
+.pt-logout{background:rgba(255,255,255,.16);color:#fff;border:none;border-radius:10px;
+  width:38px;height:38px;font-size:1.1rem;padding:0}
+.pt-logout:hover{background:rgba(255,255,255,.28)}
+
+/* ---- Sélecteur d'enfants ---- */
+.pt-youths{display:flex;gap:8px;overflow-x:auto;padding:12px 16px 4px;-webkit-overflow-scrolling:touch}
+.pt-youth{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:#fff;color:var(--ink);
+  border:1px solid var(--line);border-radius:999px;padding:6px 14px 6px 6px;font-weight:600;font-size:.9rem}
+.pt-youth.sel{background:var(--blue);color:#fff;border-color:var(--blue)}
+.pt-youth-av{width:30px;height:30px;border-radius:50%;background:#eef1ff;color:var(--blue-ink);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.78rem}
+.pt-youth.sel .pt-youth-av{background:rgba(255,255,255,.22);color:#fff}
+.pt-youth-av.big{width:46px;height:46px;font-size:1rem}
+
+.pt-main{padding:8px 16px 20px}
+.pt-view{animation:ptfade .18s ease}
+@keyframes ptfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---- Accueil ---- */
+.pt-hello{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;padding:16px;margin-bottom:14px}
+.pt-hello h2{margin:0 0 4px;font-size:1.15rem;color:var(--blue-ink)}
+.pt-empty{background:var(--card);border:1px dashed var(--line);border-radius:16px;padding:26px 18px;
+  text-align:center;color:var(--muted);margin-top:12px}
+
+/* ---- Semaine ---- */
+.pt-week{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 14px}
+.pt-week-nav{width:40px;height:40px;border-radius:12px;background:#fff;color:var(--blue);
+  border:1px solid var(--line);font-size:1.3rem;padding:0}
+.pt-week-nav:hover{background:#eef1ff}
+.pt-week-lbl{font-weight:800;color:var(--blue-ink);text-align:center;flex:1}
+
+.pt-day{font-weight:800;color:var(--blue-ink);text-transform:capitalize;margin:16px 2px 8px;font-size:.95rem}
+.pt-day:first-of-type{margin-top:0}
+
+/* ---- Carte de cours ---- */
+.pt-course{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--c);
+  border-radius:14px;padding:13px 14px;margin-bottom:10px;box-shadow:0 6px 16px -12px rgba(15,31,110,.5)}
+.pt-course-head{display:flex;gap:14px;align-items:flex-start}
+.pt-course-time{font-weight:800;color:var(--blue-ink);line-height:1.15;font-size:1.05rem;min-width:52px}
+.pt-course-time span{display:block;font-weight:600;color:var(--muted);font-size:.82rem}
+.pt-course-info{flex:1;min-width:0}
+.pt-course-youth{display:inline-block;background:#eef1ff;color:var(--blue-ink);font-weight:700;
+  font-size:.72rem;padding:1px 8px;border-radius:999px;margin-bottom:3px}
+.pt-course-title{font-weight:700;color:var(--ink)}
+.pt-course-meta{color:var(--muted);font-size:.86rem;margin-top:2px}
+
+/* auto-déclaration */
+.pt-decl-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:11px;
+  padding-top:11px;border-top:1px solid var(--line)}
+.pt-decl-hint{font-size:.82rem;color:var(--muted);margin-right:2px}
+.pt-decl{flex:1;min-width:78px;background:#fff;color:var(--ink);border:1px solid var(--line);
+  border-radius:10px;padding:9px 6px;font-weight:700;font-size:.85rem}
+.pt-decl:hover{border-color:var(--blue);color:var(--blue)}
+.pt-decl.sel{color:#fff;border-color:transparent}
+.pt-decl.sel.ok{background:#0b6b3a}
+.pt-decl.sel.late{background:#c98a00}
+.pt-decl.sel.no{background:#c0362c}
+
+.pt-mark{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);font-size:.9rem;color:var(--muted)}
+.pt-mark b{padding:1px 9px;border-radius:999px;color:#fff}
+.pt-mark.ok b{background:#0b6b3a}
+.pt-mark.late b{background:#c98a00}
+.pt-mark.no b{background:#c0362c}
+.pt-mark.wait{color:var(--muted);font-style:italic}
+
+/* ---- Panneaux Réserver / Stages ---- */
+.pt-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 18px;text-align:center}
+.pt-panel h2{margin:0 0 6px;color:var(--blue-ink)}
+.pt-cta{display:inline-block;margin-top:14px;background:var(--blue);color:#fff;text-decoration:none;
+  font-weight:700;padding:12px 22px;border-radius:12px}
+.pt-cta:hover{background:var(--blue-d)}
+
+/* ---- Profil ---- */
+.pt-prof-card{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:14px;margin-bottom:10px}
+
+/* ---- Assistant / mascotte ---- */
+.pt-bot{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:30;
+  width:60px;height:60px;border-radius:50%;background:#fff;border:1px solid var(--line);padding:6px;
+  box-shadow:0 12px 30px -10px rgba(15,31,110,.55)}
+.pt-bot:hover{transform:translateY(-2px)}
+.pt-bot-panel{position:fixed;right:16px;bottom:calc(150px + env(safe-area-inset-bottom));z-index:30;
+  width:min(320px,calc(100vw - 32px));background:#fff;border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 20px 50px -18px rgba(15,31,110,.5);overflow:hidden}
+.pt-bot-head{display:flex;align-items:center;gap:8px;background:var(--blue);color:#fff;padding:10px 12px;font-size:.95rem}
+.pt-bot-head span{display:flex}
+.pt-bot-head button{margin-left:auto;background:transparent;color:#fff;padding:0 4px;font-size:1rem}
+.pt-bot-body{padding:14px}
+.pt-bot-body p{margin:0 0 8px}
+
+/* ---- Barre d'onglets ---- */
+.pt-nav{position:fixed;left:0;right:0;bottom:0;z-index:25;display:flex;
+  background:#fff;border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);max-width:640px;margin:0 auto}
+.pt-nav-item{flex:1;background:transparent;color:var(--muted);border:none;border-radius:0;
+  display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 2px 8px;font-size:.7rem;font-weight:600}
+.pt-nav-item svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round}
+.pt-nav-item.active{color:var(--blue)}
+.pt-nav-item:hover{background:transparent;color:var(--blue)}
+
+@media (min-width:641px){
+  .pt-app{border-left:1px solid var(--line);border-right:1px solid var(--line);min-height:100dvh}
+}

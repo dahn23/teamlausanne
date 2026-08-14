@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1e3ad1" />
+  <title>Mon espace — Team Lausanne</title>
+  <link rel="stylesheet" href="style.css?v=20" />
+</head>
+<body class="portal">
+
+  <!-- ---------- Connexion ---------- -->
+  <div id="pt-login" class="pt-login hidden">
+    <form id="pt-login-form" class="pt-login-card">
+      <div class="pt-login-mascot" id="pt-login-mascot"></div>
+      <h1>Mon espace</h1>
+      <p class="muted">Connecte-toi pour voir tes cours, tes infos et les news du club.</p>
+      <label>Email<input type="email" id="pt-email" autocomplete="email" required /></label>
+      <label>Mot de passe<input type="password" id="pt-password" autocomplete="current-password" required /></label>
+      <button type="submit" id="pt-login-btn">Se connecter</button>
+      <p id="pt-login-error" class="error" hidden></p>
+      <a class="pt-back" href="index.html">← Retour au site</a>
+    </form>
+  </div>
+
+  <!-- ---------- Application ---------- -->
+  <div id="pt-app" class="pt-app hidden">
+    <header class="pt-top">
+      <img class="pt-logo" src="assets/logo-club.webp" alt="Team Lausanne" />
+      <div class="pt-top-title" id="pt-view-title">Accueil</div>
+      <button id="pt-logout" class="pt-logout" aria-label="Se déconnecter">⏻</button>
+    </header>
+
+    <!-- sélecteur d'enfants liés au compte -->
+    <div id="pt-youths" class="pt-youths hidden"></div>
+
+    <main class="pt-main">
+      <section id="view-accueil"  class="pt-view"></section>
+      <section id="view-cours"    class="pt-view hidden"></section>
+      <section id="view-profil"   class="pt-view hidden"></section>
+      <section id="view-reserver" class="pt-view hidden"></section>
+      <section id="view-stages"   class="pt-view hidden"></section>
+    </main>
+
+    <!-- assistant / mascotte -->
+    <button id="pt-bot" class="pt-bot" aria-label="Assistant"></button>
+    <div id="pt-bot-panel" class="pt-bot-panel hidden">
+      <div class="pt-bot-head"><span id="pt-bot-avatar"></span><b>L'assistant</b>
+        <button id="pt-bot-close" aria-label="Fermer">✕</button></div>
+      <div class="pt-bot-body">
+        <p>Salut&nbsp;! Je serai bientôt là pour répondre à tes questions (horaires, cours, stages…).</p>
+        <p class="muted">Assistant en cours de développement.</p>
+      </div>
+    </div>
+
+    <!-- barre d'onglets -->
+    <nav class="pt-nav">
+      <button class="pt-nav-item active" data-view="accueil">
+        <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Accueil</span></button>
+      <button class="pt-nav-item" data-view="cours">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Cours</span></button>
+      <button class="pt-nav-item" data-view="reserver">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3c4 4 4 14 0 18M12 3c-4 4-4 14 0 18M3 12h18"/></svg><span>Réserver</span></button>
+      <button class="pt-nav-item" data-view="stages">
+        <svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M7 10v5c0 1 2 3 5 3s5-2 5-3v-5"/></svg><span>Stages</span></button>
+      <button class="pt-nav-item" data-view="profil">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span>Profil</span></button>
+    </nav>
+  </div>
+
+  <script type="module" src="espace.js"></script>
+</body>
+</html>
