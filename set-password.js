@@ -28,5 +28,5 @@ $("sp-form").addEventListener("submit", async (e) => {
   if (p1 !== p2) { err.textContent = "Les mots de passe ne correspondent pas."; err.hidden = false; return; }
   const { error } = await sb.auth.updateUser({ password: p1 });
   if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
-  location.href = "reservation.html";
+  location.href = "espace.html";
 });

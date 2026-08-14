@@ -1372,3 +1372,10 @@ body.portal{background:var(--bg)}
 @media (min-width:641px){
   .pt-app{border-left:1px solid var(--line);border-right:1px solid var(--line);min-height:100dvh}
 }
+
+/* ---- Résultat création d'accès (console admin) ---- */
+.invite-result{background:#eef7f0;border:1px solid #cfe8d6;border-radius:12px;padding:12px 14px;margin:6px 0 4px}
+.invite-ok{margin:0;font-weight:700;color:#0b6b3a}
+.invite-linkrow{display:flex;gap:8px;margin-top:6px}
+.invite-linkrow input{flex:1;font-size:.82rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.invite-linkrow button{flex:0 0 auto;padding:8px 14px}

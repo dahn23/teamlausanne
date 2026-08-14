@@ -1032,6 +1032,8 @@ function openPerson(p) {
   $("person-title").textContent = p ? "Modifier la fiche" : "Nouvelle personne";
   $("delete-person").classList.toggle("hidden", !p);
   $("invite-person").classList.toggle("hidden", !p);
+  $("p-invite-result").classList.add("hidden");
+  $("p-invite-result").innerHTML = "";
   $("p-id").value = p?.id || "";
   $("p-first").value = p?.first_name || "";
   $("p-last").value = p?.last_name || "";
@@ -2938,13 +2940,33 @@ async function deletePerson() {
 async function invitePerson() {
   const id = $("p-id").value;
   const email = $("p-email").value.trim();
-  if (!email) { alert("Renseignez un email dans la fiche, enregistrez, puis invitez."); return; }
-  if (!confirm(`Envoyer une invitation par email à ${email} ?`)) return;
+  const box = $("p-invite-result");
+  if (!email) { alert("Renseignez un email dans la fiche, enregistrez, puis créez l'accès."); return; }
+  if (!confirm(`Créer un accès au portail « Mon espace » pour ${email} ?`)) return;
+  const btn = $("invite-person");
+  btn.disabled = true; btn.textContent = "Création…";
   const { data, error } = await sb.functions.invoke("invite-member", {
     body: { person_id: id || null, email, redirectTo: location.origin + "/set-password.html" },
   });
-  if (error || data?.error) { alert("Échec de l'invitation : " + (data?.error || error?.message)); return; }
-  alert("Invitation envoyée à " + email + ".\nLa personne recevra un email pour activer son compte.");
+  btn.disabled = false; btn.textContent = "Créer un accès portail";
+  if (error || data?.error) { alert("Échec : " + (data?.error || error?.message)); return; }
+  const link = data.action_link || "";
+  const reactiv = data.mode === "recovery";
+  box.classList.remove("hidden");
+  box.innerHTML = `
+    <p class="invite-ok">✅ Accès ${reactiv ? "ré-activé" : "créé"} pour <b>${email}</b>.</p>
+    <p class="muted" style="margin:.3rem 0">Envoie ce lien d'activation à la personne (email, WhatsApp…) — il ouvre la page où elle choisit son mot de passe, puis « Mon espace ».</p>
+    <div class="invite-linkrow">
+      <input type="text" id="p-invite-link" readonly value="${link}" />
+      <button type="button" id="p-invite-copy">Copier</button>
+    </div>`;
+  $("p-invite-copy").addEventListener("click", async () => {
+    const inp = $("p-invite-link");
+    try { await navigator.clipboard.writeText(inp.value); }
+    catch { inp.select(); document.execCommand("copy"); }
+    $("p-invite-copy").textContent = "Copié ✓";
+    setTimeout(() => { $("p-invite-copy").textContent = "Copier"; }, 1500);
+  });
 }
 
 // ===================================================================
