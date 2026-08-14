@@ -148,10 +148,98 @@ function renderCurrentView() {
   else if (currentView === "profil") renderProfil();
 }
 
-/* ---------- Assistant / mascotte ---------- */
+/* ---------- Assistant Rebond (scripté, sans IA) ---------- */
+let botStarted = false;
 function bindBot() {
-  $("pt-bot").addEventListener("click", () => $("pt-bot-panel").classList.toggle("hidden"));
+  $("pt-bot").addEventListener("click", () => {
+    const p = $("pt-bot-panel");
+    p.classList.toggle("hidden");
+    if (!p.classList.contains("hidden") && !botStarted) { botStarted = true; botGreet(); }
+  });
   $("pt-bot-close").addEventListener("click", () => $("pt-bot-panel").classList.add("hidden"));
+}
+const closeBot = () => $("pt-bot-panel").classList.add("hidden");
+
+function botBubble(html, who = "bot") {
+  const log = $("pt-bot-log");
+  const div = document.createElement("div");
+  div.className = "pt-bub " + who;
+  div.innerHTML = who === "bot"
+    ? `<span class="pt-bub-av">${mascot(26)}</span><div class="pt-bub-txt">${html}</div>`
+    : `<div class="pt-bub-txt">${html}</div>`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+function botQuick(items) {
+  const q = $("pt-bot-quick");
+  q.innerHTML = "";
+  for (const it of items) {
+    const b = document.createElement("button");
+    b.className = "pt-qr";
+    b.textContent = it.label;
+    b.addEventListener("click", () => {
+      botBubble(escHtml(it.label), "me");
+      q.innerHTML = "";
+      setTimeout(() => it.run(), 140);
+    });
+    q.appendChild(b);
+  }
+}
+const ROOT_QR = () => [
+  { label: "📅 Mes prochains cours", run: qrCours },
+  { label: "✅ M'annoncer à un cours", run: qrAnnonce },
+  { label: "🎾 Réserver un court", run: qrReserver },
+  { label: "🏕️ Stages", run: qrStages },
+  { label: "🕘 Horaires secrétariat", run: qrSecret },
+  { label: "📣 Voir les news", run: qrNews },
+  { label: "☎️ Contacter le club", run: qrContact },
+];
+const backToRoot = () => botQuick(ROOT_QR());
+const menuBtn = { label: "↩︎ Menu", run: backToRoot };
+
+function botGreet() {
+  const name = YOUTHS[0]?.first_name;
+  botBubble(`Salut${name ? " " + escHtml(name) : ""} ! Je suis <b>Rebond</b> 🎾<br/>Comment puis-je t'aider ?`);
+  backToRoot();
+}
+
+async function qrCours() {
+  botBubble("Je regarde tes prochains cours…");
+  const today = new Date();
+  const { data } = await sb.rpc("portal_week_courses", { p_from: isoLocal(today), p_to: isoLocal(addDays(today, 14)) });
+  let rows = data || [];
+  if (selYouth !== "all") rows = rows.filter((c) => c.youth_id === selYouth);
+  const now = new Date();
+  rows = rows.filter((c) => new Date(`${c.course_date}T${c.start_time}:00`) >= now)
+    .sort((a, b) => (a.course_date + a.start_time).localeCompare(b.course_date + b.start_time)).slice(0, 5);
+  if (!rows.length) botBubble("Aucun cours prévu dans les 2 prochaines semaines. 🎾");
+  else botBubble(rows.map((c) => {
+    const dt = new Date(c.course_date + "T00:00:00");
+    const w = (selYouth === "all" && YOUTHS.length > 1) ? " (" + escHtml(c.youth_first) + ")" : "";
+    return `• <b>${DOW[dt.getDay()]} ${frShort(c.course_date)}</b> à ${c.start_time}${c.court ? " — " + escHtml(c.court) : ""}${w}`;
+  }).join("<br/>"));
+  botQuick([{ label: "Ouvrir mes cours", run: () => { closeBot(); switchView("cours"); } }, menuBtn]);
+}
+function qrAnnonce() {
+  botBubble("Dans l'onglet <b>Cours</b>, tant que le cours n'a pas commencé, tu peux cliquer <b>Présent</b>, <b>En retard</b> ou <b>Absent</b>. Après le début, c'est la présence notée par ton coach qui s'affiche.");
+  botQuick([{ label: "Ouvrir mes cours", run: () => { closeBot(); switchView("cours"); } }, menuBtn]);
+}
+function qrReserver() {
+  botBubble("Tu peux réserver un court depuis l'onglet <b>Réserver</b>, ou directement sur la grille des courts.");
+  botQuick([{ label: "Ouvrir la réservation", run: () => { location.href = "reservation.html"; } }, menuBtn]);
+}
+function qrStages() {
+  botBubble("Retrouve tous les stages et camps de l'académie dans l'onglet <b>Stages</b>, avec l'inscription en ligne.");
+  botQuick([{ label: "Voir les stages", run: () => { location.href = "index.html#stages"; } }, menuBtn]);
+}
+function qrSecret() {
+  botBubble("Le secrétariat est ouvert du <b>lundi au vendredi</b>, <b>9h00–12h00</b> et <b>13h00–17h00</b>.");
+  botQuick([{ label: "☎️ Contacter le club", run: qrContact }, menuBtn]);
+}
+function qrNews() { closeBot(); switchView("accueil"); }
+function qrContact() {
+  botBubble(`Téléphone : <a href="tel:+41216461350">+41 21 646 13 50</a><br/>Ou via le <a href="contact.html">formulaire de contact</a>.`);
+  botQuick([menuBtn]);
 }
 
 /* ============================================================

@@ -1424,3 +1424,17 @@ body.portal{background:var(--bg)}
 .pt-suivi-item{border-left:3px solid var(--blue);background:#f6f8ff;border-radius:0 10px 10px 0;padding:8px 12px;margin-bottom:8px}
 .pt-suivi-meta{font-size:.76rem;color:var(--muted);font-weight:700;margin-bottom:2px}
 .pt-suivi-item p{margin:0;line-height:1.5}
+
+/* ---- Portail : chat Rebond ---- */
+.pt-bot-panel{display:flex;flex-direction:column;height:min(62vh,470px)}
+.pt-bot-log{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.pt-bub{display:flex;gap:8px;align-items:flex-end;max-width:100%}
+.pt-bub.me{justify-content:flex-end}
+.pt-bub-av{flex:0 0 auto;width:28px;height:28px}
+.pt-bub-txt{background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.9rem;line-height:1.45;max-width:82%}
+.pt-bub.bot .pt-bub-txt{border-bottom-left-radius:4px}
+.pt-bub.me .pt-bub-txt{background:var(--blue);color:#fff;border-color:var(--blue);border-bottom-right-radius:4px}
+.pt-bub-txt a{color:inherit;text-decoration:underline}
+.pt-bot-quick{display:flex;flex-wrap:wrap;gap:6px;padding:10px;border-top:1px solid var(--line);background:#fff;max-height:44%;overflow-y:auto}
+.pt-qr{background:#eef1ff;color:var(--blue-ink);border:1px solid #dbe2ff;border-radius:999px;padding:7px 12px;font-size:.82rem;font-weight:600}
+.pt-qr:hover{background:var(--blue);color:#fff;border-color:var(--blue)}

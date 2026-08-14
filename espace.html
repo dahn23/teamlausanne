@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1e3ad1" />
   <title>Mon espace — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=23" />
+  <link rel="stylesheet" href="style.css?v=24" />
 </head>
 <body class="portal">
 
@@ -45,12 +45,10 @@
     <!-- assistant / mascotte -->
     <button id="pt-bot" class="pt-bot" aria-label="Assistant"></button>
     <div id="pt-bot-panel" class="pt-bot-panel hidden">
-      <div class="pt-bot-head"><span id="pt-bot-avatar"></span><b>L'assistant</b>
+      <div class="pt-bot-head"><span id="pt-bot-avatar"></span><b>Rebond</b>
         <button id="pt-bot-close" aria-label="Fermer">✕</button></div>
-      <div class="pt-bot-body">
-        <p>Salut&nbsp;! Je serai bientôt là pour répondre à tes questions (horaires, cours, stages…).</p>
-        <p class="muted">Assistant en cours de développement.</p>
-      </div>
+      <div class="pt-bot-log" id="pt-bot-log"></div>
+      <div class="pt-bot-quick" id="pt-bot-quick"></div>
     </div>
 
     <!-- barre d'onglets -->
