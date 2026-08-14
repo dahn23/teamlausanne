@@ -518,6 +518,7 @@ input.pd-native{display:none}
 .mn-cal .mn-txt{width:210px;min-width:170px;resize:vertical;font-size:.82rem;line-height:1.35;
   border:1px solid var(--line);border-radius:8px;padding:6px 8px;box-sizing:border-box}
 .mn-cal .mn-num{width:54px}
+.mn-cal .mn-short{width:92px}
 .mn-cal .mn-date{width:145px}
 .mn-cell.mn-saved{outline:2px solid #1c7d38}
 .mn-cal .pd-wrap{width:150px}

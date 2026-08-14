@@ -4093,9 +4093,16 @@ async function peDelRemark(id) {
 // ===================================================================
 const MENTAL_YOUTH_ROLES = ["sport-etudes", "pro", "pro-u18"];
 const MN_FIELDS = [
-  { k: "day", h: "Date", type: "date" }, { k: "session_no", h: "N°", type: "num" }, { k: "theme", h: "Thème" },
-  { k: "objectifs", h: "Objectifs" }, { k: "routines", h: "Routines semaine" }, { k: "inputs", h: "Inputs mental" },
-  { k: "entrainement", h: "Entraînement" }, { k: "partage", h: "Partage & cahier" }, { k: "retour_calme", h: "Retour au calme" },
+  { k: "theme", h: "Thématique" },
+  { k: "type", h: "Type", type: "short" },
+  { k: "day", h: "Date", type: "date" },
+  { k: "heure_debut", h: "Heure début", type: "short" },
+  { k: "heure_fin", h: "Heure fin", type: "short" },
+  { k: "objectifs", h: "Objectifs" },
+  { k: "inputs", h: "Routines chaque semaine · Inputs (Fred)" },
+  { k: "entrainement", h: "Entraînement (Mariano)" },
+  { k: "partage", h: "Routines chaque semaine et partage (Fred)" },
+  { k: "retour_calme", h: "Retour au calme (Fred)" },
 ];
 let mnYouthId = null;
 
@@ -4132,6 +4139,7 @@ async function loadMentalCalendar() {
     html += "<tr>" + MN_FIELDS.map((f) => {
       if (f.type === "date") return `<td><input type="date" class="mn-cell mn-date" data-id="${r.id}" data-field="day" value="${r.day || ""}" /></td>`;
       if (f.type === "num") return `<td><input type="number" class="mn-cell mn-num" data-id="${r.id}" data-field="session_no" value="${r.session_no ?? ""}" /></td>`;
+      if (f.type === "short") return `<td><input type="text" class="mn-cell mn-short" data-id="${r.id}" data-field="${f.k}" value="${esc(r[f.k] || "")}" /></td>`;
       return `<td><textarea class="mn-cell mn-txt" data-id="${r.id}" data-field="${f.k}" rows="3">${esc(r[f.k] || "")}</textarea></td>`;
     }).join("") + `<td><button type="button" class="fam-del mn-del" data-id="${r.id}">✕</button></td></tr>`;
   }
