@@ -299,6 +299,8 @@ const DETAILS = {
         ["Compétition", "Tournois juniors et GameZone tout au long de la saison."],
         ["Progression", "Passerelle naturelle vers la filière Performance."],
       ], link: { label: "Nous écrire", contact: "Cours juniors" } },
+      { type: "enroll", title: "Demander une inscription", filiere: "competition", ranking: true,
+        lead: "Intéressé(e) par la filière Compétition ? Remplissez ce formulaire, le secrétariat vous recontacte." },
       { type: "gallery", items: ["assets/webflow/prog-competition.webp", "assets/photos/kids2.jpg"] },
     ],
   },
@@ -316,6 +318,8 @@ const DETAILS = {
         ["Suivi", "Encadrement rapproché et planification individualisée."],
         ["Objectif", "Accès au Sport-études et à la voie Pro U18."],
       ], link: { label: "Nous écrire", contact: "Cours juniors" } },
+      { type: "enroll", title: "Demander une inscription", filiere: "performance", ranking: true,
+        lead: "Intéressé(e) par la filière Performance ? Remplissez ce formulaire, le secrétariat vous recontacte." },
       { type: "gallery", items: ["assets/webflow/prog-performance.webp", "assets/photos/coach1.jpg"] },
     ],
   },
@@ -390,6 +394,8 @@ const DETAILS = {
       { type: "rich", title: "Tarif", body: [
         "CHF 490.– pour la saison complète, soit environ 44 CHF par mois.",
       ]},
+      { type: "enroll", title: "Demander une inscription", filiere: "kidstennis", ranking: false,
+        lead: "Envie d'inscrire votre enfant à KidsTennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
       { type: "gallery", items: ["assets/photos/kids1.jpg", "assets/photos/kids2.jpg"] },
     ],
   },
@@ -418,6 +424,8 @@ const DETAILS = {
         ["Ponctuelle", "Quelques compétitions au fil de la saison, selon l'envie et sans obligation."],
         ["Interclubs", "Pour les membres du club, possibilité de participer aux interclubs selon disponibilité."],
       ], link: { label: "Nous écrire", contact: "Cours juniors" } },
+      { type: "enroll", title: "Demander une inscription", filiere: "club", ranking: false,
+        lead: "Envie de rejoindre l'offre Club ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
   },
   gamezone: {
@@ -725,6 +733,32 @@ function sectionHTML(sec) {
             <p style="font-size:1.15rem;font-weight:800;color:var(--blue-ink);margin:0 0 6px">Merci, c'est envoyé !</p>
             <p class="muted" style="margin:0">Nous revenons vers vous très vite.</p>
           </div>
+        </div></section>`;
+
+    case "enroll":
+      return `<section class="wsec"><h2>${esc(sec.title || "Demande d'inscription")}</h2>
+        ${sec.lead ? `<p class="muted" style="max-width:640px;margin:-6px 0 22px">${esc(sec.lead)}</p>` : ""}
+        <form id="enroll-form" class="cform" style="max-width:720px" data-filiere="${esc(sec.filiere)}">
+          <div class="cf-row">
+            <label class="cf-field"><span>Prénom</span><input type="text" id="en-first" required /></label>
+            <label class="cf-field"><span>Nom</span><input type="text" id="en-last" required /></label>
+          </div>
+          <div class="cf-row">
+            <label class="cf-field"><span>Date de naissance</span><input type="date" id="en-birth" required /></label>
+            <label class="cf-field"><span>N° AVS</span><input type="text" id="en-avs" placeholder="756.XXXX.XXXX.XX" /></label>
+          </div>
+          <div class="cf-row">
+            <label class="cf-field"><span>Téléphone</span><input type="tel" id="en-phone" autocomplete="tel" required /></label>
+            <label class="cf-field"><span>Email</span><input type="email" id="en-email" autocomplete="email" required /></label>
+          </div>
+          ${sec.ranking ? `<label class="cf-field"><span>Classement</span><input type="text" id="en-ranking" placeholder="ex. R4, N3, sans classement…" /></label>` : ""}
+          <label class="cf-field"><span>Commentaire</span><textarea id="en-comment" rows="3"></textarea></label>
+          <button type="submit" id="en-btn">Envoyer ma demande d'inscription</button>
+          <p id="en-error" class="error" hidden></p>
+        </form>
+        <div id="en-done" class="hidden" style="max-width:720px;background:var(--accent-soft);border-radius:16px;padding:24px;text-align:center">
+          <p style="font-size:1.15rem;font-weight:800;color:var(--blue-ink);margin:0 0 6px">Merci, votre demande est envoyée !</p>
+          <p class="muted" style="margin:0">Le secrétariat vous recontacte rapidement.</p>
         </div></section>`;
 
     default: return "";
@@ -1047,6 +1081,28 @@ document.addEventListener("submit", async (e) => {
   if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
   $("biz-form").classList.add("hidden");
   $("biz-done").classList.remove("hidden");
+});
+
+// Demande d'inscription (pages de filière : Compétition, Performance, Club, KidsTennis)
+document.addEventListener("submit", async (e) => {
+  if (e.target.id !== "enroll-form") return;
+  e.preventDefault();
+  const err = $("en-error"); err.hidden = true;
+  const btn = $("en-btn"); btn.disabled = true; btn.textContent = "Envoi…";
+  const v = (id) => ($(id) ? $(id).value.trim() : "");
+  const row = {
+    filiere: e.target.dataset.filiere,
+    first_name: v("en-first"), last_name: v("en-last"),
+    birthdate: $("en-birth").value || null,
+    avs: v("en-avs") || null, phone: v("en-phone") || null, email: v("en-email") || null,
+    ranking: $("en-ranking") ? (v("en-ranking") || null) : null,
+    comment: v("en-comment") || null,
+  };
+  const { error } = await sb.from("enrollment_requests").insert(row);
+  btn.disabled = false; btn.textContent = "Envoyer ma demande d'inscription";
+  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
+  $("enroll-form").classList.add("hidden");
+  $("en-done").classList.remove("hidden");
 });
 
 window.addEventListener("hashchange", route);

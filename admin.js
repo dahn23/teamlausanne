@@ -67,9 +67,9 @@ if (!session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
-  admin:      ["membres", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
-  secretaire: ["membres", "news", "resa", "matchs", "caisse", "stages", "stats"],
+  superadmin: ["membres", "inscriptions", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
+  admin:      ["membres", "inscriptions", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
+  secretaire: ["membres", "inscriptions", "news", "resa", "matchs", "caisse", "stages", "stats"],
   head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages"],
   coach:      ["resa", "cours", "matchs", "phystests"],
   prof:       ["etudes"],
@@ -77,7 +77,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -204,6 +204,7 @@ function showView(view) {
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
+  if (view === "inscriptions") loadInscriptions();
 }
 
 // ===================================================================
@@ -3078,6 +3079,73 @@ async function deleteNews() {
   if (error) { alert("Suppression impossible : " + error.message); return; }
   closeNews();
   loadNews();
+}
+
+// ===================================================================
+//  Inscriptions (demandes depuis les pages de filière du site)
+// ===================================================================
+const FILIERE_LABEL = { competition: "Compétition", performance: "Performance", club: "Club", kidstennis: "KidsTennis" };
+let inscList = [];
+
+async function loadInscriptions() {
+  const { data, error } = await sb.rpc("list_enrollment_requests");
+  inscList = error ? [] : (data || []);
+  const box = $("insc-list");
+  if (!inscList.length) { box.innerHTML = `<p class="muted">Aucune demande d'inscription pour le moment.</p>`; return; }
+  box.innerHTML = inscList.map((r) => {
+    const done = r.status === "ajoute";
+    const info = [r.birthdate ? "Né(e) le " + frDate(r.birthdate) : "", r.avs ? "AVS " + esc(r.avs) : ""].filter(Boolean).join(" · ");
+    const contact = [
+      r.phone ? `<a href="tel:${esc(r.phone.replace(/\s/g, ""))}">${esc(r.phone)}</a>` : "",
+      r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : "",
+    ].filter(Boolean).join(" · ");
+    return `<div class="insc-card">
+      <div class="insc-top">
+        <span class="insc-fil">${esc(FILIERE_LABEL[r.filiere] || r.filiere)}</span>
+        <b>${esc(r.first_name)} ${esc(r.last_name)}</b>
+        ${r.ranking ? `<span class="insc-rank">Classement : ${esc(r.ranking)}</span>` : ""}
+        <span class="muted insc-date">${frDate(r.created_at)}</span>
+      </div>
+      ${info ? `<div class="insc-line">${info}</div>` : ""}
+      ${contact ? `<div class="insc-line">${contact}</div>` : ""}
+      ${r.comment ? `<div class="insc-comment">${esc(r.comment)}</div>` : ""}
+      ${r.dup ? `<div class="insc-dup">⚠ Doublon possible : <b>${esc(r.dup.name)}</b> existe déjà dans le répertoire.</div>` : ""}
+      <div class="insc-acts">
+        ${done ? `<span class="insc-added">✅ Ajouté au répertoire</span>`
+               : `<button class="insc-add" data-id="${r.id}">Ajouter au répertoire</button>`}
+        <button class="insc-del ghost" data-id="${r.id}">Supprimer</button>
+      </div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".insc-add").forEach((b) => b.addEventListener("click", () => addToRepertoire(b.dataset.id)));
+  box.querySelectorAll(".insc-del").forEach((b) => b.addEventListener("click", () => deleteInscription(b.dataset.id)));
+}
+
+async function addToRepertoire(id) {
+  const r = inscList.find((x) => x.id === id);
+  if (!r) return;
+  if (r.dup && !confirm(`Un profil « ${r.dup.name} » existe peut-être déjà.\nCréer quand même une nouvelle fiche ?`)) return;
+  if (!r.dup && !confirm(`Ajouter ${r.first_name} ${r.last_name} au répertoire ?`)) return;
+  const ins = await sb.from("people").insert({
+    first_name: r.first_name, last_name: r.last_name,
+    birthdate: r.birthdate || null, avs: r.avs || null,
+    email: r.email || null, phone: r.phone || null,
+    emails: r.email ? [r.email] : [], phones: r.phone ? [r.phone] : [],
+    is_active: true, notes: r.comment || null,
+  }).select("id").single();
+  if (ins.error) { alert("Création impossible : " + ins.error.message); return; }
+  const pid = ins.data.id;
+  if (r.filiere) await sb.from("person_roles").insert({ person_id: pid, role: r.filiere });
+  await sb.from("enrollment_requests").update({ status: "ajoute", added_person_id: pid }).eq("id", id);
+  loadInscriptions();
+  loadPeople();
+}
+
+async function deleteInscription(id) {
+  if (!confirm("Supprimer cette demande ?")) return;
+  const { error } = await sb.from("enrollment_requests").delete().eq("id", id);
+  if (error) { alert("Suppression impossible : " + error.message); return; }
+  loadInscriptions();
 }
 
 // ===================================================================

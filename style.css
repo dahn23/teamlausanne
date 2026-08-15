@@ -1461,3 +1461,17 @@ body.portal{background:var(--bg)}
 .pt-radio{flex-direction:row !important;align-items:center;gap:8px;font-weight:500 !important}
 .pt-radio input,.pt-addon input{width:auto !important}
 .pt-addon{flex-direction:row !important;align-items:center;gap:8px}
+
+/* ---- Inscriptions (console admin) ---- */
+.insc-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.insc-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.insc-fil{background:var(--blue);color:#fff;font-size:.72rem;font-weight:800;padding:2px 10px;border-radius:999px}
+.insc-rank{background:#eef1ff;color:var(--blue-ink);font-size:.74rem;font-weight:700;padding:1px 9px;border-radius:999px}
+.insc-date{margin-left:auto;font-size:.8rem}
+.insc-line{margin-top:5px;font-size:.9rem}
+.insc-comment{margin-top:7px;background:#f6f8ff;border-radius:8px;padding:7px 10px;font-size:.88rem}
+.insc-dup{margin-top:8px;background:#fdecec;color:#b3261e;border:1px solid #f6c9c4;border-radius:8px;padding:7px 10px;font-size:.85rem;font-weight:600}
+.insc-acts{display:flex;gap:8px;align-items:center;margin-top:10px}
+.insc-add{padding:8px 14px}
+.insc-del{margin-left:auto}
+.insc-added{color:#0b6b3a;font-weight:700}
