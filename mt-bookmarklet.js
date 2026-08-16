@@ -7,15 +7,15 @@
       alert("Ouvre d'abord mytennis.ch (connecté), puis clique ce favori."); return;
     }
 
-    // 1) Récupérer les jetons d'accès présents dans la session mytennis
+    // 1) Récupérer TOUT jeton JWT présent dans le stockage de la session mytennis
+    //    (regex : attrape les JWT même imbriqués/encodés dans du JSON).
     const jwts = (() => {
       const out = new Set();
-      const add = (s) => { if (typeof s === "string" && /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(s)) out.add(s); };
+      const rx = /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{10,}/g;
       for (const store of [localStorage, sessionStorage]) {
         for (let i = 0; i < store.length; i++) {
           const v = store.getItem(store.key(i)); if (!v) continue;
-          add(v);
-          try { const o = JSON.parse(v); if (o) { add(o.secret); add(o.accessToken); add(o.access_token); add(o.idToken); } } catch (e) { /* pas du json */ }
+          (v.match(rx) || []).forEach((t) => out.add(t));
         }
       }
       return [...out];
@@ -75,6 +75,7 @@
     const origin = new URL(RCV).origin;
     const post = (m) => w.postMessage(m, origin);
 
+    const diag = { jwts: jwts.length, tokenOk: false, first: null };
     const onmsg = async (e) => {
       const d = e.data; if (!d || !d.type) return;
       if (d.type === "mt-ready") { post({ type: "mt-start", key: KEY }); return; }
@@ -84,21 +85,26 @@
         for (let i = 0; i < players.length; i++) {
           const pl = players[i];
           post({ type: "mt-progress", text: `Joueur ${i + 1}/${players.length} : ${pl.name}…` });
+          const dg = (i === 0) ? { name: pl.name, license: pl.license } : null;
           try {
-            let mtId = null, classification = null;
-            if (!tokenTried) { token = await findToken(pl.license); tokenTried = true; }
+            let mtId = null, classification = null, via = null;
+            if (!tokenTried) { token = await findToken(pl.license); tokenTried = true; diag.tokenOk = !!token; }
             if (token) {
               const pj = await gql(Q_PERSON, { l: pl.license }, token);
+              if (dg) dg.personErr = pj.errors && pj.errors[0] && pj.errors[0].message;
               const person = pj.data && pj.data.person && pj.data.person[0];
-              if (person) { mtId = person.id; const ln = person.lizenz_nehmer; classification = (Array.isArray(ln) ? ln[0] : ln)?.classification || null; }
+              if (person) { mtId = person.id; via = "token"; const ln = person.lizenz_nehmer; classification = (Array.isArray(ln) ? ln[0] : ln)?.classification || null; }
             }
-            if (!mtId) { const s = await searchByName(pl.name, pl.license); if (s) { mtId = s.id; classification = s.classification; } }
+            if (!mtId) { const s = await searchByName(pl.name, pl.license); if (s) { mtId = s.id; classification = s.classification; via = "search"; } }
+            if (dg) { dg.via = via; dg.mtId = mtId; }
             if (!mtId) { out.push({ license: pl.license, mt_person_id: null, matches: [] }); continue; }
 
             let matches = [];
             if (token) {
               const sj = await gql(Q_SINGLES, { id: mtId }, token);
+              if (dg) { dg.singlesErr = sj.errors && sj.errors[0] && sj.errors[0].message; }
               const res = (sj.data && sj.data.results) || [];
+              if (dg) dg.resultsCount = res.length;
               matches = res.map((m) => ({
                 encounterId: m.encounterId, date: m.date, isDouble: false, tournamentName: m.tournamentName,
                 opponentFirst: m.adversaryFirstname, opponentLast: m.adversaryLastname, opponentId: m.adversaryPersonId,
@@ -106,11 +112,12 @@
                 opponentRanking: m.adversary && m.adversary.ranking, opponentClassification: m.adversary && m.adversary.classification,
                 source: m.source, raw: m,
               }));
-            }
+            } else if (dg) { dg.singlesErr = "pas de jeton -> resultats non interrogeables"; }
+            if (dg) diag.first = dg;
             out.push({ license: pl.license, mt_person_id: mtId, classification, matches });
-          } catch (err) { out.push({ license: pl.license, error: String(err), matches: [] }); }
+          } catch (err) { if (dg) { dg.exception = String(err); diag.first = dg; } out.push({ license: pl.license, error: String(err), matches: [] }); }
         }
-        post({ type: "mt-data", key: KEY, players: out });
+        post({ type: "mt-data", key: KEY, players: out, diag });
         window.removeEventListener("message", onmsg);
       }
     };

@@ -41,7 +41,19 @@ window.addEventListener("message", async (e) => {
       if (!j.ok) { st.textContent = "Erreur : " + (j.error || JSON.stringify(j)); return; }
       const totalMatches = j.report.reduce((a, x) => a + (x.matches || 0), 0);
       const matched = j.report.filter((x) => x.matched).length;
-      st.textContent = `✓ Terminé : ${matched} joueur(s) reliés, ${totalMatches} match(s) enregistré(s). Vous pouvez fermer cette fenêtre et rafraîchir la fiche.`;
+      let msg = `✓ Terminé : ${matched} joueur(s) reliés, ${totalMatches} match(s) enregistré(s). Vous pouvez fermer cette fenêtre et rafraîchir la fiche.`;
+      const g = d.diag;
+      if (g && totalMatches === 0) {
+        const f = g.first || {};
+        msg += `\n\n— Diagnostic —\nJetons trouvés : ${g.jwts} · jeton valide : ${g.tokenOk ? "oui" : "NON"}`;
+        msg += `\n1er joueur : ${f.name || "?"}\nid trouvé via : ${f.via || "aucun"} (id ${f.mtId ?? "—"})`;
+        if (f.personErr) msg += `\nErreur 'person' : ${f.personErr}`;
+        if (f.singlesErr) msg += `\nErreur 'résultats' : ${f.singlesErr}`;
+        if (f.resultsCount != null) msg += `\nRésultats renvoyés : ${f.resultsCount}`;
+        if (f.exception) msg += `\nException : ${f.exception}`;
+      }
+      st.style.whiteSpace = "pre-line";
+      st.textContent = msg;
     } catch (err) { st.textContent = "Erreur d'envoi : " + err.message; }
     return;
   }
