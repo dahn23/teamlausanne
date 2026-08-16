@@ -181,6 +181,7 @@ async function init(roles) {
   await loadSettings();
   applyTabAccess(roles);
   loadPeople();
+  loadMtBookmarklet();
   initResa(roles);
   initStats();
   initRoles();
@@ -1767,7 +1768,6 @@ async function initGameZone(roles) {
   loadCats();
   loadTournaments();
   loadBookmarklet();
-  loadMtBookmarklet();
 }
 
 async function loadMtBookmarklet() {
