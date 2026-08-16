@@ -4311,7 +4311,7 @@ async function renderPmHistory(personId, reports) {
   pmData = data || []; pmReports = reports || [];
   if (!pmData.length) {
     host.innerHTML = `<h3 style="margin:16px 0 8px">Historique Swiss Tennis</h3>
-      <p class="muted" style="font-size:.85rem">Aucun match importé pour ce joueur. (Import via le favori « mytennis » dans GameZone ; nécessite un n° de licence.)</p>`;
+      <p class="muted" style="font-size:.85rem">Aucun match importé pour ce joueur. (Import via le favori « Importer les matchs » en bas du Répertoire ; nécessite un n° de licence.)</p>`;
     return;
   }
   showPersonTab("matchs", true);
