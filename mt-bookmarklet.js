@@ -56,7 +56,10 @@
       const parts = [];
       for (let s = 1; s <= 5; s++) {
         const p = m["playerSet" + s + "WonGames"], a = m["adversarySet" + s + "WonGames"];
-        if (p != null && a != null && !(p === 0 && a === 0)) parts.push(p + "-" + a);
+        if (p == null || a == null) continue;
+        if (p < 0 || a < 0) continue;        // -1 = set non joué
+        if (p === 0 && a === 0) continue;
+        parts.push(p + "-" + a);
       }
       return parts.join(" ");
     };
