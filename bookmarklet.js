@@ -20,8 +20,26 @@
       }
     } catch (e) { /* pas de bascule possible */ }
     const ld = new DOMParser().parseFromString(listH, "text/html");
-    const ids = [...new Set([...ld.querySelectorAll('a[href*="tournament=Id"]')].map((a) => (a.getAttribute("href").match(/Id(\d+)/) || [])[1]).filter(Boolean))];
-    if (!ids.length) { alert("Aucun tournoi trouvé sur la page."); return; }
+    // On ne re-scanne que les tournois des 2 dernières semaines + à venir :
+    // un tournoi plus ancien est figé (inscriptions closes, tableaux faits),
+    // le re-scanner ne sert à rien et coûte 2 requêtes. Gros gain de temps.
+    const BACK_DAYS = 14;
+    const cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setDate(cutoff.getDate() - BACK_DAYS);
+    const maxDate = (s) => {
+      const ms = [...String(s).matchAll(/(\d{2})\.(\d{2})\.(\d{4})/g)];
+      if (!ms.length) return null;
+      return ms.map((m) => new Date(+m[3], +m[2] - 1, +m[1])).sort((a, b) => b - a)[0];
+    };
+    const seen = new Set(); const ids = []; let skipped = 0;
+    for (const a of ld.querySelectorAll('a[href*="tournament=Id"]')) {
+      const id = (a.getAttribute("href").match(/Id(\d+)/) || [])[1];
+      if (!id || seen.has(id)) continue; seen.add(id);
+      const tr = a.closest("tr");
+      const dt = tr ? maxDate(tr.textContent) : null;      // date la plus récente de la ligne
+      if (dt && dt < cutoff) { skipped++; continue; }        // tournoi passé et figé → on saute
+      ids.push(id);
+    }
+    if (!ids.length) { alert("Aucun tournoi récent ou à venir à mettre à jour" + (skipped ? " (" + skipped + " tournoi(s) passé(s) ignoré(s))." : ".")); return; }
     const T = [];
     for (const id of ids) {
       const dH = await g(base + "ProtectedDisplayTournament?tournament=Id" + id + "&lang=F");
