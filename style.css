@@ -1480,3 +1480,8 @@ body.portal{background:var(--bg)}
 .lic-hint{display:block;font-size:.78rem;font-weight:600;margin-top:4px;min-height:1em}
 .lic-hint.ok{color:#0b6b3a}
 .lic-hint.warn{color:#b3261e}
+
+/* ---- Historique Swiss Tennis (fiche) ---- */
+.pm-w{color:#0b6b3a;font-weight:800}
+.pm-l{color:#b3261e;font-weight:800}
+.pm-link{background:#eef1ff;color:var(--blue-ink);font-size:.72rem;font-weight:700;padding:1px 8px;border-radius:999px;white-space:nowrap}

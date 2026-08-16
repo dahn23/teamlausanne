@@ -1767,6 +1767,28 @@ async function initGameZone(roles) {
   loadCats();
   loadTournaments();
   loadBookmarklet();
+  loadMtBookmarklet();
+}
+
+async function loadMtBookmarklet() {
+  const { data } = await sb.from("gz_config").select("import_key").maybeSingle();
+  if (!data) { $("mt-bm-note").textContent = "Clé d'import indisponible (droits admin requis)."; return; }
+  let src;
+  try { src = await (await fetch("mt-bookmarklet.js")).text(); }
+  catch (_e) { $("mt-bm-note").textContent = "Impossible de charger le bookmarklet."; return; }
+  const code = src.replace("__KEY__", data.import_key).replace("__RCV__", location.origin + "/mt-receiver.html");
+  const a = document.createElement("a");
+  a.href = "javascript:" + encodeURIComponent(code);
+  a.textContent = "Importer les matchs";
+  a.className = "btn-prod";
+  a.style.textDecoration = "none";
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("Ne cliquez pas ici : GLISSEZ ce bouton dans votre barre de favoris, puis utilisez-le une fois connecté sur mytennis.ch.");
+  });
+  $("mt-bm-holder").innerHTML = "";
+  $("mt-bm-holder").appendChild(a);
+  $("mt-bm-note").textContent = "Astuce : glissez-le dans la barre de favoris (ou clic droit → Ajouter aux favoris).";
 }
 
 async function loadBookmarklet() {
@@ -4276,7 +4298,62 @@ async function loadPersonMatchs(personId, byRole) {
     <h3 style="margin:16px 0 8px">Feuilles de match</h3>
     ${rows.length ? '<div class="table-wrap"><table class="crm-table"><thead><tr><th>Date</th><th>Adversaire</th><th>Résultat</th><th>Par</th></tr></thead><tbody>'
       + rows.map((r) => `<tr><td>${r.match_date ? frDate(r.match_date) : "—"}</td><td>${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td><td>${r.result === "gagne" ? "Gagné" : "Perdu"} ${esc(r.score || "")}</td><td><span class="mr-badge ${r.author_role}">${r.author_role}</span></td></tr>`).join("")
-      + "</tbody></table></div>" : '<p class="muted" style="font-size:.85rem">Aucune feuille de match.</p>'}`;
+      + "</tbody></table></div>" : '<p class="muted" style="font-size:.85rem">Aucune feuille de match.</p>'}
+    <div id="pm-hist"></div>`;
+  renderPmHistory(personId, rows);
+}
+
+// ---- Historique Swiss Tennis (matchs importés de mytennis) ----
+let pmData = [], pmReports = [];
+async function renderPmHistory(personId, reports) {
+  const host = $("pm-hist"); if (!host) return;
+  const { data } = await sb.from("player_matches").select("*").eq("person_id", personId).order("match_date", { ascending: false, nullsFirst: false });
+  pmData = data || []; pmReports = reports || [];
+  if (!pmData.length) {
+    host.innerHTML = `<h3 style="margin:16px 0 8px">Historique Swiss Tennis</h3>
+      <p class="muted" style="font-size:.85rem">Aucun match importé pour ce joueur. (Import via le favori « mytennis » dans GameZone ; nécessite un n° de licence.)</p>`;
+    return;
+  }
+  showPersonTab("matchs", true);
+  const years = [...new Set(pmData.map((m) => (m.match_date || "").slice(0, 4)).filter(Boolean))].sort().reverse();
+  host.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 8px">
+      <h3 style="margin:0">Historique Swiss Tennis</h3>
+      <select id="pm-year" style="max-width:150px">${years.map((y) => `<option value="${y}">${y}</option>`).join("")}<option value="all">Toutes les années</option></select>
+    </div>
+    <div id="pm-year-list"></div>`;
+  $("pm-year").addEventListener("change", () => drawPmYear($("pm-year").value));
+  drawPmYear(years[0] || "all");
+}
+function pmLinked(m) {
+  const oppLast = (m.opponent_last || "").toLowerCase().trim();
+  if (!oppLast) return false;
+  const md = m.match_date ? new Date(m.match_date) : null;
+  return pmReports.some((r) => {
+    if (!r.opponent || !r.opponent.toLowerCase().includes(oppLast)) return false;
+    if (md && r.match_date) return Math.abs((md - new Date(r.match_date)) / 86400000) <= 3;
+    return true;
+  });
+}
+function drawPmYear(year) {
+  const list = $("pm-year-list"); if (!list) return;
+  const rows = year === "all" ? pmData : pmData.filter((m) => (m.match_date || "").slice(0, 4) === year);
+  if (!rows.length) { list.innerHTML = `<p class="muted" style="font-size:.85rem">Aucun match.</p>`; return; }
+  const w = rows.filter((m) => m.won === true).length, l = rows.filter((m) => m.won === false).length;
+  list.innerHTML = `<div class="et-stats" style="margin-bottom:10px">
+      <div class="et-stat st-present"><b>${w}</b><span>victoires</span></div>
+      <div class="et-stat st-absent"><b>${l}</b><span>défaites</span></div>
+      <div class="et-stat"><b>${rows.length}</b><span>matchs</span></div>
+    </div>
+    <div class="table-wrap"><table class="crm-table"><thead><tr><th>Date</th><th>Tournoi</th><th>Adversaire</th><th>Score</th><th>Rés.</th><th></th></tr></thead><tbody>`
+    + rows.map((m) => `<tr>
+        <td>${m.match_date ? frDate(m.match_date) : "—"}</td>
+        <td>${esc(m.tournament_name || "—")}</td>
+        <td>${esc(((m.opponent_first || "") + " " + (m.opponent_last || "")).trim() || "—")}${m.opponent_classification ? " (" + esc(m.opponent_classification) + ")" : ""}</td>
+        <td>${esc(m.score || "—")}</td>
+        <td>${m.won === true ? '<span class="pm-w">V</span>' : m.won === false ? '<span class="pm-l">D</span>' : "—"}</td>
+        <td>${pmLinked(m) ? '<span class="pm-link" title="Une feuille de match coach/joueur correspond">📋 liée</span>' : ""}</td>
+      </tr>`).join("")
+    + "</tbody></table></div>";
 }
 
 let peYouthId = null;
