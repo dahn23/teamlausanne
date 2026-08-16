@@ -158,6 +158,7 @@ async function init(roles) {
   $("delete-person").addEventListener("click", deletePerson);
   $("invite-person").addEventListener("click", invitePerson);
   $("autofill-lic").addEventListener("click", autofillLicenses);
+  $("find-lic-mt").addEventListener("click", findLicensesMt);
   $("p-license").addEventListener("input", updateLicHint);
   $("p-birth").addEventListener("input", updateLicHint);
   $("fam-add-btn").addEventListener("click", addFamily);
@@ -2999,6 +3000,17 @@ function updateLicHint() {
     el.className = "lic-hint ok";
   }
 }
+async function findLicensesMt() {
+  if (!confirm("Chercher sur mytennis les licences manquantes (par nom, confirmées par la date de naissance) ?\nCela peut prendre quelques dizaines de secondes.")) return;
+  const btn = $("find-lic-mt"); btn.disabled = true; btn.textContent = "Recherche sur mytennis…";
+  const { data, error } = await sb.functions.invoke("mt-find-licenses", { body: {} });
+  btn.disabled = false; btn.textContent = "Chercher sur mytennis";
+  if (error || data?.error) { alert("Erreur : " + (data?.error || error?.message)); return; }
+  alert(`${data.filled} licence(s) trouvée(s) sur mytennis et ajoutée(s).\n`
+    + `${data.notfound} sans correspondance · ${data.ambiguous} ambigu(s) (sur ${data.total} fiches sans licence).`);
+  loadPeople();
+}
+
 async function autofillLicenses() {
   if (!confirm("Retrouver les n° de licence des membres depuis les participants GameZone (par nom + date de naissance) ?")) return;
   const btn = $("autofill-lic"); btn.disabled = true; btn.textContent = "Recherche…";
