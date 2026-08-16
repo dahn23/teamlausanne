@@ -30,7 +30,7 @@
       return r.json();
     };
     const Q_PERSON = "query($l:String!){person(where:{lizenz_nehmer:{licenceNumber:{_eq:$l}}}){id firstname lastname gender lizenz_nehmer{classification ranking}}}";
-    const Q_SINGLES = "query($id:Int!){results:AllSingleResults(where:{personId:{_eq:$id}},order_by:{date:desc},limit:500){date tournamentName adversaryPersonId adversaryFirstname adversaryLastname playerSet1WonGames adversarySet1WonGames playerSet2WonGames adversarySet2WonGames playerSet3WonGames adversarySet3WonGames playerSet4WonGames adversarySet4WonGames playerSet5WonGames adversarySet5WonGames playerWinnerCode round:Asr_Round_i encounterId:Asr_Id_Item_l source adversary{classification ranking}}}";
+    const Q_SINGLES = "query($id:Int!){results:AllSingleResults(where:{playerPersonId:{_eq:$id}},order_by:{date:desc},limit:500){date tournamentName adversaryPersonId adversaryFirstname adversaryLastname playerSet1WonGames adversarySet1WonGames playerSet2WonGames adversarySet2WonGames playerSet3WonGames adversarySet3WonGames playerSet4WonGames adversarySet4WonGames playerSet5WonGames adversarySet5WonGames playerWinnerCode round:Asr_Round_i encounterId:Asr_Id_Item_l source adversary{classification ranking}}}";
 
     // trouve un jeton qui a accès à la table person ; sinon null
     let token = null, tokenTried = false;
@@ -61,9 +61,9 @@
       return parts.join(" ");
     };
     const wonOf = (m) => {
-      const wc = m.playerWinnerCode;
-      if (wc === 1 || wc === "1") return true;
-      if (wc === 2 || wc === "2") return false;
+      const wc = String(m.playerWinnerCode || "").toUpperCase();
+      if (wc === "S" || wc === "W") return true;   // Sieg / Walkover gagné
+      if (wc === "N" || wc === "L") return false;  // Niederlage / perdu
       let pw = 0, aw = 0;
       for (let s = 1; s <= 5; s++) { const p = m["playerSet" + s + "WonGames"], a = m["adversarySet" + s + "WonGames"]; if (p != null && a != null) { if (p > a) pw++; else if (a > p) aw++; } }
       return pw > aw ? true : (aw > pw ? false : null);
