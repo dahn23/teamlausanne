@@ -157,6 +157,9 @@ async function init(roles) {
   $("person-form").addEventListener("submit", savePerson);
   $("delete-person").addEventListener("click", deletePerson);
   $("invite-person").addEventListener("click", invitePerson);
+  $("autofill-lic").addEventListener("click", autofillLicenses);
+  $("p-license").addEventListener("input", updateLicHint);
+  $("p-birth").addEventListener("input", updateLicHint);
   $("fam-add-btn").addEventListener("click", addFamily);
   $("cr-add-btn").addEventListener("click", rechargeCredit);
   document.querySelectorAll("#p-tabs .ptab").forEach((b) =>
@@ -1045,6 +1048,8 @@ function openPerson(p) {
   $("p-email").value = p?.email || "";
   $("p-phone").value = p?.phone || "";
   $("p-avs").value = p?.avs || "";
+  $("p-license").value = p?.license_no || "";
+  updateLicHint();
   $("p-emails").value = (p?.emails || []).join("\n");
   $("p-phones").value = (p?.phones || []).join("\n");
   $("p-address").value = p?.address || "";
@@ -2903,6 +2908,7 @@ async function savePerson(e) {
     email: $("p-email").value.trim() || null,
     phone: $("p-phone").value.trim() || null,
     avs: $("p-avs").value.trim() || null,
+    license_no: $("p-license").value.trim() || null,
     emails: lines("p-emails"),
     phones: lines("p-phones"),
     photo_url: personPhotoUrl,
@@ -2937,6 +2943,47 @@ async function deletePerson() {
   const { error } = await sb.from("people").delete().eq("id", id);
   if (error) { alert("Suppression impossible : " + error.message); return; }
   closePerson();
+  loadPeople();
+}
+
+// ---- Licence Swiss Tennis : décodage naissance/sexe + remplissage auto ----
+function licDecode(lic) {
+  const m = String(lic || "").trim().match(/^(\d+)\.(\d{2})\.(\d)(\d{2})\.(\d+)$/);
+  if (!m) return null;
+  const yy = +m[2], d1 = +m[3], dc = +m[4];
+  if (d1 < 1 || d1 > 8 || dc < 1 || dc > 93) return null;
+  const monthOff = Math.floor((dc - 1) / 31);
+  const month = ((d1 - 1) % 4) * 3 + 1 + monthOff;
+  const day = dc - monthOff * 31;
+  let year = 2000 + yy;
+  if (year > new Date().getFullYear()) year -= 100;
+  const dt = new Date(year, month - 1, day);
+  if (dt.getMonth() !== month - 1 || dt.getDate() !== day) return null;
+  return { birthdate: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`, sex: d1 <= 4 ? "M" : "F" };
+}
+function updateLicHint() {
+  const el = $("p-license-hint"); if (!el) return;
+  const raw = $("p-license").value.trim();
+  if (!raw) { el.textContent = ""; el.className = "lic-hint"; return; }
+  const d = licDecode(raw);
+  if (!d) { el.textContent = "Format non reconnu."; el.className = "lic-hint warn"; return; }
+  const sexLbl = d.sex === "M" ? "garçon" : "fille";
+  const b = $("p-birth").value;
+  if (b && b !== d.birthdate) {
+    el.textContent = `Décodé : ${frDate(d.birthdate)} · ${sexLbl} ⚠ ne correspond pas à la naissance saisie`;
+    el.className = "lic-hint warn";
+  } else {
+    el.textContent = `Décodé : ${frDate(d.birthdate)} · ${sexLbl}${b ? " ✓" : ""}`;
+    el.className = "lic-hint ok";
+  }
+}
+async function autofillLicenses() {
+  if (!confirm("Retrouver les n° de licence des membres depuis les participants GameZone (par nom + date de naissance) ?")) return;
+  const btn = $("autofill-lic"); btn.disabled = true; btn.textContent = "Recherche…";
+  const { data, error } = await sb.rpc("autofill_licenses_from_gz");
+  btn.disabled = false; btn.textContent = "Retrouver les licences";
+  if (error) { alert("Erreur : " + error.message); return; }
+  alert(`${data.filled} licence(s) trouvée(s) et remplie(s).` + (data.ambiguous ? `\n${data.ambiguous} cas ambigu(s) laissé(s) de côté (à saisir à la main).` : ""));
   loadPeople();
 }
 

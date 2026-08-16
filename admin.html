@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=26" />
+  <link rel="stylesheet" href="style.css?v=27" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -46,6 +46,7 @@
               <h1>Répertoire</h1>
               <div class="crm-actions">
                 <input id="search" type="search" placeholder="Rechercher…" />
+                <button id="autofill-lic" class="ghost" title="Remplir les n° de licence depuis les participants GameZone (par nom + naissance)">Retrouver les licences</button>
                 <button id="import-people" class="ghost">Importer (Excel)</button>
                 <button id="new-person">+ Nouveau</button>
               </div>
@@ -845,6 +846,7 @@
         <label>Email principal<input id="p-email" type="email" /></label>
         <label>Téléphone principal<input id="p-phone" /></label>
         <label>N° AVS<input id="p-avs" placeholder="756.XXXX.XXXX.XX" /></label>
+        <label>N° licence Swiss Tennis<input id="p-license" placeholder="ex. 153.10.487.0" /><span id="p-license-hint" class="lic-hint"></span></label>
         <label>Adresse<input id="p-address" /></label>
         <label>NPA<input id="p-postal" /></label>
         <label>Ville<input id="p-city" /></label>

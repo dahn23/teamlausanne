@@ -1475,3 +1475,8 @@ body.portal{background:var(--bg)}
 .insc-add{padding:8px 14px}
 .insc-del{margin-left:auto}
 .insc-added{color:#0b6b3a;font-weight:700}
+
+/* ---- Indice de décodage du n° de licence (fiche) ---- */
+.lic-hint{display:block;font-size:.78rem;font-weight:600;margin-top:4px;min-height:1em}
+.lic-hint.ok{color:#0b6b3a}
+.lic-hint.warn{color:#b3261e}
