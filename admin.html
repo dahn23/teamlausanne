@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=33" />
+  <link rel="stylesheet" href="style.css?v=34" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -90,6 +90,11 @@
         <div id="view-prospects" class="view hidden">
           <div id="prosp-list-wrap">
           <div class="crm-head"><h1>Prospects</h1></div>
+          <div class="prosp-subtabs">
+            <button type="button" class="prosp-subtab active" data-psub="liste">Liste</button>
+            <button type="button" class="prosp-subtab" data-psub="import">Import / outils</button>
+          </div>
+          <div id="prosp-sub-liste">
           <p class="muted" style="margin:-6px 0 12px">Repérage des jeunes joueurs suisses (moins de 19 ans, R7 ou mieux). Données issues des classements &amp; matchs Swiss Tennis.</p>
           <div class="prosp-filters">
             <input id="prosp-search" type="search" placeholder="Rechercher un nom…" />
@@ -139,6 +144,8 @@
             </table>
             <p id="prosp-empty" class="muted" hidden>Aucun prospect. Utilisez le bookmarklet « Classements » ci-dessous.</p>
           </div>
+          </div><!-- /prosp-sub-liste -->
+          <div id="prosp-sub-import" class="hidden">
           <div id="prosp-bm-card" class="rg-card" style="margin-top:18px">
             <h2 style="margin-top:0">Importer les classements (mytennis)</h2>
             <ol class="muted" style="font-size:.9rem;line-height:1.7;padding-left:18px">
@@ -166,6 +173,7 @@
             </ol>
             <p id="prosp-contact-note" class="muted" style="font-size:.82rem"></p>
           </div>
+          </div><!-- /prosp-sub-import -->
           </div><!-- /prosp-list-wrap -->
           <div id="prosp-detail" class="hidden"></div>
         </div>

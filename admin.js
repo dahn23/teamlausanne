@@ -3244,6 +3244,11 @@ function initProspects() {
   ["prosp-search", "prosp-fclass", "prosp-fage", "prosp-fstatus", "prosp-fcanton", "prosp-fsex", "prosp-fdist"].forEach((id) => $(id).addEventListener("input", renderProspRows));
   $("prosp-fupset").addEventListener("change", renderProspRows);
   $("prosp-geocode").addEventListener("click", geocodeDistances);
+  document.querySelectorAll(".prosp-subtab").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll(".prosp-subtab").forEach((x) => x.classList.toggle("active", x === b));
+    $("prosp-sub-liste").classList.toggle("hidden", b.dataset.psub !== "liste");
+    $("prosp-sub-import").classList.toggle("hidden", b.dataset.psub !== "import");
+  }));
   document.querySelectorAll(".prosp-table th[data-sort]").forEach((th) => th.addEventListener("click", () => {
     const k = th.dataset.sort;
     if (prospSort.key === k) prospSort.dir = prospSort.dir === "asc" ? "desc" : "asc";
