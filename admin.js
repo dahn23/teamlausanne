@@ -3242,8 +3242,6 @@ function initProspects() {
   if (prospInit) return; prospInit = true;
   ["prosp-search", "prosp-fclass", "prosp-fage", "prosp-fstatus"].forEach((id) => $(id).addEventListener("input", renderProspRows));
   $("prosp-fupset").addEventListener("change", renderProspRows);
-  $("prosp-close").addEventListener("click", () => $("prosp-modal").classList.add("hidden"));
-  $("prosp-save").addEventListener("click", saveProspect);
   loadProspBookmarklet();
   loadProspResultsBookmarklet();
 }
@@ -3305,34 +3303,68 @@ function renderProspRows() {
   }).join("");
   tb.querySelectorAll(".prosp-row").forEach((r) => r.addEventListener("click", () => openProspect(r.dataset.id)));
 }
+function closeProspect() {
+  $("prosp-detail").classList.add("hidden");
+  $("prosp-list-wrap").classList.remove("hidden");
+}
 async function openProspect(id) {
   const p = prospList.find((x) => x.id === id); if (!p) return;
-  $("prosp-id").value = p.id;
-  $("prosp-name").textContent = `${p.first_name || ""} ${p.last_name || ""}`.trim();
   const a = ageOf(p.birthdate);
-  $("prosp-meta").innerHTML = [
-    p.classification ? `<b>${esc(p.classification)}</b>${p.ranking_position ? " (n°" + p.ranking_position + ")" : ""}` : "",
-    a != null ? a + " ans" : "", p.birthdate ? frDate(p.birthdate) : "", p.sex === "F" ? "fille" : p.sex === "M" ? "garçon" : "",
-    esc(p.license_no), p.club ? esc(p.club) : "",
-  ].filter(Boolean).join(" · ");
-  $("prosp-status").value = p.status || "nouveau";
-  $("prosp-notes").value = p.notes || "";
-  $("prosp-matches").innerHTML = `<p class="muted" style="font-size:.85rem">Chargement…</p>`;
-  $("prosp-modal").classList.remove("hidden");
+  const chips = [
+    a != null ? `${a} ans` : "", p.birthdate ? frDate(p.birthdate) : "", p.sex === "F" ? "fille" : p.sex === "M" ? "garçon" : "",
+    p.club ? esc(p.club) : "", p.canton ? esc(p.canton) : "", "Lic. " + esc(p.license_no),
+  ].filter(Boolean).map((c) => `<span class="prosp-chip">${c}</span>`).join("");
+  const statusOpts = Object.entries(PROSP_STATUS).map(([v, l]) => `<option value="${v}"${p.status === v ? " selected" : ""}>${l}</option>`).join("");
+  const d = $("prosp-detail");
+  d.innerHTML = `
+    <button type="button" id="prosp-back" class="ghost stg-back">← Retour aux prospects</button>
+    <div class="prosp-dhead">
+      <div>
+        <h1 class="prosp-dname">${esc(p.first_name || "")} ${esc(p.last_name || "")}</h1>
+        <div class="prosp-chips">${chips}</div>
+      </div>
+      <span class="prosp-cls-badge">${esc(p.classification || "—")}${p.ranking_position ? `<small>n°${p.ranking_position}</small>` : ""}</span>
+    </div>
+    <div class="prosp-statrow">
+      <div class="prosp-stat"><b>${a != null ? a : "—"}</b><span>ans</span></div>
+      <div class="prosp-stat"><b>${p.match_count || 0}</b><span>matchs récents</span></div>
+      <div class="prosp-stat ${p.upset_count ? "up" : ""}"><b>${p.upset_count || 0}</b><span>exploits</span></div>
+    </div>
+    <div class="prosp-cols">
+      <div class="prosp-card">
+        <label class="prosp-lbl">Statut
+          <select id="prosp-status">${statusOpts}</select></label>
+        <label class="prosp-lbl">Notes / interactions
+          <textarea id="prosp-notes" rows="7" placeholder="Historique des échanges, remarques…">${esc(p.notes || "")}</textarea></label>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button type="button" id="prosp-save">Enregistrer</button>
+          <span id="prosp-saved" class="muted" style="font-size:.85rem" hidden>Enregistré ✓</span>
+        </div>
+      </div>
+      <div class="prosp-card">
+        <h3 style="margin-top:0">Matchs récents</h3>
+        <div id="prosp-matches"><p class="muted" style="font-size:.85rem">Chargement…</p></div>
+      </div>
+    </div>`;
+  $("prosp-list-wrap").classList.add("hidden");
+  d.classList.remove("hidden");
+  window.scrollTo(0, 0);
+  $("prosp-back").addEventListener("click", closeProspect);
+  $("prosp-save").addEventListener("click", () => saveProspect(p.id));
   const { data } = await sb.from("prospect_matches").select("*").eq("prospect_license", p.license_no).order("match_date", { ascending: false, nullsFirst: false });
   const ms = data || [];
   $("prosp-matches").innerHTML = ms.length
     ? `<div class="table-wrap"><table class="crm-table"><thead><tr><th>Date</th><th>Tournoi</th><th>Adversaire</th><th>Score</th><th>Rés.</th></tr></thead><tbody>`
       + ms.map((m) => `<tr class="${m.is_upset ? "prosp-upset-row" : ""}"><td>${m.match_date ? frDate(m.match_date) : "—"}</td><td>${esc(m.tournament_name || "—")}</td><td>${esc(((m.opponent_first || "") + " " + (m.opponent_last || "")).trim() || "—")}${m.opponent_classification ? " (" + esc(m.opponent_classification) + ")" : ""}</td><td>${esc(m.score || "—")}</td><td>${m.won === true ? (m.is_upset ? '<span class="pm-w">V 🔥</span>' : '<span class="pm-w">V</span>') : m.won === false ? '<span class="pm-l">D</span>' : "—"}</td></tr>`).join("")
       + `</tbody></table></div>`
-    : `<p class="muted" style="font-size:.85rem">Aucun match importé pour ce prospect.</p>`;
+    : `<p class="muted" style="font-size:.85rem">Aucun match récent. Lance « Scanner les résultats ».</p>`;
 }
-async function saveProspect() {
-  const id = $("prosp-id").value; if (!id) return;
+async function saveProspect(id) {
   const { error } = await sb.from("prospects").update({ status: $("prosp-status").value, notes: $("prosp-notes").value.trim() || null, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) { alert("Erreur : " + error.message); return; }
-  $("prosp-modal").classList.add("hidden");
-  loadProspects();
+  const p = prospList.find((x) => x.id === id);
+  if (p) { p.status = $("prosp-status").value; p.notes = $("prosp-notes").value.trim() || null; }
+  const sv = $("prosp-saved"); if (sv) { sv.hidden = false; setTimeout(() => { if ($("prosp-saved")) $("prosp-saved").hidden = true; }, 1600); }
 }
 async function loadProspBookmarklet() {
   const { data } = await sb.from("gz_config").select("import_key").maybeSingle();

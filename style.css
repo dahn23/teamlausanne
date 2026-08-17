@@ -1505,3 +1505,22 @@ body.portal{background:var(--bg)}
 .prosp-upitem{padding:6px 0;border-top:1px solid #f3d6d2;cursor:pointer;font-size:.9rem}
 .prosp-upitem:first-of-type{border-top:none}
 .prosp-upitem:hover{color:var(--blue)}
+
+/* ---- Prospects : fiche pleine page ---- */
+#prosp-detail{max-width:900px}
+.prosp-dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin:10px 0 14px}
+.prosp-dname{margin:0 0 8px;font-size:1.6rem;color:var(--blue-ink)}
+.prosp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.prosp-chip{background:#eef1ff;color:var(--blue-ink);font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:999px}
+.prosp-cls-badge{flex:0 0 auto;background:var(--blue);color:#fff;font-weight:800;font-size:1.15rem;padding:8px 16px;border-radius:12px;display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.prosp-cls-badge small{font-size:.62rem;font-weight:600;opacity:.85;margin-top:2px}
+.prosp-statrow{display:flex;gap:10px;margin-bottom:16px}
+.prosp-stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.prosp-stat b{display:block;font-size:1.4rem;color:var(--blue-ink)}
+.prosp-stat span{font-size:.78rem;color:var(--muted)}
+.prosp-stat.up b{color:#b3261e}
+.prosp-cols{display:grid;grid-template-columns:1fr 1.3fr;gap:16px;align-items:start}
+.prosp-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.prosp-lbl{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:.9rem;margin-bottom:12px}
+.prosp-lbl select,.prosp-lbl textarea{width:100%}
+@media(max-width:780px){.prosp-cols{grid-template-columns:1fr}}
