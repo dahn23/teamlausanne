@@ -201,6 +201,9 @@ async function init(roles) {
 // ---- Bascule de vues ----
 function showView(view) {
   if (view === "bientot") return;
+  // Toujours revenir à la liste : referme les fiches pleine page ouvertes
+  closePerson();
+  if ($("prosp-detail")) closeProspect();
   document.querySelectorAll(".side-item[data-view]").forEach((b) =>
     b.classList.toggle("active", b.dataset.view === view));
   document.querySelectorAll(".view").forEach((v) =>
