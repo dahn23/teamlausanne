@@ -159,6 +159,7 @@ async function init(roles) {
   $("invite-person").addEventListener("click", invitePerson);
   $("autofill-lic").addEventListener("click", autofillLicenses);
   $("find-lic-mt").addEventListener("click", findLicensesMt);
+  $("cr-add").addEventListener("click", addCoachRate);
   $("p-license").addEventListener("input", updateLicHint);
   $("p-birth").addEventListener("input", updateLicHint);
   $("fam-add-btn").addEventListener("click", addFamily);
@@ -1082,6 +1083,10 @@ function openPerson(p) {
   showPersonTab("mental", mentalByRole);
   showPersonTab("matchs", physByRole);
   showPersonTab("stages", false);
+  const staffPayRole = [...COACH_ROLES, "prof", "coach-mental"].some((r) => roles.includes(r));
+  showPersonTab("coach", staffPayRole);
+  $("p-iban").value = p?.iban || "";
+  loadCoachRates(p ? p.id : null);
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
@@ -2934,6 +2939,7 @@ async function savePerson(e) {
     phone: $("p-phone").value.trim() || null,
     avs: $("p-avs").value.trim() || null,
     license_no: $("p-license").value.trim() || null,
+    iban: $("p-iban").value.trim() || null,
     emails: lines("p-emails"),
     phones: lines("p-phones"),
     photo_url: personPhotoUrl,
@@ -3021,6 +3027,40 @@ async function autofillLicenses() {
   if (error) { alert("Erreur : " + error.message); return; }
   alert(`${data.filled} licence(s) trouvée(s) et remplie(s).` + (data.ambiguous ? `\n${data.ambiguous} cas ambigu(s) laissé(s) de côté (à saisir à la main).` : ""));
   loadPeople();
+}
+
+// ---- Tarifs & IBAN du coach (sous-onglet Coach) ----
+async function loadCoachRates(personId) {
+  const list = $("coach-rates-list"), need = $("coach-need-save");
+  if (!list) return;
+  if (!personId) { list.innerHTML = ""; need.hidden = false; return; }
+  need.hidden = true;
+  const { data } = await sb.from("coach_rates").select("*").eq("person_id", personId).order("is_default", { ascending: false }).order("created_at");
+  const rows = data || [];
+  list.innerHTML = rows.length ? rows.map((r) => `<div class="coach-rate-row">
+    <span>${esc(r.label)} — <b>${r.chf_per_hour}.–/h</b>${r.is_default ? ' <span class="he-val">par défaut</span>' : ""}</span>
+    <span class="coach-rate-acts">
+      ${r.is_default ? "" : `<button type="button" class="ghost cr-def" data-id="${r.id}">Par défaut</button>`}
+      <button type="button" class="ghost cr-del" data-id="${r.id}">Suppr.</button>
+    </span></div>`).join("") : `<p class="muted" style="font-size:.85rem">Aucun tarif défini.</p>`;
+  list.querySelectorAll(".cr-del").forEach((b) => b.addEventListener("click", () => deleteCoachRate(b.dataset.id, personId)));
+  list.querySelectorAll(".cr-def").forEach((b) => b.addEventListener("click", () => setDefaultRate(b.dataset.id, personId)));
+}
+async function addCoachRate() {
+  const personId = $("p-id").value;
+  if (!personId) { alert("Enregistrez d'abord la personne, puis rouvrez sa fiche."); return; }
+  const label = $("cr-label").value.trim(), chf = $("cr-chf").value;
+  if (!label || !chf) { alert("Libellé et tarif requis."); return; }
+  if ($("cr-default").checked) await sb.from("coach_rates").update({ is_default: false }).eq("person_id", personId);
+  await sb.from("coach_rates").insert({ person_id: personId, label, chf_per_hour: Number(chf), is_default: $("cr-default").checked });
+  $("cr-label").value = ""; $("cr-chf").value = ""; $("cr-default").checked = false;
+  loadCoachRates(personId);
+}
+async function deleteCoachRate(id, personId) { await sb.from("coach_rates").delete().eq("id", id); loadCoachRates(personId); }
+async function setDefaultRate(id, personId) {
+  await sb.from("coach_rates").update({ is_default: false }).eq("person_id", personId);
+  await sb.from("coach_rates").update({ is_default: true }).eq("id", id);
+  loadCoachRates(personId);
 }
 
 async function invitePerson() {

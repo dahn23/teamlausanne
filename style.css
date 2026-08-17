@@ -1552,3 +1552,10 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 .he-val{color:#0b6b3a;font-weight:800}
 .he-acts{display:flex;gap:6px;white-space:nowrap}
 .he-acts button{padding:5px 10px;font-size:.82rem}
+
+/* ---- Sous-onglet Coach (tarifs) ---- */
+.coach-rate-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.coach-rate-acts{display:flex;gap:6px;white-space:nowrap}
+.coach-rate-acts button{padding:4px 10px;font-size:.8rem}
+.coach-rate-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.coach-rate-add input[type=number]{max-width:120px}
