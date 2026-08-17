@@ -67,17 +67,17 @@ if (!session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "inscriptions", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
-  admin:      ["membres", "inscriptions", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
+  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
+  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
   secretaire: ["membres", "inscriptions", "news", "resa", "matchs", "caisse", "stages", "stats"],
-  head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages"],
+  head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects"],
   coach:      ["resa", "cours", "matchs", "phystests"],
   prof:       ["etudes"],
   coach_mental: ["mental"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -210,6 +210,7 @@ function showView(view) {
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
   if (view === "inscriptions") loadInscriptions();
+  if (view === "prospects") loadProspects();
 }
 
 // ===================================================================
@@ -3227,6 +3228,97 @@ async function deleteInscription(id) {
   const { error } = await sb.from("enrollment_requests").delete().eq("id", id);
   if (error) { alert("Suppression impossible : " + error.message); return; }
   loadInscriptions();
+}
+
+// ===================================================================
+//  Prospects (scouting jeunes joueurs suisses)
+// ===================================================================
+const PROSP_STATUS = { nouveau: "Nouveau", en_cours: "En cours", interesse: "Intéressé", jamais_repondu: "Jamais répondu", pas_maintenant: "Pas pour le moment", impossible: "Impossible" };
+let prospList = [], prospInit = false;
+const ageOf = (bd) => { if (!bd) return null; const d = new Date(bd), n = new Date(); let a = n.getFullYear() - d.getFullYear(); if (n.getMonth() < d.getMonth() || (n.getMonth() === d.getMonth() && n.getDate() < d.getDate())) a--; return a; };
+const classTier = (c) => { c = (c || "").toUpperCase(); if (/^N/.test(c)) return "N"; const m = c.match(/^R([1-9])/); return m ? "R" + m[1] : ""; };
+
+function initProspects() {
+  if (prospInit) return; prospInit = true;
+  ["prosp-search", "prosp-fclass", "prosp-fage", "prosp-fstatus"].forEach((id) => $(id).addEventListener("input", renderProspRows));
+  $("prosp-fupset").addEventListener("change", renderProspRows);
+  $("prosp-close").addEventListener("click", () => $("prosp-modal").classList.add("hidden"));
+  $("prosp-save").addEventListener("click", saveProspect);
+  loadProspBookmarklet();
+}
+async function loadProspects() {
+  initProspects();
+  const { data } = await sb.from("prospects").select("*").order("ranking_value", { ascending: false, nullsFirst: false });
+  prospList = data || [];
+  renderProspRows();
+}
+function renderProspRows() {
+  const q = $("prosp-search").value.toLowerCase().trim();
+  const fc = $("prosp-fclass").value, fa = $("prosp-fage").value, fs = $("prosp-fstatus").value, fu = $("prosp-fupset").checked;
+  const inClass = (c) => { const t = classTier(c); if (!fc) return true; if (fc === "N") return t === "N"; if (fc === "R1-R3") return ["R1", "R2", "R3"].includes(t); if (fc === "R4-R5") return ["R4", "R5"].includes(t); if (fc === "R6-R7") return ["R6", "R7"].includes(t); return true; };
+  const inAge = (bd) => { if (!fa) return true; const a = ageOf(bd); if (a == null) return false; if (fa === "u12") return a <= 12; if (fa === "u14") return a >= 13 && a <= 14; if (fa === "u16") return a >= 15 && a <= 16; if (fa === "u18") return a >= 17 && a <= 18; return true; };
+  const rows = prospList.filter((p) =>
+    (!q || `${p.first_name || ""} ${p.last_name || ""}`.toLowerCase().includes(q))
+    && inClass(p.classification) && inAge(p.birthdate)
+    && (!fs || p.status === fs) && (!fu || p.upset_count > 0));
+  $("prosp-empty").hidden = prospList.length > 0;
+  const tb = $("prosp-rows");
+  tb.innerHTML = rows.map((p) => {
+    const a = ageOf(p.birthdate);
+    return `<tr class="prosp-row" data-id="${p.id}">
+      <td><b>${esc(p.last_name || "")}</b> ${esc(p.first_name || "")}</td>
+      <td>${esc(p.classification || "—")}</td>
+      <td>${a != null ? a + " ans" : "—"}</td>
+      <td>${p.match_count || 0}</td>
+      <td>${p.upset_count ? `<span class="prosp-upset">🔥 ${p.upset_count}</span>` : "—"}</td>
+      <td><span class="prosp-badge s-${p.status}">${PROSP_STATUS[p.status] || p.status}</span></td>
+    </tr>`;
+  }).join("");
+  tb.querySelectorAll(".prosp-row").forEach((r) => r.addEventListener("click", () => openProspect(r.dataset.id)));
+}
+async function openProspect(id) {
+  const p = prospList.find((x) => x.id === id); if (!p) return;
+  $("prosp-id").value = p.id;
+  $("prosp-name").textContent = `${p.first_name || ""} ${p.last_name || ""}`.trim();
+  const a = ageOf(p.birthdate);
+  $("prosp-meta").innerHTML = [
+    p.classification ? `<b>${esc(p.classification)}</b>${p.ranking_position ? " (n°" + p.ranking_position + ")" : ""}` : "",
+    a != null ? a + " ans" : "", p.birthdate ? frDate(p.birthdate) : "", p.sex === "F" ? "fille" : p.sex === "M" ? "garçon" : "",
+    esc(p.license_no), p.club ? esc(p.club) : "",
+  ].filter(Boolean).join(" · ");
+  $("prosp-status").value = p.status || "nouveau";
+  $("prosp-notes").value = p.notes || "";
+  $("prosp-matches").innerHTML = `<p class="muted" style="font-size:.85rem">Chargement…</p>`;
+  $("prosp-modal").classList.remove("hidden");
+  const { data } = await sb.from("prospect_matches").select("*").eq("prospect_license", p.license_no).order("match_date", { ascending: false, nullsFirst: false });
+  const ms = data || [];
+  $("prosp-matches").innerHTML = ms.length
+    ? `<div class="table-wrap"><table class="crm-table"><thead><tr><th>Date</th><th>Tournoi</th><th>Adversaire</th><th>Score</th><th>Rés.</th></tr></thead><tbody>`
+      + ms.map((m) => `<tr class="${m.is_upset ? "prosp-upset-row" : ""}"><td>${m.match_date ? frDate(m.match_date) : "—"}</td><td>${esc(m.tournament_name || "—")}</td><td>${esc(((m.opponent_first || "") + " " + (m.opponent_last || "")).trim() || "—")}${m.opponent_classification ? " (" + esc(m.opponent_classification) + ")" : ""}</td><td>${esc(m.score || "—")}</td><td>${m.won === true ? (m.is_upset ? '<span class="pm-w">V 🔥</span>' : '<span class="pm-w">V</span>') : m.won === false ? '<span class="pm-l">D</span>' : "—"}</td></tr>`).join("")
+      + `</tbody></table></div>`
+    : `<p class="muted" style="font-size:.85rem">Aucun match importé pour ce prospect.</p>`;
+}
+async function saveProspect() {
+  const id = $("prosp-id").value; if (!id) return;
+  const { error } = await sb.from("prospects").update({ status: $("prosp-status").value, notes: $("prosp-notes").value.trim() || null, updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) { alert("Erreur : " + error.message); return; }
+  $("prosp-modal").classList.add("hidden");
+  loadProspects();
+}
+async function loadProspBookmarklet() {
+  const { data } = await sb.from("gz_config").select("import_key").maybeSingle();
+  if (!data) { $("prosp-bm-note").textContent = "Clé d'import indisponible (droits admin requis)."; return; }
+  let src;
+  try { src = await (await fetch("prosp-bookmarklet.js")).text(); }
+  catch (_e) { $("prosp-bm-note").textContent = "Impossible de charger le bookmarklet."; return; }
+  const code = src.replace("__KEY__", data.import_key).replace("__RCV__", location.origin + "/prosp-receiver.html");
+  const aEl = document.createElement("a");
+  aEl.href = "javascript:" + encodeURIComponent(code);
+  aEl.textContent = "Importer classements";
+  aEl.className = "btn-prod"; aEl.style.textDecoration = "none";
+  aEl.addEventListener("click", (e) => { e.preventDefault(); alert("Ne cliquez pas ici : GLISSEZ ce bouton dans vos favoris, puis utilisez-le sur la page Classements de mytennis (connecté)."); });
+  $("prosp-bm-holder").innerHTML = ""; $("prosp-bm-holder").appendChild(aEl);
+  $("prosp-bm-note").textContent = "Astuce : glissez-le dans la barre de favoris.";
 }
 
 // ===================================================================

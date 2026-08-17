@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=28" />
+  <link rel="stylesheet" href="style.css?v=29" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -23,6 +23,7 @@
       <aside class="side">
         <button class="side-item active" data-view="membres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="9" cy="7.5" r="3.2"/><path d="M22 19v-1a4 4 0 0 0-3-3.87"/><path d="M16 3.7a4 4 0 0 1 0 7.6"/></svg><span class="side-label">Répertoire</span></button>
         <button class="side-item" data-view="inscriptions"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2.5" width="8" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg><span class="side-label">Inscriptions</span></button>
+        <button class="side-item" data-view="prospects"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><circle cx="11" cy="11" r="3"/><path d="M11 1v3M11 18v3M1 11h3M18 11h3"/></svg><span class="side-label">Prospects</span></button>
         <button class="side-item" data-view="news"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M14 8.5a4 4 0 0 1 0 7"/><path d="M16.5 5.5a7 7 0 0 1 0 13"/></svg><span class="side-label">News</span></button>
         <button class="side-item" data-view="roles"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"/><path d="M9.2 12l1.9 1.9L15 10"/></svg><span class="side-label">Réglages</span></button>
         <button class="side-item" data-view="resa"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg><span class="side-label">Réservations</span></button>
@@ -83,6 +84,55 @@
           <div class="crm-head"><h1>Demandes d'inscription</h1></div>
           <p class="muted" style="margin:-6px 0 12px">Les demandes envoyées depuis les pages de filière du site (Compétition, Performance, Club, KidsTennis).</p>
           <div id="insc-list"></div>
+        </div>
+
+        <!-- ---- Vue Prospects ---- -->
+        <div id="view-prospects" class="view hidden">
+          <div class="crm-head"><h1>Prospects</h1></div>
+          <p class="muted" style="margin:-6px 0 12px">Repérage des jeunes joueurs suisses (moins de 19 ans, R7 ou mieux). Données issues des classements &amp; matchs Swiss Tennis.</p>
+          <div class="prosp-filters">
+            <input id="prosp-search" type="search" placeholder="Rechercher un nom…" />
+            <select id="prosp-fclass">
+              <option value="">Tous classements</option>
+              <option value="N">N (élite)</option>
+              <option value="R1-R3">R1–R3</option>
+              <option value="R4-R5">R4–R5</option>
+              <option value="R6-R7">R6–R7</option>
+            </select>
+            <select id="prosp-fage">
+              <option value="">Tous âges</option>
+              <option value="u12">≤ 12 ans</option>
+              <option value="u14">13–14 ans</option>
+              <option value="u16">15–16 ans</option>
+              <option value="u18">17–18 ans</option>
+            </select>
+            <select id="prosp-fstatus">
+              <option value="">Tous statuts</option>
+              <option value="nouveau">Nouveau</option>
+              <option value="en_cours">En cours</option>
+              <option value="interesse">Intéressé</option>
+              <option value="jamais_repondu">Jamais répondu</option>
+              <option value="pas_maintenant">Pas pour le moment</option>
+              <option value="impossible">Impossible</option>
+            </select>
+            <label class="prosp-chk"><input type="checkbox" id="prosp-fupset" /> Exploits uniquement</label>
+          </div>
+          <div class="table-wrap">
+            <table class="crm-table">
+              <thead><tr><th>Nom</th><th>Classt</th><th>Âge</th><th>Matchs</th><th>Exploits</th><th>Statut</th></tr></thead>
+              <tbody id="prosp-rows"></tbody>
+            </table>
+            <p id="prosp-empty" class="muted" hidden>Aucun prospect. Utilisez le bookmarklet « Classements » ci-dessous.</p>
+          </div>
+          <div id="prosp-bm-card" class="rg-card" style="margin-top:18px">
+            <h2 style="margin-top:0">Importer les classements (mytennis)</h2>
+            <ol class="muted" style="font-size:.9rem;line-height:1.7;padding-left:18px">
+              <li>Glissez ce bouton dans vos favoris : <span id="prosp-bm-holder"></span></li>
+              <li>Sur <b>mytennis.ch</b> (connecté), ouvrez <b>Classements</b> et choisissez une <b>année de naissance</b> + le <b>sexe</b>.</li>
+              <li>Cliquez le favori → il récupère les joueurs classés R7 ou mieux (et leurs matchs).</li>
+            </ol>
+            <p id="prosp-bm-note" class="muted" style="font-size:.82rem"></p>
+          </div>
         </div>
 
         <!-- ---- Vue News ---- -->
@@ -1232,6 +1282,35 @@
         <button type="submit" id="gz-text-save">Enregistrer</button>
       </div>
     </form>
+  </div>
+
+  <!-- ---- Détail d'un prospect ---- -->
+  <div id="prosp-modal" class="modal hidden">
+    <div class="modal-box" style="max-width:640px">
+      <button type="button" id="prosp-close" class="modal-x" aria-label="Fermer">✕</button>
+      <input type="hidden" id="prosp-id" />
+      <h2 id="prosp-name" style="margin:0 0 2px">Prospect</h2>
+      <div id="prosp-meta" class="muted" style="margin-bottom:12px"></div>
+      <div class="pgrid2">
+        <label>Statut
+          <select id="prosp-status">
+            <option value="nouveau">Nouveau</option>
+            <option value="en_cours">En cours</option>
+            <option value="interesse">Intéressé</option>
+            <option value="jamais_repondu">Jamais répondu</option>
+            <option value="pas_maintenant">Pas pour le moment</option>
+            <option value="impossible">Impossible</option>
+          </select>
+        </label>
+        <div></div>
+      </div>
+      <label>Notes / interactions<textarea id="prosp-notes" rows="4" placeholder="Historique des échanges, remarques…"></textarea></label>
+      <div style="display:flex;gap:8px;margin:6px 0 14px">
+        <button type="button" id="prosp-save">Enregistrer</button>
+      </div>
+      <h3 style="margin:6px 0 8px">Matchs</h3>
+      <div id="prosp-matches"></div>
+    </div>
   </div>
 
   <!-- ---- Éditeur de news ---- -->

@@ -1485,3 +1485,16 @@ body.portal{background:var(--bg)}
 .pm-w{color:#0b6b3a;font-weight:800}
 .pm-l{color:#b3261e;font-weight:800}
 .pm-link{background:#eef1ff;color:var(--blue-ink);font-size:.72rem;font-weight:700;padding:1px 8px;border-radius:999px;white-space:nowrap}
+
+/* ---- Prospects (scouting) ---- */
+.prosp-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.prosp-filters input[type=search],.prosp-filters select{min-width:150px}
+.prosp-chk{display:flex;align-items:center;gap:6px;font-size:.9rem;font-weight:600}
+.prosp-row{cursor:pointer}
+.prosp-row:hover{background:#f1f3f9}
+.prosp-upset{color:#b3261e;font-weight:800}
+.prosp-badge{font-size:.72rem;font-weight:800;padding:1px 9px;border-radius:999px;background:#eef1ff;color:var(--blue-ink)}
+.prosp-badge.s-interesse{background:#e6f4ec;color:#0b6b3a}
+.prosp-badge.s-en_cours{background:#fdf0d9;color:#9a6a00}
+.prosp-badge.s-impossible,.prosp-badge.s-jamais_repondu{background:#fdecec;color:#b3261e}
+.prosp-upset-row{background:#fff6f5}
