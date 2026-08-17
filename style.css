@@ -1584,3 +1584,7 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 .lock-acts{display:flex;gap:6px;flex-wrap:wrap}
 .lock-acts button{padding:6px 12px;font-size:.85rem}
 .lkc-code{font-family:monospace;font-size:1.05rem;letter-spacing:1px;background:#eef1ff;padding:1px 8px;border-radius:6px}
+
+/* ---- Arrosage : états ---- */
+.irr-on{background:#e0f2fe;color:#0369a1}
+.irr-off{background:#eef1f7;color:var(--muted)}

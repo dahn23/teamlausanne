@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=41" />
+  <link rel="stylesheet" href="style.css?v=42" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -36,6 +36,7 @@
         <button class="side-item" data-view="caisse"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6.5A1.5 1.5 0 0 1 4.5 5H16"/><rect x="3" y="8" width="18" height="11" rx="2"/><circle cx="16.5" cy="13.5" r="1.3"/></svg><span class="side-label">Caisse</span></button>
         <button class="side-item" data-view="heures"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="side-label">Heures</span></button>
         <button class="side-item" data-view="locks"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/><circle cx="12" cy="15.5" r="1.2"/></svg><span class="side-label">Serrures</span></button>
+        <button class="side-item" data-view="irrigation"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg><span class="side-label">Arrosage</span></button>
         <button class="side-item" data-view="stages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l10 5-10 5L2 9l10-5z"/><path d="M6 11v4.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V11"/><path d="M22 9v5"/></svg><span class="side-label">Stages</span></button>
         <button class="side-item" data-view="stats"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20v-6M12 20V8M18 20v-9"/></svg><span class="side-label">Statistiques</span></button>
         <button class="side-item" data-view="bientot" disabled><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19"/></svg><span class="side-label">Finances (bientôt)</span></button>
@@ -887,6 +888,18 @@
           <div id="locks-journal"></div>
         </div>
 
+        <!-- ---- Vue Arrosage ---- -->
+        <div id="view-irrigation" class="view hidden">
+          <div class="crm-head">
+            <h1>Arrosage</h1>
+            <div class="crm-actions"><button id="irr-add">+ Ajouter une zone</button></div>
+          </div>
+          <p class="muted" style="margin:-6px 0 12px">Arroseurs connectés par court : marche/arrêt manuel, programmation, et arrosage <b>auto</b> selon l'humidité (uniquement si le court est libre — il se réserve alors le temps de l'arrosage). <b>Mode démo</b> — la vraie API se connectera ici une fois l'arroseur choisi.</p>
+          <div id="irr-list"></div>
+          <h2 style="margin:22px 0 8px;font-size:1.05rem">Journal récent</h2>
+          <div id="irr-journal"></div>
+        </div>
+
         <div id="view-caisse" class="view hidden">
           <div class="crm-head">
             <h1><svg class="hi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6.5A1.5 1.5 0 0 1 4.5 5H16"/><rect x="3" y="8" width="18" height="11" rx="2"/><circle cx="16.5" cy="13.5" r="1.3"/></svg>Caisse du secrétariat</h1>
@@ -1379,6 +1392,56 @@
         <button type="submit" id="gz-text-save">Enregistrer</button>
       </div>
     </form>
+  </div>
+
+  <!-- ---- Zone d'arrosage (édition) ---- -->
+  <div id="irr-modal" class="modal hidden">
+    <form class="card" id="irr-form">
+      <button type="button" id="irr-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="irr-modal-title">Zone d'arrosage</h2>
+      <input type="hidden" id="iz-id" />
+      <label>Nom<input id="iz-name" required /></label>
+      <label>Court lié<select id="iz-court"><option value="">—</option></select></label>
+      <div class="pgrid2">
+        <label>Seuil humidité auto (%)<input id="iz-threshold" type="number" step="1" placeholder="40" /></label>
+        <label>Durée par défaut (min)<input id="iz-duration" type="number" step="1" placeholder="10" /></label>
+      </div>
+      <label>Fournisseur
+        <select id="iz-provider">
+          <option value="mock">Démo (mock)</option>
+          <option value="hydrawise">Hunter Hydrawise</option>
+          <option value="rainbird">Rain Bird</option>
+          <option value="rachio">Rachio</option>
+          <option value="gardena">Gardena</option>
+        </select></label>
+      <label>ID zone (fournisseur)<input id="iz-external" placeholder="(rempli à l'installation)" /></label>
+      <label class="check"><input id="iz-auto" type="checkbox" /> Arrosage automatique si humidité basse</label>
+      <label class="check"><input id="iz-active" type="checkbox" checked /> Active</label>
+      <p id="iz-error" class="error" hidden></p>
+      <div class="form-foot"><button type="button" id="iz-delete" class="danger hidden">Supprimer</button><span class="spacer"></span><button type="submit">Enregistrer</button></div>
+    </form>
+  </div>
+
+  <!-- ---- Programmations d'arrosage d'une zone ---- -->
+  <div id="irrsched-modal" class="modal hidden">
+    <div class="card">
+      <button type="button" id="isc-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="isc-title">Programmations</h2>
+      <div class="coach-rate-add">
+        <select id="isc-days">
+          <option value="daily">Tous les jours</option>
+          <option value="1,2,3,4,5">Lun–Ven</option>
+          <option value="6,7">Week-end</option>
+          <option value="1">Lundi</option><option value="2">Mardi</option><option value="3">Mercredi</option>
+          <option value="4">Jeudi</option><option value="5">Vendredi</option><option value="6">Samedi</option><option value="7">Dimanche</option>
+        </select>
+        <input id="isc-time" type="time" />
+        <input id="isc-dur" type="number" placeholder="min" style="max-width:90px" />
+        <button type="button" id="isc-add">Ajouter</button>
+      </div>
+      <div id="isc-list" style="margin-top:14px"></div>
+      <p class="muted" style="font-size:.8rem;margin-top:10px">En mode démo, les programmations sont enregistrées mais pas encore déclenchées automatiquement (ça viendra avec le vrai matériel + une tâche planifiée).</p>
+    </div>
   </div>
 
   <!-- ---- Serrure (édition) ---- -->

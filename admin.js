@@ -68,9 +68,9 @@ if (!session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "locks", "stages", "stats"],
-  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "locks", "stages", "stats"],
-  secretaire: ["membres", "inscriptions", "news", "resa", "matchs", "caisse", "locks", "stages", "stats"],
+  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["membres", "inscriptions", "news", "resa", "matchs", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["resa", "cours", "matchs", "phystests", "heures"],
   prof:       ["etudes", "heures"],
@@ -78,7 +78,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -216,6 +216,7 @@ function showView(view) {
   if (view === "prospects") loadProspects();
   if (view === "heures") loadHeures();
   if (view === "locks") loadLocks();
+  if (view === "irrigation") loadIrrigation();
 }
 
 // ===================================================================
@@ -3798,6 +3799,137 @@ async function loadLockJournal() {
   $("locks-journal").innerHTML = rows.length
     ? `<div class="table-wrap"><table class="crm-table"><thead><tr><th>Quand</th><th>Serrure</th><th>Action</th><th>Par</th><th></th></tr></thead><tbody>`
       + rows.map((e) => `<tr><td>${frDateTime(e.created_at)}</td><td>${esc(nameOfLock(e.lock_id))}</td><td>${LOCK_ACT[e.action] || esc(e.action)}</td><td>${esc(e.by_name || "—")}</td><td>${e.result === "ok" ? '<span class="he-val">✓</span>' : '<span class="pm-l">' + esc(e.result || "?") + "</span>"}${e.detail ? ' <span class="muted" style="font-size:.8rem">' + esc(e.detail) + "</span>" : ""}</td></tr>`).join("")
+      + `</tbody></table></div>`
+    : `<p class="muted" style="font-size:.85rem">Aucun événement.</p>`;
+}
+
+// ===================================================================
+//  Arrosage connecté
+// ===================================================================
+const IRR_STATE = { on: ["💧 En cours", "irr-on"], off: ["Éteint", "irr-off"] };
+const IRR_ACT = { start: "Arrosage", stop: "Arrêt", auto: "Auto", skipped: "Ignoré", scheduled: "Programmé" };
+const DAYS_LBL = { daily: "Tous les jours", "1,2,3,4,5": "Lun–Ven", "6,7": "Week-end", "1": "Lundi", "2": "Mardi", "3": "Mercredi", "4": "Jeudi", "5": "Vendredi", "6": "Samedi", "7": "Dimanche" };
+let irrList = [], irrCourts = [], irrInit = false, iscCurrent = null;
+function initIrrigation() {
+  if (irrInit) return; irrInit = true;
+  $("irr-add").addEventListener("click", () => openZone(null));
+  $("irr-close").addEventListener("click", () => $("irr-modal").classList.add("hidden"));
+  $("irr-form").addEventListener("submit", saveZone);
+  $("iz-delete").addEventListener("click", deleteZone);
+  $("isc-close").addEventListener("click", () => $("irrsched-modal").classList.add("hidden"));
+  $("isc-add").addEventListener("click", addSchedule);
+}
+async function loadIrrigation() {
+  initIrrigation();
+  const [zones, courts] = await Promise.all([
+    sb.from("irrigation_zones").select("*").order("sort_order", { nullsFirst: false }).order("name").then((r) => r.data || []),
+    sb.from("courts").select("id,name").order("id").then((r) => r.data || []),
+  ]);
+  irrList = zones; irrCourts = courts;
+  renderZones();
+  loadIrrJournal();
+}
+function renderZones() {
+  const host = $("irr-list");
+  if (!irrList.length) { host.innerHTML = `<p class="muted">Aucune zone. Cliquez « + Ajouter une zone ».</p>`; return; }
+  host.innerHTML = irrList.map((z) => {
+    const [lbl, cls] = IRR_STATE[z.state] || IRR_STATE.off;
+    return `<div class="lock-card">
+      <div class="lock-info">
+        <b>${esc(z.name)}</b>
+        <span class="lock-state ${cls}">${lbl}</span>
+        ${z.moisture != null ? `<span class="role-badge">💦 ${z.moisture}%</span>` : ""}
+        ${z.auto_enabled ? '<span class="he-val" style="font-size:.75rem">auto</span>' : ""}
+        <span class="role-badge">${z.provider === "mock" ? "démo" : esc(z.provider)}</span>
+        ${!z.is_active ? '<span class="muted">(inactive)</span>' : ""}
+      </div>
+      <div class="lock-acts">
+        <button class="iz-start" data-id="${z.id}">Arroser</button>
+        <button class="ghost iz-stop" data-id="${z.id}">Arrêter</button>
+        <button class="ghost iz-sched" data-id="${z.id}" data-name="${esc(z.name)}">Programmer</button>
+        <button class="ghost iz-edit" data-id="${z.id}">✎</button>
+      </div></div>`;
+  }).join("");
+  host.querySelectorAll(".iz-start").forEach((b) => b.addEventListener("click", () => zoneAction(b.dataset.id, "start")));
+  host.querySelectorAll(".iz-stop").forEach((b) => b.addEventListener("click", () => zoneAction(b.dataset.id, "stop")));
+  host.querySelectorAll(".iz-sched").forEach((b) => b.addEventListener("click", () => openSchedules(b.dataset.id, b.dataset.name)));
+  host.querySelectorAll(".iz-edit").forEach((b) => b.addEventListener("click", () => openZone(irrList.find((x) => x.id === b.dataset.id))));
+}
+async function zoneAction(zoneId, action) {
+  const z = irrList.find((x) => x.id === zoneId);
+  const dur = z?.default_duration_min || 10;
+  if (action === "start" && !confirm(`Arroser « ${z?.name} » pendant ${dur} min ?`)) return;
+  if (action === "stop" && !confirm("Arrêter l'arrosage ?")) return;
+  const body = { zone_id: zoneId, action };
+  if (action === "start") body.duration_min = dur;
+  const { data, error } = await sb.functions.invoke("irrigation-control", { body });
+  if (error || data?.error) { alert("Échec : " + (data?.error || error?.message)); loadIrrigation(); return; }
+  if (!data.ok) alert(data.detail || "Non effectué.");
+  loadIrrigation();
+}
+function openZone(z) {
+  $("iz-error").hidden = true;
+  $("irr-modal-title").textContent = z ? "Modifier la zone" : "Nouvelle zone";
+  $("iz-id").value = z?.id || "";
+  $("iz-name").value = z?.name || "";
+  $("iz-court").innerHTML = `<option value="">—</option>` + irrCourts.map((c) => `<option value="${c.id}"${z && z.court_id === c.id ? " selected" : ""}>${esc(c.name)}</option>`).join("");
+  $("iz-threshold").value = z?.moisture_threshold ?? 40;
+  $("iz-duration").value = z?.default_duration_min ?? 10;
+  $("iz-provider").value = z?.provider || "mock";
+  $("iz-external").value = z?.external_id || "";
+  $("iz-auto").checked = !!z?.auto_enabled;
+  $("iz-active").checked = z ? z.is_active : true;
+  $("iz-delete").classList.toggle("hidden", !z);
+  $("irr-modal").classList.remove("hidden");
+}
+async function saveZone(e) {
+  e.preventDefault();
+  const err = $("iz-error"); err.hidden = true;
+  const name = $("iz-name").value.trim();
+  if (!name) { err.textContent = "Nom requis."; err.hidden = false; return; }
+  const row = { name, court_id: $("iz-court").value ? Number($("iz-court").value) : null, provider: $("iz-provider").value, external_id: $("iz-external").value.trim() || null, moisture_threshold: $("iz-threshold").value ? Number($("iz-threshold").value) : null, default_duration_min: $("iz-duration").value ? Number($("iz-duration").value) : 10, auto_enabled: $("iz-auto").checked, is_active: $("iz-active").checked };
+  const id = $("iz-id").value;
+  const res = id ? await sb.from("irrigation_zones").update(row).eq("id", id) : await sb.from("irrigation_zones").insert(row);
+  if (res.error) { err.textContent = "Erreur : " + res.error.message; err.hidden = false; return; }
+  $("irr-modal").classList.add("hidden");
+  loadIrrigation();
+}
+async function deleteZone() {
+  const id = $("iz-id").value;
+  if (!id || !confirm("Supprimer cette zone ?")) return;
+  await sb.from("irrigation_zones").delete().eq("id", id);
+  $("irr-modal").classList.add("hidden");
+  loadIrrigation();
+}
+async function openSchedules(zoneId, name) {
+  iscCurrent = zoneId;
+  $("isc-title").textContent = "Programmations — " + name;
+  $("isc-days").value = "daily"; $("isc-time").value = ""; $("isc-dur").value = "";
+  await renderSchedules();
+  $("irrsched-modal").classList.remove("hidden");
+}
+async function renderSchedules() {
+  const { data } = await sb.from("watering_schedules").select("*").eq("zone_id", iscCurrent).order("time_of_day");
+  const rows = data || [];
+  $("isc-list").innerHTML = rows.length ? rows.map((s) => `<div class="coach-rate-row">
+    <span><b>${DAYS_LBL[s.days] || esc(s.days || "")}</b> à ${s.time_of_day ? s.time_of_day.slice(0, 5) : "—"} · ${s.duration_min} min ${s.active ? "" : '<span class="muted">(inactif)</span>'}</span>
+    <button class="ghost isc-del" data-id="${s.id}">Suppr.</button></div>`).join("") : `<p class="muted" style="font-size:.85rem">Aucune programmation.</p>`;
+  $("isc-list").querySelectorAll(".isc-del").forEach((b) => b.addEventListener("click", async () => { await sb.from("watering_schedules").delete().eq("id", b.dataset.id); renderSchedules(); }));
+}
+async function addSchedule() {
+  if (!$("isc-time").value) { alert("Choisis une heure."); return; }
+  const { error } = await sb.from("watering_schedules").insert({ zone_id: iscCurrent, days: $("isc-days").value, time_of_day: $("isc-time").value, duration_min: $("isc-dur").value ? Number($("isc-dur").value) : 10, active: true });
+  if (error) { alert("Erreur : " + error.message); return; }
+  $("isc-time").value = ""; $("isc-dur").value = "";
+  renderSchedules();
+}
+async function loadIrrJournal() {
+  const { data } = await sb.from("watering_events").select("*").order("created_at", { ascending: false }).limit(40);
+  const rows = data || [];
+  const nameOf = (id) => irrList.find((z) => z.id === id)?.name || "—";
+  $("irr-journal").innerHTML = rows.length
+    ? `<div class="table-wrap"><table class="crm-table"><thead><tr><th>Quand</th><th>Zone</th><th>Action</th><th>Durée</th><th>Par</th><th></th></tr></thead><tbody>`
+      + rows.map((e) => `<tr><td>${frDateTime(e.created_at)}</td><td>${esc(nameOf(e.zone_id))}</td><td>${IRR_ACT[e.action] || esc(e.action)}</td><td>${e.duration_min ? e.duration_min + " min" : "—"}</td><td>${esc(e.by_name || "—")}</td><td>${e.result === "ok" ? '<span class="he-val">✓</span>' : e.result === "skipped" ? '<span class="muted">ignoré</span>' : '<span class="pm-l">' + esc(e.result || "?") + "</span>"}${e.detail ? ' <span class="muted" style="font-size:.8rem">' + esc(e.detail) + "</span>" : ""}</td></tr>`).join("")
       + `</tbody></table></div>`
     : `<p class="muted" style="font-size:.85rem">Aucun événement.</p>`;
 }
