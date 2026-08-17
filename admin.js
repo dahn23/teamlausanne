@@ -136,6 +136,12 @@ function applyTabAccess(roles) {
     b.classList.toggle("hidden", !allowed);
     if (allowed && !first) first = v;
   });
+  // Masquer un bloc entier si aucun de ses onglets n'est visible (pas de trait orphelin).
+  document.querySelectorAll(".side-block").forEach((bl) => {
+    const anyVisible = [...bl.querySelectorAll(".side-item[data-view]")]
+      .some((b) => b.dataset.view !== "bientot" && !b.classList.contains("hidden"));
+    bl.classList.toggle("hidden", !anyVisible);
+  });
   if (first) showView(first);
 }
 
