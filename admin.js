@@ -67,8 +67,8 @@ if (!session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
-  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "stages", "stats"],
+  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "stages", "stats"],
+  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "stages", "stats"],
   secretaire: ["membres", "inscriptions", "news", "resa", "matchs", "caisse", "stages", "stats"],
   head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects"],
   coach:      ["resa", "cours", "matchs", "phystests"],
@@ -77,7 +77,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -211,6 +211,7 @@ function showView(view) {
   if (view === "news") loadNews();
   if (view === "inscriptions") loadInscriptions();
   if (view === "prospects") loadProspects();
+  if (view === "heures") loadHeures();
 }
 
 // ===================================================================
@@ -3497,6 +3498,78 @@ async function loadProspBookmarklet() {
   aEl.addEventListener("click", (e) => { e.preventDefault(); alert("Ne cliquez pas ici : GLISSEZ ce bouton dans vos favoris, puis utilisez-le sur la page Classements de mytennis (connecté)."); });
   $("prosp-bm-holder").innerHTML = ""; $("prosp-bm-holder").appendChild(aEl);
   $("prosp-bm-note").textContent = "Astuce : glissez-le dans la barre de favoris.";
+}
+
+// ===================================================================
+//  Heures (décomptes coachs & profs)
+// ===================================================================
+let heuresData = { coaches: [], profs: [] }, heuresYm = null, heuresInit = false;
+const ymNow = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
+function initHeures() {
+  if (heuresInit) return; heuresInit = true;
+  if (!$("heures-month").value) $("heures-month").value = ymNow();
+  $("heures-month").addEventListener("change", loadHeures);
+  $("heures-export").addEventListener("click", exportHeures);
+}
+async function loadHeures() {
+  initHeures();
+  heuresYm = $("heures-month").value || ymNow();
+  const { data, error } = await sb.rpc("staff_hours_month", { p_ym: heuresYm });
+  heuresData = error ? { coaches: [], profs: [] } : (data || { coaches: [], profs: [] });
+  renderHeures();
+}
+function renderHeures() {
+  const c = heuresData.coaches || [], p = heuresData.profs || [];
+  $("heures-coaches-empty").hidden = c.length > 0;
+  $("heures-profs-empty").hidden = p.length > 0;
+  $("heures-coaches").innerHTML = c.map((x) => {
+    const amount = x.rate != null ? Math.round(x.hours * Number(x.rate) * 100) / 100 : null;
+    return `<tr>
+      <td><b>${esc(x.name)}</b></td><td>${x.courses}</td><td>${x.hours} h</td>
+      <td>${x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>'}</td>
+      <td>${amount != null ? amount + " CHF" : "—"}</td>
+      <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
+      <td>${x.validated ? '<span class="he-val">✓</span>' : '<span class="muted">—</span>'}</td>
+      <td class="he-acts"><button class="ghost he-detail" data-id="${x.person_id}" data-name="${esc(x.name)}">Détail</button>
+        <button class="ghost he-toggle" data-id="${x.person_id}" data-kind="coach" data-h="${x.hours}">${x.validated ? "Dévalider" : "Valider"}</button></td></tr>`;
+  }).join("");
+  $("heures-profs").innerHTML = p.map((x) => `<tr>
+      <td><b>${esc(x.name)}</b></td><td>${x.days}</td><td>${x.hours} h</td>
+      <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
+      <td>${x.validated ? '<span class="he-val">✓</span>' : '<span class="muted">—</span>'}</td>
+      <td class="he-acts"><button class="ghost he-toggle" data-id="${x.person_id}" data-kind="prof" data-h="${x.hours}">${x.validated ? "Dévalider" : "Valider"}</button></td></tr>`).join("");
+  document.querySelectorAll("#heures-coaches .he-detail").forEach((b) => b.addEventListener("click", () => coachDetail(b.dataset.id, b.dataset.name)));
+  document.querySelectorAll("#view-heures .he-toggle").forEach((b) => b.addEventListener("click", () => toggleValidation(b.dataset.id, b.dataset.kind, Number(b.dataset.h))));
+}
+async function toggleValidation(personId, kind, hours) {
+  const arr = kind === "coach" ? heuresData.coaches : heuresData.profs;
+  const cur = arr.find((x) => x.person_id === personId)?.validated;
+  if (cur) await sb.from("staff_month_validation").delete().eq("person_id", personId).eq("ym", heuresYm).eq("kind", kind);
+  else await sb.from("staff_month_validation").upsert({ person_id: personId, ym: heuresYm, kind, hours, validated_at: new Date().toISOString() }, { onConflict: "person_id,ym,kind" });
+  loadHeures();
+}
+async function coachDetail(personId, name) {
+  const { data } = await sb.rpc("coach_hours_detail", { p_person: personId, p_ym: heuresYm });
+  const rows = data || [];
+  const tot = Math.round(rows.reduce((a, r) => a + Number(r.hours), 0) * 100) / 100;
+  const html = `<h2>Décompte d'heures — ${esc(name)}</h2><p>Mois : ${heuresYm}</p>
+    <table><thead><tr><th>Date</th><th>Horaire</th><th>Cours</th><th>Heures</th></tr></thead><tbody>
+    ${rows.map((r) => `<tr><td>${frDate(r.date)}</td><td>${r.start}–${r.end}</td><td>${esc(r.title || "")}</td><td>${r.hours} h</td></tr>`).join("")}
+    </tbody><tfoot><tr><td colspan="3"><b>Total</b></td><td><b>${tot} h</b></td></tr></tfoot></table>`;
+  const w = window.open("", "_blank", "width=700,height=820");
+  if (!w) { alert("Autorise les pop-ups pour imprimer le décompte."); return; }
+  w.document.write(`<html><head><title>Décompte ${esc(name)} ${heuresYm}</title><style>body{font-family:system-ui,sans-serif;padding:28px;color:#111}h2{margin:0 0 4px}table{border-collapse:collapse;width:100%;margin-top:12px}th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:14px}tfoot td{border-top:2px solid #333}button{margin-top:16px;padding:8px 16px}</style></head><body>${html}<button onclick="window.print()">Imprimer</button></body></html>`);
+  w.document.close();
+}
+function exportHeures() {
+  const c = heuresData.coaches || [], p = heuresData.profs || [];
+  const lines = [["Type", "Nom", "Cours/AM", "Heures", "Tarif", "Montant", "IBAN", "Valide"]];
+  for (const x of c) { const amt = x.rate != null ? Math.round(x.hours * Number(x.rate) * 100) / 100 : ""; lines.push(["Coach", x.name, x.courses, x.hours, x.rate ?? "", amt, x.iban ?? "", x.validated ? "oui" : "non"]); }
+  for (const x of p) lines.push(["Prof", x.name, x.days, x.hours, "", "", x.iban ?? "", x.validated ? "oui" : "non"]);
+  const csv = lines.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `heures-${heuresYm}.csv`; a.click();
 }
 
 // ===================================================================

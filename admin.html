@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=35" />
+  <link rel="stylesheet" href="style.css?v=36" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -34,6 +34,7 @@
         <button class="side-item" data-view="mental"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 20.5h5"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.8.7 1.3 1.4 1.3 2.4h5c0-1 .5-1.7 1.3-2.4A6 6 0 0 0 12 3z"/></svg><span class="side-label">Mental</span></button>
         <button class="side-item" data-view="gamezone"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/><path d="M8 5.5H5V7a3 3 0 0 0 3 3M16 5.5h3V7a3 3 0 0 1-3 3"/><path d="M10 13.5V16h4v-2.5M8 20h8M12 16v4"/></svg><span class="side-label">GameZone</span></button>
         <button class="side-item" data-view="caisse"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6.5A1.5 1.5 0 0 1 4.5 5H16"/><rect x="3" y="8" width="18" height="11" rx="2"/><circle cx="16.5" cy="13.5" r="1.3"/></svg><span class="side-label">Caisse</span></button>
+        <button class="side-item" data-view="heures"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="side-label">Heures</span></button>
         <button class="side-item" data-view="stages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l10 5-10 5L2 9l10-5z"/><path d="M6 11v4.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V11"/><path d="M22 9v5"/></svg><span class="side-label">Stages</span></button>
         <button class="side-item" data-view="stats"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20v-6M12 20V8M18 20v-9"/></svg><span class="side-label">Statistiques</span></button>
         <button class="side-item" data-view="bientot" disabled><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19"/></svg><span class="side-label">Finances (bientôt)</span></button>
@@ -852,6 +853,24 @@
         </div>
 
         <!-- ---- Vue Caisse ---- -->
+        <!-- ---- Vue Heures (décomptes coachs & profs) ---- -->
+        <div id="view-heures" class="view hidden">
+          <div class="crm-head">
+            <h1>Heures</h1>
+            <div class="crm-actions">
+              <input type="month" id="heures-month" />
+              <button id="heures-export" class="ghost">Exporter (CSV)</button>
+            </div>
+          </div>
+          <p class="muted" style="margin:-6px 0 12px">Décomptes mensuels : coachs (heures de cours) et profs (après-midis études). À valider par chacun, puis à envoyer à la fiduciaire.</p>
+          <h2 style="margin:14px 0 6px;font-size:1.05rem">Coachs — cours</h2>
+          <div class="table-wrap"><table class="crm-table"><thead><tr><th>Coach</th><th>Cours</th><th>Heures</th><th>Tarif/h</th><th>Montant</th><th>IBAN</th><th>Validé</th><th></th></tr></thead><tbody id="heures-coaches"></tbody></table>
+            <p id="heures-coaches-empty" class="muted" hidden style="font-size:.85rem">Aucun cours ce mois-ci.</p></div>
+          <h2 style="margin:22px 0 6px;font-size:1.05rem">Profs — études</h2>
+          <div class="table-wrap"><table class="crm-table"><thead><tr><th>Prof</th><th>Après-midis</th><th>Heures</th><th>IBAN</th><th>Validé</th><th></th></tr></thead><tbody id="heures-profs"></tbody></table>
+            <p id="heures-profs-empty" class="muted" hidden style="font-size:.85rem">Aucun prof assigné ce mois-ci (voir Études › Profs).</p></div>
+        </div>
+
         <div id="view-caisse" class="view hidden">
           <div class="crm-head">
             <h1><svg class="hi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6.5A1.5 1.5 0 0 1 4.5 5H16"/><rect x="3" y="8" width="18" height="11" rx="2"/><circle cx="16.5" cy="13.5" r="1.3"/></svg>Caisse du secrétariat</h1>
