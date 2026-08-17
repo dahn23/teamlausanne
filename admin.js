@@ -3451,7 +3451,8 @@ async function openProspect(id) {
             ${p.phone ? `<div>📞 <a href="tel:${esc((p.phone || "").replace(/\\s/g, ""))}">${esc(p.phone)}</a></div>` : ""}
             ${(p.address || p.city) ? `<div>📍 ${esc([p.address, [p.postal_code, p.city].filter(Boolean).join(" ")].filter(Boolean).join(", "))}</div>` : ""}
           ` : `<div class="muted" style="font-size:.85rem">Non récupérées.</div>`}
-          <button type="button" id="prosp-portal" class="ghost" style="margin-top:8px">Chercher sur le portail licences ↗</button>
+          <button type="button" id="prosp-portal" class="ghost" style="margin-top:8px">Ouvrir la fiche licence ↗</button>
+          <span class="muted" style="font-size:.8rem;display:block;margin-top:4px">Puis clique le favori « Coordonnées » sur la page qui s'ouvre.</span>
         </div>
       </div>
       <div class="prosp-card">
@@ -3464,10 +3465,8 @@ async function openProspect(id) {
   window.scrollTo(0, 0);
   $("prosp-back").addEventListener("click", closeProspect);
   $("prosp-save").addEventListener("click", () => saveProspect(p.id));
-  $("prosp-portal").addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(p.license_no); } catch (e) { /* ignore */ }
-    window.open("https://licence.mytennis.ch/fr/licences/search", "_blank", "noopener");
-    alert(`Licence ${p.license_no} copiée.\nColle-la dans « Numéro de licence », ouvre « Voir la licence », puis clique le favori « Coordonnées ».`);
+  $("prosp-portal").addEventListener("click", () => {
+    window.open("https://licence.mytennis.ch/fr/licences/" + encodeURIComponent(p.license_no), "_blank", "noopener");
   });
   const { data } = await sb.from("prospect_matches").select("*").eq("prospect_license", p.license_no).order("match_date", { ascending: false, nullsFirst: false });
   const ms = data || [];
