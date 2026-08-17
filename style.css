@@ -1566,3 +1566,6 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 .he-mine-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)}
 .he-mine-row:first-of-type{border-top:none}
 .he-mine-act{display:flex;align-items:center;gap:8px}
+
+/* ---- Validation d'un cours (présences) ---- */
+.att-validate{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}

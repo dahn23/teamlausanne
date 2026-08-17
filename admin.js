@@ -1676,10 +1676,11 @@ const ATT_STATUS = [["present", "Présent"], ["absent", "Absent"], ["late", "En 
 async function openAttendance(courseId) {
   const course = (await sb.from("courses").select("*").eq("id", courseId).single()).data;
   attCourse = course;
-  const [parts, coaches, att] = await Promise.all([
+  const [parts, coaches, att, vals] = await Promise.all([
     sb.from("course_participants").select("child_person_id").eq("course_id", courseId).then((r) => (r.data || []).map((x) => x.child_person_id)),
     sb.from("course_coaches").select("coach_person_id").eq("course_id", courseId).then((r) => (r.data || []).map((x) => x.coach_person_id)),
     sb.from("attendance").select("*").eq("course_id", courseId).then((r) => r.data || []),
+    sb.from("course_validation").select("coach_person_id").eq("course_id", courseId).then((r) => (r.data || []).map((x) => x.coach_person_id)),
   ]);
   const statusOf = (pid) => att.find((a) => a.person_id === pid)?.status || null;
   const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : "—"; };
@@ -1695,7 +1696,29 @@ async function openAttendance(courseId) {
   $("att-coaches").innerHTML = coaches.length ? coaches.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), true)).join("") : '<p class="muted" style="font-size:.85rem">Aucun coach.</p>';
   $("att-modal").querySelectorAll(".att-set").forEach((b) =>
     b.addEventListener("click", () => markAtt(b.dataset.person, b.dataset.status, b.dataset.coach === "1")));
+  renderAttValidate(courseId, coaches, vals);
   $("att-modal").classList.remove("hidden");
+}
+
+function renderAttValidate(courseId, coaches, vals) {
+  const host = $("att-validate"); if (!host) return;
+  const iAmCoach = myPersonId && coaches.includes(myPersonId);
+  if (iAmCoach) {
+    const mine = vals.includes(myPersonId);
+    host.innerHTML = mine
+      ? `<span class="he-val">✓ Cours validé — compté dans tes heures</span> <button type="button" id="att-toggle-val" class="ghost">Annuler</button>`
+      : `<button type="button" id="att-toggle-val">Valider ce cours (mes heures)</button> <span class="muted" style="font-size:.82rem">À faire une fois les présences saisies.</span>`;
+    $("att-toggle-val").addEventListener("click", () => toggleCourseValidation(courseId, mine));
+  } else {
+    host.innerHTML = vals.length
+      ? `<span class="he-val">✓ Validé par le coach</span>`
+      : `<span class="muted" style="font-size:.85rem">Pas encore validé par le coach.</span>`;
+  }
+}
+async function toggleCourseValidation(courseId, mine) {
+  if (mine) await sb.from("course_validation").delete().eq("course_id", courseId).eq("coach_person_id", myPersonId);
+  else { const { error } = await sb.from("course_validation").insert({ course_id: courseId, coach_person_id: myPersonId }); if (error) { alert(error.message); return; } }
+  openAttendance(courseId);
 }
 
 function attRow(pid, name, status, isCoach) {
@@ -3570,18 +3593,22 @@ async function renderMyHours() {
   const host = $("heures-mine"); if (!host) return;
   const { data } = await sb.rpc("my_hours_month", { p_ym: heuresYm });
   const m = data || {};
-  const hasCoach = (m.coach_courses || 0) > 0, hasProf = (m.prof_days || 0) > 0;
+  const hasCoach = (m.coach_total || 0) > 0, hasProf = (m.prof_days || 0) > 0;
   if (!hasCoach && !hasProf) { host.innerHTML = ""; return; }
-  const block = (label, sub, hours, validated, kind) => `<div class="he-mine-row">
-    <span>${label} : <b>${hours} h</b> <span class="muted">(${sub})</span></span>
-    <span class="he-mine-act">${validated
-      ? `<span class="he-val">✓ validé</span> <button class="ghost he-myval" data-kind="${kind}" data-h="${hours}" data-val="1">Annuler</button>`
-      : `<button class="he-myval" data-kind="${kind}" data-h="${hours}" data-val="0">Valider mes heures</button>`}</span>
-  </div>`;
   let inner = "";
-  if (hasCoach) inner += block("Cours (coach)", m.coach_courses + " cours", m.coach_hours, m.validated_coach, "coach");
-  if (hasProf) inner += block("Études (prof)", m.prof_days + " après-midis", m.prof_hours, m.validated_prof, "prof");
-  if (!inner) inner = `<p class="muted" style="margin:6px 0 0;font-size:.88rem">Aucune heure ce mois-ci.</p>`;
+  if (hasCoach) {
+    const done = m.coach_total > 0 && m.coach_val === m.coach_total;
+    inner += `<div class="he-mine-row">
+      <span>Cours (coach) : <b>${m.coach_hours} h</b> <span class="muted">(${m.coach_val}/${m.coach_total} cours validés)</span></span>
+      <span class="he-mine-act ${done ? "he-val" : "muted"}" style="font-size:.85rem">${done ? "✓ tout validé" : "Valide chaque cours en saisissant les présences"}</span>
+    </div>`;
+  }
+  if (hasProf) inner += `<div class="he-mine-row">
+      <span>Études (prof) : <b>${m.prof_hours} h</b> <span class="muted">(${m.prof_days} après-midis)</span></span>
+      <span class="he-mine-act">${m.validated_prof
+        ? `<span class="he-val">✓ validé</span> <button class="ghost he-myval" data-kind="prof" data-h="${m.prof_hours}" data-val="1">Annuler</button>`
+        : `<button class="he-myval" data-kind="prof" data-h="${m.prof_hours}" data-val="0">Valider mes heures</button>`}</span>
+    </div>`;
   host.innerHTML = `<div class="he-mine"><div class="he-mine-h">Mes heures — ${heuresYm}</div>${inner}</div>`;
   host.querySelectorAll(".he-myval").forEach((b) => b.addEventListener("click", () => toggleMyValidation(b.dataset.kind, Number(b.dataset.h), b.dataset.val === "1")));
 }
@@ -3597,14 +3624,14 @@ function renderHeures() {
   $("heures-profs-empty").hidden = p.length > 0;
   $("heures-coaches").innerHTML = c.map((x) => {
     const amount = x.rate != null ? Math.round(x.hours * Number(x.rate) * 100) / 100 : null;
+    const allVal = x.total_courses > 0 && x.courses === x.total_courses;
     return `<tr>
-      <td><b>${esc(x.name)}</b></td><td>${x.courses}</td><td>${x.hours} h</td>
+      <td><b>${esc(x.name)}</b></td><td>${x.total_courses}</td><td>${x.hours} h</td>
       <td>${x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>'}</td>
       <td>${amount != null ? amount + " CHF" : "—"}</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
-      <td>${x.validated ? '<span class="he-val">✓</span>' : '<span class="muted">—</span>'}</td>
-      <td class="he-acts"><button class="ghost he-detail" data-id="${x.person_id}" data-name="${esc(x.name)}">Détail</button>
-        <button class="ghost he-toggle" data-id="${x.person_id}" data-kind="coach" data-h="${x.hours}">${x.validated ? "Dévalider" : "Valider"}</button></td></tr>`;
+      <td>${allVal ? '<span class="he-val">✓ ' + x.courses + "/" + x.total_courses + "</span>" : '<span class="muted">' + x.courses + "/" + x.total_courses + "</span>"}</td>
+      <td class="he-acts"><button class="ghost he-detail" data-id="${x.person_id}" data-name="${esc(x.name)}">Détail</button></td></tr>`;
   }).join("");
   $("heures-profs").innerHTML = p.map((x) => `<tr>
       <td><b>${esc(x.name)}</b></td><td>${x.days}</td><td>${x.hours} h</td>
@@ -3624,11 +3651,12 @@ async function toggleValidation(personId, kind, hours) {
 async function coachDetail(personId, name) {
   const { data } = await sb.rpc("coach_hours_detail", { p_person: personId, p_ym: heuresYm });
   const rows = data || [];
-  const tot = Math.round(rows.reduce((a, r) => a + Number(r.hours), 0) * 100) / 100;
+  const tot = Math.round(rows.filter((r) => r.validated).reduce((a, r) => a + Number(r.hours), 0) * 100) / 100;
   const html = `<h2>Décompte d'heures — ${esc(name)}</h2><p>Mois : ${heuresYm}</p>
-    <table><thead><tr><th>Date</th><th>Horaire</th><th>Cours</th><th>Heures</th></tr></thead><tbody>
-    ${rows.map((r) => `<tr><td>${frDate(r.date)}</td><td>${r.start}–${r.end}</td><td>${esc(r.title || "")}</td><td>${r.hours} h</td></tr>`).join("")}
-    </tbody><tfoot><tr><td colspan="3"><b>Total</b></td><td><b>${tot} h</b></td></tr></tfoot></table>`;
+    <table><thead><tr><th>Date</th><th>Horaire</th><th>Cours</th><th>Heures</th><th>Validé</th></tr></thead><tbody>
+    ${rows.map((r) => `<tr${r.validated ? "" : ' style="color:#999"'}><td>${frDate(r.date)}</td><td>${r.start}–${r.end}</td><td>${esc(r.title || "")}</td><td>${r.hours} h</td><td>${r.validated ? "✓" : "—"}</td></tr>`).join("")}
+    </tbody><tfoot><tr><td colspan="3"><b>Total validé</b></td><td colspan="2"><b>${tot} h</b></td></tr></tfoot></table>
+    <p style="font-size:12px;color:#666">Seules les heures des cours validés par le coach sont comptées.</p>`;
   const w = window.open("", "_blank", "width=700,height=820");
   if (!w) { alert("Autorise les pop-ups pour imprimer le décompte."); return; }
   w.document.write(`<html><head><title>Décompte ${esc(name)} ${heuresYm}</title><style>body{font-family:system-ui,sans-serif;padding:28px;color:#111}h2{margin:0 0 4px}table{border-collapse:collapse;width:100%;margin-top:12px}th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:14px}tfoot td{border-top:2px solid #333}button{margin-top:16px;padding:8px 16px}</style></head><body>${html}<button onclick="window.print()">Imprimer</button></body></html>`);
