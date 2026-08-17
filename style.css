@@ -1542,3 +1542,8 @@ body.portal{background:var(--bg)}
 .prosp-subtab{background:transparent;color:var(--muted);border:none;border-radius:0;border-bottom:2px solid transparent;padding:8px 14px;font-weight:600}
 .prosp-subtab:hover{background:transparent;color:var(--ink)}
 .prosp-subtab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* ---- Prospects : exploits repliable ---- */
+button.prosp-upfeed-h{display:flex;align-items:center;gap:8px;width:100%;background:transparent;border:none;color:#b3261e;font-weight:800;font-size:.98rem;padding:0;margin:0 0 8px;cursor:pointer;text-align:left}
+button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
+.prosp-upfeed-chev{margin-left:auto;font-size:.75em;font-weight:600}

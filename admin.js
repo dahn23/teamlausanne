@@ -3324,16 +3324,27 @@ async function geocodeDistances() {
   alert(done ? `Distances calculées (${total} clubs géocodés).` : `Interrompu — ${total} clubs géocodés. Recliquez pour continuer.`);
   loadProspects();
 }
+let prospUpfeedOpen = true;
 async function renderRecentUpsets() {
   const host = $("prosp-upsets"); if (!host) return;
-  const { data } = await sb.from("prospect_matches").select("*").eq("is_upset", true).order("match_date", { ascending: false, nullsFirst: false }).limit(40);
+  const { data } = await sb.from("prospect_matches").select("*").eq("is_upset", true).order("match_date", { ascending: false, nullsFirst: false }).limit(60);
   const ms = data || [];
   const byLic = {}; prospList.forEach((p) => { byLic[p.license_no] = p; });
+  let count = 0;
   const items = ms.map((m) => {
-    const p = byLic[m.prospect_license]; if (!p) return "";
+    const p = byLic[m.prospect_license]; if (!p) return ""; count++;
     return `<div class="prosp-upitem" data-id="${p.id}"><b>${esc(p.first_name || "")} ${esc(p.last_name || "")}</b> <span class="muted">${esc(p.classification || "")}</span> a battu <b>${esc(((m.opponent_first || "") + " " + (m.opponent_last || "")).trim() || "?")}</b>${m.opponent_classification ? " (" + esc(m.opponent_classification) + ")" : ""} · ${esc(m.score || "")} · <span class="muted">${m.match_date ? frDate(m.match_date) : ""}</span></div>`;
   }).filter(Boolean).join("");
-  host.innerHTML = items ? `<div class="prosp-upfeed"><div class="prosp-upfeed-h">🔥 Exploits récents</div>${items}</div>` : "";
+  if (!items) { host.innerHTML = ""; return; }
+  host.innerHTML = `<div class="prosp-upfeed">
+    <button type="button" class="prosp-upfeed-h" id="prosp-upfeed-toggle">🔥 Exploits récents (${count}) <span class="prosp-upfeed-chev">${prospUpfeedOpen ? "▲" : "▼"}</span></button>
+    <div id="prosp-upfeed-body"${prospUpfeedOpen ? "" : " hidden"}>${items}</div>
+  </div>`;
+  $("prosp-upfeed-toggle").addEventListener("click", () => {
+    prospUpfeedOpen = !prospUpfeedOpen;
+    $("prosp-upfeed-body").hidden = !prospUpfeedOpen;
+    $("prosp-upfeed-toggle").querySelector(".prosp-upfeed-chev").textContent = prospUpfeedOpen ? "▲" : "▼";
+  });
   host.querySelectorAll(".prosp-upitem").forEach((el) => el.addEventListener("click", () => openProspect(el.dataset.id)));
 }
 async function loadProspResultsBookmarklet() {
