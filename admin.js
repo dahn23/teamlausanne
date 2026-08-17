@@ -3245,12 +3245,41 @@ function initProspects() {
   $("prosp-close").addEventListener("click", () => $("prosp-modal").classList.add("hidden"));
   $("prosp-save").addEventListener("click", saveProspect);
   loadProspBookmarklet();
+  loadProspResultsBookmarklet();
 }
 async function loadProspects() {
   initProspects();
   const { data } = await sb.from("prospects").select("*").order("ranking_value", { ascending: false, nullsFirst: false });
   prospList = data || [];
   renderProspRows();
+  renderRecentUpsets();
+}
+async function renderRecentUpsets() {
+  const host = $("prosp-upsets"); if (!host) return;
+  const { data } = await sb.from("prospect_matches").select("*").eq("is_upset", true).order("match_date", { ascending: false, nullsFirst: false }).limit(40);
+  const ms = data || [];
+  const byLic = {}; prospList.forEach((p) => { byLic[p.license_no] = p; });
+  const items = ms.map((m) => {
+    const p = byLic[m.prospect_license]; if (!p) return "";
+    return `<div class="prosp-upitem" data-id="${p.id}"><b>${esc(p.first_name || "")} ${esc(p.last_name || "")}</b> <span class="muted">${esc(p.classification || "")}</span> a battu <b>${esc(((m.opponent_first || "") + " " + (m.opponent_last || "")).trim() || "?")}</b>${m.opponent_classification ? " (" + esc(m.opponent_classification) + ")" : ""} · ${esc(m.score || "")} · <span class="muted">${m.match_date ? frDate(m.match_date) : ""}</span></div>`;
+  }).filter(Boolean).join("");
+  host.innerHTML = items ? `<div class="prosp-upfeed"><div class="prosp-upfeed-h">🔥 Exploits récents</div>${items}</div>` : "";
+  host.querySelectorAll(".prosp-upitem").forEach((el) => el.addEventListener("click", () => openProspect(el.dataset.id)));
+}
+async function loadProspResultsBookmarklet() {
+  const { data } = await sb.from("gz_config").select("import_key").maybeSingle();
+  if (!data) { $("prosp-res-note").textContent = "Clé d'import indisponible."; return; }
+  let src;
+  try { src = await (await fetch("prosp-results-bookmarklet.js")).text(); }
+  catch (_e) { $("prosp-res-note").textContent = "Impossible de charger le bookmarklet."; return; }
+  const code = src.replace("__KEY__", data.import_key).replace("__RCV__", location.origin + "/prosp-results-receiver.html");
+  const aEl = document.createElement("a");
+  aEl.href = "javascript:" + encodeURIComponent(code);
+  aEl.textContent = "Scanner les résultats";
+  aEl.className = "btn-prod"; aEl.style.textDecoration = "none";
+  aEl.addEventListener("click", (e) => { e.preventDefault(); alert("Ne cliquez pas ici : GLISSEZ ce bouton dans vos favoris, puis utilisez-le sur mytennis (connecté)."); });
+  $("prosp-res-holder").innerHTML = ""; $("prosp-res-holder").appendChild(aEl);
+  $("prosp-res-note").textContent = "Astuce : glissez-le dans la barre de favoris.";
 }
 function renderProspRows() {
   const q = $("prosp-search").value.toLowerCase().trim();

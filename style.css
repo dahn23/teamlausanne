@@ -1498,3 +1498,10 @@ body.portal{background:var(--bg)}
 .prosp-badge.s-en_cours{background:#fdf0d9;color:#9a6a00}
 .prosp-badge.s-impossible,.prosp-badge.s-jamais_repondu{background:#fdecec;color:#b3261e}
 .prosp-upset-row{background:#fff6f5}
+
+/* ---- Prospects : fil d'exploits ---- */
+.prosp-upfeed{background:#fff6f5;border:1px solid #f6c9c4;border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.prosp-upfeed-h{font-weight:800;color:#b3261e;margin-bottom:8px}
+.prosp-upitem{padding:6px 0;border-top:1px solid #f3d6d2;cursor:pointer;font-size:.9rem}
+.prosp-upitem:first-of-type{border-top:none}
+.prosp-upitem:hover{color:var(--blue)}

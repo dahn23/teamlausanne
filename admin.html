@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=29" />
+  <link rel="stylesheet" href="style.css?v=30" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -117,6 +117,7 @@
             </select>
             <label class="prosp-chk"><input type="checkbox" id="prosp-fupset" /> Exploits uniquement</label>
           </div>
+          <div id="prosp-upsets"></div>
           <div class="table-wrap">
             <table class="crm-table">
               <thead><tr><th>Nom</th><th>Classt</th><th>Âge</th><th>Matchs</th><th>Exploits</th><th>Statut</th></tr></thead>
@@ -132,6 +133,15 @@
               <li>Cliquez le favori → il récupère les joueurs classés R7 ou mieux (et leurs matchs).</li>
             </ol>
             <p id="prosp-bm-note" class="muted" style="font-size:.82rem"></p>
+          </div>
+          <div id="prosp-res-card" class="rg-card" style="margin-top:14px">
+            <h2 style="margin-top:0">Scanner les résultats récents (exploits)</h2>
+            <ol class="muted" style="font-size:.9rem;line-height:1.7;padding-left:18px">
+              <li>Glissez ce bouton dans vos favoris : <span id="prosp-res-holder"></span></li>
+              <li>Sur <b>mytennis.ch</b> (connecté), cliquez le favori.</li>
+              <li>Il analyse les matchs des 3 dernières semaines de tous les prospects et repère les <b>exploits</b> (victoire contre un mieux classé). À lancer ~1×/semaine.</li>
+            </ol>
+            <p id="prosp-res-note" class="muted" style="font-size:.82rem"></p>
           </div>
         </div>
 
