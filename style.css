@@ -1524,3 +1524,10 @@ body.portal{background:var(--bg)}
 .prosp-lbl{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:.9rem;margin-bottom:12px}
 .prosp-lbl select,.prosp-lbl textarea{width:100%}
 @media(max-width:780px){.prosp-cols{grid-template-columns:1fr}}
+
+/* ---- Prospects : en-têtes triables ---- */
+.prosp-table th[data-sort]{cursor:pointer;user-select:none;white-space:nowrap}
+.prosp-table th[data-sort]:hover{color:var(--blue)}
+.prosp-table th.sorted{color:var(--blue)}
+.prosp-table th[data-dir=asc]::after{content:" ▲";font-size:.68em}
+.prosp-table th[data-dir=desc]::after{content:" ▼";font-size:.68em}

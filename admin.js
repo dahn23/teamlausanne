@@ -3234,14 +3234,21 @@ async function deleteInscription(id) {
 //  Prospects (scouting jeunes joueurs suisses)
 // ===================================================================
 const PROSP_STATUS = { nouveau: "Nouveau", en_cours: "En cours", interesse: "Intéressé", jamais_repondu: "Jamais répondu", pas_maintenant: "Pas pour le moment", impossible: "Impossible" };
-let prospList = [], prospInit = false;
+const ROMANDIE = ["VD", "GE", "VS", "FR", "NE", "JU"];
+let prospList = [], prospInit = false, prospSort = { key: "class", dir: "desc" };
 const ageOf = (bd) => { if (!bd) return null; const d = new Date(bd), n = new Date(); let a = n.getFullYear() - d.getFullYear(); if (n.getMonth() < d.getMonth() || (n.getMonth() === d.getMonth() && n.getDate() < d.getDate())) a--; return a; };
 const classTier = (c) => { c = (c || "").toUpperCase(); if (/^N/.test(c)) return "N"; const m = c.match(/^R([1-9])/); return m ? "R" + m[1] : ""; };
 
 function initProspects() {
   if (prospInit) return; prospInit = true;
-  ["prosp-search", "prosp-fclass", "prosp-fage", "prosp-fstatus"].forEach((id) => $(id).addEventListener("input", renderProspRows));
+  ["prosp-search", "prosp-fclass", "prosp-fage", "prosp-fstatus", "prosp-fcanton"].forEach((id) => $(id).addEventListener("input", renderProspRows));
   $("prosp-fupset").addEventListener("change", renderProspRows);
+  document.querySelectorAll(".prosp-table th[data-sort]").forEach((th) => th.addEventListener("click", () => {
+    const k = th.dataset.sort;
+    if (prospSort.key === k) prospSort.dir = prospSort.dir === "asc" ? "desc" : "asc";
+    else prospSort = { key: k, dir: (["name", "club", "canton", "status"].includes(k) ? "asc" : "desc") };
+    renderProspRows();
+  }));
   loadProspBookmarklet();
   loadProspResultsBookmarklet();
 }
@@ -3249,8 +3256,32 @@ async function loadProspects() {
   initProspects();
   const { data } = await sb.from("prospects").select("*").order("ranking_value", { ascending: false, nullsFirst: false });
   prospList = data || [];
+  populateCantons();
   renderProspRows();
   renderRecentUpsets();
+}
+function populateCantons() {
+  const sel = $("prosp-fcanton"); if (!sel) return;
+  const cur = sel.value;
+  const cantons = [...new Set(prospList.map((p) => p.canton).filter(Boolean))].sort();
+  sel.innerHTML = `<option value="">Toute la Suisse</option><option value="romandie">Romandie</option>`
+    + cantons.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  sel.value = cur;
+}
+function sortProspects(rows) {
+  const k = prospSort.key, dir = prospSort.dir === "asc" ? 1 : -1;
+  const val = (p) => {
+    if (k === "name") return `${p.last_name || ""} ${p.first_name || ""}`.toLowerCase();
+    if (k === "class") return p.ranking_value != null ? Number(p.ranking_value) : -1;
+    if (k === "age") return p.birthdate || "9999";
+    if (k === "club") return (p.club || "").toLowerCase();
+    if (k === "canton") return (p.canton || "").toLowerCase();
+    if (k === "matchs") return p.match_count || 0;
+    if (k === "exploits") return p.upset_count || 0;
+    if (k === "status") return p.status || "";
+    return 0;
+  };
+  return rows.sort((a, b) => { const va = val(a), vb = val(b); return va < vb ? -dir : va > vb ? dir : 0; });
 }
 async function renderRecentUpsets() {
   const host = $("prosp-upsets"); if (!host) return;
@@ -3281,21 +3312,29 @@ async function loadProspResultsBookmarklet() {
 }
 function renderProspRows() {
   const q = $("prosp-search").value.toLowerCase().trim();
-  const fc = $("prosp-fclass").value, fa = $("prosp-fage").value, fs = $("prosp-fstatus").value, fu = $("prosp-fupset").checked;
+  const fc = $("prosp-fclass").value, fa = $("prosp-fage").value, fs = $("prosp-fstatus").value, fu = $("prosp-fupset").checked, fca = $("prosp-fcanton").value;
   const inClass = (c) => { const t = classTier(c); if (!fc) return true; if (fc === "N") return t === "N"; if (fc === "R1-R3") return ["R1", "R2", "R3"].includes(t); if (fc === "R4-R5") return ["R4", "R5"].includes(t); if (fc === "R6-R7") return ["R6", "R7"].includes(t); return true; };
   const inAge = (bd) => { if (!fa) return true; const a = ageOf(bd); if (a == null) return false; if (fa === "u12") return a <= 12; if (fa === "u14") return a >= 13 && a <= 14; if (fa === "u16") return a >= 15 && a <= 16; if (fa === "u18") return a >= 17 && a <= 18; return true; };
-  const rows = prospList.filter((p) =>
+  const inCanton = (ct) => { if (!fca) return true; const c = (ct || "").toUpperCase(); return fca === "romandie" ? ROMANDIE.includes(c) : c === fca.toUpperCase(); };
+  const rows = sortProspects(prospList.filter((p) =>
     (!q || `${p.first_name || ""} ${p.last_name || ""}`.toLowerCase().includes(q))
-    && inClass(p.classification) && inAge(p.birthdate)
-    && (!fs || p.status === fs) && (!fu || p.upset_count > 0));
+    && inClass(p.classification) && inAge(p.birthdate) && inCanton(p.canton)
+    && (!fs || p.status === fs) && (!fu || p.upset_count > 0)));
   $("prosp-empty").hidden = prospList.length > 0;
+  document.querySelectorAll(".prosp-table th[data-sort]").forEach((th) => {
+    const on = th.dataset.sort === prospSort.key;
+    th.classList.toggle("sorted", on);
+    th.dataset.dir = on ? prospSort.dir : "";
+  });
   const tb = $("prosp-rows");
   tb.innerHTML = rows.map((p) => {
     const a = ageOf(p.birthdate);
     return `<tr class="prosp-row" data-id="${p.id}">
       <td><b>${esc(p.last_name || "")}</b> ${esc(p.first_name || "")}</td>
       <td>${esc(p.classification || "—")}</td>
-      <td>${a != null ? a + " ans" : "—"}</td>
+      <td>${a != null ? a : "—"}</td>
+      <td>${esc(p.club || "—")}</td>
+      <td>${esc(p.canton || "—")}</td>
       <td>${p.match_count || 0}</td>
       <td>${p.upset_count ? `<span class="prosp-upset">🔥 ${p.upset_count}</span>` : "—"}</td>
       <td><span class="prosp-badge s-${p.status}">${PROSP_STATUS[p.status] || p.status}</span></td>

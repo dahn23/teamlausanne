@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=31" />
+  <link rel="stylesheet" href="style.css?v=32" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -107,6 +107,7 @@
               <option value="u16">15–16 ans</option>
               <option value="u18">17–18 ans</option>
             </select>
+            <select id="prosp-fcanton"><option value="">Toute la Suisse</option><option value="romandie">Romandie</option></select>
             <select id="prosp-fstatus">
               <option value="">Tous statuts</option>
               <option value="nouveau">Nouveau</option>
@@ -120,8 +121,17 @@
           </div>
           <div id="prosp-upsets"></div>
           <div class="table-wrap">
-            <table class="crm-table">
-              <thead><tr><th>Nom</th><th>Classt</th><th>Âge</th><th>Matchs</th><th>Exploits</th><th>Statut</th></tr></thead>
+            <table class="crm-table prosp-table">
+              <thead><tr>
+                <th data-sort="name">Nom</th>
+                <th data-sort="class">Classt</th>
+                <th data-sort="age">Âge</th>
+                <th data-sort="club">Club</th>
+                <th data-sort="canton">Ct</th>
+                <th data-sort="matchs">Matchs</th>
+                <th data-sort="exploits">Exploits</th>
+                <th data-sort="status">Statut</th>
+              </tr></thead>
               <tbody id="prosp-rows"></tbody>
             </table>
             <p id="prosp-empty" class="muted" hidden>Aucun prospect. Utilisez le bookmarklet « Classements » ci-dessous.</p>
