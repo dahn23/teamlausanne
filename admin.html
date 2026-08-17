@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=40" />
+  <link rel="stylesheet" href="style.css?v=41" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -35,6 +35,7 @@
         <button class="side-item" data-view="gamezone"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/><path d="M8 5.5H5V7a3 3 0 0 0 3 3M16 5.5h3V7a3 3 0 0 1-3 3"/><path d="M10 13.5V16h4v-2.5M8 20h8M12 16v4"/></svg><span class="side-label">GameZone</span></button>
         <button class="side-item" data-view="caisse"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6.5A1.5 1.5 0 0 1 4.5 5H16"/><rect x="3" y="8" width="18" height="11" rx="2"/><circle cx="16.5" cy="13.5" r="1.3"/></svg><span class="side-label">Caisse</span></button>
         <button class="side-item" data-view="heures"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="side-label">Heures</span></button>
+        <button class="side-item" data-view="locks"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/><circle cx="12" cy="15.5" r="1.2"/></svg><span class="side-label">Serrures</span></button>
         <button class="side-item" data-view="stages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l10 5-10 5L2 9l10-5z"/><path d="M6 11v4.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V11"/><path d="M22 9v5"/></svg><span class="side-label">Stages</span></button>
         <button class="side-item" data-view="stats"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20v-6M12 20V8M18 20v-9"/></svg><span class="side-label">Statistiques</span></button>
         <button class="side-item" data-view="bientot" disabled><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19"/></svg><span class="side-label">Finances (bientôt)</span></button>
@@ -874,6 +875,18 @@
           </div><!-- /heures-recap -->
         </div>
 
+        <!-- ---- Vue Serrures ---- -->
+        <div id="view-locks" class="view hidden">
+          <div class="crm-head">
+            <h1>Serrures</h1>
+            <div class="crm-actions"><button id="lock-add">+ Ajouter une serrure</button></div>
+          </div>
+          <p class="muted" style="margin:-6px 0 12px">Ouverture/fermeture à distance, codes d'accès, journal d'audit. <b>Mode démo</b> — aucun matériel branché pour l'instant ; la vraie serrure se connectera ici une fois la marque choisie.</p>
+          <div id="locks-list"></div>
+          <h2 style="margin:22px 0 8px;font-size:1.05rem">Journal récent</h2>
+          <div id="locks-journal"></div>
+        </div>
+
         <div id="view-caisse" class="view hidden">
           <div class="crm-head">
             <h1><svg class="hi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6.5A1.5 1.5 0 0 1 4.5 5H16"/><rect x="3" y="8" width="18" height="11" rx="2"/><circle cx="16.5" cy="13.5" r="1.3"/></svg>Caisse du secrétariat</h1>
@@ -1366,6 +1379,45 @@
         <button type="submit" id="gz-text-save">Enregistrer</button>
       </div>
     </form>
+  </div>
+
+  <!-- ---- Serrure (édition) ---- -->
+  <div id="lock-modal" class="modal hidden">
+    <form class="card" id="lock-form">
+      <button type="button" id="lock-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="lock-modal-title">Serrure</h2>
+      <input type="hidden" id="lk-id" />
+      <label>Nom<input id="lk-name" required /></label>
+      <label>Emplacement<input id="lk-location" placeholder="Court 4, Secrétariat…" /></label>
+      <label>Court lié<select id="lk-court"><option value="">—</option></select></label>
+      <label>Fournisseur
+        <select id="lk-provider">
+          <option value="mock">Démo (mock)</option>
+          <option value="salto">Salto KS</option>
+          <option value="igloohome">Igloohome</option>
+          <option value="nuki">Nuki</option>
+          <option value="dormakaba">dormakaba</option>
+        </select></label>
+      <label>ID serrure (fournisseur)<input id="lk-external" placeholder="(rempli à l'installation)" /></label>
+      <label class="check"><input id="lk-active" type="checkbox" checked /> Active</label>
+      <p id="lk-error" class="error" hidden></p>
+      <div class="form-foot"><button type="button" id="lk-delete" class="danger hidden">Supprimer</button><span class="spacer"></span><button type="submit">Enregistrer</button></div>
+    </form>
+  </div>
+
+  <!-- ---- Codes d'accès d'une serrure ---- -->
+  <div id="lockcode-modal" class="modal hidden">
+    <div class="card">
+      <button type="button" id="lkc-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="lkc-title">Codes d'accès</h2>
+      <div class="coach-rate-add">
+        <input id="lkc-label" placeholder="Pour qui / raison" />
+        <input id="lkc-from" type="datetime-local" title="Valide dès" />
+        <input id="lkc-to" type="datetime-local" title="Valide jusqu'à" />
+        <button type="button" id="lkc-add">Générer un code</button>
+      </div>
+      <div id="lkc-list" style="margin-top:14px"></div>
+    </div>
   </div>
 
   <!-- ---- Éditeur de news ---- -->

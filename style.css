@@ -1573,3 +1573,14 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 /* ---- Validation après-midi études (par jour) ---- */
 .et-dayval{padding:2px 8px;font-size:.72rem;margin-top:3px}
 .et-dayval.on{color:#0b6b3a;font-weight:700}
+
+/* ---- Serrures connectées ---- */
+.lock-card{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.lock-info{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lock-state{font-size:.78rem;font-weight:700;padding:2px 10px;border-radius:999px}
+.lk-locked{background:#eef1f7;color:var(--blue-ink)}
+.lk-unlocked{background:#e6f4ec;color:#0b6b3a}
+.lk-unknown{background:#fdf0d9;color:#9a6a00}
+.lock-acts{display:flex;gap:6px;flex-wrap:wrap}
+.lock-acts button{padding:6px 12px;font-size:.85rem}
+.lkc-code{font-family:monospace;font-size:1.05rem;letter-spacing:1px;background:#eef1ff;padding:1px 8px;border-radius:6px}

@@ -68,9 +68,9 @@ if (!session) {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "stages", "stats"],
-  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "stages", "stats"],
-  secretaire: ["membres", "inscriptions", "news", "resa", "matchs", "caisse", "stages", "stats"],
+  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "locks", "stages", "stats"],
+  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "locks", "stages", "stats"],
+  secretaire: ["membres", "inscriptions", "news", "resa", "matchs", "caisse", "locks", "stages", "stats"],
   head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["resa", "cours", "matchs", "phystests", "heures"],
   prof:       ["etudes", "heures"],
@@ -78,7 +78,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -215,6 +215,7 @@ function showView(view) {
   if (view === "inscriptions") loadInscriptions();
   if (view === "prospects") loadProspects();
   if (view === "heures") loadHeures();
+  if (view === "locks") loadLocks();
 }
 
 // ===================================================================
@@ -3673,6 +3674,132 @@ function exportHeures() {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
   a.download = `heures-${heuresYm}.csv`; a.click();
+}
+
+// ===================================================================
+//  Serrures connectées
+// ===================================================================
+const LOCK_STATE = { locked: ["🔒 Fermée", "lk-locked"], unlocked: ["🔓 Ouverte", "lk-unlocked"], unknown: ["❔ Inconnu", "lk-unknown"] };
+const LOCK_ACT = { open: "Ouverture", close: "Fermeture", code_created: "Code créé", code_used: "Code utilisé", state: "État" };
+let locksList = [], lockCourts = [], locksInit = false, lkcCurrent = null;
+function initLocks() {
+  if (locksInit) return; locksInit = true;
+  $("lock-add").addEventListener("click", () => openLock(null));
+  $("lock-close").addEventListener("click", () => $("lock-modal").classList.add("hidden"));
+  $("lock-form").addEventListener("submit", saveLock);
+  $("lk-delete").addEventListener("click", deleteLock);
+  $("lkc-close").addEventListener("click", () => $("lockcode-modal").classList.add("hidden"));
+  $("lkc-add").addEventListener("click", addLockCode);
+}
+async function loadLocks() {
+  initLocks();
+  const [locks, courts] = await Promise.all([
+    sb.from("locks").select("*").order("sort_order", { nullsFirst: false }).order("name").then((r) => r.data || []),
+    sb.from("courts").select("id,name").order("id").then((r) => r.data || []),
+  ]);
+  locksList = locks; lockCourts = courts;
+  renderLocks();
+  loadLockJournal();
+}
+function renderLocks() {
+  const host = $("locks-list");
+  if (!locksList.length) { host.innerHTML = `<p class="muted">Aucune serrure. Cliquez « + Ajouter une serrure ».</p>`; return; }
+  host.innerHTML = locksList.map((l) => {
+    const [lbl, cls] = LOCK_STATE[l.state] || LOCK_STATE.unknown;
+    return `<div class="lock-card">
+      <div class="lock-info">
+        <b>${esc(l.name)}</b>${l.location ? ` <span class="muted">· ${esc(l.location)}</span>` : ""}
+        <span class="lock-state ${cls}">${lbl}</span>
+        <span class="role-badge">${l.provider === "mock" ? "démo" : esc(l.provider)}</span>
+        ${!l.is_active ? '<span class="muted">(inactive)</span>' : ""}
+      </div>
+      <div class="lock-acts">
+        <button class="lk-open" data-id="${l.id}">Ouvrir</button>
+        <button class="ghost lk-cls" data-id="${l.id}">Fermer</button>
+        <button class="ghost lk-codes" data-id="${l.id}" data-name="${esc(l.name)}">Codes</button>
+        <button class="ghost lk-edit" data-id="${l.id}">✎</button>
+      </div></div>`;
+  }).join("");
+  host.querySelectorAll(".lk-open").forEach((b) => b.addEventListener("click", () => lockAction(b.dataset.id, "open")));
+  host.querySelectorAll(".lk-cls").forEach((b) => b.addEventListener("click", () => lockAction(b.dataset.id, "close")));
+  host.querySelectorAll(".lk-codes").forEach((b) => b.addEventListener("click", () => openLockCodes(b.dataset.id, b.dataset.name)));
+  host.querySelectorAll(".lk-edit").forEach((b) => b.addEventListener("click", () => openLock(locksList.find((x) => x.id === b.dataset.id))));
+}
+async function lockAction(lockId, action) {
+  if (!confirm(action === "open" ? "Ouvrir cette serrure ?" : "Fermer cette serrure ?")) return;
+  const { data, error } = await sb.functions.invoke("lock-control", { body: { lock_id: lockId, action } });
+  if (error || data?.error) { alert("Échec : " + (data?.error || error?.message)); loadLocks(); return; }
+  if (!data.ok) alert("Non effectué : " + (data.detail || "fournisseur non configuré"));
+  loadLocks();
+}
+function openLock(l) {
+  $("lk-error").hidden = true;
+  $("lock-modal-title").textContent = l ? "Modifier la serrure" : "Nouvelle serrure";
+  $("lk-id").value = l?.id || "";
+  $("lk-name").value = l?.name || "";
+  $("lk-location").value = l?.location || "";
+  $("lk-court").innerHTML = `<option value="">—</option>` + lockCourts.map((c) => `<option value="${c.id}"${l && l.court_id === c.id ? " selected" : ""}>${esc(c.name)}</option>`).join("");
+  $("lk-provider").value = l?.provider || "mock";
+  $("lk-external").value = l?.external_id || "";
+  $("lk-active").checked = l ? l.is_active : true;
+  $("lk-delete").classList.toggle("hidden", !l);
+  $("lock-modal").classList.remove("hidden");
+}
+async function saveLock(e) {
+  e.preventDefault();
+  const err = $("lk-error"); err.hidden = true;
+  const name = $("lk-name").value.trim();
+  if (!name) { err.textContent = "Nom requis."; err.hidden = false; return; }
+  const row = { name, location: $("lk-location").value.trim() || null, court_id: $("lk-court").value ? Number($("lk-court").value) : null, provider: $("lk-provider").value, external_id: $("lk-external").value.trim() || null, is_active: $("lk-active").checked };
+  const id = $("lk-id").value;
+  const res = id ? await sb.from("locks").update(row).eq("id", id) : await sb.from("locks").insert(row);
+  if (res.error) { err.textContent = "Erreur : " + res.error.message; err.hidden = false; return; }
+  $("lock-modal").classList.add("hidden");
+  loadLocks();
+}
+async function deleteLock() {
+  const id = $("lk-id").value;
+  if (!id || !confirm("Supprimer cette serrure ?")) return;
+  await sb.from("locks").delete().eq("id", id);
+  $("lock-modal").classList.add("hidden");
+  loadLocks();
+}
+async function openLockCodes(lockId, name) {
+  lkcCurrent = lockId;
+  $("lkc-title").textContent = "Codes — " + name;
+  $("lkc-label").value = ""; $("lkc-from").value = ""; $("lkc-to").value = "";
+  await renderLockCodes();
+  $("lockcode-modal").classList.remove("hidden");
+}
+async function renderLockCodes() {
+  const { data } = await sb.from("lock_codes").select("*").eq("lock_id", lkcCurrent).order("created_at", { ascending: false });
+  const rows = data || [];
+  $("lkc-list").innerHTML = rows.length ? rows.map((c) => {
+    const inactive = !c.active || (c.valid_to && new Date(c.valid_to) < new Date());
+    return `<div class="coach-rate-row">
+      <span><b class="lkc-code">${esc(c.code || "—")}</b>${c.label ? " · " + esc(c.label) : ""} <span class="muted" style="font-size:.8rem">${c.valid_from ? frDateTime(c.valid_from) : ""}${c.valid_to ? " → " + frDateTime(c.valid_to) : ""}</span> ${inactive ? '<span class="muted">(inactif)</span>' : '<span class="he-val">actif</span>'}</span>
+      ${c.active ? `<button class="ghost lkc-del" data-id="${c.id}">Révoquer</button>` : ""}</div>`;
+  }).join("") : `<p class="muted" style="font-size:.85rem">Aucun code émis.</p>`;
+  $("lkc-list").querySelectorAll(".lkc-del").forEach((b) => b.addEventListener("click", async () => { await sb.from("lock_codes").update({ active: false }).eq("id", b.dataset.id); renderLockCodes(); }));
+}
+async function addLockCode() {
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const row = { lock_id: lkcCurrent, code, label: $("lkc-label").value.trim() || null, valid_from: $("lkc-from").value ? new Date($("lkc-from").value).toISOString() : null, valid_to: $("lkc-to").value ? new Date($("lkc-to").value).toISOString() : null, active: true, created_by: meId };
+  const { error } = await sb.from("lock_codes").insert(row);
+  if (error) { alert("Erreur : " + error.message); return; }
+  await sb.from("lock_events").insert({ lock_id: lkcCurrent, action: "code_created", result: "ok", by_name: meName, detail: "Code " + code });
+  $("lkc-label").value = ""; $("lkc-from").value = ""; $("lkc-to").value = "";
+  renderLockCodes();
+}
+async function loadLockJournal() {
+  const { data } = await sb.from("lock_events").select("*").order("created_at", { ascending: false }).limit(40);
+  const rows = data || [];
+  const nameOfLock = (id) => locksList.find((l) => l.id === id)?.name || "—";
+  $("locks-journal").innerHTML = rows.length
+    ? `<div class="table-wrap"><table class="crm-table"><thead><tr><th>Quand</th><th>Serrure</th><th>Action</th><th>Par</th><th></th></tr></thead><tbody>`
+      + rows.map((e) => `<tr><td>${frDateTime(e.created_at)}</td><td>${esc(nameOfLock(e.lock_id))}</td><td>${LOCK_ACT[e.action] || esc(e.action)}</td><td>${esc(e.by_name || "—")}</td><td>${e.result === "ok" ? '<span class="he-val">✓</span>' : '<span class="pm-l">' + esc(e.result || "?") + "</span>"}${e.detail ? ' <span class="muted" style="font-size:.8rem">' + esc(e.detail) + "</span>" : ""}</td></tr>`).join("")
+      + `</tbody></table></div>`
+    : `<p class="muted" style="font-size:.85rem">Aucun événement.</p>`;
 }
 
 // ===================================================================
