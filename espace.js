@@ -1,5 +1,42 @@
 // Mon espace — portail membre (jeunes & parents). 100% responsive.
 import { sb } from "./common.js";
+import { ONESIGNAL_APP_ID } from "./config.js";
+
+/* ============================================================
+   PWA — installation + secours hors-ligne (service worker).
+   ============================================================ */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch((e) => console.warn("SW:", e));
+  });
+}
+
+/* ============================================================
+   Notifications push (OneSignal) — dormant tant que l'App ID
+   n'est pas renseigné dans config.js. Aucun secret côté client :
+   l'App ID est public ; la REST API key reste côté serveur.
+   ============================================================ */
+let pushReady = false;
+function initPush(externalId) {
+  if (!ONESIGNAL_APP_ID || pushReady) return;
+  pushReady = true;
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  const s = document.createElement("script");
+  s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+  s.defer = true;
+  document.head.appendChild(s);
+  window.OneSignalDeferred.push(async (OneSignal) => {
+    try {
+      await OneSignal.init({
+        appId: ONESIGNAL_APP_ID,
+        // Sous-scope pour le worker OneSignal → cohabite avec notre sw.js.
+        serviceWorkerParam: { scope: "/push/onesignal/" },
+        serviceWorkerPath: "push/onesignal/OneSignalSDKWorker.js",
+      });
+      if (externalId) await OneSignal.login(externalId); // cible ce compte
+    } catch (e) { console.warn("OneSignal:", e); }
+  });
+}
 
 /* ============================================================
    Mascotte — « Rebond », balle de tennis coéquipière.
@@ -107,6 +144,10 @@ async function startApp() {
   bindNav();
   bindBot();
   switchView("accueil");
+
+  // Notifs push : cible le compte connecté (si OneSignal est configuré).
+  const uid = (await sb.auth.getUser()).data.user?.id;
+  if (uid) initPush(uid);
 }
 
 /* ---------- Sélecteur d'enfants ---------- */
