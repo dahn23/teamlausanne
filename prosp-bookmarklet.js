@@ -20,9 +20,9 @@
     const Q = "query($where:lizenz_nehmer_bool_exp,$orderBy:[lizenz_nehmer_order_by!],$limit:Int,$offset:Int){lizenz_nehmer(where:$where,order_by:$orderBy,limit:$limit,offset:$offset){licenceNumber ranking classification classificationValue ageCategoryRedundant person{id firstname lastname gender birthdate canton} clubs{club{name postalCode city}}}}";
     // moins de 19 ans : né après (aujourd'hui − 19 ans)
     const minBirth = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 19); return d.toISOString().slice(0, 10); })();
-    const where = { kontingent: { _eq: 1 }, currentLicenceStatusId: { _lt: 3 }, person: { birthdate: { _gte: minBirth } } };
+    const R7PLUS = ["N1", "N2", "N3", "N4", "R1", "R2", "R3", "R4", "R5", "R6", "R7"];
+    const where = { kontingent: { _eq: 1 }, currentLicenceStatusId: { _lt: 3 }, classification: { _in: R7PLUS }, person: { birthdate: { _gte: minBirth } } };
     const orderBy = [{ classificationValue: "desc" }, { ranking: "asc" }];
-    const isR7 = (c) => /^(N[1-4]|R[1-7])$/.test(String(c || "").toUpperCase());
 
     // trouver un jeton valide
     let token = null;
@@ -37,7 +37,7 @@
       if (!e.data || e.data.type !== "prosp-ready") return;
       window.removeEventListener("message", onmsg);
       const rows = []; const LIM = 500; let offset = 0, done = false, guard = 0;
-      while (!done && guard++ < 80) {
+      while (!done && guard++ < 200) {
         post({ type: "prosp-progress", text: `Récupération des classements… ${rows.length} joueurs` });
         let j; try { j = await gql(Q, { where, orderBy, limit: LIM, offset }, token); } catch (err) { break; }
         const list = (j.data && j.data.lizenz_nehmer) || [];
@@ -52,8 +52,7 @@
             canton: o.person && o.person.canton, gender: o.person && o.person.gender, mtId: o.person && o.person.id,
           });
         }
-        if (!list.some((o) => isR7(o.classification))) done = true;   // trié desc → plus aucun R7+ = fini
-        if (list.length < LIM) done = true;
+        if (list.length < LIM) done = true;   // le filtre classification garantit qu'on ne prend que R7+
         offset += LIM;
       }
       post({ type: "prosp-data", key: KEY, rows });
