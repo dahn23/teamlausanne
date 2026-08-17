@@ -8,6 +8,7 @@ const $ = (id) => document.getElementById(id);
 const ICO_CUP = '<svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-1px" fill="none" stroke="#c8901f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/><path d="M8 5.5H5V7a3 3 0 0 0 3 3M16 5.5h3V7a3 3 0 0 1-3 3"/><path d="M10 13.5V16h4v-2.5M8 20h8M12 16v4"/></svg>';
 let people = [];
 let meId = null;
+let myAppRoles = [];
 let meEmail = null;
 let meName = null;
 let myPersonId = null;
@@ -70,10 +71,10 @@ const DEFAULT_TAB_ACCESS = {
   superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "stages", "stats"],
   admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "stages", "stats"],
   secretaire: ["membres", "inscriptions", "news", "resa", "matchs", "caisse", "stages", "stats"],
-  head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects"],
-  coach:      ["resa", "cours", "matchs", "phystests"],
-  prof:       ["etudes"],
-  coach_mental: ["mental"],
+  head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
+  coach:      ["resa", "cours", "matchs", "phystests", "heures"],
+  prof:       ["etudes", "heures"],
+  coach_mental: ["mental", "heures"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
@@ -139,6 +140,7 @@ function applyTabAccess(roles) {
 }
 
 async function init(roles) {
+  myAppRoles = roles || [];
   $("logout").addEventListener("click", async () => {
     await sb.auth.signOut();
     location.href = "index.html";
@@ -3554,9 +3556,40 @@ function initHeures() {
 async function loadHeures() {
   initHeures();
   heuresYm = $("heures-month").value || ymNow();
-  const { data, error } = await sb.rpc("staff_hours_month", { p_ym: heuresYm });
-  heuresData = error ? { coaches: [], profs: [] } : (data || { coaches: [], profs: [] });
-  renderHeures();
+  await renderMyHours();
+  const isManager = hasAny(myAppRoles, ["superadmin", "admin", "secretaire", "head_coach"]);
+  $("heures-recap").classList.toggle("hidden", !isManager);
+  $("heures-export").classList.toggle("hidden", !isManager);
+  if (isManager) {
+    const { data, error } = await sb.rpc("staff_hours_month", { p_ym: heuresYm });
+    heuresData = error ? { coaches: [], profs: [] } : (data || { coaches: [], profs: [] });
+    renderHeures();
+  }
+}
+async function renderMyHours() {
+  const host = $("heures-mine"); if (!host) return;
+  const { data } = await sb.rpc("my_hours_month", { p_ym: heuresYm });
+  const m = data || {};
+  const hasCoach = (m.coach_courses || 0) > 0, hasProf = (m.prof_days || 0) > 0;
+  if (!hasCoach && !hasProf) { host.innerHTML = ""; return; }
+  const block = (label, sub, hours, validated, kind) => `<div class="he-mine-row">
+    <span>${label} : <b>${hours} h</b> <span class="muted">(${sub})</span></span>
+    <span class="he-mine-act">${validated
+      ? `<span class="he-val">✓ validé</span> <button class="ghost he-myval" data-kind="${kind}" data-h="${hours}" data-val="1">Annuler</button>`
+      : `<button class="he-myval" data-kind="${kind}" data-h="${hours}" data-val="0">Valider mes heures</button>`}</span>
+  </div>`;
+  let inner = "";
+  if (hasCoach) inner += block("Cours (coach)", m.coach_courses + " cours", m.coach_hours, m.validated_coach, "coach");
+  if (hasProf) inner += block("Études (prof)", m.prof_days + " après-midis", m.prof_hours, m.validated_prof, "prof");
+  if (!inner) inner = `<p class="muted" style="margin:6px 0 0;font-size:.88rem">Aucune heure ce mois-ci.</p>`;
+  host.innerHTML = `<div class="he-mine"><div class="he-mine-h">Mes heures — ${heuresYm}</div>${inner}</div>`;
+  host.querySelectorAll(".he-myval").forEach((b) => b.addEventListener("click", () => toggleMyValidation(b.dataset.kind, Number(b.dataset.h), b.dataset.val === "1")));
+}
+async function toggleMyValidation(kind, hours, isValidated) {
+  if (!myPersonId) { alert("Ton compte n'est pas relié à une fiche."); return; }
+  if (isValidated) await sb.from("staff_month_validation").delete().eq("person_id", myPersonId).eq("ym", heuresYm).eq("kind", kind);
+  else await sb.from("staff_month_validation").upsert({ person_id: myPersonId, ym: heuresYm, kind, hours, validated_at: new Date().toISOString() }, { onConflict: "person_id,ym,kind" });
+  loadHeures();
 }
 function renderHeures() {
   const c = heuresData.coaches || [], p = heuresData.profs || [];

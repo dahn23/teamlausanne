@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=37" />
+  <link rel="stylesheet" href="style.css?v=38" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -862,6 +862,8 @@
               <button id="heures-export" class="ghost">Exporter (CSV)</button>
             </div>
           </div>
+          <div id="heures-mine"></div>
+          <div id="heures-recap">
           <p class="muted" style="margin:-6px 0 12px">Décomptes mensuels : coachs (heures de cours) et profs (après-midis études). À valider par chacun, puis à envoyer à la fiduciaire.</p>
           <h2 style="margin:14px 0 6px;font-size:1.05rem">Coachs — cours</h2>
           <div class="table-wrap"><table class="crm-table"><thead><tr><th>Coach</th><th>Cours</th><th>Heures</th><th>Tarif/h</th><th>Montant</th><th>IBAN</th><th>Validé</th><th></th></tr></thead><tbody id="heures-coaches"></tbody></table>
@@ -869,6 +871,7 @@
           <h2 style="margin:22px 0 6px;font-size:1.05rem">Profs — études</h2>
           <div class="table-wrap"><table class="crm-table"><thead><tr><th>Prof</th><th>Après-midis</th><th>Heures</th><th>IBAN</th><th>Validé</th><th></th></tr></thead><tbody id="heures-profs"></tbody></table>
             <p id="heures-profs-empty" class="muted" hidden style="font-size:.85rem">Aucun prof assigné ce mois-ci (voir Études › Profs).</p></div>
+          </div><!-- /heures-recap -->
         </div>
 
         <div id="view-caisse" class="view hidden">

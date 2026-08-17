@@ -1559,3 +1559,10 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 .coach-rate-acts button{padding:4px 10px;font-size:.8rem}
 .coach-rate-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
 .coach-rate-add input[type=number]{max-width:120px}
+
+/* ---- Heures : ma carte perso ---- */
+.he-mine{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.he-mine-h{font-weight:800;color:var(--blue-ink);margin-bottom:8px}
+.he-mine-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)}
+.he-mine-row:first-of-type{border-top:none}
+.he-mine-act{display:flex;align-items:center;gap:8px}
