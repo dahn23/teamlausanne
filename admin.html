@@ -107,7 +107,9 @@
               <option value="u16">15–16 ans</option>
               <option value="u18">17–18 ans</option>
             </select>
+            <select id="prosp-fsex"><option value="">Filles &amp; garçons</option><option value="F">Filles</option><option value="M">Garçons</option></select>
             <select id="prosp-fcanton"><option value="">Toute la Suisse</option><option value="romandie">Romandie</option></select>
+            <select id="prosp-fdist"><option value="">Toute distance</option><option value="30">≤ 30 km</option><option value="50">≤ 50 km</option><option value="75">≤ 75 km</option><option value="100">≤ 100 km</option></select>
             <select id="prosp-fstatus">
               <option value="">Tous statuts</option>
               <option value="nouveau">Nouveau</option>
@@ -118,6 +120,7 @@
               <option value="impossible">Impossible</option>
             </select>
             <label class="prosp-chk"><input type="checkbox" id="prosp-fupset" /> Exploits uniquement</label>
+            <button id="prosp-geocode" class="ghost" title="Calculer la distance de chaque club jusqu'à Lausanne-Sports (après un scan des classements)">Calculer les distances</button>
           </div>
           <div id="prosp-upsets"></div>
           <div class="table-wrap">

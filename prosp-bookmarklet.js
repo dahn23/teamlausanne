@@ -17,7 +17,7 @@
       const r = await fetch(HASURA, { method: "POST", headers: { "Content-Type": "application/json", ...(tok ? { authorization: "Bearer " + tok } : {}) }, body: JSON.stringify({ query: q, variables: vars }) });
       return r.json();
     };
-    const Q = "query($where:lizenz_nehmer_bool_exp,$orderBy:[lizenz_nehmer_order_by!],$limit:Int,$offset:Int){lizenz_nehmer(where:$where,order_by:$orderBy,limit:$limit,offset:$offset){licenceNumber ranking classification classificationValue ageCategoryRedundant person{id firstname lastname gender birthdate canton} clubs{club{name}}}}";
+    const Q = "query($where:lizenz_nehmer_bool_exp,$orderBy:[lizenz_nehmer_order_by!],$limit:Int,$offset:Int){lizenz_nehmer(where:$where,order_by:$orderBy,limit:$limit,offset:$offset){licenceNumber ranking classification classificationValue ageCategoryRedundant person{id firstname lastname gender birthdate canton} clubs{club{name postalCode city}}}}";
     // moins de 19 ans : né après (aujourd'hui − 19 ans)
     const minBirth = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 19); return d.toISOString().slice(0, 10); })();
     const where = { kontingent: { _eq: 1 }, currentLicenceStatusId: { _lt: 3 }, person: { birthdate: { _gte: minBirth } } };
@@ -43,10 +43,12 @@
         const list = (j.data && j.data.lizenz_nehmer) || [];
         if (!list.length) break;
         for (const o of list) {
+          const cl = (o.clubs && o.clubs[0] && o.clubs[0].club) || null;
           rows.push({
             license: o.licenceNumber, first: o.person && o.person.firstname, last: o.person && o.person.lastname,
             classification: o.classification, value: o.classificationValue, position: o.ranking,
-            ageCategory: o.ageCategoryRedundant, club: (o.clubs && o.clubs[0] && o.clubs[0].club && o.clubs[0].club.name) || null,
+            ageCategory: o.ageCategoryRedundant, club: cl && cl.name || null,
+            clubPostalCode: cl && cl.postalCode || null, clubCity: cl && cl.city || null,
             canton: o.person && o.person.canton, gender: o.person && o.person.gender, mtId: o.person && o.person.id,
           });
         }

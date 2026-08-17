@@ -3241,8 +3241,9 @@ const classTier = (c) => { c = (c || "").toUpperCase(); if (/^N/.test(c)) return
 
 function initProspects() {
   if (prospInit) return; prospInit = true;
-  ["prosp-search", "prosp-fclass", "prosp-fage", "prosp-fstatus", "prosp-fcanton"].forEach((id) => $(id).addEventListener("input", renderProspRows));
+  ["prosp-search", "prosp-fclass", "prosp-fage", "prosp-fstatus", "prosp-fcanton", "prosp-fsex", "prosp-fdist"].forEach((id) => $(id).addEventListener("input", renderProspRows));
   $("prosp-fupset").addEventListener("change", renderProspRows);
+  $("prosp-geocode").addEventListener("click", geocodeDistances);
   document.querySelectorAll(".prosp-table th[data-sort]").forEach((th) => th.addEventListener("click", () => {
     const k = th.dataset.sort;
     if (prospSort.key === k) prospSort.dir = prospSort.dir === "asc" ? "desc" : "asc";
@@ -3283,6 +3284,25 @@ function sortProspects(rows) {
   };
   return rows.sort((a, b) => { const va = val(a), vb = val(b); return va < vb ? -dir : va > vb ? dir : 0; });
 }
+async function geocodeDistances() {
+  const btn = $("prosp-geocode");
+  const { data: cfg } = await sb.from("gz_config").select("import_key").maybeSingle();
+  if (!cfg) { alert("Clé d'import indisponible."); return; }
+  btn.disabled = true;
+  let total = 0, done = false, guard = 0;
+  while (!done && guard++ < 40) {
+    btn.textContent = `Géocodage… (${total})`;
+    let j;
+    try { j = await (await fetch("https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/prospects-import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: cfg.import_key, action: "geocode" }) })).json(); }
+    catch (e) { alert("Erreur réseau : " + e.message); break; }
+    if (!j.ok) { alert("Erreur : " + (j.error || "?")); break; }
+    total += j.geocoded || 0; done = j.done;
+    if (!j.geocoded && !j.done) break;
+  }
+  btn.disabled = false; btn.textContent = "Calculer les distances";
+  alert(done ? `Distances calculées (${total} clubs géocodés).` : `Interrompu — ${total} clubs géocodés. Recliquez pour continuer.`);
+  loadProspects();
+}
 async function renderRecentUpsets() {
   const host = $("prosp-upsets"); if (!host) return;
   const { data } = await sb.from("prospect_matches").select("*").eq("is_upset", true).order("match_date", { ascending: false, nullsFirst: false }).limit(40);
@@ -3312,13 +3332,15 @@ async function loadProspResultsBookmarklet() {
 }
 function renderProspRows() {
   const q = $("prosp-search").value.toLowerCase().trim();
-  const fc = $("prosp-fclass").value, fa = $("prosp-fage").value, fs = $("prosp-fstatus").value, fu = $("prosp-fupset").checked, fca = $("prosp-fcanton").value;
+  const fc = $("prosp-fclass").value, fa = $("prosp-fage").value, fs = $("prosp-fstatus").value, fu = $("prosp-fupset").checked, fca = $("prosp-fcanton").value, fsx = $("prosp-fsex").value, fd = $("prosp-fdist").value;
   const inClass = (c) => { const t = classTier(c); if (!fc) return true; if (fc === "N") return t === "N"; if (fc === "R1-R3") return ["R1", "R2", "R3"].includes(t); if (fc === "R4-R5") return ["R4", "R5"].includes(t); if (fc === "R6-R7") return ["R6", "R7"].includes(t); return true; };
   const inAge = (bd) => { if (!fa) return true; const a = ageOf(bd); if (a == null) return false; if (fa === "u12") return a <= 12; if (fa === "u14") return a >= 13 && a <= 14; if (fa === "u16") return a >= 15 && a <= 16; if (fa === "u18") return a >= 17 && a <= 18; return true; };
   const inCanton = (ct) => { if (!fca) return true; const c = (ct || "").toUpperCase(); return fca === "romandie" ? ROMANDIE.includes(c) : c === fca.toUpperCase(); };
+  const inDist = (km) => { if (!fd) return true; return km != null && km <= Number(fd); };
   const rows = sortProspects(prospList.filter((p) =>
     (!q || `${p.first_name || ""} ${p.last_name || ""}`.toLowerCase().includes(q))
     && inClass(p.classification) && inAge(p.birthdate) && inCanton(p.canton)
+    && (!fsx || p.sex === fsx) && inDist(p.distance_km)
     && (!fs || p.status === fs) && (!fu || p.upset_count > 0)));
   $("prosp-empty").hidden = prospList.length > 0;
   document.querySelectorAll(".prosp-table th[data-sort]").forEach((th) => {
@@ -3351,7 +3373,7 @@ async function openProspect(id) {
   const a = ageOf(p.birthdate);
   const chips = [
     a != null ? `${a} ans` : "", p.birthdate ? frDate(p.birthdate) : "", p.sex === "F" ? "fille" : p.sex === "M" ? "garçon" : "",
-    p.club ? esc(p.club) : "", p.canton ? esc(p.canton) : "", "Lic. " + esc(p.license_no),
+    p.club ? esc(p.club) : "", p.canton ? esc(p.canton) : "", p.distance_km != null ? `${p.distance_km} km de Lausanne` : "", "Lic. " + esc(p.license_no),
   ].filter(Boolean).map((c) => `<span class="prosp-chip">${c}</span>`).join("");
   const statusOpts = Object.entries(PROSP_STATUS).map(([v, l]) => `<option value="${v}"${p.status === v ? " selected" : ""}>${l}</option>`).join("");
   const d = $("prosp-detail");
