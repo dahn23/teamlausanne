@@ -3276,8 +3276,15 @@ async function loadProspContactBookmarklet() {
 }
 async function loadProspects() {
   initProspects();
-  const { data } = await sb.from("prospects").select("*").order("ranking_value", { ascending: false, nullsFirst: false });
-  prospList = data || [];
+  let all = [], from = 0;
+  for (;;) {
+    const { data } = await sb.from("prospects").select("*").order("ranking_value", { ascending: false, nullsFirst: false }).range(from, from + 999);
+    if (!data || !data.length) break;
+    all = all.concat(data);
+    if (data.length < 1000) break;
+    from += 1000;
+  }
+  prospList = all;
   populateCantons();
   renderProspRows();
   renderRecentUpsets();
@@ -3380,8 +3387,12 @@ function renderProspRows() {
     th.classList.toggle("sorted", on);
     th.dataset.dir = on ? prospSort.dir : "";
   });
+  const CAP = 1000;
+  $("prosp-count").textContent = rows.length > CAP
+    ? `${rows.length} prospects — affichage des ${CAP} premiers (affine les filtres pour réduire)`
+    : `${rows.length} prospect${rows.length > 1 ? "s" : ""}`;
   const tb = $("prosp-rows");
-  tb.innerHTML = rows.map((p) => {
+  tb.innerHTML = rows.slice(0, CAP).map((p) => {
     const a = ageOf(p.birthdate);
     return `<tr class="prosp-row" data-id="${p.id}">
       <td><b>${esc(p.last_name || "")}</b> ${esc(p.first_name || "")}</td>
