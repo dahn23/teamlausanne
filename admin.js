@@ -3252,6 +3252,22 @@ function initProspects() {
   }));
   loadProspBookmarklet();
   loadProspResultsBookmarklet();
+  loadProspContactBookmarklet();
+}
+async function loadProspContactBookmarklet() {
+  const { data } = await sb.from("gz_config").select("import_key").maybeSingle();
+  if (!data) { $("prosp-contact-note").textContent = "Clé d'import indisponible."; return; }
+  let src;
+  try { src = await (await fetch("prosp-contact-bookmarklet.js")).text(); }
+  catch (_e) { $("prosp-contact-note").textContent = "Impossible de charger le bookmarklet."; return; }
+  const code = src.replace("__KEY__", data.import_key).replace("__RCV__", location.origin + "/prosp-contact-receiver.html");
+  const aEl = document.createElement("a");
+  aEl.href = "javascript:" + encodeURIComponent(code);
+  aEl.textContent = "Coordonnées";
+  aEl.className = "btn-prod"; aEl.style.textDecoration = "none";
+  aEl.addEventListener("click", (e) => { e.preventDefault(); alert("Ne cliquez pas ici : GLISSEZ ce bouton dans vos favoris, puis utilisez-le sur la fiche « Voir la licence » d'un joueur."); });
+  $("prosp-contact-holder").innerHTML = ""; $("prosp-contact-holder").appendChild(aEl);
+  $("prosp-contact-note").textContent = "Astuce : glissez-le dans la barre de favoris.";
 }
 async function loadProspects() {
   initProspects();
@@ -3401,6 +3417,15 @@ async function openProspect(id) {
           <button type="button" id="prosp-save">Enregistrer</button>
           <span id="prosp-saved" class="muted" style="font-size:.85rem" hidden>Enregistré ✓</span>
         </div>
+        <div class="prosp-contact-box">
+          <h4>Coordonnées</h4>
+          ${(p.email || p.phone || p.address) ? `
+            ${p.email ? `<div>📧 <a href="mailto:${esc(p.email)}">${esc(p.email)}</a></div>` : ""}
+            ${p.phone ? `<div>📞 <a href="tel:${esc((p.phone || "").replace(/\\s/g, ""))}">${esc(p.phone)}</a></div>` : ""}
+            ${(p.address || p.city) ? `<div>📍 ${esc([p.address, [p.postal_code, p.city].filter(Boolean).join(" ")].filter(Boolean).join(", "))}</div>` : ""}
+          ` : `<div class="muted" style="font-size:.85rem">Non récupérées.</div>`}
+          <button type="button" id="prosp-portal" class="ghost" style="margin-top:8px">Chercher sur le portail licences ↗</button>
+        </div>
       </div>
       <div class="prosp-card">
         <h3 style="margin-top:0">Matchs récents</h3>
@@ -3412,6 +3437,11 @@ async function openProspect(id) {
   window.scrollTo(0, 0);
   $("prosp-back").addEventListener("click", closeProspect);
   $("prosp-save").addEventListener("click", () => saveProspect(p.id));
+  $("prosp-portal").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(p.license_no); } catch (e) { /* ignore */ }
+    window.open("https://licence.mytennis.ch/fr/licences/search", "_blank", "noopener");
+    alert(`Licence ${p.license_no} copiée.\nColle-la dans « Numéro de licence », ouvre « Voir la licence », puis clique le favori « Coordonnées ».`);
+  });
   const { data } = await sb.from("prospect_matches").select("*").eq("prospect_license", p.license_no).order("match_date", { ascending: false, nullsFirst: false });
   const ms = data || [];
   $("prosp-matches").innerHTML = ms.length

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6b3a" />
   <title>Console admin — Team Lausanne</title>
-  <link rel="stylesheet" href="style.css?v=32" />
+  <link rel="stylesheet" href="style.css?v=33" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
 <body>
@@ -156,6 +156,15 @@
               <li>Il analyse les matchs des 3 dernières semaines de tous les prospects et repère les <b>exploits</b> (victoire contre un mieux classé). À lancer ~1×/semaine.</li>
             </ol>
             <p id="prosp-res-note" class="muted" style="font-size:.82rem"></p>
+          </div>
+          <div id="prosp-contact-card" class="rg-card" style="margin-top:14px">
+            <h2 style="margin-top:0">Récupérer des coordonnées (portail licences)</h2>
+            <ol class="muted" style="font-size:.9rem;line-height:1.7;padding-left:18px">
+              <li>Glissez ce bouton dans vos favoris : <span id="prosp-contact-holder"></span></li>
+              <li>Sur <b>licence.mytennis.ch</b>, ouvrez la fiche <b>« Voir la licence »</b> d'un prospect (sans l'ajouter au club).</li>
+              <li>Cliquez le favori → email, téléphone et adresse sont enregistrés sur sa fiche prospect. <b>À faire au cas par cas</b>, seulement pour ceux qui vous intéressent.</li>
+            </ol>
+            <p id="prosp-contact-note" class="muted" style="font-size:.82rem"></p>
           </div>
           </div><!-- /prosp-list-wrap -->
           <div id="prosp-detail" class="hidden"></div>
