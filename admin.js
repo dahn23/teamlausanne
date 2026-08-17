@@ -3593,7 +3593,7 @@ async function renderMyHours() {
   const host = $("heures-mine"); if (!host) return;
   const { data } = await sb.rpc("my_hours_month", { p_ym: heuresYm });
   const m = data || {};
-  const hasCoach = (m.coach_total || 0) > 0, hasProf = (m.prof_days || 0) > 0;
+  const hasCoach = (m.coach_total || 0) > 0, hasProf = (m.prof_total || 0) > 0;
   if (!hasCoach && !hasProf) { host.innerHTML = ""; return; }
   let inner = "";
   if (hasCoach) {
@@ -3603,14 +3603,14 @@ async function renderMyHours() {
       <span class="he-mine-act ${done ? "he-val" : "muted"}" style="font-size:.85rem">${done ? "✓ tout validé" : "Valide chaque cours en saisissant les présences"}</span>
     </div>`;
   }
-  if (hasProf) inner += `<div class="he-mine-row">
-      <span>Études (prof) : <b>${m.prof_hours} h</b> <span class="muted">(${m.prof_days} après-midis)</span></span>
-      <span class="he-mine-act">${m.validated_prof
-        ? `<span class="he-val">✓ validé</span> <button class="ghost he-myval" data-kind="prof" data-h="${m.prof_hours}" data-val="1">Annuler</button>`
-        : `<button class="he-myval" data-kind="prof" data-h="${m.prof_hours}" data-val="0">Valider mes heures</button>`}</span>
+  if (hasProf) {
+    const done = m.prof_total > 0 && m.prof_val === m.prof_total;
+    inner += `<div class="he-mine-row">
+      <span>Études (prof) : <b>${m.prof_hours} h</b> <span class="muted">(${m.prof_val}/${m.prof_total} après-midis validés)</span></span>
+      <span class="he-mine-act ${done ? "he-val" : "muted"}" style="font-size:.85rem">${done ? "✓ tout validé" : "Valide chaque après-midi dans Études"}</span>
     </div>`;
+  }
   host.innerHTML = `<div class="he-mine"><div class="he-mine-h">Mes heures — ${heuresYm}</div>${inner}</div>`;
-  host.querySelectorAll(".he-myval").forEach((b) => b.addEventListener("click", () => toggleMyValidation(b.dataset.kind, Number(b.dataset.h), b.dataset.val === "1")));
 }
 async function toggleMyValidation(kind, hours, isValidated) {
   if (!myPersonId) { alert("Ton compte n'est pas relié à une fiche."); return; }
@@ -3633,13 +3633,15 @@ function renderHeures() {
       <td>${allVal ? '<span class="he-val">✓ ' + x.courses + "/" + x.total_courses + "</span>" : '<span class="muted">' + x.courses + "/" + x.total_courses + "</span>"}</td>
       <td class="he-acts"><button class="ghost he-detail" data-id="${x.person_id}" data-name="${esc(x.name)}">Détail</button></td></tr>`;
   }).join("");
-  $("heures-profs").innerHTML = p.map((x) => `<tr>
-      <td><b>${esc(x.name)}</b></td><td>${x.days}</td><td>${x.hours} h</td>
+  $("heures-profs").innerHTML = p.map((x) => {
+    const allVal = x.total_days > 0 && x.days === x.total_days;
+    return `<tr>
+      <td><b>${esc(x.name)}</b></td><td>${x.total_days}</td><td>${x.hours} h</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
-      <td>${x.validated ? '<span class="he-val">✓</span>' : '<span class="muted">—</span>'}</td>
-      <td class="he-acts"><button class="ghost he-toggle" data-id="${x.person_id}" data-kind="prof" data-h="${x.hours}">${x.validated ? "Dévalider" : "Valider"}</button></td></tr>`).join("");
+      <td>${allVal ? '<span class="he-val">✓ ' + x.days + "/" + x.total_days + "</span>" : '<span class="muted">' + x.days + "/" + x.total_days + "</span>"}</td>
+      <td></td></tr>`;
+  }).join("");
   document.querySelectorAll("#heures-coaches .he-detail").forEach((b) => b.addEventListener("click", () => coachDetail(b.dataset.id, b.dataset.name)));
-  document.querySelectorAll("#view-heures .he-toggle").forEach((b) => b.addEventListener("click", () => toggleValidation(b.dataset.id, b.dataset.kind, Number(b.dataset.h))));
 }
 async function toggleValidation(personId, kind, hours) {
   const arr = kind === "coach" ? heuresData.coaches : heuresData.profs;
@@ -5084,11 +5086,12 @@ async function loadEtudesCalendar() {
   const youths = await etYouthsForSeason(seasonId);
   const { data: days } = await sb.from("etudes_days").select("*").eq("season_id", seasonId).order("day");
   const dayIds = (days || []).map((d) => d.id);
-  let profs = [], att = [];
+  let profs = [], att = [], etvals = [];
   if (dayIds.length) {
-    [profs, att] = await Promise.all([
+    [profs, att, etvals] = await Promise.all([
       sb.from("etudes_day_profs").select("*").in("day_id", dayIds).then((r) => r.data || []),
       sb.from("etudes_attendance").select("*").in("day_id", dayIds).then((r) => r.data || []),
+      sb.from("etudes_day_validation").select("*").in("day_id", dayIds).then((r) => r.data || []),
     ]);
   }
   const attOf = (dayId, yid) => att.find((a) => a.day_id === dayId && a.youth_person_id === yid)?.status || "";
@@ -5099,7 +5102,10 @@ async function loadEtudesCalendar() {
     + youths.map((y) => `<th title="${esc(y.last_name)} ${esc(y.first_name)}">${esc(y.last_name)} ${esc((y.first_name || "").slice(0, 1))}.</th>`).join("") + "</tr></thead><tbody>";
   for (const d of days) {
     const dp = profs.filter((p) => p.day_id === d.id);
-    html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions)}</td>`
+    const iAmProf = myPersonId && dp.some((p) => p.prof_person_id === myPersonId);
+    const iVal = iAmProf && etvals.some((v) => v.day_id === d.id && v.prof_person_id === myPersonId);
+    const valBtn = iAmProf ? `<div><button type="button" class="et-dayval ghost ${iVal ? "on" : ""}" data-day="${d.id}" data-val="${iVal ? 1 : 0}">${iVal ? "✓ validé" : "Valider l'aprem"}</button></div>` : "";
+    html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${valBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions)}</td>`
       + youths.map((y) => { const s = attOf(d.id, y.id); return `<td><button type="button" class="att-chip et-cell ${ET_CLS[s]}" data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
@@ -5107,6 +5113,13 @@ async function loadEtudesCalendar() {
   cont.querySelectorAll(".et-cell").forEach((c) => c.addEventListener("click", () => etCycle(c)));
   cont.querySelectorAll(".et-prof-rm").forEach((b) => b.addEventListener("click", async () => { await sb.from("etudes_day_profs").delete().eq("day_id", b.dataset.day).eq("prof_person_id", b.dataset.prof); loadEtudesCalendar(); }));
   cont.querySelectorAll(".et-prof-add").forEach((s) => s.addEventListener("change", async () => { if (!s.value) return; await sb.from("etudes_day_profs").insert({ day_id: s.dataset.day, prof_person_id: s.value }); loadEtudesCalendar(); }));
+  cont.querySelectorAll(".et-dayval").forEach((b) => b.addEventListener("click", () => toggleEtudesDayValidation(b.dataset.day, b.dataset.val === "1")));
+}
+async function toggleEtudesDayValidation(dayId, validated) {
+  if (!myPersonId) return;
+  if (validated) await sb.from("etudes_day_validation").delete().eq("day_id", dayId).eq("prof_person_id", myPersonId);
+  else { const { error } = await sb.from("etudes_day_validation").insert({ day_id: dayId, prof_person_id: myPersonId }); if (error) { alert(error.message); return; } }
+  loadEtudesCalendar();
 }
 function etProfCellHtml(dayId, dayProfs, profOptions) {
   const chips = dayProfs.map((dp) => { const p = people.find((x) => x.id === dp.prof_person_id); return `<span class="et-prof-chip">${p ? esc(p.last_name) : "?"}<button type="button" class="et-prof-rm" data-day="${dayId}" data-prof="${dp.prof_person_id}">✕</button></span>`; }).join(" ");

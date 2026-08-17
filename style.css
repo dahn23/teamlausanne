@@ -1569,3 +1569,7 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 
 /* ---- Validation d'un cours (présences) ---- */
 .att-validate{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+/* ---- Validation après-midi études (par jour) ---- */
+.et-dayval{padding:2px 8px;font-size:.72rem;margin-top:3px}
+.et-dayval.on{color:#0b6b3a;font-weight:700}
