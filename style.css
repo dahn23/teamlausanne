@@ -626,8 +626,11 @@ input.pd-native{display:none}
 .ct-item .muted{margin-left:auto}
 .ct-item .fam-del{margin-left:auto}
 .cs-list{display:flex;flex-direction:column;gap:8px}
+/* Pas de flash bleu de « tap » sur mobile/tablette (surlignage du bloc cliquable). */
+html{-webkit-tap-highlight-color:transparent}
 .cs-card{display:flex;flex-direction:column;gap:12px;background:var(--card);border:1px solid var(--line);
-  border-left:5px solid #0b6b3a;border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow);cursor:pointer}
+  border-left:5px solid #0b6b3a;border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow);cursor:pointer;
+  -webkit-user-select:none;user-select:none}
 .cs-card:hover{background:#f7f9fc}
 .cs-card-top{display:flex;align-items:center;gap:14px}
 .cs-time{font-weight:800;font-style:italic;color:var(--blue-ink);white-space:nowrap}
@@ -642,7 +645,8 @@ input.pd-native{display:none}
 .cs-att-items{display:flex;flex-direction:column;gap:5px}
 .cs-card:not(.expanded) .cs-att-items > .att-chip:nth-child(n+5){display:none}
 .att-chip{text-align:left;font-weight:600;font-size:.86rem;padding:7px 11px;border-radius:8px;
-  border:1px solid var(--line);cursor:pointer;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  border:1px solid var(--line);cursor:pointer;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  -webkit-user-select:none;user-select:none}
 .att-chip.st-none{background:#fff;color:var(--ink)}
 .att-chip.st-present{background:#e3f6e8;border-color:#bfe6ca;color:#1c7d38}
 .att-chip.st-late{background:#fdf2dc;border-color:#f2e0b0;color:#a9721a}
