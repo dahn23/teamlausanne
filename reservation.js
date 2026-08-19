@@ -1,7 +1,7 @@
 // Grille de réservation PUBLIQUE (visible sans login).
 // Courts en colonnes, heures en :15 (08:15 → 21:15). Prix et couleurs
 // (creuse/pleine) calculés depuis les réglages paramétrables (app_settings).
-import { sb, getSession, myRoles, hasAny, STAFF_ROLES } from "./common.js";
+import { sb, getSession, myRoles, hasAny, STAFF_ROLES, CONSOLE_ROLES } from "./common.js";
 import "./pretty-select.js";
 import "./pretty-date.js";
 
@@ -77,7 +77,15 @@ if (me) {
   const { data: paidMember } = await sb.rpc("is_paid_member");
   isMember = paidMember === true;
   isCoachPrivate = hasAny(roles, ["coach_prive"]);
-  // Pas de lien vers la console admin : on y accède seulement en tapant /admin.
+  // Staff logué : lien de retour vers la console (adapté au rôle).
+  if (hasAny(roles, CONSOLE_ROLES)) {
+    const link = $("to-console");
+    link.textContent = hasAny(roles, ["head_coach", "coach"]) ? "← Espace coach"
+      : roles.includes("prof") ? "← Espace prof"
+      : roles.includes("coach_mental") ? "← Espace mental"
+      : "← Console";
+    link.classList.remove("hidden");
+  }
 }
 await loadSettings();
 if (me && isMember) await loadMemberData();

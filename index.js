@@ -1,5 +1,5 @@
 // Site public dynamique : mondes + pages détaillées (routage par ancre).
-import { sb, getSession, myRoles, landingFor, frDate, jours } from "./common.js";
+import { sb, getSession, myRoles, hasAny, landingFor, CONSOLE_ROLES, frDate, jours } from "./common.js";
 import "./pretty-select.js";
 import "./pretty-date.js";
 
@@ -853,7 +853,11 @@ $("login-form").addEventListener("submit", async (e) => {
   location.href = landingFor(await myRoles());
 });
 // On NE redirige plus automatiquement : on reste sur le site vitrine même connecté.
-getSession().then((s) => { hasSession = !!s; });
+getSession().then(async (s) => {
+  hasSession = !!s;
+  // Staff logué : bouton « Console » dans l'entête du site public.
+  if (s) { const roles = await myRoles(); if (hasAny(roles, CONSOLE_ROLES)) $("to-console").classList.remove("hidden"); }
+});
 
 // ---- Contact : page à part (contact.html?src=…) ----
 function openContact(source) {
