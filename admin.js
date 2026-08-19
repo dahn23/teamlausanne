@@ -153,7 +153,7 @@ const DEFAULT_TAB_ACCESS = {
   secretaire: ["membres", "inscriptions", "news", "resa", "matchs", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "phystests", "heures"],
-  prof:       ["etudes", "heures"],
+  prof:       ["etudes"],
   coach_mental: ["mental", "heures"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
@@ -189,7 +189,10 @@ async function loadSeasonsList() {
 }
 const seasonsOf = (kind) => seasons.filter((s) => s.kind === kind);
 function currentSeason(kind) {
-  const today = new Date().toISOString().slice(0, 10);
+  // Date LOCALE (Europe/Zurich pour Dan) et non UTC, sinon la bascule de saison
+  // se ferait ~2 h après minuit local près d'une frontière de saison.
+  const n = new Date();
+  const today = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
   const list = seasonsOf(kind);
   return list.find((s) => s.start_date <= today && today <= s.end_date)
     || list.filter((s) => s.start_date <= today)[0] || null; // list est triée desc
@@ -5484,6 +5487,11 @@ const etDow = (iso) => ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][new Dat
 let etYouthId = null;
 
 function initEtudes() {
+  // Gérer les profs et générer le calendrier = admin/superadmin. Un prof ne fait que saisir.
+  if (!hasAny(myAppRoles, ["superadmin", "admin"])) {
+    document.querySelector('#view-etudes .et-subtab[data-sub="profs"]')?.classList.add("hidden");
+    document.querySelector('#view-etudes .et-subtab[data-sub="reglages"]')?.classList.add("hidden");
+  }
   document.querySelectorAll("#view-etudes .et-subtab").forEach((b) =>
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-etudes .et-subtab").forEach((x) => x.classList.toggle("active", x === b));
