@@ -5554,9 +5554,12 @@ async function loadEtudesCalendar() {
   if (!youths.length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jeune en sport-études pour cette saison (à définir dans les fiches › Saisons).</p>'; return; }
   let html = '<table class="crm-table et-cal"><thead><tr><th>Date</th><th>Prof(s)</th>'
     + youths.map((y) => `<th title="${esc(y.last_name)} ${esc(y.first_name)}">${esc(y.last_name)} ${esc((y.first_name || "").slice(0, 1))}.</th>`).join("") + "</tr></thead><tbody>";
+  const nowLocal = new Date();
   for (const d of days) {
     const dp = profs.filter((p) => p.day_id === d.id);
     const iAmProf = myPersonId && dp.some((p) => p.prof_person_id === myPersonId);
+    // Saisie des jeunes verrouillée avant 12h50 le jour-j (sauf admin) — comme la présence du prof.
+    const dayOpen = canEditProfs || nowLocal >= new Date(d.day + "T12:50:00");
     const myV = iAmProf ? etvals.find((v) => v.day_id === d.id && v.prof_person_id === myPersonId) : null;
     const mySt = myV?.status || "";
     // Pastille de présence du prof (comme un coach) : blanc → absent → présent → blanc.
@@ -5564,11 +5567,11 @@ async function loadEtudesCalendar() {
     const presCls = mySt === "present" ? "st-present" : mySt === "absent" ? "st-absent" : "st-none";
     const presBtn = iAmProf ? `<div style="margin-top:6px"><button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${presLbl}</button></div>` : "";
     html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${presBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions, canEditProfs)}</td>`
-      + youths.map((y) => { const s = attOf(d.id, y.id); return `<td><button type="button" class="att-chip et-cell ${ET_CLS[s]}" data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
+      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; return `<td><button type="button" class="att-chip et-cell ${lk ? "st-locked" : ET_CLS[s]}" ${lk ? 'data-locked="1" title="Saisie dès 12h50 le jour du cours"' : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
   cont.innerHTML = html + "</tbody></table>";
-  cont.querySelectorAll(".et-cell").forEach((c) => c.addEventListener("click", () => etCycle(c)));
+  cont.querySelectorAll(".et-cell:not([data-locked])").forEach((c) => c.addEventListener("click", () => etCycle(c)));
   cont.querySelectorAll(".et-presence").forEach((b) => b.addEventListener("click", () => etProfPresence(b)));
   cont.querySelectorAll(".et-prof-rm").forEach((b) => b.addEventListener("click", async () => { await sb.from("etudes_day_profs").delete().eq("day_id", b.dataset.day).eq("prof_person_id", b.dataset.prof); loadEtudesCalendar(); }));
   cont.querySelectorAll(".et-prof-add").forEach((s) => s.addEventListener("change", async () => { if (!s.value) return; await sb.from("etudes_day_profs").insert({ day_id: s.dataset.day, prof_person_id: s.value }); loadEtudesCalendar(); }));
@@ -5616,10 +5619,7 @@ function etProfCellHtml(dayId, dayProfs, profOptions, canEdit) {
 }
 async function etCycle(cell) {
   const next = etNext(cell.dataset.status);
-  const day = cell.dataset.day, youth = cell.dataset.youth;
-  let error;
-  if (next === "") ({ error } = await sb.from("etudes_attendance").delete().eq("day_id", day).eq("youth_person_id", youth));
-  else ({ error } = await sb.from("etudes_attendance").upsert({ day_id: day, youth_person_id: youth, status: next, marked_by: meId, marked_at: new Date().toISOString() }, { onConflict: "day_id,youth_person_id" }));
+  const { error } = await sb.rpc("set_etudes_attendance", { p_day: cell.dataset.day, p_youth: cell.dataset.youth, p_status: next || "neutral" });
   if (error) { alert(error.message); return; }
   cell.dataset.status = next;
   cell.className = "att-chip et-cell " + ET_CLS[next];
@@ -5633,10 +5633,10 @@ async function loadEtudesReglages() {
   $("et-rg-status").textContent = "";
   if (!s) return;
   $("et-rg-season").value = s.id;
-  // Règle : études du 1er septembre au vendredi 2 semaines avant les vacances d'été
+  // Règle : études du 31 août au vendredi 2 semaines avant les vacances d'été
   const startYear = Number((s.label.match(/(\d{4})/) || [])[1]) || new Date(s.start_date + "T00:00:00").getFullYear();
   const endYear = startYear + 1;
-  $("et-rg-from").value = `${startYear}-09-01`;
+  $("et-rg-from").value = `${startYear}-08-31`;
   let to = s.end_date;
   const { data: sum } = await sb.from("school_holidays").select("start_date")
     .ilike("label", "Été %").gte("start_date", `${endYear}-06-01`).lte("start_date", `${endYear}-09-01`).order("start_date").limit(1);
