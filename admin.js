@@ -1619,11 +1619,17 @@ const personName = (pid) => { const p = people.find((x) => x.id === pid); return
 function canMarkBox(course, coachIds, pid, isCoach) {
   if (isHeadUser) return true;                     // head/admin/superadmin : tout, tout le temps
   if (!myPersonId || !coachIds.includes(myPersonId)) return false; // doit être coach du cours
-  if (isCoach) return pid === myPersonId;          // un coach ne valide que sa propre présence
-  // Enfant : le coach peut pointer le JOUR du cours (pendant et après la leçon).
-  const now = new Date();
-  const today = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
-  return today === course.course_date;
+  if (isCoach && pid !== myPersonId) return false; // un coach ne marque que sa propre présence
+  // Fenêtre : de 10 min avant le début du cours à 2 semaines après.
+  const start = new Date(`${course.course_date}T${course.start_time}`).getTime();
+  const now = Date.now();
+  return now >= start - 10 * 60000 && now <= start + 14 * 24 * 3600000;
+}
+// Tous les jeunes d'un cours ont-ils un statut ? (pré-requis pour que le coach se déclare présent)
+function allKidsMarked(courseId) {
+  const card = document.querySelector(`.cs-card[data-id="${courseId}"]`);
+  if (!card) return true;
+  return [...card.querySelectorAll('.att-chip[data-coach="0"]')].every((k) => k.dataset.status);
 }
 
 function attChip(course, coachIds, pid, isCoach, status) {
@@ -1693,7 +1699,17 @@ async function cycleAtt(chip) {
   if (chip.dataset.can !== "1") return; // verrouillé
   const course = chip.dataset.course, pid = chip.dataset.person, isCoach = chip.dataset.coach === "1";
   const cur = chip.dataset.status || "";
-  const next = cur === "" ? "present" : cur === "present" ? "absent" : cur === "absent" ? "late" : null;
+  // Coach se marquant lui-même : présent/en retard interdits tant que TOUS les jeunes
+  // n'ont pas un statut. Il ne peut donc que se mettre absent (cycle blanc → rouge → blanc).
+  const selfLocked = isCoach && pid === myPersonId && !isHeadUser && !allKidsMarked(course);
+  let next;
+  if (selfLocked) {
+    if (cur !== "absent") next = "absent";
+    else next = null; // absent → efface
+    if (cur === "present" || cur === "late") next = "absent"; // sécurité : ramène sur absent
+  } else {
+    next = cur === "" ? "present" : cur === "present" ? "absent" : cur === "absent" ? "late" : null;
+  }
   chip.disabled = true;
   const { error } = next === null
     ? await sb.rpc("clear_attendance", { p_course: course, p_person: pid, p_is_coach: isCoach })
@@ -1722,14 +1738,14 @@ async function openAttendance(courseId) {
   const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : "—"; };
 
   $("att-title").textContent = `Présences — ${course.title || "cours"} (${course.start_time.slice(0, 5)})`;
-  const now = new Date();
-  const todayStr = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
-  $("att-note").textContent = (!isHeadUser && course.course_date !== todayStr)
-    ? "Le pointage des enfants se fait le jour du cours. (Head coach / admin : à tout moment.)"
-    : "Cliquez pour marquer présent / absent / en retard.";
+  const allKids = parts.length ? parts.every((pid) => statusOf(pid)) : true;
+  $("att-note").textContent = isHeadUser
+    ? "Cliquez pour marquer présent / absent / en retard."
+    : "Pointage ouvert de 10 min avant le début à 2 semaines après. Déclare-toi présent une fois tous les jeunes pointés.";
 
   $("att-children").innerHTML = parts.length ? parts.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), false)).join("") : '<p class="muted" style="font-size:.85rem">Aucun enfant.</p>';
-  $("att-coaches").innerHTML = coaches.length ? coaches.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), true)).join("") : '<p class="muted" style="font-size:.85rem">Aucun coach.</p>';
+  // Le coach ne peut se déclarer présent / en retard que si tous les jeunes ont un statut (il peut toujours se mettre absent).
+  $("att-coaches").innerHTML = coaches.length ? coaches.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), true, pid === myPersonId && !isHeadUser && !allKids)).join("") : '<p class="muted" style="font-size:.85rem">Aucun coach.</p>';
   $("att-modal").querySelectorAll(".att-set").forEach((b) =>
     b.addEventListener("click", () => markAtt(b.dataset.person, b.dataset.status, b.dataset.coach === "1")));
   renderAttValidate(courseId, coaches, vals);
@@ -1757,10 +1773,13 @@ async function toggleCourseValidation(courseId, mine) {
   openAttendance(courseId);
 }
 
-function attRow(pid, name, status, isCoach) {
-  const btns = ATT_STATUS.map(([s, l]) =>
-    `<button type="button" class="att-set st-${s} ${status === s ? "on" : ""}" data-person="${pid}" data-status="${s}" data-coach="${isCoach ? 1 : 0}">${l}</button>`).join("");
-  return `<div class="att-row"><span class="att-name">${esc(name)}</span><div class="att-btns">${btns}</div></div>`;
+function attRow(pid, name, status, isCoach, lockPresent) {
+  const btns = ATT_STATUS.map(([s, l]) => {
+    const dis = lockPresent && s !== "absent"; // présent/en retard bloqués tant que les jeunes ne sont pas tous pointés
+    return `<button type="button" class="att-set st-${s} ${status === s ? "on" : ""}" ${dis ? "disabled" : ""} data-person="${pid}" data-status="${s}" data-coach="${isCoach ? 1 : 0}">${l}</button>`;
+  }).join("");
+  const hint = lockPresent ? `<span class="att-hint muted">Marque d'abord tous les jeunes pour pouvoir te déclarer présent.</span>` : "";
+  return `<div class="att-row"><span class="att-name">${esc(name)}</span><div class="att-btns">${btns}</div>${hint}</div>`;
 }
 
 async function markAtt(personId, status, isCoach) {

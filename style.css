@@ -675,6 +675,9 @@ input.pd-native{display:none}
 .att-set.st-present.on{background:#0b6b3a;color:#fff;border-color:#0b6b3a}
 .att-set.st-absent.on{background:#b3261e;color:#fff;border-color:#b3261e}
 .att-set.st-late.on{background:#e08a00;color:#fff;border-color:#e08a00}
+.att-set:disabled{opacity:.4;cursor:not-allowed}
+.att-set:disabled:hover{border-color:var(--line)}
+.att-hint{flex-basis:100%;font-size:.72rem;text-align:right}
 
 /* =====================================================================
    SITE DYNAMIQUE — 3 mondes (Club · Académie · Tournoi)
