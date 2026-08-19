@@ -90,33 +90,59 @@ const ME_ROLE_LABELS = {
   coach: "Coach", prof: "Prof", coach_mental: "Coach mental", organisateur: "Official",
   responsable: "Responsable tournoi", membre: "Membre", junior: "Junior", parent: "Parent",
 };
+const ME_FIELDS = [
+  { k: "email", lbl: "Email", type: "email" },
+  { k: "phone", lbl: "Téléphone", type: "tel" },
+  { k: "avs", lbl: "N° AVS", type: "text" },
+  { k: "birthdate", lbl: "Naissance", type: "date", disp: (v) => frDate(v) },
+  { k: "license_no", lbl: "Licence", type: "text" },
+  { k: "address", lbl: "Adresse", type: "text" },
+  { k: "postal_code", lbl: "NPA", type: "text" },
+  { k: "city", lbl: "Ville", type: "text" },
+  { k: "iban", lbl: "IBAN", type: "text" },
+];
 async function openMyProfile() {
   if (!myPersonId) { alert("Ton compte n'est pas relié à une fiche."); return; }
   let p = people.find((x) => x.id === myPersonId);
   if (!p) { const { data } = await sb.from("people").select("*").eq("id", myPersonId).maybeSingle(); p = data; }
   if (!p) { alert("Fiche introuvable."); return; }
+  const confirmed = !!p.profile_confirmed_at;
+  const editable = !confirmed;          // avant validation : on peut compléter les champs vides
   const roles = [...new Set(myAppRoles)].map((r) => ME_ROLE_LABELS[r] || r);
-  const emails = ((p.emails && p.emails.length) ? p.emails : [p.email]).filter(Boolean);
-  const phones = ((p.phones && p.phones.length) ? p.phones : [p.phone]).filter(Boolean);
-  const addr = [p.address, [p.postal_code, p.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-  const row = (lbl, val) => val ? `<div class="me-row"><span>${lbl}</span><b>${esc(val)}</b></div>` : "";
   const inits = (((p.first_name || "")[0] || "") + ((p.last_name || "")[0] || "")).toUpperCase();
+  const rows = ME_FIELDS.map((f) => {
+    const val = p[f.k];
+    if (editable && !val) {
+      return `<div class="me-row edit"><span>${f.lbl}</span><input id="me-f-${f.k}" type="${f.type}" placeholder="À compléter" /></div>`;
+    }
+    if (!val) return "";                 // déjà validé + vide → on masque
+    return `<div class="me-row"><span>${f.lbl}</span><b>${esc(f.disp ? f.disp(val) : val)}</b></div>`;
+  }).join("");
+  const foot = editable
+    ? `<p class="muted" style="font-size:.82rem;margin:14px 0 10px">Complète les infos manquantes, puis valide (une seule fois). Ensuite, seule le secrétariat pourra les corriger.</p>
+       <div class="me-actions"><button type="button" id="me-save">Valider mes informations</button><span id="me-status" class="muted"></span></div>`
+    : `<p class="muted" style="font-size:.82rem;margin:14px 0 0">Profil validé. Pour corriger une information, contacte le secrétariat.</p>`;
   $("me-body").innerHTML = `
     <div class="me-head">
       <div class="me-av">${p.photo_url ? `<img src="${esc(p.photo_url)}" alt="">` : esc(inits)}</div>
       <div><h2>${esc(p.first_name || "")} ${esc(p.last_name || "")}</h2>
         <div class="me-roles">${roles.map((r) => `<span class="me-role">${esc(r)}</span>`).join("")}</div></div>
     </div>
-    <div class="me-grid">
-      ${row("Email", emails.join(" · "))}
-      ${row("Téléphone", phones.join(" · "))}
-      ${row("Naissance", p.birthdate ? frDate(p.birthdate) : "")}
-      ${row("Licence", p.license_no)}
-      ${row("Adresse", addr)}
-      ${row("IBAN", p.iban)}
-    </div>
-    <p class="muted" style="font-size:.82rem;margin:14px 0 0">Pour corriger une information, contacte le secrétariat.</p>`;
+    <div class="me-grid">${rows}</div>
+    ${foot}`;
+  if (editable) $("me-save").addEventListener("click", saveMyProfile);
   $("me-modal").classList.remove("hidden");
+}
+async function saveMyProfile() {
+  const payload = {};
+  ME_FIELDS.forEach((f) => { const el = document.getElementById("me-f-" + f.k); if (el) payload[f.k] = el.value.trim(); });
+  const btn = $("me-save"); btn.disabled = true;
+  $("me-status").textContent = "Validation…";
+  const { error } = await sb.rpc("confirm_my_profile", { p_data: payload });
+  if (error) { btn.disabled = false; $("me-status").textContent = "Erreur : " + error.message; return; }
+  const { data } = await sb.from("people").select("*").eq("id", myPersonId).maybeSingle();
+  if (data) { const i = people.findIndex((x) => x.id === myPersonId); if (i >= 0) people[i] = data; else people.push(data); }
+  openMyProfile();
 }
 
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
@@ -196,6 +222,8 @@ function applyTabAccess(roles) {
       .some((b) => b.dataset.view !== "bientot" && !b.classList.contains("hidden"));
     bl.classList.toggle("hidden", !anyVisible);
   });
+  // Le menu n'apparaît qu'une fois filtré par rôle (évite le flash « tous les onglets »).
+  document.querySelector(".side")?.classList.add("ready");
   if (first) showView(first);
 }
 
