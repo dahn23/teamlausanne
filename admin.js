@@ -1699,15 +1699,16 @@ async function cycleAtt(chip) {
   if (chip.dataset.can !== "1") return; // verrouillé
   const course = chip.dataset.course, pid = chip.dataset.person, isCoach = chip.dataset.coach === "1";
   const cur = chip.dataset.status || "";
-  // Coach se marquant lui-même : présent/en retard interdits tant que TOUS les jeunes
-  // n'ont pas un statut. Il ne peut donc que se mettre absent (cycle blanc → rouge → blanc).
-  const selfLocked = isCoach && pid === myPersonId && !isHeadUser && !allKidsMarked(course);
   let next;
-  if (selfLocked) {
-    if (cur !== "absent") next = "absent";
-    else next = null; // absent → efface
-    if (cur === "present" || cur === "late") next = "absent"; // sécurité : ramène sur absent
+  if (isCoach) {
+    // Coach : présent / absent uniquement (jamais « en retard »).
+    // « présent » exige que TOUS les jeunes aient un statut (sinon seulement absent).
+    const blockPresent = !isHeadUser && pid === myPersonId && !allKidsMarked(course);
+    if (cur === "") next = blockPresent ? "absent" : "present";
+    else if (cur === "present") next = "absent";
+    else next = null; // absent (ou ancien statut) → efface
   } else {
+    // Élève : blanc → présent → absent → en retard → blanc.
     next = cur === "" ? "present" : cur === "present" ? "absent" : cur === "absent" ? "late" : null;
   }
   chip.disabled = true;
@@ -1774,8 +1775,10 @@ async function toggleCourseValidation(courseId, mine) {
 }
 
 function attRow(pid, name, status, isCoach, lockPresent) {
-  const btns = ATT_STATUS.map(([s, l]) => {
-    const dis = lockPresent && s !== "absent"; // présent/en retard bloqués tant que les jeunes ne sont pas tous pointés
+  // Coach : pas de « en retard » — seulement présent / absent.
+  const list = isCoach ? ATT_STATUS.filter(([s]) => s !== "late") : ATT_STATUS;
+  const btns = list.map(([s, l]) => {
+    const dis = lockPresent && s !== "absent"; // « présent » bloqué tant que les jeunes ne sont pas tous pointés
     return `<button type="button" class="att-set st-${s} ${status === s ? "on" : ""}" ${dis ? "disabled" : ""} data-person="${pid}" data-status="${s}" data-coach="${isCoach ? 1 : 0}">${l}</button>`;
   }).join("");
   const hint = lockPresent ? `<span class="att-hint muted">Marque d'abord tous les jeunes pour pouvoir te déclarer présent.</span>` : "";
