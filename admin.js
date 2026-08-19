@@ -4898,12 +4898,37 @@ const MR_RATINGS = [
   ["r_legs", "Intensité des jambes"], ["r_relax", "Relâchement"],
   ["r_objectives", "Tenir les objectifs"], ["r_combative", "Combatif"],
 ];
+// Clés des champs texte (colonnes DB) — ordre d'affichage.
 const MR_TEXTS = [
-  ["strategy_pre", "Stratégie d'avant match"], ["opp_sw", "Forces et faiblesses de l'adversaire"],
-  ["opp_style", "Style de jeu de l'adversaire"], ["how_won", "Comment il a gagné la majorité des points"],
-  ["how_lost", "Comment il a perdu la majorité des points"], ["did_well", "Ce qu'il a bien réussi à faire"],
-  ["to_improve", "Ce qu'il doit améliorer"], ["three_positives", "3 choses positives de ce match"],
+  ["strategy_pre"], ["opp_sw"], ["opp_style"], ["how_won"],
+  ["how_lost"], ["did_well"], ["to_improve"], ["three_positives"],
 ];
+// Sexe d'une personne ("M" par défaut si inconnu).
+const mrGenderOf = (pid) => (people.find((p) => p.id === pid)?.gender) || "M";
+// Libellés des champs texte selon le point de vue (coach = il/elle ; joueur = 1re personne).
+function mrTextLabels(mode, gender) {
+  const il = gender === "F" ? "elle" : "il";
+  const base = {
+    strategy_pre: "Stratégie d'avant match",
+    opp_sw: "Forces et faiblesses de l'adversaire",
+    opp_style: "Style de jeu de l'adversaire",
+    three_positives: "3 choses positives de ce match",
+  };
+  if (mode === "joueur") return {
+    ...base,
+    how_won: "Comment j'ai gagné la majorité des points",
+    how_lost: "Comment j'ai perdu la majorité des points",
+    did_well: "Ce que j'ai bien réussi à faire",
+    to_improve: "Ce que je dois améliorer",
+  };
+  return {
+    ...base,
+    how_won: `Comment ${il} a gagné la majorité des points`,
+    how_lost: `Comment ${il} a perdu la majorité des points`,
+    did_well: `Ce qu'${il} a bien réussi à faire`,
+    to_improve: `Ce qu'${il} doit améliorer`,
+  };
+}
 
 function initMatchs(roles) {
   // Remplir/lister = coachs & admin ; valider les correspondances = admin/superadmin/secrétariat
@@ -4932,10 +4957,11 @@ function mrRenderForm(prefillYouth) {
   const youths = people.filter((p) => hasRoleIn(p.id, COURSE_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
   const yopts = youths.map((p) => `<option value="${p.id}"${p.id === prefillYouth ? " selected" : ""}>${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
   const rankOpts = MR_RANKINGS.map((r) => `<option value="${r}">${r === "autre" ? "Autre" : r.toUpperCase()}</option>`).join("");
+  const initYouth = prefillYouth || youths[0]?.id;
+  const labels = mrTextLabels("coach", mrGenderOf(initYouth));
   mount.innerHTML = `
     <div class="rg-card mr-form">
       <div class="mr-grid">
-        <label>Point de vue<select id="mr-role"><option value="coach">Coach</option><option value="joueur">Joueur</option></select></label>
         <label>Jeune concerné<select id="mr-youth">${yopts}</select></label>
         <label>Date du match<input type="date" id="mr-date" /></label>
         <label>Adversaire<input type="text" id="mr-opponent" /></label>
@@ -4943,13 +4969,18 @@ function mrRenderForm(prefillYouth) {
         <label>Résultat<select id="mr-result"><option value="gagne">Gagné</option><option value="perdu">Perdu</option></select></label>
         <label>Score<input type="text" id="mr-score" placeholder="ex. 6-3 6-4" /></label>
       </div>
-      <div class="mr-texts">${MR_TEXTS.map(([k, l]) => `<label>${esc(l)}<textarea id="mr-${k}" rows="2"></textarea></label>`).join("")}</div>
+      <div class="mr-texts">${MR_TEXTS.map(([k]) => `<label><span class="mr-lbl" data-k="${k}">${esc(labels[k])}</span><textarea id="mr-${k}" rows="2"></textarea></label>`).join("")}</div>
       <h4 class="mr-h">Évaluations (1 à 5)</h4>
       <div class="mr-ratings">${MR_RATINGS.map(([k, l]) => `<div class="mr-rate"><span>${esc(l)}</span><div class="mr-stars" data-k="${k}">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="mr-star" data-v="${n}">${n}</button>`).join("")}</div></div>`).join("")}</div>
       <label class="mr-comment">Commentaire<textarea id="mr-comment" rows="2"></textarea></label>
       <div class="mr-actions"><button type="button" id="mr-save">Enregistrer la feuille</button><span id="mr-status" class="muted"></span></div>
     </div>`;
   $("mr-date").value = new Date().toISOString().slice(0, 10);
+  // Adapte « il / elle » selon le sexe du jeune choisi.
+  $("mr-youth").addEventListener("change", () => {
+    const lab = mrTextLabels("coach", mrGenderOf($("mr-youth").value));
+    mount.querySelectorAll(".mr-lbl").forEach((s) => { s.textContent = lab[s.dataset.k]; });
+  });
   mount.querySelectorAll(".mr-stars").forEach((box) => box.querySelectorAll(".mr-star").forEach((b) => b.addEventListener("click", () => {
     box.dataset.val = b.dataset.v;
     box.querySelectorAll(".mr-star").forEach((x) => x.classList.toggle("on", Number(x.dataset.v) <= Number(b.dataset.v)));
@@ -4962,7 +4993,7 @@ async function saveMatchReport() {
   if (!youth) { $("mr-status").textContent = "Choisis un jeune."; return; }
   const rating = (k) => { const el = document.querySelector(`.mr-stars[data-k="${k}"]`); return el && el.dataset.val ? Number(el.dataset.val) : null; };
   const row = {
-    youth_person_id: youth, author_role: $("mr-role").value,
+    youth_person_id: youth, author_role: "coach",
     author_person_id: myPersonId, author_name: meName, created_by: meId,
     match_date: $("mr-date").value || null, opponent: $("mr-opponent").value.trim() || null,
     opponent_ranking: $("mr-rank").value || null, result: $("mr-result").value,
@@ -5037,16 +5068,18 @@ async function loadMatchLinks() {
 const mrName = (id) => { const p = people.find((x) => x.id === id); return p ? `${p.last_name} ${p.first_name}` : "—"; };
 async function loadMatchList() {
   const cont = $("mr-list"); if (!cont) return;
-  const { data } = await sb.from("match_reports").select("*").order("created_at", { ascending: false });
+  // Uniquement les feuilles que J'ai remplies en tant que coach.
+  const { data } = await sb.from("match_reports").select("*")
+    .eq("author_role", "coach").eq("author_person_id", myPersonId)
+    .order("created_at", { ascending: false });
   const rows = data || [];
   cont.innerHTML = rows.length
-    ? '<table class="crm-table"><thead><tr><th>Date / heure</th><th>Jeune</th><th>Rempli par</th><th>Adversaire</th><th>Résultat</th></tr></thead><tbody>'
+    ? '<table class="crm-table"><thead><tr><th>Date / heure</th><th>Jeune</th><th>Adversaire</th><th>Résultat</th></tr></thead><tbody>'
       + rows.map((r) => `<tr class="mr-row" data-id="${r.id}"><td>${frDateTime(r.created_at)}</td><td><b>${esc(mrName(r.youth_person_id))}</b></td>
-        <td>${esc(r.author_name || "—")} <span class="mr-badge ${r.author_role}">${r.author_role}</span></td>
         <td>${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td>
         <td>${r.result === "gagne" ? '<span class="mr-win">Gagné</span>' : '<span class="mr-loss">Perdu</span>'} ${esc(r.score || "")}</td></tr>`).join("")
       + "</tbody></table>"
-    : '<p class="muted" style="font-size:.85rem">Aucune feuille de match remplie.</p>';
+    : '<p class="muted" style="font-size:.85rem">Tu n\'as pas encore rempli de feuille de match.</p>';
   cont.querySelectorAll(".mr-row").forEach((tr) => tr.addEventListener("click", () => openMatchReport(tr.dataset.id)));
 }
 
@@ -5054,12 +5087,13 @@ const mrStars = (v) => v ? "★".repeat(v) + "☆".repeat(5 - v) : "—";
 async function openMatchReport(id) {
   const { data: r } = await sb.from("match_reports").select("*").eq("id", id).single();
   if (!r) return;
+  const labels = mrTextLabels(r.author_role, mrGenderOf(r.youth_person_id));
   const cont = $("mr-list");
   cont.innerHTML = `<button type="button" class="ghost stg-back" id="mr-back">← Retour à la liste</button>
     <div class="rg-card" style="margin-top:10px">
       <h2 style="margin-top:0">${esc(mrName(r.youth_person_id))} <span class="mr-badge ${r.author_role}">${r.author_role}</span></h2>
       <p class="muted">${r.match_date ? frDate(r.match_date) : ""} · vs <b>${esc(r.opponent || "—")}</b>${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""} · ${r.result === "gagne" ? "Gagné" : "Perdu"} ${esc(r.score || "")} · rempli par ${esc(r.author_name || "—")} le ${frDateTime(r.created_at)}</p>
-      ${MR_TEXTS.filter(([k]) => r[k]).map(([k, l]) => `<div class="mr-field"><b>${esc(l)}</b><p>${esc(r[k])}</p></div>`).join("")}
+      ${MR_TEXTS.filter(([k]) => r[k]).map(([k]) => `<div class="mr-field"><b>${esc(labels[k])}</b><p>${esc(r[k])}</p></div>`).join("")}
       <div class="mr-ratings-view">${MR_RATINGS.map(([k, l]) => `<div class="mr-rv"><span>${esc(l)}</span><b>${mrStars(r[k])}</b></div>`).join("")}</div>
       ${r.comment ? `<div class="mr-field"><b>Commentaire</b><p>${esc(r.comment)}</p></div>` : ""}
       <button type="button" class="fam-del" id="mr-del" style="margin-top:14px">Supprimer cette feuille</button>
