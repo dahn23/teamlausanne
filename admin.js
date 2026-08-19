@@ -75,8 +75,48 @@ if (!session) {
         if (me) meName = `${me.first_name || ""} ${me.last_name || ""}`.trim() || meEmail;
       }
     } catch (_) {}
+    // Barre du haut : le nom cliquable ouvre « Mon profil ».
+    $("who").textContent = meName;
+    $("who").addEventListener("click", openMyProfile);
+    $("me-close").addEventListener("click", () => $("me-modal").classList.add("hidden"));
+    $("me-modal").addEventListener("click", (e) => { if (e.target === $("me-modal")) $("me-modal").classList.add("hidden"); });
     init(roles);
   }
+}
+
+// ---- Mon profil (staff connecté) : fiche lecture seule ouverte depuis la barre ----
+const ME_ROLE_LABELS = {
+  superadmin: "Superadmin", admin: "Admin", secretaire: "Secrétaire", head_coach: "Head coach",
+  coach: "Coach", prof: "Prof", coach_mental: "Coach mental", organisateur: "Official",
+  responsable: "Responsable tournoi", membre: "Membre", junior: "Junior", parent: "Parent",
+};
+async function openMyProfile() {
+  if (!myPersonId) { alert("Ton compte n'est pas relié à une fiche."); return; }
+  let p = people.find((x) => x.id === myPersonId);
+  if (!p) { const { data } = await sb.from("people").select("*").eq("id", myPersonId).maybeSingle(); p = data; }
+  if (!p) { alert("Fiche introuvable."); return; }
+  const roles = [...new Set(myAppRoles)].map((r) => ME_ROLE_LABELS[r] || r);
+  const emails = ((p.emails && p.emails.length) ? p.emails : [p.email]).filter(Boolean);
+  const phones = ((p.phones && p.phones.length) ? p.phones : [p.phone]).filter(Boolean);
+  const addr = [p.address, [p.postal_code, p.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const row = (lbl, val) => val ? `<div class="me-row"><span>${lbl}</span><b>${esc(val)}</b></div>` : "";
+  const inits = (((p.first_name || "")[0] || "") + ((p.last_name || "")[0] || "")).toUpperCase();
+  $("me-body").innerHTML = `
+    <div class="me-head">
+      <div class="me-av">${p.photo_url ? `<img src="${esc(p.photo_url)}" alt="">` : esc(inits)}</div>
+      <div><h2>${esc(p.first_name || "")} ${esc(p.last_name || "")}</h2>
+        <div class="me-roles">${roles.map((r) => `<span class="me-role">${esc(r)}</span>`).join("")}</div></div>
+    </div>
+    <div class="me-grid">
+      ${row("Email", emails.join(" · "))}
+      ${row("Téléphone", phones.join(" · "))}
+      ${row("Naissance", p.birthdate ? frDate(p.birthdate) : "")}
+      ${row("Licence", p.license_no)}
+      ${row("Adresse", addr)}
+      ${row("IBAN", p.iban)}
+    </div>
+    <p class="muted" style="font-size:.82rem;margin:14px 0 0">Pour corriger une information, contacte le secrétariat.</p>`;
+  $("me-modal").classList.remove("hidden");
 }
 
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà

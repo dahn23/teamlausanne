@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=48" />
+  <link rel="stylesheet" href="style.css?v=49" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -22,7 +22,7 @@
       <span class="spacer"></span>
       <a href="reservation.html" class="ghost">Réservation</a>
       <a href="index.html" class="ghost">Site public</a>
-      <span id="who" class="muted"></span>
+      <button id="who" class="ghost who-btn" title="Mon profil"></button>
       <button id="logout" class="ghost">Déconnexion</button>
     </header>
 
@@ -1190,6 +1190,13 @@
   </div>
 
   <!-- ---- Import Excel des membres ---- -->
+  <div id="me-modal" class="modal hidden">
+    <div class="card">
+      <button type="button" id="me-close" class="modal-close" aria-label="Fermer">×</button>
+      <div id="me-body"></div>
+    </div>
+  </div>
+
   <div id="import-modal" class="modal hidden">
     <div class="card wide">
       <button type="button" id="import-close" class="modal-close" aria-label="Fermer">×</button>
