@@ -813,11 +813,17 @@ async function delRoleSeason(id) {
 
 function renderAccessMatrix() {
   const access = tabAccessMap();
+  // Même logique que applyTabAccess : un onglet absent de la matrice stockée
+  // (module récent) retombe sur l'accès PAR DÉFAUT — sinon les cases s'afficheraient
+  // décochées et un « Enregistrer » verrouillerait ces onglets pour tout le monde.
+  const known = new Set(Object.values(access).flat());
+  const isOn = (rk, tk) =>
+    (known.has(tk) ? (access[rk] || []) : (DEFAULT_TAB_ACCESS[rk] || [])).includes(tk);
   let html = '<table class="crm-table"><thead><tr><th>Rôle</th>' +
     ADMIN_TABS.map(([, l]) => `<th>${l}</th>`).join("") + "</tr></thead><tbody>";
   for (const [rk, rl] of ROLE_LIST) {
     html += `<tr><td>${rl}</td>` + ADMIN_TABS.map(([tk]) =>
-      `<td style="text-align:center"><input type="checkbox" class="acc" data-role="${rk}" data-tab="${tk}" ${(access[rk] || []).includes(tk) ? "checked" : ""} /></td>`).join("") + "</tr>";
+      `<td style="text-align:center"><input type="checkbox" class="acc" data-role="${rk}" data-tab="${tk}" ${isOn(rk, tk) ? "checked" : ""} /></td>`).join("") + "</tr>";
   }
   $("access-matrix").innerHTML = '<div class="table-wrap">' + html + "</tbody></table></div>";
 }
