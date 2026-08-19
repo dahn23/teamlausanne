@@ -79,6 +79,7 @@ function mascot(size = 88) {
    ============================================================ */
 let YOUTHS = [];        // jeunes liés au compte
 let selYouth = "all";   // "all" ou person_id
+let PLAYERS = [];       // jeunes "joueurs" (filières élite) → onglet Feuille de match
 let weekStart = mondayOf(new Date());
 let coursesCache = [];  // dernier chargement de la semaine
 
@@ -140,6 +141,10 @@ async function startApp() {
 
   const { data, error } = await sb.rpc("portal_my_youths");
   YOUTHS = error ? [] : (data || []);
+  // Feuille de match : onglet visible seulement si un jeune du compte est "joueur" (filière élite).
+  const { data: pl } = await sb.rpc("portal_player_youths");
+  PLAYERS = pl || [];
+  $("pt-nav-matchs").classList.toggle("hidden", PLAYERS.length === 0);
   renderYouthSelector();
   bindNav();
   bindBot();
@@ -167,7 +172,7 @@ function renderYouthSelector() {
 
 /* ---------- Navigation (barre du bas) ---------- */
 let currentView = "accueil";
-const VIEW_TITLES = { accueil: "Accueil", cours: "Mes cours", reserver: "Réserver", stages: "Stages", profil: "Profil" };
+const VIEW_TITLES = { accueil: "Accueil", cours: "Mes cours", matchs: "Feuille de match", reserver: "Réserver", stages: "Stages", profil: "Profil" };
 function bindNav() {
   document.querySelectorAll(".pt-nav-item").forEach((b) =>
     b.addEventListener("click", () => switchView(b.dataset.view)));
@@ -184,6 +189,7 @@ function switchView(v) {
 function renderCurrentView() {
   if (currentView === "accueil") renderAccueil();
   else if (currentView === "cours") renderCours();
+  else if (currentView === "matchs") renderMatchs();
   else if (currentView === "reserver") renderReserver();
   else if (currentView === "stages") renderStages();
   else if (currentView === "profil") renderProfil();
@@ -599,4 +605,121 @@ async function renderProfil() {
       ${sections}
     </div>`;
   }).join("");
+}
+
+/* ============================================================
+   Feuille de match — côté joueur/joueuse
+   ============================================================ */
+const MRP_RANKINGS = ["r9", "r8", "r7", "r6", "r5", "r4", "r3", "r2", "r1", "n4", "n3", "n2", "n1", "autre"];
+const MRP_RATINGS = [
+  ["r_attitude", "Attitude sur le terrain"], ["r_mindset", "État d'esprit positif"],
+  ["r_legs", "Intensité des jambes"], ["r_relax", "Relâchement"],
+  ["r_objectives", "Tenir les objectifs"], ["r_combative", "Combatif"],
+];
+const MR_KEYS = ["strategy_pre", "opp_sw", "opp_style", "how_won", "how_lost", "did_well", "to_improve", "three_positives"];
+function mrpLabels(role, gender) {
+  const il = gender === "F" ? "elle" : "il";
+  const base = {
+    strategy_pre: "Stratégie d'avant match", opp_sw: "Forces et faiblesses de l'adversaire",
+    opp_style: "Style de jeu de l'adversaire", three_positives: "3 choses positives de ce match",
+  };
+  if (role === "joueur") return {
+    ...base, how_won: "Comment j'ai gagné la majorité des points", how_lost: "Comment j'ai perdu la majorité des points",
+    did_well: "Ce que j'ai bien réussi à faire", to_improve: "Ce que je dois améliorer",
+  };
+  return {
+    ...base, how_won: `Comment ${il} a gagné la majorité des points`, how_lost: `Comment ${il} a perdu la majorité des points`,
+    did_well: `Ce qu'${il} a bien réussi à faire`, to_improve: `Ce qu'${il} doit améliorer`,
+  };
+}
+
+let mrpSel = null;
+function renderMatchs() {
+  const host = $("view-matchs");
+  if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>La feuille de match est réservée aux joueurs de compétition.</p></div>`; return; }
+  if (!mrpSel || !PLAYERS.some((p) => p.person_id === mrpSel))
+    mrpSel = (selYouth !== "all" && PLAYERS.some((p) => p.person_id === selYouth)) ? selYouth : PLAYERS[0].person_id;
+  const player = PLAYERS.find((p) => p.person_id === mrpSel);
+  const fem = player.gender === "F";
+  const selHtml = PLAYERS.length > 1
+    ? `<div class="mrp-players">${PLAYERS.map((p) => `<button class="mrp-player ${p.person_id === mrpSel ? "sel" : ""}" data-id="${p.person_id}">${escHtml(p.first_name)}</button>`).join("")}</div>` : "";
+  const rankOpts = MRP_RANKINGS.map((r) => `<option value="${r}">${r === "autre" ? "Autre" : r.toUpperCase()}</option>`).join("");
+  const L = mrpLabels("joueur", player.gender);
+  host.innerHTML = `
+    ${selHtml}
+    <div class="mrp-card">
+      <h2 class="mrp-h">Remplir en tant que ${fem ? "joueuse" : "joueur"}</h2>
+      <div class="mrp-grid">
+        <label>Date du match<input type="date" id="mrp-date"></label>
+        <label>Adversaire<input type="text" id="mrp-opponent"></label>
+        <label>Classement adversaire<select id="mrp-rank"><option value="">—</option>${rankOpts}</select></label>
+        <label>Résultat<select id="mrp-result"><option value="gagne">Gagné</option><option value="perdu">Perdu</option></select></label>
+        <label>Score<input type="text" id="mrp-score" placeholder="ex. 6-3 6-4"></label>
+      </div>
+      <div class="mrp-texts">${MR_KEYS.map((k) => `<label>${escHtml(L[k])}<textarea id="mrp-${k}" rows="2"></textarea></label>`).join("")}</div>
+      <div class="mrp-ratings">${MRP_RATINGS.map(([k, l]) => `<div class="mrp-rate"><span>${escHtml(l)}</span><div class="mrp-stars" data-k="${k}">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="mrp-star" data-v="${n}">${n}</button>`).join("")}</div></div>`).join("")}</div>
+      <label class="mrp-comment">Commentaire<textarea id="mrp-comment" rows="2"></textarea></label>
+      <div class="mrp-actions"><button type="button" id="mrp-save">Enregistrer ma feuille</button><span id="mrp-status" class="muted"></span></div>
+    </div>
+    <div id="mrp-hist"><p class="muted" style="text-align:center;padding:12px">Chargement…</p></div>`;
+  $("mrp-date").value = isoLocal(new Date());
+  host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { mrpSel = b.dataset.id; renderMatchs(); }));
+  host.querySelectorAll(".mrp-stars").forEach((box) => box.querySelectorAll(".mrp-star").forEach((b) => b.addEventListener("click", () => {
+    box.dataset.val = b.dataset.v;
+    box.querySelectorAll(".mrp-star").forEach((x) => x.classList.toggle("on", Number(x.dataset.v) <= Number(b.dataset.v)));
+  })));
+  $("mrp-save").addEventListener("click", () => saveMatchReportPortal(player));
+  loadPortalMatchHist(player);
+}
+
+async function saveMatchReportPortal(player) {
+  const rating = (k) => { const el = document.querySelector(`.mrp-stars[data-k="${k}"]`); return el && el.dataset.val ? Number(el.dataset.val) : null; };
+  const payload = {
+    match_date: $("mrp-date").value || null, opponent: $("mrp-opponent").value.trim(),
+    opponent_ranking: $("mrp-rank").value, result: $("mrp-result").value,
+    score: $("mrp-score").value.trim(), comment: $("mrp-comment").value.trim(),
+  };
+  for (const k of MR_KEYS) payload[k] = $("mrp-" + k).value.trim();
+  for (const [k] of MRP_RATINGS) payload[k] = rating(k);
+  $("mrp-status").textContent = "Enregistrement…";
+  const { error } = await sb.rpc("portal_save_match_report", { p_youth: player.person_id, p_data: payload });
+  if (error) { $("mrp-status").textContent = "Erreur : " + error.message; return; }
+  renderMatchs();
+}
+
+async function loadPortalMatchHist(player) {
+  const host = $("mrp-hist"); if (!host) return;
+  const { data } = await sb.rpc("portal_match_reports", { p_youth: player.person_id });
+  const rows = data || [];
+  const wins = rows.filter((r) => r.result === "gagne").length, losses = rows.filter((r) => r.result === "perdu").length;
+  const cR = rows.filter((r) => r.author_role === "coach"), jR = rows.filter((r) => r.author_role === "joueur");
+  const avg = (list, k) => { const v = list.map((r) => r[k]).filter((x) => x != null); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length * 10) / 10 : null; };
+  const hasComp = cR.length && jR.length;
+  const bar = (v, cls) => `<div class="mrp-bar"><div class="mrp-bar-fill ${cls}" style="width:${(v || 0) / 5 * 100}%"></div></div>`;
+  const comp = MRP_RATINGS.map(([k, l]) => {
+    const c = avg(cR, k), j = avg(jR, k);
+    return `<div class="mrp-comp"><span class="mrp-comp-l">${escHtml(l)}</span>
+      <div class="mrp-comp-line"><span class="mrp-tag coach">Coach ${c ?? "—"}</span>${bar(c, "coach")}</div>
+      <div class="mrp-comp-line"><span class="mrp-tag joueur">Moi ${j ?? "—"}</span>${bar(j, "joueur")}</div></div>`;
+  }).join("");
+  host.innerHTML = `
+    <div class="mrp-stats"><div class="mrp-stat ok"><b>${wins}</b><span>gagnés</span></div><div class="mrp-stat no"><b>${losses}</b><span>perdus</span></div><div class="mrp-stat"><b>${rows.length}</b><span>feuilles</span></div></div>
+    ${hasComp ? `<h3 class="mrp-h2">Ma vision vs celle du coach</h3><div class="mrp-comp-wrap">${comp}</div>` : ""}
+    <h3 class="mrp-h2">Feuilles</h3>
+    ${rows.length ? rows.map((r) => mrpReportCard(r, player)).join("") : `<p class="muted" style="padding:4px 2px">Aucune feuille pour l'instant.</p>`}`;
+}
+
+function mrpReportCard(r, player) {
+  const L = mrpLabels(r.author_role, player.gender);
+  const texts = MR_KEYS.filter((k) => r[k]).map((k) => `<div class="mrp-field"><b>${escHtml(L[k])}</b><p>${escHtml(r[k]).replace(/\n/g, "<br/>")}</p></div>`).join("");
+  return `<div class="mrp-report">
+    <div class="mrp-report-head">
+      <span class="mrp-badge ${r.author_role}">${r.author_role === "coach" ? "Coach" : "Moi"}</span>
+      <b>vs ${escHtml(r.opponent || "—")}</b>${r.opponent_ranking ? ` (${escHtml(r.opponent_ranking.toUpperCase())})` : ""}
+      <span class="${r.result === "gagne" ? "mrp-win" : "mrp-loss"}">${r.result === "gagne" ? "Gagné" : "Perdu"} ${escHtml(r.score || "")}</span>
+      <span class="muted">${r.match_date ? frShort(r.match_date.slice(0, 10)) : ""}</span>
+    </div>
+    ${texts}
+    ${r.comment ? `<div class="mrp-field"><b>Commentaire</b><p>${escHtml(r.comment).replace(/\n/g, "<br/>")}</p></div>` : ""}
+  </div>`;
 }
