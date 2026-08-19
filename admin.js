@@ -4680,6 +4680,9 @@ const PHYS_YOUTH_ROLES = COURSE_ROLES; // tests physiques = tous les jeunes (tou
 let physTests = [];
 
 function initPhys() {
+  // Créer / éditer des modèles de test = head coach / admin / superadmin. Un coach remplit seulement.
+  if (!hasAny(myAppRoles, ["superadmin", "admin", "head_coach"]))
+    document.querySelector('#view-phystests .phys-subtab[data-sub="templates"]')?.classList.add("hidden");
   document.querySelectorAll("#view-phystests .phys-subtab").forEach((b) =>
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-phystests .phys-subtab").forEach((x) => x.classList.toggle("active", x === b));
