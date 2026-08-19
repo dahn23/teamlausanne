@@ -274,8 +274,8 @@ async function init(roles) {
   $("gz-mov-add").addEventListener("click", addMovement);
   initNews();
   await loadSettings();
+  await loadPeople();            // AVANT le 1er showView : sinon la vue par défaut (ex. Études d'un prof) s'affiche avant que `people` soit chargé
   applyTabAccess(roles);
-  loadPeople();
   loadMtBookmarklet();
   initResa(roles);
   initStats();
@@ -5279,7 +5279,7 @@ async function loadPersonEtudes(personId, byRole) {
   $("pe-stats").innerHTML = (season ? `<div class="muted" style="width:100%;font-size:.82rem;margin-bottom:6px">Saison ${esc(season.label)}</div>` : "")
     + (n ? `<div class="et-stat st-present"><b>${pct(pr)}%</b><span>présent (${pr})</span></div><div class="et-stat st-late"><b>${pct(la)}%</b><span>retard (${la})</span></div><div class="et-stat st-absent"><b>${pct(ab)}%</b><span>absent (${ab})</span></div><div class="et-stat"><b>${n}</b><span>jours</span></div>`
       : '<p class="muted" style="font-size:.85rem">Aucune présence renseignée.</p>');
-  channelBox("pe-chan", "etudes_remarks", personId);
+  channelBox("pe-chan", "etudes_remarks", personId, true);
 }
 async function loadPeRemarks(youthId) {
   peYouthId = youthId;
@@ -5487,10 +5487,12 @@ const etDow = (iso) => ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][new Dat
 let etYouthId = null;
 
 function initEtudes() {
-  // Gérer les profs et générer le calendrier = admin/superadmin. Un prof ne fait que saisir.
+  // Gérer les profs, générer le calendrier et définir le planning d'un jeune = admin/superadmin.
+  // Un prof ne fait que saisir les présences + le suivi.
   if (!hasAny(myAppRoles, ["superadmin", "admin"])) {
     document.querySelector('#view-etudes .et-subtab[data-sub="profs"]')?.classList.add("hidden");
     document.querySelector('#view-etudes .et-subtab[data-sub="reglages"]')?.classList.add("hidden");
+    $("et-plan-card")?.classList.add("hidden");
   }
   document.querySelectorAll("#view-etudes .et-subtab").forEach((b) =>
     b.addEventListener("click", () => {
@@ -5722,7 +5724,7 @@ async function openEtudesYouth(yid) {
     <div class="et-stat st-late"><b>${pct(c("late"))}%</b><span>en retard (${c("late")})</span></div>
     <div class="et-stat st-absent"><b>${pct(c("absent"))}%</b><span>absent (${c("absent")})</span></div>
     <div class="et-stat"><b>${n}</b><span>jours comptés</span></div>` : '<p class="muted" style="font-size:.85rem">Aucune présence renseignée (les « pas prévu » ne comptent pas).</p>';
-  channelBox("et-chan", "etudes_remarks", yid);
+  channelBox("et-chan", "etudes_remarks", yid, true);
   $("et-youth-list").classList.add("hidden");
   $("et-youth-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -5733,12 +5735,12 @@ const CHAN_CFG = {
   etudes_remarks: { author: "prof_name", authorId: "prof_person_id" },
   mental_comments: { author: "author_name", authorId: "author_person_id" },
 };
-async function channelBox(mountId, table, youthId) {
+async function channelBox(mountId, table, youthId, internalOnly) {
   const el = $(mountId);
   if (!el) return;
   if (!youthId) { el.innerHTML = ""; return; }
   const cfg = CHAN_CFG[table];
-  const chan = el.dataset.chan === "public" ? "public" : "interne";
+  const chan = internalOnly ? "interne" : (el.dataset.chan === "public" ? "public" : "interne");
   el.dataset.chan = chan;
   const { data } = await sb.from(table).select("*").eq("youth_person_id", youthId).eq("channel", chan).order("created_at", { ascending: false });
   const rows = data || [];
@@ -5749,30 +5751,32 @@ async function channelBox(mountId, table, youthId) {
       <div class="obj-body">${esc(r.body)}</div>
       ${mine ? `<div class="obj-acts"><button type="button" class="edit">Modifier</button><button type="button" class="del">Supprimer</button></div>` : ""}</div>`;
   }).join("") : '<p class="obj-empty">Aucun message dans ce canal.</p>';
-  el.innerHTML = `
+  const tabs = internalOnly ? "" : `
     <div class="chan-tabs">
       <button type="button" class="chan-tab ${chan === "interne" ? "active" : ""}" data-chan="interne">🔒 Interne</button>
       <button type="button" class="chan-tab pub ${chan === "public" ? "active" : ""}" data-chan="public">🌐 Public</button>
-    </div>
+    </div>`;
+  el.innerHTML = `
+    ${tabs}
     <p class="chan-note ${chan}">${chan === "interne"
       ? "Canal interne — visible par le staff, les profs et les coachs."
       : "Canal public — visible aussi par le jeune concerné et ses parents."}</p>
     <div class="obj-add"><textarea class="chan-body" rows="2" placeholder="${chan === "interne" ? "Note interne…" : "Message partagé au jeune / aux parents…"}"></textarea>
       <button type="button" class="chan-add">Ajouter</button></div>
     <div class="obj-list">${items}</div>`;
-  el.querySelectorAll(".chan-tab").forEach((b) => b.addEventListener("click", () => { el.dataset.chan = b.dataset.chan; channelBox(mountId, table, youthId); }));
+  el.querySelectorAll(".chan-tab").forEach((b) => b.addEventListener("click", () => { el.dataset.chan = b.dataset.chan; channelBox(mountId, table, youthId, internalOnly); }));
   el.querySelector(".chan-add").addEventListener("click", async () => {
     const body = el.querySelector(".chan-body").value.trim(); if (!body) return;
     const row = { youth_person_id: youthId, body, channel: chan, created_by: meId };
     row[cfg.author] = meName; row[cfg.authorId] = myPersonId;
     const { error } = await sb.from(table).insert(row);
     if (error) { alert(error.message); return; }
-    channelBox(mountId, table, youthId);
+    channelBox(mountId, table, youthId, internalOnly);
   });
   el.querySelectorAll(".del").forEach((b) => b.addEventListener("click", async () => {
     if (!confirm("Supprimer ce message ?")) return;
     await sb.from(table).delete().eq("id", b.closest(".obj-item").dataset.id);
-    channelBox(mountId, table, youthId);
+    channelBox(mountId, table, youthId, internalOnly);
   }));
   el.querySelectorAll(".edit").forEach((b) => b.addEventListener("click", () => {
     const item = b.closest(".obj-item"), id = item.dataset.id, cur = rows.find((r) => r.id === id);
@@ -5781,7 +5785,7 @@ async function channelBox(mountId, table, youthId) {
     item.querySelector(".chan-save").addEventListener("click", async () => {
       const nb = item.querySelector(".chan-edit-body").value.trim(); if (!nb) return;
       await sb.from(table).update({ body: nb, updated_at: new Date().toISOString() }).eq("id", id);
-      channelBox(mountId, table, youthId);
+      channelBox(mountId, table, youthId, internalOnly);
     });
   }));
 }
