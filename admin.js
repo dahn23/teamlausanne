@@ -33,7 +33,12 @@ if (!session) {
       email: $("email").value.trim(), password: $("password").value });
     $("login-btn").disabled = false;
     if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
-    location.reload();
+    // Un membre/parent/jeune qui se connecte ici part sur son espace, pas d'« accès refusé ».
+    const roles = await myRoles();
+    let ok = hasAny(roles, CONSOLE_ROLES);
+    if (!ok) { try { ok = (await sb.rpc("gz_is_manager")) === true; } catch (_) {} }
+    if (ok) location.reload();
+    else location.href = "espace.html";
   });
 } else {
   $("who").textContent = session.user.email;
@@ -47,9 +52,18 @@ if (!session) {
   } catch (_) {}
   $("loader").classList.add("hidden");
   if (!hasAny(roles, CONSOLE_ROLES) && !isGzManager) {
-    $("denied").classList.remove("hidden");
+    // Connecté mais pas staff → on l'envoie sur son espace membre plutôt qu'un mur « accès refusé ».
+    location.href = "espace.html";
   } else {
     $("console").classList.remove("hidden");
+    // Entête selon le rôle : « Console » pour l'admin, « Espace coach/prof/mental » pour l'encadrement.
+    const brand = $("brand-role");
+    if (brand) brand.textContent =
+      hasAny(roles, ["superadmin", "admin", "secretaire"]) ? "Console"
+      : hasAny(roles, ["head_coach", "coach"]) ? "Espace coach"
+      : roles.includes("prof") ? "Espace prof"
+      : roles.includes("coach_mental") ? "Espace mental"
+      : "Console";
     meId = session.user.id;
     meEmail = session.user.email;
     meName = meEmail;

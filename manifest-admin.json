@@ -2,7 +2,7 @@
   "name": "Team Lausanne — Console",
   "short_name": "TL Console",
   "description": "Console de gestion Team Lausanne (staff) : membres, cours, réservations, finances, tournois.",
-  "start_url": "admin.html",
+  "start_url": "/console",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

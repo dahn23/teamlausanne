@@ -3,6 +3,18 @@
   publish = "."
   command = ""
 
+# URL neutre pour l'espace staff : /console sert la console.
+# Réécriture (status 200) → l'URL affichée reste /console, plus jamais « /admin ».
+[[redirects]]
+  from = "/console"
+  to = "/admin.html"
+  status = 200
+# L'ancienne adresse /admin bascule vers /console.
+[[redirects]]
+  from = "/admin"
+  to = "/console"
+  status = 301
+
 # En-têtes de sécurité de base.
 [[headers]]
   for = "/*"

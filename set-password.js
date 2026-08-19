@@ -1,6 +1,6 @@
 // Page d'activation : l'utilisateur arrive via le lien d'invitation (le token
 // dans l'URL crée une session), choisit son mot de passe, puis est redirigé.
-import { sb } from "./common.js";
+import { sb, myRoles, landingFor } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 let hasSession = false;
@@ -28,5 +28,6 @@ $("sp-form").addEventListener("submit", async (e) => {
   if (p1 !== p2) { err.textContent = "Les mots de passe ne correspondent pas."; err.hidden = false; return; }
   const { error } = await sb.auth.updateUser({ password: p1 });
   if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
-  location.href = "espace.html";
+  // Selon le rôle : un coach/prof invité arrive sur la console, un membre sur Mon espace.
+  location.href = landingFor(await myRoles());
 });

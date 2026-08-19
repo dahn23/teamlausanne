@@ -6,6 +6,8 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const STAFF_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach"];
 export const ADMIN_ROLES = ["superadmin", "admin", "secretaire"];
+// Tous les rôles qui ouvrent la console (staff élargi : coachs, profs, mental, officiels…).
+export const CONSOLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "prof", "coach_mental", "organisateur", "responsable"];
 
 export async function getSession() {
   const { data } = await sb.auth.getSession();
@@ -18,6 +20,12 @@ export async function myRoles() {
 }
 
 export const hasAny = (roles, allowed) => roles.some((r) => allowed.includes(r));
+
+// Destination après connexion selon le rôle : staff → console, sinon → espace membre.
+// « console » est réécrit vers admin.html par Netlify (l'URL affichée reste /console).
+export function landingFor(roles) {
+  return hasAny(roles || [], CONSOLE_ROLES) ? "/console" : "espace.html";
+}
 
 // ---- Dates en français : JJ-MM-AAAA (partout sur le site) ----
 const pad2 = (n) => String(n).padStart(2, "0");

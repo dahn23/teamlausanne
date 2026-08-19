@@ -1,5 +1,5 @@
 // Site public dynamique : mondes + pages détaillées (routage par ancre).
-import { sb, getSession, frDate, jours } from "./common.js";
+import { sb, getSession, myRoles, landingFor, frDate, jours } from "./common.js";
 import "./pretty-select.js";
 import "./pretty-date.js";
 
@@ -849,7 +849,8 @@ $("login-form").addEventListener("submit", async (e) => {
     email: $("email").value.trim(), password: $("password").value });
   $("login-btn").disabled = false;
   if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
-  location.href = "reservation.html";
+  // Aiguillage par rôle : staff → console, membre/parent/jeune → Mon espace.
+  location.href = landingFor(await myRoles());
 });
 // On NE redirige plus automatiquement : on reste sur le site vitrine même connecté.
 getSession().then((s) => { hasSession = !!s; });
