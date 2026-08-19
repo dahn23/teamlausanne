@@ -86,7 +86,7 @@ const DEFAULT_TAB_ACCESS = {
   admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
   secretaire: ["membres", "inscriptions", "news", "resa", "matchs", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
-  coach:      ["resa", "cours", "matchs", "phystests", "heures"],
+  coach:      ["cours", "matchs", "phystests", "heures"],
   prof:       ["etudes", "heures"],
   coach_mental: ["mental", "heures"],
   organisateur: ["gamezone"],
