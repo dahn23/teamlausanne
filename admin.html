@@ -1197,6 +1197,19 @@
     </div>
   </div>
 
+  <div id="etp-hours-modal" class="modal hidden">
+    <div class="card" style="max-width:340px">
+      <h3 style="margin-top:0">Heures effectuées</h3>
+      <p class="muted" style="font-size:.86rem;margin-top:0">Combien d'heures as-tu faites cet après-midi ?</p>
+      <input type="number" id="etp-hours-input" min="0" max="12" step="0.5" value="4"
+        style="width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px" />
+      <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end">
+        <button type="button" id="etp-hours-cancel" class="ghost">Annuler</button>
+        <button type="button" id="etp-hours-ok">Valider ma présence</button>
+      </div>
+    </div>
+  </div>
+
   <div id="import-modal" class="modal hidden">
     <div class="card wide">
       <button type="button" id="import-close" class="modal-close" aria-label="Fermer">×</button>

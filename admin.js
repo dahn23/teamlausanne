@@ -5549,29 +5549,56 @@ async function loadEtudesCalendar() {
   }
   const attOf = (dayId, yid) => att.find((a) => a.day_id === dayId && a.youth_person_id === yid)?.status || "";
   const profOptions = people.filter((p) => hasRoleIn(p.id, ["prof"]));
-  if (!(days || []).length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jour dans le calendrier. Ajoute un jour ci-dessus.</p>'; return; }
+  if (!(days || []).length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jour dans le calendrier pour cette saison.</p>'; return; }
   if (!youths.length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jeune en sport-études pour cette saison (à définir dans les fiches › Saisons).</p>'; return; }
   let html = '<table class="crm-table et-cal"><thead><tr><th>Date</th><th>Prof(s)</th>'
     + youths.map((y) => `<th title="${esc(y.last_name)} ${esc(y.first_name)}">${esc(y.last_name)} ${esc((y.first_name || "").slice(0, 1))}.</th>`).join("") + "</tr></thead><tbody>";
   for (const d of days) {
     const dp = profs.filter((p) => p.day_id === d.id);
     const iAmProf = myPersonId && dp.some((p) => p.prof_person_id === myPersonId);
-    const iVal = iAmProf && etvals.some((v) => v.day_id === d.id && v.prof_person_id === myPersonId);
-    const valBtn = iAmProf ? `<div><button type="button" class="et-dayval ghost ${iVal ? "on" : ""}" data-day="${d.id}" data-val="${iVal ? 1 : 0}">${iVal ? "✓ validé" : "Valider l'aprem"}</button></div>` : "";
-    html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${valBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions)}</td>`
+    const myV = iAmProf ? etvals.find((v) => v.day_id === d.id && v.prof_person_id === myPersonId) : null;
+    const mySt = myV?.status || "";
+    // Pastille de présence du prof (comme un coach) : blanc → absent → présent → blanc.
+    const presLbl = mySt === "present" ? `Présent ${myV.hours ?? 4}h` : mySt === "absent" ? "Absent" : "Ma présence";
+    const presCls = mySt === "present" ? "st-present" : mySt === "absent" ? "st-absent" : "st-none";
+    const presBtn = iAmProf ? `<div style="margin-top:6px"><button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-status="${mySt}">${presLbl}</button></div>` : "";
+    html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${presBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions)}</td>`
       + youths.map((y) => { const s = attOf(d.id, y.id); return `<td><button type="button" class="att-chip et-cell ${ET_CLS[s]}" data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
   cont.innerHTML = html + "</tbody></table>";
   cont.querySelectorAll(".et-cell").forEach((c) => c.addEventListener("click", () => etCycle(c)));
+  cont.querySelectorAll(".et-presence").forEach((b) => b.addEventListener("click", () => etProfPresence(b)));
   cont.querySelectorAll(".et-prof-rm").forEach((b) => b.addEventListener("click", async () => { await sb.from("etudes_day_profs").delete().eq("day_id", b.dataset.day).eq("prof_person_id", b.dataset.prof); loadEtudesCalendar(); }));
   cont.querySelectorAll(".et-prof-add").forEach((s) => s.addEventListener("change", async () => { if (!s.value) return; await sb.from("etudes_day_profs").insert({ day_id: s.dataset.day, prof_person_id: s.value }); loadEtudesCalendar(); }));
-  cont.querySelectorAll(".et-dayval").forEach((b) => b.addEventListener("click", () => toggleEtudesDayValidation(b.dataset.day, b.dataset.val === "1")));
 }
-async function toggleEtudesDayValidation(dayId, validated) {
-  if (!myPersonId) return;
-  if (validated) await sb.from("etudes_day_validation").delete().eq("day_id", dayId).eq("prof_person_id", myPersonId);
-  else { const { error } = await sb.from("etudes_day_validation").insert({ day_id: dayId, prof_person_id: myPersonId }); if (error) { alert(error.message); return; } }
+// Tous les jeunes d'une journée ont-ils un statut ? (pré-requis pour se déclarer présent)
+function etAllYouthsMarked(dayId) {
+  return [...document.querySelectorAll(`.et-cell[data-day="${dayId}"]`)].every((c) => c.dataset.status);
+}
+// Box « heures faites » (défaut 4). Renvoie un nombre, ou null si annulé.
+function askHours() {
+  return new Promise((resolve) => {
+    const m = $("etp-hours-modal"), inp = $("etp-hours-input");
+    const ok = $("etp-hours-ok"), cancel = $("etp-hours-cancel");
+    inp.value = "4"; m.classList.remove("hidden"); setTimeout(() => inp.focus(), 50);
+    const cleanup = (val) => { m.classList.add("hidden"); ok.onclick = null; cancel.onclick = null; resolve(val); };
+    ok.onclick = () => { const v = parseFloat(inp.value); cleanup(isNaN(v) ? 4 : v); };
+    cancel.onclick = () => cleanup(null);
+  });
+}
+// Pastille présence prof : blanc → absent (libre) → présent (tous jeunes + heures) → blanc.
+async function etProfPresence(chip) {
+  const day = chip.dataset.day, cur = chip.dataset.status || "";
+  const next = cur === "" ? "absent" : cur === "absent" ? "present" : "neutral";
+  let hours = null;
+  if (next === "present") {
+    if (!etAllYouthsMarked(day)) { alert("Marque d'abord tous les jeunes de la journée avant de te déclarer présent."); return; }
+    hours = await askHours();
+    if (hours === null) return; // annulé
+  }
+  const { error } = await sb.rpc("set_etudes_presence", { p_day: day, p_status: next, p_hours: hours });
+  if (error) { alert(error.message); return; }
   loadEtudesCalendar();
 }
 function etProfCellHtml(dayId, dayProfs, profOptions) {
