@@ -1541,6 +1541,9 @@ function initCours(roles) {
   isHeadUser = roles.some((r) => ["superadmin", "admin", "head_coach"].includes(r));
   isAdminUser = roles.some((r) => ["superadmin", "admin"].includes(r));
   $("ct-card").querySelector(".ct-add").classList.toggle("hidden", !isAdminUser);
+  // Sous-onglet « Types de cours » : réservé admin/superadmin (impacte le paiement).
+  const tt = $("cours-subtab-types");
+  if (tt) tt.classList.toggle("hidden", !isAdminUser);
   $("cs-new").classList.toggle("hidden", !isHeadUser);
   $("cs-copy").classList.toggle("hidden", !isHeadUser);
 
@@ -1617,8 +1620,10 @@ function canMarkBox(course, coachIds, pid, isCoach) {
   if (isHeadUser) return true;                     // head/admin/superadmin : tout, tout le temps
   if (!myPersonId || !coachIds.includes(myPersonId)) return false; // doit être coach du cours
   if (isCoach) return pid === myPersonId;          // un coach ne valide que sa propre présence
-  const start = new Date(`${course.course_date}T${course.start_time}`);
-  return Date.now() <= start.getTime() + 10 * 60000; // enfant : jusqu'à 10 min après le début
+  // Enfant : le coach peut pointer le JOUR du cours (pendant et après la leçon).
+  const now = new Date();
+  const today = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  return today === course.course_date;
 }
 
 function attChip(course, coachIds, pid, isCoach, status) {
@@ -1717,10 +1722,10 @@ async function openAttendance(courseId) {
   const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : "—"; };
 
   $("att-title").textContent = `Présences — ${course.title || "cours"} (${course.start_time.slice(0, 5)})`;
-  const openAt = new Date(`${course.course_date}T${course.start_time}`); openAt.setMinutes(openAt.getMinutes() - 5);
-  const early = new Date() < openAt;
-  $("att-note").textContent = early
-    ? `Le pointage des enfants ouvre à ${pad2(openAt.getHours())}:${pad2(openAt.getMinutes())} (5 min avant). Head coach/admin : à tout moment.`
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  $("att-note").textContent = (!isHeadUser && course.course_date !== todayStr)
+    ? "Le pointage des enfants se fait le jour du cours. (Head coach / admin : à tout moment.)"
     : "Cliquez pour marquer présent / absent / en retard.";
 
   $("att-children").innerHTML = parts.length ? parts.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), false)).join("") : '<p class="muted" style="font-size:.85rem">Aucun enfant.</p>';
