@@ -3019,9 +3019,32 @@ async function savePerson(e) {
     await sb.from("person_roles").delete().eq("person_id", id);
     const rr = [...personRolesSel].map((role) => ({ person_id: id, role }));
     if (rr.length) await sb.from("person_roles").insert(rr);
+    // Répercute les rôles d'ACCÈS (staff) vers user_roles = source d'accès réelle.
+    const okAcc = await syncAccessRoles(id, personRolesSel);
+    if (!okAcc) alert("Fiche enregistrée. Mais les rôles d'ACCÈS (staff) n'ont pas pu être mis à jour — réservé à un admin (superadmin/admin). L'accès réel est inchangé.");
   }
   closePerson();
   loadPeople();
+}
+
+// Rôles d'accès pilotant la console/RLS. Miroir fiche -> user_roles (uniquement
+// pour une personne AYANT un compte). On ne touche PAS membre/junior/parent
+// (saisonniers, gérés dans role_periods). Écriture réservée aux admins (RLS is_admin).
+const ACCESS_SYNC_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "prof", "coach_mental", "organisateur"];
+async function syncAccessRoles(personId, rolesSet) {
+  const { data: prof } = await sb.from("profiles").select("user_id").eq("person_id", personId).maybeSingle();
+  if (!prof?.user_id) return true;                       // pas de compte -> rien à synchroniser
+  const want = ACCESS_SYNC_ROLES.filter((r) => rolesSet.has(r)).sort();
+  const { data: cur } = await sb.from("user_roles").select("role").eq("user_id", prof.user_id).in("role", ACCESS_SYNC_ROLES);
+  const have = (cur || []).map((x) => x.role).sort();
+  if (have.length === want.length && have.every((r, i) => r === want[i])) return true; // déjà aligné
+  if (!myAppRoles.some((r) => r === "superadmin" || r === "admin")) return false;      // changement demandé mais pas admin
+  await sb.from("user_roles").delete().eq("user_id", prof.user_id).in("role", ACCESS_SYNC_ROLES);
+  if (want.length) {
+    const { error } = await sb.from("user_roles").insert(want.map((role) => ({ user_id: prof.user_id, role })));
+    if (error) return false;
+  }
+  return true;
 }
 
 async function deletePerson() {
