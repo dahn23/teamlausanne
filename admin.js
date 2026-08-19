@@ -5549,6 +5549,7 @@ async function loadEtudesCalendar() {
   }
   const attOf = (dayId, yid) => att.find((a) => a.day_id === dayId && a.youth_person_id === yid)?.status || "";
   const profOptions = people.filter((p) => hasRoleIn(p.id, ["prof"]));
+  const canEditProfs = hasAny(myAppRoles, ["superadmin", "admin"]); // ajouter/retirer des profs = admin
   if (!(days || []).length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jour dans le calendrier pour cette saison.</p>'; return; }
   if (!youths.length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jeune en sport-études pour cette saison (à définir dans les fiches › Saisons).</p>'; return; }
   let html = '<table class="crm-table et-cal"><thead><tr><th>Date</th><th>Prof(s)</th>'
@@ -5561,8 +5562,8 @@ async function loadEtudesCalendar() {
     // Pastille de présence du prof (comme un coach) : blanc → absent → présent → blanc.
     const presLbl = mySt === "present" ? `Présent ${myV.hours ?? 4}h` : mySt === "absent" ? "Absent" : "Ma présence";
     const presCls = mySt === "present" ? "st-present" : mySt === "absent" ? "st-absent" : "st-none";
-    const presBtn = iAmProf ? `<div style="margin-top:6px"><button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-status="${mySt}">${presLbl}</button></div>` : "";
-    html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${presBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions)}</td>`
+    const presBtn = iAmProf ? `<div style="margin-top:6px"><button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${presLbl}</button></div>` : "";
+    html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${presBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions, canEditProfs)}</td>`
       + youths.map((y) => { const s = attOf(d.id, y.id); return `<td><button type="button" class="att-chip et-cell ${ET_CLS[s]}" data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
@@ -5590,22 +5591,28 @@ function askHours() {
 // Pastille présence prof : blanc → absent (libre) → présent (tous jeunes + heures) → blanc.
 async function etProfPresence(chip) {
   const day = chip.dataset.day, cur = chip.dataset.status || "";
-  const next = cur === "" ? "absent" : cur === "absent" ? "present" : "neutral";
+  // « Présent » n'est proposé dans le cycle que s'il est possible (dès 12h50 le jour-j + tous les jeunes marqués).
+  // Sinon on ne fait que basculer absent ↔ neutre (on ne reste pas coincé sur absent).
+  const afterTime = new Date() >= new Date(chip.dataset.date + "T12:50:00");
+  const youthsOk = etAllYouthsMarked(day);
+  let next;
+  if (cur === "") next = "absent";
+  else if (cur === "absent") {
+    if (afterTime && youthsOk) next = "present";
+    else { if (afterTime && !youthsOk) alert("Marque d'abord tous les jeunes pour te déclarer présent."); next = "neutral"; }
+  } else next = "neutral"; // présent → neutre
   let hours = null;
-  if (next === "present") {
-    if (!etAllYouthsMarked(day)) { alert("Marque d'abord tous les jeunes de la journée avant de te déclarer présent."); return; }
-    hours = await askHours();
-    if (hours === null) return; // annulé
-  }
+  if (next === "present") { hours = await askHours(); if (hours === null) return; }
   const { error } = await sb.rpc("set_etudes_presence", { p_day: day, p_status: next, p_hours: hours });
   if (error) { alert(error.message); return; }
   loadEtudesCalendar();
 }
-function etProfCellHtml(dayId, dayProfs, profOptions) {
-  const chips = dayProfs.map((dp) => { const p = people.find((x) => x.id === dp.prof_person_id); return `<span class="et-prof-chip">${p ? esc(p.last_name) : "?"}<button type="button" class="et-prof-rm" data-day="${dayId}" data-prof="${dp.prof_person_id}">✕</button></span>`; }).join(" ");
+function etProfCellHtml(dayId, dayProfs, profOptions, canEdit) {
+  // canEdit (admin) : peut ajouter/retirer des profs. Un prof voit juste les noms (pas de ✕ ni « + prof »).
+  const chips = dayProfs.map((dp) => { const p = people.find((x) => x.id === dp.prof_person_id); return `<span class="et-prof-chip">${p ? esc(p.last_name) : "?"}${canEdit ? `<button type="button" class="et-prof-rm" data-day="${dayId}" data-prof="${dp.prof_person_id}">✕</button>` : ""}</span>`; }).join(" ");
   const avail = profOptions.filter((p) => !dayProfs.some((dp) => dp.prof_person_id === p.id));
-  const sel = avail.length ? `<select class="et-prof-add" data-day="${dayId}"><option value="">+ prof</option>${avail.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")}</select>` : "";
-  return `<div class="et-profwrap">${chips}${sel}</div>`;
+  const sel = (canEdit && avail.length) ? `<select class="et-prof-add" data-day="${dayId}"><option value="">+ prof</option>${avail.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")}</select>` : "";
+  return `<div class="et-profwrap">${chips || '<span class="muted" style="font-size:.8rem">—</span>'}${sel}</div>`;
 }
 async function etCycle(cell) {
   const next = etNext(cell.dataset.status);
