@@ -29,6 +29,7 @@ export const TOURNOI = {
     ["Lieu", "Lausanne-Sports Tennis<br>Route des Plaines-du-Loup 7, 1018 Lausanne"],
     ["Entrée", "Libre et gratuite, toute la semaine, sans billet"],
     ["Catégorie", "ITF M25 · 30 000 $ de dotation"],
+    ["Édition", "2ᵉ édition — le tournoi a été créé en 2025"],
     ["Sur place", "Club-house, restaurant et terrasse ouverts à tous"],
     ["Renseignements", `<a href="tel:${LIENS.tel}">${LIENS.telAffiche}</a>`],
   ],
@@ -64,6 +65,10 @@ export const SEEDS = [
 ];
 
 /* ------------------------------------------------------------ PALMARÈS */
+export const PALMARES_NOTE =
+  "Le Lausanne Open a été créé en 2025 : cette semaine en est la deuxième édition. " +
+  "Un seul nom au palmarès pour l'instant, et il revient défendre son titre.";
+
 export const PALMARES = [
   { annee: "2025", simple: "🇨🇭 Henry Bernet", double: "🇮🇪 Charles Barry · 🇫🇷 Max Westphal" },
 ];

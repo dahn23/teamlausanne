@@ -7,7 +7,7 @@
 // =====================================================================
 import { sb } from "./sb.js";
 import { svg, ico } from "./icons.js";
-import { LIENS, TOURNOI, SEEDS, PALMARES, CLUB, ACADEMY, PARTENAIRES } from "./content.js";
+import { LIENS, TOURNOI, SEEDS, PALMARES, PALMARES_NOTE, CLUB, ACADEMY, PARTENAIRES } from "./content.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -100,6 +100,7 @@ async function vTournoi(v) {
     <div class="seeds">${SEEDS.map(seedHTML).join("")}</div>
 
     <div class="sec-title">${svg("trophy", "mk")} Palmarès</div>
+    <p class="lo-lead">${esc(PALMARES_NOTE)}</p>
     ${PALMARES.map((p) => carte("medal", p.annee,
       `<div class="kv">
          <div><span>Simple</span><b>${p.simple}</b></div>
