@@ -151,7 +151,7 @@ const WORLDS = {
         sub: "Entrée libre toute la semaine, animations grand public et hospitalité.",
         items: [
           { name: "Initiation pour les écoles", photo: "assets/photos/open-kids.jpg" },
-          { name: "Journée Team Lausanne", photo: "assets/photos/open-kids.jpg", href: "/samedi-famille" },
+          { name: "Journée Team Lausanne", photo: "assets/photos/journee-famille.jpg", href: "/samedi-famille" },
           { name: "VIP · Tennis & Lunch", photo: "assets/photos/open-lunch.jpg" },
         ]},
       { type: "ranking", anchor: "palmares", title: "Palmarès",
