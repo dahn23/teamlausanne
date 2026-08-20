@@ -4,6 +4,29 @@
   publish = "."
   command = ""
 
+# --- Anciennes URL du site Wix : aucune ne doit tomber en 404 ---
+# Elles circulent dans des mails, des flyers et sur Google.
+[[redirects]]
+  from = "/partenariats"
+  to = "/#partenaires"
+  status = 301
+[[redirects]]
+  from = "/programmedujour"
+  to = "/#tournoi"
+  status = 301
+[[redirects]]
+  from = "/apropos"
+  to = "/#tournoi"
+  status = 301
+[[redirects]]
+  from = "/events"
+  to = "/#tournoi"
+  status = 301
+[[redirects]]
+  from = "/initiation"
+  to = "/#tournoi"
+  status = 301
+
 # URL courtes : les liens deja diffuses doivent tomber juste.
 [[redirects]]
   from = "/samedi-famille"
