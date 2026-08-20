@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Lausanne Open — Backend</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#070d24" />
+  <link rel="icon" href="assets/logo-open.webp" />
+  <link rel="stylesheet" href="open.css" />
+</head>
+<body>
+
+  <!-- Écran mot de passe -->
+  <div class="gate" id="gate">
+    <form class="card" id="gate-form">
+      <img src="assets/logo-open.webp" alt="Lausanne Open" />
+      <h3 style="justify-content:center">Backend du tournoi</h3>
+      <p class="hint" style="margin-bottom:14px">Accès réservé à l'organisation.</p>
+      <label class="f" style="text-align:left">Mot de passe
+        <input type="password" id="pwd" autocomplete="current-password" required />
+      </label>
+      <button class="btn block" type="submit">Entrer</button>
+      <p class="err" id="gate-err"></p>
+    </form>
+  </div>
+
+  <!-- Console -->
+  <div id="app" class="hidden">
+    <header class="lo-head">
+      <div class="lo-head-in">
+        <img class="lo-logo" src="assets/logo-open.webp" alt="Lausanne Open" />
+        <div class="lo-title">
+          <h1>Backend</h1>
+          <p>Lausanne Open 2026</p>
+        </div>
+        <button class="btn small ghost" id="logout" style="margin-left:auto">Quitter</button>
+      </div>
+      <nav class="lo-tabs" id="tabs"></nav>
+    </header>
+    <main class="lo-main" id="view"><span class="spin"></span></main>
+  </div>
+
+  <div id="sheet"></div>
+  <script type="module" src="open-admin.js"></script>
+</body>
+</html>

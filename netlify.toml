@@ -15,6 +15,18 @@
   to = "/console"
   status = 301
 
+# --- Lausanne Open : app joueurs (/players) et son backend (/open-admin) ---
+# Réécritures (200) : l'URL affichée reste courte, facile à imprimer sur un
+# badge ou à mettre en QR code.
+[[redirects]]
+  from = "/players"
+  to = "/open.html"
+  status = 200
+[[redirects]]
+  from = "/open-admin"
+  to = "/open-admin.html"
+  status = 200
+
 # En-têtes de sécurité de base.
 [[headers]]
   for = "/*"
