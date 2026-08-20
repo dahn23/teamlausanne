@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Journée Team Lausanne — samedi 29 août | Lausanne Open</title>
+  <meta name="description" content="Samedi 29 août 2026 dès 11h, journée de l'école de tennis Team Lausanne au Lausanne Open : initiation, mini-tennis, cibles. Gratuit, ouvert à tous, matériel fourni." />
+  <meta name="theme-color" content="#070d24" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="lo-head">
+    <div class="lo-head-in">
+      <a href="/"><img class="lo-logo" src="assets/logo-open.webp" alt="Lausanne Open 2026" /></a>
+      <div class="lo-title">
+        <h1>Journée Team Lausanne</h1>
+        <p>Samedi 29 août 2026 · dès 11h</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="lo-main">
+
+    <div class="hero with-photo"
+         style="background-image:linear-gradient(180deg,rgba(7,13,36,.2),rgba(7,13,36,.92)),url('assets/academy.png')">
+      <h2>Une journée de tennis, pour tout le monde</h2>
+      <p>L'école de tennis Team Lausanne s'installe au cœur du tournoi. Initiation, mini-tennis,
+         jeux de cibles et bien d'autres activités — enfants comme adultes, tous niveaux.</p>
+      <div class="badges">
+        <span class="badge fluo">Gratuit</span>
+        <span class="badge">Ouvert à tous</span>
+        <span class="badge">Matériel fourni</span>
+      </div>
+    </div>
+
+    <article class="card"><div class="card-in">
+      <h3>Le programme</h3>
+      <div class="kv">
+        <div><span>Quand</span><b>Samedi 29 août 2026<br>dès 11h00</b></div>
+        <div><span>Où</span><b>Lausanne-Sports Tennis<br>Route des Plaines-du-Loup 7, 1018 Lausanne</b></div>
+        <div><span>Prix</span><b>Gratuit</b></div>
+        <div><span>Pour qui</span><b>Enfants et adultes, tous niveaux</b></div>
+      </div>
+      <p class="note">Raquettes et balles sont fournies : venez simplement en tenue de sport.
+         Et pendant que vous jouez, le tournoi continue — les <b>demi-finales du simple</b> se
+         disputent à 11h, et la <b>finale du double</b> vers 15h, à quelques mètres de là.</p>
+    </div></article>
+
+    <article class="card"><div class="card-in">
+      <h3>S'inscrire</h3>
+      <p>L'inscription n'est pas obligatoire pour venir, mais elle nous aide à organiser les
+         groupes — et chaque personne inscrite repart avec un <b>cadeau-souvenir</b>.</p>
+
+      <!-- Formulaire traité par Netlify : le HTML doit rester en dur dans la page
+           pour être détecté au déploiement, d'où l'absence de génération en JS. -->
+      <form name="samedi-famille" method="POST" data-netlify="true"
+            netlify-honeypot="bot-field" id="form" style="margin-top:16px">
+        <input type="hidden" name="form-name" value="samedi-famille" />
+        <p class="hidden"><label>Ne pas remplir : <input name="bot-field" /></label></p>
+
+        <label class="f">Nom et prénom *
+          <input type="text" name="nom" required autocomplete="name" placeholder="Marie Dupont" />
+        </label>
+        <label class="f">E-mail *
+          <input type="email" name="email" required autocomplete="email" placeholder="marie.dupont@exemple.ch" />
+        </label>
+        <label class="f">Combien serez-vous ?
+          <select name="personnes">
+            <option>1</option><option selected>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>Plus de 6</option>
+          </select>
+        </label>
+
+        <button class="btn block" type="submit" id="send">Je m'inscris !</button>
+        <p class="err" id="err"></p>
+      </form>
+
+      <div id="merci" class="hidden" style="margin-top:16px">
+        <div class="hero" style="padding:22px 18px">
+          <h2>Merci, c'est noté !</h2>
+          <p>Votre inscription nous est bien parvenue. À samedi 29 août, dès 11h,
+             aux Plaines-du-Loup — n'oubliez pas de passer chercher votre cadeau-souvenir.</p>
+        </div>
+      </div>
+    </div></article>
+
+    <p class="lnk" style="text-align:center;margin-top:18px">
+      <a href="/">← Retour au Lausanne Open</a>
+    </p>
+  </main>
+
+  <footer class="lo-foot">
+    Lausanne-Sports Tennis · Route des Plaines-du-Loup 7, 1018 Lausanne<br />
+    <a href="tel:+41216461350">+41 21 646 13 50</a> ·
+    <a href="mailto:info@lausanneopen.ch">info@lausanneopen.ch</a>
+  </footer>
+
+  <script>
+    // Envoi sans quitter la page : Netlify accepte le POST en AJAX tant que
+    // form-name est présent. En cas de pépin, on bascule sur l'envoi normal.
+    const f = document.getElementById("form");
+    f.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("send");
+      const err = document.getElementById("err");
+      btn.disabled = true; err.textContent = "";
+      try {
+        const r = await fetch("/", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams(new FormData(f)).toString(),
+        });
+        if (!r.ok) throw new Error("Envoi refusé (" + r.status + ")");
+        f.classList.add("hidden");
+        document.getElementById("merci").classList.remove("hidden");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (ex) {
+        err.textContent = "L'envoi a échoué : " + ex.message +
+          ". Écrivez-nous à info@lausanneopen.ch, on vous inscrit à la main.";
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

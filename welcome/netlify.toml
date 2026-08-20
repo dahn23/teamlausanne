@@ -4,6 +4,16 @@
   publish = "."
   command = ""
 
+# URL courtes : les liens deja diffuses doivent tomber juste.
+[[redirects]]
+  from = "/samedi-famille"
+  to = "/samedi-famille.html"
+  status = 200
+[[redirects]]
+  from = "/tennis-lunchs"
+  to = "/tennis-lunchs.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

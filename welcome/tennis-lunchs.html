@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Tennis Lunchs — réservations | Lausanne Open 2026</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#070d24" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="lo-head">
+    <div class="lo-head-in">
+      <a href="/"><img class="lo-logo" src="assets/logo-open.webp" alt="Lausanne Open 2026" /></a>
+      <div class="lo-title">
+        <h1>Tennis Lunchs</h1>
+        <p>Du 23 au 30 août 2026</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="lo-main">
+
+    <div class="hero with-photo"
+         style="background-image:linear-gradient(180deg,rgba(7,13,36,.18),rgba(7,13,36,.92)),url('assets/hero.webp')">
+      <h2>Le tennis, à table</h2>
+      <p>Le comité d'organisation vous invite à vivre les matchs dans un cadre convivial et
+         privilégié : un déjeuner au bord des courts, pendant que le tournoi se joue.</p>
+      <div class="badges">
+        <span class="badge fluo">Repas offert</span>
+        <span class="badge">Dès 11h30</span>
+        <span class="badge">Du lundi au vendredi</span>
+      </div>
+    </div>
+
+    <article class="card"><div class="card-in">
+      <h3>Comment ça marche</h3>
+      <div class="kv">
+        <div><span>Quand</span><b>Du lundi au vendredi<br>à partir de 11h30</b></div>
+        <div><span>Où</span><b>Lausanne-Sports Tennis<br>Route des Plaines-du-Loup 7, 1018 Lausanne</b></div>
+        <div><span>Repas</span><b>Offert</b></div>
+        <div><span>Boissons</span><b>À la charge des convives</b></div>
+      </div>
+      <p class="note">Les places sont limitées : les réservations sont prises dans la limite
+         des places disponibles, et nous vous confirmons votre venue par e-mail.</p>
+    </div></article>
+
+    <article class="card"><div class="card-in">
+      <h3>Réserver</h3>
+
+      <!-- Formulaire traité par Netlify : le HTML doit rester en dur dans la page
+           pour être détecté au déploiement. Pour marquer un jour COMPLET, ajouter
+           disabled à sa case et la mention « complet » dans le libellé. -->
+      <form name="tennis-lunchs" method="POST" data-netlify="true"
+            netlify-honeypot="bot-field" id="form" style="margin-top:6px">
+        <input type="hidden" name="form-name" value="tennis-lunchs" />
+        <p class="hidden"><label>Ne pas remplir : <input name="bot-field" /></label></p>
+
+        <div class="grid2">
+          <label class="f">Nom *
+            <input type="text" name="nom" required autocomplete="family-name" />
+          </label>
+          <label class="f">Prénom *
+            <input type="text" name="prenom" required autocomplete="given-name" />
+          </label>
+        </div>
+
+        <label class="f">E-mail *
+          <input type="email" name="email" required autocomplete="email" placeholder="vous@exemple.ch" />
+        </label>
+
+        <div class="grid2">
+          <label class="f">Téléphone *
+            <input type="tel" name="telephone" required autocomplete="tel" placeholder="+41 79 000 00 00" />
+          </label>
+          <label class="f">Nombre de personnes *
+            <select name="personnes" required>
+              <option value="">—</option>
+              <option>1</option><option>2</option><option>3</option><option>4</option>
+              <option>5</option><option>6</option><option>7</option><option>8</option>
+              <option>Plus de 8</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="f">Entreprise (facultatif)
+          <input type="text" name="entreprise" autocomplete="organization" />
+        </label>
+
+        <fieldset class="days">
+          <legend>Date ou dates souhaitées *</legend>
+          <label class="day off"><input type="checkbox" name="dates" value="Lundi 24 août" disabled />
+            <span>Lundi 24 août<small>complet</small></span></label>
+          <label class="day"><input type="checkbox" name="dates" value="Mardi 25 août" />
+            <span>Mardi 25 août</span></label>
+          <label class="day"><input type="checkbox" name="dates" value="Mercredi 26 août" />
+            <span>Mercredi 26 août</span></label>
+          <label class="day off"><input type="checkbox" name="dates" value="Jeudi 27 août" disabled />
+            <span>Jeudi 27 août<small>complet</small></span></label>
+          <label class="day"><input type="checkbox" name="dates" value="Vendredi 28 août" />
+            <span>Vendredi 28 août</span></label>
+        </fieldset>
+
+        <label class="f">Remarques (facultatif)
+          <textarea name="remarques" placeholder="Allergies, régime particulier, invités…"></textarea>
+        </label>
+
+        <button class="btn block" type="submit" id="send">Réserver</button>
+        <p class="err" id="err"></p>
+      </form>
+
+      <div id="merci" class="hidden" style="margin-top:16px">
+        <div class="hero" style="padding:22px 18px">
+          <h2>Demande enregistrée</h2>
+          <p>Merci ! Nous revenons vers vous par e-mail pour confirmer votre table,
+             dans la limite des places disponibles.</p>
+        </div>
+      </div>
+    </div></article>
+
+    <p class="lnk" style="text-align:center;margin-top:18px">
+      <a href="/">← Retour au Lausanne Open</a>
+    </p>
+  </main>
+
+  <footer class="lo-foot">
+    Lausanne-Sports Tennis · Route des Plaines-du-Loup 7, 1018 Lausanne<br />
+    <a href="tel:+41216461350">+41 21 646 13 50</a> ·
+    <a href="mailto:info@lausanneopen.ch">info@lausanneopen.ch</a>
+  </footer>
+
+  <script>
+    const f = document.getElementById("form");
+    f.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("send");
+      const err = document.getElementById("err");
+      err.textContent = "";
+      // au moins une date : le navigateur ne sait pas l'exiger sur un groupe de cases
+      if (![...f.querySelectorAll('input[name="dates"]')].some((c) => c.checked)) {
+        err.textContent = "Choisissez au moins une date.";
+        return;
+      }
+      btn.disabled = true;
+      try {
+        const r = await fetch("/", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams(new FormData(f)).toString(),
+        });
+        if (!r.ok) throw new Error("Envoi refusé (" + r.status + ")");
+        f.classList.add("hidden");
+        document.getElementById("merci").classList.remove("hidden");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (ex) {
+        err.textContent = "L'envoi a échoué : " + ex.message +
+          ". Écrivez-nous à info@lausanneopen.ch, on prend votre réservation à la main.";
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

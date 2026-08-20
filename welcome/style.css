@@ -453,3 +453,17 @@ svg.mk.off{color:var(--muted)}
 .seed-n{width:32px;height:32px;font-size:.95rem}
 .seeds .seed-in{padding:12px 15px 15px}
 .seeds .seed-in p{font-size:.87rem}
+
+/* ---- Pages d'inscription (samedi-famille, tennis-lunchs) ---- */
+.days{border:0;padding:0;margin:0 0 11px}
+.days legend{font-size:.8rem;color:var(--muted);font-weight:700;padding:0;margin-bottom:8px}
+.day{display:flex;align-items:center;gap:11px;padding:11px 13px;margin-bottom:7px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line-2);border-radius:12px;cursor:pointer}
+.day:hover{background:rgba(255,255,255,.1)}
+.day input{width:20px;height:20px;flex-shrink:0;margin:0;accent-color:var(--fluo);cursor:pointer}
+.day span{font-size:.92rem;font-weight:700;display:flex;align-items:baseline;gap:9px}
+.day small{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--urgent)}
+.day.off{opacity:.45;cursor:not-allowed}
+.day.off:hover{background:rgba(255,255,255,.05)}
+.day input:checked ~ span{color:var(--fluo)}
+.lo-head-in a{display:flex;align-items:center}
