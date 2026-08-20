@@ -366,3 +366,15 @@ svg.mk.off{color:var(--muted)}
 .card .note{margin-top:12px;color:#c3cbe6;font-size:.88rem}
 .card .lnk{margin:12px 0 0}
 .credits{margin:18px 2px 0;font-size:.72rem;color:var(--muted);line-height:1.6;text-align:center}
+
+/* Sous-onglets en grille : tout tient a l'ecran, aucun defilement.
+   Reserve aux listes courtes et fixes (Welcome, Sejour) ; les listes de
+   jours gardent le defilement, il peut y en avoir neuf. */
+.lo-sub.grid{display:grid;gap:5px;overflow:visible}
+.lo-sub.grid button{
+  padding:8px 3px;font-size:.68rem;line-height:1.15;white-space:normal;
+  display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;
+  text-align:center;min-width:0;overflow-wrap:anywhere;hyphens:auto;
+}
+.lo-sub.grid svg{width:13px;height:13px}
+@media(min-width:520px){ .lo-sub.grid button{font-size:.78rem;padding:8px 6px} }

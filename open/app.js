@@ -143,10 +143,13 @@ function render() {
 }
 
 /* barre de sous-onglets réutilisable */
-function subBar(key, items, onPick) {
+function subBar(key, items, onPick, grid) {
   const cur = items.some((i) => i.id === state.sub[key]) ? state.sub[key] : items[0].id;
   state.sub[key] = cur;
-  const html = `<div class="lo-sub">${items.map((i) =>
+  // grid = tous les sous-onglets tiennent a l ecran (Welcome, Sejour).
+  // Sans grid, ils defilent : c est le cas des listes de jours, ou il peut
+  // y en avoir neuf.
+  const html = `<div class="lo-sub${grid ? " grid" : ""}"${grid ? ` style="grid-template-columns:repeat(${items.length},1fr)"` : ""}>${items.map((i) =>
     `<button data-s="${i.id}" class="${i.id === cur ? "on" : ""}">${i.label}</button>`).join("")}</div>`;
   return { html, cur, bind(root) {
     root.querySelector(".lo-sub").onclick = (e) => {
@@ -188,7 +191,7 @@ function cardHTML(c, withPhoto) {
 }
 
 function viewWelcome(v) {
-  const bar = subBar("welcome", SUBS.map((id) => ({ id, label: esc(t("sub." + id)) })), () => viewWelcome(v));
+  const bar = subBar("welcome", SUBS.map((id) => ({ id, label: esc(t("sub." + id)) })), () => viewWelcome(v), true);
   const sec = (WELCOME[L()] || WELCOME.en)[bar.cur];
   const isVisit = bar.cur === "visit";
 
@@ -241,7 +244,7 @@ async function viewLogistics(v) {
     { id: "hotel",   label: `${svg("bed")}${esc(t("log.hotel"))}` },
     { id: "shuttle", label: `${svg("bus")}${esc(t("log.shuttle"))}` },
     { id: "resto",   label: `${svg("utensils")}${esc(t("log.resto"))}` },
-  ], () => viewLogistics(v));
+  ], () => viewLogistics(v), true);
 
   let body = "";
   if (bar.cur === "hotel") {
