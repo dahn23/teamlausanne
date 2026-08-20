@@ -194,7 +194,7 @@ function vClub(v) {
 function vAcademy(v) {
   v.innerHTML = `
     <div class="hero with-photo"
-         style="background-image:linear-gradient(180deg,rgba(7,13,36,.2),rgba(7,13,36,.92)),url('assets/academy.jpg')">
+         style="background-image:linear-gradient(180deg,rgba(7,13,36,.2),rgba(7,13,36,.92)),url('assets/academy.png')">
       <h2>${esc(ACADEMY.titre)}</h2>
       <p>${esc(ACADEMY.chapo)}</p>
     </div>
