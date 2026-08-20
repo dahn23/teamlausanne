@@ -75,7 +75,7 @@ const carte = (icon, titre, corps) => `
 async function vTournoi(v) {
   v.innerHTML = `
     <div class="hero with-photo"
-         style="background-image:linear-gradient(180deg,rgba(7,13,36,.15),rgba(7,13,36,.9)),url('assets/hero.jpg')">
+         style="background-image:linear-gradient(180deg,rgba(7,13,36,.15),rgba(7,13,36,.9)),url('assets/hero.webp')">
       <h2>${esc(TOURNOI.titre)}</h2>
       <p>${esc(TOURNOI.chapo)}</p>
       <div class="badges">${TOURNOI.badges.map((b, i) =>
