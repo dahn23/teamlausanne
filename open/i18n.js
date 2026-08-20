@@ -17,16 +17,22 @@ export const LANGS = [
 // Drapeaux dessinés en SVG (pas d'emoji : Windows n'affiche pas les
 // drapeaux emoji, et le rendu change d'un téléphone à l'autre).
 export const FLAGS = {
-  // Union Jack : les diagonales sont découpées au format du drapeau (clipPath),
-  // sinon les traits blancs débordent des coins et ça ne ressemble à rien.
-  gb: `<svg viewBox="0 0 60 40"><defs><clipPath id="uk"><rect width="60" height="40"/></clipPath></defs>
-        <g clip-path="url(#uk)">
-          <rect width="60" height="40" fill="#012169"/>
-          <path d="M0 0l60 40M60 0L0 40" stroke="#fff" stroke-width="8"/>
-          <path d="M0 0l60 40M60 0L0 40" stroke="#C8102E" stroke-width="4"/>
-          <path d="M30 0v40M0 20h60" stroke="#fff" stroke-width="13"/>
-          <path d="M30 0v40M0 20h60" stroke="#C8102E" stroke-width="8"/>
-        </g></svg>`,
+  // Union Jack (Royaume-Uni), dessiné uniquement en surfaces pleines.
+  // Volontairement AUCUN trait (stroke) : la feuille de style applique
+  // vector-effect:non-scaling-stroke à toutes les icônes, ce qui rendrait
+  // les traits gigantesques à cette taille — le drapeau finissait en simple
+  // croix rouge sur blanc, c'est-à-dire le drapeau anglais.
+  gb: `<svg viewBox="0 0 60 40">
+        <rect width="60" height="40" fill="#012169"/>
+        <polygon points="0,0 8,0 60,34.7 60,40 52,40 0,5.3" fill="#fff"/>
+        <polygon points="60,0 60,5.3 8,40 0,40 0,34.7 52,0" fill="#fff"/>
+        <polygon points="0,0 3.4,0 60,37.7 60,40 56.6,40 0,2.3" fill="#C8102E"/>
+        <polygon points="60,0 60,2.3 3.4,40 0,40 0,37.7 56.6,0" fill="#C8102E"/>
+        <polygon points="24,0 36,0 36,40 24,40" fill="#fff"/>
+        <polygon points="0,14 60,14 60,26 0,26" fill="#fff"/>
+        <polygon points="26.4,0 33.6,0 33.6,40 26.4,40" fill="#C8102E"/>
+        <polygon points="0,16.4 60,16.4 60,23.6 0,23.6" fill="#C8102E"/>
+      </svg>`,
   fr: `<svg viewBox="0 0 60 40"><rect width="20" height="40" fill="#002395"/>
         <rect x="20" width="20" height="40" fill="#fff"/>
         <rect x="40" width="20" height="40" fill="#ED2939"/></svg>`,
