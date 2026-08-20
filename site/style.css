@@ -1694,23 +1694,33 @@ a.sponsor img{width:100%;height:54px;object-fit:contain;display:block}
 a.sponsor span{font-size:.7rem;font-weight:700;color:#1b2340;text-align:center;line-height:1.25}
 .wsec-sub{margin:-6px 0 18px;color:var(--muted);font-size:.95rem}
 
-/* ---- Nous écrire + plan d'accès (bas du site Lausanne Open) ---- */
-.lo-form{display:flex;flex-direction:column;gap:14px;max-width:560px}
-.lo-form label{display:flex;flex-direction:column;gap:6px;font-size:.9rem;
+
+/* ---- Bas du site Lausanne Open : « Nous écrire » et le plan côte à côte ---- */
+.lo-bottom{padding-top:0}
+.lo-duo{display:grid;gap:44px;align-items:start}
+@media(min-width:860px){
+  .lo-duo{grid-template-columns:1fr 1fr;gap:48px}
+  .lo-duo .wsec{margin-bottom:0}
+}
+.wsec-sub{margin:-8px 0 20px;color:var(--muted);font-size:.95rem;line-height:1.5}
+
+/* le formulaire */
+.lo-form{display:flex;flex-direction:column;gap:14px}
+.lo-form label{display:flex;flex-direction:column;gap:6px;font-size:.88rem;
   font-weight:600;color:var(--muted)}
 .lo-form input,.lo-form textarea{font:inherit;padding:12px 13px;border:1px solid var(--line);
   border-radius:10px;background:#fff;color:var(--ink);width:100%}
-.lo-form textarea{resize:vertical;min-height:120px}
+.lo-form textarea{resize:vertical;min-height:132px}
 .lo-form input:focus,.lo-form textarea:focus{outline:2px solid var(--blue);border-color:var(--blue)}
-.lo-form button{font:inherit;font-weight:700;cursor:pointer;border:0;border-radius:10px;
-  padding:13px 22px;background:var(--blue);color:#fff;align-self:flex-start}
+.lo-form button{font:inherit;font-weight:800;cursor:pointer;border:0;border-radius:10px;
+  padding:13px 24px;background:var(--blue);color:#fff;align-self:flex-start}
 .lo-form button:hover{background:var(--blue-d)}
 .lo-form button:disabled{opacity:.5}
 .lo-msg{margin:0;font-size:.9rem;min-height:1.2em}
 .lo-msg.ok{color:#1a7f4b;font-weight:700}
 .lo-msg.ko{color:#b3261e;font-weight:700}
 
-.lo-map{width:100%;height:380px;border:0;border-radius:var(--radius);display:block;
+/* la carte, de la même hauteur que le formulaire à côté */
+.lo-map{width:100%;height:428px;border:0;border-radius:var(--radius);display:block;
   box-shadow:var(--shadow)}
-.lo-plan-links{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-weight:700}
-.lo-plan{padding-bottom:64px}
+.lo-plan-links{display:flex;gap:20px;flex-wrap:wrap;margin:14px 0 0;font-weight:800}
