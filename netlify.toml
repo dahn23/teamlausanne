@@ -17,10 +17,18 @@
 
 # Le dossier open/ (Player Hub du Lausanne Open) est publié sur un site
 # Netlify SÉPARÉ. Depuis teamlausanne, il ne doit mener nulle part.
+# force = true est indispensable : sans lui, un fichier réellement présent
+# dans le dossier publié l'emporte sur la règle et reste accessible.
+[[redirects]]
+  from = "/open"
+  to = "/"
+  status = 301
+  force = true
 [[redirects]]
   from = "/open/*"
   to = "/"
   status = 301
+  force = true
 
 # En-têtes de sécurité de base.
 [[headers]]
