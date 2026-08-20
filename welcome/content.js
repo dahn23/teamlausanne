@@ -46,23 +46,24 @@ export const TOURNOI = {
 // assets/players/<nom>.jpg ; sans photo, une pastille aux initiales est
 // dessinée à la place. On n'écrit ici que des faits vérifiés.
 export const SEEDS = [
-  { n: 1, nom: "Andrey Chepelev", pays: "Neutre", drapeau: "neutre", atp: 353, photo: "chepelev",
-    bio: "Né le 2 août 1998. Il arrive avec le meilleur classement du tableau. Meilleur classement en carrière : 339ᵉ mondial." },
-  { n: 2, nom: "Gabriele Piraino", pays: "Italie", drapeau: "it", atp: 404, photo: "piraino",
-    bio: "22 ans, formé sur le circuit junior italien. Meilleur classement en carrière : 321ᵉ mondial." },
-  { n: 3, nom: "Johan Nikles", pays: "Suisse", drapeau: "ch", atp: 412, photo: "nikles",
-    bio: "Genevois né le 23 mars 1997, l'un des visages familiers du tennis romand. Meilleur classement : 256ᵉ mondial en juillet 2022." },
-  { n: 4, nom: "Henry Bernet", pays: "Suisse", drapeau: "ch", atp: 430, photo: "bernet",
-    bio: "Tenant du titre : il a remporté le Lausanne Open 2025. Né le 25 janvier 2007, il a gagné l'Open d'Australie junior le jour de ses 18 ans — sixième Suisse à décrocher un Grand Chelem junior, après Federer, Wawrinka, Günthardt, Valent et Stricker." },
-  { n: 5, nom: "Lorenzo Carboni", pays: "Italie", drapeau: "it", atp: 481, photo: "carboni",
-    bio: "Jeune joueur italien en progression sur le circuit ITF. Meilleur classement en carrière : 415ᵉ mondial." },
-  { n: 6, nom: "Luca Staeheli", pays: "Suisse", drapeau: "ch", atp: 521, photo: "staeheli",
-    bio: "Il arrive lancé : il vient de remporter l’ITF M25 de Muttenz, le 16 août. À 521ᵉ mondial, il est au meilleur classement de sa carrière." },
-  { n: 7, nom: "Dimitris Sakellaridis", pays: "Grèce", drapeau: "gr", atp: 556, photo: "sakellaridis",
-    bio: "Né le 30 avril 2006, numéro 1 mondial junior en octobre 2024. Il connaît déjà les lieux : finaliste du double au Lausanne Open 2025. À 556ᵉ mondial, il est au meilleur classement de sa carrière." },
-  { n: 8, nom: "Alexander Weis", pays: "Italie", drapeau: "it", atp: 594, photo: "weis",
-    bio: "Né le 24 avril 1997 à Bolzano, la même région que Jannik Sinner et Andreas Seppi. Professionnel depuis 2015, c’est le plus expérimenté des huit. Meilleur classement en carrière : 285ᵉ mondial — le plus haut du tableau." },
+  { n: 1, nom: "Andrey Chepelev", pays: "Neutre", drapeau: "neutre", atp: 353, best: 339, photo: "chepelev.png",
+    bio: "Né le 2 août 1998. Il arrive avec le meilleur classement du tableau." },
+  { n: 2, nom: "Gabriele Piraino", pays: "Italie", drapeau: "it", atp: 404, best: 321, photo: "piraino",
+    bio: "22 ans, formé sur le circuit junior italien." },
+  { n: 3, nom: "Johan Nikles", pays: "Suisse", drapeau: "ch", atp: 412, best: 256, photo: "nikles.png",
+    bio: "Genevois né le 23 mars 1997, l’un des visages familiers du tennis romand. Il a atteint la 256ᵉ place mondiale en juillet 2022." },
+  { n: 4, nom: "Henry Bernet", pays: "Suisse", drapeau: "ch", atp: 430, best: 479, photo: "bernet.webp",
+    bio: "Tenant du titre : il a remporté le Lausanne Open 2025. Né le 25 janvier 2007, il a gagné l’Open d’Australie junior le jour de ses 18 ans — sixième Suisse à décrocher un Grand Chelem junior, après Federer, Wawrinka, Günthardt, Valent et Stricker." },
+  { n: 5, nom: "Lorenzo Carboni", pays: "Italie", drapeau: "it", atp: 481, best: 415, photo: "carboni",
+    bio: "Jeune joueur italien en progression sur le circuit ITF." },
+  { n: 6, nom: "Luca Staeheli", pays: "Suisse", drapeau: "ch", atp: 521, best: 521, photo: "staeheli",
+    bio: "Il arrive lancé : il vient de remporter l’ITF M25 de Muttenz, le 16 août." },
+  { n: 7, nom: "Dimitris Sakellaridis", pays: "Grèce", drapeau: "gr", atp: 556, best: 556, photo: "sakellaridis",
+    bio: "Né le 30 avril 2006, numéro 1 mondial junior en octobre 2024. Il connaît déjà les lieux : finaliste du double au Lausanne Open 2025." },
+  { n: 8, nom: "Alexander Weis", pays: "Italie", drapeau: "it", atp: 594, best: 285, photo: "weis",
+    bio: "Né le 24 avril 1997 à Bolzano, la même région que Jannik Sinner et Andreas Seppi. Professionnel depuis 2015, c’est le plus expérimenté des huit." },
 ];
+
 
 /* ------------------------------------------------------------ PALMARÈS */
 export const PALMARES_NOTE =

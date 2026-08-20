@@ -37,7 +37,8 @@ const drapeau = (id) => `<span class="flag">${DRAPEAUX[id] || DRAPEAUX.neutre}</
 
 /* ---------------------------------------------------------- onglets */
 const TABS = [
-  { id: "tournoi",     label: "Le tournoi",  icon: "trophy" },
+  { id: "tournoi",     label: "Le tournoi",   icon: "trophy" },
+  { id: "seeds",       label: "Têtes de série", icon: "users" },
   { id: "club",        label: "Le club",     icon: "racket" },
   { id: "academy",     label: "L'académie",  icon: "trend" },
   { id: "partenaires", label: "Partenaires", icon: "medal" },
@@ -61,7 +62,7 @@ function route() {
   cur = TABS.some((t) => t.id === want) ? want : "tournoi";
   document.querySelectorAll(".lo-tab").forEach((b) => b.classList.toggle("on", b.dataset.tab === cur));
   window.scrollTo(0, 0);
-  ({ tournoi: vTournoi, club: vClub, academy: vAcademy, partenaires: vPartenaires }[cur])($("view"));
+  ({ tournoi: vTournoi, seeds: vSeeds, club: vClub, academy: vAcademy, partenaires: vPartenaires }[cur])($("view"));
 }
 
 /* -------------------------------------------------- brique réutilisée */
@@ -95,9 +96,10 @@ async function vTournoi(v) {
     ${carte("bulb", "Bien profiter du tournoi",
       `<ul>${TOURNOI.aSavoir.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`)}
 
-    <div class="sec-title">${svg("users", "mk")} Les 8 têtes de série</div>
-    <p class="lo-lead">Classement ATP au moment du tirage.</p>
-    <div class="seeds">${SEEDS.map(seedHTML).join("")}</div>
+    ${carte("users", "Les 8 têtes de série",
+      `<p>Le tenant du titre, un ancien numéro 1 mondial junior et six autres joueurs
+          classés parmi les 600 meilleurs du monde.</p>
+       <a class="btn block" style="margin-top:12px" href="#seeds">${svg("users")}Découvrir les huit joueurs</a>`)}
 
     <div class="sec-title">${svg("trophy", "mk")} Palmarès</div>
     <p class="lo-lead">${esc(PALMARES_NOTE)}</p>
@@ -116,18 +118,18 @@ async function vTournoi(v) {
 }
 
 function seedHTML(s) {
-  const initiales = s.nom.split(" ").map((m) => m[0]).join("").slice(0, 2).toUpperCase();
+  const src = s.photo.includes(".") ? s.photo : s.photo + ".jpg";
+  const sommet = s.atp === s.best;
   return `<article class="seed">
-    <div class="seed-photo${s.photo ? "" : " noimg"}">
-      ${s.photo ? `<img src="assets/players/${s.photo}.jpg" alt="" loading="lazy" />` : ""}
-      <span class="seed-ini">${esc(initiales)}</span>
+    <div class="seed-photo">
+      <img src="assets/players/${src}" alt="${esc(s.nom)}" loading="lazy" />
       <span class="seed-n">${s.n}</span>
+      <div class="seed-over">
+        <h4>${drapeau(s.drapeau)}${esc(s.nom)}</h4>
+        <p class="seed-atp">ATP ${s.atp} · ${sommet ? "au meilleur de sa carrière" : `meilleur : ${s.best}ᵉ`}</p>
+      </div>
     </div>
-    <div class="seed-in">
-      <h4>${drapeau(s.drapeau)}${esc(s.nom)}</h4>
-      <p class="seed-atp">${esc(s.pays)} · ATP ${s.atp}</p>
-      <p>${esc(s.bio)}</p>
-    </div>
+    <div class="seed-in"><p>${esc(s.bio)}</p></div>
   </article>`;
 }
 
@@ -147,6 +149,26 @@ async function chargerOopDuJour() {
     `<p>Le programme affiché au bureau du tournoi, tel qu'il a été publié aujourd'hui.</p>
      <a class="btn block" style="margin-top:12px" href="${url}" target="_blank" rel="noopener">
        ${svg("file")}Ouvrir le programme</a>`);
+}
+
+/* ====================================================== TETES DE SERIE */
+function vSeeds(v) {
+  v.innerHTML = `
+    <div class="hero">
+      <h2>Les 8 têtes de série</h2>
+      <p>Le tenant du titre, un ancien numéro 1 mondial junior, le plus expérimenté du lot
+         et cinq autres joueurs classés parmi les 600 meilleurs du monde. Voici qui vient
+         jouer aux Plaines-du-Loup cette semaine.</p>
+      <div class="badges"><span class="badge fluo">Classement ATP au tirage</span></div>
+    </div>
+    <div class="seeds">${SEEDS.map(seedHTML).join("")}</div>
+    ${carte("clipboard", "Suivre le tableau",
+      `<p>Le tirage complet, les résultats tour par tour et les scores en direct sont publiés
+          par l’ITF pendant toute la semaine.</p>
+       <div class="maps-row" style="margin-top:12px">
+         <a class="maps-btn" href="${LIENS.tableau}" target="_blank" rel="noopener">${svg("trophy")}Le tableau</a>
+         <a class="maps-btn" href="${LIENS.live}" target="_blank" rel="noopener">${svg("ball")}Scores en direct</a>
+       </div>`)}`;
 }
 
 /* ============================================================= LE CLUB */
