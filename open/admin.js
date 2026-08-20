@@ -5,6 +5,7 @@
 //  uniquement en sessionStorage, le temps de l'onglet du navigateur.
 // =====================================================================
 import { sb } from "./sb.js";
+import { svg, ico, big } from "./icons.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -69,15 +70,15 @@ if (PWD) api("check").then(open_).catch(() => { sessionStorage.removeItem("lo_pw
 
 /* ========================================================== onglets */
 const SECTIONS = [
-  { id: "acces",     label: "🔒 Onglets" },
-  { id: "infos",     label: "📣 Infos officielles" },
-  { id: "navette",   label: "🚐 Navette" },
-  { id: "resto",     label: "🍽️ Restaurant" },
-  { id: "hotel",     label: "🏨 Hôtel" },
-  { id: "oop",       label: "📋 Order of play" },
-  { id: "practice",  label: "🎾 Practice" },
-  { id: "murs",      label: "💬 Sparring / Roommate" },
-  { id: "reglages",  label: "⚙️ Réglages" },
+  { id: "acces",     label: `${svg("lock")}Onglets` },
+  { id: "infos",     label: `${svg("megaphone")}Infos officielles` },
+  { id: "navette",   label: `${svg("bus")}Navette` },
+  { id: "resto",     label: `${svg("utensils")}Restaurant` },
+  { id: "hotel",     label: `${svg("bed")}Hôtel` },
+  { id: "oop",       label: `${svg("clipboard")}Order of play` },
+  { id: "practice",  label: `${svg("racket")}Practice` },
+  { id: "murs",      label: `${svg("chat")}Sparring / Roommate` },
+  { id: "reglages",  label: `${svg("gear")}Réglages` },
 ];
 let cur = "acces";
 
@@ -152,13 +153,13 @@ async function vInfos(v) {
     ${list.length ? list.map((m) => `
       <div class="adm-row">
         <div class="grow">
-          <b>${m.pinned ? "📌 " : ""}${m.level === "urgent" ? "🔴 " : m.level === "warning" ? "🟠 " : ""}${esc(m.title || "(sans titre)")}</b>
+          <b>${m.pinned ? svg("pin", "mk") : ""}${m.level !== "info" ? svg("alert", "mk " + m.level) : ""}${esc(m.title || "(sans titre)")}</b>
           <small>${esc(m.body)}</small>
           <small style="margin-top:5px;opacity:.6">${frDateTime(m.created_at)}</small>
         </div>
         <div class="adm-actions">
-          <button class="btn ghost" data-edit="${m.id}">✏️</button>
-          <button class="btn danger" data-del="${m.id}">🗑</button>
+          <button class="btn ghost" data-edit="${m.id}">${svg("pencil")}</button>
+          <button class="btn danger" data-del="${m.id}">${svg("trash")}</button>
         </div>
       </div>`).join("") : `<div class="empty">Aucun message publié.</div>`}`;
 
@@ -207,8 +208,8 @@ async function vNavette(v) {
           <small>${s.day ? frJour(s.day) : "Tous les jours"}${s.note ? ` · ${esc(s.note)}` : ""}</small>
         </div>
         <div class="adm-actions">
-          <button class="btn ghost" data-edit="${s.id}">✏️</button>
-          <button class="btn danger" data-del="${s.id}">🗑</button>
+          <button class="btn ghost" data-edit="${s.id}">${svg("pencil")}</button>
+          <button class="btn danger" data-del="${s.id}">${svg("trash")}</button>
         </div>
       </div>`).join("") : `<div class="empty">Aucun horaire de navette.</div>`}`;
 
@@ -261,12 +262,12 @@ async function vResto(v) {
     ${list.length ? list.map((m) => `
       <div class="adm-row">
         <div class="grow">
-          <b>${m.active ? "" : "⛔ "}${esc(m.name)}${m.price != null ? ` — ${Number(m.price).toFixed(2)} CHF` : ""}</b>
+          <b>${m.active ? "" : svg("eyeoff", "mk off")}${esc(m.name)}${m.price != null ? ` — ${Number(m.price).toFixed(2)} CHF` : ""}</b>
           <small>${esc(m.description || "")}</small>
         </div>
         <div class="adm-actions">
-          <button class="btn ghost" data-edit="${m.id}">✏️</button>
-          <button class="btn danger" data-del="${m.id}">🗑</button>
+          <button class="btn ghost" data-edit="${m.id}">${svg("pencil")}</button>
+          <button class="btn danger" data-del="${m.id}">${svg("trash")}</button>
         </div>
       </div>`).join("") : `<div class="empty">Aucun plat.</div>`}`;
 
@@ -305,7 +306,7 @@ async function vHotel(v) {
   const h = (data && data.value) || {};
   v.innerHTML = `
     <h2 class="lo-h2">Hôtel officiel</h2>
-    <p class="hint">⚠️ Vérifie l'adresse exacte de l'ibis avant le début du tournoi — la valeur par défaut
+    <p class="hint">${svg("alert","mk warning")} Vérifie l'adresse exacte de l'ibis avant le début du tournoi — la valeur par défaut
        est une hypothèse.</p>
     <div class="card">
       <label class="f">Nom<input id="h-name" value="${esc(h.name || "")}" /></label>
@@ -344,7 +345,7 @@ async function vOop(v) {
       <div class="adm-row">
         <div class="grow"><b>${frJour(o.day)}</b>
           <small>${esc(o.filename)} · mis à jour le ${frDateTime(o.updated_at)}</small></div>
-        <div class="adm-actions"><button class="btn danger" data-del="${o.day}">🗑</button></div>
+        <div class="adm-actions"><button class="btn danger" data-del="${o.day}">${svg("trash")}</button></div>
       </div>`).join("") : `<div class="empty">Aucun fichier publié.</div>`}`;
 
   $("o-up").onclick = async () => {
@@ -393,7 +394,7 @@ async function vPractice(v) {
       const bk = (byDay[d.day] || []);
       return `
       <div class="card">
-        <h3><span class="ico">🎾</span> ${frJour(d.day)}</h3>
+        <h3>${ico("racket")} ${frJour(d.day)}</h3>
         <div class="kv" style="margin-bottom:10px">
           <div><span>Courts</span><b>${esc((d.court_names || []).join(", "))}</b></div>
           <div><span>Horaires</span><b>${hhmm(d.first_time)} → ${hhmm(d.last_time)} · ${d.slot_min} min</b></div>
@@ -404,8 +405,8 @@ async function vPractice(v) {
           <div class="adm-row" style="margin-bottom:6px">
             <div class="grow"><b>${hhmm(b.start_time)} · ${esc(b.court)}</b><small>${esc(b.player_name)}</small></div>
             <div class="adm-actions">
-              <button class="btn ghost" data-bedit="${b.id}">✏️</button>
-              <button class="btn danger" data-bdel="${b.id}">🗑</button>
+              <button class="btn ghost" data-bedit="${b.id}">${svg("pencil")}</button>
+              <button class="btn danger" data-bdel="${b.id}">${svg("trash")}</button>
             </div>
           </div>`).join("") : `<p class="hint" style="margin:0">Aucune inscription.</p>`}
         <div class="sheet-row" style="margin-top:12px">
@@ -500,8 +501,8 @@ async function vMurs(v) {
           <div class="grow"><b>${esc(p.author || "Anonyme")}</b><small>${esc(p.body)}</small>
             <small style="margin-top:5px;opacity:.6">${frDateTime(p.created_at)}</small></div>
           <div class="adm-actions">
-            <button class="btn ghost" data-edit="${p.id}">✏️</button>
-            <button class="btn danger" data-del="${p.id}">🗑</button>
+            <button class="btn ghost" data-edit="${p.id}">${svg("pencil")}</button>
+            <button class="btn danger" data-del="${p.id}">${svg("trash")}</button>
           </div>
         </div>`).join("") : `<div class="empty">Aucun message.</div>`}`;
   };
@@ -509,8 +510,8 @@ async function vMurs(v) {
     <h2 class="lo-h2">Sparring &amp; Roommate</h2>
     <p class="hint">Modération des deux murs. Pour fermer un mur complètement, va dans l'onglet
        « Onglets » et désactive-le.</p>
-    ${box("sparring", "🤝 Je cherche un sparring")}
-    ${box("roommate", "🛏️ Je cherche un roommate")}`;
+    ${box("sparring", `${svg("users","mk")} Je cherche un sparring`)}
+    ${box("roommate", `${svg("bed","mk")} Je cherche un roommate`)}`;
 
   v.onclick = (e) => {
     const ed = e.target.closest("[data-edit]");

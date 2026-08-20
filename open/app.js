@@ -5,6 +5,7 @@
 //  Tout le texte joueur est en ANGLAIS (tournoi international).
 // =====================================================================
 import { sb } from "./sb.js";
+import { svg, ico, big } from "./icons.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -43,13 +44,13 @@ const store = {
 
 /* --------------------------------------------------------- onglets */
 const TABS = [
-  { id: "welcome",   label: "Welcome",       icon: "👋" },
-  { id: "info",      label: "Official info", icon: "📣" },
-  { id: "logistics", label: "Hotel & Food",  icon: "🚐" },
-  { id: "oop",       label: "Order of play", icon: "📋" },
-  { id: "practice",  label: "Practice",      icon: "🎾" },
-  { id: "sparring",  label: "Sparring",      icon: "🤝" },
-  { id: "roommate",  label: "Roommate",      icon: "🛏️" },
+  { id: "welcome",   label: "Welcome",       icon: "city" },
+  { id: "info",      label: "Official info", icon: "megaphone" },
+  { id: "logistics", label: "Hotel & Food",  icon: "suitcase" },
+  { id: "oop",       label: "Order of play", icon: "clipboard" },
+  { id: "practice",  label: "Practice",      icon: "racket" },
+  { id: "sparring",  label: "Sparring",      icon: "users" },
+  { id: "roommate",  label: "Roommate",      icon: "bed" },
 ];
 
 const state = { tabs: {}, settings: {}, cur: "welcome", sub: {}, timer: null };
@@ -74,7 +75,7 @@ const WELCOME = [
       </div>
     </div>
     <div class="card">
-      <h3><span class="ico">🏛️</span> The city in short</h3>
+      <h3>${ico("city")} The city in short</h3>
       <ul>
         <li>Capital of the canton of Vaud, around 140,000 inhabitants — the fourth largest city in Switzerland.</li>
         <li>Home of the <b>International Olympic Committee</b> since 1915, hence the name «&nbsp;Olympic Capital&nbsp;».</li>
@@ -85,7 +86,7 @@ const WELCOME = [
       </ul>
     </div>
     <div class="card">
-      <h3><span class="ico">🚇</span> Getting around</h3>
+      <h3>${ico("metro")} Getting around</h3>
       <ul>
         <li>The <b>m2 metro</b> is the only metro in Switzerland — it climbs from Ouchy on the lakefront up
             through the city centre. Fast, frequent, and worth the ride for the gradient alone.</li>
@@ -98,7 +99,7 @@ const WELCOME = [
 
   { id: "swiss", label: "Good to know", html: `
     <div class="card">
-      <h3><span class="ico">🇨🇭</span> Practical Switzerland</h3>
+      <h3>${ico("swiss")} Practical Switzerland</h3>
       <div class="kv">
         <div><span>Currency</span><b>Swiss franc (CHF)</b></div>
         <div><span>Cards</span><b>Accepted almost everywhere</b></div>
@@ -108,7 +109,7 @@ const WELCOME = [
       </div>
     </div>
     <div class="card">
-      <h3><span class="ico">💡</span> Small things that help</h3>
+      <h3>${ico("bulb")} Small things that help</h3>
       <ul>
         <li><b>Cash:</b> you will rarely need it. Contactless card and phone payment work everywhere,
             including in most bakeries and kiosks. Euros are sometimes accepted, but change comes in CHF.</li>
@@ -122,7 +123,7 @@ const WELCOME = [
       </ul>
     </div>
     <div class="card">
-      <h3><span class="ico">🚑</span> Emergency numbers</h3>
+      <h3>${ico("phone")} Emergency numbers</h3>
       <div class="kv">
         <div><span>Ambulance</span><b><a href="tel:144">144</a></b></div>
         <div><span>Police</span><b><a href="tel:117">117</a></b></div>
@@ -136,7 +137,7 @@ const WELCOME = [
 
   { id: "club", label: "The club", html: `
     <div class="card">
-      <h3><span class="ico">🎾</span> Lausanne-Sports Tennis</h3>
+      <h3>${ico("racket")} Lausanne-Sports Tennis</h3>
       <p>The tournament is hosted by <b>Lausanne-Sports Tennis</b>, the historic tennis club of the city,
          founded in <b>1911</b> and established on the Plaines-du-Loup site, next to the Pontaise stadium,
          since 1954.</p>
@@ -151,14 +152,14 @@ const WELCOME = [
       </p>
     </div>
     <div class="card">
-      <h3><span class="ico">🍽️</span> Club-house &amp; restaurant</h3>
+      <h3>${ico("utensils")} Club-house &amp; restaurant</h3>
       <p>The club-house and its restaurant are open to players all week. A dedicated players menu is served
          during the tournament — see the <b>Hotel &amp; Food</b> tab.</p>
     </div>` },
 
   { id: "academy", label: "Academy", html: `
     <div class="card">
-      <h3><span class="ico">🚀</span> Team Lausanne Academy</h3>
+      <h3>${ico("trend")} Team Lausanne Academy</h3>
       <p>Team Lausanne is the performance academy based at the same site. It takes players from the first
          steps on court all the way to the professional circuit.</p>
       <ul>
@@ -183,14 +184,14 @@ const WELCOME = [
       </div>
     </div>
     <div class="card">
-      <h3><span class="ico">🏆</span> 2025 champions</h3>
+      <h3>${ico("trophy")} 2025 champions</h3>
       <div class="kv">
         <div><span>Singles</span><b>🇨🇭 Henry Bernet</b></div>
         <div><span>Doubles</span><b>🇮🇪 Charles Barry<br>🇫🇷 Max Westphal</b></div>
       </div>
     </div>
     <div class="card">
-      <h3><span class="ico">📅</span> Around the tournament</h3>
+      <h3>${ico("calendar")} Around the tournament</h3>
       <ul>
         <li>Entry is <b>free all week</b>, no ticket needed — invite whoever you like.</li>
         <li>School initiations, the Team Lausanne day on Saturday, and VIP lunches run alongside the draw.</li>
@@ -201,38 +202,38 @@ const WELCOME = [
 
   { id: "visit", label: "What to see", html: `
     <div class="card">
-      <h3><span class="ico">🥇</span> The Olympic Museum</h3>
+      <h3>${ico("medal")} The Olympic Museum</h3>
       <p>The obvious one, and genuinely good. On the lakefront in Ouchy, ten minutes from the centre by the
          m2 metro. The park and the terrace café are free even if you skip the museum.</p>
     </div>
     <div class="card">
-      <h3><span class="ico">⛪</span> Cathedral &amp; old town</h3>
+      <h3>${ico("church")} Cathedral &amp; old town</h3>
       <p>The 13th-century cathedral sits at the top of the old town — climb the tower for the best view over
          the lake and the Alps. Below it, narrow streets, the covered wooden staircase of the Marché,
          and Place de la Palud with its Saturday market.</p>
     </div>
     <div class="card">
-      <h3><span class="ico">🌊</span> Ouchy &amp; the lake</h3>
+      <h3>${ico("waves")} Ouchy &amp; the lake</h3>
       <p>The lakefront promenade is where Lausanne goes to breathe. Swim, paddle, or take a
          <b>CGN boat</b> — a beautiful ride across to Évian in France (bring your passport or ID).</p>
     </div>
     <div class="card">
-      <h3><span class="ico">🍇</span> Lavaux vineyards</h3>
+      <h3>${ico("wine")} Lavaux vineyards</h3>
       <p>Twenty minutes east by train: terraced vineyards climbing from the water, a UNESCO World Heritage
          site. Get off at Cully or Rivaz and walk between the villages. The best afternoon you can have here.</p>
     </div>
     <div class="card">
-      <h3><span class="ico">🏰</span> Chillon Castle</h3>
+      <h3>${ico("castle")} Chillon Castle</h3>
       <p>One hour by train, near Montreux: a medieval castle standing on a rock in the lake. Worth the trip
          on a rest day.</p>
     </div>
     <div class="card">
-      <h3><span class="ico">🌲</span> Sauvabelin &amp; Plateforme 10</h3>
+      <h3>${ico("tree")} Sauvabelin &amp; Plateforme 10</h3>
       <p>Above the city, the Sauvabelin lake and its wooden tower — 302 steps, a full view of the lake and the
          Alps. Next to the train station, <b>Plateforme 10</b> gathers three art museums in one modern district.</p>
     </div>
     <div class="card">
-      <h3><span class="ico">🌙</span> In the evening</h3>
+      <h3>${ico("moon")} In the evening</h3>
       <p>The <b>Flon</b> district — a former warehouse quarter turned into bars, restaurants and cinemas — is
          where the city goes out. Ten minutes on foot from the station.</p>
     </div>` },
@@ -254,7 +255,7 @@ const visible = (id) => state.tabs[id] !== false;
 
 function renderTabs() {
   $("tabs").innerHTML = TABS.filter((t) => visible(t.id)).map((t) =>
-    `<button class="lo-tab" data-tab="${t.id}"><span>${t.icon}</span>${esc(t.label)}</button>`).join("");
+    `<button class="lo-tab" data-tab="${t.id}">${svg(t.icon)}${esc(t.label)}</button>`).join("");
   $("tabs").onclick = (e) => {
     const b = e.target.closest("[data-tab]");
     if (b) location.hash = "#" + b.dataset.tab;
@@ -323,7 +324,7 @@ async function viewInfo(v) {
           </div>
           <p>${esc(m.body)}</p>
         </article>`).join("")
-      : `<div class="empty"><span class="big">📣</span>No announcement yet.<br>Everything is running as scheduled.</div>`}`;
+      : `<div class="empty">${big("megaphone")}No announcement yet.<br>Everything is running as scheduled.</div>`}`;
   };
   await draw();
   state.timer = setInterval(draw, 60000);   // rafraîchissement auto
@@ -332,9 +333,9 @@ async function viewInfo(v) {
 /* ============================================ onglet HOTEL & FOOD */
 async function viewLogistics(v) {
   const bar = subBar("log", [
-    { id: "hotel", label: "🏨 Hotel" },
-    { id: "shuttle", label: "🚐 Shuttle" },
-    { id: "resto", label: "🍽️ Restaurant" },
+    { id: "hotel", label: `${svg("bed")}Hotel` },
+    { id: "shuttle", label: `${svg("bus")}Shuttle` },
+    { id: "resto", label: `${svg("utensils")}Restaurant` },
   ], () => viewLogistics(v));
 
   let body = "";
@@ -343,7 +344,7 @@ async function viewLogistics(v) {
       `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(setting("hotel", "address"))}`;
     body = `
       <div class="card">
-        <h3><span class="ico">🏨</span> ${esc(setting("hotel", "name", "Official hotel"))}</h3>
+        <h3>${ico("bed")} ${esc(setting("hotel", "name", "Official hotel"))}</h3>
         <div class="kv">
           <div><span>Address</span><b>${esc(setting("hotel", "address")).replace(/, /g, "<br>")}</b></div>
           ${setting("hotel", "phone") ? `<div><span>Phone</span><b><a href="tel:${esc(setting("hotel", "phone").replace(/\s/g, ""))}">${esc(setting("hotel", "phone"))}</a></b></div>` : ""}
@@ -362,7 +363,7 @@ async function viewLogistics(v) {
     const keys = Object.keys(groups).sort((a, b) => (a === "always" ? -1 : b === "always" ? 1 : a < b ? -1 : 1));
     body = upcoming.length ? keys.map((k) => `
       <div class="card">
-        <h3><span class="ico">🚐</span> ${k === "always" ? "Every day" : dayLabel(k)}</h3>
+        <h3>${ico("bus")} ${k === "always" ? "Every day" : dayLabel(k)}</h3>
         <div class="kv">
           ${groups[k].map((r) => `<div>
             <span>${esc(hhmm(r.dep_time))}${r.note ? ` · ${esc(r.note)}` : ""}</span>
@@ -370,13 +371,13 @@ async function viewLogistics(v) {
           </div>`).join("")}
         </div>
       </div>`).join("")
-      : `<div class="empty"><span class="big">🚐</span>The shuttle timetable is not published yet.<br>Check back later or ask at the tournament office.</div>`;
+      : `<div class="empty">${big("bus")}The shuttle timetable is not published yet.<br>Check back later or ask at the tournament office.</div>`;
   } else {
     const { data } = await sb.from("lo_menu").select("*").eq("active", true).order("sort").order("id");
     const items = data || [];
     body = `
       <div class="card">
-        <h3><span class="ico">🍽️</span> ${esc(setting("restaurant", "name", "Club restaurant"))}</h3>
+        <h3>${ico("utensils")} ${esc(setting("restaurant", "name", "Club restaurant"))}</h3>
         ${setting("restaurant", "address") ? `<p class="lo-lead" style="margin:0 0 12px">${esc(setting("restaurant", "address"))}</p>` : ""}
         <div class="kv">
           ${items.length ? items.map((m) => `<div>
@@ -404,7 +405,7 @@ async function viewOop(v) {
   const days = data || [];
   if (!days.length) {
     v.innerHTML = `<h2 class="lo-h2">Order of play</h2>
-      <div class="empty"><span class="big">📋</span>The order of play is not published yet.<br>
+      <div class="empty">${big("clipboard")}The order of play is not published yet.<br>
       It is usually posted the evening before play.</div>`;
     return;
   }
@@ -428,7 +429,7 @@ async function viewOop(v) {
   box.innerHTML = isImg
     ? `<div class="card" style="padding:8px"><img src="${url}" alt="Order of play" style="width:100%;border-radius:10px;display:block" /></div>
        <a class="btn block ghost" href="${url}" target="_blank" rel="noopener">Open full size</a>`
-    : `<a class="btn block" href="${url}" target="_blank" rel="noopener">📄 Open the order of play</a>
+    : `<a class="btn block" href="${url}" target="_blank" rel="noopener">${svg("file")}Open the order of play</a>
        ${small ? "" : `<div class="card" style="padding:8px;margin-top:12px">
           <iframe src="${url}" title="Order of play" style="width:100%;height:70vh;border:0;border-radius:10px;background:#fff"></iframe></div>`}`;
 }
@@ -442,11 +443,11 @@ async function viewPractice(v) {
 
   const intro = `<h2 class="lo-h2">Practice courts</h2>
     <p class="lo-lead">${esc(setting("practice_intro", "text", "Book a practice slot. Enter the name you want to appear on the schedule."))}</p>
-    <div class="card"><h3><span class="ico">🎾</span> Balls</h3>
+    <div class="card"><h3>${ico("ball")} Balls</h3>
       <p>${esc(setting("balls", "text", "Practice balls are available at the tournament office against an ID card as a deposit."))}</p></div>`;
 
   if (!days.length) {
-    v.innerHTML = intro + `<div class="empty"><span class="big">🎾</span>No practice schedule is open right now.<br>
+    v.innerHTML = intro + `<div class="empty">${big("racket")}No practice schedule is open right now.<br>
       The next day usually opens the evening before.</div>`;
     return;
   }
@@ -577,7 +578,7 @@ async function viewBoard(v) {
         <p>${esc(p.body)}</p>
         ${mine[p.id] ? `<button class="btn small danger" data-del="${p.id}">Delete my message</button>` : ""}
       </article>`).join("")
-    : `<div class="empty"><span class="big">💬</span>${cfg.empty}</div>`}`;
+    : `<div class="empty">${big("chat")}${cfg.empty}</div>`}`;
 
   $("p-send").onclick = async () => {
     const author = $("p-author").value.trim();

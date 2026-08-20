@@ -204,7 +204,7 @@ textarea{resize:vertical;min-height:92px}
 
 /* états */
 .empty{text-align:center;color:var(--muted);padding:34px 16px;font-size:.9rem;line-height:1.6}
-.empty .big{font-size:2rem;display:block;margin-bottom:8px;opacity:.5}
+
 .err{color:#ff9a9a;font-size:.86rem;margin:8px 0 0;min-height:1.1em}
 .ok{color:var(--ok);font-size:.86rem;margin:8px 0 0}
 .spin{display:block;width:26px;height:26px;margin:40px auto;border-radius:50%;
@@ -263,3 +263,39 @@ textarea{resize:vertical;min-height:92px}
 .file-drop{border:1px dashed var(--line-2);border-radius:13px;padding:18px;text-align:center;
   color:var(--muted);font-size:.85rem;cursor:pointer;background:rgba(255,255,255,.03)}
 .file-drop:hover{border-color:var(--fluo);color:var(--fluo)}
+
+/* =====================================================================
+   ICÔNES (open/icons.js) — SVG au trait, taille fixée ici, couleur
+   héritée du parent (currentColor) : une icône d'onglet devient sombre
+   toute seule quand l'onglet passe en fond fluo.
+   ===================================================================== */
+svg{flex-shrink:0}
+svg *{vector-effect:non-scaling-stroke}
+
+/* onglets principaux */
+.lo-tab svg{width:15px;height:15px}
+
+/* sous-onglets */
+.lo-sub button{display:inline-flex;align-items:center;gap:6px}
+.lo-sub svg{width:14px;height:14px}
+
+/* pastille ronde des titres de carte */
+.card .ico svg{width:17px;height:17px}
+.card .ico{color:var(--fluo)}
+
+/* écrans vides */
+.empty svg.big{width:46px;height:46px;display:block;margin:0 auto 12px;
+  opacity:.4;stroke-width:1.4}
+
+/* boutons */
+.btn svg{width:17px;height:17px}
+.adm-actions .btn svg{width:15px;height:15px}
+.adm-actions .btn{line-height:0}
+
+/* petites marques inline (backend : épinglé, niveau, masqué, avertissement) */
+svg.mk{width:15px;height:15px;vertical-align:-3px;margin-right:5px}
+svg.mk.warning{color:var(--warn)}
+svg.mk.urgent{color:var(--urgent)}
+svg.mk.off{color:var(--muted)}
+.hint svg.mk{color:var(--warn)}
+.sec-title svg{width:17px;height:17px;margin-right:0}
