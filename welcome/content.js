@@ -58,8 +58,8 @@ export const SEEDS = [
     bio: "Jeune joueur italien en progression sur le circuit ITF. Meilleur classement en carrière : 415ᵉ mondial." },
   { n: 6, nom: "Luca Staeheli", pays: "Suisse", drapeau: "ch", atp: 521, photo: "staeheli",
     bio: "Il arrive lancé : il vient de remporter l’ITF M25 de Muttenz, le 16 août. À 521ᵉ mondial, il est au meilleur classement de sa carrière." },
-  { n: 7, nom: "Dimitris Sakellaridis", pays: "Grèce", drapeau: "gr", atp: 556,
-    bio: "Né le 30 avril 2006. Il a été numéro 1 mondial junior en octobre 2024. Ses deux frères, Michalis et Stefanos, sont également joueurs de tennis." },
+  { n: 7, nom: "Dimitris Sakellaridis", pays: "Grèce", drapeau: "gr", atp: 556, photo: "sakellaridis",
+    bio: "Né le 30 avril 2006, numéro 1 mondial junior en octobre 2024. Il connaît déjà les lieux : finaliste du double au Lausanne Open 2025. À 556ᵉ mondial, il est au meilleur classement de sa carrière." },
   { n: 8, nom: "Alexander Weis", pays: "Italie", drapeau: "it", atp: 594,
     bio: "Né le 24 avril 1997 à Bolzano, la même région que Jannik Sinner et Andreas Seppi. Professionnel depuis 2015, meilleur classement : 285ᵉ mondial." },
 ];
