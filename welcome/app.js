@@ -97,8 +97,8 @@ async function vTournoi(v) {
       `<ul>${TOURNOI.aSavoir.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`)}
 
     ${carte("users", "Les 8 têtes de série",
-      `<p>Le tenant du titre, un ancien numéro 1 mondial junior et six autres joueurs
-          classés parmi les 600 meilleurs du monde.</p>
+      `<p>Deux anciens numéros 1 mondiaux juniors, dont le tenant du titre, et six autres
+          joueurs classés parmi les 600 meilleurs du monde.</p>
        <a class="btn block" style="margin-top:12px" href="#seeds">${svg("users")}Découvrir les huit joueurs</a>`)}
 
     <div class="sec-title">${svg("trophy", "mk")} Palmarès</div>
@@ -156,9 +156,9 @@ function vSeeds(v) {
   v.innerHTML = `
     <div class="hero">
       <h2>Les 8 têtes de série</h2>
-      <p>Le tenant du titre, un ancien numéro 1 mondial junior, le plus expérimenté du lot
-         et cinq autres joueurs classés parmi les 600 meilleurs du monde. Voici qui vient
-         jouer aux Plaines-du-Loup cette semaine.</p>
+      <p>Deux anciens numéros 1 mondiaux juniors, dont le tenant du titre, le plus expérimenté
+         du lot et cinq autres joueurs classés parmi les 600 meilleurs du monde. Voici qui
+         vient jouer aux Plaines-du-Loup cette semaine.</p>
       <div class="badges"><span class="badge fluo">Classement ATP au tirage</span></div>
     </div>
     <div class="seeds">${SEEDS.map(seedHTML).join("")}</div>
