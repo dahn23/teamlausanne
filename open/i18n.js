@@ -192,11 +192,11 @@ const T = {
     "La colazione è servita dalle 6:30 alle 10:00. La reception è aperta 24 ore su 24. La navetta del torneo si ferma davanti all'ingresso dell'hotel.",
     "El desayuno se sirve de 6:30 a 10:00. La recepción está abierta 24 h. La lanzadera del torneo para delante de la entrada del hotel."],
   "def.restoNote": [
-    "Players menu — 15 CHF per dish, drinks not included. Show your player badge at the counter.",
-    "Menu joueurs — 15 CHF le plat, boissons non comprises. Présente ton badge joueur au comptoir.",
-    "Spielermenü — 15 CHF pro Gericht, Getränke nicht inbegriffen. Zeig deinen Spielerausweis an der Theke.",
-    "Menu giocatori — 15 CHF a piatto, bevande escluse. Mostra il tuo badge giocatore al banco.",
-    "Menú jugadores — 15 CHF por plato, bebidas no incluidas. Muestra tu acreditación en el mostrador."],
+    "Players menu — 15 CHF per dish, drinks not included. There is no badge: just tell the staff you are with the tournament, as a player or an accompanying person.",
+    "Menu joueurs — 15 CHF le plat, boissons non comprises. Il n'y a pas de badge : signale simplement que tu fais partie du tournoi, joueur ou accompagnant.",
+    "Spielermenü — 15 CHF pro Gericht, Getränke nicht inbegriffen. Es gibt keinen Ausweis: sag einfach, dass du zum Turnier gehörst, als Spieler oder Begleitperson.",
+    "Menu giocatori — 15 CHF a piatto, bevande escluse. Non c'è nessun badge: basta dire che fai parte del torneo, come giocatore o accompagnatore.",
+    "Menú jugadores — 15 CHF por plato, bebidas no incluidas. No hay acreditación: basta con decir que formas parte del torneo, como jugador o acompañante."],
   "def.balls": [
     "Practice balls are available at the tournament office. Please leave an ID card as a deposit; you get it back when you return the balls.",
     "Des balles d'entraînement sont disponibles au bureau du tournoi. Laisse une pièce d'identité en garantie ; tu la récupères en rendant les balles.",
