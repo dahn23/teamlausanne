@@ -50,3 +50,24 @@ Académie facture via **bexio** (facturation + vérif « payé » par connecteur
 - Français, réponses concises et décisives.
 - Autorisations : régler des règles **larges** d'emblée, ne pas faire réautoriser Dan sans cesse.
 - Dan n'est pas développeur pur : expliquer simplement.
+
+## Lausanne Open — Player Hub (app des joueurs du tournoi)
+App mobile pour les joueurs de l'ITF M25 Lausanne Open. **Site Netlify séparé** :
+les joueurs ne doivent pas tomber sur teamlausanne.netlify.app.
+
+- **Code** : dossier `open/` du même dépôt, **totalement autonome**
+  (`index.html` = app joueurs, `admin.html` = backend, `app.js`, `admin.js`,
+  `style.css`, `sb.js` = client Supabase local, `assets/`, `netlify.toml`).
+  Ne jamais y importer `common.js`/`config.js` de la racine : l'autre site ne les sert pas.
+- **Déploiement** : 2ᵉ site Netlify sur le même dépôt GitHub, **base directory = `open`**.
+  → app joueurs à la racine du site, backend sur `/admin`. Un seul `git push` déploie les deux sites.
+- **Langue** : app joueurs en **anglais**, backend en **français**.
+- **Base** : `db/06_lausanne_open.sql`, tables `lo_*`, **même projet Supabase**.
+  Lecture publique (anon), **aucune policy d'écriture** : tout passe par des fonctions
+  SECURITY DEFINER (`lo_book_practice`, `lo_post`, `lo_admin`, `lo_admin_list`).
+  Mot de passe du backend en hash bcrypt dans `lo_secret` (RLS sans policy = illisible).
+- **7 onglets** joueurs : Welcome (6 sous-onglets), Official info, Hotel & Food
+  (hôtel/navette/restaurant), Order of play (PDF par jour, stocké en base64),
+  Practice (grille courts × créneaux, `visible_from` pour ouvrir la veille à 18h),
+  Sparring, Roommate. Chaque onglet est **blocable** depuis le backend.
+- Le contenu de l'onglet Welcome est **statique**, dans la constante `WELCOME` de `open/app.js`.
