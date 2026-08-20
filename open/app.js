@@ -4,7 +4,7 @@
 //  contrôlées côté base (voir db/06_lausanne_open.sql).
 //  Tout le texte joueur est en ANGLAIS (tournoi international).
 // =====================================================================
-import { sb } from "./common.js";
+import { sb } from "./sb.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -168,7 +168,6 @@ const WELCOME = [
         <li><b>Elite</b> — individual programmes for players competing on the professional circuit:
             training, physical and mental preparation, physiotherapy and travel logistics.</li>
       </ul>
-      <p style="margin-top:10px"><a href="https://teamlausanne.netlify.app" target="_blank" rel="noopener">teamlausanne.netlify.app ↗</a></p>
     </div>` },
 
   { id: "open", label: "The Open", html: `

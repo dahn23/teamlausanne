@@ -4,7 +4,7 @@
 //  vérifié par la fonction lo_admin() (hash bcrypt). Ici on le garde
 //  uniquement en sessionStorage, le temps de l'onglet du navigateur.
 // =====================================================================
-import { sb } from "./common.js";
+import { sb } from "./sb.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -551,8 +551,8 @@ async function vReglages(v) {
     <div class="sec-title">Liens</div>
     <div class="card">
       <div class="kv">
-        <div><span>App joueurs</span><b><a href="/players" target="_blank">/players</a></b></div>
-        <div><span>Ce backend</span><b>/open-admin</b></div>
+        <div><span>App joueurs</span><b><a href="/" target="_blank">l'adresse du site</a></b></div>
+        <div><span>Ce backend</span><b>/admin</b></div>
       </div>
     </div>`;
 

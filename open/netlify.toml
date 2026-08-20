@@ -1,0 +1,40 @@
+# Site Netlify DÉDIÉ au Player Hub du Lausanne Open.
+# Dans les réglages du site Netlify : base directory = "open".
+# Netlify lit alors ce fichier et publie uniquement ce dossier — rien du site
+# teamlausanne n'est accessible depuis cette adresse.
+[build]
+  publish = "."
+  command = ""
+
+# Le backend derrière une adresse courte : /admin
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Le backend ne doit jamais finir dans un moteur de recherche.
+[[headers]]
+  for = "/admin*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+# Toujours revalider : jamais d'ancienne version en cache pendant le tournoi.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

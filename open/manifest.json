@@ -1,7 +1,7 @@
 {
   "name": "Lausanne Open — Player Hub",
   "short_name": "Lausanne Open",
-  "start_url": "/players",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#070d24",
@@ -9,6 +9,6 @@
   "orientation": "portrait",
   "icons": [
     { "src": "/assets/logo-open.webp", "sizes": "512x512", "type": "image/webp", "purpose": "any" },
-    { "src": "/assets/pwa/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+    { "src": "/assets/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
   ]
 }
