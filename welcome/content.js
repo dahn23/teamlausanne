@@ -46,10 +46,10 @@ export const TOURNOI = {
 // assets/players/<nom>.jpg ; sans photo, une pastille aux initiales est
 // dessinée à la place. On n'écrit ici que des faits vérifiés.
 export const SEEDS = [
-  { n: 1, nom: "Andrey Chepelev", pays: "Neutre", drapeau: "neutre", atp: 353,
-    bio: "Né le 2 août 1998, en Russie. Il concourt sans drapeau national, comme le prévoit le règlement en vigueur sur le circuit." },
-  { n: 2, nom: "Gabriele Piraino", pays: "Italie", drapeau: "it", atp: 404,
-    bio: "22 ans, formé sur le circuit junior italien. Meilleur classement en carrière : 341ᵉ mondial." },
+  { n: 1, nom: "Andrey Chepelev", pays: "Neutre", drapeau: "neutre", atp: 353, photo: "chepelev",
+    bio: "Né le 2 août 1998. Il arrive avec le meilleur classement du tableau." },
+  { n: 2, nom: "Gabriele Piraino", pays: "Italie", drapeau: "it", atp: 404, photo: "piraino",
+    bio: "22 ans, formé sur le circuit junior italien. Meilleur classement en carrière : 321ᵉ mondial." },
   { n: 3, nom: "Johan Nikles", pays: "Suisse", drapeau: "ch", atp: 412, photo: "nikles",
     bio: "Genevois né le 23 mars 1997, l'un des visages familiers du tennis romand. Meilleur classement : 256ᵉ mondial en juillet 2022." },
   { n: 4, nom: "Henry Bernet", pays: "Suisse", drapeau: "ch", atp: 430, photo: "bernet",
