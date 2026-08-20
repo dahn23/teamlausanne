@@ -164,9 +164,10 @@ function subBar(key, items, onPick, grid) {
 /* ===================================================================
    Onglet WELCOME — le HTML est fabriqué ici, le texte vient de content.js
    =================================================================== */
+const src = (name) => `assets/visit/${name.includes(".") ? name : name + ".jpg"}`;
 const photoBox = (name, icon) =>
   `<div class="card-photo${name ? "" : " noimg"}">
-     ${name ? `<img src="assets/visit/${name}.jpg" alt="" loading="lazy" />` : ""}
+     ${name ? `<img src="${src(name)}" alt="" loading="lazy" />` : ""}
      ${svg(icon, "ph")}
    </div>`;
 
@@ -197,11 +198,11 @@ function viewWelcome(v) {
 
   const hero = sec.hero ? `
     <div class="hero${sec.photo ? " with-photo" : ""}"
-         ${sec.photo ? `style="background-image:linear-gradient(180deg,rgba(7,13,36,.12),rgba(7,13,36,.88)),url('assets/visit/${sec.photo}.jpg')"` : ""}>
+         ${sec.photo ? `style="background-image:linear-gradient(180deg,rgba(7,13,36,.12),rgba(7,13,36,.88)),url('${src(sec.photo)}')"` : ""}>
       <h2>${esc(sec.hero.title)}</h2>
       <p>${esc(sec.hero.text)}</p>
-      <div class="badges">${sec.hero.badges.map((b, i) =>
-        `<span class="badge${i === 0 ? " fluo" : ""}">${esc(b)}</span>`).join("")}</div>
+      ${(sec.hero.badges || []).length ? `<div class="badges">${sec.hero.badges.map((b, i) =>
+        `<span class="badge${i === 0 ? " fluo" : ""}">${esc(b)}</span>`).join("")}</div>` : ""}
     </div>` : "";
 
   v.innerHTML = bar.html + hero + sec.cards.map((c) => cardHTML(c, isVisit)).join("")

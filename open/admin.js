@@ -306,9 +306,7 @@ async function vHotel(v) {
   const h = (data && data.value) || {};
   v.innerHTML = `
     <h2 class="lo-h2">Hôtel officiel</h2>
-    <p class="hint">${svg("alert","mk warning")} Vérifie l'adresse exacte de l'ibis avant le début du tournoi — la valeur par défaut
-       est une hypothèse.</p>
-    <div class="card">
+        <div class="card">
       <label class="f">Nom<input id="h-name" value="${esc(h.name || "")}" /></label>
       <label class="f">Adresse<input id="h-addr" value="${esc(h.address || "")}" placeholder="Rue ..., 1004 Lausanne" /></label>
       <label class="f">Téléphone<input id="h-tel" value="${esc(h.phone || "")}" /></label>

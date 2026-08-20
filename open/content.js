@@ -22,7 +22,7 @@ en: {
     photo: "hero",
     hero: { title: "Welcome to Lausanne",
       text: "The Olympic Capital — a city of hills between Lake Geneva and the vineyards, and the home of the Lausanne Open.",
-      badges: ["Olympic Capital", "Lake Geneva", "Canton of Vaud"] },
+      badges: [] },
     cards: [
       { icon: "city", title: "The city in short", list: [
         "Capital of the canton of Vaud, around 140,000 inhabitants — the fourth largest city in Switzerland.",
@@ -88,7 +88,7 @@ en: {
   visit: { cards: [
     { photo: "olympic", icon: "medal", title: "The Olympic Museum",
       text: "The obvious one, and genuinely good. On the lakefront in Ouchy, ten minutes from the centre by the m2 metro. The park and the terrace café are free even if you skip the museum." },
-    { icon: "church", title: "Cathedral & old town",
+    { photo: "cathedral", icon: "church", title: "Cathedral & old town",
       text: "The 13th-century cathedral sits at the top of the old town — climb the tower for the best view over the lake and the Alps. Below it, narrow streets and Place de la Palud with its Saturday market." },
     { photo: "hero", icon: "waves", title: "Ouchy & the lake",
       text: "The lakefront promenade is where Lausanne goes to breathe. Swim, paddle, or take a <b>CGN boat</b> — a beautiful ride across to Évian in France (bring your passport or ID)." },
@@ -98,7 +98,7 @@ en: {
       text: "One hour by train, near Montreux: a medieval castle standing on a rock in the lake. Worth the trip on a rest day." },
     { photo: "sauvabelin", icon: "tree", title: "Sauvabelin & Plateforme 10",
       text: "Above the city, the Sauvabelin lake and its wooden tower — 302 steps, a full view of the lake and the Alps. Next to the train station, <b>Plateforme 10</b> gathers three art museums in one modern district." },
-    { icon: "moon", title: "In the evening",
+    { photo: "evening.webp", icon: "moon", title: "In the evening",
       text: "The <b>Flon</b> district — a former warehouse quarter turned into bars, restaurants and cinemas — is where the city goes out. Ten minutes on foot from the station." },
   ]},
 },
@@ -109,7 +109,7 @@ fr: {
     photo: "hero",
     hero: { title: "Bienvenue à Lausanne",
       text: "La Capitale olympique — une ville de collines entre le Léman et les vignes, et le port d'attache du Lausanne Open.",
-      badges: ["Capitale olympique", "Lac Léman", "Canton de Vaud"] },
+      badges: [] },
     cards: [
       { icon: "city", title: "La ville en bref", list: [
         "Chef-lieu du canton de Vaud, environ 140 000 habitants — quatrième ville de Suisse.",
@@ -175,7 +175,7 @@ fr: {
   visit: { cards: [
     { photo: "olympic", icon: "medal", title: "Le Musée Olympique",
       text: "L'évidence, et il est vraiment bien. Au bord de l'eau à Ouchy, à dix minutes du centre par le m2. Le parc et la terrasse sont gratuits même sans visiter le musée." },
-    { icon: "church", title: "Cathédrale & vieille ville",
+    { photo: "cathedral", icon: "church", title: "Cathédrale & vieille ville",
       text: "La cathédrale du XIIIᵉ siècle domine la vieille ville — monte à la tour pour la plus belle vue sur le lac et les Alpes. En dessous, les ruelles et la place de la Palud avec son marché du samedi." },
     { photo: "hero", icon: "waves", title: "Ouchy & le lac",
       text: "La promenade du bord du lac, c'est là que Lausanne respire. Baignade, paddle, ou un <b>bateau CGN</b> — une belle traversée jusqu'à Évian, en France (passeport ou carte d'identité)." },
@@ -185,7 +185,7 @@ fr: {
       text: "Une heure de train, près de Montreux : un château médiéval posé sur un rocher dans le lac. Le déplacement vaut le coup un jour sans match." },
     { photo: "sauvabelin", icon: "tree", title: "Sauvabelin & Plateforme 10",
       text: "Au-dessus de la ville, le lac de Sauvabelin et sa tour en bois — 302 marches, vue complète sur le lac et les Alpes. À côté de la gare, <b>Plateforme 10</b> réunit trois musées d'art dans un quartier moderne." },
-    { icon: "moon", title: "Le soir",
+    { photo: "evening.webp", icon: "moon", title: "Le soir",
       text: "Le <b>Flon</b> — ancien quartier d'entrepôts devenu bars, restaurants et cinémas — c'est là que la ville sort. Dix minutes à pied de la gare." },
   ]},
 },
@@ -196,7 +196,7 @@ de: {
     photo: "hero",
     hero: { title: "Willkommen in Lausanne",
       text: "Die Olympische Hauptstadt — eine Stadt der Hügel zwischen Genfersee und Rebbergen, und die Heimat des Lausanne Open.",
-      badges: ["Olympische Hauptstadt", "Genfersee", "Kanton Waadt"] },
+      badges: [] },
     cards: [
       { icon: "city", title: "Die Stadt in Kürze", list: [
         "Hauptort des Kantons Waadt, rund 140 000 Einwohner — die viertgrösste Stadt der Schweiz.",
@@ -262,7 +262,7 @@ de: {
   visit: { cards: [
     { photo: "olympic", icon: "medal", title: "Das Olympische Museum",
       text: "Das Naheliegende — und wirklich gut. Am Seeufer in Ouchy, zehn Minuten vom Zentrum mit der m2. Park und Terrassencafé sind gratis, auch ohne Museumsbesuch." },
-    { icon: "church", title: "Kathedrale & Altstadt",
+    { photo: "cathedral", icon: "church", title: "Kathedrale & Altstadt",
       text: "Die Kathedrale aus dem 13. Jahrhundert krönt die Altstadt — steig auf den Turm für die beste Sicht über See und Alpen. Darunter enge Gassen und die Place de la Palud mit ihrem Samstagsmarkt." },
     { photo: "hero", icon: "waves", title: "Ouchy & der See",
       text: "Die Uferpromenade ist Lausannes Luftholen. Schwimmen, Paddeln, oder ein <b>CGN-Schiff</b> nehmen — eine schöne Fahrt hinüber nach Évian in Frankreich (Ausweis mitnehmen)." },
@@ -272,7 +272,7 @@ de: {
       text: "Eine Zugstunde entfernt, bei Montreux: eine mittelalterliche Burg auf einem Felsen im See. An einem spielfreien Tag lohnt sich die Fahrt." },
     { photo: "sauvabelin", icon: "tree", title: "Sauvabelin & Plateforme 10",
       text: "Über der Stadt der Sauvabelin-See mit seinem Holzturm — 302 Stufen, freie Sicht auf See und Alpen. Beim Bahnhof vereint <b>Plateforme 10</b> drei Kunstmuseen in einem modernen Quartier." },
-    { icon: "moon", title: "Am Abend",
+    { photo: "evening.webp", icon: "moon", title: "Am Abend",
       text: "Das <b>Flon</b> — ein ehemaliges Lagerhausquartier, heute Bars, Restaurants und Kinos — ist Lausannes Ausgehviertel. Zehn Gehminuten vom Bahnhof." },
   ]},
 },
@@ -283,7 +283,7 @@ it: {
     photo: "hero",
     hero: { title: "Benvenuti a Losanna",
       text: "La Capitale olimpica — una città di colline tra il Lago Lemano e i vigneti, e la casa del Lausanne Open.",
-      badges: ["Capitale olimpica", "Lago Lemano", "Canton Vaud"] },
+      badges: [] },
     cards: [
       { icon: "city", title: "La città in breve", list: [
         "Capoluogo del Canton Vaud, circa 140 000 abitanti — quarta città della Svizzera.",
@@ -349,7 +349,7 @@ it: {
   visit: { cards: [
     { photo: "olympic", icon: "medal", title: "Il Museo Olimpico",
       text: "La scelta ovvia, e davvero valida. Sul lungolago a Ouchy, dieci minuti dal centro con la m2. Il parco e il caffè con terrazza sono gratuiti anche senza visitare il museo." },
-    { icon: "church", title: "Cattedrale e città vecchia",
+    { photo: "cathedral", icon: "church", title: "Cattedrale e città vecchia",
       text: "La cattedrale del XIII secolo domina la città vecchia — sali sulla torre per la vista più bella su lago e Alpi. Sotto, vicoli stretti e Place de la Palud con il mercato del sabato." },
     { photo: "hero", icon: "waves", title: "Ouchy e il lago",
       text: "La passeggiata sul lago è dove Losanna respira. Nuota, fai paddle, o prendi un <b>battello CGN</b> — una bella traversata fino a Évian, in Francia (porta un documento)." },
@@ -359,7 +359,7 @@ it: {
       text: "Un'ora di treno, vicino a Montreux: un castello medievale su una roccia nel lago. Vale il viaggio in un giorno senza partite." },
     { photo: "sauvabelin", icon: "tree", title: "Sauvabelin e Plateforme 10",
       text: "Sopra la città, il lago di Sauvabelin e la sua torre di legno — 302 gradini, vista completa su lago e Alpi. Vicino alla stazione, <b>Plateforme 10</b> riunisce tre musei d'arte in un quartiere moderno." },
-    { icon: "moon", title: "La sera",
+    { photo: "evening.webp", icon: "moon", title: "La sera",
       text: "Il <b>Flon</b> — ex quartiere di magazzini diventato bar, ristoranti e cinema — è dove la città esce. Dieci minuti a piedi dalla stazione." },
   ]},
 },
@@ -370,7 +370,7 @@ es: {
     photo: "hero",
     hero: { title: "Bienvenido a Lausana",
       text: "La Capital olímpica — una ciudad de colinas entre el lago Lemán y los viñedos, y la casa del Lausanne Open.",
-      badges: ["Capital olímpica", "Lago Lemán", "Cantón de Vaud"] },
+      badges: [] },
     cards: [
       { icon: "city", title: "La ciudad en breve", list: [
         "Capital del cantón de Vaud, unos 140 000 habitantes — la cuarta ciudad de Suiza.",
@@ -436,7 +436,7 @@ es: {
   visit: { cards: [
     { photo: "olympic", icon: "medal", title: "El Museo Olímpico",
       text: "La opción evidente, y realmente buena. A orillas del lago en Ouchy, diez minutos del centro con el m2. El parque y la cafetería con terraza son gratuitos aunque no entres al museo." },
-    { icon: "church", title: "Catedral y casco antiguo",
+    { photo: "cathedral", icon: "church", title: "Catedral y casco antiguo",
       text: "La catedral del siglo XIII corona el casco antiguo — sube a la torre para la mejor vista del lago y los Alpes. Debajo, callejuelas y la Place de la Palud con su mercado de los sábados." },
     { photo: "hero", icon: "waves", title: "Ouchy y el lago",
       text: "El paseo junto al lago es donde Lausana respira. Nada, haz paddle, o coge un <b>barco CGN</b> — una bonita travesía hasta Évian, en Francia (lleva documentación)." },
@@ -446,7 +446,7 @@ es: {
       text: "A una hora en tren, cerca de Montreux: un castillo medieval sobre una roca en el lago. Merece el viaje en un día sin partido." },
     { photo: "sauvabelin", icon: "tree", title: "Sauvabelin y Plateforme 10",
       text: "Sobre la ciudad, el lago de Sauvabelin y su torre de madera — 302 escalones, vista completa del lago y los Alpes. Junto a la estación, <b>Plateforme 10</b> reúne tres museos de arte en un barrio moderno." },
-    { icon: "moon", title: "Por la noche",
+    { photo: "evening.webp", icon: "moon", title: "Por la noche",
       text: "El <b>Flon</b> — antiguo barrio de almacenes convertido en bares, restaurantes y cines — es donde sale la ciudad. Diez minutos a pie desde la estación." },
   ]},
 },
