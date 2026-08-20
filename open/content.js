@@ -452,3 +452,16 @@ es: {
 },
 
 };
+
+/* Chaque carte « À voir » a son bouton Google Maps. La destination est la
+   même dans les 5 langues : elle est indexée ici par l'icône de la carte,
+   plutôt que répétée cinq fois dans WELCOME. */
+export const VISIT_MAPS = {
+  medal:  "Musée Olympique, Quai d'Ouchy 1, 1006 Lausanne",
+  church: "Cathédrale de Lausanne, Place de la Cathédrale, 1005 Lausanne",
+  waves:  "Ouchy, 1006 Lausanne",
+  wine:   "Lavaux, Cully, Switzerland",
+  castle: "Château de Chillon, Avenue de Chillon 21, 1820 Veytaux",
+  tree:   "Tour de Sauvabelin, 1018 Lausanne",
+  moon:   "Le Flon, 1003 Lausanne",
+};

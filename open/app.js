@@ -8,7 +8,7 @@
 import { sb } from "./sb.js";
 import { svg, ico, big } from "./icons.js";
 import { LANGS, FLAGS, t, tr, setLang, getLang, detectLang } from "./i18n.js";
-import { WELCOME } from "./content.js";
+import { WELCOME, VISIT_MAPS } from "./content.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -187,6 +187,8 @@ function cardHTML(c, withPhoto) {
       ${kv ? `<div class="kv">${kv.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>` : ""}
       ${c.note ? `<p class="note">${c.note}</p>` : ""}
       ${c.link ? `<p class="lnk"><a href="${c.link.href}" target="_blank" rel="noopener">${c.link.label}</a></p>` : ""}
+      ${withPhoto && VISIT_MAPS[c.icon] ? `<a class="maps-btn" target="_blank" rel="noopener"
+           href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(VISIT_MAPS[c.icon])}">${svg("mappin")}${esc(t("log.maps"))}</a>` : ""}
     </div>
   </article>`;
 }
