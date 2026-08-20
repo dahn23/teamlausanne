@@ -88,7 +88,7 @@ en: {
   visit: { cards: [
     { photo: "olympic", icon: "medal", title: "The Olympic Museum",
       text: "The obvious one, and genuinely good. On the lakefront in Ouchy, ten minutes from the centre by the m2 metro. The park and the terrace café are free even if you skip the museum." },
-    { photo: "cathedral", icon: "church", title: "Cathedral & old town",
+    { photo: "cathedral.webp", icon: "church", title: "Cathedral & old town",
       text: "The 13th-century cathedral sits at the top of the old town — climb the tower for the best view over the lake and the Alps. Below it, narrow streets and Place de la Palud with its Saturday market." },
     { photo: "hero", icon: "waves", title: "Ouchy & the lake",
       text: "The lakefront promenade is where Lausanne goes to breathe. Swim, paddle, or take a <b>CGN boat</b> — a beautiful ride across to Évian in France (bring your passport or ID)." },
@@ -175,7 +175,7 @@ fr: {
   visit: { cards: [
     { photo: "olympic", icon: "medal", title: "Le Musée Olympique",
       text: "L'évidence, et il est vraiment bien. Au bord de l'eau à Ouchy, à dix minutes du centre par le m2. Le parc et la terrasse sont gratuits même sans visiter le musée." },
-    { photo: "cathedral", icon: "church", title: "Cathédrale & vieille ville",
+    { photo: "cathedral.webp", icon: "church", title: "Cathédrale & vieille ville",
       text: "La cathédrale du XIIIᵉ siècle domine la vieille ville — monte à la tour pour la plus belle vue sur le lac et les Alpes. En dessous, les ruelles et la place de la Palud avec son marché du samedi." },
     { photo: "hero", icon: "waves", title: "Ouchy & le lac",
       text: "La promenade du bord du lac, c'est là que Lausanne respire. Baignade, paddle, ou un <b>bateau CGN</b> — une belle traversée jusqu'à Évian, en France (passeport ou carte d'identité)." },
@@ -262,7 +262,7 @@ de: {
   visit: { cards: [
     { photo: "olympic", icon: "medal", title: "Das Olympische Museum",
       text: "Das Naheliegende — und wirklich gut. Am Seeufer in Ouchy, zehn Minuten vom Zentrum mit der m2. Park und Terrassencafé sind gratis, auch ohne Museumsbesuch." },
-    { photo: "cathedral", icon: "church", title: "Kathedrale & Altstadt",
+    { photo: "cathedral.webp", icon: "church", title: "Kathedrale & Altstadt",
       text: "Die Kathedrale aus dem 13. Jahrhundert krönt die Altstadt — steig auf den Turm für die beste Sicht über See und Alpen. Darunter enge Gassen und die Place de la Palud mit ihrem Samstagsmarkt." },
     { photo: "hero", icon: "waves", title: "Ouchy & der See",
       text: "Die Uferpromenade ist Lausannes Luftholen. Schwimmen, Paddeln, oder ein <b>CGN-Schiff</b> nehmen — eine schöne Fahrt hinüber nach Évian in Frankreich (Ausweis mitnehmen)." },
@@ -349,7 +349,7 @@ it: {
   visit: { cards: [
     { photo: "olympic", icon: "medal", title: "Il Museo Olimpico",
       text: "La scelta ovvia, e davvero valida. Sul lungolago a Ouchy, dieci minuti dal centro con la m2. Il parco e il caffè con terrazza sono gratuiti anche senza visitare il museo." },
-    { photo: "cathedral", icon: "church", title: "Cattedrale e città vecchia",
+    { photo: "cathedral.webp", icon: "church", title: "Cattedrale e città vecchia",
       text: "La cattedrale del XIII secolo domina la città vecchia — sali sulla torre per la vista più bella su lago e Alpi. Sotto, vicoli stretti e Place de la Palud con il mercato del sabato." },
     { photo: "hero", icon: "waves", title: "Ouchy e il lago",
       text: "La passeggiata sul lago è dove Losanna respira. Nuota, fai paddle, o prendi un <b>battello CGN</b> — una bella traversata fino a Évian, in Francia (porta un documento)." },
@@ -436,7 +436,7 @@ es: {
   visit: { cards: [
     { photo: "olympic", icon: "medal", title: "El Museo Olímpico",
       text: "La opción evidente, y realmente buena. A orillas del lago en Ouchy, diez minutos del centro con el m2. El parque y la cafetería con terraza son gratuitos aunque no entres al museo." },
-    { photo: "cathedral", icon: "church", title: "Catedral y casco antiguo",
+    { photo: "cathedral.webp", icon: "church", title: "Catedral y casco antiguo",
       text: "La catedral del siglo XIII corona el casco antiguo — sube a la torre para la mejor vista del lago y los Alpes. Debajo, callejuelas y la Place de la Palud con su mercado de los sábados." },
     { photo: "hero", icon: "waves", title: "Ouchy y el lago",
       text: "El paseo junto al lago es donde Lausana respira. Nada, haz paddle, o coge un <b>barco CGN</b> — una bonita travesía hasta Évian, en Francia (lleva documentación)." },
