@@ -70,4 +70,6 @@ les joueurs ne doivent pas tomber sur teamlausanne.netlify.app.
   (hôtel/navette/restaurant), Order of play (PDF par jour, stocké en base64),
   Practice (grille courts × créneaux, `visible_from` pour ouvrir la veille à 18h),
   Sparring, Roommate. Chaque onglet est **blocable** depuis le backend.
-- Le contenu de l'onglet Welcome est **statique**, dans la constante `WELCOME` de `open/app.js`.
+- **5 langues** : EN/FR/DE/IT/ES. `open/i18n.js` = libelles d interface + drapeaux SVG ; `open/content.js` = contenu des pages Welcome, ecrit en DONNEES (titres, listes, kv) et pas en HTML -> traduire = traduire du texte. Langue detectee au 1er lancement puis memorisee. Le contenu venu du backend nest PAS traduit.
+- **Photos** : `open/assets/visit/*.jpg` (Wikimedia Commons, licences libres, credits affiches). Une carte sans photo bascule sur un degrade + icone en filigrane : rien ne casse si un fichier manque. Manquent : `cathedral.jpg` et `evening.jpg`.
+- Barre donglets = **grille** (pas de defilement) : icone + libelle court sur 2 lignes max.
