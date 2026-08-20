@@ -31,11 +31,11 @@
   status = 301
 [[redirects]]
   from = "/events"
-  to = "/#journee-team-lausanne"
+  to = "/samedi-famille"
   status = 301
 [[redirects]]
   from = "/initiation"
-  to = "/#journee-team-lausanne"
+  to = "/samedi-famille"
   status = 301
 
 # --- Rien de Team Lausanne n'est accessible depuis ce domaine ---

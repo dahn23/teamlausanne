@@ -151,8 +151,8 @@ const WORLDS = {
         sub: "Entrée libre toute la semaine, animations grand public et hospitalité.",
         items: [
           { name: "Initiation pour les écoles", photo: "assets/photos/open-kids.jpg" },
-          { name: "Journée Team Lausanne", photo: "assets/photos/open-wheelchair.jpg", href: "#journee-team-lausanne" },
-          { name: "VIP · Tennis & Lunch", photo: "assets/photos/open-lunch.jpg", href: "/tennis-lunchs" },
+          { name: "Journée Team Lausanne", photo: "assets/photos/open-kids.jpg", href: "/samedi-famille" },
+          { name: "VIP · Tennis & Lunch", photo: "assets/photos/open-lunch.jpg" },
         ]},
       { type: "ranking", anchor: "palmares", title: "Palmarès",
         head: ["Année", "Simple", "Double"],
@@ -168,7 +168,7 @@ const WORLDS = {
         ["Entrée libre", "Accès gratuit toute la semaine, sans billet."],
         ["Lieu", "TC Lausanne-Sports, Plaines-du-Loup, 1018 Lausanne."],
         ["Une question ?", "Écrivez-nous, nous répondons rapidement."],
-      ], link: { label: "Nous écrire ↗", href: "mailto:info@lausanneopen.ch" } },
+      ], link: { label: "Nous écrire", scroll: "contact-lo" } },
       { type: "sponsors", anchor: "partenaires", title: "Partenaires du tournoi",
         sub: "Le Lausanne Open n’existerait pas sans eux.", items: [
         { n: "Ville de Lausanne",              l: "ville-lausanne",      u: "https://www.lausanne.ch/" },
@@ -242,7 +242,7 @@ const DETAILS = {
   },
   "journee-team-lausanne": {
     world: "tournoi", title: "Journée Team Lausanne", subtitle: "Samedi, en marge du Lausanne Open — ouvert à toutes et tous",
-    hero: "assets/photos/open-wheelchair.jpg",
+    hero: "assets/photos/open-kids.jpg",
     sections: [
       { type: "rich", title: "Une journée de fête autour du tennis", body: [
         "En marge du Lausanne Open, la Journée Team Lausanne met le tennis à la portée de tous, petits et grands, dans une ambiance conviviale.",
@@ -252,10 +252,9 @@ const DETAILS = {
         ["Dès 11h", "Jouez avec nos meilleurs joueurs."],
         ["Radar", "Testez la vitesse de votre service."],
         ["Les petits", "Initiation pour les enfants."],
-        ["Tennis-fauteuil", "Exhibition entre les deux demi-finales."],
-        ["Vers 17h", "On termine par la finale du double."],
+        ["Vers 15h", "On termine par la finale du double."],
       ]},
-      { type: "gallery", items: ["assets/photos/open-wheelchair.jpg", "assets/photos/open-kids.jpg"] },
+      { type: "gallery", items: ["assets/photos/open-kids.jpg", "assets/photos/open-serve.jpg"] },
     ],
   },
   stages: {
