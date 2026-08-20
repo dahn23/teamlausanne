@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=50" />
+  <link rel="stylesheet" href="style.css?v=51" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1005,8 +1005,8 @@
         <button type="button" class="ptab" data-ptab="cours">Cours</button>
         <button type="button" class="ptab" data-ptab="phys">Tests physiques</button>
         <button type="button" class="ptab" data-ptab="etudes">Études</button>
-        <button type="button" class="ptab" data-ptab="mental">Mental</button>
         <button type="button" class="ptab" data-ptab="matchs">Matchs</button>
+        <button type="button" class="ptab" data-ptab="suivi">Suivi</button>
         <button type="button" class="ptab" data-ptab="stages">Stages</button>
         <button type="button" class="ptab" data-ptab="media">Photos / vidéos</button>
         <button type="button" class="ptab" data-ptab="obj">Objectifs</button>
@@ -1120,13 +1120,11 @@
 
       <div id="ptab-etudes" class="ptab-panel hidden">
         <div id="pe-stats" class="et-stats"></div>
-        <h3 style="margin:14px 0 8px">Suivi du jeune</h3>
-        <div id="pe-chan"></div>
       </div>
 
-      <div id="ptab-mental" class="ptab-panel hidden">
-        <h3 style="margin:0 0 8px">Suivi mental</h3>
-        <div id="pm-chan"></div>
+      <div id="ptab-suivi" class="ptab-panel hidden">
+        <h3 style="margin:0 0 8px">Suivi du jeune</h3>
+        <div id="ps-chan"></div>
       </div>
 
       <div id="ptab-matchs" class="ptab-panel hidden">

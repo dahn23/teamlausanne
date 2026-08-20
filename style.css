@@ -1021,6 +1021,15 @@ button.wsec-link{color:#fff;border-bottom:0}
 .chan-note{font-size:.8rem;margin:0 0 10px;padding:7px 11px;border-radius:8px}
 .chan-note.interne{background:#f1f3f8;color:#5a6178}
 .chan-note.public{background:#e7f6ec;color:#0b6b3a;font-weight:600}
+/* Badges de rôle sur le fil « Suivi du jeune » */
+.yn-who{display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap}
+.yn-badge{font-size:.66rem;font-weight:800;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px}
+.yn-badge.mental{background:#efe3ff;color:#6b21a8}
+.yn-badge.prof{background:#e0f2fe;color:#075985}
+.yn-badge.coach{background:#e3f6e8;color:#1c7d38}
+.yn-badge.head{background:#fff2d6;color:#92600e}
+.yn-badge.secr{background:#eef1f6;color:#475569}
+.yn-badge.admin{background:#fde4e4;color:#b23838}
 /* Case règlement (formulaire d'adhésion) */
 .m-consent{display:flex;align-items:flex-start;gap:10px;font-size:.92rem;color:var(--ink)}
 .m-consent input{width:18px;height:18px;flex-shrink:0;margin-top:1px}

@@ -571,40 +571,17 @@ async function submitStg(e) {
 /* ============================================================
    PROFIL (mental/études publics — à venir)
    ============================================================ */
-async function renderProfil() {
+function renderProfil() {
   const targets = selYouth === "all" ? YOUTHS : YOUTHS.filter((y) => y.person_id === selYouth);
   if (!targets.length) { $("view-profil").innerHTML = `<div class="pt-empty"><p>Aucun profil lié à ce compte.</p></div>`; return; }
-  $("view-profil").innerHTML = `<p class="muted" style="text-align:center;padding:18px">Chargement…</p>`;
-
-  const blocks = await Promise.all(targets.map(async (y) => {
-    const [ment, etu] = await Promise.all([
-      sb.from("mental_comments").select("body,author_name,created_at")
-        .eq("youth_person_id", y.person_id).eq("channel", "public").order("created_at", { ascending: false }),
-      sb.from("etudes_remarks").select("body,prof_name,created_at")
-        .eq("youth_person_id", y.person_id).eq("channel", "public").order("created_at", { ascending: false }),
-    ]);
-    return { y, mental: ment.data || [], etudes: etu.data || [] };
-  }));
-
-  const item = (author, iso, body) => `
-    <div class="pt-suivi-item">
-      <div class="pt-suivi-meta">${author ? escHtml(author) + " · " : ""}${frShort((iso || "").slice(0, 10))}</div>
-      <p>${escHtml(body).replace(/\n/g, "<br/>")}</p>
-    </div>`;
-
-  $("view-profil").innerHTML = blocks.map(({ y, mental, etudes }) => {
-    let sections = "";
-    if (mental.length) sections += `<div class="pt-suivi-sec"><div class="pt-suivi-h">🧠 Mental</div>${mental.map((m) => item(m.author_name, m.created_at, m.body)).join("")}</div>`;
-    if (etudes.length) sections += `<div class="pt-suivi-sec"><div class="pt-suivi-h">📚 Études</div>${etudes.map((e) => item(e.prof_name, e.created_at, e.body)).join("")}</div>`;
-    if (!sections) sections = `<p class="muted" style="padding:4px 2px">Aucun suivi partagé pour l'instant.</p>`;
-    return `<div class="pt-prof">
+  // Le suivi (mental/études) est désormais un fil INTERNE à l'encadrement : plus affiché ici.
+  $("view-profil").innerHTML = targets.map((y) => `
+    <div class="pt-prof">
       <div class="pt-prof-head">
         <div class="pt-youth-av big">${initials(y.first_name, y.last_name).toUpperCase()}</div>
         <div><b>${escHtml(y.first_name)} ${escHtml(y.last_name)}</b></div>
       </div>
-      ${sections}
-    </div>`;
-  }).join("");
+    </div>`).join("");
 }
 
 /* ============================================================

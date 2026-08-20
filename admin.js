@@ -1184,8 +1184,8 @@ function openPerson(p) {
   showPersonTab("cours", coursByRole);
   showPersonTab("phys", physByRole);
   showPersonTab("etudes", etudesByRole);
-  showPersonTab("mental", mentalByRole);
   showPersonTab("matchs", physByRole);
+  showPersonTab("suivi", physByRole);   // fil « Suivi du jeune » pour tout junior
   showPersonTab("stages", false);
   const staffPayRole = [...COACH_ROLES, "prof", "coach-mental"].some((r) => roles.includes(r));
   showPersonTab("coach", staffPayRole);
@@ -1195,8 +1195,8 @@ function openPerson(p) {
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
-  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonMental(p.id, mentalByRole); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
-  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("pe-chan").innerHTML = ""; $("pm-chan").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
+  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
+  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -5262,7 +5262,7 @@ function drawPmYear(year) {
 
 let peYouthId = null;
 async function loadPersonEtudes(personId, byRole) {
-  if (!personId) { $("pe-stats").innerHTML = ""; $("pe-chan").innerHTML = ""; return; }
+  if (!personId) { $("pe-stats").innerHTML = ""; return; }
   showPersonTab("etudes", byRole);
   const season = currentSeason("juniors");
   let n = 0, pr = 0, la = 0, ab = 0;
@@ -5279,7 +5279,12 @@ async function loadPersonEtudes(personId, byRole) {
   $("pe-stats").innerHTML = (season ? `<div class="muted" style="width:100%;font-size:.82rem;margin-bottom:6px">Saison ${esc(season.label)}</div>` : "")
     + (n ? `<div class="et-stat st-present"><b>${pct(pr)}%</b><span>présent (${pr})</span></div><div class="et-stat st-late"><b>${pct(la)}%</b><span>retard (${la})</span></div><div class="et-stat st-absent"><b>${pct(ab)}%</b><span>absent (${ab})</span></div><div class="et-stat"><b>${n}</b><span>jours</span></div>`
       : '<p class="muted" style="font-size:.85rem">Aucune présence renseignée.</p>');
-  channelBox("pe-chan", "etudes_remarks", personId, true);
+}
+// Fil « Suivi du jeune » unifié (interne, cross-rôles) dans la fiche.
+async function loadPersonSuivi(personId, byRole) {
+  if (!personId) { $("ps-chan").innerHTML = ""; return; }
+  showPersonTab("suivi", byRole);
+  youthNotes("ps-chan", personId);
 }
 async function loadPeRemarks(youthId) {
   peYouthId = youthId;
@@ -5428,7 +5433,7 @@ function openMentalParticipant(yid) {
   $("mn-part-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
 }
-function loadMnComments(yid) { mnYouthId = yid; channelBox("mn-chan", "mental_comments", yid); }
+function loadMnComments(yid) { mnYouthId = yid; youthNotes("mn-chan", yid); }
 
 // ---- Commentaires mental (partagés participants / fiche) ----
 async function renderMentalComments(youthId, listId, refresh) {
@@ -5758,11 +5763,62 @@ async function openEtudesYouth(yid) {
     <div class="et-stat st-late"><b>${pct(c("late"))}%</b><span>en retard (${c("late")})</span></div>
     <div class="et-stat st-absent"><b>${pct(c("absent"))}%</b><span>absent (${c("absent")})</span></div>
     <div class="et-stat"><b>${n}</b><span>jours comptés</span></div>` : '<p class="muted" style="font-size:.85rem">Aucune présence renseignée (les « pas prévu » ne comptent pas).</p>';
-  channelBox("et-chan", "etudes_remarks", yid, true);
+  youthNotes("et-chan", yid);
   $("et-youth-list").classList.add("hidden");
   $("et-youth-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
 }
+// ---- Fil « Suivi du jeune » unifié (interne, partagé par tout l'encadrement) ----
+// Table youth_notes. Utilisé partout : Études (par jeune), Mental (par jeune), fiche › Suivi.
+const NOTE_ROLE_META = {
+  coach_mental: ["Mental", "mental"], prof: ["Prof", "prof"], head_coach: ["Head coach", "head"],
+  coach: ["Coach", "coach"], secretaire: ["Secrétariat", "secr"], admin: ["Admin", "admin"], superadmin: ["Admin", "admin"],
+};
+const NOTE_ROLE_PRIORITY = ["coach_mental", "prof", "head_coach", "coach", "secretaire", "admin", "superadmin"];
+const myNoteRole = () => NOTE_ROLE_PRIORITY.find((r) => myAppRoles.includes(r)) || "coach";
+const noteRoleBadge = (role) => { const m = NOTE_ROLE_META[role] || [role || "—", "coach"]; return `<span class="yn-badge ${m[1]}">${esc(m[0])}</span>`; };
+
+async function youthNotes(mountId, youthId) {
+  const el = $(mountId); if (!el) return;
+  if (!youthId) { el.innerHTML = ""; return; }
+  const { data } = await sb.from("youth_notes").select("*").eq("youth_person_id", youthId).order("created_at", { ascending: false });
+  const rows = data || [];
+  const items = rows.length ? rows.map((r) => {
+    const mine = r.created_by === meId;
+    const edited = r.updated_at && r.updated_at !== r.created_at ? ' <span class="muted">(modifié)</span>' : "";
+    return `<div class="obj-item yn-item" data-id="${r.id}">
+      <div class="obj-meta"><span class="yn-who">${noteRoleBadge(r.author_role)} <b>${esc(r.author_name || "—")}</b></span><span>${frDateTime(r.created_at)}${edited}</span></div>
+      <div class="obj-body">${esc(r.body).replace(/\n/g, "<br/>")}</div>
+      ${mine ? `<div class="obj-acts"><button type="button" class="edit">Modifier</button><button type="button" class="del">Supprimer</button></div>` : ""}</div>`;
+  }).join("") : '<p class="obj-empty">Aucune note pour l\'instant.</p>';
+  el.innerHTML = `
+    <p class="chan-note interne">Fil interne — partagé par tout l'encadrement (coachs, profs, mental, secrétariat, admin).</p>
+    <div class="obj-add"><textarea class="yn-body" rows="2" placeholder="Ajouter une note sur le jeune…"></textarea>
+      <button type="button" class="yn-add">Ajouter</button></div>
+    <div class="obj-list">${items}</div>`;
+  el.querySelector(".yn-add").addEventListener("click", async () => {
+    const body = el.querySelector(".yn-body").value.trim(); if (!body) return;
+    const { error } = await sb.from("youth_notes").insert({ youth_person_id: youthId, body, author_person_id: myPersonId, author_name: meName, author_role: myNoteRole(), created_by: meId });
+    if (error) { alert(error.message); return; }
+    youthNotes(mountId, youthId);
+  });
+  el.querySelectorAll(".del").forEach((b) => b.addEventListener("click", async () => {
+    if (!confirm("Supprimer cette note ?")) return;
+    await sb.from("youth_notes").delete().eq("id", b.closest(".yn-item").dataset.id);
+    youthNotes(mountId, youthId);
+  }));
+  el.querySelectorAll(".edit").forEach((b) => b.addEventListener("click", () => {
+    const item = b.closest(".yn-item"), id = item.dataset.id, cur = rows.find((r) => r.id === id);
+    item.querySelector(".obj-body").innerHTML = `<textarea class="yn-edit" rows="2" style="width:100%">${esc(cur.body)}</textarea>
+      <div style="margin-top:6px"><button type="button" class="yn-save">Enregistrer</button></div>`;
+    item.querySelector(".yn-save").addEventListener("click", async () => {
+      const nb = item.querySelector(".yn-edit").value.trim(); if (!nb) return;
+      await sb.from("youth_notes").update({ body: nb, updated_at: new Date().toISOString() }).eq("id", id);
+      youthNotes(mountId, youthId);
+    });
+  }));
+}
+
 // ---- Composant « double canal » (interne / public) réutilisable ----
 // Utilisé dans : onglet Études, onglet Mental, fiche Études, fiche Mental.
 const CHAN_CFG = {
