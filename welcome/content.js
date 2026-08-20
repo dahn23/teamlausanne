@@ -52,7 +52,7 @@ export const SEEDS = [
     bio: "22 ans, formé sur le circuit junior italien." },
   { n: 3, nom: "Johan Nikles", pays: "Suisse", drapeau: "ch", atp: 412, best: 256, photo: "nikles.png",
     bio: "Genevois né le 23 mars 1997, l’un des visages familiers du tennis romand. Il a atteint la 256ᵉ place mondiale en juillet 2022." },
-  { n: 4, nom: "Henry Bernet", pays: "Suisse", drapeau: "ch", atp: 430, best: 479, photo: "bernet.webp",
+  { n: 4, nom: "Henry Bernet", pays: "Suisse", drapeau: "ch", atp: 436, best: 397, photo: "bernet.webp",
     bio: "Tenant du titre : il a remporté le Lausanne Open 2025. Né le 25 janvier 2007, il a gagné l’Open d’Australie junior le jour de ses 18 ans — sixième Suisse à décrocher un Grand Chelem junior, après Federer, Wawrinka, Günthardt, Valent et Stricker." },
   { n: 5, nom: "Lorenzo Carboni", pays: "Italie", drapeau: "it", atp: 481, best: 415, photo: "carboni",
     bio: "Jeune joueur italien en progression sur le circuit ITF." },
