@@ -47,7 +47,7 @@ export const TOURNOI = {
 // dessinée à la place. On n'écrit ici que des faits vérifiés.
 export const SEEDS = [
   { n: 1, nom: "Andrey Chepelev", pays: "Neutre", drapeau: "neutre", atp: 353, photo: "chepelev",
-    bio: "Né le 2 août 1998. Il arrive avec le meilleur classement du tableau." },
+    bio: "Né le 2 août 1998. Il arrive avec le meilleur classement du tableau. Meilleur classement en carrière : 339ᵉ mondial." },
   { n: 2, nom: "Gabriele Piraino", pays: "Italie", drapeau: "it", atp: 404, photo: "piraino",
     bio: "22 ans, formé sur le circuit junior italien. Meilleur classement en carrière : 321ᵉ mondial." },
   { n: 3, nom: "Johan Nikles", pays: "Suisse", drapeau: "ch", atp: 412, photo: "nikles",
