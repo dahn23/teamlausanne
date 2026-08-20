@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#123cc4" />
+  <title>Lausanne Open 2026 — ITF M25, du 23 au 30 août</title>
+  <meta name="description" content="Lausanne Open : l’unique tournoi international de tennis masculin du canton de Vaud. ITF M25, 30 000 $ de dotation, entrée libre du 23 au 30 août 2026 aux Plaines-du-Loup." />
+  <link rel="stylesheet" href="style.css?v=51" />
+  <style>
+    /* Site du seul Lausanne Open : ni barre de navigation vers les autres
+       mondes (Club, Academy, Business, Contact, Console, Réserver), ni pied
+       de page du site Team Lausanne. Masqués et non supprimés : le script
+       les cherche par leur identifiant au chargement. */
+    .nav, .foot { display: none !important; }
+    .hero { padding-top: 40px; }
+  </style>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/lo/favicon-32.png" />
+  <link rel="apple-touch-icon" href="assets/lo/apple-touch-icon.png" />
+</head>
+<body class="public" data-world="club">
+  <header class="nav">
+    <div class="nav-brand">
+      <img id="nav-logo" class="nav-logo" src="assets/logo-club.webp" alt="" />
+    </div>
+    <div class="switcher" role="tablist" aria-label="Choisir un univers">
+      <div class="sw-wrap">
+        <button class="sw" data-world="club" role="tab">Club</button>
+        <div class="sw-menu">
+          <a href="#devenir-membre">Devenir membre</a>
+          <a data-goto="club" data-anchor="agenda">Agenda</a>
+          <a href="reservation.html">Réserver un court</a>
+          <a data-goto="club" data-anchor="comite">Comité</a>
+          <a data-goto="club" data-anchor="resto">Restaurant</a>
+        </div>
+      </div>
+      <div class="sw-wrap">
+        <button class="sw" data-world="academie" role="tab">Academy</button>
+        <div class="sw-menu">
+          <a href="#kids">KidsTennis</a>
+          <a href="#club-academy">Club</a>
+          <a href="#competition">Compétition</a>
+          <a href="#performance">Performance</a>
+          <a href="#sport-etudes">Sport-études</a>
+          <a href="#pro-u18">Pro U18</a>
+          <a href="#pro">Pro</a>
+          <a href="#stages">Stages</a>
+          <a data-goto="academie" data-anchor="coaches">Coachs</a>
+          <a href="#gamezone">GameZone</a>
+        </div>
+      </div>
+      <div class="sw-wrap">
+        <button class="sw" data-world="tournoi" role="tab">Lausanne Open</button>
+      </div>
+      <div class="sw-wrap">
+        <button class="sw" data-world="business" role="tab">Business &amp; partenaires</button>
+        <div class="sw-menu">
+          <a href="presidents.html">Club des Présidents</a>
+          <a data-goto="business" data-anchor="avantages">Avantages &amp; offres partenaires</a>
+          <a data-goto="business" data-anchor="devenir">Devenir partenaire</a>
+          <a data-goto="business" data-anchor="privatisation">Privatisations / événements</a>
+        </div>
+      </div>
+    </div>
+    <a href="contact.html" class="btn-contact">Contact</a>
+    <a id="to-console" href="/console" class="btn-contact hidden">Console</a>
+    <button id="open-login" class="btn-login">Réserver</button>
+  </header>
+
+  <!-- ---------- Hero dynamique ---------- -->
+  <section class="hero" id="hero">
+    <div class="hero-bg" id="hero-bg"></div>
+    <div class="hero-scrim"></div>
+    <div class="hero-content" id="hero-content">
+      <img class="hero-logo" id="hero-logo" src="" alt="" />
+      <p class="hero-tag" id="hero-tag"></p>
+      <h1 class="hero-slogan" id="hero-slogan"></h1>
+      <p class="hero-desc" id="hero-desc"></p>
+      <div class="hero-cta" id="hero-cta"></div>
+    </div>
+    <div class="hero-switch-hint">
+      <span>Changez d'univers ↑</span>
+    </div>
+  </section>
+
+  <!-- ---------- Contenu dynamique du monde ---------- -->
+  <main id="world-main" class="world-main"></main>
+
+  <footer class="foot">
+    <!-- Un lieu, trois mondes (le sélecteur commun, dans le footer) -->
+    <section class="coherence">
+      <h2>Un lieu, trois mondes</h2>
+      <p class="coherence-sub">Tout se joue au même endroit, aux Plaines-du-Loup à Lausanne.
+        Le club où l'on joue, l'academy où l'on progresse, le tournoi où l'on vibre.</p>
+      <div class="flow">
+        <button class="flow-step" data-world="club"><span>1</span><h3>On joue</h3><p>Le Club</p></button>
+        <div class="flow-arrow">→</div>
+        <button class="flow-step academie" data-world="academie"><span>2</span><h3>On progresse</h3><p>Academy</p></button>
+        <div class="flow-arrow">→</div>
+        <button class="flow-step" data-world="tournoi"><span>3</span><h3>On vibre</h3><p>Lausanne Open</p></button>
+      </div>
+    </section>
+
+    <div class="foot-cols">
+      <div>
+        <b>TC Lausanne-Sports · Team Lausanne Academy</b><br />
+        Route des Plaines-du-Loup 7<br />1018 Lausanne<br />
+        +41 21 646 13 50
+      </div>
+      <div>
+        <b>Un lieu, plusieurs mondes</b><br />
+        Club · Academy · Lausanne Open<br />
+        <span class="muted">Jouer. Grandir. Vibrer. Ensemble.</span>
+      </div>
+    </div>
+    <p class="foot-copy">© 2026 Team Lausanne — Club · Academy · Tournoi</p>
+  </footer>
+
+  <!-- ---------- Plan des courts ---------- -->
+  <div id="plan-modal" class="modal hidden">
+    <div class="plan-card">
+      <button type="button" id="plan-close" class="modal-x" aria-label="Fermer">✕</button>
+      <img id="plan-img" src="" alt="Plan des courts — Team Lausanne, Plaines-du-Loup" />
+    </div>
+  </div>
+
+  <!-- ---------- Connexion ---------- -->
+  <div id="login-modal" class="modal hidden">
+    <form id="login-form" class="card">
+      <button type="button" id="close-login" class="modal-close" aria-label="Fermer">×</button>
+      <h2 class="brand blue">Espace membres</h2>
+      <label>Email
+        <input type="email" id="email" autocomplete="email" required />
+      </label>
+      <label>Mot de passe
+        <input type="password" id="password" autocomplete="current-password" required />
+      </label>
+      <button type="submit" id="login-btn">Se connecter</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </div>
+
+  <!-- ---------- Inscription à un stage ---------- -->
+  <div id="stgp-modal" class="modal hidden">
+    <div class="modal-box">
+      <button id="stgp-close" class="modal-x" aria-label="Fermer">✕</button>
+      <h2 id="stgp-modal-title" style="margin-top:0"></h2>
+      <div id="stgp-modal-meta" class="muted" style="margin-bottom:12px"></div>
+      <form id="stgp-form" style="display:flex;flex-direction:column;gap:12px">
+        <label>Catégorie de stage
+          <select id="f-category" required></select>
+        </label>
+        <div id="f-cat-info" class="stg-cat-info muted"></div>
+        <div class="stg-form-grid">
+          <label>Prénom<input type="text" id="f-first" required /></label>
+          <label>Nom<input type="text" id="f-last" required /></label>
+        </div>
+        <div class="stg-form-grid">
+          <label>Email<input type="email" id="f-email" required /></label>
+          <label>Date de naissance<input type="date" id="f-birth" required /></label>
+        </div>
+        <label id="f-tshirt-wrap" class="hidden">Taille de t-shirt (offert)
+          <select id="f-tshirt">
+            <option value="">— choisir —</option>
+            <option>4-6 ans</option><option>8-10 ans</option><option>12-14 ans</option>
+            <option>S</option><option>M</option><option>L</option><option>XL</option>
+          </select>
+        </label>
+        <div id="f-meal-wrap" class="hidden">
+          <span class="stg-lbl">Restriction / allergie alimentaire</span>
+          <label class="stg-radio"><input type="radio" name="meal" value="aucune" checked /> Aucune</label>
+          <label class="stg-radio"><input type="radio" name="meal" value="autre" /> À préciser :</label>
+          <input type="text" id="f-meal-text" placeholder="Allergie, régime…" disabled />
+        </div>
+        <label id="f-ranking-wrap" class="hidden">Classement tennis
+          <input type="text" id="f-ranking" placeholder="ex. R4, N3, sans classement…" />
+        </label>
+        <div id="f-addon-wrap" class="hidden stg-addon">
+          <label class="stg-addon-check"><input type="checkbox" id="f-addon" /> <span id="f-addon-label"></span></label>
+          <p class="muted" style="font-size:.82rem;margin:6px 0 0">L'horaire des 3h de tennis privé sera communiqué le premier jour du stage.</p>
+        </div>
+        <label>Commentaire (optionnel)<textarea id="f-comment" rows="3"></textarea></label>
+        <button type="submit">Envoyer mon inscription</button>
+        <p id="stgp-error" class="error" hidden></p>
+      </form>
+      <div id="stgp-done" class="hidden">
+        <p style="font-size:1.1rem">Inscription reçue, merci !</p>
+        <p class="muted">Tu recevras un email de confirmation avec la facture. À très bientôt !</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="index.js"></script>
+</body>
+</html>

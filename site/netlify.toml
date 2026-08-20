@@ -1,0 +1,70 @@
+# Site du LAUSANNE OPEN — destiné à lausanneopen.ch.
+# Dans les réglages du site Netlify : base directory = "site".
+# C'est la page « tournoi » du site vitrine, sans sa barre de navigation
+# ni son pied de page : ici, aucun lien ne mène à Team Lausanne.
+[build]
+  publish = "."
+  command = ""
+
+# --- Les deux pages d'inscription gardent leur adresse exacte ---
+[[redirects]]
+  from = "/samedi-famille"
+  to = "/samedi-famille.html"
+  status = 200
+[[redirects]]
+  from = "/tennis-lunchs"
+  to = "/tennis-lunchs.html"
+  status = 200
+
+# --- Anciennes adresses du site Wix : aucune ne doit tomber en 404 ---
+[[redirects]]
+  from = "/partenariats"
+  to = "/#partenaires"
+  status = 301
+[[redirects]]
+  from = "/programmedujour"
+  to = "/#infos"
+  status = 301
+[[redirects]]
+  from = "/apropos"
+  to = "/#presentation"
+  status = 301
+[[redirects]]
+  from = "/events"
+  to = "/#journee-team-lausanne"
+  status = 301
+[[redirects]]
+  from = "/initiation"
+  to = "/#journee-team-lausanne"
+  status = 301
+
+# --- Rien de Team Lausanne n'est accessible depuis ce domaine ---
+[[redirects]]
+  from = "/console"
+  to = "/"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/admin/*"
+  to = "/"
+  status = 301
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

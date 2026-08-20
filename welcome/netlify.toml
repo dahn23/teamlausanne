@@ -27,15 +27,8 @@
   to = "/#tournoi"
   status = 301
 
-# URL courtes : les liens deja diffuses doivent tomber juste.
-[[redirects]]
-  from = "/samedi-famille"
-  to = "/samedi-famille.html"
-  status = 200
-[[redirects]]
-  from = "/tennis-lunchs"
-  to = "/tennis-lunchs.html"
-  status = 200
+# Les pages d inscription vivent desormais dans site/ (le futur
+# lausanneopen.ch) : une seule copie, un seul formulaire Netlify.
 
 [[headers]]
   for = "/*"

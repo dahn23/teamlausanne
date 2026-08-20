@@ -1,0 +1,510 @@
+/* =====================================================================
+   LAUSANNE OPEN — Player Hub
+   Feuille de style dédiée (indépendante de style.css) : thème sombre
+   « tournoi », pensée mobile d'abord, gros doigts, plein soleil.
+   ===================================================================== */
+
+:root{
+  --navy:#070d24;
+  --navy-2:#0d1740;
+  --blue:#2a53f0;
+  --blue-soft:#4b74ff;
+  --fluo:#c8ff3d;
+  --fluo-d:#a8e21c;
+  --ink:#f2f5ff;
+  --muted:#98a3c8;
+  --line:rgba(255,255,255,.10);
+  --line-2:rgba(255,255,255,.18);
+  --card:rgba(255,255,255,.055);
+  --card-2:rgba(255,255,255,.09);
+  --warn:#ffb020;
+  --urgent:#ff5b5b;
+  --ok:#3ddc84;
+  --r:16px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  min-height:100dvh;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 700px at 80% -10%, rgba(42,83,240,.38), transparent 60%),
+    radial-gradient(900px 600px at -10% 15%, rgba(200,255,61,.10), transparent 55%),
+    linear-gradient(180deg,#070d24 0%, #0b1230 45%, #070d24 100%);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--fluo);text-decoration:none}
+a:hover{text-decoration:underline}
+.hidden{display:none!important}
+
+/* ------------------------------------------------------------ header */
+.lo-head{
+  position:sticky;top:0;z-index:20;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  background:rgba(7,13,36,.82);
+  border-bottom:1px solid var(--line);
+}
+.lo-head-in{
+  max-width:760px;margin:0 auto;padding:10px 14px 0;
+  display:flex;align-items:center;gap:12px;
+}
+.lo-logo{
+  height:40px;width:auto;flex-shrink:0;
+  /* le logo est bleu sur fond blanc → on le passe en blanc pur */
+  filter:brightness(0) invert(1);
+}
+.lo-title{min-width:0}
+.lo-title h1{margin:0;font-size:1rem;font-weight:800;letter-spacing:.2px;line-height:1.15}
+.lo-title p{margin:2px 0 0;font-size:.72rem;color:var(--muted);letter-spacing:.6px;text-transform:uppercase}
+
+/* --------------------------------------------------------- onglets */
+.lo-tabs{
+  max-width:760px;margin:0 auto;padding:8px 8px 10px;
+  display:grid;gap:4px;
+  /* Defaut autonome : les onglets se rangent en colonnes et passent a la
+     ligne si la place manque. Indispensable pour le backend, qui a neuf
+     onglets et ne fixe pas le nombre de colonnes en JS. */
+  grid-template-columns:repeat(auto-fit,minmax(78px,1fr));
+}
+.lo-tab{
+  font:inherit;cursor:pointer;min-width:0;
+  border:1px solid transparent;background:transparent;color:var(--muted);
+  padding:7px 2px 6px;border-radius:12px;transition:.15s;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+}
+.lo-tab:hover{color:var(--ink)}
+.lo-tab.on{background:rgba(200,255,61,.13);border-color:rgba(200,255,61,.45);color:var(--fluo)}
+.lo-tab .dot{width:7px;height:7px;border-radius:50%;background:var(--urgent);flex-shrink:0}
+
+/* sous-onglets */
+.lo-sub{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:2px 0 16px;margin:0}
+.lo-sub::-webkit-scrollbar{display:none}
+.lo-sub button{
+  flex:0 0 auto;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer;
+  background:transparent;color:var(--muted);border:1px solid var(--line);
+  padding:7px 13px;border-radius:999px;white-space:nowrap;transition:.15s;
+}
+.lo-sub button:hover{color:var(--ink);border-color:var(--line-2)}
+.lo-sub button.on{background:rgba(42,83,240,.35);border-color:var(--blue-soft);color:#fff}
+
+/* ----------------------------------------------------------- corps */
+.lo-main{max-width:760px;margin:0 auto;padding:18px 14px calc(40px + var(--safe-b))}
+.lo-h2{margin:0 0 4px;font-size:1.45rem;font-weight:800;letter-spacing:-.3px}
+.lo-lead{margin:0 0 18px;color:var(--muted);font-size:.92rem;line-height:1.5}
+
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;margin-bottom:12px;
+}
+.card h3{margin:0 0 8px;font-size:1rem;font-weight:800;display:flex;align-items:center;gap:9px}
+.card p{margin:0 0 10px;font-size:.92rem;line-height:1.6;color:#dde3f7}
+.card p:last-child{margin-bottom:0}
+.card ul{margin:0;padding-left:18px;font-size:.92rem;line-height:1.65;color:#dde3f7}
+.card ul li{margin-bottom:5px}
+.card .ico{
+  width:30px;height:30px;border-radius:9px;flex-shrink:0;
+  background:rgba(42,83,240,.28);border:1px solid rgba(75,116,255,.4);
+  display:inline-flex;align-items:center;justify-content:center;font-size:.95rem;
+}
+
+/* bandeau d'appel (hero) */
+.hero{
+  border-radius:20px;padding:20px 18px;margin-bottom:16px;
+  background:linear-gradient(135deg,rgba(42,83,240,.42),rgba(200,255,61,.14));
+  border:1px solid var(--line-2);
+}
+.hero h2{margin:0 0 6px;font-size:1.35rem;font-weight:900;letter-spacing:-.4px}
+.hero p{margin:0;font-size:.9rem;color:#e6ebff;line-height:1.55}
+.hero .badges{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.badge{
+  font-size:.72rem;font-weight:800;letter-spacing:.3px;text-transform:uppercase;
+  padding:5px 11px;border-radius:999px;background:rgba(0,0,0,.28);border:1px solid var(--line-2);
+}
+.badge.fluo{background:var(--fluo);color:#0a1020;border-color:var(--fluo)}
+
+/* listes clé/valeur */
+.kv{display:flex;flex-direction:column;gap:0}
+.kv div{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.kv div:last-child{border-bottom:0}
+.kv span{color:var(--muted);flex-shrink:0}
+.kv b{text-align:right;font-weight:700}
+
+/* boutons */
+.btn{
+  font:inherit;font-weight:800;cursor:pointer;border:0;border-radius:12px;
+  padding:13px 18px;background:var(--fluo);color:#0a1020;transition:.15s;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn:hover{background:var(--fluo-d)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.block{display:flex;width:100%}
+.btn.ghost{background:rgba(255,255,255,.07);color:var(--ink);border:1px solid var(--line-2)}
+.btn.ghost:hover{background:rgba(255,255,255,.14)}
+.btn.small{padding:8px 13px;font-size:.82rem;border-radius:10px}
+.btn.danger{background:rgba(255,91,91,.16);color:#ff9a9a;border:1px solid rgba(255,91,91,.35)}
+
+/* champs */
+input,textarea,select{
+  font:inherit;width:100%;padding:12px 13px;border-radius:12px;
+  background:rgba(255,255,255,.06);border:1px solid var(--line-2);color:var(--ink);
+}
+input::placeholder,textarea::placeholder{color:#7b86ab}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--blue-soft);border-color:var(--blue-soft)}
+select option{background:#101a3d;color:#fff}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:.8rem;color:var(--muted);font-weight:700;margin-bottom:11px}
+textarea{resize:vertical;min-height:92px}
+
+/* messages officiels */
+.msg{border-left:3px solid var(--blue-soft);border-radius:12px;background:var(--card);
+     border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+     padding:14px 15px;margin-bottom:11px}
+.msg.warning{border-left-color:var(--warn);background:rgba(255,176,32,.09)}
+.msg.urgent{border-left-color:var(--urgent);background:rgba(255,91,91,.11)}
+.msg-top{display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap}
+.msg-top b{font-size:.97rem}
+.msg-time{font-size:.72rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+.msg-lvl{font-size:.65rem;font-weight:900;letter-spacing:.6px;text-transform:uppercase;
+  padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.1)}
+.msg.warning .msg-lvl{background:rgba(255,176,32,.25);color:#ffd48a}
+.msg.urgent .msg-lvl{background:rgba(255,91,91,.25);color:#ffb3b3}
+.msg p{margin:0;font-size:.92rem;line-height:1.6;white-space:pre-wrap;color:#dde3f7}
+.pin{font-size:.65rem;font-weight:900;letter-spacing:.5px;text-transform:uppercase;
+  padding:3px 8px;border-radius:6px;background:var(--fluo);color:#0a1020}
+
+/* grille practice */
+.pg-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -14px;padding:0 14px 6px}
+.pgrid{display:grid;gap:5px;min-width:max-content}
+.pcell{
+  border-radius:10px;padding:9px 6px;font-size:.78rem;text-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:50px;min-width:104px;line-height:1.25;
+}
+.pcell.hh{background:transparent;color:var(--muted);font-weight:800;font-size:.74rem;
+  min-height:auto;padding:4px 6px;text-transform:uppercase;letter-spacing:.5px}
+.pcell.th{background:transparent;color:var(--ink);font-weight:800;min-width:62px;font-size:.82rem}
+.pslot{background:rgba(255,255,255,.05);border:1px dashed var(--line-2);cursor:pointer;color:var(--muted);
+  font-weight:700;transition:.13s}
+.pslot:hover{background:rgba(200,255,61,.13);border-color:var(--fluo);color:var(--fluo)}
+.pslot.taken{background:rgba(42,83,240,.26);border:1px solid rgba(75,116,255,.5);color:#fff;cursor:default;font-weight:700}
+.pslot.mine{background:var(--fluo);border:1px solid var(--fluo);color:#0a1020;cursor:pointer}
+.pslot.taken small,.pslot.mine small{display:block;font-size:.66rem;opacity:.75;font-weight:700;margin-top:2px}
+
+/* posts (sparring / roommate) */
+.post{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px}
+.post-top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.post-av{width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;font-weight:800;
+  font-size:.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.post-top b{font-size:.9rem}
+.post-top .msg-time{margin-left:auto}
+.post p{margin:0;font-size:.92rem;line-height:1.55;white-space:pre-wrap;color:#dde3f7}
+.post .btn.small{margin-top:9px}
+
+/* états */
+.empty{text-align:center;color:var(--muted);padding:34px 16px;font-size:.9rem;line-height:1.6}
+
+.err{color:#ff9a9a;font-size:.86rem;margin:8px 0 0;min-height:1.1em}
+.ok{color:var(--ok);font-size:.86rem;margin:8px 0 0}
+.spin{display:block;width:26px;height:26px;margin:40px auto;border-radius:50%;
+  border:3px solid rgba(255,255,255,.15);border-top-color:var(--fluo);animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* pied de page */
+.lo-foot{max-width:760px;margin:0 auto;padding:10px 14px calc(28px + var(--safe-b));
+  text-align:center;color:var(--muted);font-size:.75rem;line-height:1.7}
+
+/* modale */
+.sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(3,6,18,.72);backdrop-filter:blur(4px);padding:0}
+.sheet-in{width:100%;max-width:520px;background:#0f1738;border:1px solid var(--line-2);
+  border-radius:20px 20px 0 0;padding:20px 18px calc(22px + var(--safe-b));animation:up .22s ease}
+@keyframes up{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.sheet-in h3{margin:0 0 4px;font-size:1.1rem;font-weight:800}
+.sheet-in .sub{margin:0 0 16px;color:var(--muted);font-size:.85rem}
+.sheet-row{display:flex;gap:9px;margin-top:6px}
+.sheet-row .btn{flex:1}
+@media(min-width:560px){
+  .sheet{align-items:center;padding:20px}
+  .sheet-in{border-radius:20px}
+}
+
+/* écran mot de passe (backend) */
+.gate{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
+.gate .card{max-width:360px;width:100%;background:rgba(255,255,255,.07);text-align:center}
+.gate img{height:64px;filter:brightness(0) invert(1);margin-bottom:14px}
+
+/* ------------------------------------------------------ BACKEND ---- */
+.adm-row{display:flex;align-items:flex-start;gap:11px;background:var(--card);
+  border:1px solid var(--line);border-radius:13px;padding:12px 13px;margin-bottom:9px}
+.adm-row .grow{flex:1;min-width:0}
+.adm-row b{font-size:.92rem;display:block;margin-bottom:2px}
+.adm-row small{color:var(--muted);font-size:.79rem;line-height:1.5;display:block;white-space:pre-wrap}
+.adm-actions{display:flex;gap:6px;flex-shrink:0}
+.adm-actions .btn{padding:7px 10px;font-size:.78rem;border-radius:9px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 11px}
+@media(max-width:460px){.grid2{grid-template-columns:1fr}}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 13px;background:var(--card);border:1px solid var(--line);border-radius:13px;margin-bottom:8px}
+.toggle b{font-size:.92rem}
+.toggle small{display:block;color:var(--muted);font-size:.77rem;margin-top:2px}
+.sw{position:relative;width:50px;height:29px;flex-shrink:0;cursor:pointer}
+.sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2}
+.sw i{position:absolute;inset:0;border-radius:999px;background:rgba(255,255,255,.14);transition:.18s}
+.sw i::after{content:"";position:absolute;top:3px;left:3px;width:23px;height:23px;border-radius:50%;
+  background:#fff;transition:.18s}
+.sw input:checked + i{background:var(--fluo)}
+.sw input:checked + i::after{transform:translateX(21px)}
+.hint{font-size:.79rem;color:var(--muted);line-height:1.6;margin:0 0 12px}
+.sec-title{margin:26px 0 10px;font-size:1.05rem;font-weight:800;
+  display:flex;align-items:center;gap:9px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.sec-title:first-of-type{margin-top:0}
+.file-drop{border:1px dashed var(--line-2);border-radius:13px;padding:18px;text-align:center;
+  color:var(--muted);font-size:.85rem;cursor:pointer;background:rgba(255,255,255,.03)}
+.file-drop:hover{border-color:var(--fluo);color:var(--fluo)}
+
+/* =====================================================================
+   ICÔNES (open/icons.js) — SVG au trait, taille fixée ici, couleur
+   héritée du parent (currentColor) : une icône d'onglet devient sombre
+   toute seule quand l'onglet passe en fond fluo.
+   ===================================================================== */
+svg{flex-shrink:0}
+svg *{vector-effect:non-scaling-stroke}
+
+/* onglets principaux */
+.lo-tab svg{width:15px;height:15px}
+
+/* sous-onglets */
+.lo-sub button{display:inline-flex;align-items:center;gap:6px}
+.lo-sub svg{width:14px;height:14px}
+
+/* pastille ronde des titres de carte */
+.card .ico svg{width:17px;height:17px}
+.card .ico{color:var(--fluo)}
+
+/* écrans vides */
+.empty svg.big{width:46px;height:46px;display:block;margin:0 auto 12px;
+  opacity:.4;stroke-width:1.4}
+
+/* boutons */
+.btn svg{width:17px;height:17px}
+.adm-actions .btn svg{width:15px;height:15px}
+.adm-actions .btn{line-height:0}
+
+/* petites marques inline (backend : épinglé, niveau, masqué, avertissement) */
+svg.mk{width:15px;height:15px;vertical-align:-3px;margin-right:5px}
+svg.mk.warning{color:var(--warn)}
+svg.mk.urgent{color:var(--urgent)}
+svg.mk.off{color:var(--muted)}
+.hint svg.mk{color:var(--warn)}
+.sec-title svg{width:17px;height:17px;margin-right:0}
+
+/* =====================================================================
+   AJOUTS : onglets en grille, choix de la langue, photos
+   ===================================================================== */
+
+/* --- libellé sous l'icône : deux lignes max, jamais de débordement --- */
+.lo-tab span{
+  font-size:.63rem;font-weight:700;line-height:1.1;text-align:center;
+  letter-spacing:.1px;hyphens:auto;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.lo-tab svg{width:19px;height:19px}
+@media(min-width:520px){
+  .lo-tab span{font-size:.72rem}
+  .lo-tab svg{width:21px;height:21px}
+}
+
+/* ------------------------------------------------------- langue */
+.lang{position:relative;margin-left:auto;flex-shrink:0}
+.lang-btn{
+  font:inherit;cursor:pointer;display:flex;align-items:center;gap:7px;
+  background:rgba(255,255,255,.07);border:1px solid var(--line-2);color:var(--ink);
+  border-radius:999px;padding:5px 11px 5px 6px;
+}
+.lang-btn:hover{background:rgba(255,255,255,.14)}
+.lang-code{font-size:.72rem;font-weight:800;letter-spacing:.5px}
+.flag{width:22px;height:15px;border-radius:3px;overflow:hidden;display:block;flex-shrink:0;
+  box-shadow:0 0 0 1px rgba(255,255,255,.25) inset}
+.flag svg{width:100%;height:100%;display:block}
+/* les drapeaux ne sont pas des icones : pas de non-scaling-stroke ici */
+.flag svg *{vector-effect:none}
+.lang-menu{
+  position:absolute;right:0;top:calc(100% + 8px);z-index:30;min-width:170px;
+  background:#0f1738;border:1px solid var(--line-2);border-radius:14px;padding:6px;
+  box-shadow:0 12px 40px rgba(0,0,0,.5);
+}
+.lang-menu button{
+  font:inherit;font-size:.87rem;font-weight:600;cursor:pointer;width:100%;
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;
+  background:transparent;border:0;color:var(--ink);text-align:left;
+}
+.lang-menu button:hover{background:rgba(255,255,255,.08)}
+.lang-menu button.on{background:rgba(200,255,61,.14);color:var(--fluo)}
+
+/* --------------------------------------------------------- photos */
+.card.with-photo{padding:0;overflow:hidden}
+.card.with-photo .card-in{padding:14px 16px 16px}
+
+.card-photo{
+  position:relative;aspect-ratio:16/9;background:
+    linear-gradient(135deg,rgba(42,83,240,.5),rgba(200,255,61,.16));
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.card-photo img{width:100%;height:100%;object-fit:cover;display:block;position:relative;z-index:2}
+.card-photo svg.ph{width:52px;height:52px;opacity:.28;stroke-width:1.2;color:#fff;position:absolute;z-index:1}
+.card-photo.noimg img{display:none}
+
+/* hero avec photo de fond */
+.hero.with-photo{
+  background-size:cover;background-position:center;
+  padding:110px 18px 20px;border:0;
+}
+.hero.with-photo h2{text-shadow:0 2px 18px rgba(0,0,0,.55)}
+.hero.with-photo p{text-shadow:0 1px 10px rgba(0,0,0,.6)}
+
+/* notes, liens et crédits */
+.card .note{margin-top:12px;color:#c3cbe6;font-size:.88rem}
+.card .lnk{margin:12px 0 0}
+.credits{margin:18px 2px 0;font-size:.72rem;color:var(--muted);line-height:1.6;text-align:center}
+
+/* Sous-onglets en grille : tout tient a l'ecran, aucun defilement.
+   Reserve aux listes courtes et fixes (Welcome, Sejour) ; les listes de
+   jours gardent le defilement, il peut y en avoir neuf. */
+.lo-sub.grid{display:grid;gap:5px;overflow:visible}
+.lo-sub.grid button{
+  padding:8px 3px;font-size:.68rem;line-height:1.15;white-space:normal;
+  display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;
+  text-align:center;min-width:0;overflow-wrap:anywhere;hyphens:auto;
+}
+.lo-sub.grid svg{width:13px;height:13px}
+@media(min-width:520px){ .lo-sub.grid button{font-size:.78rem;padding:8px 6px} }
+
+/* Boutons Google Maps au bas des cartes « À voir » (un ou deux par carte) */
+.maps-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.maps-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:.8rem;font-weight:800;text-decoration:none;
+  color:var(--fluo);background:rgba(200,255,61,.11);
+  border:1px solid rgba(200,255,61,.34);border-radius:999px;padding:7px 14px 7px 11px;
+  transition:.15s;
+}
+.maps-btn:hover{background:rgba(200,255,61,.2);text-decoration:none}
+.maps-btn svg{width:15px;height:15px}
+
+/* =====================================================================
+   CONSOLE SPECTATEURS — têtes de série et partenaires
+   ===================================================================== */
+
+/* --- têtes de série --- */
+.seeds{display:grid;gap:12px;margin-bottom:8px}
+@media(min-width:640px){ .seeds{grid-template-columns:1fr 1fr} }
+.seed{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;display:flex;flex-direction:column;
+}
+.seed-photo{
+  position:relative;aspect-ratio:16/10;overflow:hidden;
+  background:linear-gradient(135deg,rgba(42,83,240,.55),rgba(200,255,61,.18));
+  display:flex;align-items:center;justify-content:center;
+}
+.seed-photo img{width:100%;height:100%;object-fit:cover;object-position:center 18%;
+  display:block;position:relative;z-index:2}
+.seed-ini{font-size:2.6rem;font-weight:900;color:rgba(255,255,255,.4);letter-spacing:1px;position:absolute;z-index:1}
+.seed-photo:not(.noimg) .seed-ini{display:none}
+.seed-n{
+  position:absolute;z-index:3;top:10px;left:10px;
+  width:28px;height:28px;border-radius:50%;
+  background:var(--fluo);color:#0a1020;font-weight:900;font-size:.85rem;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 10px rgba(0,0,0,.35);
+}
+.seed-in{padding:13px 15px 15px}
+.seed-in h4{margin:0 0 3px;font-size:1rem;font-weight:800;display:flex;align-items:center;gap:9px}
+.seed-atp{margin:0 0 8px!important;font-size:.76rem;font-weight:800;letter-spacing:.4px;
+  text-transform:uppercase;color:var(--fluo)}
+.seed-in p{margin:0;font-size:.88rem;line-height:1.55;color:#cdd5ec}
+
+/* --- partenaires --- */
+.sponsors{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:18px}
+@media(min-width:560px){ .sponsors{grid-template-columns:repeat(3,1fr)} }
+.sponsor{
+  background:#fff;border-radius:14px;padding:16px 12px 11px;text-decoration:none;
+  display:flex;flex-direction:column;align-items:center;gap:9px;transition:.15s;
+  border:1px solid rgba(255,255,255,.5);
+}
+.sponsor:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(0,0,0,.3);text-decoration:none}
+.sponsor img{width:100%;height:56px;object-fit:contain;display:block}
+.sponsor span{font-size:.7rem;font-weight:700;color:#1b2340;text-align:center;line-height:1.25}
+
+/* ---- Onglet Têtes de série : carte joueur, photo verticale ---- */
+.seeds .seed-photo{aspect-ratio:3/4}
+.seeds .seed-photo img{object-position:center 22%}
+.seed-over{
+  position:absolute;z-index:4;left:0;right:0;bottom:0;padding:26px 14px 12px;
+  background:linear-gradient(180deg,rgba(7,13,36,0),rgba(7,13,36,.92) 62%);
+}
+.seed-over h4{margin:0 0 3px;font-size:1.02rem;font-weight:800;color:#fff;
+  display:flex;align-items:center;gap:8px;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.seed-over .seed-atp{margin:0!important;font-size:.72rem}
+.seed-n{width:32px;height:32px;font-size:.95rem}
+.seeds .seed-in{padding:12px 15px 15px}
+.seeds .seed-in p{font-size:.87rem}
+
+/* ---- Pages d'inscription (samedi-famille, tennis-lunchs) ---- */
+.days{border:0;padding:0;margin:0 0 11px}
+.days legend{font-size:.8rem;color:var(--muted);font-weight:700;padding:0;margin-bottom:8px}
+.day{display:flex;align-items:center;gap:11px;padding:11px 13px;margin-bottom:7px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line-2);border-radius:12px;cursor:pointer}
+.day:hover{background:rgba(255,255,255,.1)}
+.day input{width:20px;height:20px;flex-shrink:0;margin:0;accent-color:var(--fluo);cursor:pointer}
+.day span{font-size:.92rem;font-weight:700;display:flex;align-items:baseline;gap:9px}
+.day small{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--urgent)}
+.day.off{opacity:.45;cursor:not-allowed}
+.day.off:hover{background:rgba(255,255,255,.05)}
+.day input:checked ~ span{color:var(--fluo)}
+.lo-head-in a{display:flex;align-items:center}
+
+/* =====================================================================
+   Habillage VIP — page Tennis Lunchs.
+   Même structure, mais les accents passent du vert fluo à un doré
+   champagne : il suffit de redéfinir les variables de couleur.
+   ===================================================================== */
+.vip{
+  --fluo:#e3c67f; --fluo-d:#cfae63; --fluo-ink:#3a2c0c;
+  background:
+    radial-gradient(1100px 650px at 82% -12%, rgba(227,198,127,.20), transparent 60%),
+    radial-gradient(900px 600px at -8% 12%, rgba(42,83,240,.28), transparent 55%),
+    linear-gradient(180deg,#070d24 0%, #0c1128 45%, #070d24 100%);
+  background-attachment:fixed;
+}
+.vip .lo-head{background:rgba(7,13,36,.86);border-bottom-color:rgba(227,198,127,.22)}
+.vip .lo-title h1{letter-spacing:.6px}
+.vip .lo-title p{color:#c9b892}
+
+/* filet doré au-dessus du bandeau et des cartes */
+.vip .hero{border:1px solid rgba(227,198,127,.34);
+  background:linear-gradient(135deg,rgba(227,198,127,.16),rgba(42,83,240,.30))}
+.vip .hero.with-photo{border:1px solid rgba(227,198,127,.30)}
+.vip .card{border-color:rgba(227,198,127,.22);background:rgba(255,255,255,.045)}
+.vip .card h3{letter-spacing:.2px}
+
+.vip-eyebrow{
+  margin:0 0 8px!important;font-size:.7rem;font-weight:800;letter-spacing:2.4px;
+  text-transform:uppercase;color:var(--fluo);
+}
+.vip .hero h2{font-size:1.5rem;letter-spacing:-.2px}
+
+/* le doré se propage aux pastilles, aux champs et au bouton */
+.vip .badge.fluo{background:var(--fluo);color:#2b2008}
+.vip input:focus,.vip textarea:focus,.vip select:focus{outline-color:var(--fluo);border-color:var(--fluo)}
+.vip .btn{background:linear-gradient(180deg,#eed497,#d9b96c);color:#2b2008;
+  box-shadow:0 6px 20px rgba(227,198,127,.22)}
+.vip .btn:hover{background:linear-gradient(180deg,#f4dfad,#cfae63)}
+.vip .day input{accent-color:var(--fluo)}
+.vip .day input:checked ~ span{color:var(--fluo)}
+.vip .day{border-color:rgba(227,198,127,.20)}
+.vip .kv span{color:#a79c86}
