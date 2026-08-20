@@ -379,9 +379,10 @@ svg.mk.off{color:var(--muted)}
 .lo-sub.grid svg{width:13px;height:13px}
 @media(min-width:520px){ .lo-sub.grid button{font-size:.78rem;padding:8px 6px} }
 
-/* Petit bouton Google Maps au bas des cartes « À voir » */
+/* Boutons Google Maps au bas des cartes « À voir » (un ou deux par carte) */
+.maps-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
 .maps-btn{
-  display:inline-flex;align-items:center;gap:7px;margin-top:12px;
+  display:inline-flex;align-items:center;gap:7px;
   font-size:.8rem;font-weight:800;text-decoration:none;
   color:var(--fluo);background:rgba(200,255,61,.11);
   border:1px solid rgba(200,255,61,.34);border-radius:999px;padding:7px 14px 7px 11px;

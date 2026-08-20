@@ -462,6 +462,8 @@ export const VISIT_MAPS = {
   waves:  "Ouchy, 1006 Lausanne",
   wine:   "Lavaux, Cully, Switzerland",
   castle: "Château de Chillon, Avenue de Chillon 21, 1820 Veytaux",
-  tree:   "Tour de Sauvabelin, 1018 Lausanne",
+  // une carte peut porter deux boutons : chacun son libelle et sa destination
+  tree:   [{ label: "Sauvabelin",    q: "Tour de Sauvabelin, 1018 Lausanne" },
+           { label: "Plateforme 10", q: "Plateforme 10, Place de la Gare 16, 1003 Lausanne" }],
   moon:   "Le Flon, 1003 Lausanne",
 };

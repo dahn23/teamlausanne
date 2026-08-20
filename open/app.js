@@ -171,6 +171,15 @@ const photoBox = (name, icon) =>
      ${svg(icon, "ph")}
    </div>`;
 
+// Un lieu = une chaine ; deux lieux = un tableau {label, q}. Le libelle par
+// defaut suit la langue choisie, celui d un tableau est un nom propre.
+function mapsButtons(spec) {
+  const list = Array.isArray(spec) ? spec : [{ label: t("log.maps"), q: spec }];
+  return `<div class="maps-row">` + list.map((m) =>
+    `<a class="maps-btn" target="_blank" rel="noopener"
+       href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.q)}">${svg("mappin")}${esc(m.label)}</a>`).join("") + `</div>`;
+}
+
 function cardHTML(c, withPhoto) {
   // La carte « numéros d'urgence » gagne le bureau du tournoi et des liens tel:
   let kv = c.kv;
@@ -187,8 +196,7 @@ function cardHTML(c, withPhoto) {
       ${kv ? `<div class="kv">${kv.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>` : ""}
       ${c.note ? `<p class="note">${c.note}</p>` : ""}
       ${c.link ? `<p class="lnk"><a href="${c.link.href}" target="_blank" rel="noopener">${c.link.label}</a></p>` : ""}
-      ${withPhoto && VISIT_MAPS[c.icon] ? `<a class="maps-btn" target="_blank" rel="noopener"
-           href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(VISIT_MAPS[c.icon])}">${svg("mappin")}${esc(t("log.maps"))}</a>` : ""}
+      ${withPhoto && VISIT_MAPS[c.icon] ? mapsButtons(VISIT_MAPS[c.icon]) : ""}
     </div>
   </article>`;
 }
