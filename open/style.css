@@ -66,6 +66,10 @@ a:hover{text-decoration:underline}
 .lo-tabs{
   max-width:760px;margin:0 auto;padding:8px 8px 10px;
   display:grid;gap:4px;
+  /* Defaut autonome : les onglets se rangent en colonnes et passent a la
+     ligne si la place manque. Indispensable pour le backend, qui a neuf
+     onglets et ne fixe pas le nombre de colonnes en JS. */
+  grid-template-columns:repeat(auto-fit,minmax(78px,1fr));
 }
 .lo-tab{
   font:inherit;cursor:pointer;min-width:0;
