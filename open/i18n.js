@@ -17,11 +17,16 @@ export const LANGS = [
 // Drapeaux dessinés en SVG (pas d'emoji : Windows n'affiche pas les
 // drapeaux emoji, et le rendu change d'un téléphone à l'autre).
 export const FLAGS = {
-  gb: `<svg viewBox="0 0 60 40"><rect width="60" height="40" fill="#012169"/>
-        <path d="M0 0l60 40M60 0L0 40" stroke="#fff" stroke-width="8"/>
-        <path d="M0 0l60 40M60 0L0 40" stroke="#C8102E" stroke-width="4"/>
-        <path d="M30 0v40M0 20h60" stroke="#fff" stroke-width="13"/>
-        <path d="M30 0v40M0 20h60" stroke="#C8102E" stroke-width="8"/></svg>`,
+  // Union Jack : les diagonales sont découpées au format du drapeau (clipPath),
+  // sinon les traits blancs débordent des coins et ça ne ressemble à rien.
+  gb: `<svg viewBox="0 0 60 40"><defs><clipPath id="uk"><rect width="60" height="40"/></clipPath></defs>
+        <g clip-path="url(#uk)">
+          <rect width="60" height="40" fill="#012169"/>
+          <path d="M0 0l60 40M60 0L0 40" stroke="#fff" stroke-width="8"/>
+          <path d="M0 0l60 40M60 0L0 40" stroke="#C8102E" stroke-width="4"/>
+          <path d="M30 0v40M0 20h60" stroke="#fff" stroke-width="13"/>
+          <path d="M30 0v40M0 20h60" stroke="#C8102E" stroke-width="8"/>
+        </g></svg>`,
   fr: `<svg viewBox="0 0 60 40"><rect width="20" height="40" fill="#002395"/>
         <rect x="20" width="20" height="40" fill="#fff"/>
         <rect x="40" width="20" height="40" fill="#ED2939"/></svg>`,
@@ -169,6 +174,42 @@ const T = {
   "board.write":  ["Please write a message.", "Écris un message.", "Bitte schreib eine Nachricht.",
                    "Scrivi un messaggio.", "Escribe un mensaje."],
 
+  /* ===================================================================
+     TEXTES PAR DÉFAUT — traduits ici, et donc traduits pour de vrai.
+     Le backend peut les remplacer ponctuellement ; ce qu'il écrit
+     s'affiche alors tel quel, dans la langue où c'est saisi.
+     =================================================================== */
+  "def.hotelNote": [
+    "Breakfast is served from 6:30 to 10:00. Reception is open 24/7. The tournament shuttle stops in front of the hotel entrance.",
+    "Le petit-déjeuner est servi de 6h30 à 10h00. La réception est ouverte 24h/24. La navette du tournoi s'arrête devant l'entrée de l'hôtel.",
+    "Frühstück von 6:30 bis 10:00 Uhr. Die Rezeption ist rund um die Uhr besetzt. Der Turnier-Shuttle hält vor dem Hoteleingang.",
+    "La colazione è servita dalle 6:30 alle 10:00. La reception è aperta 24 ore su 24. La navetta del torneo si ferma davanti all'ingresso dell'hotel.",
+    "El desayuno se sirve de 6:30 a 10:00. La recepción está abierta 24 h. La lanzadera del torneo para delante de la entrada del hotel."],
+  "def.restoNote": [
+    "Players menu — 15 CHF per dish, drinks not included. Show your player badge at the counter.",
+    "Menu joueurs — 15 CHF le plat, boissons non comprises. Présente ton badge joueur au comptoir.",
+    "Spielermenü — 15 CHF pro Gericht, Getränke nicht inbegriffen. Zeig deinen Spielerausweis an der Theke.",
+    "Menu giocatori — 15 CHF a piatto, bevande escluse. Mostra il tuo badge giocatore al banco.",
+    "Menú jugadores — 15 CHF por plato, bebidas no incluidas. Muestra tu acreditación en el mostrador."],
+  "def.balls": [
+    "Practice balls are available at the tournament office. Please leave an ID card as a deposit; you get it back when you return the balls.",
+    "Des balles d'entraînement sont disponibles au bureau du tournoi. Laisse une pièce d'identité en garantie ; tu la récupères en rendant les balles.",
+    "Trainingsbälle gibt es im Turnierbüro. Hinterlege einen Ausweis als Pfand; du bekommst ihn zurück, wenn du die Bälle abgibst.",
+    "Le palline da allenamento si ritirano all'ufficio del torneo. Lascia un documento come cauzione; lo riavrai restituendo le palline.",
+    "Las pelotas de entrenamiento están en la oficina del torneo. Deja un documento de identidad como fianza; lo recuperas al devolver las pelotas."],
+  "def.practiceIntro": [
+    "Book a 30-minute practice slot. Enter the name you want to appear on the schedule.",
+    "Réserve un créneau d'entraînement de 30 minutes. Indique le nom qui doit apparaître sur le planning.",
+    "Buche einen 30-minütigen Trainingsslot. Gib den Namen an, der im Plan erscheinen soll.",
+    "Prenota uno slot di allenamento di 30 minuti. Indica il nome che deve apparire sul planning.",
+    "Reserva una franja de entrenamiento de 30 minutos. Indica el nombre que debe aparecer en el planning."],
+
+  /* Plats du menu : traduction des libellés servis par défaut. */
+  "dish.Pasta bolognese":        ["Pasta bolognese", "Pâtes bolognaise", "Pasta Bolognese", "Pasta alla bolognese", "Pasta boloñesa"],
+  "dish.With a side salad":      ["With a side salad", "Avec une salade", "Mit Salat", "Con insalata", "Con ensalada"],
+  "dish.Breaded escalope":       ["Breaded escalope", "Escalope panée", "Paniertes Schnitzel", "Cotoletta impanata", "Escalope empanado"],
+  "dish.French fries and salad": ["French fries and salad", "Frites et salade", "Pommes frites und Salat", "Patatine fritte e insalata", "Patatas fritas y ensalada"],
+
   /* ------------------------------------------------------------ DIVERS */
   "c.cancel":  ["Cancel", "Annuler", "Abbrechen", "Annulla", "Cancelar"],
   "c.justNow": ["just now", "à l'instant", "gerade eben", "proprio ora", "ahora mismo"],
@@ -194,6 +235,13 @@ export function t(key, vars) {
   let s = row ? (row[ORDER.indexOf(cur)] || row[0]) : key;
   if (vars) for (const k in vars) s = s.replace(`{${k}}`, vars[k]);
   return s;
+}
+
+/** Traduit un libellé venu du backend s'il figure au dictionnaire (ex. les
+ *  plats du menu), sinon le rend tel quel — jamais de texte qui disparaît. */
+export function tr(prefix, text) {
+  const key = `${prefix}.${String(text || "").trim()}`;
+  return T[key] ? t(key) : text;
 }
 
 /** Langue de départ : choix mémorisé, sinon langue du téléphone, sinon anglais. */

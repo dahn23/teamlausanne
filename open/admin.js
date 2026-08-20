@@ -252,12 +252,12 @@ async function vResto(v) {
     <div class="card">
       <label class="f">Nom<input id="r-name" value="${esc(s.name || "")}" /></label>
       <label class="f">Adresse<input id="r-addr" value="${esc(s.address || "")}" /></label>
-      <label class="f">Note affichée aux joueurs (anglais)
-        <textarea id="r-note">${esc(s.note || "")}</textarea></label>
+      <label class="f">Note affichée aux joueurs â <b>laisse vide</b> pour la version traduite automatiquement
+        <textarea id="r-note" placeholder="Vide = texte traduit dans les 5 langues">${esc(s.note || "")}</textarea></label>
       <button class="btn block" id="r-save">Enregistrer</button>
     </div>
     <div class="sec-title">Le menu joueurs</div>
-    <p class="hint">Décoche « visible » pour retirer un plat de l'app sans le supprimer.</p>
+    <p class="hint">Décoche « visible » pour retirer un plat de l’app sans le supprimer. Les plats du menu de base sont traduits automatiquement dans les 5 langues ; un plat que tu ajoutes s’affiche tel que tu l’écris.</p>
     <button class="btn block" id="add" style="margin-bottom:18px">+ Nouveau plat</button>
     ${list.length ? list.map((m) => `
       <div class="adm-row">
@@ -314,8 +314,8 @@ async function vHotel(v) {
       <label class="f">Téléphone<input id="h-tel" value="${esc(h.phone || "")}" /></label>
       <label class="f">Lien Google Maps (laisse vide = généré depuis l'adresse)
         <input id="h-maps" value="${esc(h.maps || "")}" /></label>
-      <label class="f">Note affichée aux joueurs (anglais)
-        <textarea id="h-note">${esc(h.note || "")}</textarea></label>
+      <label class="f">Note affichée aux joueurs â <b>laisse vide</b> pour la version traduite automatiquement
+        <textarea id="h-note" placeholder="Vide = texte traduit dans les 5 langues">${esc(h.note || "")}</textarea></label>
       <button class="btn block" id="h-save">Enregistrer</button>
     </div>`;
   $("h-save").onclick = () => run(() => api("setting_set", { key: "hotel", value: {
@@ -535,10 +535,10 @@ async function vReglages(v) {
     <h2 class="lo-h2">Réglages</h2>
     <div class="sec-title">Textes de l'onglet Practice</div>
     <div class="card">
-      <label class="f">Introduction (anglais)
-        <textarea id="s-intro">${esc((g.practice_intro || {}).text || "")}</textarea></label>
-      <label class="f">Encadré « balles » (anglais)
-        <textarea id="s-balls">${esc((g.balls || {}).text || "")}</textarea></label>
+      <label class="f">Introduction â laisse vide pour la version traduite
+        <textarea id="s-intro" placeholder="Vide = texte traduit dans les 5 langues">${esc((g.practice_intro || {}).text || "")}</textarea></label>
+      <label class="f">Encadré « balles » â laisse vide pour la version traduite
+        <textarea id="s-balls" placeholder="Vide = texte traduit dans les 5 langues">${esc((g.balls || {}).text || "")}</textarea></label>
       <button class="btn block" id="s-save">Enregistrer</button>
     </div>
     <div class="sec-title">Mot de passe du backend</div>

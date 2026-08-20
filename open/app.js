@@ -7,7 +7,7 @@
 // =====================================================================
 import { sb } from "./sb.js";
 import { svg, ico, big } from "./icons.js";
-import { LANGS, FLAGS, t, setLang, getLang, detectLang } from "./i18n.js";
+import { LANGS, FLAGS, t, tr, setLang, getLang, detectLang } from "./i18n.js";
 import { WELCOME } from "./content.js";
 
 const $ = (id) => document.getElementById(id);
@@ -255,7 +255,7 @@ async function viewLogistics(v) {
           <div><span>${esc(t("log.address"))}</span><b>${esc(setting("hotel", "address")).replace(/, /g, "<br>")}</b></div>
           ${tel ? `<div><span>${esc(t("log.phone"))}</span><b><a href="tel:${esc(tel.replace(/\s/g, ""))}">${esc(tel)}</a></b></div>` : ""}
         </div>
-        ${setting("hotel", "note") ? `<p class="note">${esc(setting("hotel", "note"))}</p>` : ""}
+        <p class="note">${esc(setting("hotel", "note") || t("def.hotelNote"))}</p>
         <a class="btn block" style="margin-top:14px" href="${esc(maps)}" target="_blank" rel="noopener">${esc(t("log.maps"))}</a>
       </div></article>`;
   } else if (bar.cur === "shuttle") {
@@ -286,11 +286,11 @@ async function viewLogistics(v) {
         ${setting("restaurant", "address") ? `<p class="lo-lead" style="margin:0 0 12px">${esc(setting("restaurant", "address"))}</p>` : ""}
         <div class="kv">
           ${items.length ? items.map((m) => `<div>
-            <span>${esc(m.name)}${m.description ? `<br><small style="opacity:.7">${esc(m.description)}</small>` : ""}</span>
+            <span>${esc(tr("dish", m.name))}${m.description ? `<br><small style="opacity:.7">${esc(tr("dish", m.description))}</small>` : ""}</span>
             <b>${m.price != null ? `${Number(m.price).toFixed(2)} CHF` : ""}</b>
           </div>`).join("") : `<div><span>${esc(t("log.nomenu"))}</span><b></b></div>`}
         </div>
-        ${setting("restaurant", "note") ? `<p class="note">${esc(setting("restaurant", "note"))}</p>` : ""}
+        <p class="note">${esc(setting("restaurant", "note") || t("def.restoNote"))}</p>
       </div></article>`;
   }
   v.innerHTML = `<h2 class="lo-h2">${esc(t("log.title"))}</h2>` + bar.html + body;
@@ -344,9 +344,9 @@ async function viewPractice(v) {
   const days = (data || []).filter((d) => !d.visible_from || new Date(d.visible_from).getTime() <= now);
 
   const intro = `<h2 class="lo-h2">${esc(t("prac.title"))}</h2>
-    <p class="lo-lead">${esc(setting("practice_intro", "text", ""))}</p>
+    <p class="lo-lead">${esc(setting("practice_intro", "text") || t("def.practiceIntro"))}</p>
     <article class="card"><div class="card-in"><h3>${ico("ball")} ${esc(t("prac.balls"))}</h3>
-      <p>${esc(setting("balls", "text", ""))}</p></div></article>`;
+      <p>${esc(setting("balls", "text") || t("def.balls"))}</p></div></article>`;
 
   if (!days.length) {
     v.innerHTML = intro + `<div class="empty">${big("racket")}${esc(t("prac.empty"))}</div>`;
