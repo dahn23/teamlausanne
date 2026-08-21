@@ -228,6 +228,18 @@
 
   <script type="module" src="index.js"></script>
   <script>
+    // « Nous ecrire » fait defiler jusqu au formulaire. Ce comportement est
+    // attache ici plutot que de dependre de la delegation globale du site :
+    // celle-ci vit dans un module, et si quoi que ce soit echoue avant son
+    // installation, le bouton reste muet.
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest("[data-scroll=\"contact-lo\"]") : null;
+      if (!b) return;
+      e.preventDefault();
+      var t = document.getElementById("contact-lo");
+      if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
     // Envoi du formulaire de contact sans quitter la page.
     (function () {
       var f = document.getElementById("lo-form");
