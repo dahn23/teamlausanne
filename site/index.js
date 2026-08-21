@@ -1,6 +1,7 @@
 // Site public dynamique : mondes + pages détaillées (routage par ancre).
 import { sb, getSession, myRoles, hasAny, landingFor, CONSOLE_ROLES, frDate, jours } from "./common.js";
 import "./pretty-select.js";
+import { SEEDS, DRAPEAUX } from "./seeds-data.js";
 import "./pretty-date.js";
 
 const $ = (id) => document.getElementById(id);
@@ -154,6 +155,8 @@ const WORLDS = {
           { name: "Journée Team Lausanne", photo: "assets/photos/journee-famille.jpg", href: "/samedi-famille" },
           { name: "VIP · Tennis & Lunch", photo: "assets/photos/open-lunch.jpg" },
         ]},
+      { type: "seeds", anchor: "tetes-de-serie", title: "Les 8 têtes de série",
+        sub: "Deux anciens numéros 1 mondiaux juniors, dont le tenant du titre, et six autres joueurs classés parmi les 600 meilleurs du monde. Classement ATP au moment du tirage." },
       { type: "ranking", anchor: "palmares", title: "Palmarès",
         head: ["Année", "Simple", "Double"],
         rows: [["2025", `${FLAG_CH} Henry Bernet`, `${FLAG_IE} Charles Barry · ${FLAG_FR} Max Westphal`]] },
@@ -551,6 +554,24 @@ function sectionHTML(sec) {
         <table class="ranking"><thead><tr>${sec.head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
         <tbody>${sec.rows.map((row) => `<tr>${row.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
+
+    case "seeds":
+      return `<section class="wsec" data-anchor="${esc(sec.anchor || "")}"><h2>${esc(sec.title)}</h2>
+        ${sec.sub ? `<p class="wsec-sub">${esc(sec.sub)}</p>` : ""}
+        <div class="seed-grid">${SEEDS.map((s) => {
+          const sommet = s.atp === s.best;
+          return `<article class="seed-card">
+            <div class="seed-img">
+              <img src="assets/players/${esc(s.photo)}" alt="${esc(s.nom)}" loading="lazy" />
+              <span class="seed-num">${s.n}</span>
+            </div>
+            <div class="seed-txt">
+              <h3><span class="seed-flag">${DRAPEAUX[s.drapeau] || DRAPEAUX.neutre}</span>${esc(s.nom)}</h3>
+              <p class="seed-rank">ATP ${s.atp} · ${sommet ? "au meilleur de sa carrière" : `meilleur : ${s.best}ᵉ`}</p>
+              <p class="seed-bio">${esc(s.bio)}</p>
+            </div>
+          </article>`;
+        }).join("")}</div></section>`;
 
     case "sponsors":
       return `<section class="wsec" data-anchor="${esc(sec.anchor || "")}"><h2>${esc(sec.title)}</h2>
