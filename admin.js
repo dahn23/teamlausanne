@@ -5785,13 +5785,14 @@ async function youthNotes(mountId, youthId) {
   if (!youthId) { el.innerHTML = ""; return; }
   const { data } = await sb.from("youth_notes").select("*").eq("youth_person_id", youthId).order("created_at", { ascending: false });
   const rows = data || [];
+  const canMod = hasAny(myAppRoles, ["superadmin", "admin"]); // admin : peut éditer/supprimer TOUTE note
   const items = rows.length ? rows.map((r) => {
-    const mine = r.created_by === meId;
+    const canEdit = r.created_by === meId || canMod;
     const edited = r.updated_at && r.updated_at !== r.created_at ? ' <span class="muted">(modifié)</span>' : "";
     return `<div class="obj-item yn-item" data-id="${r.id}">
       <div class="obj-meta"><span class="yn-who">${noteRoleBadge(r.author_role)} <b>${esc(r.author_name || "—")}</b></span><span>${frDateTime(r.created_at)}${edited}</span></div>
       <div class="obj-body">${esc(r.body).replace(/\n/g, "<br/>")}</div>
-      ${mine ? `<div class="obj-acts"><button type="button" class="edit">Modifier</button><button type="button" class="del">Supprimer</button></div>` : ""}</div>`;
+      ${canEdit ? `<div class="obj-acts"><button type="button" class="edit">Modifier</button><button type="button" class="del">Supprimer</button></div>` : ""}</div>`;
   }).join("") : '<p class="obj-empty">Aucune note pour l\'instant.</p>';
   el.innerHTML = `
     <p class="chan-note interne">Fil interne — partagé par tout l'encadrement (coachs, profs, mental, secrétariat, admin).</p>
