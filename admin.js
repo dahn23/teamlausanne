@@ -5522,10 +5522,12 @@ function initEtudes() {
 function etPopulateSeasons() {
   const cur = currentSeason("juniors")?.id;
   const opts = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">— créez une saison juniors —</option>';
-  if (!$("et-season").options.length) $("et-season").innerHTML = opts;
-  if (!$("et-season2").options.length) $("et-season2").innerHTML = opts;
-  if ($("et-rg-season") && !$("et-rg-season").options.length) $("et-rg-season").innerHTML = opts;
-  if ($("et-pf-season") && !$("et-pf-season").options.length) $("et-pf-season").innerHTML = opts;
+  // On force la valeur sur la saison en cours au 1er remplissage (sinon le calendrier
+  // reste vide tant qu'on n'a pas re-sélectionné la saison à la main).
+  ["et-season", "et-season2", "et-rg-season", "et-pf-season"].forEach((id) => {
+    const el = $(id);
+    if (el && !el.options.length) { el.innerHTML = opts; if (cur) el.value = cur; }
+  });
 }
 async function etYouthsForSeason(seasonId) {
   if (!seasonId) return [];
@@ -5554,6 +5556,7 @@ async function loadEtudesCalendar() {
   }
   const attOf = (dayId, yid) => att.find((a) => a.day_id === dayId && a.youth_person_id === yid)?.status || "";
   const profOptions = people.filter((p) => hasRoleIn(p.id, ["prof"]));
+  const canEditProfs = hasAny(myAppRoles, ["superadmin", "admin"]); // admin : saisie possible à tout moment
   if (!(days || []).length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jour dans le calendrier pour cette saison.</p>'; return; }
   if (!youths.length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jeune en sport-études pour cette saison (à définir dans les fiches › Saisons).</p>'; return; }
   let html = '<table class="crm-table et-cal"><thead><tr><th>Date</th><th>Prof(s)</th>'
