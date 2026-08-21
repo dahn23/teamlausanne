@@ -1032,7 +1032,13 @@ document.addEventListener("click", (e) => {
   const plan = e.target.closest("[data-plan]");
   if (plan) { $("plan-img").src = plan.dataset.plan; $("plan-modal").classList.remove("hidden"); return; }
   const scroll = e.target.closest("[data-scroll]");
-  if (scroll) { document.querySelector("." + scroll.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  if (scroll) {
+    // la cible peut etre designee par sa classe ou par son identifiant
+    const t = scroll.dataset.scroll;
+    (document.querySelector("." + t) || document.getElementById(t))
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
   const goto = null;   // renvois vers les autres mondes desactives
   const _goto = e.target.closest("[data-goto]");
   if (goto) {
