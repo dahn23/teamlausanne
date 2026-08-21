@@ -5554,7 +5554,6 @@ async function loadEtudesCalendar() {
   }
   const attOf = (dayId, yid) => att.find((a) => a.day_id === dayId && a.youth_person_id === yid)?.status || "";
   const profOptions = people.filter((p) => hasRoleIn(p.id, ["prof"]));
-  const canEditProfs = hasAny(myAppRoles, ["superadmin", "admin"]); // ajouter/retirer des profs = admin
   if (!(days || []).length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jour dans le calendrier pour cette saison.</p>'; return; }
   if (!youths.length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jeune en sport-études pour cette saison (à définir dans les fiches › Saisons).</p>'; return; }
   let html = '<table class="crm-table et-cal"><thead><tr><th>Date</th><th>Prof(s)</th>'
@@ -5571,7 +5570,7 @@ async function loadEtudesCalendar() {
     const presLbl = mySt === "present" ? `Présent ${myV.hours ?? 4}h` : mySt === "absent" ? "Absent" : "Ma présence";
     const presCls = mySt === "present" ? "st-present" : mySt === "absent" ? "st-absent" : "st-none";
     const presBtn = iAmProf ? `<div style="margin-top:6px"><button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${presLbl}</button></div>` : "";
-    html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${presBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions, canEditProfs)}</td>`
+    html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${presBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions, false)}</td>`
       + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; return `<td><button type="button" class="att-chip et-cell ${lk ? "st-locked" : ET_CLS[s]}" ${lk ? 'data-locked="1" title="Saisie dès 12h50 le jour du cours"' : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
