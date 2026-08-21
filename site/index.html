@@ -237,7 +237,14 @@
       if (!b) return;
       e.preventDefault();
       var t = document.getElementById("contact-lo");
-      if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (!t) return;
+      var y = t.getBoundingClientRect().top + window.pageYOffset - 12;
+      window.scrollTo({ top: y, behavior: "smooth" });
+      // Repli : certains navigateurs ignorent l animation. Si rien n a bouge
+      // au bout de 700 ms, on saute directement a la bonne position.
+      setTimeout(function () {
+        if (Math.abs(window.pageYOffset - y) > 40) window.scrollTo(0, y);
+      }, 700);
     });
 
     // Envoi du formulaire de contact sans quitter la page.
