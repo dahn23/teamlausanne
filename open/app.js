@@ -143,8 +143,11 @@ function render() {
 }
 
 /* barre de sous-onglets réutilisable */
-function subBar(key, items, onPick, grid) {
-  const cur = items.some((i) => i.id === state.sub[key]) ? state.sub[key] : items[0].id;
+function subBar(key, items, onPick, grid, defaut) {
+  // Tant que le visiteur n a rien choisi, on ouvre sur "defaut" (le jour
+  // courant) plutot que sur le premier de la liste.
+  const cur = items.some((i) => i.id === state.sub[key]) ? state.sub[key]
+            : (items.some((i) => i.id === defaut) ? defaut : items[0].id);
   state.sub[key] = cur;
   // grid = tous les sous-onglets tiennent a l ecran (Welcome, Sejour).
   // Sans grid, ils defilent : c est le cas des listes de jours, ou il peut
@@ -327,7 +330,8 @@ async function viewOop(v) {
       <div class="empty">${big("clipboard")}${esc(t("oop.empty"))}</div>`;
     return;
   }
-  const bar = subBar("oop", days.map((d) => ({ id: d.day, label: dayLabel(d.day) })), () => viewOop(v));
+  const bar = subBar("oop", days.map((d) => ({ id: d.day, label: dayLabel(d.day) })),
+                     () => viewOop(v), false, todayISO());
   const pick = days.find((d) => d.day === bar.cur) || days[0];
 
   v.innerHTML = `<h2 class="lo-h2">${esc(t("oop.title"))}</h2>
@@ -367,7 +371,8 @@ async function viewPractice(v) {
     return;
   }
 
-  const bar = subBar("prac", days.map((d) => ({ id: d.day, label: dayLabel(d.day) })), () => viewPractice(v));
+  const bar = subBar("prac", days.map((d) => ({ id: d.day, label: dayLabel(d.day) })),
+                     () => viewPractice(v), false, todayISO());
   const d = days.find((x) => x.day === bar.cur) || days[0];
 
   const { data: bk } = await sb.from("lo_practice_bookings")
@@ -384,21 +389,31 @@ async function viewPractice(v) {
     slots.push(`${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`);
   }
   const courts = d.court_names || [];
+  // Un creneau commence ne se reserve plus et ne s annule plus, meme vide.
+  const commence = (heure) => {
+    const [hh, mm] = heure.split(":").map(Number);
+    const t = new Date(d.day + "T00:00:00");
+    t.setHours(hh, mm, 0, 0);
+    return t.getTime() <= Date.now();
+  };
 
   // Chaque court occupe DEUX colonnes : deux joueurs peuvent le reserver
   // sur le meme creneau, comme les deux cotes d un court de double.
   const cells = [`<div class="pcell hh"></div>`,
     ...courts.map((c, i) => `<div class="pcell hh hh2 c${i % 3}">${esc(c)}</div>`)];
   slots.forEach((s) => {
-    cells.push(`<div class="pcell th">${s}</div>`);
+    cells.push(`<div class="pcell th${commence(s) ? " past" : ""}">${s}</div>`);
     courts.forEach((c, ci) => {
+      const fige = commence(s);
       for (const k of [1, 2]) {
         const b = taken[`${c}|${s}|${k}`];
         if (!b) {
-          cells.push(`<div class="pcell pslot c${ci % 3}" data-book="${esc(c)}|${s}">+</div>`);
+          cells.push(`<div class="pcell pslot c${ci % 3}${fige ? " past" : ""}"
+            ${fige ? "" : `data-book="${esc(c)}|${s}"`}>${fige ? "" : "+"}</div>`);
         } else {
-          const own = !!mine[b.id];
-          cells.push(`<div class="pcell pslot c${ci % 3} ${own ? "mine" : "taken"}" ${own ? `data-cancel="${b.id}"` : ""}>
+          const own = !!mine[b.id] && !fige;
+          cells.push(`<div class="pcell pslot c${ci % 3} ${own ? "mine" : "taken"}${fige ? " past" : ""}"
+            ${own ? `data-cancel="${b.id}"` : ""}>
             ${esc(b.player_name)}${own ? `<small>${esc(t("prac.tap"))}</small>` : ""}</div>`);
         }
       }

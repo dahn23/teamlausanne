@@ -460,3 +460,7 @@ svg.mk.off{color:var(--muted)}
 }
 .fee-x:hover{color:#ff9a9a;border-color:rgba(255,91,91,.4)}
 .fee-x svg{width:14px;height:14px}
+
+/* Créneau déjà commencé : plus rien à y faire, on l'estompe. */
+.pcell.past{opacity:.32;cursor:default;pointer-events:none;filter:grayscale(.7)}
+.pcell.th.past{opacity:.4;filter:none}
