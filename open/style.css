@@ -395,18 +395,9 @@ svg.mk.off{color:var(--muted)}
 .maps-btn:hover{background:rgba(200,255,61,.2);text-decoration:none}
 .maps-btn svg{width:15px;height:15px}
 
-/* ---- Practice : deux places réservables par créneau ---- */
-.pcell.pslots{padding:0;background:none;border:0;min-height:0;gap:3px;
-  display:flex;flex-direction:column;justify-content:stretch}
-.pseat{
-  font:inherit;font-size:.74rem;font-weight:700;line-height:1.15;
-  border-radius:8px;padding:7px 5px;min-height:32px;cursor:pointer;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  transition:.13s;width:100%;
-}
-.pseat.free{background:rgba(255,255,255,.05);border:1px dashed var(--line-2);color:var(--muted)}
-.pseat.free:hover{background:rgba(200,255,61,.13);border-color:var(--fluo);color:var(--fluo)}
-.pseat.taken{background:rgba(42,83,240,.26);border:1px solid rgba(75,116,255,.5);
-  color:#fff;cursor:default}
-.pseat.mine{background:var(--fluo);border:1px solid var(--fluo);color:#0a1020;cursor:pointer}
-.pseat small{display:block;font-size:.62rem;opacity:.75;font-weight:700;margin-top:1px}
+
+/* ---- Practice : chaque court occupe deux colonnes (comme un double) ---- */
+.pcell.hh2{grid-column:span 2}
+/* un filet sépare les deux courts, pas les deux places d'un même court */
+.pgrid .pcell.hh2 + .pcell.hh2{box-shadow:inset 2px 0 0 rgba(255,255,255,.14)}
+.pslot{min-width:0}

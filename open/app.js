@@ -385,26 +385,30 @@ async function viewPractice(v) {
   }
   const courts = d.court_names || [];
 
+  // Chaque court occupe DEUX colonnes : deux joueurs peuvent le reserver
+  // sur le meme creneau, comme les deux cotes d un court de double.
   const cells = [`<div class="pcell hh"></div>`,
-    ...courts.map((c) => `<div class="pcell hh">${esc(c)}</div>`)];
+    ...courts.map((c) => `<div class="pcell hh hh2">${esc(c)}</div>`)];
   slots.forEach((s) => {
     cells.push(`<div class="pcell th">${s}</div>`);
     courts.forEach((c) => {
-      const seat = (k) => {
+      for (const k of [1, 2]) {
         const b = taken[`${c}|${s}|${k}`];
-        if (!b) return `<button class="pseat free" data-book="${esc(c)}|${s}">+</button>`;
-        const own = !!mine[b.id];
-        return `<button class="pseat ${own ? "mine" : "taken"}" ${own ? `data-cancel="${b.id}"` : "disabled"}>
-          ${esc(b.player_name)}${own ? `<small>${esc(t("prac.tap"))}</small>` : ""}</button>`;
-      };
-      cells.push(`<div class="pcell pslots">${seat(1)}${seat(2)}</div>`);
+        if (!b) {
+          cells.push(`<div class="pcell pslot" data-book="${esc(c)}|${s}">+</div>`);
+        } else {
+          const own = !!mine[b.id];
+          cells.push(`<div class="pcell pslot ${own ? "mine" : "taken"}" ${own ? `data-cancel="${b.id}"` : ""}>
+            ${esc(b.player_name)}${own ? `<small>${esc(t("prac.tap"))}</small>` : ""}</div>`);
+        }
+      }
     });
   });
 
   v.innerHTML = intro + bar.html + `
     ${d.note ? `<article class="card"><div class="card-in"><p>${esc(d.note)}</p></div></article>` : ""}
     <div class="pg-wrap"><div class="pgrid"
-      style="grid-template-columns:62px repeat(${courts.length},minmax(104px,1fr))">${cells.join("")}</div></div>
+      style="grid-template-columns:56px repeat(${courts.length * 2},minmax(86px,1fr))">${cells.join("")}</div></div>
     <p class="lo-lead" style="margin-top:10px">${esc(t("prac.slots", { n: d.slot_min }))} ${esc(t("prac.foot"))}</p>`;
   bar.bind(v);
 
