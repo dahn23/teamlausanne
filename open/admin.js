@@ -38,6 +38,12 @@ async function api(action, payload = {}) {
   if (error) throw new Error(error.message);
   return data;
 }
+async function apiFees(action, payload = {}) {
+  const { data, error } = await sb.rpc("lo_admin_fees", { p_pwd: PWD, p_action: action, p_payload: payload });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 async function apiList(what) {
   const { data, error } = await sb.rpc("lo_admin_list", { p_pwd: PWD, p_what: what });
   if (error) throw new Error(error.message);
@@ -77,6 +83,7 @@ const SECTIONS = [
   { id: "hotel",     label: `${svg("bed")}Hôtel` },
   { id: "oop",       label: `${svg("clipboard")}Order of play` },
   { id: "practice",  label: `${svg("racket")}Practice` },
+  { id: "fees",      label: `${svg("medal")}Paiements` },
   { id: "murs",      label: `${svg("chat")}Sparring / Roommate` },
   { id: "reglages",  label: `${svg("gear")}Réglages` },
 ];
@@ -99,7 +106,7 @@ function route() {
   v.onclick = null;
   v.innerHTML = `<span class="spin"></span>`;
   ({ acces: vAcces, infos: vInfos, navette: vNavette, resto: vResto, hotel: vHotel,
-     oop: vOop, practice: vPractice, murs: vMurs, reglages: vReglages }[cur])(v);
+     oop: vOop, practice: vPractice, fees: vFees, murs: vMurs, reglages: vReglages }[cur])(v);
 }
 
 /* petit utilitaire : exécute une action puis re-rend la section */
@@ -485,6 +492,100 @@ async function vPractice(v) {
     if ((b = t("bdel"))) {
       if (confirm("Supprimer cette inscription ?")) return run(() => api("pb_del", { id: Number(b.dataset.bdel) }));
     }
+  };
+}
+
+/* ====================================================== PAIEMENTS */
+// Encaissement des frais d inscription, jour par jour. Trois moyens de
+// paiement ; recliquer sur celui deja choisi annule l encaissement.
+const MOYENS = [
+  { k: "cash",  label: "Cash" },
+  { k: "card",  label: "Carte" },
+  { k: "twint", label: "Twint" },
+];
+let feesJour = null;
+
+async function vFees(v) {
+  const tous = await apiList("fees");
+  const jours = [...new Set(tous.map((f) => f.day))].sort();
+  if (!feesJour) feesJour = jours.includes(demain()) ? demain()
+                          : (jours.includes(today()) ? today() : (jours[0] || demain()));
+  const liste = tous.filter((f) => f.day === feesJour);
+  const payes = liste.filter((f) => f.method).length;
+
+  v.innerHTML = `
+    <h2 class="lo-h2">Paiements</h2>
+
+    <div class="fees-price">
+      <b>34 CHF</b><span>36 €</span><span>40 US$</span>
+    </div>
+
+    <div class="grid2">
+      <label class="f">Journée
+        <input type="date" id="fj" value="${esc(feesJour)}" /></label>
+      <label class="f">Encaissés
+        <input value="${payes} / ${liste.length}" readonly /></label>
+    </div>
+
+    ${liste.length ? `
+      <div class="fees-list">${liste.map((f) => `
+        <div class="fee${f.method ? " paid" : ""}">
+          <b>${esc(f.player)}</b>
+          <div class="fee-btns">
+            ${MOYENS.map((m) => `<button class="fee-b${f.method === m.k ? " on" : ""}"
+               data-pay="${f.id}" data-m="${m.k}">${m.label}</button>`).join("")}
+            <button class="fee-x" data-del="${f.id}" title="Retirer de la liste">${svg("trash")}</button>
+          </div>
+        </div>`).join("")}</div>
+      <p class="hint" style="margin-top:14px">Un clic encaisse et passe le nom en vert.
+         Recliquer sur le même moyen annule.</p>`
+    : `<div class="empty">Aucun joueur pour cette journée. Colle la liste ci-dessous.</div>`}
+
+    <div class="sec-title">${svg("users", "mk")} Ajouter des joueurs</div>
+    <p class="hint">Colle les noms, un par ligne. Les joueurs déjà présents ne sont pas
+       dupliqués et gardent leur encaissement.</p>
+    <div class="card">
+      <label class="f">Noms
+        <textarea id="f-names" rows="6" placeholder="Bernet Henry&#10;Nikles Johan&#10;…"></textarea></label>
+      <button class="btn block" id="f-imp">Ajouter à la journée du ${frJour(feesJour)}</button>
+      <p class="err" id="f-err"></p>
+    </div>
+
+    ${liste.length ? `<button class="btn block danger" id="f-clear" style="margin-top:16px">
+       Vider la liste du ${frJour(feesJour)}</button>` : ""}`;
+
+  $("fj").onchange = (e) => { feesJour = e.target.value; route(); };
+
+  $("f-imp").onclick = async () => {
+    const names = $("f-names").value;
+    if (!names.trim()) { $("f-err").textContent = "Colle au moins un nom."; return; }
+    $("f-imp").disabled = true;
+    try { await apiFees("fees_import", { day: feesJour, names }); route(); }
+    catch (e) { $("f-err").textContent = e.message; $("f-imp").disabled = false; }
+  };
+
+  const clear = $("f-clear");
+  if (clear) clear.onclick = () => {
+    if (confirm(`Vider toute la liste du ${frJour(feesJour)} ? Les encaissements seront perdus.`))
+      run(() => apiFees("fees_clear_day", { day: feesJour }));
+  };
+
+  v.onclick = async (e) => {
+    const p = e.target.closest("[data-pay]");
+    if (p) {
+      // on bascule l'affichage tout de suite, sans attendre le serveur
+      const bloc = p.closest(".fee");
+      const etait = p.classList.contains("on");
+      bloc.querySelectorAll(".fee-b").forEach((x) => x.classList.remove("on"));
+      if (!etait) p.classList.add("on");
+      bloc.classList.toggle("paid", !etait);
+      try { await apiFees("fees_set", { id: Number(p.dataset.pay), method: p.dataset.m }); }
+      catch (err) { alert(err.message); }
+      return;
+    }
+    const d = e.target.closest("[data-del]");
+    if (d && confirm("Retirer ce joueur de la liste ?"))
+      run(() => apiFees("fees_del", { id: Number(d.dataset.del) }));
   };
 }
 

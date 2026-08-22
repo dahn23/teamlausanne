@@ -424,3 +424,39 @@ svg.mk.off{color:var(--muted)}
 .pslot.c2.taken{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6);color:#0d1430}
 .pslot.mine{background:var(--fluo);border:2px solid #fff;color:#0a1020}
 .pslot{min-width:0}
+
+/* =====================================================================
+   Backend — encaissement des frais d'inscription
+   ===================================================================== */
+.fees-price{
+  display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+  background:rgba(200,255,61,.12);border:1px solid rgba(200,255,61,.35);
+  border-radius:14px;padding:14px 18px;margin-bottom:18px;
+}
+.fees-price b{font-size:1.5rem;font-weight:900;color:var(--fluo);letter-spacing:-.5px}
+.fees-price span{font-size:1rem;font-weight:700;color:#cfd6ee}
+
+.fees-list{display:flex;flex-direction:column;gap:7px}
+.fee{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 13px;
+  transition:.14s;
+}
+.fee b{flex:1;min-width:150px;font-size:.98rem;font-weight:700}
+.fee.paid{background:rgba(61,220,132,.13);border-color:rgba(61,220,132,.45)}
+.fee.paid b{color:var(--ok)}
+
+.fee-btns{display:flex;gap:6px;flex-shrink:0}
+.fee-b{
+  font:inherit;font-size:.8rem;font-weight:800;cursor:pointer;
+  background:rgba(255,255,255,.06);border:1px solid var(--line-2);color:var(--ink);
+  border-radius:9px;padding:8px 13px;transition:.13s;
+}
+.fee-b:hover{background:rgba(255,255,255,.14)}
+.fee-b.on{background:var(--ok);border-color:var(--ok);color:#04240f}
+.fee-x{
+  font:inherit;cursor:pointer;background:transparent;border:1px solid var(--line);
+  border-radius:9px;padding:7px 9px;color:var(--muted);line-height:0;
+}
+.fee-x:hover{color:#ff9a9a;border-color:rgba(255,91,91,.4)}
+.fee-x svg{width:14px;height:14px}
