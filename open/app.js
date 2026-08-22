@@ -371,9 +371,10 @@ async function viewPractice(v) {
   const d = days.find((x) => x.day === bar.cur) || days[0];
 
   const { data: bk } = await sb.from("lo_practice_bookings")
-    .select("id,day,court,start_time,player_name").eq("day", d.day);
+    .select("id,day,court,start_time,seat,player_name").eq("day", d.day);
+  // deux places par creneau : la cle porte le numero de place
   const taken = {};
-  (bk || []).forEach((b) => { taken[`${b.court}|${hhmm(b.start_time)}`] = b; });
+  (bk || []).forEach((b) => { taken[`${b.court}|${hhmm(b.start_time)}|${b.seat || 1}`] = b; });
   const mine = store.get("bookings");
 
   const slots = [];
@@ -389,14 +390,14 @@ async function viewPractice(v) {
   slots.forEach((s) => {
     cells.push(`<div class="pcell th">${s}</div>`);
     courts.forEach((c) => {
-      const b = taken[`${c}|${s}`];
-      if (b) {
+      const seat = (k) => {
+        const b = taken[`${c}|${s}|${k}`];
+        if (!b) return `<button class="pseat free" data-book="${esc(c)}|${s}">+</button>`;
         const own = !!mine[b.id];
-        cells.push(`<div class="pcell pslot ${own ? "mine" : "taken"}" ${own ? `data-cancel="${b.id}"` : ""}>
-          ${esc(b.player_name)}${own ? `<small>${esc(t("prac.tap"))}</small>` : ""}</div>`);
-      } else {
-        cells.push(`<div class="pcell pslot" data-book="${esc(c)}|${s}">+</div>`);
-      }
+        return `<button class="pseat ${own ? "mine" : "taken"}" ${own ? `data-cancel="${b.id}"` : "disabled"}>
+          ${esc(b.player_name)}${own ? `<small>${esc(t("prac.tap"))}</small>` : ""}</button>`;
+      };
+      cells.push(`<div class="pcell pslots">${seat(1)}${seat(2)}</div>`);
     });
   });
 
@@ -427,9 +428,12 @@ function askBooking(day, court, start, done) {
       { p_day: day, p_court: court, p_start: start, p_name: name });
     if (error) { $("bk-err").textContent = error.message; return false; }
     store.name.set(name);
-    // on retrouve l'id de la réservation pour mémoriser le jeton d'annulation
+    // On retrouve l id de la reservation pour memoriser le jeton d annulation.
+    // Deux places par creneau : sans filtrer sur celle que le serveur vient
+    // d attribuer, la requete ramenerait deux lignes et echouerait.
     const { data: row } = await sb.from("lo_practice_bookings").select("id")
-      .eq("day", day).eq("court", court).eq("start_time", start).single();
+      .eq("day", day).eq("court", court).eq("start_time", start)
+      .eq("seat", data.seat).single();
     if (row) store.add("bookings", row.id, data.token);
     done();
     return true;

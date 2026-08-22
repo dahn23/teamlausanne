@@ -397,11 +397,11 @@ async function vPractice(v) {
           <div><span>Courts</span><b>${esc((d.court_names || []).join(", "))}</b></div>
           <div><span>Horaires</span><b>${hhmm(d.first_time)} → ${hhmm(d.last_time)} · ${d.slot_min} min</b></div>
           <div><span>Visible</span><b>${d.visible_from ? `dès le ${frDateTime(d.visible_from)}` : "tout de suite"}</b></div>
-          <div><span>Inscriptions</span><b>${bk.length}</b></div>
+          <div><span>Inscriptions</span><b>${bk.length} · 2 places par créneau</b></div>
         </div>
         ${bk.length ? bk.map((b) => `
           <div class="adm-row" style="margin-bottom:6px">
-            <div class="grow"><b>${hhmm(b.start_time)} · ${esc(b.court)}</b><small>${esc(b.player_name)}</small></div>
+            <div class="grow"><b>${hhmm(b.start_time)} · ${esc(b.court)} · place ${b.seat || 1}</b><small>${esc(b.player_name)}</small></div>
             <div class="adm-actions">
               <button class="btn ghost" data-bedit="${b.id}">${svg("pencil")}</button>
               <button class="btn danger" data-bdel="${b.id}">${svg("trash")}</button>
