@@ -396,8 +396,31 @@ svg.mk.off{color:var(--muted)}
 .maps-btn svg{width:15px;height:15px}
 
 
-/* ---- Practice : chaque court occupe deux colonnes (comme un double) ---- */
-.pcell.hh2{grid-column:span 2}
-/* un filet sépare les deux courts, pas les deux places d'un même court */
-.pgrid .pcell.hh2 + .pcell.hh2{box-shadow:inset 2px 0 0 rgba(255,255,255,.14)}
+
+/* =====================================================================
+   Practice : chaque court occupe DEUX colonnes, comme les deux côtés
+   d'un court de double. Une teinte propre à chaque court permet de voir
+   d'un coup d'œil quelles cases appartiennent au même terrain.
+   ===================================================================== */
+.pcell.hh2{grid-column:span 2;border-radius:9px 9px 0 0;padding:7px 6px;
+  color:#fff;font-weight:800}
+
+/* teintes des courts (trois, puis on recommence) */
+.pcell.hh2.c0{background:rgba(42,83,240,.55)}
+.pcell.hh2.c1{background:rgba(200,255,61,.34);color:#0d1430}
+.pcell.hh2.c2{background:rgba(255,255,255,.24)}
+
+/* le fond se prolonge sur toute la colonne du court */
+.pslot.c0{background:rgba(42,83,240,.13)}
+.pslot.c1{background:rgba(200,255,61,.09)}
+.pslot.c2{background:rgba(255,255,255,.07)}
+.pslot.c0:hover{background:rgba(42,83,240,.3);border-color:var(--blue-soft);color:#fff}
+.pslot.c1:hover{background:rgba(200,255,61,.24);border-color:var(--fluo);color:var(--fluo)}
+.pslot.c2:hover{background:rgba(255,255,255,.18);border-color:#fff;color:#fff}
+
+/* une case prise ou la sienne garde son code couleur, il prime */
+.pslot.taken{background:rgba(42,83,240,.62);border-color:rgba(120,155,255,.7);color:#fff}
+.pslot.c1.taken{background:rgba(140,190,40,.62);border-color:rgba(200,255,61,.6)}
+.pslot.c2.taken{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6);color:#0d1430}
+.pslot.mine{background:var(--fluo);border:2px solid #fff;color:#0a1020}
 .pslot{min-width:0}

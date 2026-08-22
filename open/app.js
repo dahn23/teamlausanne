@@ -388,17 +388,17 @@ async function viewPractice(v) {
   // Chaque court occupe DEUX colonnes : deux joueurs peuvent le reserver
   // sur le meme creneau, comme les deux cotes d un court de double.
   const cells = [`<div class="pcell hh"></div>`,
-    ...courts.map((c) => `<div class="pcell hh hh2">${esc(c)}</div>`)];
+    ...courts.map((c, i) => `<div class="pcell hh hh2 c${i % 3}">${esc(c)}</div>`)];
   slots.forEach((s) => {
     cells.push(`<div class="pcell th">${s}</div>`);
-    courts.forEach((c) => {
+    courts.forEach((c, ci) => {
       for (const k of [1, 2]) {
         const b = taken[`${c}|${s}|${k}`];
         if (!b) {
-          cells.push(`<div class="pcell pslot" data-book="${esc(c)}|${s}">+</div>`);
+          cells.push(`<div class="pcell pslot c${ci % 3}" data-book="${esc(c)}|${s}">+</div>`);
         } else {
           const own = !!mine[b.id];
-          cells.push(`<div class="pcell pslot ${own ? "mine" : "taken"}" ${own ? `data-cancel="${b.id}"` : ""}>
+          cells.push(`<div class="pcell pslot c${ci % 3} ${own ? "mine" : "taken"}" ${own ? `data-cancel="${b.id}"` : ""}>
             ${esc(b.player_name)}${own ? `<small>${esc(t("prac.tap"))}</small>` : ""}</div>`);
         }
       }
