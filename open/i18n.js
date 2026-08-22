@@ -186,11 +186,37 @@ const T = {
      s'affiche alors tel quel, dans la langue où c'est saisi.
      =================================================================== */
   "def.hotelNote": [
-    "Breakfast is served from 6:30 to 10:00. Reception is open 24/7. The tournament shuttle stops in front of the hotel entrance.",
-    "Le petit-déjeuner est servi de 6h30 à 10h00. La réception est ouverte 24h/24. La navette du tournoi s'arrête devant l'entrée de l'hôtel.",
-    "Frühstück von 6:30 bis 10:00 Uhr. Die Rezeption ist rund um die Uhr besetzt. Der Turnier-Shuttle hält vor dem Hoteleingang.",
-    "La colazione è servita dalle 6:30 alle 10:00. La reception è aperta 24 ore su 24. La navetta del torneo si ferma davanti all'ingresso dell'hotel.",
-    "El desayuno se sirve de 6:30 a 10:00. La recepción está abierta 24 h. La lanzadera del torneo para delante de la entrada del hotel."],
+    "Breakfast is served from 6:30 to 10:00. Reception is open 24/7.",
+    "Le petit-déjeuner est servi de 6h30 à 10h00. La réception est ouverte 24h/24.",
+    "Frühstück von 6:30 bis 10:00 Uhr. Die Rezeption ist rund um die Uhr besetzt.",
+    "La colazione è servita dalle 6:30 alle 10:00. La reception è aperta 24 ore su 24.",
+    "El desayuno se sirve de 6:30 a 10:00. La recepción está abierta 24 h."],
+  /* Y aller en bus — ces textes contiennent des <b>, ils sont inseres
+     tels quels dans app.js, sans echappement. */
+  "bus.title": ["Getting there by bus", "Y aller en bus", "Mit dem Bus hin",
+                "Arrivare in autobus", "Cómo llegar en autobús"],
+  "bus.toHotel": [
+    "From <b>Lausanne Gare</b>, take bus <b>20</b> towards <b>Lausanne, Blécherette</b>. Get off <b>4 stops</b> later at <b>Lausanne, St-Roch</b> — the hotel is a few minutes’ walk from there.",
+    "Depuis <b>Lausanne Gare</b>, prends le bus <b>20</b> direction <b>Lausanne, Blécherette</b>. Descends <b>4 arrêts</b> plus loin à <b>Lausanne, St-Roch</b> — l’hôtel est à quelques minutes à pied.",
+    "Ab <b>Lausanne Gare</b> den Bus <b>20</b> Richtung <b>Lausanne, Blécherette</b> nehmen. Nach <b>4 Haltestellen</b> bei <b>Lausanne, St-Roch</b> aussteigen — von dort sind es ein paar Gehminuten zum Hotel.",
+    "Da <b>Lausanne Gare</b>, prendi il bus <b>20</b> in direzione <b>Lausanne, Blécherette</b>. Scendi <b>4 fermate</b> dopo a <b>Lausanne, St-Roch</b> — l’hotel è a pochi minuti a piedi.",
+    "Desde <b>Lausanne Gare</b>, toma el bus <b>20</b> dirección <b>Lausanne, Blécherette</b>. Bájate <b>4 paradas</b> después en <b>Lausanne, St-Roch</b> — el hotel está a pocos minutos a pie."],
+  "bus.toClub": [
+    "The same bus 20 continues <b>4 stops</b> further to <b>Lausanne, Stade Olympique</b> — that is the stop for the tennis club.",
+    "Le même bus 20 continue <b>4 arrêts</b> plus loin jusqu’à <b>Lausanne, Stade Olympique</b> — c’est l’arrêt du club de tennis.",
+    "Derselbe Bus 20 fährt <b>4 Haltestellen</b> weiter bis <b>Lausanne, Stade Olympique</b> — das ist die Haltestelle des Tennisclubs.",
+    "Lo stesso bus 20 prosegue <b>4 fermate</b> fino a <b>Lausanne, Stade Olympique</b> — è la fermata del circolo di tennis.",
+    "El mismo bus 20 continúa <b>4 paradas</b> hasta <b>Lausanne, Stade Olympique</b> — es la parada del club de tenis."],
+  "bus.back": [
+    "Coming back, take bus <b>20</b> towards <b>Lausanne, Gare</b>.",
+    "Au retour, prends le bus <b>20</b> direction <b>Lausanne, Gare</b>.",
+    "Zurück mit dem Bus <b>20</b> Richtung <b>Lausanne, Gare</b>.",
+    "Al ritorno, prendi il bus <b>20</b> in direzione <b>Lausanne, Gare</b>.",
+    "A la vuelta, toma el bus <b>20</b> dirección <b>Lausanne, Gare</b>."],
+  "bus.walk": ["On foot from St-Roch to the hotel", "À pied de St-Roch à l’hôtel",
+               "Zu Fuss von St-Roch zum Hotel", "A piedi da St-Roch all’hotel",
+               "A pie de St-Roch al hotel"],
+
   "def.restoNote": [
     "Players menu — 15 CHF per dish, drinks not included. There is no badge: just tell the staff you are with the tournament, as a player or an accompanying person.",
     "Menu joueurs — 15 CHF le plat, boissons non comprises. Il n'y a pas de badge : signale simplement que tu fais partie du tournoi, joueur ou accompagnant.",

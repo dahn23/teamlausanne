@@ -274,6 +274,18 @@ async function viewLogistics(v) {
         </div>
         <p class="note">${esc(setting("hotel", "note") || t("def.hotelNote"))}</p>
         <a class="btn block" style="margin-top:14px" href="${esc(maps)}" target="_blank" rel="noopener">${esc(t("log.maps"))}</a>
+      </div></article>
+
+      <article class="card"><div class="card-in">
+        <h3>${ico("bus")} ${esc(t("bus.title"))}</h3>
+        <ul class="bus-steps">
+          <li>${t("bus.toHotel")}</li>
+          <li>${t("bus.toClub")}</li>
+          <li>${t("bus.back")}</li>
+        </ul>
+        <p class="note" style="margin-bottom:10px"><b>${esc(t("bus.walk"))}</b></p>
+        <iframe class="walk-map" loading="lazy" title="${esc(t("bus.walk"))}"
+          src="https://maps.google.com/maps?saddr=Lausanne%2C%20St-Roch&amp;daddr=Rue%20du%20Maupas%2020%2C%201004%20Lausanne&amp;dirflg=w&amp;z=16&amp;output=embed"></iframe>
       </div></article>`;
   } else if (bar.cur === "shuttle") {
     const { data } = await sb.from("lo_shuttle").select("*")

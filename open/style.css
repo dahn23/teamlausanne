@@ -464,3 +464,10 @@ svg.mk.off{color:var(--muted)}
 /* Créneau déjà commencé : plus rien à y faire, on l'estompe. */
 .pcell.past{opacity:.32;cursor:default;pointer-events:none;filter:grayscale(.7)}
 .pcell.th.past{opacity:.4;filter:none}
+
+/* Trajet en bus vers l'hôtel et le club */
+.bus-steps{margin:0 0 4px;padding-left:20px;font-size:.92rem;line-height:1.6;color:#dde3f7}
+.bus-steps li{margin-bottom:9px}
+.bus-steps li:last-child{margin-bottom:0}
+.bus-steps b{color:var(--fluo)}
+.walk-map{width:100%;height:300px;border:0;border-radius:12px;display:block;background:#0f1738}
