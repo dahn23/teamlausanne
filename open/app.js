@@ -274,18 +274,6 @@ async function viewLogistics(v) {
         </div>
         <p class="note">${esc(setting("hotel", "note") || t("def.hotelNote"))}</p>
         <a class="btn block" style="margin-top:14px" href="${esc(maps)}" target="_blank" rel="noopener">${esc(t("log.maps"))}</a>
-      </div></article>
-
-      <article class="card"><div class="card-in">
-        <h3>${ico("bus")} ${esc(t("bus.title"))}</h3>
-        <ul class="bus-steps">
-          <li>${t("bus.toHotel")}</li>
-          <li>${t("bus.toClub")}</li>
-          <li>${t("bus.back")}</li>
-        </ul>
-        <p class="note" style="margin-bottom:10px"><b>${esc(t("bus.walk"))}</b></p>
-        <iframe class="walk-map" loading="lazy" title="${esc(t("bus.walk"))}"
-          src="https://maps.google.com/maps?saddr=Lausanne%2C%20St-Roch&amp;daddr=Rue%20du%20Maupas%2020%2C%201004%20Lausanne&amp;dirflg=w&amp;z=16&amp;output=embed"></iframe>
       </div></article>`;
   } else if (bar.cur === "shuttle") {
     const { data } = await sb.from("lo_shuttle").select("*")
@@ -295,7 +283,25 @@ async function viewLogistics(v) {
     const groups = {};
     upcoming.forEach((r) => { (groups[r.day || "always"] ||= []).push(r); });
     const keys = Object.keys(groups).sort((a, b) => (a === "always" ? -1 : b === "always" ? 1 : a < b ? -1 : 1));
-    body = upcoming.length ? keys.map((k) => `
+    // Le bus de ligne d abord : c est ce que les joueurs utilisent vraiment.
+    body = `
+      <article class="card"><div class="card-in">
+        <h3>${ico("bus")} ${esc(t("bus.title"))}</h3>
+        <ul class="bus-steps">
+          <li>${t("bus.toHotel")}</li>
+          <li>${t("bus.toClub")}</li>
+          <li>${t("bus.back")}</li>
+        </ul>
+        <p class="note">${t("bus.card")}</p>
+      </div></article>
+
+      <article class="card"><div class="card-in">
+        <h3>${ico("city")} ${esc(t("bus.walk"))}</h3>
+        <iframe class="walk-map" loading="lazy" title="${esc(t("bus.walk"))}"
+          src="https://maps.google.com/maps?saddr=Lausanne%2C%20St-Roch&amp;daddr=Rue%20du%20Maupas%2020%2C%201004%20Lausanne&amp;dirflg=w&amp;z=16&amp;output=embed"></iframe>
+      </div></article>`
+      // Les horaires de navette ne s affichent que s il y en a de saisis.
+      + (upcoming.length ? keys.map((k) => `
       <article class="card"><div class="card-in">
         <h3>${ico("bus")} ${k === "always" ? esc(t("log.everyday")) : dayLabel(k)}</h3>
         <div class="kv">
@@ -304,8 +310,7 @@ async function viewLogistics(v) {
             <b>${esc(r.from_place || "—")} → ${esc(r.to_place || "—")}</b>
           </div>`).join("")}
         </div>
-      </div></article>`).join("")
-      : `<div class="empty">${big("bus")}${esc(t("log.noshuttle"))}</div>`;
+      </div></article>`).join("") : "");
   } else {
     const { data } = await sb.from("lo_menu").select("*").eq("active", true).order("sort").order("id");
     const items = data || [];

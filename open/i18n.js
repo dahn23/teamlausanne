@@ -82,10 +82,10 @@ const T = {
   "info.important": ["Important", "Important", "Wichtig", "Importante", "Importante"],
 
   /* ------------------------------------------------------------- SÉJOUR */
-  "log.title":   ["Hotel, shuttle & food", "Hôtel, navette & repas", "Hotel, Shuttle & Essen",
-                  "Hotel, navetta e pasti", "Hotel, lanzadera y comidas"],
+  "log.title":   ["Hotel, transport & food", "Hôtel, transport & repas", "Hotel, Transport & Essen",
+                  "Hotel, trasporti e pasti", "Hotel, transporte y comidas"],
   "log.hotel":   ["Hotel", "Hôtel", "Hotel", "Hotel", "Hotel"],
-  "log.shuttle": ["Shuttle", "Navette", "Shuttle", "Navetta", "Lanzadera"],
+  "log.shuttle": ["Transport", "Transport", "Transport", "Trasporti", "Transporte"],
   "log.resto":   ["Restaurant", "Restaurant", "Restaurant", "Ristorante", "Restaurante"],
   "log.address": ["Address", "Adresse", "Adresse", "Indirizzo", "Dirección"],
   "log.phone":   ["Phone", "Téléphone", "Telefon", "Telefono", "Teléfono"],
@@ -213,6 +213,12 @@ const T = {
     "Zurück mit dem Bus <b>20</b> Richtung <b>Lausanne, Gare</b>.",
     "Al ritorno, prendi il bus <b>20</b> in direzione <b>Lausanne, Gare</b>.",
     "A la vuelta, toma el bus <b>20</b> dirección <b>Lausanne, Gare</b>."],
+  "bus.card": [
+    "Ask at the hotel reception for your free <b>Lausanne Transport Card</b>: it covers buses and the metro for the whole of your stay. Without it, you have to buy a ticket.",
+    "Demande à la réception de l’hôtel ta <b>Lausanne Transport Card</b> gratuite : elle couvre les bus et le métro pendant tout le séjour. Sans elle, il faut acheter un billet.",
+    "Frag an der Hotelrezeption nach deiner kostenlosen <b>Lausanne Transport Card</b>: Sie gilt während des ganzen Aufenthalts für Busse und Metro. Ohne sie musst du ein Ticket lösen.",
+    "Chiedi alla reception dell’hotel la tua <b>Lausanne Transport Card</b> gratuita: copre bus e metro per tutta la durata del soggiorno. Senza, bisogna comprare il biglietto.",
+    "Pide en la recepción del hotel tu <b>Lausanne Transport Card</b> gratuita: cubre autobuses y metro durante toda la estancia. Sin ella, hay que comprar billete."],
   "bus.walk": ["On foot from St-Roch to the hotel", "À pied de St-Roch à l’hôtel",
                "Zu Fuss von St-Roch zum Hotel", "A piedi da St-Roch all’hotel",
                "A pie de St-Roch al hotel"],
