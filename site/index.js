@@ -2,6 +2,7 @@
 import { sb, getSession, myRoles, hasAny, landingFor, CONSOLE_ROLES, frDate, jours } from "./common.js";
 import "./pretty-select.js";
 import { SEEDS, DRAPEAUX } from "./seeds-data.js";
+import { hit } from "./hit.js";
 import "./pretty-date.js";
 
 const $ = (id) => document.getElementById(id);
@@ -856,6 +857,7 @@ function animate() {
 
 function route() {
   const h = location.hash.replace("#", "");
+  hit("site", h || "accueil");
   if (DETAILS[h]) renderDetail(h);
   else renderWorld("tournoi");   // site du Lausanne Open : un seul monde
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });

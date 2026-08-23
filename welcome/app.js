@@ -8,6 +8,7 @@
 import { sb } from "./sb.js";
 import { svg, ico } from "./icons.js";
 import { LIENS, TOURNOI, SEEDS, PALMARES, PALMARES_NOTE, CLUB, ACADEMY, PARTENAIRES } from "./content.js";
+import { hit } from "./hit.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -67,7 +68,8 @@ function route() {
   cur = TABS.some((t) => t.id === want) ? want : "tournoi";
   document.querySelectorAll(".lo-tab").forEach((b) => b.classList.toggle("on", b.dataset.tab === cur));
   window.scrollTo(0, 0);
-  ({ tournoi: vTournoi, seeds: vSeeds, club: vClub, academy: vAcademy, partenaires: vPartenaires }[cur])($("view"));
+  hit("welcome", cur);
+  ({ tournoi: vTournoi, seeds: vSeeds, club: vClub, academy: vAcademy, partenaires: vPartenaires }[cur])(197609"view"));
 }
 
 /* -------------------------------------------------- brique réutilisée */

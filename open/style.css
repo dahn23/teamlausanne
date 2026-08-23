@@ -471,3 +471,12 @@ svg.mk.off{color:var(--muted)}
 .bus-steps li:last-child{margin-bottom:0}
 .bus-steps b{color:var(--fluo)}
 .walk-map{width:100%;height:300px;border:0;border-radius:12px;display:block;background:#0f1738}
+
+/* Fréquentation : petites barres de comparaison */
+.stat-rows{display:flex;flex-direction:column;gap:5px}
+.stat-line{display:flex;align-items:center;gap:11px;font-size:.88rem;
+  background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 13px}
+.stat-lbl{flex:0 0 44%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.stat-bar{flex:1;height:8px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden}
+.stat-bar .bar{display:block;height:100%;background:var(--fluo);border-radius:999px}
+.stat-num{flex:0 0 34px;text-align:right;font-weight:800;color:var(--fluo)}

@@ -9,6 +9,7 @@ import { sb } from "./sb.js";
 import { svg, ico, big } from "./icons.js";
 import { LANGS, FLAGS, t, tr, setLang, getLang, detectLang } from "./i18n.js";
 import { WELCOME, VISIT_MAPS } from "./content.js";
+import { hit } from "./hit.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -131,6 +132,7 @@ function route() {
   document.querySelectorAll(".lo-tab").forEach((b) => b.classList.toggle("on", b.dataset.tab === state.cur));
   if (state.timer) { clearInterval(state.timer); state.timer = null; }
   window.scrollTo(0, 0);
+  hit("players", state.cur, getLang());
   render();
 }
 

@@ -44,6 +44,12 @@ async function apiFees(action, payload = {}) {
   return data;
 }
 
+async function apiStats() {
+  const { data, error } = await sb.rpc("lo_stats", { p_pwd: PWD });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 async function apiList(what) {
   const { data, error } = await sb.rpc("lo_admin_list", { p_pwd: PWD, p_what: what });
   if (error) throw new Error(error.message);
@@ -85,6 +91,7 @@ const SECTIONS = [
   { id: "practice",  label: `${svg("racket")}Practice` },
   { id: "fees",      label: `${svg("medal")}Paiements` },
   { id: "murs",      label: `${svg("chat")}Sparring / Roommate` },
+  { id: "stats",     label: `${svg("trend")}Fréquentation` },
   { id: "reglages",  label: `${svg("gear")}Réglages` },
 ];
 let cur = "acces";
@@ -106,7 +113,8 @@ function route() {
   v.onclick = null;
   v.innerHTML = `<span class="spin"></span>`;
   ({ acces: vAcces, infos: vInfos, navette: vNavette, resto: vResto, hotel: vHotel,
-     oop: vOop, practice: vPractice, fees: vFees, murs: vMurs, reglages: vReglages }[cur])(v);
+     oop: vOop, practice: vPractice, fees: vFees, murs: vMurs, stats: vStats,
+     reglages: vReglages }[cur])(v);
 }
 
 /* petit utilitaire : exécute une action puis re-rend la section */
@@ -582,7 +590,58 @@ async function vMurs(v) {
   };
 }
 
-/* =========================================================== RÉGLAGES */
+/* ====================================================== FREQUENTATION */
+const SITES = { players: "App joueurs", welcome: "Console spectateurs", site: "lausanneopen.ch" };
+
+async function vStats(v) {
+  const s = await apiStats();
+  const barre = (val, max) => `<span class="bar" style="width:${max ? Math.round(val / max * 100) : 0}%"></span>`;
+
+  const maxPage = Math.max(1, ...s.parPage.map((p) => p.visiteurs));
+  const maxHeure = Math.max(1, ...s.parHeure.map((h) => h.visiteurs));
+
+  v.innerHTML = `
+    <h2 class="lo-h2">Fréquentation</h2>
+    <p class="hint">Sans cookie ni adresse IP : chaque navigateur tire un identifiant
+       aléatoire gardé chez lui. On compte donc des <b>appareils</b>, pas des personnes,
+       et la mesure démarre à la mise en place de ce compteur.</p>
+
+    <div class="grid2">
+      <label class="f">Appareils au total<input value="${s.total.visiteurs}" readonly /></label>
+      <label class="f">Pages vues<input value="${s.total.vues}" readonly /></label>
+    </div>
+
+    <div class="sec-title">${svg("calendar", "mk")} Par jour</div>
+    ${s.parJour.length ? `<div class="stat-rows">${s.parJour.map((j) => `
+      <div class="adm-row"><div class="grow">
+        <b>${frJour(j.day)} · ${esc(SITES[j.site] || j.site)}</b>
+        <small>${j.visiteurs} appareil${j.visiteurs > 1 ? "s" : ""} · ${j.vues} vues</small>
+      </div></div>`).join("")}</div>` : `<div class="empty">Pas encore de données.</div>`}
+
+    <div class="sec-title">${svg("clipboard", "mk")} Pages les plus consultées</div>
+    ${s.parPage.length ? `<div class="stat-rows">${s.parPage.map((p) => `
+      <div class="stat-line">
+        <span class="stat-lbl">${esc(SITES[p.site] || p.site)} ‹ ${esc(p.page)}</span>
+        <span class="stat-bar">${barre(p.visiteurs, maxPage)}</span>
+        <span class="stat-num">${p.visiteurs}</span>
+      </div>`).join("")}</div>` : ""}
+
+    <div class="sec-title">${svg("bulb", "mk")} Aujourd’hui, heure par heure</div>
+    ${s.parHeure.length ? `<div class="stat-rows">${s.parHeure.map((h) => `
+      <div class="stat-line">
+        <span class="stat-lbl">${String(h.hour).padStart(2, "0")}h</span>
+        <span class="stat-bar">${barre(h.visiteurs, maxHeure)}</span>
+        <span class="stat-num">${h.visiteurs}</span>
+      </div>`).join("")}</div>` : `<div class="empty">Rien encore aujourd’hui.</div>`}
+
+    ${s.parLangue.length ? `<div class="sec-title">${svg("users", "mk")} Langues</div>
+      <div class="stat-rows">${s.parLangue.map((l) => `
+        <div class="stat-line"><span class="stat-lbl">${esc((l.lang || "?").toUpperCase())}</span>
+          <span class="stat-bar">${barre(l.visiteurs, Math.max(1, ...s.parLangue.map((x) => x.visiteurs)))}</span>
+          <span class="stat-num">${l.visiteurs}</span></div>`).join("")}</div>` : ""}`;
+}
+
+/* =========================================================== RÃGLAGES */
 async function vReglages(v) {
   const { data } = await sb.from("lo_settings").select("key,value").in("key", ["balls", "practice_intro"]);
   const g = Object.fromEntries((data || []).map((r) => [r.key, r.value]));
