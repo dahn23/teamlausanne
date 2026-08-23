@@ -1164,7 +1164,6 @@ function openPerson(p) {
   $("p-address").value = p?.address || "";
   $("p-postal").value = p?.postal_code || "";
   $("p-city").value = p?.city || "";
-  $("p-bexio").value = p?.bexio_contact_id || "";
   $("p-active").checked = p ? p.is_active : true;
   $("p-notes").value = p?.notes || "";
   personPhotoUrl = p?.photo_url || null;
@@ -3100,7 +3099,6 @@ async function savePerson(e) {
     address: $("p-address").value.trim() || null,
     postal_code: $("p-postal").value.trim() || null,
     city: $("p-city").value.trim() || null,
-    bexio_contact_id: $("p-bexio").value ? Number($("p-bexio").value) : null,
     is_active: $("p-active").checked,
     notes: $("p-notes").value.trim() || null,
   };

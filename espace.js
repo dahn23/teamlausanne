@@ -82,6 +82,12 @@ let selYouth = "all";   // "all" ou person_id
 let PLAYERS = [];       // jeunes "joueurs" (filières élite) → onglet Feuille de match
 let weekStart = mondayOf(new Date());
 let coursesCache = [];  // dernier chargement de la semaine
+let etudesCache = [];   // jours d'études de la semaine (13h-17h)
+
+// Petites icônes (court / coach / études) pour les cartes de cours.
+const IC_COURT = '<svg viewBox="0 0 24 24" class="pt-ic" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 12h18M12 5v14"/></svg>';
+const IC_COACH = '<svg viewBox="0 0 24 24" class="pt-ic" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.4 3.1-5.2 7-5.2s7 1.8 7 5.2"/></svg>';
+const IC_STUDY = '<svg viewBox="0 0 24 24" class="pt-ic" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 4 2 9l10 5 10-5-10-5z"/><path d="M6 11v4c0 1.3 2.7 2.4 6 2.4s6-1.1 6-2.4v-4"/></svg>';
 
 /* ============================================================
    Utilitaires dates
@@ -335,30 +341,35 @@ async function renderCours() {
   $("wk-prev").addEventListener("click", () => { weekStart = addDays(weekStart, -7); renderCours(); });
   $("wk-next").addEventListener("click", () => { weekStart = addDays(weekStart, 7); renderCours(); });
 
-  const { data, error } = await sb.rpc("portal_week_courses", { p_from: from, p_to: to });
-  coursesCache = error ? [] : (data || []);
+  const [cRes, eRes] = await Promise.all([
+    sb.rpc("portal_week_courses", { p_from: from, p_to: to }),
+    sb.rpc("portal_week_etudes", { p_from: from, p_to: to }),
+  ]);
+  coursesCache = cRes.error ? [] : (cRes.data || []);
+  etudesCache = eRes.error ? [] : (eRes.data || []);
   drawCoursList();
 }
 
 function drawCoursList() {
   const list = $("pt-cours-list");
   if (!list) return;
-  let rows = coursesCache;
-  if (selYouth !== "all") rows = rows.filter((c) => c.youth_id === selYouth);
-  if (!rows.length) {
-    list.innerHTML = `<div class="pt-empty"><p>Aucun cours cette semaine.</p></div>`;
-    return;
-  }
-  // groupé par jour
+  // Items unifiés : cours + études (13h-17h).
+  let items = [
+    ...coursesCache.map((c) => ({ type: "cours", youth: c.youth_id, date: c.course_date, time: c.start_time, data: c })),
+    ...etudesCache.map((e) => ({ type: "etudes", youth: e.youth_id, date: e.day, time: "13:00", data: e })),
+  ];
+  if (selYouth !== "all") items = items.filter((it) => it.youth === selYouth);
+  if (!items.length) { list.innerHTML = `<div class="pt-empty"><p>Rien de prévu cette semaine.</p></div>`; return; }
   const byDay = {};
-  for (const c of rows) (byDay[c.course_date] ||= []).push(c);
+  for (const it of items) (byDay[it.date] ||= []).push(it);
   const days = Object.keys(byDay).sort();
   const now = new Date();
   let html = "";
   for (const d of days) {
     const dt = new Date(d + "T00:00:00");
     html += `<div class="pt-day">${DOW[dt.getDay()]} ${frShort(d)}</div>`;
-    for (const c of byDay[d]) html += courseCard(c, now);
+    byDay[d].sort((a, b) => a.time.localeCompare(b.time));
+    for (const it of byDay[d]) html += it.type === "etudes" ? etudesCard(it.data) : courseCard(it.data, now);
   }
   list.innerHTML = html;
   list.querySelectorAll(".pt-decl").forEach((b) =>
@@ -370,10 +381,13 @@ const ST = {
   late:    { lbl: "En retard", cls: "late" },
   absent:  { lbl: "Absent", cls: "no" },
 };
+// On indique toujours le prénom de l'enfant quand le compte en a plusieurs (parent).
+const showYouthName = () => YOUTHS.length > 1;
+const youthChip = (first) => showYouthName() ? `<div class="pt-course-youth">${escHtml(first || "")}</div>` : "";
+
 function courseCard(c, now) {
   const start = new Date(`${c.course_date}T${c.start_time}:00`);
   const before = now < start;
-  const showYouth = selYouth === "all" && YOUTHS.length > 1;
   let control;
   if (before) {
     const btn = (s) => `<button class="pt-decl ${c.self_status === s ? "sel " + ST[s].cls : ""}"
@@ -388,13 +402,33 @@ function courseCard(c, now) {
   } else {
     control = `<div class="pt-mark wait">Présence pas encore saisie</div>`;
   }
+  const meta = [c.court ? `${IC_COURT} ${escHtml(c.court)}` : "", c.coach ? `${IC_COACH} ${escHtml(c.coach)}` : ""].filter(Boolean).join('<span class="pt-meta-sep">·</span>');
   return `<div class="pt-course" style="--c:${c.color || "#1e3ad1"}">
     <div class="pt-course-head">
       <div class="pt-course-time">${c.start_time}<span>${c.end_time}</span></div>
       <div class="pt-course-info">
-        ${showYouth ? `<div class="pt-course-youth">${c.youth_first}</div>` : ""}
-        <div class="pt-course-title">${c.title || "Cours"}</div>
-        <div class="pt-course-meta">${c.court ? "📍 " + c.court : ""}${c.court && c.coach ? " · " : ""}${c.coach ? "👤 " + c.coach : ""}</div>
+        ${youthChip(c.youth_first)}
+        <div class="pt-course-title">${escHtml(c.title || "Cours")}</div>
+        <div class="pt-course-meta">${meta}</div>
+      </div>
+    </div>
+    ${control}
+  </div>`;
+}
+
+// Carte « Études » (13h-17h) — présence saisie par le prof.
+function etudesCard(e) {
+  let control;
+  if (e.status && ST[e.status]) control = `<div class="pt-mark ${ST[e.status].cls}">Marqué par le prof : <b>${ST[e.status].lbl}</b></div>`;
+  else control = `<div class="pt-mark wait">Étude prévue</div>`;
+  const meta = e.profs ? `${IC_COACH} ${escHtml(e.profs)}` : "";
+  return `<div class="pt-course etudes" style="--c:#7c3aed">
+    <div class="pt-course-head">
+      <div class="pt-course-time">13:00<span>17:00</span></div>
+      <div class="pt-course-info">
+        ${youthChip(e.youth_first)}
+        <div class="pt-course-title">${IC_STUDY} Études</div>
+        <div class="pt-course-meta">${meta}</div>
       </div>
     </div>
     ${control}

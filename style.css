@@ -1359,7 +1359,11 @@ body.portal{background:var(--bg)}
 .pt-course-youth{display:inline-block;background:#eef1ff;color:var(--blue-ink);font-weight:700;
   font-size:.72rem;padding:1px 8px;border-radius:999px;margin-bottom:3px}
 .pt-course-title{font-weight:700;color:var(--ink)}
-.pt-course-meta{color:var(--muted);font-size:.86rem;margin-top:2px}
+.pt-course-meta{color:var(--muted);font-size:.88rem;margin-top:3px}
+.pt-ic{width:15px;height:15px;vertical-align:-3px}
+.pt-course-title .pt-ic{color:#7c3aed}
+.pt-meta-sep{opacity:.45;margin:0 6px}
+.pt-course.etudes{border-left-color:#7c3aed}
 
 /* auto-déclaration */
 .pt-decl-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:11px;
