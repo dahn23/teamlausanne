@@ -342,13 +342,30 @@ function b64ToBlob(b64, mime) {
 async function viewOop(v) {
   const { data } = await sb.from("lo_oop").select("day,filename,mime,updated_at").order("day", { ascending: false });
   const days = data || [];
+
+  // Le programme change en cours de journee : on reverifie toutes les minutes
+  // et on ne re-affiche que si un fichier a bouge, pour ne pas recharger le
+  // PDF sous les yeux du joueur en train de le lire.
+  const signature = days.map((d) => d.day + d.updated_at).join("|");
+  if (state.timer) clearInterval(state.timer);
+  state.timer = setInterval(async () => {
+    if (state.cur !== "oop") return;
+    const { data: maj } = await sb.from("lo_oop").select("day,updated_at").order("day", { ascending: false });
+    if ((maj || []).map((d) => d.day + d.updated_at).join("|") !== signature) viewOop(v);
+  }, 60000);
   if (!days.length) {
     v.innerHTML = `<h2 class="lo-h2">${esc(t("oop.title"))}</h2>
       <div class="empty">${big("clipboard")}${esc(t("oop.empty"))}</div>`;
     return;
   }
-  const bar = subBar("oop", days.map((d) => ({ id: d.day, label: dayLabel(d.day) })),
-                     () => viewOop(v), false, todayISO());
+  // Un order of play parait la veille au soir : le jour ouvert par defaut
+  // est celui du DERNIER programme publie, pas celui d aujourd hui.
+  const dernier = days.slice().sort((a, b) =>
+    String(b.updated_at).localeCompare(String(a.updated_at)))[0];
+  // la barre, elle, reste dans l ordre chronologique
+  const parJour = days.slice().sort((a, b) => a.day.localeCompare(b.day));
+  const bar = subBar("oop", parJour.map((d) => ({ id: d.day, label: dayLabel(d.day) })),
+                     () => viewOop(v), false, dernier ? dernier.day : todayISO());
   const pick = days.find((d) => d.day === bar.cur) || days[0];
 
   v.innerHTML = `<h2 class="lo-h2">${esc(t("oop.title"))}</h2>
