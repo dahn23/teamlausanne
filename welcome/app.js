@@ -30,6 +30,11 @@ const DRAPEAUX = {
        ${[1,3,5,7].map((i) => `<rect y="${i*40/9}" width="60" height="${40/9}" fill="#fff"/>`).join("")}
        <rect width="22.2" height="22.2" fill="#0D5EAF"/>
        <rect x="8.9" width="4.4" height="22.2" fill="#fff"/><rect y="8.9" width="22.2" height="4.4" fill="#fff"/></svg>`,
+  de: `<svg viewBox="0 0 60 40"><rect width="60" height="13.34" fill="#000"/>
+       <rect y="13.34" width="60" height="13.33" fill="#DD0000"/>
+       <rect y="26.67" width="60" height="13.33" fill="#FFCE00"/></svg>`,
+  ua: `<svg viewBox="0 0 60 40"><rect width="60" height="20" fill="#0057B7"/>
+       <rect y="20" width="60" height="20" fill="#FFDD00"/></svg>`,
   neutre: `<svg viewBox="0 0 60 40"><rect width="60" height="40" fill="#2a3763"/>
        <path d="M8 20h44" stroke="#98a3c8" stroke-width="3" stroke-linecap="round"/></svg>`,
 };
@@ -96,10 +101,10 @@ async function vTournoi(v) {
     ${carte("bulb", "Bien profiter du tournoi",
       `<ul>${TOURNOI.aSavoir.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`)}
 
-    ${carte("users", "Voici les 6 têtes de série",
-      `<p>Deux anciens numéros 1 mondiaux juniors, dont le tenant du titre, et quatre autres
-          joueurs classés parmi les 600 meilleurs du monde.</p>
-       <a class="btn block" style="margin-top:12px" href="#seeds">${svg("users")}Découvrir les six joueurs</a>`)}
+    ${carte("users", "Voici les 8 têtes de série",
+      `<p>Le tenant du titre, ancien numéro 1 mondial junior, et sept autres
+          joueurs classés parmi les 650 meilleurs du monde.</p>
+       <a class="btn block" style="margin-top:12px" href="#seeds">${svg("users")}Découvrir les huit joueurs</a>`)}
 
     <div class="sec-title">${svg("trophy", "mk")} Palmarès</div>
     <p class="lo-lead">${esc(PALMARES_NOTE)}</p>
@@ -155,10 +160,9 @@ async function chargerOopDuJour() {
 function vSeeds(v) {
   v.innerHTML = `
     <div class="hero">
-      <h2>Voici les 6 têtes de série</h2>
-      <p>Deux anciens numéros 1 mondiaux juniors, dont le tenant du titre, le plus expérimenté
-         du lot et trois autres joueurs classés parmi les 600 meilleurs du monde. Voici qui
-         vient jouer aux Plaines-du-Loup cette semaine.</p>
+      <h2>Voici les 8 têtes de série</h2>
+      <p>Le tenant du titre, ancien numéro 1 mondial junior, et sept autres joueurs classés
+         parmi les 650 meilleurs du monde. Voici qui vient jouer aux Plaines-du-Loup cette semaine.</p>
       <div class="badges"><span class="badge fluo">Classement ATP au tirage</span></div>
     </div>
     <div class="seeds">${SEEDS.map(seedHTML).join("")}</div>

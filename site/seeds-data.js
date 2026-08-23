@@ -1,5 +1,5 @@
 // =====================================================================
-//  Les 6 têtes de série — mêmes données que welcome.lausanneopen.ch.
+//  Les 8 têtes de série — mêmes données que welcome.lausanneopen.ch.
 //  « best » = meilleur classement en carrière ; quand il égale « atp »,
 //  la carte affiche « au meilleur de sa carrière » plutôt que le chiffre.
 // =====================================================================
@@ -13,9 +13,13 @@ export const SEEDS = [
   { n: 4, nom: "Lorenzo Carboni", pays: "Italie", drapeau: "it", atp: 481, best: 415, photo: "carboni.jpg",
     bio: "Jeune joueur italien en progression sur le circuit ITF." },
   { n: 5, nom: "Dimitris Sakellaridis", pays: "Grèce", drapeau: "gr", atp: 556, best: 556, photo: "sakellaridis.png",
-    bio: "Ancien numéro 1 mondial junior, finaliste du double au Lausanne Open 2025." },
+    bio: "Né le 30 avril 2006. Il connaît déjà les lieux : finaliste du double au Lausanne Open 2025." },
   { n: 6, nom: "Alexander Weis", pays: "Italie", drapeau: "it", atp: 594, best: 285, photo: "weis.jpg",
-    bio: "Né à Bolzano, la même région que Sinner et Seppi. Professionnel depuis 2015, le plus expérimenté des six." },
+    bio: "Né à Bolzano, la même région que Sinner et Seppi. Professionnel depuis 2015, le plus expérimenté des huit." },
+  { n: 7, nom: "Nino Ehrenschneider", pays: "Allemagne", drapeau: "de", atp: 599, best: 517, photo: "ehrenschneider.webp",
+    bio: "25 ans. Meilleur classement en carrière : 517ᵉ mondial." },
+  { n: 8, nom: "Oleksandr Ovcharenko", pays: "Ukraine", drapeau: "ua", atp: 613, best: 296, photo: "ovcharenko.jpg",
+    bio: "24 ans. Il a atteint la 296ᵉ place mondiale, c’est l’un des meilleurs classements en carrière du tableau." },
 ];
 
 /* Drapeaux dessinés plutôt qu’en emoji : sous Windows, les drapeaux emoji
@@ -30,6 +34,11 @@ export const DRAPEAUX = {
        <rect y="22.22" width="60" height="4.44" fill="#fff"/><rect y="31.11" width="60" height="4.44" fill="#fff"/>
        <rect width="22.2" height="22.2" fill="#0D5EAF"/>
        <rect x="8.9" width="4.4" height="22.2" fill="#fff"/><rect y="8.9" width="22.2" height="4.4" fill="#fff"/></svg>`,
+  de: `<svg viewBox="0 0 60 40"><rect width="60" height="13.34" fill="#000"/>
+       <rect y="13.34" width="60" height="13.33" fill="#DD0000"/>
+       <rect y="26.67" width="60" height="13.33" fill="#FFCE00"/></svg>`,
+  ua: `<svg viewBox="0 0 60 40"><rect width="60" height="20" fill="#0057B7"/>
+       <rect y="20" width="60" height="20" fill="#FFDD00"/></svg>`,
   neutre: `<svg viewBox="0 0 60 40"><rect width="60" height="40" fill="#c8cede"/>
        <path d="M8 20h44" stroke="#6b7490" stroke-width="3" stroke-linecap="round"/></svg>`,
 };

@@ -57,7 +57,11 @@ export const SEEDS = [
   { n: 5, nom: "Dimitris Sakellaridis", pays: "Grèce", drapeau: "gr", atp: 556, best: 556, photo: "sakellaridis.png",
     bio: "Né le 30 avril 2006, numéro 1 mondial junior en octobre 2024. Il connaît déjà les lieux : finaliste du double au Lausanne Open 2025." },
   { n: 6, nom: "Alexander Weis", pays: "Italie", drapeau: "it", atp: 594, best: 285, photo: "weis",
-    bio: "Né le 24 avril 1997 à Bolzano, la même région que Jannik Sinner et Andreas Seppi. Professionnel depuis 2015, c’est le plus expérimenté des six." },
+    bio: "Né le 24 avril 1997 à Bolzano, la même région que Jannik Sinner et Andreas Seppi. Professionnel depuis 2015, c’est le plus expérimenté des huit." },
+  { n: 7, nom: "Nino Ehrenschneider", pays: "Allemagne", drapeau: "de", atp: 599, best: 517, photo: "ehrenschneider.webp",
+    bio: "25 ans. Meilleur classement en carrière : 517ᵉ mondial." },
+  { n: 8, nom: "Oleksandr Ovcharenko", pays: "Ukraine", drapeau: "ua", atp: 613, best: 296, photo: "ovcharenko.jpg",
+    bio: "24 ans. Il a atteint la 296ᵉ place mondiale : c’est l’un des meilleurs classements en carrière du tableau." },
 ];
 
 
