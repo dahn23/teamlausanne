@@ -605,17 +605,73 @@ async function submitStg(e) {
 /* ============================================================
    PROFIL (mental/études publics — à venir)
    ============================================================ */
-function renderProfil() {
+const PROF_FIELDS = [
+  { k: "email", lbl: "Email", type: "email" },
+  { k: "phone", lbl: "Téléphone", type: "tel" },
+  { k: "birthdate", lbl: "Date de naissance", type: "date" },
+  { k: "gender", lbl: "Genre", type: "gender" },
+  { k: "avs", lbl: "N° AVS", type: "text" },
+  { k: "license_no", lbl: "N° licence Swiss Tennis", type: "text" },
+  { k: "address", lbl: "Adresse", type: "text" },
+  { k: "postal_code", lbl: "NPA", type: "text" },
+  { k: "city", lbl: "Ville", type: "text" },
+];
+const SECRETARIAT_TEL = "+41 21 646 13 50";
+const genderLabel = (g) => g === "F" ? "Fille" : g === "M" ? "Garçon" : "";
+const isoToFr = (iso) => { const s = (iso || "").slice(0, 10).split("-"); return s.length === 3 ? `${s[2]}.${s[1]}.${s[0]}` : ""; };
+const secretariatNote = `<p class="pt-prof-note">🔒 Ces informations sont verrouillées. Pour tout changement, merci de contacter le secrétariat : <a href="tel:+41216461350">${SECRETARIAT_TEL}</a> ou via le <a href="contact.html">formulaire de contact</a>.</p>`;
+
+async function renderProfil() {
   const targets = selYouth === "all" ? YOUTHS : YOUTHS.filter((y) => y.person_id === selYouth);
   if (!targets.length) { $("view-profil").innerHTML = `<div class="pt-empty"><p>Aucun profil lié à ce compte.</p></div>`; return; }
-  // Le suivi (mental/études) est désormais un fil INTERNE à l'encadrement : plus affiché ici.
-  $("view-profil").innerHTML = targets.map((y) => `
-    <div class="pt-prof">
-      <div class="pt-prof-head">
-        <div class="pt-youth-av big">${initials(y.first_name, y.last_name).toUpperCase()}</div>
-        <div><b>${escHtml(y.first_name)} ${escHtml(y.last_name)}</b></div>
-      </div>
-    </div>`).join("");
+  $("view-profil").innerHTML = `<p class="muted" style="text-align:center;padding:18px">Chargement…</p>`;
+  const infos = await Promise.all(targets.map(async (y) => {
+    const { data } = await sb.rpc("portal_youth_info", { p_youth: y.person_id });
+    return { y, info: (data && data[0]) || null };
+  }));
+  $("view-profil").innerHTML = infos.map(({ y, info }) => youthProfileCard(y, info)).join("");
+  infos.forEach(({ y }) => {
+    const btn = document.getElementById("prof-save-" + y.person_id);
+    if (btn) btn.addEventListener("click", () => saveYouthProfile(y.person_id));
+  });
+}
+
+function youthProfileCard(y, info) {
+  const editable = info && !info.confirmed;
+  const rows = PROF_FIELDS.map((f) => {
+    const val = info ? info[f.k] : "";
+    if (editable && !val) {
+      if (f.type === "gender")
+        return `<div class="pt-prof-row edit"><span>${f.lbl}</span><select id="pf-${y.person_id}-gender"><option value="">—</option><option value="M">Garçon</option><option value="F">Fille</option></select></div>`;
+      return `<div class="pt-prof-row edit"><span>${f.lbl}</span><input id="pf-${y.person_id}-${f.k}" type="${f.type}" placeholder="À compléter" /></div>`;
+    }
+    if (!val) return "";
+    const disp = f.k === "birthdate" ? isoToFr(val) : f.k === "gender" ? genderLabel(val) : val;
+    return `<div class="pt-prof-row"><span>${f.lbl}</span><b>${escHtml(disp)}</b></div>`;
+  }).join("");
+  const foot = editable
+    ? `<p class="muted" style="font-size:.82rem;margin:10px 0">Complète les infos manquantes puis valide (une seule fois). Ensuite, contacte le secrétariat pour tout changement.</p>
+       <button type="button" id="prof-save-${y.person_id}" class="pt-prof-save">Valider mes informations</button>
+       <span id="prof-status-${y.person_id}" class="muted" style="margin-left:10px;font-size:.85rem"></span>`
+    : secretariatNote;
+  return `<div class="pt-prof">
+    <div class="pt-prof-head">
+      <div class="pt-youth-av big">${initials(y.first_name, y.last_name).toUpperCase()}</div>
+      <div><b>${escHtml(y.first_name)} ${escHtml(y.last_name)}</b></div>
+    </div>
+    <div class="pt-prof-grid">${rows || '<p class="muted" style="font-size:.85rem">Aucune information enregistrée.</p>'}</div>
+    ${foot}
+  </div>`;
+}
+
+async function saveYouthProfile(youthId) {
+  const payload = {};
+  PROF_FIELDS.forEach((f) => { const el = document.getElementById("pf-" + youthId + "-" + f.k); if (el) payload[f.k] = el.value.trim(); });
+  const st = document.getElementById("prof-status-" + youthId);
+  if (st) st.textContent = "Validation…";
+  const { error } = await sb.rpc("portal_confirm_profile", { p_youth: youthId, p_data: payload });
+  if (error) { if (st) st.textContent = "Erreur : " + error.message; return; }
+  renderProfil();
 }
 
 /* ============================================================

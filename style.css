@@ -1470,6 +1470,14 @@ body.portal{background:var(--bg)}
 /* ---- Portail : Profil (suivi mental & études publics) ---- */
 .pt-prof{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px}
 .pt-prof-head{display:flex;align-items:center;gap:12px}
+.pt-prof-grid{margin-top:12px;display:flex;flex-direction:column}
+.pt-prof-row{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:9px 2px;border-bottom:1px solid var(--line);font-size:.92rem}
+.pt-prof-row span{color:var(--muted)}
+.pt-prof-row b{text-align:right;word-break:break-word}
+.pt-prof-row.edit input,.pt-prof-row.edit select{font:inherit;padding:8px 10px;border:1px solid var(--blue);border-radius:9px;max-width:60%;text-align:right;background:#f6f8ff;color:var(--ink)}
+.pt-prof-save{background:var(--blue);color:#fff;border:none;border-radius:11px;padding:11px 20px;font-weight:800}
+.pt-prof-note{font-size:.84rem;color:var(--muted);background:#f6f8ff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:12px 0 0;line-height:1.5}
+.pt-prof-note a{color:var(--blue-ink);font-weight:700}
 .pt-suivi-sec{margin-top:14px}
 .pt-suivi-h{font-weight:800;color:var(--blue-ink);margin-bottom:7px}
 .pt-suivi-item{border-left:3px solid var(--blue);background:#f6f8ff;border-radius:0 10px 10px 0;padding:8px 12px;margin-bottom:8px}
