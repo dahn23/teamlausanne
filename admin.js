@@ -1164,6 +1164,8 @@ function openPerson(p) {
   $("p-address").value = p?.address || "";
   $("p-postal").value = p?.postal_code || "";
   $("p-city").value = p?.city || "";
+  $("p-parent1").value = p?.parent1 || "";
+  $("p-parent2").value = p?.parent2 || "";
   $("p-active").checked = p ? p.is_active : true;
   $("p-notes").value = p?.notes || "";
   personPhotoUrl = p?.photo_url || null;
@@ -3097,6 +3099,8 @@ async function savePerson(e) {
     phones: lines("p-phones"),
     photo_url: personPhotoUrl,
     address: $("p-address").value.trim() || null,
+    parent1: $("p-parent1").value.trim() || null,
+    parent2: $("p-parent2").value.trim() || null,
     postal_code: $("p-postal").value.trim() || null,
     city: $("p-city").value.trim() || null,
     is_active: $("p-active").checked,
