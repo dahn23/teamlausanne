@@ -490,3 +490,13 @@ svg.mk.off{color:var(--muted)}
 .pae-row b{flex:1;min-width:110px;font-size:.94rem}
 .pae-plus{font-size:.76rem;font-weight:900;padding:3px 9px;border-radius:999px;
   background:var(--fluo);color:#0a1020}
+
+/* La paella est offerte par le tournoi. Ce n'est pas un detail de bas de page :
+   on l'annonce en clair, encadre en fluo, juste sous l'accroche de l'onglet. */
+.free-note{
+  display:flex;gap:10px;align-items:flex-start;margin:0 0 18px;padding:11px 13px;
+  border:1px solid rgba(200,255,61,.55);border-radius:13px;
+  background:rgba(200,255,61,.09);
+  font-size:.87rem;line-height:1.5;font-weight:600;color:var(--ink);
+}
+.free-note svg{flex:none;width:17px;height:17px;color:var(--fluo);margin-top:2px}

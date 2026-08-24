@@ -578,6 +578,7 @@ async function viewPaella(v) {
   v.innerHTML = `
     <h2 class="lo-h2">${esc(t("pae.title"))}</h2>
     <p class="lo-lead">${esc(t("pae.lead"))}</p>
+    <div class="free-note">${svg("wine", "mk")}<span>${esc(t("pae.free"))}</span></div>
 
     <article class="card"><div class="card-in">
       <h3>${ico("utensils")} ${esc(t("pae.join"))}</h3>

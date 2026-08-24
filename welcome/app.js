@@ -234,13 +234,16 @@ async function vPaella(v) {
       <h2>La paella du mardi soir</h2>
       <p>La soiree des joueurs, <b>mardi des 18h00</b> au Restaurant du Tennis.
          Joueurs, accompagnants, benevoles et curieux : tout le monde est le bienvenu à table.</p>
-      <div class="badges"><span class="badge fluo">${couverts} couverts</span>
+      <p><b>La paella est offerte par le tournoi.</b> Rien à payer, rien à avancer —
+         venez simplement, vous êtes les bienvenus.</p>
+      <div class="badges"><span class="badge fluo">Paella offerte</span>
+        <span class="badge fluo">${couverts} couverts</span>
         <span class="badge">Mardi 18h00</span>
         <span class="badge">Restaurant du Tennis</span></div>
     </div>
 
     ${carte("utensils", "S’inscrire",
-      `<p>Dis-nous simplement qui vient, qu’on sache combien de couverts prévoir.</p>
+      `<p>C’est offert. Dis-nous simplement qui vient, qu’on sache combien de couverts prévoir.</p>
        <label class="f" style="margin-top:12px">Nom
          <input id="pa-name" maxlength="60" placeholder="Ton nom" /></label>
        <label class="f">Tu viens accompagné ?

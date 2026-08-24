@@ -258,6 +258,12 @@ const T = {
     "Dienstagabend ab 18:00 Uhr im Restaurant du Tennis. Melde dich an, damit wir wissen, für wie viele wir kochen.",
     "Martedì sera, dalle 18:00 al Restaurant du Tennis. Iscriviti così sappiamo per quanti cucinare.",
     "El martes por la noche, a partir de las 18:00 en el Restaurant du Tennis. Apúntate para que sepamos cuántos somos."],
+  "pae.free": [
+    "The paella is on the tournament — free for players and their guests. You are all very welcome.",
+    "La paella est offerte par le tournoi — gratuite pour les joueurs et leurs accompagnants. Vous êtes tous les bienvenus.",
+    "Die Paella geht auf das Turnier — gratis für Spieler und ihre Begleitung. Ihr seid alle herzlich willkommen.",
+    "La paella è offerta dal torneo — gratuita per i giocatori e i loro accompagnatori. Siete tutti i benvenuti.",
+    "La paella corre a cargo del torneo — gratis para los jugadores y sus acompañantes. Sois todos bienvenidos."],
   "pae.guests": ["Coming with someone?", "Tu viens accompagné ?", "Kommst du in Begleitung?",
                  "Vieni accompagnato?", "¿Vienes acompañado?"],
   "pae.alone":  ["Just me", "Juste moi", "Nur ich", "Solo io", "Solo yo"],
