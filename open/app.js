@@ -61,6 +61,7 @@ const TABS = [
   { id: "practice",  icon: "racket" },
   { id: "sparring",  icon: "users" },
   { id: "roommate",  icon: "bed" },
+  { id: "paella",    icon: "utensils" },
 ];
 const SUBS = ["city", "swiss", "club", "academy", "open", "visit"];
 
@@ -141,7 +142,8 @@ function render() {
   v.onclick = null;
   v.innerHTML = `<span class="spin"></span>`;
   ({ welcome: viewWelcome, info: viewInfo, logistics: viewLogistics, oop: viewOop,
-     practice: viewPractice, sparring: viewBoard, roommate: viewBoard }[state.cur] || viewWelcome)(v);
+     practice: viewPractice, sparring: viewBoard, roommate: viewBoard,
+     paella: viewPaella }[state.cur] || viewWelcome)(v);
 }
 
 /* barre de sous-onglets réutilisable */
@@ -562,6 +564,70 @@ async function viewBoard(v) {
     if (error) { alert(error.message); return; }
     store.del("posts", id);
     viewBoard(v);
+  };
+}
+
+/* ============================================ onglet PAELLA (soiree) */
+async function viewPaella(v) {
+  const { data } = await sb.from("lo_paella").select("id,name,guests,created_at")
+    .order("created_at", { ascending: true });
+  const liste = data || [];
+  const couverts = liste.reduce((s, x) => s + 1 + (x.guests || 0), 0);
+  const mien = store.get("paella");
+
+  v.innerHTML = `
+    <h2 class="lo-h2">${esc(t("pae.title"))}</h2>
+    <p class="lo-lead">${esc(t("pae.lead"))}</p>
+
+    <article class="card"><div class="card-in">
+      <h3>${ico("utensils")} ${esc(t("pae.join"))}</h3>
+      <label class="f">${esc(t("prac.name"))}
+        <input id="pa-name" maxlength="60" value="${esc(store.name.get())}" /></label>
+      <label class="f">${esc(t("pae.guests"))}
+        <select id="pa-guests">
+          <option value="0">${esc(t("pae.alone"))}</option>
+          <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option>
+        </select></label>
+      <button class="btn block" id="pa-go">${esc(t("pae.join"))}</button>
+      <p class="err" id="pa-err"></p>
+    </div></article>
+
+    <div class="sec-title">${svg("users", "mk")} ${esc(t("pae.who"))}
+      <span style="margin-left:auto;font-size:.82rem;color:var(--fluo);font-weight:800">
+        ${esc(t("pae.count", { n: couverts }))}</span></div>
+
+    ${liste.length ? liste.map((p) => `
+      <div class="pae-row">
+        <span class="pae-av">${esc((p.name || "?").trim().charAt(0).toUpperCase())}</span>
+        <b>${esc(p.name)}</b>
+        ${p.guests ? `<span class="pae-plus">+${p.guests}</span>` : ""}
+        ${mien[p.id] ? `<button class="btn small danger" data-out="${p.id}">${esc(t("pae.leave"))}</button>` : ""}
+      </div>`).join("")
+    : `<div class="empty">${big("utensils")}${esc(t("pae.empty"))}</div>`}`;
+
+  197609"pa-go").onclick = async () => {
+    const nom = 197609"pa-name").value.trim();
+    const inv = Number(197609"pa-guests").value);
+    if (nom.length < 2) { 197609"pa-err").textContent = t("prac.enterName"); return; }
+    197609"pa-go").disabled = true;
+    const { data: res, error } = await sb.rpc("lo_paella_join", { p_name: nom, p_guests: inv });
+    197609"pa-go").disabled = false;
+    if (error) { 197609"pa-err").textContent = error.message; return; }
+    store.name.set(nom);
+    const { data: row } = await sb.from("lo_paella").select("id").eq("name", nom).maybeSingle();
+    if (row) store.add("paella", row.id, res.token);
+    viewPaella(v);
+  };
+
+  v.onclick = async (e) => {
+    const b = e.target.closest("[data-out]");
+    if (!b) return;
+    const id = Number(b.dataset.out), tok = store.get("paella")[id];
+    if (!tok || !confirm(t("pae.confirm"))) return;
+    const { error } = await sb.rpc("lo_paella_leave", { p_id: id, p_token: tok });
+    if (error) { alert(error.message); return; }
+    store.del("paella", id);
+    viewPaella(v);
   };
 }
 
