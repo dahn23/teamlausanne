@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=54" />
+  <link rel="stylesheet" href="style.css?v=55" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1007,6 +1007,7 @@
         <button type="button" class="ptab" data-ptab="etudes">Études</button>
         <button type="button" class="ptab" data-ptab="matchs">Matchs</button>
         <button type="button" class="ptab" data-ptab="suivi">Suivi</button>
+        <button type="button" class="ptab" data-ptab="contrat">Contrat</button>
         <button type="button" class="ptab" data-ptab="stages">Stages</button>
         <button type="button" class="ptab" data-ptab="media">Photos / vidéos</button>
         <button type="button" class="ptab" data-ptab="obj">Objectifs</button>
@@ -1137,6 +1138,11 @@
       <div id="ptab-suivi" class="ptab-panel hidden">
         <h3 style="margin:0 0 8px">Suivi du jeune</h3>
         <div id="ps-chan"></div>
+      </div>
+
+      <div id="ptab-contrat" class="ptab-panel hidden">
+        <div class="crm-actions" style="margin-bottom:12px"><label class="bsc-lbl">Saison<select id="pc-season"></select></label></div>
+        <div id="pc-body"></div>
       </div>
 
       <div id="ptab-matchs" class="ptab-panel hidden">

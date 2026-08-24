@@ -259,6 +259,7 @@ async function init(roles) {
   $("cr-add-btn").addEventListener("click", rechargeCredit);
   document.querySelectorAll("#p-tabs .ptab").forEach((b) =>
     b.addEventListener("click", () => setPersonTab(b.dataset.ptab)));
+  $("pc-season").addEventListener("change", renderPersonContract);
   $("obj-add-btn").addEventListener("click", addObjective);
   $("ss-cot-add").addEventListener("click", () => addSeasonRole("cotisation", "membre"));
   $("ss-jun-add").addEventListener("click", () => addSeasonRole("juniors", $("ss-jun-role").value));
@@ -1191,6 +1192,8 @@ function openPerson(p) {
   showPersonTab("etudes", etudesByRole);
   showPersonTab("matchs", physByRole);
   showPersonTab("suivi", physByRole);   // fil « Suivi du jeune » pour tout junior
+  const isPlayer = ["sport-etudes", "pro", "pro-u18"].some((r) => roles.includes(r)); // contrat = sport-études / pro
+  showPersonTab("contrat", isPlayer);
   showPersonTab("stages", false);
   const staffPayRole = [...COACH_ROLES, "prof", "coach-mental"].some((r) => roles.includes(r));
   showPersonTab("coach", staffPayRole);
@@ -1200,8 +1203,8 @@ function openPerson(p) {
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
-  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
-  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
+  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
+  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("pc-body").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -5295,6 +5298,45 @@ async function loadPersonSuivi(personId, byRole) {
   if (!personId) { $("ps-chan").innerHTML = ""; return; }
   showPersonTab("suivi", byRole);
   youthNotes("ps-chan", personId);
+}
+
+// ---- Onglet Contrat (joueurs sport-études / pro) : par saison ----
+let pcPersonId = null;
+async function loadPersonContract(personId, byRole) {
+  pcPersonId = personId;
+  if (!personId) { $("pc-body").innerHTML = ""; return; }
+  showPersonTab("contrat", byRole);
+  if (!byRole) return;
+  await loadSeasonsList();
+  const cur = currentSeason("juniors")?.id;
+  $("pc-season").innerHTML = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">—</option>';
+  renderPersonContract();
+}
+async function renderPersonContract() {
+  const body = $("pc-body"); if (!body) return;
+  const seasonId = $("pc-season").value;
+  if (!pcPersonId || !seasonId) { body.innerHTML = ""; return; }
+  const { data } = await sb.from("player_contracts").select("data").eq("person_id", pcPersonId).eq("season_id", seasonId).maybeSingle();
+  const d = data?.data;
+  if (!d) { body.innerHTML = '<p class="muted" style="font-size:.88rem">Aucun contrat pour cette saison.</p>'; return; }
+  const row = (l, v) => (v != null && v !== "") ? `<div class="pc-row"><span>${l}</span><b>${esc(String(v))}</b></div>` : "";
+  const week = (pfx) => [["Mon", "Lun"], ["Tue", "Mar"], ["Wed", "Mer"], ["Thu", "Jeu"], ["Fri", "Ven"]]
+    .map(([k, l]) => { const v = d[k + " " + pfx] || ""; const c = v === "Oui" ? "oui" : v === "Non" ? "non" : "vide"; return `<span class="pc-day ${c}">${l}</span>`; }).join("");
+  const fee = (v) => v ? `${v} CHF` : "";
+  body.innerHTML = `
+    <div class="pc-sec"><h4>Contrat & facturation</h4>
+      ${row("Programme", d["Programme"])}${row("Statut joueur", d["Player status"])}${row("Statut du contrat", d["Contract status"])}
+      ${row("Début", d["Start date"])}${row("Fin", d["End date"])}
+      ${row("Montant annuel", fee(d["Annual fee"]))}${row("Mensualités", d["Instalments"])}${row("Mensualité", fee(d["Monthly fee"]))}
+      ${row("Qualité de la donnée", d["Data status"])}
+    </div>
+    <div class="pc-sec"><h4>Entraînement matin <span class="muted">(${d["AM days/wk"] || 0} j/sem)</span></h4><div class="pc-week">${week("AM")}</div></div>
+    <div class="pc-sec"><h4>Entraînement après-midi <span class="muted">(${d["PM days/wk"] || 0} j/sem)</span></h4><div class="pc-week">${week("PM")}</div></div>
+    <div class="pc-sec"><h4>Repas de midi <span class="muted">(${d["Lunches/wk"] || 0} /sem)</span></h4><div class="pc-week">${week("lunch")}</div></div>
+    <div class="pc-sec"><h4>Cours privés</h4>
+      ${row("Cours privés ?", d["Private lessons?"])}${row("Leçons/sem (contrat)", d["Contracted lessons/wk"])}${row("Heures/sem (contrat)", d["Contracted hours/wk"])}
+    </div>
+    ${d["Notes"] ? `<div class="pc-sec"><h4>Notes</h4><p style="margin:0">${esc(d["Notes"])}</p></div>` : ""}`;
 }
 async function loadPeRemarks(youthId) {
   peYouthId = youthId;
