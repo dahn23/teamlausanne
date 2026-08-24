@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=53" />
+  <link rel="stylesheet" href="style.css?v=54" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1032,6 +1032,15 @@
       <div class="pgrid2">
         <label>Parent 1 <span class="muted">(nom · tél · email)</span><input id="p-parent1" /></label>
         <label>Parent 2 <span class="muted">(nom · tél · email)</span><input id="p-parent2" /></label>
+      </div>
+      <div class="kit-block">
+        <span class="pgrid2-lbl">Tailles équipement</span>
+        <div class="kit-row">
+          <label>T-shirt<input id="p-tshirt" placeholder="—" /></label>
+          <label>Short<input id="p-shorts" placeholder="—" /></label>
+          <label>Hoodie<input id="p-hoodie" placeholder="—" /></label>
+          <label>Sweatpants<input id="p-sweatpants" placeholder="—" /></label>
+        </div>
       </div>
       <div class="pgrid2">
         <label>Emails secondaires <span class="muted">(un par ligne)</span><textarea id="p-emails" rows="2"></textarea></label>

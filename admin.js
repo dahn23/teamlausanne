@@ -1166,6 +1166,10 @@ function openPerson(p) {
   $("p-city").value = p?.city || "";
   $("p-parent1").value = p?.parent1 || "";
   $("p-parent2").value = p?.parent2 || "";
+  $("p-tshirt").value = p?.tshirt || "";
+  $("p-shorts").value = p?.shorts || "";
+  $("p-hoodie").value = p?.hoodie || "";
+  $("p-sweatpants").value = p?.sweatpants || "";
   $("p-active").checked = p ? p.is_active : true;
   $("p-notes").value = p?.notes || "";
   personPhotoUrl = p?.photo_url || null;
@@ -3101,6 +3105,10 @@ async function savePerson(e) {
     address: $("p-address").value.trim() || null,
     parent1: $("p-parent1").value.trim() || null,
     parent2: $("p-parent2").value.trim() || null,
+    tshirt: $("p-tshirt").value.trim() || null,
+    shorts: $("p-shorts").value.trim() || null,
+    hoodie: $("p-hoodie").value.trim() || null,
+    sweatpants: $("p-sweatpants").value.trim() || null,
     postal_code: $("p-postal").value.trim() || null,
     city: $("p-city").value.trim() || null,
     is_active: $("p-active").checked,
