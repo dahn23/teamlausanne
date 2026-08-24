@@ -55,6 +55,7 @@ const T = {
   "tab.practice":  ["Practice", "Practice", "Training", "Practice", "Práctica"],
   "tab.sparring":  ["Sparring", "Sparring", "Sparring", "Sparring", "Sparring"],
   "tab.roommate":  ["Roommate", "Colocation", "Zimmer", "Camera", "Compañero"],
+  "tab.paella":    ["Paella", "Paella", "Paella", "Paella", "Paella"],
 
   /* ------------------------------------------------ SOUS-ONGLETS WELCOME */
   "sub.city":    ["Lausanne", "Lausanne", "Lausanne", "Losanna", "Lausana"],
