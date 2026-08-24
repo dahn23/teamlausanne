@@ -44,6 +44,12 @@ async function apiFees(action, payload = {}) {
   return data;
 }
 
+async function apiPaella(action, payload = {}) {
+  const { data, error } = await sb.rpc("lo_admin_paella", { p_pwd: PWD, p_action: action, p_payload: payload });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 async function apiStats() {
   const { data, error } = await sb.rpc("lo_stats", { p_pwd: PWD });
   if (error) throw new Error(error.message);
@@ -91,6 +97,7 @@ const SECTIONS = [
   { id: "practice",  label: `${svg("racket")}Practice` },
   { id: "fees",      label: `${svg("medal")}Paiements` },
   { id: "murs",      label: `${svg("chat")}Sparring / Roommate` },
+  { id: "paella",    label: `${svg("utensils")}Paella` },
   { id: "stats",     label: `${svg("trend")}Fréquentation` },
   { id: "reglages",  label: `${svg("gear")}Réglages` },
 ];
@@ -114,7 +121,7 @@ function route() {
   v.innerHTML = `<span class="spin"></span>`;
   ({ acces: vAcces, infos: vInfos, navette: vNavette, resto: vResto, hotel: vHotel,
      oop: vOop, practice: vPractice, fees: vFees, murs: vMurs, stats: vStats,
-     reglages: vReglages }[cur])(v);
+     paella: vPaella, reglages: vReglages }[cur])(v);
 }
 
 /* petit utilitaire : exécute une action puis re-rend la section */
@@ -587,6 +594,56 @@ async function vMurs(v) {
     }
     const dl = e.target.closest("[data-del]");
     if (dl && confirm("Supprimer ce message ?")) run(() => api("post_del", { id: Number(dl.dataset.del) }));
+  };
+}
+
+/* ============================================ PAELLA (soiree joueurs) */
+async function vPaella(v) {
+  const s = await apiPaella("list");
+  const liste = s.inscrits || [];
+
+  v.innerHTML = `
+    <h2 class="lo-h2">Paella du mardi soir</h2>
+    <p class="hint">Soirée des joueurs, mardi dès 18h00 au Restaurant du Tennis.
+       Les inscriptions viennent de l’app des joueurs et de la console spectateurs.
+       Pour fermer les inscriptions, désactive l’onglet dans « Onglets ».</p>
+
+    <div class="grid2">
+      <label class="f">Inscriptions<input value="${liste.length}" readonly /></label>
+      <label class="f">Couverts à prévoir<input value="${s.couverts}" readonly /></label>
+    </div>
+
+    <button class="btn block" id="pa-add" style="margin-bottom:16px">+ Inscrire quelqu’un</button>
+
+    ${liste.length ? liste.map((p) => `
+      <div class="adm-row">
+        <div class="grow"><b>${esc(p.name)}${p.guests ? ` +${p.guests}` : ""}</b>
+          <small>${1 + (p.guests || 0)} couvert${1 + (p.guests || 0) > 1 ? "s" : ""} · ${frDateTime(p.created_at)}</small></div>
+        <div class="adm-actions">
+          <button class="btn ghost" data-edit="${p.id}">${svg("pencil")}</button>
+          <button class="btn danger" data-del="${p.id}">${svg("trash")}</button>
+        </div>
+      </div>`).join("") : `<div class="empty">Aucune inscription pour l’instant.</div>`}`;
+
+  const form = (p = {}) => sheet(p.id ? "Modifier l’inscription" : "Inscrire quelqu’un", `
+    <label class="f">Nom<input id="f-n" value="${esc(p.name || "")}" /></label>
+    <label class="f">Accompagnants
+      <select id="f-g">${[0, 1, 2, 3].map((g) =>
+        `<option value="${g}" ${(p.guests || 0) === g ? "selected" : ""}>+${g}</option>`).join("")}</select></label>`,
+    async () => {
+      const nom = $("f-n").value.trim();
+      if (nom.length < 2) { alert("Nom trop court."); return false; }
+      await apiPaella("save", { id: p.id ?? null, name: nom, guests: Number($("f-g").value) });
+      route();
+    });
+
+  $("pa-add").onclick = () => form();
+  v.onclick = (e) => {
+    const ed = e.target.closest("[data-edit]");
+    if (ed) return form(liste.find((p) => p.id === Number(ed.dataset.edit)));
+    const dl = e.target.closest("[data-del]");
+    if (dl && confirm("Retirer cette inscription ?"))
+      run(() => apiPaella("del", { id: Number(dl.dataset.del) }));
   };
 }
 

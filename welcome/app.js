@@ -47,6 +47,7 @@ const TABS = [
   { id: "seeds",       label: "Têtes de série", icon: "users" },
   { id: "club",        label: "Le club",     icon: "racket" },
   { id: "academy",     label: "L'académie",  icon: "trend" },
+  { id: "paella",      label: "Paella",      icon: "utensils" },
   { id: "partenaires", label: "Partenaires", icon: "medal" },
 ];
 let cur = "tournoi";
@@ -69,7 +70,8 @@ function route() {
   document.querySelectorAll(".lo-tab").forEach((b) => b.classList.toggle("on", b.dataset.tab === cur));
   window.scrollTo(0, 0);
   hit("welcome", cur);
-  ({ tournoi: vTournoi, seeds: vSeeds, club: vClub, academy: vAcademy, partenaires: vPartenaires }[cur])(197609"view"));
+  ({ tournoi: vTournoi, seeds: vSeeds, club: vClub, academy: vAcademy,
+     paella: vPaella, partenaires: vPartenaires }[cur])($("view"));
 }
 
 /* -------------------------------------------------- brique réutilisée */
@@ -208,6 +210,81 @@ function vAcademy(v) {
     ${carte("phone", "Inscrire un enfant",
       `<p>Stages, cours juniors, essai : le plus simple est de nous appeler, ou de passer au club-house pendant le tournoi.</p>
        <a class="btn block" style="margin-top:12px" href="tel:${LIENS.tel}">${svg("phone")}${LIENS.telAffiche}</a>`)}`;
+}
+
+/* ======================================================== LA PAELLA */
+// Soiree des joueurs, ouverte aussi au public : meme inscription que dans
+// l app des joueurs, memes donnees.
+const PAE_CLE = "lo_paella_pub";
+const paeMien = () => { try { return JSON.parse(localStorage.getItem(PAE_CLE) || "{}"); } catch { return {}; } };
+const paeGarde = (id, tok) => { const o = paeMien(); o[id] = tok;
+  try { localStorage.setItem(PAE_CLE, JSON.stringify(o)); } catch {} };
+const paeOublie = (id) => { const o = paeMien(); delete o[id];
+  try { localStorage.setItem(PAE_CLE, JSON.stringify(o)); } catch {} };
+
+async function vPaella(v) {
+  const { data } = await sb.from("lo_paella").select("id,name,guests,created_at")
+    .order("created_at", { ascending: true });
+  const liste = data || [];
+  const couverts = liste.reduce((s, x) => s + 1 + (x.guests || 0), 0);
+  const mien = paeMien();
+
+  v.innerHTML = `
+    <div class="hero">
+      <h2>La paella du mardi soir</h2>
+      <p>La soiree des joueurs, <b>mardi des 18h00</b> au Restaurant du Tennis.
+         Joueurs, accompagnants, benevoles et curieux : tout le monde est le bienvenu à table.</p>
+      <div class="badges"><span class="badge fluo">${couverts} couverts</span>
+        <span class="badge">Mardi 18h00</span>
+        <span class="badge">Restaurant du Tennis</span></div>
+    </div>
+
+    ${carte("utensils", "S’inscrire",
+      `<p>Dis-nous simplement qui vient, qu’on sache combien de couverts prévoir.</p>
+       <label class="f" style="margin-top:12px">Nom
+         <input id="pa-name" maxlength="60" placeholder="Ton nom" /></label>
+       <label class="f">Tu viens accompagné ?
+         <select id="pa-guests">
+           <option value="0">Juste moi</option>
+           <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option>
+         </select></label>
+       <button class="btn block" id="pa-go">Je m’inscris</button>
+       <p class="err" id="pa-err"></p>`)}
+
+    <div class="sec-title">${svg("users", "mk")} Déjà inscrits
+      <span style="margin-left:auto;font-size:.82rem;color:var(--fluo);font-weight:800">${couverts}</span></div>
+
+    ${liste.length ? liste.map((p) => `
+      <div class="pae-row">
+        <span class="pae-av">${esc((p.name || "?").trim().charAt(0).toUpperCase())}</span>
+        <b>${esc(p.name)}</b>
+        ${p.guests ? `<span class="pae-plus">+${p.guests}</span>` : ""}
+        ${mien[p.id] ? `<button class="btn small danger" data-out="${p.id}">Annuler</button>` : ""}
+      </div>`).join("")
+    : `<div class="empty">Personne encore — sois le premier.</div>`}`;
+
+  document.getElementById("pa-go").onclick = async () => {
+    const nom = document.getElementById("pa-name").value.trim();
+    const inv = Number(document.getElementById("pa-guests").value);
+    const err = document.getElementById("pa-err");
+    if (nom.length < 2) { err.textContent = "Indique ton nom."; return; }
+    const { data: res, error } = await sb.rpc("lo_paella_join", { p_name: nom, p_guests: inv });
+    if (error) { err.textContent = error.message; return; }
+    const { data: row } = await sb.from("lo_paella").select("id").eq("name", nom).maybeSingle();
+    if (row) paeGarde(row.id, res.token);
+    vPaella(v);
+  };
+
+  v.onclick = async (e) => {
+    const b = e.target.closest("[data-out]");
+    if (!b) return;
+    const id = Number(b.dataset.out), tok = paeMien()[id];
+    if (!tok || !confirm("Annuler ton inscription ?")) return;
+    const { error } = await sb.rpc("lo_paella_leave", { p_id: id, p_token: tok });
+    if (error) { alert(error.message); return; }
+    paeOublie(id);
+    vPaella(v);
+  };
 }
 
 /* ========================================================= PARTENAIRES */
