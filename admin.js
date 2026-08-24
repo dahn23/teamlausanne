@@ -5312,58 +5312,91 @@ async function loadPersonContract(personId, byRole) {
   $("pc-season").innerHTML = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">—</option>';
   renderPersonContract();
 }
-const PC_SCALARS = [
-  ["Programme", "Programme", "text"], ["Player status", "Statut joueur", "text"], ["Contract status", "Statut du contrat", "text"],
-  ["Start date", "Début", "text"], ["End date", "Fin", "text"], ["Annual fee", "Montant annuel (CHF)", "number"],
-  ["Instalments", "Nb de mensualités", "number"], ["Monthly fee", "Mensualité (CHF)", "number"], ["Data status", "Qualité de la donnée", "text"],
-];
+const PC_PROGRAMMES = ["sport-études", "pro", "proU18", "sport-études sans études"];
+const PC_STATUSES = ["à préparer", "envoyé", "signé"];
+const PC_DURATIONS = ["1h", "1h30", "2h", "2h30", "3h"];
 const PC_DAYS = [["Mon", "Lun"], ["Tue", "Mar"], ["Wed", "Mer"], ["Thu", "Jeu"], ["Fri", "Ven"]];
+const pcMonthly = (d) => { const a = parseFloat(d["Annual fee"]), n = parseFloat(d["Instalments"]); return (a > 0 && n > 0) ? String(Math.round(a / n)) : ""; };
+
 async function renderPersonContract() {
   const body = $("pc-body"); if (!body) return;
   const seasonId = $("pc-season").value;
   if (!pcPersonId || !seasonId) { body.innerHTML = ""; return; }
   const { data } = await sb.from("player_contracts").select("data").eq("person_id", pcPersonId).eq("season_id", seasonId).maybeSingle();
   const d = data?.data || {};
-  const editable = hasAny(myAppRoles, ["superadmin", "admin"]);
-  if (!editable) {  // lecture seule (secrétariat)
+  const sess = Array.isArray(d["Private sessions"]) ? d["Private sessions"] : [];
+
+  if (!hasAny(myAppRoles, ["superadmin", "admin"])) {  // lecture seule (secrétariat)
     if (!data) { body.innerHTML = '<p class="muted" style="font-size:.88rem">Aucun contrat pour cette saison.</p>'; return; }
     const row = (l, v) => (v != null && v !== "") ? `<div class="pc-row"><span>${l}</span><b>${esc(String(v))}</b></div>` : "";
-    const wk = (p) => PC_DAYS.map(([k, l]) => { const v = d[k + " " + p] || ""; return `<span class="pc-day ${v === "Oui" ? "oui" : v === "Non" ? "non" : "vide"}">${l}</span>`; }).join("");
+    const wk = (p) => PC_DAYS.map(([k, l]) => `<span class="pc-day ${d[k + " " + p] === "Oui" ? "oui" : "non"}">${l}</span>`).join("");
     body.innerHTML = `
-      <div class="pc-sec"><h4>Contrat & facturation</h4>${PC_SCALARS.map(([k, l]) => row(l, d[k])).join("")}</div>
-      <div class="pc-sec"><h4>Entraînement matin <span class="muted">(${d["AM days/wk"] || 0} j/sem)</span></h4><div class="pc-week">${wk("AM")}</div></div>
-      <div class="pc-sec"><h4>Entraînement après-midi <span class="muted">(${d["PM days/wk"] || 0} j/sem)</span></h4><div class="pc-week">${wk("PM")}</div></div>
-      <div class="pc-sec"><h4>Repas de midi <span class="muted">(${d["Lunches/wk"] || 0} /sem)</span></h4><div class="pc-week">${wk("lunch")}</div></div>
-      <div class="pc-sec"><h4>Cours privés</h4>${row("Cours privés ?", d["Private lessons?"])}${row("Leçons/sem", d["Contracted lessons/wk"])}${row("Heures/sem", d["Contracted hours/wk"])}</div>
+      <div class="pc-sec"><h4>Contrat & facturation</h4>
+        ${row("Programme", d["Programme"])}${row("Statut du contrat", d["Contract status"])}
+        ${row("Début", d["Start date"] ? frDate(d["Start date"]) : "")}${row("Fin", d["End date"] ? frDate(d["End date"]) : "")}
+        ${row("Montant annuel", d["Annual fee"] ? d["Annual fee"] + " CHF" : "")}${row("Mensualités", d["Instalments"])}${row("Mensualité", pcMonthly(d) ? pcMonthly(d) + " CHF" : "")}</div>
+      <div class="pc-sec"><h4>Entraînement matin</h4><div class="pc-week">${wk("AM")}</div></div>
+      <div class="pc-sec"><h4>Entraînement après-midi</h4><div class="pc-week">${wk("PM")}</div></div>
+      <div class="pc-sec"><h4>Repas de midi</h4><div class="pc-week">${wk("lunch")}</div></div>
+      <div class="pc-sec"><h4>Cours privés</h4>${row("Cours privés ?", d["Private lessons?"])}${sess.length ? `<div class="pc-row"><span>Séances</span><b>${sess.map(esc).join(", ")}</b></div>` : ""}</div>
       ${d["Notes"] ? `<div class="pc-sec"><h4>Notes</h4><p style="margin:0">${esc(d["Notes"])}</p></div>` : ""}`;
     return;
   }
+
   // Formulaire éditable (admin / superadmin)
-  const inp = (k, l, t) => `<label class="pc-f"><span>${l}</span><input data-k="${esc(k)}" type="${t}" value="${esc(d[k] || "")}" /></label>`;
-  const wkEdit = (p) => PC_DAYS.map(([k, l]) => { const v = d[k + " " + p] || ""; return `<button type="button" class="pc-tog ${v === "Oui" ? "oui" : v === "Non" ? "non" : "vide"}" data-k="${k} ${p}" data-v="${v}">${l}</button>`; }).join("");
+  const opt = (v, cur) => `<option${cur === v ? " selected" : ""}>${esc(v)}</option>`;
+  const selF = (k, l, opts) => `<label class="pc-f"><span>${l}</span><select data-k="${esc(k)}"><option value=""></option>${opts.map((o) => opt(o, d[k])).join("")}</select></label>`;
+  const inpF = (k, l, t) => `<label class="pc-f"><span>${l}</span><input data-k="${esc(k)}" type="${t}" value="${esc(d[k] || "")}" /></label>`;
+  const wkE = (p) => PC_DAYS.map(([k, l]) => { const on = d[k + " " + p] === "Oui"; return `<button type="button" class="pc-tog ${on ? "oui" : "non"}" data-k="${k} ${p}" data-v="${on ? "Oui" : "Non"}">${l}</button>`; }).join("");
+  const sessRow = (v) => `<div class="pc-sess-row"><select class="pc-sess">${PC_DURATIONS.map((o) => opt(o, v)).join("")}</select><button type="button" class="pc-sess-rm" aria-label="Retirer">✕</button></div>`;
+  const priv = d["Private lessons?"] === "Oui";
   body.innerHTML = `
-    <div class="pc-sec"><h4>Contrat & facturation</h4><div class="pc-grid">${PC_SCALARS.map(([k, l, t]) => inp(k, l, t)).join("")}</div></div>
-    <div class="pc-sec"><h4>Entraînement matin</h4><div class="pc-week edit" data-pfx="AM">${wkEdit("AM")}</div></div>
-    <div class="pc-sec"><h4>Entraînement après-midi</h4><div class="pc-week edit" data-pfx="PM">${wkEdit("PM")}</div></div>
-    <div class="pc-sec"><h4>Repas de midi</h4><div class="pc-week edit" data-pfx="lunch">${wkEdit("lunch")}</div></div>
-    <div class="pc-sec"><h4>Cours privés</h4><div class="pc-grid">
-      ${inp("Private lessons?", "Cours privés ? (Oui/Non)", "text")}${inp("Contracted lessons/wk", "Leçons/sem", "number")}${inp("Contracted hours/wk", "Heures/sem", "number")}
+    <div class="pc-sec"><h4>Contrat & facturation</h4><div class="pc-grid">
+      ${selF("Programme", "Programme", PC_PROGRAMMES)}
+      ${selF("Contract status", "Statut du contrat", PC_STATUSES)}
+      ${inpF("Start date", "Date de début", "date")}
+      ${inpF("End date", "Date de fin", "date")}
+      ${inpF("Annual fee", "Montant annuel (CHF)", "number")}
+      ${inpF("Instalments", "Nb de mensualités", "number")}
+      <label class="pc-f"><span>Mensualité (auto)</span><input id="pc-monthly" type="text" value="${esc(pcMonthly(d))}" disabled /></label>
     </div></div>
+    <div class="pc-sec"><h4>Entraînement matin</h4><div class="pc-week edit">${wkE("AM")}</div></div>
+    <div class="pc-sec"><h4>Entraînement après-midi</h4><div class="pc-week edit">${wkE("PM")}</div></div>
+    <div class="pc-sec"><h4>Repas de midi</h4><div class="pc-week edit">${wkE("lunch")}</div></div>
+    <div class="pc-sec"><h4>Cours privés</h4>
+      <button type="button" class="pc-tog ${priv ? "oui" : "non"}" id="pc-priv" data-v="${priv ? "Oui" : "Non"}" style="max-width:120px">${priv ? "Oui" : "Non"}</button>
+      <div id="pc-sess-wrap" class="${priv ? "" : "hidden"}" style="margin-top:12px">
+        <div id="pc-sessions">${sess.map(sessRow).join("")}</div>
+        <button type="button" id="pc-sess-add" class="ghost" style="margin-top:4px">+ Ajouter une séance</button>
+      </div>
+    </div>
     <div class="pc-sec"><h4>Notes</h4><textarea id="pc-notes" rows="2" style="width:100%">${esc(d["Notes"] || "")}</textarea></div>
     <div class="pc-actions"><button type="button" id="pc-save">Enregistrer le contrat</button><span id="pc-status" class="muted"></span></div>`;
-  body.querySelectorAll(".pc-tog").forEach((b) => b.addEventListener("click", () => {
-    const cur = b.dataset.v; const next = cur === "" ? "Oui" : cur === "Oui" ? "Non" : "";
-    b.dataset.v = next; b.className = "pc-tog " + (next === "Oui" ? "oui" : next === "Non" ? "non" : "vide");
+  const bindSessRm = () => body.querySelectorAll(".pc-sess-rm").forEach((b) => { b.onclick = () => b.closest(".pc-sess-row").remove(); });
+  bindSessRm();
+  body.querySelectorAll(".pc-week.edit .pc-tog[data-k]").forEach((b) => b.addEventListener("click", () => {
+    const n = b.dataset.v === "Oui" ? "Non" : "Oui"; b.dataset.v = n; b.className = "pc-tog " + (n === "Oui" ? "oui" : "non");
   }));
+  $("pc-priv").addEventListener("click", () => {
+    const n = $("pc-priv").dataset.v === "Oui" ? "Non" : "Oui";
+    $("pc-priv").dataset.v = n; $("pc-priv").className = "pc-tog " + (n === "Oui" ? "oui" : "non"); $("pc-priv").textContent = n;
+    $("pc-sess-wrap").classList.toggle("hidden", n !== "Oui");
+  });
+  $("pc-sess-add").addEventListener("click", () => { $("pc-sessions").insertAdjacentHTML("beforeend", sessRow("1h")); bindSessRm(); });
+  const upd = () => { $("pc-monthly").value = pcMonthly({ "Annual fee": body.querySelector('[data-k="Annual fee"]').value, "Instalments": body.querySelector('[data-k="Instalments"]').value }); };
+  body.querySelector('[data-k="Annual fee"]').addEventListener("input", upd);
+  body.querySelector('[data-k="Instalments"]').addEventListener("input", upd);
   $("pc-save").addEventListener("click", savePersonContract);
 }
 async function savePersonContract() {
   const body = $("pc-body");
   const out = {};
-  body.querySelectorAll("input[data-k]").forEach((i) => { out[i.dataset.k] = i.value.trim(); });
-  body.querySelectorAll(".pc-tog").forEach((b) => { out[b.dataset.k] = b.dataset.v; });
+  body.querySelectorAll("input[data-k],select[data-k]").forEach((i) => { out[i.dataset.k] = (i.value || "").trim(); });
+  body.querySelectorAll(".pc-week.edit .pc-tog[data-k]").forEach((b) => { out[b.dataset.k] = b.dataset.v; });
+  out["Private lessons?"] = $("pc-priv").dataset.v;
+  out["Private sessions"] = out["Private lessons?"] === "Oui" ? [...body.querySelectorAll(".pc-sess")].map((s) => s.value) : [];
+  out["Monthly fee"] = pcMonthly(out);
   out["Notes"] = $("pc-notes").value.trim();
-  // Recalcule les compteurs jours/semaine à partir des pastilles
   const cnt = (p) => PC_DAYS.filter(([k]) => out[k + " " + p] === "Oui").length;
   out["AM days/wk"] = String(cnt("AM")); out["PM days/wk"] = String(cnt("PM")); out["Lunches/wk"] = String(cnt("lunch"));
   const btn = $("pc-save"); btn.disabled = true; $("pc-status").textContent = "Enregistrement…";
