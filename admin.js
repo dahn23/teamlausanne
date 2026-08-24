@@ -5312,31 +5312,66 @@ async function loadPersonContract(personId, byRole) {
   $("pc-season").innerHTML = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">—</option>';
   renderPersonContract();
 }
+const PC_SCALARS = [
+  ["Programme", "Programme", "text"], ["Player status", "Statut joueur", "text"], ["Contract status", "Statut du contrat", "text"],
+  ["Start date", "Début", "text"], ["End date", "Fin", "text"], ["Annual fee", "Montant annuel (CHF)", "number"],
+  ["Instalments", "Nb de mensualités", "number"], ["Monthly fee", "Mensualité (CHF)", "number"], ["Data status", "Qualité de la donnée", "text"],
+];
+const PC_DAYS = [["Mon", "Lun"], ["Tue", "Mar"], ["Wed", "Mer"], ["Thu", "Jeu"], ["Fri", "Ven"]];
 async function renderPersonContract() {
   const body = $("pc-body"); if (!body) return;
   const seasonId = $("pc-season").value;
   if (!pcPersonId || !seasonId) { body.innerHTML = ""; return; }
   const { data } = await sb.from("player_contracts").select("data").eq("person_id", pcPersonId).eq("season_id", seasonId).maybeSingle();
-  const d = data?.data;
-  if (!d) { body.innerHTML = '<p class="muted" style="font-size:.88rem">Aucun contrat pour cette saison.</p>'; return; }
-  const row = (l, v) => (v != null && v !== "") ? `<div class="pc-row"><span>${l}</span><b>${esc(String(v))}</b></div>` : "";
-  const week = (pfx) => [["Mon", "Lun"], ["Tue", "Mar"], ["Wed", "Mer"], ["Thu", "Jeu"], ["Fri", "Ven"]]
-    .map(([k, l]) => { const v = d[k + " " + pfx] || ""; const c = v === "Oui" ? "oui" : v === "Non" ? "non" : "vide"; return `<span class="pc-day ${c}">${l}</span>`; }).join("");
-  const fee = (v) => v ? `${v} CHF` : "";
+  const d = data?.data || {};
+  const editable = hasAny(myAppRoles, ["superadmin", "admin"]);
+  if (!editable) {  // lecture seule (secrétariat)
+    if (!data) { body.innerHTML = '<p class="muted" style="font-size:.88rem">Aucun contrat pour cette saison.</p>'; return; }
+    const row = (l, v) => (v != null && v !== "") ? `<div class="pc-row"><span>${l}</span><b>${esc(String(v))}</b></div>` : "";
+    const wk = (p) => PC_DAYS.map(([k, l]) => { const v = d[k + " " + p] || ""; return `<span class="pc-day ${v === "Oui" ? "oui" : v === "Non" ? "non" : "vide"}">${l}</span>`; }).join("");
+    body.innerHTML = `
+      <div class="pc-sec"><h4>Contrat & facturation</h4>${PC_SCALARS.map(([k, l]) => row(l, d[k])).join("")}</div>
+      <div class="pc-sec"><h4>Entraînement matin <span class="muted">(${d["AM days/wk"] || 0} j/sem)</span></h4><div class="pc-week">${wk("AM")}</div></div>
+      <div class="pc-sec"><h4>Entraînement après-midi <span class="muted">(${d["PM days/wk"] || 0} j/sem)</span></h4><div class="pc-week">${wk("PM")}</div></div>
+      <div class="pc-sec"><h4>Repas de midi <span class="muted">(${d["Lunches/wk"] || 0} /sem)</span></h4><div class="pc-week">${wk("lunch")}</div></div>
+      <div class="pc-sec"><h4>Cours privés</h4>${row("Cours privés ?", d["Private lessons?"])}${row("Leçons/sem", d["Contracted lessons/wk"])}${row("Heures/sem", d["Contracted hours/wk"])}</div>
+      ${d["Notes"] ? `<div class="pc-sec"><h4>Notes</h4><p style="margin:0">${esc(d["Notes"])}</p></div>` : ""}`;
+    return;
+  }
+  // Formulaire éditable (admin / superadmin)
+  const inp = (k, l, t) => `<label class="pc-f"><span>${l}</span><input data-k="${esc(k)}" type="${t}" value="${esc(d[k] || "")}" /></label>`;
+  const wkEdit = (p) => PC_DAYS.map(([k, l]) => { const v = d[k + " " + p] || ""; return `<button type="button" class="pc-tog ${v === "Oui" ? "oui" : v === "Non" ? "non" : "vide"}" data-k="${k} ${p}" data-v="${v}">${l}</button>`; }).join("");
   body.innerHTML = `
-    <div class="pc-sec"><h4>Contrat & facturation</h4>
-      ${row("Programme", d["Programme"])}${row("Statut joueur", d["Player status"])}${row("Statut du contrat", d["Contract status"])}
-      ${row("Début", d["Start date"])}${row("Fin", d["End date"])}
-      ${row("Montant annuel", fee(d["Annual fee"]))}${row("Mensualités", d["Instalments"])}${row("Mensualité", fee(d["Monthly fee"]))}
-      ${row("Qualité de la donnée", d["Data status"])}
-    </div>
-    <div class="pc-sec"><h4>Entraînement matin <span class="muted">(${d["AM days/wk"] || 0} j/sem)</span></h4><div class="pc-week">${week("AM")}</div></div>
-    <div class="pc-sec"><h4>Entraînement après-midi <span class="muted">(${d["PM days/wk"] || 0} j/sem)</span></h4><div class="pc-week">${week("PM")}</div></div>
-    <div class="pc-sec"><h4>Repas de midi <span class="muted">(${d["Lunches/wk"] || 0} /sem)</span></h4><div class="pc-week">${week("lunch")}</div></div>
-    <div class="pc-sec"><h4>Cours privés</h4>
-      ${row("Cours privés ?", d["Private lessons?"])}${row("Leçons/sem (contrat)", d["Contracted lessons/wk"])}${row("Heures/sem (contrat)", d["Contracted hours/wk"])}
-    </div>
-    ${d["Notes"] ? `<div class="pc-sec"><h4>Notes</h4><p style="margin:0">${esc(d["Notes"])}</p></div>` : ""}`;
+    <div class="pc-sec"><h4>Contrat & facturation</h4><div class="pc-grid">${PC_SCALARS.map(([k, l, t]) => inp(k, l, t)).join("")}</div></div>
+    <div class="pc-sec"><h4>Entraînement matin</h4><div class="pc-week edit" data-pfx="AM">${wkEdit("AM")}</div></div>
+    <div class="pc-sec"><h4>Entraînement après-midi</h4><div class="pc-week edit" data-pfx="PM">${wkEdit("PM")}</div></div>
+    <div class="pc-sec"><h4>Repas de midi</h4><div class="pc-week edit" data-pfx="lunch">${wkEdit("lunch")}</div></div>
+    <div class="pc-sec"><h4>Cours privés</h4><div class="pc-grid">
+      ${inp("Private lessons?", "Cours privés ? (Oui/Non)", "text")}${inp("Contracted lessons/wk", "Leçons/sem", "number")}${inp("Contracted hours/wk", "Heures/sem", "number")}
+    </div></div>
+    <div class="pc-sec"><h4>Notes</h4><textarea id="pc-notes" rows="2" style="width:100%">${esc(d["Notes"] || "")}</textarea></div>
+    <div class="pc-actions"><button type="button" id="pc-save">Enregistrer le contrat</button><span id="pc-status" class="muted"></span></div>`;
+  body.querySelectorAll(".pc-tog").forEach((b) => b.addEventListener("click", () => {
+    const cur = b.dataset.v; const next = cur === "" ? "Oui" : cur === "Oui" ? "Non" : "";
+    b.dataset.v = next; b.className = "pc-tog " + (next === "Oui" ? "oui" : next === "Non" ? "non" : "vide");
+  }));
+  $("pc-save").addEventListener("click", savePersonContract);
+}
+async function savePersonContract() {
+  const body = $("pc-body");
+  const out = {};
+  body.querySelectorAll("input[data-k]").forEach((i) => { out[i.dataset.k] = i.value.trim(); });
+  body.querySelectorAll(".pc-tog").forEach((b) => { out[b.dataset.k] = b.dataset.v; });
+  out["Notes"] = $("pc-notes").value.trim();
+  // Recalcule les compteurs jours/semaine à partir des pastilles
+  const cnt = (p) => PC_DAYS.filter(([k]) => out[k + " " + p] === "Oui").length;
+  out["AM days/wk"] = String(cnt("AM")); out["PM days/wk"] = String(cnt("PM")); out["Lunches/wk"] = String(cnt("lunch"));
+  const btn = $("pc-save"); btn.disabled = true; $("pc-status").textContent = "Enregistrement…";
+  const { error } = await sb.from("player_contracts")
+    .upsert({ person_id: pcPersonId, season_id: $("pc-season").value, data: out, updated_at: new Date().toISOString() }, { onConflict: "person_id,season_id" });
+  btn.disabled = false;
+  $("pc-status").textContent = error ? "Erreur : " + error.message : "✓ Enregistré";
+  setTimeout(() => { if ($("pc-status")) $("pc-status").textContent = ""; }, 2000);
 }
 async function loadPeRemarks(youthId) {
   peYouthId = youthId;
