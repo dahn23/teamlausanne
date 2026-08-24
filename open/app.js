@@ -605,14 +605,14 @@ async function viewPaella(v) {
       </div>`).join("")
     : `<div class="empty">${big("utensils")}${esc(t("pae.empty"))}</div>`}`;
 
-  197609"pa-go").onclick = async () => {
-    const nom = 197609"pa-name").value.trim();
-    const inv = Number(197609"pa-guests").value);
-    if (nom.length < 2) { 197609"pa-err").textContent = t("prac.enterName"); return; }
-    197609"pa-go").disabled = true;
+  $("pa-go").onclick = async () => {
+    const nom = $("pa-name").value.trim();
+    const inv = Number($("pa-guests").value);
+    if (nom.length < 2) { $("pa-err").textContent = t("prac.enterName"); return; }
+    $("pa-go").disabled = true;
     const { data: res, error } = await sb.rpc("lo_paella_join", { p_name: nom, p_guests: inv });
-    197609"pa-go").disabled = false;
-    if (error) { 197609"pa-err").textContent = error.message; return; }
+    $("pa-go").disabled = false;
+    if (error) { $("pa-err").textContent = error.message; return; }
     store.name.set(nom);
     const { data: row } = await sb.from("lo_paella").select("id").eq("name", nom).maybeSingle();
     if (row) store.add("paella", row.id, res.token);
