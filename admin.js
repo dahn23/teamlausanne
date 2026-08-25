@@ -591,7 +591,7 @@ function openResaCreate(courtId, hour, dur) {
 
 function editBooking(b, hour) {
   // Un cours : on ouvre l'éditeur de cours complet (coachs, élèves, présences)
-  if (b.course_id && isHeadUser) { editCourse(b.course_id); return; }
+  if (b.course_id && isCourseMgr) { editCourse(b.course_id); return; }
   $("r-error").hidden = true;
   $("resa-title").textContent = "Modifier la réservation";
   $("r-id").value = b.id; $("r-recid").value = b.recurrence_id || "";
@@ -1632,18 +1632,19 @@ async function removeFamily(g, c, id) {
 //  Cours
 // ===================================================================
 let courseTypes = [];
-let isHeadUser = false, isAdminUser = false;
+let isHeadUser = false, isAdminUser = false, isCourseMgr = false;
 const QH = (() => { const a = []; for (let h = 7; h <= 22; h++) for (const m of [0, 15, 30, 45]) { if (h === 22 && m > 0) break; a.push(pad2(h) + ":" + pad2(m)); } return a; })();
 
 function initCours(roles) {
   isHeadUser = roles.some((r) => ["superadmin", "admin", "head_coach"].includes(r));
+  isCourseMgr = isHeadUser || roles.includes("secretaire"); // créer/éditer des cours = head/admin + secrétariat
   isAdminUser = roles.some((r) => ["superadmin", "admin"].includes(r));
   $("ct-card").querySelector(".ct-add").classList.toggle("hidden", !isAdminUser);
   // Sous-onglet « Types de cours » : réservé admin/superadmin (impacte le paiement).
   const tt = $("cours-subtab-types");
   if (tt) tt.classList.toggle("hidden", !isAdminUser);
-  $("cs-new").classList.toggle("hidden", !isHeadUser);
-  $("cs-copy").classList.toggle("hidden", !isHeadUser);
+  $("cs-new").classList.toggle("hidden", !isCourseMgr);
+  $("cs-copy").classList.toggle("hidden", !isCourseMgr);
 
   $("c-start").innerHTML = QH.map((t) => `<option value="${t}">${t}</option>`).join("");
   $("c-end").innerHTML = QH.map((t) => `<option value="${t}">${t}</option>`).join("");
@@ -1788,7 +1789,7 @@ async function loadCoursesDay() {
     const card = b.closest(".cs-card");
     b.textContent = card.classList.toggle("expanded") ? "Réduire" : "Plus";
   }));
-  if (isHeadUser) L.querySelectorAll(".cs-card").forEach((el) =>
+  if (isCourseMgr) L.querySelectorAll(".cs-card").forEach((el) =>
     el.addEventListener("click", (e) => { if (e.target.closest(".att-chip,.cs-more")) return; editCourse(el.dataset.id); }));
 }
 
