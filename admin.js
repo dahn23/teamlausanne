@@ -1699,9 +1699,19 @@ async function addType() {
   loadTypes();
 }
 async function deleteType(id) {
-  if (!confirm("Supprimer ce type de cours ?")) return;
+  // Combien de cours utilisent ce type ?
+  const { count } = await sb.from("courses").select("id", { count: "exact", head: true }).eq("course_type_id", id);
+  const n = count || 0;
+  const msg = n > 0
+    ? `Ce type est utilisé par ${n} cours. Ils seront conservés mais repassés « sans type » (leur couleur et leur titre restent). Supprimer ce type ?`
+    : "Supprimer ce type de cours ?";
+  if (!confirm(msg)) return;
+  if (n > 0) {
+    const { error: e1 } = await sb.from("courses").update({ course_type_id: null }).eq("course_type_id", id);
+    if (e1) { alert("Impossible de détacher les cours : " + e1.message); return; }
+  }
   const { error } = await sb.from("course_types").delete().eq("id", id);
-  if (error) { alert("Impossible (type utilisé par un cours ?) : " + error.message); return; }
+  if (error) { alert("Suppression impossible : " + error.message); return; }
   loadTypes();
 }
 
