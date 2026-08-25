@@ -122,7 +122,7 @@ export const PARTENAIRES = [
   { nom: "Association Vaudoise de Tennis", logo: "vaud-tennis",   url: "https://www.vaud-tennis.ch/" },
   { nom: "SVR Vins",                 logo: "svr-vins",            url: "https://svrvins.ch/" },
   { nom: "ibis Lausanne",            logo: "ibis",                url: "https://all.accor.com/hotel/6772/index.fr.shtml" },
-  { nom: "Garage de la Plaine",      logo: "garage-plaine",       url: "https://garagedelaplaine.ch/" },
+  { nom: "Garage de la Plaine",      logo: "garage-plaine",       url: "https://www.garageplaine.ch/" },
   { nom: "BS Architectes",           logo: "bs-architectes",      url: "https://bs-ac.ch/" },
   { nom: "Cafés Cuendet",            logo: "cafes-cuendet",       url: "https://cafes-cuendet.ch/" },
   { nom: "Boissons Gros de Vaud",    logo: "boissons-gros-vaud",  url: "https://www.boissons-gros-de-vaud.ch/" },

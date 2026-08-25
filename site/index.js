@@ -182,7 +182,7 @@ const WORLDS = {
         { n: "Association Vaudoise de Tennis", l: "vaud-tennis",         u: "https://www.vaud-tennis.ch/" },
         { n: "SVR Vins",                       l: "svr-vins",            u: "https://svrvins.ch/" },
         { n: "ibis Lausanne",                  l: "ibis",                u: "https://all.accor.com/hotel/6772/index.fr.shtml" },
-        { n: "Garage de la Plaine",            l: "garage-plaine",       u: "https://garagedelaplaine.ch/" },
+        { n: "Garage de la Plaine",            l: "garage-plaine",       u: "https://www.garageplaine.ch/" },
         { n: "BS Architectes",                 l: "bs-architectes",      u: "https://bs-ac.ch/" },
         { n: "Cafés Cuendet",                  l: "cafes-cuendet",       u: "https://cafes-cuendet.ch/" },
         { n: "Boissons Gros de Vaud",          l: "boissons-gros-vaud",  u: "https://www.boissons-gros-de-vaud.ch/" },
