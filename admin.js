@@ -446,7 +446,8 @@ async function initResa(roles) {
 
   const { data } = await sb.from("courts").select("*").eq("is_active", true).order("display_order");
   resaCourtsAll = data || [];
-  $("r-court").innerHTML = resaCourtsAll.map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
+  // Réservation : uniquement les vrais courts (ouverts au moins une saison). « Fitness » reste réservé aux cours.
+  $("r-court").innerHTML = resaCourtsAll.filter((c) => c.open_summer || c.open_winter).map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
   $("r-start").innerHTML = Array.from({ length: 14 }, (_, i) => i + 8)
     .map((h) => `<option value="${h}">${pad2(h)}:15</option>`).join("");
   await loadResaLabels();
