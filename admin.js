@@ -129,9 +129,28 @@ async function openMyProfile() {
         <div class="me-roles">${roles.map((r) => `<span class="me-role">${esc(r)}</span>`).join("")}</div></div>
     </div>
     <div class="me-grid">${rows}</div>
-    ${foot}`;
+    ${foot}
+    <div class="me-pw">
+      <h3>Mot de passe</h3>
+      <div class="me-pw-row">
+        <input type="password" id="me-pw-input" placeholder="Nouveau mot de passe (min. 6)" autocomplete="new-password" />
+        <button type="button" id="me-pw-btn">Changer</button>
+      </div>
+      <span id="me-pw-status" class="muted" style="font-size:.85rem"></span>
+    </div>`;
   if (editable) $("me-save").addEventListener("click", saveMyProfile);
+  $("me-pw-btn").addEventListener("click", changeMyPassword);
   $("me-modal").classList.remove("hidden");
+}
+async function changeMyPassword() {
+  const inp = $("me-pw-input"), st = $("me-pw-status"), btn = $("me-pw-btn");
+  const pw = inp.value;
+  if (pw.length < 6) { st.textContent = "6 caractères minimum."; return; }
+  btn.disabled = true; st.textContent = "Changement…";
+  const { error } = await sb.auth.updateUser({ password: pw });
+  btn.disabled = false;
+  if (error) { st.textContent = "Erreur : " + error.message; return; }
+  inp.value = ""; st.textContent = "✓ Mot de passe changé";
 }
 async function saveMyProfile() {
   const payload = {};

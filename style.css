@@ -74,6 +74,11 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .me-actions{display:flex;align-items:center;gap:12px;margin-top:4px}
 .me-actions button{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:800}
 .me-actions button:disabled{opacity:.5}
+.me-pw{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+.me-pw h3{margin:0 0 8px;font-size:1rem;color:var(--blue-ink)}
+.me-pw-row{display:flex;gap:8px;margin-bottom:4px}
+.me-pw-row input{flex:1;font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:9px}
+.me-pw-row button{background:var(--blue);color:#fff;border:none;border-radius:9px;padding:9px 16px;font-weight:800}
 .toolbar{display:flex;align-items:center;gap:8px;padding:12px 14px;flex-wrap:wrap}
 .toolbar input[type=date]{flex:1;min-width:150px}
 .tag{font-size:.8rem;padding:4px 12px;border-radius:999px;background:#eef3f0;
