@@ -1243,7 +1243,7 @@ function showPersonTab(tab, show) {
 }
 
 // Rôles qui font apparaître l'onglet Cours
-const COURSE_ROLES = ["kidstennis", "club", "competition", "performance", "sport-etudes", "pro-u18", "pro"];
+const COURSE_ROLES = ["kidstennis", "club", "competition", "performance", "sport-etudes", "pro-u18", "pro", "adultes"];
 const COACH_ROLES = ["coach", "head-coach", "coach-prive"];
 const hasRoleIn = (pid, list) => (peopleRoles[pid] || []).some((r) => list.includes(r));
 
@@ -1670,7 +1670,7 @@ function initCours(roles) {
   $("course-modal").addEventListener("click", (e) => { if (e.target === $("course-modal")) $("course-modal").classList.add("hidden"); });
   $("course-form").addEventListener("submit", saveCourse);
   $("c-del").addEventListener("click", deleteCourse);
-  $("c-children").addEventListener("click", updateCount);
+  $("c-search").addEventListener("input", renderPlayerChips);
   $("att-close").addEventListener("click", () => $("att-modal").classList.add("hidden"));
   $("att-modal").addEventListener("click", (e) => { if (e.target === $("att-modal")) $("att-modal").classList.add("hidden"); });
 
@@ -2931,7 +2931,26 @@ function renderChips(containerId, items, selected) {
 }
 const chipValues = (id) => [...document.querySelectorAll("#" + id + " .chip.sel")].map((c) => c.dataset.val);
 function updateCount() {
-  $("c-count").textContent = `(${chipValues("c-children").length} / 30)`;
+  $("c-count").textContent = `(${cPlayerSel.size} / 30)`;
+}
+
+// Sélecteur de joueurs du cours : recherche + affiche 30 résultats max (les sélectionnés restent toujours visibles)
+let cPlayers = [], cPlayerSel = new Set();
+function renderPlayerChips() {
+  const q = ($("c-search").value || "").trim().toLowerCase();
+  const sel = cPlayers.filter((p) => cPlayerSel.has(String(p[0])));
+  let pool = cPlayers.filter((p) => !cPlayerSel.has(String(p[0])));
+  if (q) pool = pool.filter((p) => p[1].toLowerCase().includes(q));
+  const shown = [...sel, ...pool.slice(0, 30)];
+  const extra = pool.length - Math.min(pool.length, 30);
+  $("c-children").innerHTML = shown.map(([val, label]) =>
+    `<button type="button" class="chip ${cPlayerSel.has(String(val)) ? "sel" : ""}" data-val="${val}">${esc(label)}</button>`).join("")
+    + (extra > 0 ? `<span class="muted c-more">+${extra} autres — affinez la recherche</span>` : "");
+  $("c-children").querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
+    const v = String(c.dataset.val);
+    if (cPlayerSel.has(v)) cPlayerSel.delete(v); else cPlayerSel.add(v);
+    renderPlayerChips(); updateCount();
+  }));
 }
 
 function openCourse(course, related) {
@@ -2946,7 +2965,12 @@ function openCourse(course, related) {
   $("c-color").value = course?.color || "#0b6b3a";
   renderChips("c-courts", resaCourtsAll.map((c) => [c.id, c.name.replace("Court ", "C")]), related?.courts);
   renderChips("c-coaches", people.filter((p) => hasRoleIn(p.id, COACH_ROLES)).map((p) => [p.id, `${p.last_name} ${p.first_name}`]), related?.coaches);
-  renderChips("c-children", people.filter((p) => hasRoleIn(p.id, COURSE_ROLES)).map((p) => [p.id, `${p.last_name} ${p.first_name}`]), related?.children);
+  cPlayers = people.filter((p) => hasRoleIn(p.id, COURSE_ROLES))
+    .map((p) => [p.id, `${p.last_name} ${p.first_name}`])
+    .sort((a, b) => a[1].localeCompare(b[1]));
+  cPlayerSel = new Set((related?.children || []).map(String));
+  $("c-search").value = "";
+  renderPlayerChips();
   updateCount();
   $("c-del").classList.toggle("hidden", !course);
   // Présences (seulement en édition d'un cours existant)
@@ -2980,8 +3004,8 @@ async function saveCourse(e) {
   if (end <= start) return failC(err, "L'heure de fin doit être après le début.");
   const courts = chipValues("c-courts");
   if (!courts.length) return failC(err, "Sélectionnez au moins un court.");
-  const children = chipValues("c-children");
-  if (children.length > 30) return failC(err, "30 enfants maximum.");
+  const children = [...cPlayerSel];
+  if (children.length > 30) return failC(err, "30 joueurs maximum.");
   const coaches = chipValues("c-coaches");
 
   const row = {
