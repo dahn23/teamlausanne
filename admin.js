@@ -5340,7 +5340,9 @@ async function loadPersonContract(personId, byRole) {
   if (!byRole) return;
   await loadSeasonsList();
   const cur = currentSeason("juniors")?.id;
-  $("pc-season").innerHTML = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">—</option>';
+  const sel = $("pc-season");
+  sel.innerHTML = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">—</option>';
+  if (cur) sel.value = cur;   // force la saison en cours (sinon la valeur peut ne pas s'appliquer -> contrat affiché « vide »)
   renderPersonContract();
 }
 const PC_PROGRAMMES = ["sport-études", "pro", "proU18", "sport-études sans études"];
