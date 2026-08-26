@@ -1658,6 +1658,7 @@ function initCours(roles) {
   $("ct-add-btn").addEventListener("click", addType);
   $("cs-date").value = isoA(new Date());
   $("cs-date").addEventListener("change", loadCoursesDay);
+  $("cs-search").addEventListener("input", filterCoursesDay);
   $("cs-prev").addEventListener("click", () => shiftCs(-1));
   $("cs-next").addEventListener("click", () => shiftCs(1));
   $("cs-new").addEventListener("click", () => openCourse(null));
@@ -1782,7 +1783,9 @@ async function loadCoursesDay() {
     const childIds = parts.filter((x) => x.course_id === c.id).map((x) => x.child_person_id);
     const type = courseTypes.find((t) => t.id === c.course_type_id);
     const needMore = Math.max(coachIds.length, childIds.length) > 4;
-    return `<div class="cs-card" data-id="${c.id}" style="border-left-color:${c.color || (type?.color) || "#0b6b3a"}">
+    const nmeOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name} ${p.last_name}` : ""; };
+    const search = esc([c.title || "", type?.name || "", ...coachIds.map(nmeOf), ...childIds.map(nmeOf)].join(" ").toLowerCase());
+    return `<div class="cs-card" data-id="${c.id}" data-search="${search}" style="border-left-color:${c.color || (type?.color) || "#0b6b3a"}">
       <div class="cs-card-top">
         <div class="cs-time">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
         <div class="cs-main"><b>${esc(c.title || type?.name || "Cours")}</b>
@@ -1802,6 +1805,24 @@ async function loadCoursesDay() {
   }));
   if (isCourseMgr) L.querySelectorAll(".cs-card").forEach((el) =>
     el.addEventListener("click", (e) => { if (e.target.closest(".att-chip,.cs-more")) return; editCourse(el.dataset.id); }));
+  filterCoursesDay();
+}
+
+function filterCoursesDay() {
+  const q = ($("cs-search").value || "").trim().toLowerCase();
+  const cards = document.querySelectorAll("#cs-list .cs-card");
+  let n = 0;
+  cards.forEach((el) => {
+    const hit = !q || (el.dataset.search || "").includes(q);
+    el.classList.toggle("hidden", !hit);
+    if (hit) n++;
+  });
+  let empty = $("cs-noresult");
+  if (q && !n && cards.length) {
+    if (!empty) { empty = document.createElement("p"); empty.id = "cs-noresult"; empty.className = "muted"; $("cs-list").appendChild(empty); }
+    empty.textContent = "Aucun cours ne correspond.";
+    empty.hidden = false;
+  } else if (empty) empty.hidden = true;
 }
 
 // Clic sur une pastille : blanc → vert → rouge → orange → blanc
@@ -2941,8 +2962,8 @@ function renderPlayerChips() {
   const sel = cPlayers.filter((p) => cPlayerSel.has(String(p[0])));
   let pool = cPlayers.filter((p) => !cPlayerSel.has(String(p[0])));
   if (q) pool = pool.filter((p) => p[1].toLowerCase().includes(q));
-  const shown = [...sel, ...pool.slice(0, 30)];
-  const extra = pool.length - Math.min(pool.length, 30);
+  const shown = [...sel, ...pool.slice(0, 10)];
+  const extra = pool.length - Math.min(pool.length, 10);
   $("c-children").innerHTML = shown.map(([val, label]) =>
     `<button type="button" class="chip ${cPlayerSel.has(String(val)) ? "sel" : ""}" data-val="${val}">${esc(label)}</button>`).join("")
     + (extra > 0 ? `<span class="muted c-more">+${extra} autres — affinez la recherche</span>` : "");
