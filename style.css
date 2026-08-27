@@ -1267,7 +1267,7 @@ body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fl
    ===================================================================== */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;
   align-items:center;justify-content:center;padding:20px;z-index:50}
-.modal .card{position:relative;max-width:420px;width:100%}
+.modal .card{position:relative;max-width:420px;width:100%;max-height:calc(100vh - 40px);overflow-y:auto}
 .modal .card.wide{max-width:640px}
 .modal-close{position:absolute;top:10px;right:12px;background:transparent;color:var(--muted);
   font-size:1.5rem;padding:2px 8px;line-height:1}
