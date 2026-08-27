@@ -1295,8 +1295,9 @@ body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fl
 .crm-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .crm-head h1{margin:0;font-size:1.5rem;flex:1}
 .crm-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.crm-actions button{white-space:nowrap}
+.crm-actions button{white-space:nowrap;flex:0 0 auto}
 .crm-actions input{min-width:160px}
+.crm-actions input[type=date]{min-width:0;width:150px;flex:0 0 auto}
 .table-wrap{background:#fff;border:1px solid var(--line);border-radius:var(--radius);
   overflow:auto;box-shadow:var(--shadow)}
 .crm-table{width:100%;border-collapse:collapse;font-size:.92rem}
