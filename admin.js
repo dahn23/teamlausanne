@@ -1657,12 +1657,14 @@ function initCours(roles) {
     }));
   $("ct-add-btn").addEventListener("click", addType);
   $("cs-date").value = isoA(new Date());
-  $("cs-date").addEventListener("change", loadCoursesDay);
-  $("cs-search").addEventListener("input", filterCoursesDay);
+  $("cs-date").addEventListener("change", loadCoursesCurrent);
+  $("cs-search").addEventListener("input", filterCourses);
   $("cs-prev").addEventListener("click", () => shiftCs(-1));
   $("cs-next").addEventListener("click", () => shiftCs(1));
   $("cs-new").addEventListener("click", () => openCourse(null));
   $("cs-copy").addEventListener("click", copyWeek);
+  $("cs-mode-day").addEventListener("click", () => setCoursView("day"));
+  $("cs-mode-week").addEventListener("click", () => setCoursView("week"));
   $("cw-close").addEventListener("click", () => $("copyweek-modal").classList.add("hidden"));
   $("copyweek-modal").addEventListener("click", (e) => { if (e.target === $("copyweek-modal")) $("copyweek-modal").classList.add("hidden"); });
   $("cw-go").addEventListener("click", cwGo);
@@ -1676,7 +1678,22 @@ function initCours(roles) {
   $("att-modal").addEventListener("click", (e) => { if (e.target === $("att-modal")) $("att-modal").classList.add("hidden"); });
 
   loadTypes();
-  loadCoursesDay();
+  loadCoursesCurrent();
+}
+
+let coursView = "day";
+function loadCoursesCurrent() { return coursView === "week" ? loadCoursesWeek() : loadCoursesDay(); }
+function setCoursView(v) {
+  if (v === coursView) return;
+  coursView = v;
+  $("cs-mode-day").classList.toggle("active", v === "day");
+  $("cs-mode-week").classList.toggle("active", v === "week");
+  $("cs-list").classList.toggle("hidden", v === "week");
+  $("cs-week").classList.toggle("hidden", v !== "week");
+  $("cs-legend").classList.toggle("hidden", v === "week"); // les présences ne s'éditent qu'en vue Jour
+  $("cs-prev").setAttribute("aria-label", v === "week" ? "Semaine précédente" : "Jour précédent");
+  $("cs-next").setAttribute("aria-label", v === "week" ? "Semaine suivante" : "Jour suivant");
+  loadCoursesCurrent();
 }
 
 async function loadTypes() {
@@ -1719,9 +1736,9 @@ async function deleteType(id) {
 
 function shiftCs(delta) {
   const d = new Date($("cs-date").value + "T00:00:00");
-  d.setDate(d.getDate() + delta);
+  d.setDate(d.getDate() + delta * (coursView === "week" ? 7 : 1));
   $("cs-date").value = isoA(d);
-  loadCoursesDay();
+  loadCoursesCurrent();
 }
 
 const personName = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : "—"; };
@@ -1808,8 +1825,19 @@ async function loadCoursesDay() {
   filterCoursesDay();
 }
 
-function filterCoursesDay() {
+function filterCoursesDay() { filterCourses(); }
+function filterCourses() {
   const q = ($("cs-search").value || "").trim().toLowerCase();
+  if (coursView === "week") {
+    document.querySelectorAll("#cs-week .cw-ev").forEach((el) =>
+      el.classList.toggle("hidden", !!q && !(el.dataset.search || "").includes(q)));
+    document.querySelectorAll("#cs-week .cw-day").forEach((day) => {
+      const any = [...day.querySelectorAll(".cw-ev")].some((e) => !e.classList.contains("hidden"));
+      const none = day.querySelector(".cw-none");
+      if (none) none.hidden = any || (q && !day.querySelector(".cw-ev"));
+    });
+    return;
+  }
   const cards = document.querySelectorAll("#cs-list .cs-card");
   let n = 0;
   cards.forEach((el) => {
@@ -1823,6 +1851,53 @@ function filterCoursesDay() {
     empty.textContent = "Aucun cours ne correspond.";
     empty.hidden = false;
   } else if (empty) empty.hidden = true;
+}
+
+const DOW_ABBR = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+async function loadCoursesWeek() {
+  const mon = mondayOf($("cs-date").value);
+  const days = [];
+  for (let i = 0; i < 7; i++) { const d = new Date(mon + "T00:00:00"); d.setDate(d.getDate() + i); days.push(isoA(d)); }
+  const sun = days[6];
+  const { data: courses } = await sb.from("courses").select("*").gte("course_date", mon).lte("course_date", sun).order("start_time");
+  const ids = (courses || []).map((c) => c.id);
+  let books = [], coaches = [], parts = [];
+  if (ids.length) {
+    [books, coaches, parts] = await Promise.all([
+      sb.from("court_bookings").select("court_id,course_id").in("course_id", ids).then((r) => r.data || []),
+      sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", ids).then((r) => r.data || []),
+      sb.from("course_participants").select("course_id,child_person_id").in("course_id", ids).then((r) => r.data || []),
+    ]);
+  }
+  const courtName = (id) => (resaCourtsAll.find((c) => c.id === id)?.name || "?").replace("Court ", "C");
+  const nmeOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name} ${p.last_name}` : ""; };
+  const evHtml = (c) => {
+    const cts = books.filter((b) => b.course_id === c.id).map((b) => courtName(b.court_id)).join(", ");
+    const coachIds = coaches.filter((x) => x.course_id === c.id).map((x) => x.coach_person_id);
+    const childIds = parts.filter((x) => x.course_id === c.id).map((x) => x.child_person_id);
+    const type = courseTypes.find((t) => t.id === c.course_type_id);
+    const search = esc([c.title || "", type?.name || "", ...coachIds.map(nmeOf), ...childIds.map(nmeOf)].join(" ").toLowerCase());
+    return `<div class="cw-ev" data-id="${c.id}" data-search="${search}" style="border-left-color:${c.color || type?.color || "#0b6b3a"}">
+      <div class="cw-ev-t">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
+      <div class="cw-ev-n">${esc(c.title || type?.name || "Cours")}</div>
+      <div class="cw-ev-m muted">${cts || "—"}${childIds.length ? " · " + childIds.length + "j" : ""}${coachIds.length ? " · " + coachIds.length + "c" : ""}</div>
+    </div>`;
+  };
+  const today = isoA(new Date());
+  $("cs-week").innerHTML = days.map((iso, i) => {
+    const dc = (courses || []).filter((c) => c.course_date === iso);
+    const dd = iso.slice(8, 10) + "." + iso.slice(5, 7);
+    return `<div class="cw-day${iso === today ? " cw-today" : ""}">
+      <div class="cw-dh"><span><b>${DOW_ABBR[i]}</b> ${dd}</span>${isCourseMgr ? `<button type="button" class="cw-add" data-d="${iso}" title="Nouveau cours ce jour">+</button>` : ""}</div>
+      <div class="cw-evs">${dc.length ? dc.map(evHtml).join("") : '<p class="cw-none muted">—</p>'}</div>
+    </div>`;
+  }).join("");
+  const W = $("cs-week");
+  if (isCourseMgr) {
+    W.querySelectorAll(".cw-ev").forEach((el) => el.addEventListener("click", () => editCourse(el.dataset.id)));
+    W.querySelectorAll(".cw-add").forEach((b) => b.addEventListener("click", () => { $("cs-date").value = b.dataset.d; openCourse(null); }));
+  }
+  filterCourses();
 }
 
 // Clic sur une pastille : blanc → vert → rouge → orange → blanc
@@ -3069,7 +3144,7 @@ async function saveCourse(e) {
 
   if (conflicts) alert(`Cours enregistré, mais ${conflicts} court(s) étai(en)t déjà occupé(s) sur ce créneau.`);
   $("course-modal").classList.add("hidden");
-  loadCoursesDay();
+  loadCoursesCurrent();
 }
 
 async function deleteCourse() {
@@ -3077,7 +3152,7 @@ async function deleteCourse() {
   if (!id || !confirm("Supprimer ce cours (et libérer les courts) ?")) return;
   await sb.from("courses").delete().eq("id", id); // cascade : bookings, coaches, participants, présences
   $("course-modal").classList.add("hidden");
-  loadCoursesDay();
+  loadCoursesCurrent();
 }
 
 const mondayOf = (iso) => { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoA(d); };
@@ -3154,7 +3229,7 @@ async function cwRun() {
   $("copyweek-modal").classList.add("hidden");
   cwToCreate = null;
   alert(`✓ ${created} cours copiés.` + (cwConflicts.length ? ` ${cwConflicts.length} ignoré(s) pour conflit.` : ""));
-  loadCoursesDay();
+  loadCoursesCurrent();
 }
 function failC(el, msg) { el.textContent = msg; el.hidden = false; }
 

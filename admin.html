@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=67" />
+  <link rel="stylesheet" href="style.css?v=68" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -366,22 +366,27 @@
           <div id="cours-sub-planning" class="cours-sub">
             <h2 class="cs-title">Planning des cours</h2>
             <div class="cs-toolbar">
+              <div class="cs-viewtoggle">
+                <button id="cs-mode-day" class="cs-vt active" data-mode="day">Jour</button>
+                <button id="cs-mode-week" class="cs-vt" data-mode="week">Semaine</button>
+              </div>
               <div class="cs-daynav">
-                <button id="cs-prev" class="nav" aria-label="Jour précédent">‹</button>
+                <button id="cs-prev" class="nav" aria-label="Précédent">‹</button>
                 <input type="date" id="cs-date" />
-                <button id="cs-next" class="nav" aria-label="Jour suivant">›</button>
+                <button id="cs-next" class="nav" aria-label="Suivant">›</button>
               </div>
               <input id="cs-search" class="cs-search" type="text" placeholder="Filtrer par coach ou joueur…" autocomplete="off" />
               <button id="cs-copy" class="ghost">Copier la semaine</button>
               <button id="cs-new">+ Nouveau cours</button>
             </div>
-            <div class="att-legend">
+            <div id="cs-legend" class="att-legend">
               <span><i class="lg st-present"></i>Présent</span>
               <span><i class="lg st-absent"></i>Absent</span>
               <span><i class="lg st-late"></i>En retard <em>(élèves)</em></span>
               <span><i class="lg st-none"></i>En attente</span>
             </div>
             <div id="cs-list" class="cs-list"></div>
+            <div id="cs-week" class="cs-week hidden"></div>
           </div>
 
           <!-- Sous-onglet Types de cours -->

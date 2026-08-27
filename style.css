@@ -750,6 +750,27 @@ html{-webkit-tap-highlight-color:transparent}
 .cs-toolbar #cs-copy{margin-left:auto}
 .cs-toolbar button{white-space:nowrap;flex:0 0 auto}
 .c-more{align-self:center;font-size:.8rem}
+/* Bascule Jour / Semaine */
+.cs-viewtoggle{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.cs-vt{background:#fff;color:var(--blue-ink);font-weight:700;font-size:.85rem;padding:9px 14px;border:0;border-radius:0;cursor:pointer}
+.cs-vt+.cs-vt{border-left:1px solid var(--line)}
+.cs-vt.active{background:var(--blue);color:#fff}
+/* Vue semaine (lun→dim) */
+.cs-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.cw-day{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:8px;min-width:0;display:flex;flex-direction:column}
+.cw-today{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+.cw-dh{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:.82rem;color:var(--blue-ink);
+  margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.cw-add{background:#eef1f7;color:var(--blue-ink);font-weight:800;line-height:1;width:22px;height:22px;padding:0;border:0;border-radius:6px;cursor:pointer;flex:0 0 auto}
+.cw-add:hover{background:#dde3ef}
+.cw-evs{display:flex;flex-direction:column;gap:6px}
+.cw-ev{border-left:3px solid #0b6b3a;background:#f7f9fc;border-radius:8px;padding:6px 8px;cursor:pointer}
+.cw-ev:hover{background:#eef3ff}
+.cw-ev-t{font-weight:800;font-size:.78rem;color:var(--blue-ink)}
+.cw-ev-n{font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
+.cw-ev-m{font-size:.72rem}
+.cw-none{font-size:.8rem;text-align:center;margin:4px 0;color:#b6bfd0}
+@media(max-width:880px){.cs-week{grid-template-columns:1fr}.cw-dh{font-size:.92rem}}
 .chip{background:#eef1f7;border:1px solid var(--line);border-radius:999px;padding:7px 14px;
   font-size:.85rem;color:var(--ink);cursor:pointer;font-weight:600}
 .chip:hover{border-color:var(--blue)}
