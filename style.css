@@ -1294,7 +1294,8 @@ body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fl
 .admin-main{flex:1;padding:22px;overflow:auto}
 .crm-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .crm-head h1{margin:0;font-size:1.5rem;flex:1}
-.crm-actions{display:flex;gap:8px}
+.crm-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.crm-actions button{white-space:nowrap}
 .crm-actions input{min-width:160px}
 .table-wrap{background:#fff;border:1px solid var(--line);border-radius:var(--radius);
   overflow:auto;box-shadow:var(--shadow)}
