@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=63" />
+  <link rel="stylesheet" href="style.css?v=64" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -364,17 +364,17 @@
 
           <!-- Sous-onglet Planning -->
           <div id="cours-sub-planning" class="cours-sub">
-            <div class="crm-head">
-              <h2 style="flex:1;margin:0">Planning des cours</h2>
-              <div class="crm-actions">
+            <h2 class="cs-title">Planning des cours</h2>
+            <div class="cs-toolbar">
+              <div class="cs-daynav">
                 <button id="cs-prev" class="nav" aria-label="Jour précédent">‹</button>
                 <input type="date" id="cs-date" />
                 <button id="cs-next" class="nav" aria-label="Jour suivant">›</button>
-                <button id="cs-copy" class="ghost">Copier la semaine</button>
-                <button id="cs-new">+ Nouveau cours</button>
               </div>
+              <input id="cs-search" class="cs-search" type="text" placeholder="Filtrer par coach ou joueur…" autocomplete="off" />
+              <button id="cs-copy" class="ghost">Copier la semaine</button>
+              <button id="cs-new">+ Nouveau cours</button>
             </div>
-            <input id="cs-search" class="cs-search" type="text" placeholder="Filtrer par coach ou joueur…" autocomplete="off" />
             <div class="att-legend">
               <span><i class="lg st-present"></i>Présent</span>
               <span><i class="lg st-absent"></i>Absent</span>
