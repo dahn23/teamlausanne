@@ -5905,7 +5905,7 @@ async function etProfPresence(chip) {
 }
 function etProfCellHtml(dayId, dayProfs, profOptions, canEdit) {
   // canEdit (admin) : peut ajouter/retirer des profs. Un prof voit juste les noms (pas de ✕ ni « + prof »).
-  const chips = dayProfs.map((dp) => { const p = people.find((x) => x.id === dp.prof_person_id); return `<span class="et-prof-chip">${p ? esc(p.last_name) : "?"}${canEdit ? `<button type="button" class="et-prof-rm" data-day="${dayId}" data-prof="${dp.prof_person_id}">✕</button>` : ""}</span>`; }).join(" ");
+  const chips = dayProfs.map((dp) => { const p = people.find((x) => x.id === dp.prof_person_id); return `<span class="et-prof-chip">${p ? esc(p.first_name) : "?"}${canEdit ? `<button type="button" class="et-prof-rm" data-day="${dayId}" data-prof="${dp.prof_person_id}">✕</button>` : ""}</span>`; }).join(" ");
   const avail = profOptions.filter((p) => !dayProfs.some((dp) => dp.prof_person_id === p.id));
   const sel = (canEdit && avail.length) ? `<select class="et-prof-add" data-day="${dayId}"><option value="">+ prof</option>${avail.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")}</select>` : "";
   return `<div class="et-profwrap">${chips || '<span class="muted" style="font-size:.8rem">—</span>'}${sel}</div>`;
@@ -6002,6 +6002,7 @@ async function applyEtudesPlan() {
   if (error) { $("et-plan-status").textContent = "Erreur : " + error.message; return; }
   const jl = dows.length ? dows.map((d) => ["", "Lun", "Mar", "Mer", "Jeu", "Ven"][d]).join(" · ") : "aucun jour";
   $("et-plan-status").textContent = `✓ Appliqué (${jl}). Les autres jours de la période sont « pas prévu ».`;
+  loadEtudesCalendar();          // rafraîchit la vue Calendrier (les cases « pas prévu » apparaissent)
 }
 
 // ---- Sous-onglet Par jeune ----
