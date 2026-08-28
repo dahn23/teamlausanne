@@ -797,6 +797,11 @@ html{-webkit-tap-highlight-color:transparent}
   border:0;border-radius:50%;width:20px;height:20px;padding:0;font-size:1rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .search-clear:hover{background:#d5dbeb}
 .people-count{margin:2px 0 10px;font-size:.85rem;font-weight:600}
+/* Anniversaires */
+.bday-table td.bday-c{text-align:center;font-weight:800}
+.bday-table tr.bday-today{background:#eef3ff}
+.bday-table tr.bday-today td{border-top:1px solid var(--blue);border-bottom:1px solid var(--blue)}
+.bday-tag{display:inline-block;background:var(--blue);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:middle}
 .cw-none{font-size:.8rem;text-align:center;margin:4px 0;color:#b6bfd0}
 @media(max-width:880px){.cs-week{grid-template-columns:1fr}.cw-dh{font-size:.92rem}}
 .chip{background:#eef1f7;border:1px solid var(--line);border-radius:999px;padding:7px 14px;

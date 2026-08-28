@@ -167,17 +167,17 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["membres", "inscriptions", "news", "resa", "caisse", "locks", "irrigation", "stages", "stats"],
-  head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
+  superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["membres", "anniv", "inscriptions", "news", "resa", "caisse", "locks", "irrigation", "stages", "stats"],
+  head_coach: ["anniv", "resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "phystests", "heures"],
   prof:       ["etudes"],
   coach_mental: ["mental", "heures"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -325,6 +325,7 @@ function showView(view) {
   if (view === "phystests") loadPhysResults();
   if (view === "etudes") loadEtudesCalendar();
   if (view === "csel") loadCsel();
+  if (view === "anniv") loadBirthdays();
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
@@ -5829,6 +5830,58 @@ async function etYouthsForSeason(seasonId) {
   const { data } = await sb.from("role_periods").select("person_id").eq("season_id", seasonId).eq("role", "sport-etudes");
   const ids = new Set((data || []).map((r) => r.person_id));
   return people.filter((p) => ids.has(p.id)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+}
+
+// ===================================================================
+//  Anniversaires (secrétaire/admin/superadmin/head coach)
+//  Fenêtre : aujourd'hui −7 j → +21 j. Tout le monde sauf membres/clients.
+// ===================================================================
+const BDAY_EXCLUDE = ["membre", "client"];
+async function loadBirthdays() {
+  const body = $("bday-body");
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const start = new Date(today); start.setDate(start.getDate() - 7);
+  const end = new Date(today); end.setDate(end.getDate() + 21);
+  const startIso = isoA(start), endIso = isoA(end), todayIso = isoA(today);
+  // Cours dans la fenêtre → qui a un cours quel jour (participants + coachs)
+  const { data: courses } = await sb.from("courses").select("id,course_date").gte("course_date", startIso).lte("course_date", endIso);
+  const cids = (courses || []).map((c) => c.id);
+  let parts = [], coaches = [];
+  if (cids.length) {
+    [parts, coaches] = await Promise.all([
+      sb.from("course_participants").select("course_id,child_person_id").in("course_id", cids).then((r) => r.data || []),
+      sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", cids).then((r) => r.data || []),
+    ]);
+  }
+  const cDate = {}; for (const c of courses || []) cDate[c.id] = c.course_date;
+  const byDate = {};
+  const addC = (cid, pid) => { const d = cDate[cid]; if (d) (byDate[d] = byDate[d] || new Set()).add(pid); };
+  for (const x of parts) addC(x.course_id, x.child_person_id);
+  for (const x of coaches) addC(x.course_id, x.coach_person_id);
+  // Personnes éligibles (au moins un rôle ≠ membre/client) avec une date de naissance
+  const qualifies = (id) => (peopleRoles[id] || []).some((r) => !BDAY_EXCLUDE.includes(r));
+  const mdMap = {};
+  for (const p of people) {
+    if (!p.birthdate || !qualifies(p.id)) continue;
+    const md = p.birthdate.slice(5, 10);
+    (mdMap[md] = mdMap[md] || []).push(p);
+  }
+  // Parcours des 29 jours de la fenêtre (gère le passage d'année)
+  const rows = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const iso = isoA(d), md = iso.slice(5, 10);
+    for (const p of (mdMap[md] || [])) {
+      rows.push({ iso, p, age: d.getFullYear() - Number(p.birthdate.slice(0, 4)), hasCourse: byDate[iso]?.has(p.id) || false, isToday: iso === todayIso });
+    }
+  }
+  if (!rows.length) { body.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun anniversaire dans la période.</p>'; return; }
+  body.innerHTML = `<div class="tbl-wrap"><table class="crm-table bday-table">
+    <thead><tr><th>Date</th><th>Nom</th><th>Prénom</th><th>Âge</th><th>Cours ce jour</th></tr></thead>
+    <tbody>${rows.map((r) => `<tr class="${r.isToday ? "bday-today" : ""}">
+      <td><b>${etDow(r.iso)}</b> ${frDate(r.iso)}${r.isToday ? ' <span class="bday-tag">aujourd\'hui</span>' : ""}</td>
+      <td><b>${esc(r.p.last_name)}</b></td><td>${esc(r.p.first_name)}</td>
+      <td>${r.age} ans</td>
+      <td class="bday-c">${r.hasCourse ? "✔" : "—"}</td></tr>`).join("")}</tbody></table></div>`;
 }
 
 // ===================================================================
