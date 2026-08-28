@@ -167,17 +167,17 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["membres", "inscriptions", "news", "resa", "caisse", "locks", "irrigation", "stages", "stats"],
-  head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
-  coach:      ["cours", "matchs", "phystests", "heures"],
+  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "monrepas", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "monrepas", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["membres", "inscriptions", "news", "resa", "caisse", "monrepas", "locks", "irrigation", "stages", "stats"],
+  head_coach: ["resa", "cours", "matchs", "phystests", "mental", "monrepas", "stages", "prospects", "heures"],
+  coach:      ["cours", "matchs", "phystests", "monrepas", "heures"],
   prof:       ["etudes"],
   coach_mental: ["mental", "heures"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["monrepas", "Repas"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -324,6 +324,7 @@ function showView(view) {
   if (view === "phystests") loadPhysResults();
   if (view === "etudes") loadEtudesCalendar();
   if (view === "csel") loadCsel();
+  if (view === "monrepas") loadMonRepas();
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
@@ -5879,19 +5880,25 @@ async function renderCselRepas(dates) {
   for (const r of rps || []) (roleByPerson[r.person_id] = roleByPerson[r.person_id] || []).push(r.role);
   const ids = [...new Set((rps || []).map((r) => r.person_id))];
   const youths = ids.map((id) => people.find((p) => p.id === id)).filter(Boolean).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
-  const coaches = people.filter((p) => hasRoleIn(p.id, COACH_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
-  const [cRes, oRes] = await Promise.all([
+  const [cRes, oRes, dRes] = await Promise.all([
     ids.length ? sb.from("player_contracts").select("person_id,data").eq("season_id", seasonId).in("person_id", ids) : Promise.resolve({ data: [] }),
     sb.from("csel_meal_overrides").select("person_id,dow,present").eq("week_start", cselMonday),
+    sb.from("coach_meal_defaults").select("person_id,dow"),
   ]);
   const contractData = {};
   for (const c of cRes.data || []) contractData[c.person_id] = c.data || {};
   const ovrMap = {};
   for (const o of oRes.data || []) (ovrMap[o.person_id] = ovrMap[o.person_id] || {})[o.dow] = o.present;
+  const cmd = {}; // coach -> Set(dow) : repas déclarés par le coach lui-même
+  for (const r of dRes.data || []) (cmd[r.person_id] = cmd[r.person_id] || new Set()).add(r.dow);
+  // Coachs affichés = uniquement ceux qui ont déclaré au moins un repas
+  const coaches = Object.keys(cmd).map((id) => people.find((p) => p.id === id)).filter(Boolean).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
   cselDefaults = {};
   const totals = [0, 0, 0, 0, 0];
   const rowHtml = (p, isCoach) => {
-    const def = PC_DAYS.map(([k]) => isCoach ? false : (contractData[p.id]?.[k + " lunch"] === "Oui"));
+    const def = isCoach
+      ? PC_DAYS.map((_, i) => cmd[p.id]?.has(i + 1) || false)
+      : PC_DAYS.map(([k]) => contractData[p.id]?.[k + " lunch"] === "Oui");
     cselDefaults[p.id] = def;
     let cnt = 0;
     const cells = def.map((dflt, i) => {
@@ -5984,6 +5991,26 @@ function cselExportPdf() {
     <scr` + `ipt>window.onload=function(){setTimeout(function(){window.print();},250);};</scr` + `ipt>
     </body></html>`);
   w.document.close();
+}
+
+// ---- Repas (self-service) : le coach/secrétaire déclare ses jours de repas au CSEL ----
+async function loadMonRepas() {
+  const mount = $("mr-days"), status = $("mr-status");
+  status.textContent = "";
+  if (!myPersonId) { mount.innerHTML = '<p class="muted" style="font-size:.85rem">Ton compte n\'est pas relié à une fiche — préviens l\'administration.</p>'; return; }
+  const { data } = await sb.from("coach_meal_defaults").select("dow").eq("person_id", myPersonId);
+  const set = new Set((data || []).map((r) => r.dow));
+  mount.innerHTML = PC_DAYS.map(([, l], i) => `<button type="button" class="mr-day ${set.has(i + 1) ? "on" : ""}" data-dow="${i + 1}">${l}</button>`).join("");
+  mount.querySelectorAll(".mr-day").forEach((b) => b.addEventListener("click", () => mrToggle(b)));
+}
+async function mrToggle(btn) {
+  const dow = Number(btn.dataset.dow), on = btn.classList.contains("on");
+  const { error } = on
+    ? await sb.from("coach_meal_defaults").delete().eq("person_id", myPersonId).eq("dow", dow)
+    : await sb.from("coach_meal_defaults").upsert({ person_id: myPersonId, dow }, { onConflict: "person_id,dow" });
+  if (error) { $("mr-status").textContent = "Erreur : " + error.message; return; }
+  btn.classList.toggle("on");
+  $("mr-status").textContent = "✓ Enregistré.";
 }
 
 // ---- Sous-onglet Calendrier ----

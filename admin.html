@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=72" />
+  <link rel="stylesheet" href="style.css?v=73" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -47,6 +47,7 @@
           <button class="side-item" data-view="mental"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 20.5h5"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.8.7 1.3 1.4 1.3 2.4h5c0-1 .5-1.7 1.3-2.4A6 6 0 0 0 12 3z"/></svg><span class="side-label">Mental</span></button>
           <button class="side-item" data-view="etudes"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4L2.5 8.5 12 13l9.5-4.5L12 4z"/><path d="M6 10.5V15c0 1.3 2.7 2.4 6 2.4s6-1.1 6-2.4v-4.5"/><path d="M21.5 8.5v5"/></svg><span class="side-label">Études</span></button>
           <button class="side-item" data-view="csel"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v7a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3"/><path d="M6 12v9"/><path d="M18 3c-1.7 0-3 2-3 4.5S16.3 12 18 12V3z"/><path d="M18 12v9"/></svg><span class="side-label">CSEL</span></button>
+          <button class="side-item" data-view="monrepas"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v7a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3"/><path d="M6 12v9"/><path d="M18 3c-1.7 0-3 2-3 4.5S16.3 12 18 12V3z"/><path d="M18 12v9"/></svg><span class="side-label">Repas</span></button>
           <button class="side-item" data-view="matchs"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.8h6V4"/><path d="M8.5 10h7M8.5 14h7M8.5 18h4"/></svg><span class="side-label">Feuille de match</span></button>
         </div>
         <div class="side-block">
@@ -578,6 +579,14 @@
             <p class="muted" style="font-size:.84rem;margin:0 0 10px">Lecture seule — reflète l'onglet Études (les « pas prévu » ne sont pas listés).</p>
             <div id="csel-etudes-body"></div>
           </div>
+        </div>
+
+        <!-- ---- Vue Repas (self : coach/secrétaire/admin) : mes jours de repas au CSEL ---- -->
+        <div id="view-monrepas" class="view hidden">
+          <div class="crm-head"><h1>Repas <span class="muted" style="font-size:1rem;font-weight:400">— mes repas de midi au CSEL</span></h1></div>
+          <p class="muted" style="font-size:.88rem;max-width:640px">Coche les jours où tu manges habituellement au CSEL. Ça t'ajoute au planning hebdomadaire ; l'administration peut te retirer ponctuellement pour une semaine donnée sans changer ce réglage.</p>
+          <div id="mr-days" class="mr-days"></div>
+          <p id="mr-status" class="muted" style="font-size:.85rem;margin-top:10px"></p>
         </div>
 
         <div id="view-mental" class="view hidden">
