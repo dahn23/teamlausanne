@@ -5869,7 +5869,7 @@ async function etYouthsForSeason(seasonId) {
 //  Squelette : lit mail_messages (démo). IMAP (relève) + SMTP (envoi) à brancher.
 // ===================================================================
 const MAIL_STATUS = { nouveau: ["Nouveau", "ms-new"], en_cours: ["En cours", "ms-doing"], traite: ["Traité", "ms-done"], archive: ["Archivé", "ms-arch"] };
-const MAIL_STAFF_ROLES = ["coach", "head-coach", "coach-prive", "prof", "coach-mental", "secretaire", "admin", "superadmin"];
+const MAIL_STAFF_ROLES = ["secretaire", "admin", "superadmin"];
 let mailAccounts = [], mailMsgs = [], mailView = [], mailFilterAddr = "", mailSelId = null;
 const mailDT = (iso) => { const d = new Date(iso); return `${frDate(iso)} ${d.toTimeString().slice(0, 5)}`; };
 const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() === new Date().toDateString() ? d.toTimeString().slice(0, 5) : `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`; };
@@ -5945,6 +5945,19 @@ async function mailSync() {
   } catch (e) { alert("Relève impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = "Relever";
 }
+async function mailSendReply(m) {
+  const txt = ($("mail-d-replytxt").value || "").trim();
+  const st = $("mail-d-sendstatus");
+  if (!txt) { st.textContent = "Écris un message avant d'envoyer."; return; }
+  const btn = $("mail-d-send"); btn.disabled = true; st.textContent = "Envoi…";
+  try {
+    const { data, error } = await sb.functions.invoke("mail-send", { body: { id: m.id, text: txt } });
+    if (error) { let msg = error.message; try { msg = (await error.context.json())?.error || msg; } catch (_) {} st.textContent = "Échec : " + msg; }
+    else if (data?.error) { st.textContent = "Échec : " + data.error; }
+    else { st.textContent = "✓ Réponse envoyée."; $("mail-d-replytxt").value = ""; await loadMail(); }
+  } catch (e) { st.textContent = "Échec : " + (e?.message || e); }
+  btn.disabled = false;
+}
 function renderMailAccts() {
   const counts = {};
   for (const m of mailMsgs) if (!m.is_read) counts[m.account_address] = (counts[m.account_address] || 0) + 1;
@@ -5983,16 +5996,20 @@ async function openMail(id) {
       <label>Statut <select id="mail-d-status">${Object.entries(MAIL_STATUS).map(([k, v]) => `<option value="${k}"${m.status === k ? " selected" : ""}>${v[0]}</option>`).join("")}</select></label>
       <label>Attribué à <select id="mail-d-assign"><option value="">—</option>${staff.map((p) => `<option value="${p.id}"${m.assigned_user === p.id ? " selected" : ""}>${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")}</select></label>
       <label class="mail-d-tagslbl">Tags <input id="mail-d-tags" type="text" value="${esc((m.tags || []).join(", "))}" placeholder="inscription, urgent…" /></label>
+      <button type="button" id="mail-d-unread" class="ghost mail-d-unread">Marquer non lu</button>
     </div>
     <div class="mail-d-body">${esc(m.body_text || m.snippet || "").replace(/\n/g, "<br>")}</div>
     <div class="mail-d-reply">
-      <textarea id="mail-d-replytxt" placeholder="Répondre… (l'envoi sera activé avec le branchement SMTP)"></textarea>
-      <div class="mail-d-reply-foot"><span class="muted" style="font-size:.8rem">Réponse envoyée en tant que ${esc(m.account_address)}</span>
-        <button type="button" id="mail-d-send" disabled title="Envoi SMTP à brancher">Envoyer</button></div>
+      <textarea id="mail-d-replytxt" placeholder="Répondre à ${esc(m.from_address || "")}…"></textarea>
+      <div class="mail-d-reply-foot"><span class="muted" style="font-size:.8rem">Envoi depuis ${esc(m.account_address)}</span>
+        <button type="button" id="mail-d-send">Envoyer la réponse</button></div>
+      <p id="mail-d-sendstatus" class="muted" style="font-size:.8rem;margin:6px 0 0"></p>
     </div>`;
   $("mail-d-status").addEventListener("change", async (e) => { m.status = e.target.value; await sb.from("mail_messages").update({ status: m.status }).eq("id", id); refreshMailView(); });
   $("mail-d-assign").addEventListener("change", async (e) => { m.assigned_user = e.target.value || null; await sb.from("mail_messages").update({ assigned_user: m.assigned_user }).eq("id", id); });
   $("mail-d-tags").addEventListener("change", async (e) => { m.tags = e.target.value.split(",").map((s) => s.trim()).filter(Boolean); await sb.from("mail_messages").update({ tags: m.tags }).eq("id", id); });
+  $("mail-d-unread").addEventListener("click", async () => { m.is_read = false; await sb.from("mail_messages").update({ is_read: false }).eq("id", id); renderMailAccts(); refreshMailView(); });
+  $("mail-d-send").addEventListener("click", () => mailSendReply(m));
   renderMailList();
 }
 
