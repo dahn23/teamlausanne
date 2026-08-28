@@ -167,8 +167,8 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "repas", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "repas", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
   secretaire: ["membres", "inscriptions", "news", "resa", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "phystests", "heures"],
@@ -177,7 +177,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["repas", "Repas"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -323,7 +323,7 @@ function showView(view) {
   if (view === "stages") loadStagesTab();
   if (view === "phystests") loadPhysResults();
   if (view === "etudes") loadEtudesCalendar();
-  if (view === "repas") loadRepas();
+  if (view === "csel") loadCsel();
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
@@ -5824,44 +5824,166 @@ async function etYouthsForSeason(seasonId) {
 }
 
 // ===================================================================
-//  Repas (admin/superadmin) : récap des repas de midi au CSEL
-//  Source = contrat de chaque jeune (player_contracts.data, clés « <Jour> lunch »).
+//  CSEL (admin/superadmin) : planning hebdomadaire à donner au CSEL.
+//  Repas = contrat du jeune (player_contracts.data « <Jour> lunch ») + coachs,
+//  avec exceptions par semaine (csel_meal_overrides). Études = lecture seule.
+//  Export PDF = fenêtre d'impression avec le logo Academy.
 // ===================================================================
-const RP_ROLES = ["sport-etudes", "pro", "pro-u18"];
-const RP_ROLE_LBL = { "sport-etudes": "Sport-études", "pro": "Pro", "pro-u18": "Pro U18" };
-async function loadRepas() {
+const CSEL_ROLES = ["sport-etudes", "pro", "pro-u18"];
+const CSEL_ROLE_LBL = { "sport-etudes": "Sport-études", "pro": "Pro", "pro-u18": "Pro U18" };
+let cselSub = "repas", cselMonday = null, cselDefaults = {};
+
+const cselMondayOf = (iso) => { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoA(d); };
+function cselWeekDates() { return PC_DAYS.map((_, i) => { const d = new Date(cselMonday + "T00:00:00"); d.setDate(d.getDate() + i); return isoA(d); }); }
+function cselSeasonId() {
+  const list = seasonsOf("juniors");
+  return (list.find((s) => s.start_date <= cselMonday && cselMonday <= s.end_date) || currentSeason("juniors") || {}).id || null;
+}
+
+async function loadCsel() {
   await loadSeasonsList();
-  const sel = $("rp-season");
-  if (!sel.dataset.wired) { sel.addEventListener("change", loadRepas); sel.dataset.wired = "1"; }
-  if (!sel.options.length) { const cur = currentSeason("juniors")?.id; sel.innerHTML = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">— créez une saison juniors —</option>'; if (cur) sel.value = cur; }
-  const seasonId = sel.value;
-  const body = $("rp-body");
-  if (!seasonId) { body.innerHTML = '<p class="muted" style="font-size:.85rem">Crée d\'abord une saison juniors (Réglages › Saisons).</p>'; return; }
-  const { data: rps } = await sb.from("role_periods").select("person_id,role").eq("season_id", seasonId).in("role", RP_ROLES);
+  if (!cselMonday) cselMonday = cselMondayOf(isoA(new Date()));
+  const wk = $("csel-week");
+  if (!wk.dataset.wired) {
+    wk.dataset.wired = "1";
+    wk.addEventListener("change", () => { cselMonday = cselMondayOf(wk.value || isoA(new Date())); renderCsel(); });
+    $("csel-prev").addEventListener("click", () => cselShift(-7));
+    $("csel-next").addEventListener("click", () => cselShift(7));
+    $("csel-reset").addEventListener("click", cselReset);
+    $("csel-pdf").addEventListener("click", cselExportPdf);
+    document.querySelectorAll("#view-csel .csel-subtab").forEach((b) => b.addEventListener("click", () => {
+      cselSub = b.dataset.sub;
+      document.querySelectorAll("#view-csel .csel-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      $("csel-sub-repas").classList.toggle("hidden", cselSub !== "repas");
+      $("csel-sub-etudes").classList.toggle("hidden", cselSub !== "etudes");
+      $("csel-reset").classList.toggle("hidden", cselSub !== "repas");
+      renderCsel();
+    }));
+  }
+  renderCsel();
+}
+function cselShift(days) { const d = new Date(cselMonday + "T00:00:00"); d.setDate(d.getDate() + days); cselMonday = isoA(d); renderCsel(); }
+function renderCsel() {
+  $("csel-week").value = cselMonday;
+  const dates = cselWeekDates();
+  $("csel-range").textContent = `Semaine du ${frDate(dates[0])} au ${frDate(dates[4])}`;
+  if (cselSub === "repas") renderCselRepas(dates); else renderCselEtudes(dates);
+}
+
+async function renderCselRepas(dates) {
+  const body = $("csel-repas-body");
+  const seasonId = cselSeasonId();
+  if (!seasonId) { body.innerHTML = '<p class="muted" style="font-size:.85rem">Aucune saison juniors pour cette semaine.</p>'; return; }
+  const { data: rps } = await sb.from("role_periods").select("person_id,role").eq("season_id", seasonId).in("role", CSEL_ROLES);
   const roleByPerson = {};
   for (const r of rps || []) (roleByPerson[r.person_id] = roleByPerson[r.person_id] || []).push(r.role);
   const ids = [...new Set((rps || []).map((r) => r.person_id))];
-  if (!ids.length) { body.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jeune sport-études / pro pour cette saison.</p>'; return; }
   const youths = ids.map((id) => people.find((p) => p.id === id)).filter(Boolean).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
-  const { data: contracts } = await sb.from("player_contracts").select("person_id,data").eq("season_id", seasonId).in("person_id", ids);
-  const dataByPerson = {};
-  for (const c of contracts || []) dataByPerson[c.person_id] = c.data || {};
-  const totals = [0, 0, 0, 0, 0]; let grand = 0;
-  const rows = youths.map((y) => {
-    const d = dataByPerson[y.id] || {};
+  const coaches = people.filter((p) => hasRoleIn(p.id, COACH_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+  const [cRes, oRes] = await Promise.all([
+    ids.length ? sb.from("player_contracts").select("person_id,data").eq("season_id", seasonId).in("person_id", ids) : Promise.resolve({ data: [] }),
+    sb.from("csel_meal_overrides").select("person_id,dow,present").eq("week_start", cselMonday),
+  ]);
+  const contractData = {};
+  for (const c of cRes.data || []) contractData[c.person_id] = c.data || {};
+  const ovrMap = {};
+  for (const o of oRes.data || []) (ovrMap[o.person_id] = ovrMap[o.person_id] || {})[o.dow] = o.present;
+  cselDefaults = {};
+  const totals = [0, 0, 0, 0, 0];
+  const rowHtml = (p, isCoach) => {
+    const def = PC_DAYS.map(([k]) => isCoach ? false : (contractData[p.id]?.[k + " lunch"] === "Oui"));
+    cselDefaults[p.id] = def;
     let cnt = 0;
-    const cells = PC_DAYS.map(([k], i) => {
-      const on = d[k + " lunch"] === "Oui";
-      if (on) { totals[i]++; grand++; cnt++; }
-      return `<td class="rp-c ${on ? "rp-yes" : "rp-no"}">${on ? "✔" : "—"}</td>`;
+    const cells = def.map((dflt, i) => {
+      const dow = i + 1, ov = ovrMap[p.id]?.[dow];
+      const on = ov === undefined ? dflt : ov;
+      if (on) { totals[i]++; cnt++; }
+      return `<td class="csel-c ${on ? "csel-yes" : "csel-no"}" data-p="${p.id}" data-dow="${dow}" title="Cliquer pour changer">${on ? "✔" : "—"}</td>`;
     }).join("");
-    const roles = (roleByPerson[y.id] || []).map((r) => RP_ROLE_LBL[r] || r).join(", ");
-    return `<tr><td><b>${esc(y.last_name)} ${esc(y.first_name)}</b></td><td class="muted">${esc(roles)}</td>${cells}<td class="rp-c"><b>${cnt}</b></td></tr>`;
+    const sub = isCoach ? "Coach" : (roleByPerson[p.id] || []).map((r) => CSEL_ROLE_LBL[r] || r).join(", ");
+    return `<tr><td><b>${esc(p.last_name)} ${esc(p.first_name)}</b></td><td class="muted">${esc(sub)}</td>${cells}<td class="csel-c"><b>${cnt}</b></td></tr>`;
+  };
+  const youthRows = youths.map((y) => rowHtml(y, false)).join("");
+  const coachRows = coaches.map((c) => rowHtml(c, true)).join("");
+  const sep = (l) => `<tr class="csel-sep"><td colspan="8">${l}</td></tr>`;
+  const foot = `<tr class="csel-tot"><td><b>Total / jour</b></td><td></td>${totals.map((t) => `<td class="csel-c"><b>${t}</b></td>`).join("")}<td class="csel-c"><b>${totals.reduce((a, b) => a + b, 0)}</b></td></tr>`;
+  body.innerHTML = (!youths.length && !coaches.length) ? '<p class="muted" style="font-size:.85rem">Aucun jeune sport-études / pro pour cette saison.</p>'
+    : `<div class="tbl-wrap"><table class="crm-table csel-table">
+    <thead><tr><th>Nom</th><th>Filière</th>${PC_DAYS.map(([, l], i) => `<th>${l}<br><span class="csel-dh">${dates[i].slice(8, 10)}.${dates[i].slice(5, 7)}</span></th>`).join("")}<th>Sem.</th></tr></thead>
+    <tbody>${youthRows ? sep("Jeunes") + youthRows : ""}${coachRows ? sep("Coachs / staff") + coachRows : ""}</tbody>
+    <tfoot>${foot}</tfoot></table></div>`;
+  body.querySelectorAll(".csel-c[data-p]").forEach((c) => c.addEventListener("click", () => cselToggle(c)));
+}
+
+async function cselToggle(cell) {
+  const pid = cell.dataset.p, dow = Number(cell.dataset.dow);
+  const def = cselDefaults[pid]?.[dow - 1] || false;
+  const next = !cell.classList.contains("csel-yes");
+  if (next === def) {
+    await sb.from("csel_meal_overrides").delete().eq("week_start", cselMonday).eq("person_id", pid).eq("dow", dow);
+  } else {
+    await sb.from("csel_meal_overrides").upsert({ week_start: cselMonday, person_id: pid, dow, present: next, marked_by: meId }, { onConflict: "week_start,person_id,dow" });
+  }
+  renderCselRepas(cselWeekDates());
+}
+async function cselReset() {
+  if (!confirm("Réinitialiser cette semaine selon les contrats ? (efface les modifications faites pour cette semaine)")) return;
+  await sb.from("csel_meal_overrides").delete().eq("week_start", cselMonday);
+  renderCselRepas(cselWeekDates());
+}
+
+async function renderCselEtudes(dates) {
+  const body = $("csel-etudes-body");
+  const seasonId = cselSeasonId();
+  if (!seasonId) { body.innerHTML = '<p class="muted" style="font-size:.85rem">Aucune saison juniors pour cette semaine.</p>'; return; }
+  const { data: days } = await sb.from("etudes_days").select("id,day").eq("season_id", seasonId).gte("day", dates[0]).lte("day", dates[4]).order("day");
+  if (!days || !days.length) { body.innerHTML = '<p class="muted" style="font-size:.85rem">Pas d\'études cette semaine.</p>'; return; }
+  const dayIds = days.map((d) => d.id);
+  const [pRes, att, youths] = await Promise.all([
+    sb.from("etudes_day_profs").select("day_id,prof_person_id").in("day_id", dayIds),
+    fetchAllEtudesAtt(dayIds, "day_id,youth_person_id,status"),
+    etYouthsForSeason(seasonId),
+  ]);
+  const firstOf = (id) => people.find((x) => x.id === id)?.first_name || "?";
+  const rows = days.map((d) => {
+    const profs = (pRes.data || []).filter((x) => x.day_id === d.id).map((x) => firstOf(x.prof_person_id)).join(", ") || "—";
+    const notPlanned = new Set(att.filter((a) => a.day_id === d.id && a.status === "not_planned").map((a) => a.youth_person_id));
+    const present = youths.filter((y) => !notPlanned.has(y.id));
+    const list = present.map((y) => `${y.last_name} ${y.first_name}`).join(", ") || "—";
+    return `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}</td><td>${esc(profs)}</td><td class="csel-c">${present.length}</td><td>${esc(list)}</td></tr>`;
   }).join("");
-  const foot = `<tr class="rp-tot"><td><b>Total / jour</b></td><td></td>${totals.map((t) => `<td class="rp-c"><b>${t}</b></td>`).join("")}<td class="rp-c"><b>${grand}</b></td></tr>`;
-  body.innerHTML = `<div class="tbl-wrap"><table class="crm-table rp-table">
-    <thead><tr><th>Jeune</th><th>Programme</th>${PC_DAYS.map(([, l]) => `<th>${l}</th>`).join("")}<th>Sem.</th></tr></thead>
-    <tbody>${rows}</tbody><tfoot>${foot}</tfoot></table></div>`;
+  body.innerHTML = `<div class="tbl-wrap"><table class="crm-table csel-et-table">
+    <thead><tr><th>Jour</th><th>Prof(s)</th><th>Nb</th><th>Élèves prévus</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function cselExportPdf() {
+  const dates = cselWeekDates();
+  const title = cselSub === "repas" ? "Repas de midi" : "Études";
+  const table = (cselSub === "repas" ? $("csel-repas-body") : $("csel-etudes-body")).querySelector("table");
+  if (!table) { alert("Rien à exporter pour cette semaine."); return; }
+  const logo = new URL("assets/logo-academie.webp", location.href).href;
+  const w = window.open("", "_blank");
+  if (!w) { alert("Autorise les pop-ups pour l'export PDF."); return; }
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>CSEL — ${title}</title>
+    <style>
+      body{font-family:system-ui,Arial,sans-serif;color:#111;margin:22px}
+      .h{display:flex;align-items:center;gap:16px;margin-bottom:16px;border-bottom:2px solid #123cc4;padding-bottom:10px}
+      .h img{height:56px}.h h1{margin:0;font-size:1.25rem;color:#123cc4}.h p{margin:3px 0 0;color:#555;font-size:.88rem}
+      table{border-collapse:collapse;width:100%;font-size:.8rem}
+      th,td{border:1px solid #ccc;padding:5px 8px;text-align:left}
+      th{background:#f0f3fb}
+      .csel-c{text-align:center}
+      .csel-yes{color:#137a37;font-weight:700}.csel-no{color:#bbb}
+      .csel-dh{font-weight:400;font-size:.7rem;color:#888}
+      .csel-sep td{background:#eef1f7;font-weight:700}
+      .csel-tot td{background:#f0f3fb;font-weight:700}
+      @page{size:landscape;margin:11mm}
+    </style></head><body>
+    <div class="h"><img src="${logo}" alt=""><div><h1>CSEL — ${title}</h1><p>Semaine du ${frDate(dates[0])} au ${frDate(dates[4])} · Team Lausanne Academy</p></div></div>
+    ${table.outerHTML}
+    <scr` + `ipt>window.onload=function(){setTimeout(function(){window.print();},250);};</scr` + `ipt>
+    </body></html>`);
+  w.document.close();
 }
 
 // ---- Sous-onglet Calendrier ----
