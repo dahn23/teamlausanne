@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=73" />
+  <link rel="stylesheet" href="style.css?v=74" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -68,7 +68,10 @@
             <div class="crm-head">
               <h1>Répertoire</h1>
               <div class="crm-actions">
-                <input id="search" type="search" placeholder="Rechercher…" />
+                <div class="search-wrap">
+                  <input id="search" type="text" autocomplete="off" placeholder="Rechercher…" />
+                  <button type="button" id="search-clear" class="search-clear" aria-label="Effacer la recherche" hidden>×</button>
+                </div>
                 <button id="autofill-lic" class="ghost" title="Remplir les n° de licence depuis les participants GameZone (par nom + naissance)">Retrouver les licences</button>
                 <button id="find-lic-mt" class="ghost" title="Chercher les licences manquantes sur mytennis (par nom, confirmé par la date de naissance)">Chercher sur mytennis</button>
                 <button id="import-people" class="ghost">Importer (Excel)</button>

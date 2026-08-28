@@ -287,7 +287,8 @@ async function init(roles) {
   $("pp-fill").addEventListener("click", () => openPhysFillFor($("p-id").value));
   $("p-photo-btn").addEventListener("click", () => $("p-photo-file").click());
   $("p-photo-file").addEventListener("change", () => uploadPersonPhoto($("p-photo-file")));
-  $("search").addEventListener("input", renderRows);
+  $("search").addEventListener("input", () => { $("search-clear").hidden = !$("search").value; renderRows(); });
+  $("search-clear").addEventListener("click", () => { $("search").value = ""; $("search-clear").hidden = true; renderRows(); $("search").focus(); });
   document.querySelectorAll(".side-item[data-view]").forEach((b) =>
     b.addEventListener("click", () => showView(b.dataset.view)));
   $("rg-save").addEventListener("click", saveSettings);
@@ -983,8 +984,9 @@ function renderFilters() {
     `<button type="button" class="chip filt${activeFilters.has(v) ? " sel" : ""}" data-role="${v}">${esc(l)}</button>`).join("");
   box.querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => {
     const r = b.dataset.role;
-    if (!r) activeFilters.clear();
-    else activeFilters.has(r) ? activeFilters.delete(r) : activeFilters.add(r);
+    // Filtre unique : un clic remplace le filtre courant (re-cliquer le filtre actif = revient à « Tout »).
+    if (!r || (activeFilters.has(r) && activeFilters.size === 1)) activeFilters.clear();
+    else { activeFilters.clear(); activeFilters.add(r); }
     renderFilters(); renderRows();
   }));
 }
