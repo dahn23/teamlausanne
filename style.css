@@ -800,7 +800,7 @@ html{-webkit-tap-highlight-color:transparent}
 /* Combo avec recherche (ex. Jeune dans Remplir un test) */
 .combo{position:relative}
 .combo > input[type=text]{width:100%;box-sizing:border-box}
-.combo-list{position:absolute;left:0;top:calc(100% + 4px);z-index:90;width:100%;max-height:240px;overflow-y:auto;
+.combo-list{position:fixed;z-index:120;max-height:240px;overflow-y:auto;
   background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(20,30,60,.16)}
 .combo-opt{padding:9px 12px;cursor:pointer;font-size:.9rem}
 .combo-opt:hover{background:#eef3ff}

@@ -5113,6 +5113,13 @@ function renderPfYouthList(q) {
     $("pf-person-search").value = pfName(p);
     box.hidden = true;
   }));
+  // Positionnement fixe (sinon la liste est rognée par la modale en overflow:auto)
+  const r = $("pf-person-search").getBoundingClientRect();
+  const below = window.innerHeight - r.bottom - 10;
+  box.style.left = r.left + "px";
+  box.style.top = (r.bottom + 4) + "px";
+  box.style.width = r.width + "px";
+  box.style.maxHeight = Math.max(120, Math.min(240, below)) + "px";
   box.hidden = false;
 }
 async function openPhysFillFor(personId) {
