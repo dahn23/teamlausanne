@@ -5882,6 +5882,7 @@ async function loadMail() {
     $("mail-status").addEventListener("change", refreshMailView);
     $("mail-sync").addEventListener("click", mailSync);
     $("mail-history-btn").addEventListener("click", mailHistory);
+    $("mail-importboxes-btn").addEventListener("click", mailImportBoxes);
   }
   const [{ data: accts }, { data: msgs }] = await Promise.all([
     sb.from("mail_accounts").select("*").order("sort_order"),
@@ -5907,6 +5908,24 @@ async function refreshMailView() {
     mailView = mailMsgs.filter((m) => (!mailFilterAddr || m.account_address === mailFilterAddr) && (!st || m.status === st));
   }
   renderMailList();
+}
+async function mailImportBoxes() {
+  const boxes = ["tournoi@teamlausanne.ch", "info@lausanneopen.ch"];
+  if (!confirm("Importer les 100 derniers mails de tournoi@teamlausanne.ch et info@lausanneopen.ch ? (IMAP doit être activé sur ces boîtes)")) return;
+  const btn = $("mail-importboxes-btn"); btn.disabled = true;
+  const results = [];
+  try {
+    for (const address of boxes) {
+      btn.textContent = "Import " + address.split("@")[0] + "…";
+      const { data, error } = await sb.functions.invoke("mail-import-box", { body: { address, limit: 100 } });
+      if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} results.push(`${address} : ${m}`); }
+      else if (data?.error) results.push(`${address} : ${data.error}`);
+      else results.push(`${address} : ${data?.inserted || 0} importé(s)`);
+    }
+    await loadMail();
+    alert("Import terminé.\n" + results.join("\n"));
+  } catch (e) { alert("Import impossible : " + (e?.message || e)); }
+  btn.disabled = false; btn.textContent = "Importer autres boîtes";
 }
 async function mailHistory() {
   const btn = $("mail-history-btn");
