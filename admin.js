@@ -1834,8 +1834,7 @@ function filterCourses() {
       el.classList.toggle("hidden", !!q && !(el.dataset.search || "").includes(q)));
     document.querySelectorAll("#cs-week .cw-day").forEach((day) => {
       const any = [...day.querySelectorAll(".cw-ev")].some((e) => !e.classList.contains("hidden"));
-      const none = day.querySelector(".cw-none");
-      if (none) none.hidden = any || (q && !day.querySelector(".cw-ev"));
+      day.classList.toggle("hidden", !any);
     });
     return;
   }
@@ -1889,14 +1888,14 @@ async function loadCoursesWeek() {
     </div>`;
   };
   const today = isoA(new Date());
-  $("cs-week").innerHTML = days.map((iso, i) => {
-    const dc = (courses || []).filter((c) => c.course_date === iso);
+  const filled = days.map((iso, i) => ({ iso, i, dc: (courses || []).filter((c) => c.course_date === iso) })).filter((x) => x.dc.length);
+  $("cs-week").innerHTML = filled.length ? filled.map(({ iso, i, dc }) => {
     const dd = iso.slice(8, 10) + "." + iso.slice(5, 7);
     return `<div class="cw-day${iso === today ? " cw-today" : ""}">
       <div class="cw-dh"><span><b>${DOW_ABBR[i]}</b> ${dd}</span>${isCourseMgr ? `<button type="button" class="cw-add" data-d="${iso}" title="Nouveau cours ce jour">+</button>` : ""}</div>
-      <div class="cw-evs">${dc.length ? dc.map(evHtml).join("") : '<p class="cw-none muted">—</p>'}</div>
+      <div class="cw-evs">${dc.map(evHtml).join("")}</div>
     </div>`;
-  }).join("");
+  }).join("") : '<p class="muted">Aucun cours cette semaine.</p>';
   const W = $("cs-week");
   if (isCourseMgr) {
     W.querySelectorAll(".cw-ev").forEach((el) => el.addEventListener("click", () => editCourse(el.dataset.id)));
