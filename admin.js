@@ -167,17 +167,17 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "monrepas", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "monrepas", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["membres", "inscriptions", "news", "resa", "caisse", "monrepas", "locks", "irrigation", "stages", "stats"],
-  head_coach: ["resa", "cours", "matchs", "phystests", "mental", "monrepas", "stages", "prospects", "heures"],
-  coach:      ["cours", "matchs", "phystests", "monrepas", "heures"],
+  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["membres", "inscriptions", "news", "resa", "caisse", "locks", "irrigation", "stages", "stats"],
+  head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
+  coach:      ["cours", "matchs", "phystests", "heures"],
   prof:       ["etudes"],
   coach_mental: ["mental", "heures"],
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["monrepas", "Repas"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -324,7 +324,6 @@ function showView(view) {
   if (view === "phystests") loadPhysResults();
   if (view === "etudes") loadEtudesCalendar();
   if (view === "csel") loadCsel();
-  if (view === "monrepas") loadMonRepas();
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
@@ -1227,6 +1226,9 @@ function openPerson(p) {
   showPersonTab("stages", false);
   const staffPayRole = [...COACH_ROLES, "prof", "coach-mental"].some((r) => roles.includes(r));
   showPersonTab("coach", staffPayRole);
+  const isCoachPerson = COACH_ROLES.some((r) => roles.includes(r)); // sous-onglet Repas = coachs
+  showPersonTab("repas", isCoachPerson);
+  loadPersonMeals(p ? p.id : null, isCoachPerson);
   $("p-iban").value = p?.iban || "";
   loadCoachRates(p ? p.id : null);
   setPersonTab("info");
@@ -5993,24 +5995,28 @@ function cselExportPdf() {
   w.document.close();
 }
 
-// ---- Repas (self-service) : le coach/secrétaire déclare ses jours de repas au CSEL ----
-async function loadMonRepas() {
-  const mount = $("mr-days"), status = $("mr-status");
-  status.textContent = "";
-  if (!myPersonId) { mount.innerHTML = '<p class="muted" style="font-size:.85rem">Ton compte n\'est pas relié à une fiche — préviens l\'administration.</p>'; return; }
-  const { data } = await sb.from("coach_meal_defaults").select("dow").eq("person_id", myPersonId);
+// ---- Fiche coach › sous-onglet Repas : jours de repas au CSEL (rempli par le staff) ----
+async function loadPersonMeals(personId, show) {
+  const mount = $("pr-days"), status = $("pr-status");
+  if (status) status.textContent = "";
+  if (!mount) return;
+  if (!show || !personId) { mount.innerHTML = ""; mount.dataset.pid = ""; return; }
+  mount.dataset.pid = personId;
+  const { data } = await sb.from("coach_meal_defaults").select("dow").eq("person_id", personId);
   const set = new Set((data || []).map((r) => r.dow));
   mount.innerHTML = PC_DAYS.map(([, l], i) => `<button type="button" class="mr-day ${set.has(i + 1) ? "on" : ""}" data-dow="${i + 1}">${l}</button>`).join("");
-  mount.querySelectorAll(".mr-day").forEach((b) => b.addEventListener("click", () => mrToggle(b)));
+  mount.querySelectorAll(".mr-day").forEach((b) => b.addEventListener("click", () => prMealToggle(b)));
 }
-async function mrToggle(btn) {
+async function prMealToggle(btn) {
+  const personId = $("pr-days").dataset.pid;
+  if (!personId) return;
   const dow = Number(btn.dataset.dow), on = btn.classList.contains("on");
   const { error } = on
-    ? await sb.from("coach_meal_defaults").delete().eq("person_id", myPersonId).eq("dow", dow)
-    : await sb.from("coach_meal_defaults").upsert({ person_id: myPersonId, dow }, { onConflict: "person_id,dow" });
-  if (error) { $("mr-status").textContent = "Erreur : " + error.message; return; }
+    ? await sb.from("coach_meal_defaults").delete().eq("person_id", personId).eq("dow", dow)
+    : await sb.from("coach_meal_defaults").upsert({ person_id: personId, dow }, { onConflict: "person_id,dow" });
+  if (error) { $("pr-status").textContent = "Erreur : " + error.message; return; }
   btn.classList.toggle("on");
-  $("mr-status").textContent = "✓ Enregistré.";
+  $("pr-status").textContent = "✓ Enregistré.";
 }
 
 // ---- Sous-onglet Calendrier ----
