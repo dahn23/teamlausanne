@@ -5879,7 +5879,7 @@ async function loadMail() {
     $("mail-search").dataset.wired = "1";
     $("mail-search").addEventListener("input", renderMailList);
     $("mail-status").addEventListener("change", renderMailList);
-    $("mail-sync").addEventListener("click", () => alert("Relève automatique : à brancher une fois le mot de passe d'application Gmail fourni (IMAP côté serveur)."));
+    $("mail-sync").addEventListener("click", mailSync);
   }
   const [{ data: accts }, { data: msgs }] = await Promise.all([
     sb.from("mail_accounts").select("*").order("sort_order"),
@@ -5889,6 +5889,24 @@ async function loadMail() {
   mailMsgs = msgs || [];
   renderMailAccts();
   renderMailList();
+}
+async function mailSync() {
+  const btn = $("mail-sync");
+  btn.disabled = true; btn.textContent = "Relève…";
+  try {
+    const { data, error } = await sb.functions.invoke("mail-fetch", { body: {} });
+    if (error) {
+      let m = error.message || String(error);
+      try { m = (await error.context.json())?.error || m; } catch (_) {}
+      alert("Relève impossible : " + m);
+    } else if (data?.error) {
+      alert("Relève : " + data.error);
+    } else {
+      await loadMail();
+      if (typeof data?.inserted === "number") { $("mail-demo").textContent = `Relève OK — ${data.inserted} nouveau(x) message(s).`; }
+    }
+  } catch (e) { alert("Relève impossible : " + (e?.message || e)); }
+  btn.disabled = false; btn.textContent = "Relever";
 }
 function renderMailAccts() {
   const counts = {};
