@@ -5837,6 +5837,8 @@ async function etYouthsForSeason(seasonId) {
 //  Fenêtre : aujourd'hui −7 j → +21 j. Tout le monde sauf membres/clients.
 // ===================================================================
 const BDAY_EXCLUDE = ["membre", "client"];
+// Rôles mis en évidence dans la liste (les « importants » de l'académie)
+const BDAY_HIGHLIGHT = ["pro", "pro-u18", "sport-etudes", "competition", "performance", "coach", "head-coach", "prof", "admin", "superadmin"];
 async function loadBirthdays() {
   const body = $("bday-body");
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -5867,17 +5869,18 @@ async function loadBirthdays() {
     (mdMap[md] = mdMap[md] || []).push(p);
   }
   // Parcours des 29 jours de la fenêtre (gère le passage d'année)
+  const isHl = (id) => (peopleRoles[id] || []).some((r) => BDAY_HIGHLIGHT.includes(r));
   const rows = [];
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const iso = isoA(d), md = iso.slice(5, 10);
     for (const p of (mdMap[md] || [])) {
-      rows.push({ iso, p, age: d.getFullYear() - Number(p.birthdate.slice(0, 4)), hasCourse: byDate[iso]?.has(p.id) || false, isToday: iso === todayIso });
+      rows.push({ iso, p, age: d.getFullYear() - Number(p.birthdate.slice(0, 4)), hasCourse: byDate[iso]?.has(p.id) || false, isToday: iso === todayIso, hl: isHl(p.id) });
     }
   }
   if (!rows.length) { body.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun anniversaire dans la période.</p>'; return; }
   body.innerHTML = `<div class="tbl-wrap"><table class="crm-table bday-table">
     <thead><tr><th>Date</th><th>Nom</th><th>Prénom</th><th>Âge</th><th>Cours ce jour</th></tr></thead>
-    <tbody>${rows.map((r) => `<tr class="${r.isToday ? "bday-today" : ""}">
+    <tbody>${rows.map((r) => `<tr class="${r.hl ? "bday-hl" : ""}${r.isToday ? " bday-today" : ""}">
       <td><b>${etDow(r.iso)}</b> ${frDate(r.iso)}${r.isToday ? ' <span class="bday-tag">aujourd\'hui</span>' : ""}</td>
       <td><b>${esc(r.p.last_name)}</b></td><td>${esc(r.p.first_name)}</td>
       <td>${r.age} ans</td>

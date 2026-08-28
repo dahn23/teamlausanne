@@ -799,6 +799,9 @@ html{-webkit-tap-highlight-color:transparent}
 .people-count{margin:2px 0 10px;font-size:.85rem;font-weight:600}
 /* Anniversaires */
 .bday-table td.bday-c{text-align:center;font-weight:800}
+.bday-table tr.bday-hl{background:#fff7e6}
+.bday-table tr.bday-hl td:first-child{box-shadow:inset 3px 0 0 #e0a417}
+.bday-table tr.bday-hl b{color:var(--blue-ink)}
 .bday-table tr.bday-today{background:#eef3ff}
 .bday-table tr.bday-today td{border-top:1px solid var(--blue);border-bottom:1px solid var(--blue)}
 .bday-tag{display:inline-block;background:var(--blue);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:middle}
