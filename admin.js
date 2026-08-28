@@ -5865,6 +5865,18 @@ async function loadRepas() {
 }
 
 // ---- Sous-onglet Calendrier ----
+// Lecture paginée des présences (Supabase plafonne à 1000 lignes/requête ;
+// une saison de sport-études dépasse ce seuil → sinon des jeunes restent « vides »).
+async function fetchAllEtudesAtt(dayIds, cols = "*") {
+  const all = [], PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await sb.from("etudes_attendance").select(cols).in("day_id", dayIds).range(from, from + PAGE - 1);
+    if (error || !data || !data.length) break;
+    all.push(...data);
+    if (data.length < PAGE) break;
+  }
+  return all;
+}
 async function loadEtudesCalendar() {
   await loadSeasonsList();
   etPopulateSeasons();
@@ -5878,7 +5890,7 @@ async function loadEtudesCalendar() {
   if (dayIds.length) {
     [profs, att, etvals] = await Promise.all([
       sb.from("etudes_day_profs").select("*").in("day_id", dayIds).then((r) => r.data || []),
-      sb.from("etudes_attendance").select("*").in("day_id", dayIds).then((r) => r.data || []),
+      fetchAllEtudesAtt(dayIds),
       sb.from("etudes_day_validation").select("*").in("day_id", dayIds).then((r) => r.data || []),
     ]);
   }
@@ -6061,7 +6073,7 @@ async function loadEtudesYouths() {
   const { data: days } = await sb.from("etudes_days").select("id").eq("season_id", seasonId);
   const dayIds = (days || []).map((d) => d.id);
   let att = [];
-  if (dayIds.length) att = (await sb.from("etudes_attendance").select("youth_person_id,status").in("day_id", dayIds)).data || [];
+  if (dayIds.length) att = await fetchAllEtudesAtt(dayIds, "youth_person_id,status");
   const stat = (yid) => {
     const rows = att.filter((a) => a.youth_person_id === yid && a.status !== "not_planned");
     const n = rows.length;
