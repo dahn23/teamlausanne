@@ -5918,7 +5918,11 @@ async function mailImportBoxes() {
     for (const address of boxes) {
       btn.textContent = "Import " + address.split("@")[0] + "…";
       const { data, error } = await sb.functions.invoke("mail-import-box", { body: { address, limit: 100 } });
-      if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} results.push(`${address} : ${m}`); }
+      if (error) {
+        let m = error.message;
+        try { const t = await error.context.text(); try { m = JSON.parse(t).error || t; } catch (_) { m = t || m; } } catch (_) {}
+        results.push(`${address} : ${m}`);
+      }
       else if (data?.error) results.push(`${address} : ${data.error}`);
       else results.push(`${address} : ${data?.inserted || 0} importé(s)`);
     }
