@@ -1673,6 +1673,7 @@ function initCours(roles) {
   $("course-modal").addEventListener("click", (e) => { if (e.target === $("course-modal")) $("course-modal").classList.add("hidden"); });
   $("course-form").addEventListener("submit", saveCourse);
   $("c-del").addEventListener("click", deleteCourse);
+  $("c-type").addEventListener("change", () => { const t = courseTypes.find((x) => x.id === $("c-type").value); if (t) $("c-color").value = t.color; });
   $("c-search").addEventListener("input", renderPlayerChips);
   $("att-close").addEventListener("click", () => $("att-modal").classList.add("hidden"));
   $("att-modal").addEventListener("click", (e) => { if (e.target === $("att-modal")) $("att-modal").classList.add("hidden"); });
@@ -1802,7 +1803,7 @@ async function loadCoursesDay() {
     const needMore = Math.max(coachIds.length, childIds.length) > 4;
     const nmeOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name} ${p.last_name}` : ""; };
     const search = esc([c.title || "", type?.name || "", ...coachIds.map(nmeOf), ...childIds.map(nmeOf)].join(" ").toLowerCase());
-    return `<div class="cs-card" data-id="${c.id}" data-search="${search}" style="border-left-color:${c.color || (type?.color) || "#0b6b3a"}">
+    return `<div class="cs-card" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cs-card-top">
         <div class="cs-time">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
         <div class="cs-main"><b>${esc(c.title || type?.name || "Cours")}</b>
@@ -1871,16 +1872,20 @@ async function loadCoursesWeek() {
   }
   const courtName = (id) => (resaCourtsAll.find((c) => c.id === id)?.name || "?").replace("Court ", "C");
   const nmeOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name} ${p.last_name}` : ""; };
+  const firstOf = (pid) => people.find((x) => x.id === pid)?.first_name || "";
   const evHtml = (c) => {
     const cts = books.filter((b) => b.course_id === c.id).map((b) => courtName(b.court_id)).join(", ");
     const coachIds = coaches.filter((x) => x.course_id === c.id).map((x) => x.coach_person_id);
     const childIds = parts.filter((x) => x.course_id === c.id).map((x) => x.child_person_id);
     const type = courseTypes.find((t) => t.id === c.course_type_id);
+    const coachNames = coachIds.map(firstOf).filter(Boolean);
+    const coachStr = coachNames.slice(0, 3).join(", ") + (coachNames.length > 3 ? ` +${coachNames.length - 3}c` : "");
     const search = esc([c.title || "", type?.name || "", ...coachIds.map(nmeOf), ...childIds.map(nmeOf)].join(" ").toLowerCase());
-    return `<div class="cw-ev" data-id="${c.id}" data-search="${search}" style="border-left-color:${c.color || type?.color || "#0b6b3a"}">
+    return `<div class="cw-ev" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cw-ev-t">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
       <div class="cw-ev-n">${esc(c.title || type?.name || "Cours")}</div>
-      <div class="cw-ev-m muted">${cts || "—"}${childIds.length ? " · " + childIds.length + "j" : ""}${coachIds.length ? " · " + coachIds.length + "c" : ""}</div>
+      <div class="cw-ev-m muted">${cts || "—"}${childIds.length ? " · " + childIds.length + "j" : ""}</div>
+      ${coachStr ? `<div class="cw-ev-co">${esc(coachStr)}</div>` : ""}
     </div>`;
   };
   const today = isoA(new Date());
@@ -3058,7 +3063,8 @@ function openCourse(course, related) {
   $("c-date").value = course?.course_date || $("cs-date").value;
   $("c-start").value = course ? course.start_time.slice(0, 5) : "17:00";
   $("c-end").value = course ? course.end_time.slice(0, 5) : "18:00";
-  $("c-color").value = course?.color || "#0b6b3a";
+  const cType = courseTypes.find((t) => t.id === course?.course_type_id);
+  $("c-color").value = cType?.color || course?.color || "#0b6b3a";
   renderChips("c-courts", resaCourtsAll.map((c) => [c.id, c.name.replace("Court ", "C")]), related?.courts);
   renderChips("c-coaches", people.filter((p) => hasRoleIn(p.id, COACH_ROLES)).map((p) => [p.id, `${p.last_name} ${p.first_name}`]), related?.coaches);
   cPlayers = people.filter((p) => hasRoleIn(p.id, COURSE_ROLES))
