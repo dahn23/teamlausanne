@@ -838,6 +838,9 @@ html{-webkit-tap-highlight-color:transparent}
 .mail-d-meta{font-size:.85rem;margin-bottom:12px}
 .mail-d-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:12px}
 .mail-d-unread{padding:8px 12px;font-size:.82rem;white-space:nowrap}
+.mail-d-controls > label{min-width:170px}
+.mail-d-controls .ps-wrap{width:100%}
+.mail-d-controls .ps-opt{white-space:nowrap}
 .mail-d-controls > label{font-size:.78rem;font-weight:600;color:var(--muted);display:flex;flex-direction:column;gap:3px}
 .mail-d-tagslbl{flex:1;min-width:160px}
 .mail-d-tagslbl input{width:100%;box-sizing:border-box;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px}
