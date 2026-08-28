@@ -5105,7 +5105,7 @@ function renderPfYouthList(q) {
   const box = $("pf-person-list");
   box.innerHTML = list.length
     ? list.map((p) => `<div class="combo-opt" data-id="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</div>`).join("")
-    : '<div class="combo-empty">Aucun jeune</div>';
+    : '<div class="combo-empty">Aucun joueur</div>';
   box.querySelectorAll(".combo-opt").forEach((o) => o.addEventListener("mousedown", (e) => {
     e.preventDefault();
     const p = pfYouthList.find((x) => x.id === o.dataset.id);
@@ -5142,7 +5142,7 @@ async function savePhysFill(e) {
   e.preventDefault();
   const err = $("pf-error"); err.hidden = true;
   const pid = $("pf-person").value, tid = $("pf-test").value;
-  if (!pid || !tid) { err.textContent = "Choisis un jeune et un test."; err.hidden = false; return; }
+  if (!pid || !tid) { err.textContent = "Choisis un joueur et un test."; err.hidden = false; return; }
   const testName = $("pf-test").options[$("pf-test").selectedIndex]?.textContent || "Test";
   const res = await sb.from("phys_results").insert({
     test_id: tid, test_name: testName, person_id: pid,
