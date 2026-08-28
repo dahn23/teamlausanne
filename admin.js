@@ -446,8 +446,8 @@ async function initResa(roles) {
 
   const { data } = await sb.from("courts").select("*").eq("is_active", true).order("display_order");
   resaCourtsAll = data || [];
-  // Réservation : uniquement les vrais courts (ouverts au moins une saison). « Fitness » reste réservé aux cours.
-  $("r-court").innerHTML = resaCourtsAll.filter((c) => c.open_summer || c.open_winter).map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
+  // Réservation (console) : vrais courts saisonniers + « Fitness » (visible toute l'année pour les cours physiques).
+  $("r-court").innerHTML = resaCourtsAll.filter((c) => c.open_summer || c.open_winter || isFitnessCourt(c)).map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
   $("r-start").innerHTML = Array.from({ length: 14 }, (_, i) => i + 8)
     .map((h) => `<option value="${h}">${pad2(h)}:15</option>`).join("");
   await loadResaLabels();
@@ -486,19 +486,23 @@ async function loadResaDay() {
   const snowIco = '<svg class="season-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M3.4 7l17.2 10M20.6 7L3.4 17"/><path d="M12 5l-2.2 2.2M12 5l2.2 2.2M12 19l-2.2-2.2M12 19l2.2 2.2"/></svg>';
   $("resa-season").innerHTML = season === "ete" ? sunIco + "Été" : snowIco + "Hiver";
   const col = season === "ete" ? "open_summer" : "open_winter";
-  resaCourts = resaCourtsAll.filter((c) => c[col]);
+  resaCourts = resaCourtsAll.filter((c) => c[col] || isFitnessCourt(c));
   const { data: bookings } = await sb.from("court_bookings").select("*").eq("booking_date", date);
-  // Pour les cours : on récupère les coachs (affichés à la place du type dans la grille)
+  // Pour les cours : coachs (affichés à la place du type) + couleur du TYPE (source de vérité, pas la couleur figée à l'enregistrement)
   const courseIds = [...new Set((bookings || []).filter((b) => b.course_id).map((b) => b.course_id))];
-  const coachMap = {};
+  const coachMap = {}, colorMap = {};
   if (courseIds.length) {
-    const { data: cc } = await sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", courseIds);
+    const [{ data: cc }, { data: crs }] = await Promise.all([
+      sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", courseIds),
+      sb.from("courses").select("id,color,course_types(color)").in("id", courseIds),
+    ]);
     for (const x of cc || []) (coachMap[x.course_id] = coachMap[x.course_id] || []).push(x.coach_person_id);
+    for (const c of crs || []) colorMap[c.id] = c.course_types?.color || c.color || null;
   }
-  drawResaGrid(date, bookings || [], coachMap);
+  drawResaGrid(date, bookings || [], coachMap, colorMap);
 }
 
-function drawResaGrid(date, bookings, coachMap = {}) {
+function drawResaGrid(date, bookings, coachMap = {}, colorMap = {}) {
   const grid = $("resa-grid");
   grid.style.gridTemplateColumns = `64px repeat(${resaCourts.length}, minmax(74px,1fr))`;
   grid.innerHTML = "";
@@ -506,8 +510,11 @@ function drawResaGrid(date, bookings, coachMap = {}) {
   for (const c of resaCourts) {
     const el = document.createElement("div");
     el.className = "rcell rhead " + surfaceClass(c.surface);
-    const n = c.name.replace("Court ", "");
-    el.innerHTML = `<span class="cn-full">Court&nbsp;${n}</span><span class="cn-short">${n}</span>`;
+    const isCourt = /^court\s/i.test(c.name);
+    const n = c.name.replace(/^Court\s*/i, "");
+    el.innerHTML = isCourt
+      ? `<span class="cn-full">Court&nbsp;${n}</span><span class="cn-short">${n}</span>`
+      : `<span class="cn-full">${esc(c.name)}</span><span class="cn-short">${esc(c.name)}</span>`;
     el.title = `${c.name} · ${c.surface}`;
     grid.appendChild(el);
   }
@@ -520,7 +527,7 @@ function drawResaGrid(date, bookings, coachMap = {}) {
       const el = document.createElement("div");
       el.className = "rcell rslot";
       if (b) {
-        el.style.background = b.color || "#1e3ad1";
+        el.style.background = (b.course_id && colorMap[b.course_id]) || b.color || "#1e3ad1";
         el.style.color = "#fff";
         // Pour un cours : nom du/des coach(s) (le type est déjà donné par la couleur)
         const cids = b.course_id ? (coachMap[b.course_id] || []) : [];
@@ -548,6 +555,7 @@ function drawResaGrid(date, bookings, coachMap = {}) {
   }
 }
 
+const isFitnessCourt = (c) => /fitness/i.test(c?.name || "");
 const kindLabel = (k) => ({ cours: "Cours", tournoi: "Tournoi", maintenance: "Maintenance", libre: "Réservé" }[k] || "Réservé");
 function rcell(text, cls) { const el = document.createElement("div"); el.className = cls; el.textContent = text; return el; }
 function surfaceClass(s) { return /terre/i.test(s) ? "sfc-terre" : /gazon|synth/i.test(s) ? "sfc-gazon" : "sfc-dur"; }
