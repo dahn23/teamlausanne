@@ -796,6 +796,7 @@ html{-webkit-tap-highlight-color:transparent}
 .search-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:#e6e9f2;color:var(--blue-ink);
   border:0;border-radius:50%;width:20px;height:20px;padding:0;font-size:1rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .search-clear:hover{background:#d5dbeb}
+.people-count{margin:2px 0 10px;font-size:.85rem;font-weight:600}
 .cw-none{font-size:.8rem;text-align:center;margin:4px 0;color:#b6bfd0}
 @media(max-width:880px){.cs-week{grid-template-columns:1fr}.cw-dh{font-size:.92rem}}
 .chip{background:#eef1f7;border:1px solid var(--line);border-radius:999px;padding:7px 14px;

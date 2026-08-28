@@ -1152,6 +1152,9 @@ function renderRows() {
     const phones = [p.phone, ...(p.phones || [])].join(" ");
     return (`${p.first_name} ${p.last_name} ${emails} ${phones}`).toLowerCase().includes(q);
   });
+  const n = rows.length;
+  const flt = activeFilters.size ? " · " + [...activeFilters].map(roleLabel).join(", ") : "";
+  $("people-count").textContent = `${n} personne${n > 1 ? "s" : ""}${flt}`;
   const tbody = $("people-rows");
   tbody.innerHTML = "";
   $("empty-msg").hidden = rows.length > 0;
