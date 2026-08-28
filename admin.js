@@ -4951,7 +4951,7 @@ function initPhys() {
       if (b.dataset.sub === "results") loadPhysResults();
       if (b.dataset.sub === "templates") loadPhysTemplates();
     }));
-  $("phys-fill-new").addEventListener("click", openPhysFill);
+  $("phys-fill-new").addEventListener("click", () => openPhysFill());
   $("phys-tpl-new").addEventListener("click", createPhysTemplate);
   $("phys-fill-close").addEventListener("click", () => $("phys-fill-modal").classList.add("hidden"));
   $("phys-fill-modal").addEventListener("click", (e) => { if (e.target === $("phys-fill-modal")) $("phys-fill-modal").classList.add("hidden"); });
