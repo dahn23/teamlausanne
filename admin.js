@@ -5870,25 +5870,62 @@ async function etYouthsForSeason(seasonId) {
 // ===================================================================
 const MAIL_STATUS = { nouveau: ["Nouveau", "ms-new"], en_cours: ["En cours", "ms-doing"], traite: ["Traité", "ms-done"], archive: ["Archivé", "ms-arch"] };
 const MAIL_STAFF_ROLES = ["coach", "head-coach", "coach-prive", "prof", "coach-mental", "secretaire", "admin", "superadmin"];
-let mailAccounts = [], mailMsgs = [], mailFilterAddr = "", mailSelId = null;
+let mailAccounts = [], mailMsgs = [], mailView = [], mailFilterAddr = "", mailSelId = null;
 const mailDT = (iso) => { const d = new Date(iso); return `${frDate(iso)} ${d.toTimeString().slice(0, 5)}`; };
 const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() === new Date().toDateString() ? d.toTimeString().slice(0, 5) : `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`; };
 
+let mailSearchT = null;
 async function loadMail() {
   if (!$("mail-search").dataset.wired) {
     $("mail-search").dataset.wired = "1";
-    $("mail-search").addEventListener("input", renderMailList);
-    $("mail-status").addEventListener("change", renderMailList);
+    $("mail-search").addEventListener("input", () => { clearTimeout(mailSearchT); mailSearchT = setTimeout(refreshMailView, 250); });
+    $("mail-status").addEventListener("change", refreshMailView);
     $("mail-sync").addEventListener("click", mailSync);
+    $("mail-history-btn").addEventListener("click", mailHistory);
   }
   const [{ data: accts }, { data: msgs }] = await Promise.all([
     sb.from("mail_accounts").select("*").order("sort_order"),
-    sb.from("mail_messages").select("*").order("received_at", { ascending: false }),
+    sb.from("mail_messages").select("*").order("received_at", { ascending: false }).limit(200),
   ]);
   mailAccounts = accts || [];
   mailMsgs = msgs || [];
   renderMailAccts();
+  refreshMailView();
+}
+async function refreshMailView() {
+  const q = ($("mail-search").value || "").trim();
+  const st = $("mail-status").value;
+  if (q.length >= 2) {
+    const safe = q.replace(/[,()%*]/g, " ").trim();
+    let query = sb.from("mail_messages").select("*").order("received_at", { ascending: false }).limit(120)
+      .or(`subject.ilike.%${safe}%,from_name.ilike.%${safe}%,from_address.ilike.%${safe}%,body_text.ilike.%${safe}%`);
+    if (mailFilterAddr) query = query.eq("account_address", mailFilterAddr);
+    if (st) query = query.eq("status", st);
+    const { data } = await query;
+    mailView = data || [];
+  } else {
+    mailView = mailMsgs.filter((m) => (!mailFilterAddr || m.account_address === mailFilterAddr) && (!st || m.status === st));
+  }
   renderMailList();
+}
+async function mailHistory() {
+  const btn = $("mail-history-btn");
+  if (!confirm("Importer les mails des 6 derniers mois depuis Gmail dans la console ? (peut se faire en plusieurs passages)")) return;
+  btn.disabled = true;
+  let total = 0;
+  try {
+    for (let pass = 0; pass < 20; pass++) {
+      btn.textContent = `Import… (${total})`;
+      const { data, error } = await sb.functions.invoke("mail-history", { body: {} });
+      if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} alert("Import : " + m); break; }
+      if (data?.error) { alert("Import : " + data.error); break; }
+      total += data?.inserted || 0;
+      if (!data || data.remaining <= 0 || (data.inserted || 0) === 0) break;
+    }
+    await loadMail();
+    alert(`Import terminé — ${total} message(s) d'historique ajouté(s).`);
+  } catch (e) { alert("Import impossible : " + (e?.message || e)); }
+  btn.disabled = false; btn.textContent = "Importer 6 mois";
 }
 async function mailSync() {
   const btn = $("mail-sync");
@@ -5914,14 +5951,10 @@ function renderMailAccts() {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const chip = (addr, label, n) => `<button type="button" class="mail-acct${mailFilterAddr === addr ? " sel" : ""}" data-addr="${esc(addr)}">${esc(label)}${n ? ` <span class="mail-badge">${n}</span>` : ""}</button>`;
   $("mail-accts").innerHTML = chip("", "Toutes", total) + mailAccounts.map((a) => chip(a.address, a.label, counts[a.address] || 0)).join("");
-  $("mail-accts").querySelectorAll(".mail-acct").forEach((b) => b.addEventListener("click", () => { mailFilterAddr = b.dataset.addr; renderMailAccts(); renderMailList(); }));
+  $("mail-accts").querySelectorAll(".mail-acct").forEach((b) => b.addEventListener("click", () => { mailFilterAddr = b.dataset.addr; renderMailAccts(); refreshMailView(); }));
 }
 function renderMailList() {
-  const q = ($("mail-search").value || "").trim().toLowerCase();
-  const st = $("mail-status").value;
-  const list = mailMsgs.filter((m) =>
-    (!mailFilterAddr || m.account_address === mailFilterAddr) && (!st || m.status === st) &&
-    (!q || `${m.from_name || ""} ${m.from_address || ""} ${m.subject || ""} ${m.snippet || ""}`.toLowerCase().includes(q)));
+  const list = mailView;
   const acctLabel = (addr) => mailAccounts.find((a) => a.address === addr)?.label || addr;
   $("mail-list").innerHTML = list.length ? list.map((m) => {
     const [slbl, scls] = MAIL_STATUS[m.status] || [m.status, ""];
@@ -5935,7 +5968,7 @@ function renderMailList() {
   $("mail-list").querySelectorAll(".mail-item").forEach((el) => el.addEventListener("click", () => openMail(el.dataset.id)));
 }
 async function openMail(id) {
-  const m = mailMsgs.find((x) => x.id === id);
+  const m = mailView.find((x) => x.id === id) || mailMsgs.find((x) => x.id === id);
   if (!m) return;
   mailSelId = id;
   if (!m.is_read) { m.is_read = true; sb.from("mail_messages").update({ is_read: true }).eq("id", id); renderMailAccts(); }
@@ -5957,7 +5990,7 @@ async function openMail(id) {
       <div class="mail-d-reply-foot"><span class="muted" style="font-size:.8rem">Réponse envoyée en tant que ${esc(m.account_address)}</span>
         <button type="button" id="mail-d-send" disabled title="Envoi SMTP à brancher">Envoyer</button></div>
     </div>`;
-  $("mail-d-status").addEventListener("change", async (e) => { m.status = e.target.value; await sb.from("mail_messages").update({ status: m.status }).eq("id", id); renderMailList(); });
+  $("mail-d-status").addEventListener("change", async (e) => { m.status = e.target.value; await sb.from("mail_messages").update({ status: m.status }).eq("id", id); refreshMailView(); });
   $("mail-d-assign").addEventListener("change", async (e) => { m.assigned_user = e.target.value || null; await sb.from("mail_messages").update({ assigned_user: m.assigned_user }).eq("id", id); });
   $("mail-d-tags").addEventListener("change", async (e) => { m.tags = e.target.value.split(",").map((s) => s.trim()).filter(Boolean); await sb.from("mail_messages").update({ tags: m.tags }).eq("id", id); });
   renderMailList();
