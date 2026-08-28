@@ -5954,7 +5954,7 @@ async function mailSendReply(m) {
     const { data, error } = await sb.functions.invoke("mail-send", { body: { id: m.id, text: txt } });
     if (error) { let msg = error.message; try { msg = (await error.context.json())?.error || msg; } catch (_) {} st.textContent = "Échec : " + msg; }
     else if (data?.error) { st.textContent = "Échec : " + data.error; }
-    else { st.textContent = "✓ Réponse envoyée."; $("mail-d-replytxt").value = ""; await loadMail(); }
+    else { st.textContent = "✓ Réponse envoyée depuis " + (data?.from || "?") + "."; $("mail-d-replytxt").value = ""; await loadMail(); }
   } catch (e) { st.textContent = "Échec : " + (e?.message || e); }
   btn.disabled = false;
 }
