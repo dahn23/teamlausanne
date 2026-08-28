@@ -1779,13 +1779,15 @@ function allKidsMarked(courseId) {
   return [...card.querySelectorAll('.att-chip[data-coach="0"]')].every((k) => k.dataset.status);
 }
 
+const isBirthday = (pid, dateIso) => { const p = people.find((x) => x.id === pid); return !!(p?.birthdate && dateIso && p.birthdate.slice(5, 10) === dateIso.slice(5, 10)); };
 function attChip(course, coachIds, pid, isCoach, status) {
   const can = canMarkBox(course, coachIds, pid, isCoach);
   const cls = status === "present" ? "st-present" : status === "late" ? "st-late"
     : status === "absent" ? "st-absent" : (can ? "st-none" : "st-locked");
+  const bday = isBirthday(pid, course.course_date);
   return `<button type="button" class="att-chip ${cls}" data-course="${course.id}" data-person="${pid}"
     data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}"
-    title="${esc(personName(pid))}">${esc(personName(pid))}</button>`;
+    title="${esc(personName(pid))}${bday ? " · anniversaire 🎁" : ""}">${bday ? "🎁 " : ""}${esc(personName(pid))}</button>`;
 }
 
 // Une colonne (Coachs ou Élèves) de pastilles de présence. statusFn(pid) → statut.
@@ -1895,13 +1897,14 @@ async function loadCoursesWeek() {
     const coachIds = coaches.filter((x) => x.course_id === c.id).map((x) => x.coach_person_id);
     const childIds = parts.filter((x) => x.course_id === c.id).map((x) => x.child_person_id);
     const type = courseTypes.find((t) => t.id === c.course_type_id);
-    const coachNames = coachIds.map(firstOf).filter(Boolean);
+    const coachNames = coachIds.filter(firstOf).map((id) => (isBirthday(id, c.course_date) ? "🎁 " : "") + firstOf(id));
     const coachStr = coachNames.slice(0, 3).join(", ") + (coachNames.length > 3 ? ` +${coachNames.length - 3}c` : "");
+    const childBday = childIds.some((id) => isBirthday(id, c.course_date));
     const search = esc([c.title || "", type?.name || "", ...coachIds.map(nmeOf), ...childIds.map(nmeOf)].join(" ").toLowerCase());
     return `<div class="cw-ev" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cw-ev-t">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
       <div class="cw-ev-n">${esc(c.title || type?.name || "Cours")}</div>
-      <div class="cw-ev-m muted">${cts || "—"}${childIds.length ? " · " + childIds.length + "j" : ""}</div>
+      <div class="cw-ev-m muted">${cts || "—"}${childIds.length ? " · " + childIds.length + "j" : ""}${childBday ? " 🎁" : ""}</div>
       ${coachStr ? `<div class="cw-ev-co">${esc(coachStr)}</div>` : ""}
     </div>`;
   };
