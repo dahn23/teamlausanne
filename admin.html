@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=77" />
+  <link rel="stylesheet" href="style.css?v=78" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1363,7 +1363,13 @@
       <button type="button" id="phys-fill-close" class="modal-close" aria-label="Fermer">×</button>
       <h2 style="margin-top:0">Remplir un test</h2>
       <div class="form-grid">
-        <label>Jeune *<select id="pf-person" required></select></label>
+        <label>Jeune *
+          <div class="combo" id="pf-person-combo">
+            <input type="text" id="pf-person-search" autocomplete="off" placeholder="Rechercher un jeune…" />
+            <input type="hidden" id="pf-person" />
+            <div id="pf-person-list" class="combo-list" hidden></div>
+          </div>
+        </label>
         <label>Test *<select id="pf-test" required></select></label>
       </div>
       <div id="pf-questions" style="margin-top:6px"></div>

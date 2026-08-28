@@ -797,6 +797,14 @@ html{-webkit-tap-highlight-color:transparent}
   border:0;border-radius:50%;width:20px;height:20px;padding:0;font-size:1rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .search-clear:hover{background:#d5dbeb}
 .people-count{margin:2px 0 10px;font-size:.85rem;font-weight:600}
+/* Combo avec recherche (ex. Jeune dans Remplir un test) */
+.combo{position:relative}
+.combo > input[type=text]{width:100%;box-sizing:border-box}
+.combo-list{position:absolute;left:0;top:calc(100% + 4px);z-index:90;width:100%;max-height:240px;overflow-y:auto;
+  background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(20,30,60,.16)}
+.combo-opt{padding:9px 12px;cursor:pointer;font-size:.9rem}
+.combo-opt:hover{background:#eef3ff}
+.combo-empty{padding:9px 12px;color:var(--muted);font-size:.85rem}
 /* Anniversaires */
 .bday-table td.bday-c{text-align:center;font-weight:800}
 .bday-table tr.bday-hl{background:#fff7e6}

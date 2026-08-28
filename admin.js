@@ -4957,6 +4957,9 @@ function initPhys() {
   $("phys-fill-modal").addEventListener("click", (e) => { if (e.target === $("phys-fill-modal")) $("phys-fill-modal").classList.add("hidden"); });
   $("phys-fill-form").addEventListener("submit", savePhysFill);
   $("pf-test").addEventListener("change", renderPhysFillQuestions);
+  $("pf-person-search").addEventListener("focus", () => renderPfYouthList($("pf-person-search").value));
+  $("pf-person-search").addEventListener("input", () => { $("pf-person").value = ""; renderPfYouthList($("pf-person-search").value); });
+  document.addEventListener("pointerdown", (e) => { if (!$("pf-person-combo").contains(e.target)) $("pf-person-list").hidden = true; }, true);
   $("phys-result-close").addEventListener("click", () => $("phys-result-modal").classList.add("hidden"));
   $("phys-result-modal").addEventListener("click", (e) => { if (e.target === $("phys-result-modal")) $("phys-result-modal").classList.add("hidden"); });
   $("pr-del").addEventListener("click", () => deletePhysResult($("pr-del").dataset.id));
@@ -5079,20 +5082,38 @@ async function deletePhysTemplate(id) {
   loadPhysTemplates();
 }
 
+let pfYouthList = [];
+const pfName = (p) => `${p.last_name} ${p.first_name}`;
 async function openPhysFill(preselectId) {
   $("pf-error").hidden = true;
-  // depuis une fiche, on force le jeune ; sinon on liste tous les jeunes
-  const list = preselectId ? people.filter((p) => p.id === preselectId)
-    : people.filter((p) => hasRoleIn(p.id, PHYS_YOUTH_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
-  $("pf-person").innerHTML = (preselectId ? "" : '<option value="">— Choisir un jeune —</option>')
-    + list.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
-  if (preselectId) $("pf-person").value = preselectId;
+  pfYouthList = people.filter((p) => hasRoleIn(p.id, PHYS_YOUTH_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+  const pre = preselectId ? people.find((p) => p.id === preselectId) : null; // depuis une fiche : jeune figé
+  $("pf-person").value = pre ? pre.id : "";
+  $("pf-person-search").value = pre ? pfName(pre) : "";
+  $("pf-person-search").disabled = !!pre;
+  $("pf-person-list").hidden = true;
   const { data: tests } = await sb.from("phys_tests").select("*").eq("active", true).order("sort_order").order("created_at");
   physTests = tests || [];
   $("pf-test").innerHTML = '<option value="">— Choisir un test —</option>'
     + physTests.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
   $("pf-questions").innerHTML = "";
   $("phys-fill-modal").classList.remove("hidden");
+}
+function renderPfYouthList(q) {
+  q = (q || "").trim().toLowerCase();
+  const list = (q ? pfYouthList.filter((p) => pfName(p).toLowerCase().includes(q)) : pfYouthList).slice(0, 20);
+  const box = $("pf-person-list");
+  box.innerHTML = list.length
+    ? list.map((p) => `<div class="combo-opt" data-id="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</div>`).join("")
+    : '<div class="combo-empty">Aucun jeune</div>';
+  box.querySelectorAll(".combo-opt").forEach((o) => o.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    const p = pfYouthList.find((x) => x.id === o.dataset.id);
+    $("pf-person").value = p.id;
+    $("pf-person-search").value = pfName(p);
+    box.hidden = true;
+  }));
+  box.hidden = false;
 }
 async function openPhysFillFor(personId) {
   if (!personId) { alert("Enregistre d'abord la fiche."); return; }
