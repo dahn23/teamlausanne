@@ -167,8 +167,8 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  superadmin: ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "repas", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["membres", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "repas", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
   secretaire: ["membres", "inscriptions", "news", "resa", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "phystests", "heures"],
@@ -177,7 +177,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["etudes", "Études"], ["mental", "Mental"], ["repas", "Repas"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -323,6 +323,7 @@ function showView(view) {
   if (view === "stages") loadStagesTab();
   if (view === "phystests") loadPhysResults();
   if (view === "etudes") loadEtudesCalendar();
+  if (view === "repas") loadRepas();
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
@@ -5820,6 +5821,47 @@ async function etYouthsForSeason(seasonId) {
   const { data } = await sb.from("role_periods").select("person_id").eq("season_id", seasonId).eq("role", "sport-etudes");
   const ids = new Set((data || []).map((r) => r.person_id));
   return people.filter((p) => ids.has(p.id)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+}
+
+// ===================================================================
+//  Repas (admin/superadmin) : récap des repas de midi au CSEL
+//  Source = contrat de chaque jeune (player_contracts.data, clés « <Jour> lunch »).
+// ===================================================================
+const RP_ROLES = ["sport-etudes", "pro", "pro-u18"];
+const RP_ROLE_LBL = { "sport-etudes": "Sport-études", "pro": "Pro", "pro-u18": "Pro U18" };
+async function loadRepas() {
+  await loadSeasonsList();
+  const sel = $("rp-season");
+  if (!sel.dataset.wired) { sel.addEventListener("change", loadRepas); sel.dataset.wired = "1"; }
+  if (!sel.options.length) { const cur = currentSeason("juniors")?.id; sel.innerHTML = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">— créez une saison juniors —</option>'; if (cur) sel.value = cur; }
+  const seasonId = sel.value;
+  const body = $("rp-body");
+  if (!seasonId) { body.innerHTML = '<p class="muted" style="font-size:.85rem">Crée d\'abord une saison juniors (Réglages › Saisons).</p>'; return; }
+  const { data: rps } = await sb.from("role_periods").select("person_id,role").eq("season_id", seasonId).in("role", RP_ROLES);
+  const roleByPerson = {};
+  for (const r of rps || []) (roleByPerson[r.person_id] = roleByPerson[r.person_id] || []).push(r.role);
+  const ids = [...new Set((rps || []).map((r) => r.person_id))];
+  if (!ids.length) { body.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jeune sport-études / pro pour cette saison.</p>'; return; }
+  const youths = ids.map((id) => people.find((p) => p.id === id)).filter(Boolean).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+  const { data: contracts } = await sb.from("player_contracts").select("person_id,data").eq("season_id", seasonId).in("person_id", ids);
+  const dataByPerson = {};
+  for (const c of contracts || []) dataByPerson[c.person_id] = c.data || {};
+  const totals = [0, 0, 0, 0, 0]; let grand = 0;
+  const rows = youths.map((y) => {
+    const d = dataByPerson[y.id] || {};
+    let cnt = 0;
+    const cells = PC_DAYS.map(([k], i) => {
+      const on = d[k + " lunch"] === "Oui";
+      if (on) { totals[i]++; grand++; cnt++; }
+      return `<td class="rp-c ${on ? "rp-yes" : "rp-no"}">${on ? "✔" : "—"}</td>`;
+    }).join("");
+    const roles = (roleByPerson[y.id] || []).map((r) => RP_ROLE_LBL[r] || r).join(", ");
+    return `<tr><td><b>${esc(y.last_name)} ${esc(y.first_name)}</b></td><td class="muted">${esc(roles)}</td>${cells}<td class="rp-c"><b>${cnt}</b></td></tr>`;
+  }).join("");
+  const foot = `<tr class="rp-tot"><td><b>Total / jour</b></td><td></td>${totals.map((t) => `<td class="rp-c"><b>${t}</b></td>`).join("")}<td class="rp-c"><b>${grand}</b></td></tr>`;
+  body.innerHTML = `<div class="tbl-wrap"><table class="crm-table rp-table">
+    <thead><tr><th>Jeune</th><th>Programme</th>${PC_DAYS.map(([, l]) => `<th>${l}</th>`).join("")}<th>Sem.</th></tr></thead>
+    <tbody>${rows}</tbody><tfoot>${foot}</tfoot></table></div>`;
 }
 
 // ---- Sous-onglet Calendrier ----
