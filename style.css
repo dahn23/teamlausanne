@@ -805,6 +805,47 @@ html{-webkit-tap-highlight-color:transparent}
 .combo-opt{padding:9px 12px;cursor:pointer;font-size:.9rem}
 .combo-opt:hover{background:#eef3ff}
 .combo-empty{padding:9px 12px;color:var(--muted);font-size:.85rem}
+/* Messagerie (boîte unifiée) */
+.mail-banner{background:#fff7e6;border:1px solid #f0d59a;color:#8a6100;border-radius:10px;padding:9px 12px;font-size:.84rem;margin-bottom:12px}
+.mail-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.mail-accts{display:flex;gap:6px;flex-wrap:wrap}
+.mail-acct{background:#eef1f7;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:.82rem;font-weight:600;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.mail-acct.sel{background:var(--blue);color:#fff;border-color:var(--blue)}
+.mail-badge{background:#e23b3b;color:#fff;border-radius:999px;font-size:.68rem;padding:0 6px;min-width:16px;text-align:center}
+.mail-acct.sel .mail-badge{background:#fff;color:var(--blue)}
+.mail-toolbar #mail-search{flex:1 1 180px;min-width:140px;max-width:280px;padding:8px 12px;border:1px solid var(--line);border-radius:9px;box-sizing:border-box}
+.mail-layout{display:grid;grid-template-columns:340px 1fr;gap:14px;align-items:start}
+.mail-list{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;max-height:70vh;overflow-y:auto}
+.mail-item{padding:11px 13px;border-bottom:1px solid var(--line);cursor:pointer}
+.mail-item:hover{background:#f7f9fc}
+.mail-item.sel{background:#eef3ff}
+.mail-item.unread .mail-from,.mail-item.unread .mail-subj{font-weight:800}
+.mail-item.unread{border-left:3px solid var(--blue)}
+.mail-item-top{display:flex;justify-content:space-between;gap:8px;font-size:.85rem}
+.mail-from{font-weight:600}
+.mail-date{color:var(--muted);font-size:.78rem;flex-shrink:0}
+.mail-subj{font-size:.88rem;margin:2px 0}
+.mail-snip{font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mail-item-foot{display:flex;justify-content:space-between;gap:8px;margin-top:6px;align-items:center}
+.mail-acctbadge{font-size:.72rem;background:#eef1f7;border-radius:6px;padding:1px 7px;color:var(--blue-ink);font-weight:700}
+.mail-stat{font-size:.72rem;font-weight:700;border-radius:999px;padding:1px 8px}
+.ms-new{background:#fdecec;color:#c0392b}
+.ms-doing{background:#fff3e0;color:#a9721a}
+.ms-done{background:#e9f7ee;color:#1c7d38}
+.ms-arch{background:#eef1f7;color:var(--muted)}
+.mail-detail{border:1px solid var(--line);border-radius:12px;background:#fff;min-height:300px;padding:18px}
+.mail-d-head h3{margin:0 0 4px}
+.mail-d-meta{font-size:.85rem;margin-bottom:12px}
+.mail-d-controls{display:flex;gap:12px;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:12px}
+.mail-d-controls > label{font-size:.78rem;font-weight:600;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.mail-d-tagslbl{flex:1;min-width:160px}
+.mail-d-tagslbl input{width:100%;box-sizing:border-box;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px}
+.mail-d-body{font-size:.9rem;line-height:1.55;margin-bottom:16px}
+.mail-d-reply textarea{width:100%;box-sizing:border-box;min-height:90px;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;resize:vertical}
+.mail-d-reply-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:10px}
+.mail-d-reply-foot button{background:var(--blue);color:#fff;border:0;border-radius:9px;padding:8px 18px;font-weight:700}
+.mail-d-reply-foot button:disabled{background:#c5cbe0;cursor:not-allowed}
+@media(max-width:820px){.mail-layout{grid-template-columns:1fr}.mail-list{max-height:none}}
 /* Anniversaires */
 .bday-table td.bday-c{text-align:center;font-weight:800}
 .bday-table tr.bday-hl{background:#fff7e6}

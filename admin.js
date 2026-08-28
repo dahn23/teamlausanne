@@ -167,9 +167,9 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["membres", "anniv", "inscriptions", "news", "resa", "caisse", "locks", "irrigation", "stages", "stats"],
+  superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["anniv", "resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "phystests", "heures"],
   prof:       ["etudes"],
@@ -177,7 +177,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -326,6 +326,7 @@ function showView(view) {
   if (view === "etudes") loadEtudesCalendar();
   if (view === "csel") loadCsel();
   if (view === "anniv") loadBirthdays();
+  if (view === "mail") loadMail();
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
@@ -5861,6 +5862,87 @@ async function etYouthsForSeason(seasonId) {
   const { data } = await sb.from("role_periods").select("person_id").eq("season_id", seasonId).eq("role", "sport-etudes");
   const ids = new Set((data || []).map((r) => r.person_id));
   return people.filter((p) => ids.has(p.id)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+}
+
+// ===================================================================
+//  Messagerie (secrétaire/admin/superadmin) — boîte unifiée
+//  Squelette : lit mail_messages (démo). IMAP (relève) + SMTP (envoi) à brancher.
+// ===================================================================
+const MAIL_STATUS = { nouveau: ["Nouveau", "ms-new"], en_cours: ["En cours", "ms-doing"], traite: ["Traité", "ms-done"], archive: ["Archivé", "ms-arch"] };
+const MAIL_STAFF_ROLES = ["coach", "head-coach", "coach-prive", "prof", "coach-mental", "secretaire", "admin", "superadmin"];
+let mailAccounts = [], mailMsgs = [], mailFilterAddr = "", mailSelId = null;
+const mailDT = (iso) => { const d = new Date(iso); return `${frDate(iso)} ${d.toTimeString().slice(0, 5)}`; };
+const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() === new Date().toDateString() ? d.toTimeString().slice(0, 5) : `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`; };
+
+async function loadMail() {
+  if (!$("mail-search").dataset.wired) {
+    $("mail-search").dataset.wired = "1";
+    $("mail-search").addEventListener("input", renderMailList);
+    $("mail-status").addEventListener("change", renderMailList);
+    $("mail-sync").addEventListener("click", () => alert("Relève automatique : à brancher une fois le mot de passe d'application Gmail fourni (IMAP côté serveur)."));
+  }
+  const [{ data: accts }, { data: msgs }] = await Promise.all([
+    sb.from("mail_accounts").select("*").order("sort_order"),
+    sb.from("mail_messages").select("*").order("received_at", { ascending: false }),
+  ]);
+  mailAccounts = accts || [];
+  mailMsgs = msgs || [];
+  renderMailAccts();
+  renderMailList();
+}
+function renderMailAccts() {
+  const counts = {};
+  for (const m of mailMsgs) if (!m.is_read) counts[m.account_address] = (counts[m.account_address] || 0) + 1;
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const chip = (addr, label, n) => `<button type="button" class="mail-acct${mailFilterAddr === addr ? " sel" : ""}" data-addr="${esc(addr)}">${esc(label)}${n ? ` <span class="mail-badge">${n}</span>` : ""}</button>`;
+  $("mail-accts").innerHTML = chip("", "Toutes", total) + mailAccounts.map((a) => chip(a.address, a.label, counts[a.address] || 0)).join("");
+  $("mail-accts").querySelectorAll(".mail-acct").forEach((b) => b.addEventListener("click", () => { mailFilterAddr = b.dataset.addr; renderMailAccts(); renderMailList(); }));
+}
+function renderMailList() {
+  const q = ($("mail-search").value || "").trim().toLowerCase();
+  const st = $("mail-status").value;
+  const list = mailMsgs.filter((m) =>
+    (!mailFilterAddr || m.account_address === mailFilterAddr) && (!st || m.status === st) &&
+    (!q || `${m.from_name || ""} ${m.from_address || ""} ${m.subject || ""} ${m.snippet || ""}`.toLowerCase().includes(q)));
+  const acctLabel = (addr) => mailAccounts.find((a) => a.address === addr)?.label || addr;
+  $("mail-list").innerHTML = list.length ? list.map((m) => {
+    const [slbl, scls] = MAIL_STATUS[m.status] || [m.status, ""];
+    return `<div class="mail-item${m.id === mailSelId ? " sel" : ""}${m.is_read ? "" : " unread"}" data-id="${m.id}">
+      <div class="mail-item-top"><span class="mail-from">${esc(m.from_name || m.from_address || "—")}</span><span class="mail-date">${mailShort(m.received_at)}</span></div>
+      <div class="mail-subj">${esc(m.subject || "(sans objet)")}</div>
+      <div class="mail-snip muted">${esc(m.snippet || "")}</div>
+      <div class="mail-item-foot"><span class="mail-acctbadge">${esc(acctLabel(m.account_address))}</span><span class="mail-stat ${scls}">${slbl}</span></div>
+    </div>`;
+  }).join("") : '<p class="muted" style="padding:16px">Aucun message.</p>';
+  $("mail-list").querySelectorAll(".mail-item").forEach((el) => el.addEventListener("click", () => openMail(el.dataset.id)));
+}
+async function openMail(id) {
+  const m = mailMsgs.find((x) => x.id === id);
+  if (!m) return;
+  mailSelId = id;
+  if (!m.is_read) { m.is_read = true; sb.from("mail_messages").update({ is_read: true }).eq("id", id); renderMailAccts(); }
+  const staff = people.filter((p) => hasRoleIn(p.id, MAIL_STAFF_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+  const acctLabel = mailAccounts.find((a) => a.address === m.account_address)?.label || m.account_address;
+  $("mail-detail").innerHTML = `
+    <div class="mail-d-head">
+      <h3>${esc(m.subject || "(sans objet)")}</h3>
+      <div class="mail-d-meta"><b>${esc(m.from_name || "")}</b> &lt;${esc(m.from_address || "")}&gt; <span class="muted">· à ${esc(acctLabel)} · ${mailDT(m.received_at)}</span></div>
+    </div>
+    <div class="mail-d-controls">
+      <label>Statut <select id="mail-d-status">${Object.entries(MAIL_STATUS).map(([k, v]) => `<option value="${k}"${m.status === k ? " selected" : ""}>${v[0]}</option>`).join("")}</select></label>
+      <label>Attribué à <select id="mail-d-assign"><option value="">—</option>${staff.map((p) => `<option value="${p.id}"${m.assigned_user === p.id ? " selected" : ""}>${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")}</select></label>
+      <label class="mail-d-tagslbl">Tags <input id="mail-d-tags" type="text" value="${esc((m.tags || []).join(", "))}" placeholder="inscription, urgent…" /></label>
+    </div>
+    <div class="mail-d-body">${esc(m.body_text || m.snippet || "").replace(/\n/g, "<br>")}</div>
+    <div class="mail-d-reply">
+      <textarea id="mail-d-replytxt" placeholder="Répondre… (l'envoi sera activé avec le branchement SMTP)"></textarea>
+      <div class="mail-d-reply-foot"><span class="muted" style="font-size:.8rem">Réponse envoyée en tant que ${esc(m.account_address)}</span>
+        <button type="button" id="mail-d-send" disabled title="Envoi SMTP à brancher">Envoyer</button></div>
+    </div>`;
+  $("mail-d-status").addEventListener("change", async (e) => { m.status = e.target.value; await sb.from("mail_messages").update({ status: m.status }).eq("id", id); renderMailList(); });
+  $("mail-d-assign").addEventListener("change", async (e) => { m.assigned_user = e.target.value || null; await sb.from("mail_messages").update({ assigned_user: m.assigned_user }).eq("id", id); });
+  $("mail-d-tags").addEventListener("change", async (e) => { m.tags = e.target.value.split(",").map((s) => s.trim()).filter(Boolean); await sb.from("mail_messages").update({ tags: m.tags }).eq("id", id); });
+  renderMailList();
 }
 
 // ===================================================================
