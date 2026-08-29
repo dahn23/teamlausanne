@@ -829,6 +829,9 @@ html{-webkit-tap-highlight-color:transparent}
 .mail-item-foot{display:flex;justify-content:space-between;gap:8px;margin-top:6px;align-items:center}
 .mail-acctbadge{font-size:.72rem;background:#eef1f7;border-radius:6px;padding:1px 7px;color:var(--blue-ink);font-weight:700}
 .mail-stat{font-size:.72rem;font-weight:700;border-radius:999px;padding:1px 8px}
+.mail-foot-right{display:inline-flex;align-items:center;gap:8px}
+.mail-rdtoggle{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:2px 5px;font-size:.85rem;border-radius:6px;line-height:1}
+.mail-rdtoggle:hover{background:#e6e9f2;color:var(--blue-ink)}
 .ms-new{background:#fdecec;color:#c0392b}
 .ms-doing{background:#fff3e0;color:#a9721a}
 .ms-done{background:#e9f7ee;color:#1c7d38}

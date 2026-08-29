@@ -6099,10 +6099,21 @@ function renderMailList() {
       <div class="mail-item-top"><span class="mail-from">${isOut ? '<span class="mail-outico">↗</span> ' : ""}${who}</span><span class="mail-date">${mailShort(m.received_at)}</span></div>
       <div class="mail-subj">${esc(m.subject || "(sans objet)")}</div>
       <div class="mail-snip muted">${esc(m.snippet || "")}</div>
-      <div class="mail-item-foot"><span class="mail-acctbadge">${esc(acctLabel(m.account_address))}</span>${isOut ? '<span class="mail-stat mail-sent">Envoyé</span>' : `<span class="mail-stat ${scls}">${slbl}</span>`}</div>
+      <div class="mail-item-foot"><span class="mail-acctbadge">${esc(acctLabel(m.account_address))}</span>
+        <span class="mail-foot-right">${isOut ? '<span class="mail-stat mail-sent">Envoyé</span>' : `<span class="mail-stat ${scls}">${slbl}</span>`}
+        <button type="button" class="mail-rdtoggle" data-id="${m.id}" title="${m.is_read ? "Marquer non lu" : "Marquer lu"}">${m.is_read ? "✉" : "✓"}</button></span></div>
     </div>`;
   }).join("") : '<p class="muted" style="padding:16px">Aucun message.</p>';
   $("mail-list").querySelectorAll(".mail-item").forEach((el) => el.addEventListener("click", () => openMail(el.dataset.id)));
+  $("mail-list").querySelectorAll(".mail-rdtoggle").forEach((b) => b.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const mm = mailView.find((x) => x.id === b.dataset.id) || mailMsgs.find((x) => x.id === b.dataset.id);
+    const nv = mm ? !mm.is_read : false;
+    if (mm) mm.is_read = nv;
+    const cached = mailMsgs.find((x) => x.id === b.dataset.id); if (cached) cached.is_read = nv;
+    await sb.from("mail_messages").update({ is_read: nv }).eq("id", b.dataset.id);
+    renderMailAccts(); renderMailList();
+  }));
 }
 async function openMail(id) {
   const m = mailView.find((x) => x.id === id) || mailMsgs.find((x) => x.id === id);
