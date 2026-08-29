@@ -850,6 +850,9 @@ html{-webkit-tap-highlight-color:transparent}
 .rt-files{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 .rt-file{background:#eef1f7;border-radius:8px;padding:3px 8px;font-size:.8rem;display:inline-flex;align-items:center;gap:5px}
 .rt-file button{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:0;font-size:.8rem}
+.mailc-f{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;font-size:.8rem;font-weight:600;color:var(--muted)}
+.mailc-f input{font:inherit;font-weight:400;color:var(--ink);padding:9px 11px;border:1px solid var(--line);border-radius:9px;box-sizing:border-box}
+#mailc-body{margin-top:2px}
 .mail-detail{border:1px solid var(--line);border-radius:12px;background:#fff;min-height:300px;padding:18px}
 .mail-d-head h3{margin:0 0 4px}
 .mail-d-meta{font-size:.85rem;margin-bottom:12px}

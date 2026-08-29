@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=86" />
+  <link rel="stylesheet" href="style.css?v=87" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -564,6 +564,7 @@
           <div class="crm-head"><h1>Messagerie <span class="muted" style="font-size:1rem;font-weight:400">— boîte unifiée</span></h1></div>
           <div id="mail-demo" class="mail-banner">Boîte reliée à Gmail — relève automatique toutes les 5 min. « Relever » force une relève immédiate.</div>
           <div class="mail-toolbar">
+            <button id="mail-new">✉ Nouveau message</button>
             <div id="mail-accts" class="mail-accts"></div>
             <select id="mail-dir">
               <option value="in">Reçus</option>
@@ -585,6 +586,27 @@
           <div class="mail-layout">
             <div id="mail-list" class="mail-list"></div>
             <div id="mail-detail" class="mail-detail"><p class="muted" style="padding:20px">Sélectionne un message.</p></div>
+          </div>
+        </div>
+
+        <!-- Fenêtre : nouveau message -->
+        <div id="mailc-modal" class="modal hidden">
+          <div class="card wide">
+            <button type="button" id="mailc-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0">Nouveau message</h2>
+            <label class="mailc-f">Depuis<select id="mailc-from"></select></label>
+            <label class="mailc-f">À<input id="mailc-to" type="text" autocomplete="off" placeholder="destinataire@exemple.ch" /></label>
+            <label class="mailc-f">Objet<input id="mailc-subject" type="text" autocomplete="off" placeholder="Objet du message" /></label>
+            <div class="rt-toolbar">
+              <button type="button" class="rt-btn" data-cmd="bold" title="Gras"><b>G</b></button>
+              <button type="button" class="rt-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+              <button type="button" class="rt-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
+              <label class="rt-color" title="Couleur du texte">A<input type="color" id="mailc-color" value="#000000" /></label>
+              <label class="rt-attach" title="Joindre un fichier">📎 Joindre<input type="file" id="mailc-file" multiple hidden /></label>
+            </div>
+            <div id="mailc-body" class="rt-edit" contenteditable="true" data-ph="Votre message…"></div>
+            <div id="mailc-files" class="rt-files"></div>
+            <div class="form-foot"><span id="mailc-status" class="muted" style="font-size:.82rem"></span><span class="spacer"></span><button type="button" id="mailc-send">Envoyer</button></div>
           </div>
         </div>
 

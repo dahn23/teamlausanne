@@ -5884,6 +5884,13 @@ async function loadMail() {
     $("mail-sync").addEventListener("click", mailSync);
     $("mail-history-btn").addEventListener("click", mailHistory);
     $("mail-importboxes-btn").addEventListener("click", mailImportBoxes);
+    $("mail-new").addEventListener("click", openMailCompose);
+    $("mailc-close").addEventListener("click", () => $("mailc-modal").classList.add("hidden"));
+    $("mailc-modal").addEventListener("click", (e) => { if (e.target === $("mailc-modal")) $("mailc-modal").classList.add("hidden"); });
+    $("mailc-send").addEventListener("click", mailComposeSend);
+    document.querySelectorAll("#mailc-modal .rt-btn").forEach((b) => b.addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand(b.dataset.cmd, false, null); }));
+    $("mailc-color").addEventListener("input", (e) => { document.execCommand("foreColor", false, e.target.value); $("mailc-body").focus(); });
+    $("mailc-file").addEventListener("change", (e) => { for (const f of e.target.files) { if (f.size > 8 * 1024 * 1024) { alert(`${f.name} dépasse 8 Mo — trop lourd.`); continue; } mailcFiles.push(f); } e.target.value = ""; renderMailcFiles(); });
   }
   const [{ data: accts }, { data: msgs }] = await Promise.all([
     sb.from("mail_accounts").select("*").order("sort_order"),
@@ -6021,6 +6028,40 @@ function renderMailFiles() {
   box.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { mailFiles.splice(+b.dataset.i, 1); renderMailFiles(); }));
 }
 const fileToB64 = (f) => new Promise((res) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = () => res(""); r.readAsDataURL(f); });
+
+// ---- Nouveau message ----
+let mailcFiles = [];
+function openMailCompose() {
+  const cur = mailFilterAddr || (mailAccounts[0]?.address) || "";
+  $("mailc-from").innerHTML = mailAccounts.map((a) => `<option value="${esc(a.address)}">${esc(a.label)} — ${esc(a.address)}</option>`).join("");
+  if (cur) $("mailc-from").value = cur;
+  $("mailc-to").value = ""; $("mailc-subject").value = ""; $("mailc-body").innerHTML = ""; $("mailc-status").textContent = "";
+  mailcFiles = []; renderMailcFiles();
+  $("mailc-modal").classList.remove("hidden");
+  setTimeout(() => $("mailc-to").focus(), 50);
+}
+function renderMailcFiles() {
+  const box = $("mailc-files"); if (!box) return;
+  box.innerHTML = mailcFiles.map((f, i) => `<span class="rt-file">📎 ${esc(f.name)} <button type="button" data-i="${i}" aria-label="Retirer">✕</button></span>`).join("");
+  box.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { mailcFiles.splice(+b.dataset.i, 1); renderMailcFiles(); }));
+}
+async function mailComposeSend() {
+  const account = $("mailc-from").value, to = $("mailc-to").value.trim(), subject = $("mailc-subject").value.trim();
+  const html = $("mailc-body").innerHTML.trim(), text = $("mailc-body").innerText.trim();
+  const st = $("mailc-status");
+  if (!to) { st.textContent = "Indique un destinataire."; return; }
+  if (!text && !mailcFiles.length) { st.textContent = "Écris un message."; return; }
+  const btn = $("mailc-send"); btn.disabled = true; st.textContent = "Envoi…";
+  try {
+    const attachments = [];
+    for (const f of mailcFiles) attachments.push({ filename: f.name, contentType: f.type || "application/octet-stream", content: await fileToB64(f) });
+    const { data, error } = await sb.functions.invoke("mail-send", { body: { account, to, subject, text, html: html || undefined, attachments } });
+    if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} st.textContent = "Échec : " + m; }
+    else if (data?.error) { st.textContent = "Échec : " + data.error; }
+    else { $("mailc-modal").classList.add("hidden"); await loadMail(); }
+  } catch (e) { st.textContent = "Échec : " + (e?.message || e); }
+  btn.disabled = false;
+}
 
 async function mailSendReply(id) {
   const editor = $("mail-d-replyhtml");
