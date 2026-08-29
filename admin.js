@@ -6020,6 +6020,21 @@ function mailWireCompose() {
   });
   $("mail-d-send").addEventListener("click", () => mailSendReply($("mail-d-send").dataset.mid));
   $("mail-d-send").dataset.mid = mailSelId;
+  $("mail-d-suggest").addEventListener("click", mailSuggest);
+}
+const draftToHtml = (t) => "<p>" + esc(t).replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>") + "</p>";
+async function mailSuggest() {
+  const id = $("mail-d-send").dataset.mid, st = $("mail-d-sendstatus");
+  const btn = $("mail-d-suggest"), old = btn.textContent;
+  btn.disabled = true; btn.textContent = "✨ Rédaction…"; st.textContent = "";
+  try {
+    const { data, error } = await sb.functions.invoke("mail-suggest", { body: { id } });
+    if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} st.textContent = "Suggestion : " + m; }
+    else if (data?.error) { st.textContent = "Suggestion : " + data.error; }
+    else if (data?.draft) { $("mail-d-replyhtml").innerHTML = draftToHtml(data.draft); $("mail-d-replyhtml").focus(); st.textContent = "Brouillon proposé — modifie-le ou envoie-le tel quel."; }
+    else { st.textContent = "Pas de suggestion."; }
+  } catch (e) { st.textContent = "Suggestion : " + (e?.message || e); }
+  btn.disabled = false; btn.textContent = old;
 }
 function renderMailFiles() {
   const box = $("mail-d-files");
@@ -6141,6 +6156,7 @@ async function openMail(id) {
         <button type="button" class="rt-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
         <label class="rt-color" title="Couleur du texte">A<input type="color" id="mail-d-color" value="#000000" /></label>
         <label class="rt-attach" title="Joindre un fichier">📎 Joindre<input type="file" id="mail-d-file" multiple hidden /></label>
+        <button type="button" id="mail-d-suggest" class="rt-suggest" title="Rédiger une réponse automatiquement">✨ Proposer une réponse</button>
       </div>
       <div id="mail-d-replyhtml" class="rt-edit" contenteditable="true" data-ph="Répondre à ${esc(m.from_address || "")}…"></div>
       <div id="mail-d-files" class="rt-files"></div>
