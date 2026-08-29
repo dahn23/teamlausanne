@@ -5971,16 +5971,63 @@ async function mailSync() {
   } catch (e) { alert("Relève impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = "Relever";
 }
-async function mailSendReply(m) {
-  const txt = ($("mail-d-replytxt").value || "").trim();
+// Affiche le corps du mail : HTML (dans une iframe cloisonnée, liens cliquables) sinon texte
+function renderMailBodyEl(m) {
+  const el = $("mail-d-body");
+  if (m.body_html) {
+    el.innerHTML = "";
+    const f = document.createElement("iframe");
+    f.className = "mail-html";
+    f.setAttribute("sandbox", "allow-same-origin allow-popups allow-popups-to-escape-sandbox");
+    el.appendChild(f);
+    f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>body{font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111;margin:0;word-wrap:break-word;overflow-wrap:anywhere}img{max-width:100%;height:auto}a{color:#123cc4}</style></head><body>${m.body_html}</body></html>`;
+    f.addEventListener("load", () => { try { const h = f.contentDocument.body.scrollHeight; f.style.height = Math.min(1400, h + 24) + "px"; } catch (_) { f.style.height = "500px"; } });
+  } else {
+    el.innerHTML = esc(m.body_text || m.snippet || "").replace(/\n/g, "<br>");
+  }
+}
+let mailFiles = [];
+function mailWireCompose() {
+  mailFiles = [];
+  renderMailFiles();
+  document.querySelectorAll("#mail-detail .rt-btn").forEach((b) => b.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    document.execCommand(b.dataset.cmd, false, null);
+  }));
+  $("mail-d-color").addEventListener("input", (e) => { document.execCommand("foreColor", false, e.target.value); $("mail-d-replyhtml").focus(); });
+  $("mail-d-file").addEventListener("change", (e) => {
+    for (const f of e.target.files) {
+      if (f.size > 8 * 1024 * 1024) { alert(`${f.name} dépasse 8 Mo — trop lourd.`); continue; }
+      mailFiles.push(f);
+    }
+    e.target.value = "";
+    renderMailFiles();
+  });
+  $("mail-d-send").addEventListener("click", () => mailSendReply($("mail-d-send").dataset.mid));
+  $("mail-d-send").dataset.mid = mailSelId;
+}
+function renderMailFiles() {
+  const box = $("mail-d-files");
+  if (!box) return;
+  box.innerHTML = mailFiles.map((f, i) => `<span class="rt-file">📎 ${esc(f.name)} <button type="button" data-i="${i}" aria-label="Retirer">✕</button></span>`).join("");
+  box.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { mailFiles.splice(+b.dataset.i, 1); renderMailFiles(); }));
+}
+const fileToB64 = (f) => new Promise((res) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = () => res(""); r.readAsDataURL(f); });
+
+async function mailSendReply(id) {
+  const editor = $("mail-d-replyhtml");
+  const html = (editor.innerHTML || "").trim();
+  const text = (editor.innerText || "").trim();
   const st = $("mail-d-sendstatus");
-  if (!txt) { st.textContent = "Écris un message avant d'envoyer."; return; }
+  if (!text && !mailFiles.length) { st.textContent = "Écris un message avant d'envoyer."; return; }
   const btn = $("mail-d-send"); btn.disabled = true; st.textContent = "Envoi…";
   try {
-    const { data, error } = await sb.functions.invoke("mail-send", { body: { id: m.id, text: txt } });
+    const attachments = [];
+    for (const f of mailFiles) attachments.push({ filename: f.name, contentType: f.type || "application/octet-stream", content: await fileToB64(f) });
+    const { data, error } = await sb.functions.invoke("mail-send", { body: { id, text, html: html || undefined, attachments } });
     if (error) { let msg = error.message; try { msg = (await error.context.json())?.error || msg; } catch (_) {} st.textContent = "Échec : " + msg; }
     else if (data?.error) { st.textContent = "Échec : " + data.error; }
-    else { st.textContent = "✓ Réponse envoyée depuis " + (data?.from || "?") + "."; $("mail-d-replytxt").value = ""; await loadMail(); }
+    else { st.textContent = "✓ Réponse envoyée depuis " + (data?.name ? data.name + " <" + data.from + ">" : data?.from || "?") + "."; editor.innerHTML = ""; mailFiles = []; renderMailFiles(); await loadMail(); }
   } catch (e) { st.textContent = "Échec : " + (e?.message || e); }
   btn.disabled = false;
 }
@@ -6026,18 +6073,27 @@ async function openMail(id) {
       <label class="mail-d-tagslbl">Tags <input id="mail-d-tags" type="text" value="${esc((m.tags || []).join(", "))}" placeholder="inscription, urgent…" /></label>
       <button type="button" id="mail-d-unread" class="ghost mail-d-unread">Marquer non lu</button>
     </div>
-    <div class="mail-d-body">${esc(m.body_text || m.snippet || "").replace(/\n/g, "<br>")}</div>
+    <div class="mail-d-body" id="mail-d-body"></div>
     <div class="mail-d-reply">
-      <textarea id="mail-d-replytxt" placeholder="Répondre à ${esc(m.from_address || "")}…"></textarea>
+      <div class="rt-toolbar">
+        <button type="button" class="rt-btn" data-cmd="bold" title="Gras"><b>G</b></button>
+        <button type="button" class="rt-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+        <button type="button" class="rt-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
+        <label class="rt-color" title="Couleur du texte">A<input type="color" id="mail-d-color" value="#123cc4" /></label>
+        <label class="rt-attach" title="Joindre un fichier">📎 Joindre<input type="file" id="mail-d-file" multiple hidden /></label>
+      </div>
+      <div id="mail-d-replyhtml" class="rt-edit" contenteditable="true" data-ph="Répondre à ${esc(m.from_address || "")}…"></div>
+      <div id="mail-d-files" class="rt-files"></div>
       <div class="mail-d-reply-foot"><span class="muted" style="font-size:.8rem">Envoi depuis ${esc(m.account_address)}</span>
         <button type="button" id="mail-d-send">Envoyer la réponse</button></div>
       <p id="mail-d-sendstatus" class="muted" style="font-size:.8rem;margin:6px 0 0"></p>
     </div>`;
+  renderMailBodyEl(m);
+  mailWireCompose();
   $("mail-d-status").addEventListener("change", async (e) => { m.status = e.target.value; await sb.from("mail_messages").update({ status: m.status }).eq("id", id); refreshMailView(); });
   $("mail-d-assign").addEventListener("change", async (e) => { m.assigned_user = e.target.value || null; await sb.from("mail_messages").update({ assigned_user: m.assigned_user }).eq("id", id); });
   $("mail-d-tags").addEventListener("change", async (e) => { m.tags = e.target.value.split(",").map((s) => s.trim()).filter(Boolean); await sb.from("mail_messages").update({ tags: m.tags }).eq("id", id); });
   $("mail-d-unread").addEventListener("click", async () => { m.is_read = false; await sb.from("mail_messages").update({ is_read: false }).eq("id", id); renderMailAccts(); refreshMailView(); });
-  $("mail-d-send").addEventListener("click", () => mailSendReply(m));
   renderMailList();
 }
 
