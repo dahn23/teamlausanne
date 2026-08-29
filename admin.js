@@ -5870,7 +5870,7 @@ async function etYouthsForSeason(seasonId) {
 // ===================================================================
 const MAIL_STATUS = { nouveau: ["Nouveau", "ms-new"], en_cours: ["En cours", "ms-doing"], traite: ["Traité", "ms-done"], archive: ["Archivé", "ms-arch"] };
 const MAIL_STAFF_ROLES = ["secretaire", "admin", "superadmin"];
-let mailAccounts = [], mailMsgs = [], mailView = [], mailFilterAddr = "", mailSelId = null;
+let mailAccounts = [], mailMsgs = [], mailView = [], mailFilterAddr = "info@teamlausanne.ch", mailSelId = null;
 const mailDT = (iso) => { const d = new Date(iso); return `${frDate(iso)} ${d.toTimeString().slice(0, 5)}`; };
 const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() === new Date().toDateString() ? d.toTimeString().slice(0, 5) : `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`; };
 
@@ -5896,19 +5896,21 @@ async function loadMail() {
 }
 async function refreshMailView() {
   const q = ($("mail-search").value || "").trim();
-  const st = $("mail-status").value;
   const dir = $("mail-dir").value;
+  const st = dir === "out" ? "" : $("mail-status").value; // le statut ne filtre que les reçus
   if (q.length >= 2) {
     const safe = q.replace(/[,()%*]/g, " ").trim();
     let query = sb.from("mail_messages").select("*").order("received_at", { ascending: false }).limit(120)
       .or(`subject.ilike.%${safe}%,from_name.ilike.%${safe}%,from_address.ilike.%${safe}%,to_address.ilike.%${safe}%,body_text.ilike.%${safe}%`);
     if (mailFilterAddr) query = query.eq("account_address", mailFilterAddr);
-    if (st) query = query.eq("status", st);
+    if (st === "actifs") query = query.in("status", ["nouveau", "en_cours"]);
+    else if (st) query = query.eq("status", st);
     if (dir) query = query.eq("direction", dir);
     const { data } = await query;
     mailView = data || [];
   } else {
-    mailView = mailMsgs.filter((m) => (!mailFilterAddr || m.account_address === mailFilterAddr) && (!st || m.status === st) && (!dir || (m.direction || "in") === dir));
+    const stOk = (m) => st === "actifs" ? (m.status === "nouveau" || m.status === "en_cours") : (!st || m.status === st);
+    mailView = mailMsgs.filter((m) => (!mailFilterAddr || m.account_address === mailFilterAddr) && stOk(m) && (!dir || (m.direction || "in") === dir));
   }
   renderMailList();
 }
@@ -6042,7 +6044,7 @@ function renderMailAccts() {
   for (const m of mailMsgs) if (!m.is_read) counts[m.account_address] = (counts[m.account_address] || 0) + 1;
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const chip = (addr, label, n) => `<button type="button" class="mail-acct${mailFilterAddr === addr ? " sel" : ""}" data-addr="${esc(addr)}">${esc(label)}${n ? ` <span class="mail-badge">${n}</span>` : ""}</button>`;
-  $("mail-accts").innerHTML = chip("", "Toutes", total) + mailAccounts.map((a) => chip(a.address, a.label, counts[a.address] || 0)).join("");
+  $("mail-accts").innerHTML = mailAccounts.map((a) => chip(a.address, a.label, counts[a.address] || 0)).join("") + chip("", "Toutes", total);
   $("mail-accts").querySelectorAll(".mail-acct").forEach((b) => b.addEventListener("click", () => { mailFilterAddr = b.dataset.addr; renderMailAccts(); refreshMailView(); }));
 }
 function renderMailList() {
