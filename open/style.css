@@ -82,8 +82,11 @@ a:hover{text-decoration:underline}
 .lo-tab .dot{width:7px;height:7px;border-radius:50%;background:var(--urgent);flex-shrink:0}
 
 /* sous-onglets */
-.lo-sub{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:2px 0 16px;margin:0}
-.lo-sub::-webkit-scrollbar{display:none}
+/* Les jours passent a la ligne au lieu de defiler. Le defilement horizontal
+   sans barre visible cachait le dernier jour hors ecran : le 30 aout etait
+   selectionne mais invisible, donc aucun jour ne paraissait actif et on
+   croyait le programme absent. */
+.lo-sub{display:flex;flex-wrap:wrap;gap:7px;overflow:visible;padding:2px 0 16px;margin:0}
 .lo-sub button{
   flex:0 0 auto;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer;
   background:transparent;color:var(--muted);border:1px solid var(--line);

@@ -343,9 +343,17 @@ async function vHotel(v) {
     phone: $("h-tel").value.trim(), maps: $("h-maps").value.trim(), note: $("h-note").value.trim() } }));
 }
 
+
+/* Empreinte du contenu d'un fichier, calculee sur le base64 exactement comme
+   la base le fait de son cote : deux imports identiques donnent la meme
+   empreinte, quel que soit le nom du fichier. */
+async function sha256(texte) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texte));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 /* ====================================================== ORDER OF PLAY */
 async function vOop(v) {
-  const { data } = await sb.from("lo_oop").select("day,filename,mime,updated_at").order("day", { ascending: false });
+  const { data } = await sb.from("lo_oop").select("day,filename,mime,updated_at,sig").order("day", { ascending: false });
   const list = data || [];
   v.innerHTML = `
     <h2 class="lo-h2">Order of play</h2>
@@ -365,8 +373,8 @@ async function vOop(v) {
       <div class="adm-row">
         <div class="grow"><b>${frJour(o.day)}</b>
           <small>${esc(o.filename)} · mis à jour le ${frDateTime(o.updated_at)}</small>
-          ${list.some((x) => x.filename === o.filename && x.day !== o.day)
-            ? `<small class="warn-line">${svg("alert")} même fichier qu'un autre jour — à vérifier</small>` : ""}</div>
+          ${list.some((x) => x.sig && x.sig === o.sig && x.day !== o.day)
+            ? `<small class="warn-line">${svg("alert")} contenu identique à un autre jour — à vérifier</small>` : ""}</div>
         <div class="adm-actions"><button class="btn danger" data-del="${o.day}">${svg("trash")}</button></div>
       </div>`).join("") : `<div class="empty">Aucun fichier publié.</div>`}`;
 
@@ -377,18 +385,6 @@ async function vOop(v) {
     if (!day) { $("o-err").textContent = "Choisis un jour."; return; }
     if (!f) { $("o-err").textContent = "Choisis un fichier."; return; }
     if (f.size > 6 * 1024 * 1024) { $("o-err").textContent = "Fichier trop lourd (6 Mo max)."; return; }
-    // Piege classique : on retelecharge le programme du jour depuis le site de
-    // l'ITF, le navigateur le range dans les telechargements a cote du
-    // precedent, et on repique l'ancien fichier. Le nom est le meme, personne
-    // ne voit rien, et les joueurs lisent le programme de la veille. Si ce nom
-    // de fichier sert deja pour un autre jour, on demande confirmation.
-    const deja = list.find((o) => o.filename === f.name && o.day !== day);
-    if (deja && !confirm(
-        `« ${f.name} » est déjà publié pour ${frJour(deja.day)}.\n\n` +
-        `C'est bien le bon fichier pour ${frJour(day)} ?\n` +
-        `(Si tu viens de le retélécharger, vérifie que tu n'as pas repris l'ancien.)`)) {
-      return;
-    }
     $("o-up").disabled = true;
     try {
       const b64 = await new Promise((res, rej) => {
@@ -397,6 +393,25 @@ async function vOop(v) {
         r.onerror = rej;
         r.readAsDataURL(f);
       });
+
+      // Piege classique : on retourne sur le site de l'ITF chercher le
+      // programme du lendemain, mais il n'est pas encore publie - ou on
+      // repique l'ancien fichier dans ses telechargements. Le nom change
+      // (OP-3, OP-4...), le contenu non, et les joueurs lisent le programme
+      // de la veille sans que rien ne le signale. On compare donc le CONTENU,
+      // pas le nom : l'empreinte est calculee ici et confrontee a celles
+      // deja en base.
+      const empreinte = await sha256(b64);
+      const jumeau = list.find((o) => o.sig && o.sig === empreinte && o.day !== day);
+      if (jumeau && !confirm(
+          `⚠ Ce fichier est EXACTEMENT le même que celui publié pour ${frJour(jumeau.day)}.\n\n` +
+          `Le nom est différent, mais le contenu est identique — c'est presque toujours ` +
+          `le programme de la veille repris par erreur, ou un programme pas encore publié ` +
+          `par l'ITF.\n\nLe publier quand même pour ${frJour(day)} ?`)) {
+        $("o-up").disabled = false;
+        return;
+      }
+
       await api("oop_set", { day, filename: f.name, mime: f.type || "application/pdf", data: b64 });
       route();
     } catch (e) { $("o-err").textContent = e.message; $("o-up").disabled = false; }
