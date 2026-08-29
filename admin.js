@@ -5880,6 +5880,7 @@ async function loadMail() {
     $("mail-search").dataset.wired = "1";
     $("mail-search").addEventListener("input", () => { clearTimeout(mailSearchT); mailSearchT = setTimeout(refreshMailView, 250); });
     $("mail-status").addEventListener("change", refreshMailView);
+    $("mail-dir").addEventListener("change", refreshMailView);
     $("mail-sync").addEventListener("click", mailSync);
     $("mail-history-btn").addEventListener("click", mailHistory);
     $("mail-importboxes-btn").addEventListener("click", mailImportBoxes);
@@ -5896,16 +5897,18 @@ async function loadMail() {
 async function refreshMailView() {
   const q = ($("mail-search").value || "").trim();
   const st = $("mail-status").value;
+  const dir = $("mail-dir").value;
   if (q.length >= 2) {
     const safe = q.replace(/[,()%*]/g, " ").trim();
     let query = sb.from("mail_messages").select("*").order("received_at", { ascending: false }).limit(120)
-      .or(`subject.ilike.%${safe}%,from_name.ilike.%${safe}%,from_address.ilike.%${safe}%,body_text.ilike.%${safe}%`);
+      .or(`subject.ilike.%${safe}%,from_name.ilike.%${safe}%,from_address.ilike.%${safe}%,to_address.ilike.%${safe}%,body_text.ilike.%${safe}%`);
     if (mailFilterAddr) query = query.eq("account_address", mailFilterAddr);
     if (st) query = query.eq("status", st);
+    if (dir) query = query.eq("direction", dir);
     const { data } = await query;
     mailView = data || [];
   } else {
-    mailView = mailMsgs.filter((m) => (!mailFilterAddr || m.account_address === mailFilterAddr) && (!st || m.status === st));
+    mailView = mailMsgs.filter((m) => (!mailFilterAddr || m.account_address === mailFilterAddr) && (!st || m.status === st) && (!dir || (m.direction || "in") === dir));
   }
   renderMailList();
 }
@@ -5994,11 +5997,13 @@ function renderMailList() {
   const acctLabel = (addr) => mailAccounts.find((a) => a.address === addr)?.label || addr;
   $("mail-list").innerHTML = list.length ? list.map((m) => {
     const [slbl, scls] = MAIL_STATUS[m.status] || [m.status, ""];
+    const isOut = m.direction === "out";
+    const who = isOut ? "À " + esc(m.to_address || "—") : esc(m.from_name || m.from_address || "—");
     return `<div class="mail-item${m.id === mailSelId ? " sel" : ""}${m.is_read ? "" : " unread"}" data-id="${m.id}">
-      <div class="mail-item-top"><span class="mail-from">${esc(m.from_name || m.from_address || "—")}</span><span class="mail-date">${mailShort(m.received_at)}</span></div>
+      <div class="mail-item-top"><span class="mail-from">${isOut ? '<span class="mail-outico">↗</span> ' : ""}${who}</span><span class="mail-date">${mailShort(m.received_at)}</span></div>
       <div class="mail-subj">${esc(m.subject || "(sans objet)")}</div>
       <div class="mail-snip muted">${esc(m.snippet || "")}</div>
-      <div class="mail-item-foot"><span class="mail-acctbadge">${esc(acctLabel(m.account_address))}</span><span class="mail-stat ${scls}">${slbl}</span></div>
+      <div class="mail-item-foot"><span class="mail-acctbadge">${esc(acctLabel(m.account_address))}</span>${isOut ? '<span class="mail-stat mail-sent">Envoyé</span>' : `<span class="mail-stat ${scls}">${slbl}</span>`}</div>
     </div>`;
   }).join("") : '<p class="muted" style="padding:16px">Aucun message.</p>';
   $("mail-list").querySelectorAll(".mail-item").forEach((el) => el.addEventListener("click", () => openMail(el.dataset.id)));

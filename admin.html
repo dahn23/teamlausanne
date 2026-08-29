@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=82" />
+  <link rel="stylesheet" href="style.css?v=83" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -565,6 +565,11 @@
           <div id="mail-demo" class="mail-banner">Boîte reliée à Gmail — relève automatique toutes les 5 min. « Relever » force une relève immédiate.</div>
           <div class="mail-toolbar">
             <div id="mail-accts" class="mail-accts"></div>
+            <select id="mail-dir">
+              <option value="">Reçus + envoyés</option>
+              <option value="in">Reçus</option>
+              <option value="out">Envoyés</option>
+            </select>
             <select id="mail-status">
               <option value="">Tous les statuts</option>
               <option value="nouveau">Nouveau</option>

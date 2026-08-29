@@ -833,6 +833,8 @@ html{-webkit-tap-highlight-color:transparent}
 .ms-doing{background:#fff3e0;color:#a9721a}
 .ms-done{background:#e9f7ee;color:#1c7d38}
 .ms-arch{background:#eef1f7;color:var(--muted)}
+.mail-sent{background:#e9f7ee;color:#1c7d38}
+.mail-outico{color:#1c7d38;font-weight:800}
 .mail-detail{border:1px solid var(--line);border-radius:12px;background:#fff;min-height:300px;padding:18px}
 .mail-d-head h3{margin:0 0 4px}
 .mail-d-meta{font-size:.85rem;margin-bottom:12px}
