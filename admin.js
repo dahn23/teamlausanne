@@ -5983,8 +5983,14 @@ function renderMailBodyEl(m) {
     f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>body{font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111;margin:0;word-wrap:break-word;overflow-wrap:anywhere}img{max-width:100%;height:auto}a{color:#123cc4}</style></head><body>${m.body_html}</body></html>`;
     f.addEventListener("load", () => { try { const h = f.contentDocument.body.scrollHeight; f.style.height = Math.min(1400, h + 24) + "px"; } catch (_) { f.style.height = "500px"; } });
   } else {
-    el.innerHTML = esc(m.body_text || m.snippet || "").replace(/\n/g, "<br>");
+    el.innerHTML = mailLinkify(m.body_text || m.snippet || "");
   }
+}
+// Texte brut -> HTML sûr avec URLs cliquables
+function mailLinkify(text) {
+  return String(text).split(/(https?:\/\/[^\s<>()]+)/g)
+    .map((p, i) => i % 2 ? `<a href="${esc(p)}" target="_blank" rel="noopener">${esc(p)}</a>` : esc(p).replace(/\n/g, "<br>"))
+    .join("");
 }
 let mailFiles = [];
 function mailWireCompose() {
