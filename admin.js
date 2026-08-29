@@ -6085,7 +6085,7 @@ async function openMail(id) {
         <button type="button" class="rt-btn" data-cmd="bold" title="Gras"><b>G</b></button>
         <button type="button" class="rt-btn" data-cmd="italic" title="Italique"><i>I</i></button>
         <button type="button" class="rt-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
-        <label class="rt-color" title="Couleur du texte">A<input type="color" id="mail-d-color" value="#123cc4" /></label>
+        <label class="rt-color" title="Couleur du texte">A<input type="color" id="mail-d-color" value="#000000" /></label>
         <label class="rt-attach" title="Joindre un fichier">📎 Joindre<input type="file" id="mail-d-file" multiple hidden /></label>
       </div>
       <div id="mail-d-replyhtml" class="rt-edit" contenteditable="true" data-ph="Répondre à ${esc(m.from_address || "")}…"></div>
