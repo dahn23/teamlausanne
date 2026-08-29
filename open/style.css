@@ -500,3 +500,8 @@ svg.mk.off{color:var(--muted)}
   font-size:.87rem;line-height:1.5;font-weight:600;color:var(--ink);
 }
 .free-note svg{flex:none;width:17px;height:17px;color:var(--fluo);margin-top:2px}
+
+/* Signale, dans la liste des order of play du backend, qu'un meme fichier est
+   publie pour deux jours differents : presque toujours une erreur de manip. */
+.warn-line{display:block;margin-top:3px;color:var(--warn);font-weight:700}
+.warn-line svg{width:13px;height:13px;vertical-align:-2px;margin-right:3px}

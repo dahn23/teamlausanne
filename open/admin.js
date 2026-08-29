@@ -364,7 +364,9 @@ async function vOop(v) {
     ${list.length ? list.map((o) => `
       <div class="adm-row">
         <div class="grow"><b>${frJour(o.day)}</b>
-          <small>${esc(o.filename)} · mis à jour le ${frDateTime(o.updated_at)}</small></div>
+          <small>${esc(o.filename)} · mis à jour le ${frDateTime(o.updated_at)}</small>
+          ${list.some((x) => x.filename === o.filename && x.day !== o.day)
+            ? `<small class="warn-line">${svg("alert")} même fichier qu'un autre jour — à vérifier</small>` : ""}</div>
         <div class="adm-actions"><button class="btn danger" data-del="${o.day}">${svg("trash")}</button></div>
       </div>`).join("") : `<div class="empty">Aucun fichier publié.</div>`}`;
 
@@ -375,6 +377,18 @@ async function vOop(v) {
     if (!day) { $("o-err").textContent = "Choisis un jour."; return; }
     if (!f) { $("o-err").textContent = "Choisis un fichier."; return; }
     if (f.size > 6 * 1024 * 1024) { $("o-err").textContent = "Fichier trop lourd (6 Mo max)."; return; }
+    // Piege classique : on retelecharge le programme du jour depuis le site de
+    // l'ITF, le navigateur le range dans les telechargements a cote du
+    // precedent, et on repique l'ancien fichier. Le nom est le meme, personne
+    // ne voit rien, et les joueurs lisent le programme de la veille. Si ce nom
+    // de fichier sert deja pour un autre jour, on demande confirmation.
+    const deja = list.find((o) => o.filename === f.name && o.day !== day);
+    if (deja && !confirm(
+        `« ${f.name} » est déjà publié pour ${frJour(deja.day)}.\n\n` +
+        `C'est bien le bon fichier pour ${frJour(day)} ?\n` +
+        `(Si tu viens de le retélécharger, vérifie que tu n'as pas repris l'ancien.)`)) {
+      return;
+    }
     $("o-up").disabled = true;
     try {
       const b64 = await new Promise((res, rej) => {
