@@ -6467,7 +6467,7 @@ async function loadEtudesCalendar() {
   if (!(days || []).length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jour dans le calendrier pour cette saison.</p>'; return; }
   if (!youths.length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jeune en sport-études pour cette saison (à définir dans les fiches › Saisons).</p>'; return; }
   let html = '<table class="crm-table et-cal"><thead><tr><th>Date</th><th>Prof(s)</th>'
-    + youths.map((y) => `<th title="${esc(y.last_name)} ${esc(y.first_name)}">${esc(y.last_name)} ${esc((y.first_name || "").slice(0, 1))}.</th>`).join("") + "</tr></thead><tbody>";
+    + youths.map((y) => `<th title="${esc(y.first_name)} ${esc(y.last_name)}">${esc(y.first_name)} ${esc((y.last_name || "").slice(0, 1))}.</th>`).join("") + "</tr></thead><tbody>";
   const nowLocal = new Date();
   for (const d of days) {
     const dp = profs.filter((p) => p.day_id === d.id);
