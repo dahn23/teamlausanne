@@ -125,23 +125,21 @@ async function openMyProfile() {
   let p = people.find((x) => x.id === myPersonId);
   if (!p) { const { data } = await sb.from("people").select("*").eq("id", myPersonId).maybeSingle(); p = data; }
   if (!p) { alert("Fiche introuvable."); return; }
-  const confirmed = !!p.profile_confirmed_at;
-  const editable = !confirmed;          // avant validation : on peut compléter les champs vides
   const roles = [...new Set(myAppRoles)].map((r) => ME_ROLE_LABELS[r] || r);
   const inits = (((p.first_name || "")[0] || "") + ((p.last_name || "")[0] || "")).toUpperCase();
   const isProf = myAppRoles.includes("prof");
-  const rows = ME_FIELDS.filter((f) => !(f.k === "license_no" && isProf)).map((f) => {
+  const fields = ME_FIELDS.filter((f) => !(f.k === "license_no" && isProf));
+  const hasEmpty = fields.some((f) => !p[f.k]);  // au moins une info à compléter ?
+  const rows = fields.map((f) => {
     const val = p[f.k];
-    if (editable && !val) {
-      return `<div class="me-row edit"><span>${f.lbl}</span><input id="me-f-${f.k}" type="${f.type}" placeholder="À compléter" /></div>`;
-    }
-    if (!val) return "";                 // déjà validé + vide → on masque
+    // Champ vide → éditable (le staff peut le compléter) ; champ rempli → verrouillé.
+    if (!val) return `<div class="me-row edit"><span>${f.lbl}</span><input id="me-f-${f.k}" type="${f.type}" placeholder="À compléter" /></div>`;
     return `<div class="me-row"><span>${f.lbl}</span><b>${esc(f.disp ? f.disp(val) : val)}</b></div>`;
   }).join("");
-  const foot = editable
-    ? `<p class="muted" style="font-size:.82rem;margin:14px 0 10px">Complète les infos manquantes, puis valide (une seule fois). Ensuite, seule le secrétariat pourra les corriger.</p>
-       <div class="me-actions"><button type="button" id="me-save">Valider mes informations</button><span id="me-status" class="muted"></span></div>`
-    : `<p class="muted" style="font-size:.82rem;margin:14px 0 0">Profil validé. Pour corriger une information, contacte le secrétariat.</p>`;
+  const foot = hasEmpty
+    ? `<p class="muted" style="font-size:.82rem;margin:14px 0 10px">Complète les infos manquantes puis enregistre. Les infos déjà renseignées sont verrouillées — pour les corriger, contacte le secrétariat.</p>
+       <div class="me-actions"><button type="button" id="me-save">Enregistrer</button><span id="me-status" class="muted"></span></div>`
+    : `<p class="muted" style="font-size:.82rem;margin:14px 0 0">Toutes tes infos sont renseignées. Pour corriger une information, contacte le secrétariat.</p>`;
   $("me-body").innerHTML = `
     <div class="me-head">
       <div class="me-av">${p.photo_url ? `<img src="${esc(p.photo_url)}" alt="">` : esc(inits)}</div>
@@ -158,7 +156,7 @@ async function openMyProfile() {
       </div>
       <span id="me-pw-status" class="muted" style="font-size:.85rem"></span>
     </div>`;
-  if (editable) $("me-save").addEventListener("click", saveMyProfile);
+  if (hasEmpty) $("me-save").addEventListener("click", saveMyProfile);
   $("me-pw-btn").addEventListener("click", changeMyPassword);
   $("me-modal").classList.remove("hidden");
 }
@@ -176,7 +174,7 @@ async function saveMyProfile() {
   const payload = {};
   ME_FIELDS.forEach((f) => { const el = document.getElementById("me-f-" + f.k); if (el) payload[f.k] = el.value.trim(); });
   const btn = $("me-save"); btn.disabled = true;
-  $("me-status").textContent = "Validation…";
+  $("me-status").textContent = "Enregistrement…";
   const { error } = await sb.rpc("confirm_my_profile", { p_data: payload });
   if (error) { btn.disabled = false; $("me-status").textContent = "Erreur : " + error.message; return; }
   const { data } = await sb.from("people").select("*").eq("id", myPersonId).maybeSingle();
