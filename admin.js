@@ -2833,21 +2833,39 @@ function renderMailCards() {
   });
 }
 
+const gzFillVars = (s, map) => String(s || "").replace(/\{(\w+)\}/g, (mm, k) => (map[k] != null ? map[k] : mm));
 async function gzMailTest(key, card) {
   const to = card.querySelector(".gz-mail-testmail").value.trim();
   const st = card.querySelector(".gz-mail-teststatus");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { st.textContent = "Entre un email valide."; return; }
-  const subject = "[TEST] " + card.querySelector(".gz-mail-subject").value.trim();
-  const body = card.querySelector(".gz-mail-body").value;
-  const m = gzMails.find((x) => x.key === key);
-  const img = m?.image_url ? `<div style="margin-top:14px"><img src="${esc(m.image_url)}" style="max-width:100%"/></div>` : "";
-  const html = `<div style="font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111">${draftToHtml(body)}${img}</div>`;
-  const btn = card.querySelector(".gz-mail-testbtn"); btn.disabled = true; st.textContent = "Envoi…";
+  const btn = card.querySelector(".gz-mail-testbtn"); btn.disabled = true; st.textContent = "Préparation…";
   try {
+    // Tournoi le plus proche (avant ou après aujourd'hui) comme exemple
+    const { data: ts } = await sb.from("gz_tournaments").select("id,name,registration_url,tournament_date").not("tournament_date", "is", null);
+    const now = Date.now(); let t = null, best = Infinity;
+    for (const x of (ts || [])) { const d = Math.abs(new Date(x.tournament_date).getTime() - now); if (d < best) { best = d; t = x; } }
+    let respo = pName(myPersonId);
+    if (t) { const { data: mgrs } = await sb.from("gz_managers").select("person_id").eq("tournament_id", t.id); const names = (mgrs || []).map((x) => pName(x.person_id)).filter((n) => n && n !== "?"); if (names.length) respo = names.join(", "); }
+    const meFirst = (people.find((p) => p.id === myPersonId) || {}).first_name || "Prénom";
+    const fill = {
+      prenom: meFirst,
+      tournoi: t?.name || "Tournoi test",
+      url_tournoi: t?.registration_url || "https://www.swisstennis.ch",
+      code_vestiaire: "2848#",
+      responsables: respo,
+      lien_tournois: "https://teamlausanne.ch",
+      lien_sondage: "https://teamlausanne.ch",
+    };
+    const subject = "[TEST] " + gzFillVars(card.querySelector(".gz-mail-subject").value.trim(), fill);
+    const body = gzFillVars(card.querySelector(".gz-mail-body").value, fill);
+    const m = gzMails.find((x) => x.key === key);
+    const img = m?.image_url ? `<div style="margin-top:14px"><img src="${esc(m.image_url)}" style="max-width:100%"/></div>` : "";
+    const html = `<div style="font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111">${draftToHtml(body)}${img}</div>`;
+    st.textContent = "Envoi…";
     const { data, error } = await sb.functions.invoke("mail-send", { body: { account: "tournoi@teamlausanne.ch", to, subject, text: body, html } });
     if (error) { let e = error.message; try { e = (await error.context.json())?.error || e; } catch (_) {} st.textContent = "Échec : " + e; }
     else if (data?.error) { st.textContent = "Échec : " + data.error; }
-    else { st.textContent = `✓ Test envoyé à ${to} (depuis ${data?.from || "tournoi@"})`; }
+    else { st.textContent = `✓ Test envoyé à ${to} (depuis ${data?.from || "tournoi@"}) — exemple : ${fill.tournoi}`; }
   } catch (e) { st.textContent = "Échec : " + (e?.message || e); }
   btn.disabled = false;
 }
