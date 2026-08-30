@@ -2066,3 +2066,6 @@ label.fld select{min-width:180px}
 .sv-scale-val{min-width:30px;text-align:center;font-weight:800;color:var(--blue,#1e3ad1);font-size:1.05rem}
 .sv-scale>span{color:#888;font-size:.85rem}
 .gz-send-sub{font-weight:700;font-size:.85rem;color:var(--muted);margin:12px 0 2px;border-top:1px solid var(--line);padding-top:8px}
+.gz-send-count-link{background:none;border:0;color:var(--muted);font-size:.82rem;cursor:pointer;text-decoration:underline dotted;padding:0 6px;white-space:nowrap}
+.gz-send-count-link:hover{color:var(--blue)}
+.gz-send-count-link:disabled{cursor:default;text-decoration:none;opacity:.7}

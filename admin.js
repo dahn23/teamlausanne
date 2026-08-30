@@ -2401,50 +2401,59 @@ async function renderGzMailActions(tid) {
     sb.from("gz_mail_sent").select("participant_id,template_key").eq("tournament_id", tid),
   ]);
   const allIds = [...new Set((entries || []).map((e) => e.participant_id).concat((status || []).map((s) => s.participant_id)))];
-  const { data: parts } = allIds.length ? await sb.from("gz_participants").select("id,email").in("id", allIds) : { data: [] };
-  const emailOk = {}; (parts || []).forEach((p) => (emailOk[p.id] = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email || "")));
+  const { data: parts } = allIds.length ? await sb.from("gz_participants").select("id,first_name,last_name,email").in("id", allIds) : { data: [] };
+  const pInfo = {}; (parts || []).forEach((p) => (pInfo[p.id] = p));
+  const emailOk = (id) => { const p = pInfo[id]; return !!(p && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email || "")); };
+  const nm = (id) => { const p = pInfo[id] || {}; return `${p.first_name || ""} ${p.last_name || ""}`.trim() || "?"; };
   const absent = new Set((status || []).filter((s) => s.absent).map((s) => s.participant_id));
-  const annulSent = new Set((sent || []).filter((s) => s.template_key === "annulation").map((s) => s.participant_id));
   const doneKey = (key) => new Set((sent || []).filter((s) => s.template_key === key).map((s) => s.participant_id));
+  // Classement par épreuve : un tableau SANS aucun confirmé = annulé ; les non-confirmés
+  // d'un tableau QUI A des confirmés = vraie liste d'attente.
+  const epConfirmed = {}; (entries || []).forEach((e) => { const ep = e.epreuve || "—"; if (!(ep in epConfirmed)) epConfirmed[ep] = false; if (e.confirmed) epConfirmed[ep] = true; });
+  const cancelledEps = [...new Set((entries || []).map((e) => e.epreuve || "—"))].filter((ep) => !epConfirmed[ep]).sort();
   const idsFor = (key) => {
     let ids;
-    if (key.startsWith("welcome")) ids = [...new Set((entries || []).filter((e) => e.confirmed).map((e) => e.participant_id))];
-    // Non-sélection : liste d'attente, SAUF ceux dont l'épreuve a été annulée (ils reçoivent l'annulation, pas ça)
-    else if (key === "non_selection") ids = [...new Set((entries || []).filter((e) => !e.confirmed).map((e) => e.participant_id))].filter((id) => !annulSent.has(id));
-    else if (key === "remerciement") ids = [...new Set((entries || []).filter((e) => e.confirmed).map((e) => e.participant_id))].filter((pid) => !absent.has(pid));
-    else if (key === "vainqueur") ids = [...new Set((status || []).filter((s) => s.is_winner && s.photo_url).map((s) => s.participant_id))];
+    if (key.startsWith("welcome")) ids = (entries || []).filter((e) => e.confirmed).map((e) => e.participant_id);
+    else if (key === "non_selection") ids = (entries || []).filter((e) => !e.confirmed && epConfirmed[e.epreuve || "—"]).map((e) => e.participant_id);
+    else if (key === "remerciement") ids = (entries || []).filter((e) => e.confirmed).map((e) => e.participant_id).filter((pid) => !absent.has(pid));
+    else if (key === "vainqueur") ids = (status || []).filter((s) => s.is_winner && s.photo_url).map((s) => s.participant_id);
     else ids = [];
     const done = doneKey(key);
-    return ids.filter((id) => emailOk[id] && !done.has(id));
+    return [...new Set(ids)].filter((id) => emailOk(id) && !done.has(id));
   };
-  // Annulation par épreuve (tableau)
-  const epreuves = [...new Set((entries || []).map((e) => e.epreuve || "—"))].sort();
   const annulIdsFor = (ep) => {
     const ids = [...new Set((entries || []).filter((e) => (e.epreuve || "—") === ep).map((e) => e.participant_id))];
-    return ids.filter((id) => emailOk[id] && !annulSent.has(id));
+    const done = doneKey("annulation");
+    return ids.filter((id) => emailOk(id) && !done.has(id));
   };
-  const row = (label, auto, n, doneN, key, epreuve) =>
-    `<div class="gz-send-row"><span class="gz-send-lbl">${esc(label)}${auto ? ` <span class="gz-send-auto">${auto}</span>` : ""}</span>`
-    + `<span class="muted gz-send-count">${n} à envoyer${doneN ? ` · ${doneN} envoyé` : ""}</span>`
-    + `<button type="button" class="ghost gz-send-btn" data-key="${key}"${epreuve != null ? ` data-epreuve="${esc(epreuve)}"` : ""} ${n ? "" : "disabled"}>Envoyer${n ? ` (${n})` : ""}</button></div>`;
+  const lists = {}; let ri = 0;
+  const row = (label, auto, ids, doneN, key, epreuve) => {
+    const n = ids.length, idx = ri++; lists[idx] = ids;
+    return `<div class="gz-send-row"><span class="gz-send-lbl">${esc(label)}${auto ? ` <span class="gz-send-auto">${auto}</span>` : ""}</span>`
+      + `<button type="button" class="gz-send-count-link" data-list="${idx}" ${n ? "" : "disabled"}>${n} à envoyer${doneN ? ` · ${doneN} envoyé` : ""}</button>`
+      + `<button type="button" class="ghost gz-send-btn" data-key="${key}"${epreuve != null ? ` data-epreuve="${esc(epreuve)}"` : ""} data-n="${n}" ${n ? "" : "disabled"}>Envoyer${n ? ` (${n})` : ""}</button></div>`;
+  };
   let html = `<h3 style="margin-top:0">Envois e-mails <span class="muted" style="font-weight:400;font-size:.85rem">— depuis tournoi@teamlausanne.ch</span></h3>`;
-  html += row("Bienvenue — sélectionnés", "", idsFor(welcomeKey).length, doneKey(welcomeKey).size, welcomeKey);
-  html += row("Non-sélection — liste d'attente", "", idsFor("non_selection").length, doneKey("non_selection").size, "non_selection");
-  html += `<div class="gz-send-sub">Annulation — par catégorie (tableau)</div>`;
-  html += epreuves.length ? epreuves.map((ep) => {
-    const n = annulIdsFor(ep).length;
+  html += row("Bienvenue — sélectionnés", "", idsFor(welcomeKey), doneKey(welcomeKey).size, welcomeKey);
+  html += row("Non-sélection — liste d'attente", "", idsFor("non_selection"), doneKey("non_selection").size, "non_selection");
+  html += `<div class="gz-send-sub">Annulation — tableaux sans aucun sélectionné</div>`;
+  html += cancelledEps.length ? cancelledEps.map((ep) => {
     const doneN = (sent || []).filter((s) => s.template_key === "annulation" && (entries || []).some((e) => e.participant_id === s.participant_id && (e.epreuve || "—") === ep)).length;
-    return row(`Annuler « ${ep} »`, "", n, doneN, "annulation", ep);
-  }).join("") : '<p class="muted" style="font-size:.84rem">Aucune épreuve.</p>';
+    return row(`Annuler « ${ep} »`, "", annulIdsFor(ep), doneN, "annulation", ep);
+  }).join("") : '<p class="muted" style="font-size:.84rem">Aucun tableau annulé (tous ont au moins un sélectionné).</p>';
   html += `<div class="gz-send-sub">Après le tournoi</div>`;
-  html += row("Remerciements — sélectionnés présents", "auto lundi 11h", idsFor("remerciement").length, doneKey("remerciement").size, "remerciement");
-  html += row("Vainqueurs — avec photo", "auto lundi 11h", idsFor("vainqueur").length, doneKey("vainqueur").size, "vainqueur");
+  html += row("Remerciements — sélectionnés présents", "auto lundi 11h", idsFor("remerciement"), doneKey("remerciement").size, "remerciement");
+  html += row("Vainqueurs — avec photo", "auto lundi 11h", idsFor("vainqueur"), doneKey("vainqueur").size, "vainqueur");
   box.innerHTML = html;
-  box.querySelectorAll(".gz-send-btn").forEach((b) => b.addEventListener("click", () => gzSend(tid, b.dataset.key, b, b.dataset.epreuve || null)));
+  box.querySelectorAll(".gz-send-count-link").forEach((b) => b.addEventListener("click", () => {
+    const ids = lists[b.dataset.list] || [];
+    uiAlert(ids.length ? ids.map((id) => `• ${nm(id)} — ${pInfo[id]?.email || "(sans email)"}`).join("\n") : "Aucun destinataire.");
+  }));
+  box.querySelectorAll(".gz-send-btn").forEach((b) => b.addEventListener("click", () => gzSend(tid, b.dataset.key, b, b.dataset.epreuve || null, +b.dataset.n || 0)));
 }
-async function gzSend(tid, key, btn, epreuve) {
+async function gzSend(tid, key, btn, epreuve, n) {
   const cible = epreuve ? `la catégorie « ${epreuve} »` : "tous les destinataires concernés";
-  if (!(await uiConfirm(`Envoyer ce mail à ${cible}, depuis tournoi@teamlausanne.ch ?`))) return;
+  if (!(await uiConfirm(`Envoyer ce mail à ${n || "les"} destinataire(s) — ${cible} — depuis tournoi@teamlausanne.ch ?`))) return;
   btn.disabled = true;
   let total = 0;
   try {
