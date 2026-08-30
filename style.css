@@ -584,7 +584,7 @@ input.pd-native{display:none}
 .et-datecell{text-align:left;vertical-align:top}
 .et-dprofs{margin-top:5px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .et-dprof{font-size:.78rem;color:var(--muted);font-weight:600}
-.et-datecell .et-presence{font-size:.75rem;padding:3px 8px;font-weight:700}
+.et-datecell .et-presence{font-size:.95rem;padding:8px 12px;font-weight:800;display:block;width:100%;margin-top:3px}
 /* Case « le jeune doit être là » (jour prévu) : contour bleu net pour la distinguer des « pas prévu » (—) */
 .et-cell.et-due{box-shadow:inset 0 0 0 2px var(--blue)}
 /* Jeune dû mais jour non éditable par ce prof (pas son jour / avant 12h50) : contour gris foncé */
