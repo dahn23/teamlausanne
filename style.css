@@ -2030,3 +2030,6 @@ label.fld select{min-width:180px}
 .mail-row #mail-search{flex:1;min-width:180px}
 .mail-fbtn .mail-badge{margin-left:3px}
 .mail-mine.sel{background:#0b6b3a;border-color:#0b6b3a}
+.mail-draft{color:#1c7a45;font-weight:600}
+.mail-d-reply-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mail-d-reply-foot .spacer{flex:1}

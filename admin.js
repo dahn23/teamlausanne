@@ -6373,6 +6373,8 @@ async function openMail(id) {
       <div id="mail-d-replyhtml" class="rt-edit" contenteditable="true" data-ph="Répondre à ${esc(m.from_address || "")}…"></div>
       <div id="mail-d-files" class="rt-files"></div>
       <div class="mail-d-reply-foot"><span class="muted" style="font-size:.8rem">Envoi depuis ${esc(m.account_address)}</span>
+        <span id="mail-d-draft" class="mail-draft muted" style="font-size:.78rem"></span>
+        <span class="spacer"></span>
         <button type="button" id="mail-d-send">Envoyer la réponse</button></div>
       <p id="mail-d-sendstatus" class="muted" style="font-size:.8rem;margin:6px 0 0"></p>
     </div>`;
@@ -6409,16 +6411,16 @@ async function mailSetStatus(m, st) {
 }
 async function loadMailDraft(id) {
   const ed = $("mail-d-replyhtml"); if (!ed) return;
+  const ind = $("mail-d-draft");
   const { data } = await sb.from("mail_drafts").select("body_html").eq("mail_id", id).maybeSingle();
-  if (data?.body_html && !ed.innerHTML.trim()) ed.innerHTML = data.body_html;
-  ed.addEventListener("input", () => {
-    clearTimeout(mailDraftT);
-    mailDraftT = setTimeout(async () => {
-      const html = ed.innerHTML.trim();
-      if (html) await sb.from("mail_drafts").upsert({ mail_id: id, body_html: html, updated_by: myPersonId, updated_at: new Date().toISOString() }, { onConflict: "mail_id" });
-      else await sb.from("mail_drafts").delete().eq("mail_id", id);
-    }, 700);
-  });
+  if (data?.body_html && !ed.innerHTML.trim()) { ed.innerHTML = data.body_html; if (ind) ind.textContent = "📝 Brouillon repris"; }
+  const saveNow = async () => {
+    const html = ed.innerHTML.trim();
+    if (html) { await sb.from("mail_drafts").upsert({ mail_id: id, body_html: html, updated_by: myPersonId, updated_at: new Date().toISOString() }, { onConflict: "mail_id" }); if (ind) ind.textContent = "✓ Brouillon enregistré"; }
+    else { await sb.from("mail_drafts").delete().eq("mail_id", id); if (ind) ind.textContent = ""; }
+  };
+  ed.addEventListener("input", () => { if (ind) ind.textContent = "Enregistrement…"; clearTimeout(mailDraftT); mailDraftT = setTimeout(saveNow, 700); });
+  ed.addEventListener("blur", () => { clearTimeout(mailDraftT); saveNow(); });   // sauvegarde aussi en quittant le champ
 }
 async function loadMailAttachments(id) {
   const box = $("mail-d-atts"); if (!box) return;
