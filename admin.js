@@ -143,10 +143,16 @@ async function openMyProfile() {
   let p = people.find((x) => x.id === myPersonId);
   if (!p) { const { data } = await sb.from("people").select("*").eq("id", myPersonId).maybeSingle(); p = data; }
   if (!p) { alert("Fiche introuvable."); return; }
-  const roles = [...new Set(myAppRoles)].map((r) => ME_ROLE_LABELS[r] || r);
+  // Tous les roles : roles d'ACCES (user_roles) + tags CRM (person_roles, dont
+  // « responsable-tournoi » qui n'est pas un role d'acces). Chacun peut lire ses
+  // propres tags (policy pr_read_self) meme s'il n'est pas staff (ex. official).
+  const { data: prt } = await sb.from("person_roles").select("role").eq("person_id", myPersonId);
+  const myTags = (prt || []).map((r) => r.role);
+  const roles = [...new Set([...[...new Set(myAppRoles)].map((r) => ME_ROLE_LABELS[r] || r), ...myTags.map((r) => roleLabel(r))])];
   const inits = (((p.first_name || "")[0] || "") + ((p.last_name || "")[0] || "")).toUpperCase();
-  const isProf = myAppRoles.includes("prof");
-  const fields = ME_FIELDS.filter((f) => !(f.k === "license_no" && isProf));
+  // Pas de licence pour les non-joueurs : prof, official (organisateur), responsable de tournoi.
+  const noLicense = myAppRoles.includes("prof") || myAppRoles.includes("organisateur") || myTags.includes("responsable-tournoi");
+  const fields = ME_FIELDS.filter((f) => !(f.k === "license_no" && noLicense));
   const hasEmpty = fields.some((f) => !p[f.k]);  // au moins une info à compléter ?
   const rows = fields.map((f) => {
     const val = p[f.k];
