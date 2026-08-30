@@ -6349,11 +6349,11 @@ async function openMail(id) {
   const acctLabel = mailAccounts.find((a) => a.address === m.account_address)?.label || m.account_address;
   let statusInfo = "";
   if (m.status === "en_cours") statusInfo = `Attribué${m.assigned_user ? " à <b>" + esc(pName(m.assigned_user)) + "</b>" : " · <span class=\"mail-warn\">à attribuer</span>"}${m.comment ? " · " + esc(m.comment) : ""}`;
-  else if (m.status === "traite") statusInfo = `Traité${m.treated_by ? " par <b>" + esc(pName(m.treated_by)) + "</b>" : ""}${m.treated_at ? " · " + mailDT(m.treated_at) : ""}`;
+  else if (m.status === "traite") statusInfo = m.treated_at ? `Traité le ${mailDT(m.treated_at)}` : "";
   const controls = isOut ? "" : `
     <div class="mail-d-controls">
       <button type="button" id="mail-d-unread" class="ghost mail-d-unread">Marquer non lu</button>
-      <div class="mail-stbtns">${MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${m.status === k ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}</button>`).join("")}</div>
+      <div class="mail-stbtns">${MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${m.status === k ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}</button>`).join("")}${m.status === "traite" && m.treated_by ? `<span class="mail-treatedby">✓ par ${esc(pName(m.treated_by))}</span>` : ""}</div>
       ${statusInfo ? `<div class="mail-statusinfo muted">${statusInfo}</div>` : ""}
     </div>`;
   const reply = isOut ? "" : `

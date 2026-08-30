@@ -2042,3 +2042,4 @@ label.fld select{min-width:180px}
 .ui-box .ps-trigger{background:var(--blue);border-color:var(--blue)}
 .ui-box .ps-trigger,.ui-box .ps-trigger .ps-val,.ui-box .ps-chevron{color:#fff}
 .ui-box .ps-trigger .ps-val.ps-ph{color:#dbe3ff}
+.mail-treatedby{color:#1c7a45;font-weight:700;font-size:.84rem;align-self:center;margin-left:4px}
