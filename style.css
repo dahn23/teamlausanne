@@ -2058,3 +2058,5 @@ label.fld select{min-width:180px}
 .gz-send-lbl{font-weight:600;flex:1}
 .gz-send-auto{font-weight:400;font-size:.72rem;background:#eef3ff;color:var(--blue);padding:1px 7px;border-radius:999px;margin-left:4px;white-space:nowrap}
 .gz-send-count{font-size:.82rem;white-space:nowrap}
+.ui-input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:.95rem;margin:6px 0 4px;box-sizing:border-box}
+.ui-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,58,209,.15)}

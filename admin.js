@@ -23,6 +23,24 @@ function uiModal(message, opts = {}) {
 }
 const uiAlert = (m) => uiModal(m);
 const uiConfirm = (m) => uiModal(m, { confirm: true });
+// Saisie stylée (remplace prompt natif) : renvoie la valeur, ou null si annulé.
+function uiPrompt(message, def = "") {
+  return new Promise((resolve) => {
+    const ov = document.createElement("div");
+    ov.className = "ui-modal";
+    const ico = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+    ov.innerHTML = `<div class="ui-box"><div class="ui-ico">${ico}</div><p class="ui-msg">${esc(message).replace(/\n/g, "<br>")}</p><input type="text" class="ui-input" /><div class="ui-actions"><button type="button" class="ui-btn ui-no">Annuler</button><button type="button" class="ui-btn ui-yes">OK</button></div></div>`;
+    document.body.appendChild(ov);
+    const inp = ov.querySelector(".ui-input"); inp.value = def == null ? "" : String(def);
+    const done = (v) => { ov.remove(); resolve(v); };
+    ov.querySelector(".ui-yes").addEventListener("click", () => done(inp.value));
+    ov.querySelector(".ui-no").addEventListener("click", () => done(null));
+    ov.addEventListener("click", (e) => { if (e.target === ov) done(null); });
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); done(inp.value); } });
+    setTimeout(() => { inp.focus(); inp.select(); }, 30);
+  });
+}
+window.prompt = () => { throw new Error("prompt natif désactivé — utilise uiPrompt"); };
 // Homogénéise : tous les alert natifs passent par le modal bleu ; les confirmations deviennent await uiConfirm.
 window.alert = (m) => { uiModal(String(m)); };
 let people = [];
@@ -1560,7 +1578,7 @@ async function addObjective() {
 async function editObjective(oid) {
   const el = document.querySelector(`.obj-item[data-oid="${oid}"] .obj-body`);
   const current = el ? el.textContent : "";
-  const next = prompt("Modifier l'objectif :", current);
+  const next = await uiPrompt("Modifier l'objectif :", current);
   if (next === null) return;
   const body = next.trim();
   if (!body) return;
@@ -2522,7 +2540,7 @@ function mgrPlayer(pid) { return mgrPlayers.find((x) => x.p.id === pid); }
 
 async function grantCredit(pid) {
   const mp = mgrPlayer(pid); if (!mp) return;
-  const v = prompt(`Ajouter un crédit à ${mp.p.first_name} (CHF) :`, "");
+  const v = await uiPrompt(`Ajouter un crédit à ${mp.p.first_name} (CHF) :`, "");
   const amt = Number(v);
   if (!amt) return;
   const nc = Number(mp.p.credit_chf || 0) + amt;
@@ -2535,7 +2553,7 @@ async function spendCredit(pid) {
   const mp = mgrPlayer(pid); if (!mp) return;
   const credit = Number(mp.p.credit_chf || 0);
   if (credit <= 0) return;
-  const v = prompt(`Montant du crédit à utiliser (max ${credit} CHF) :`, String(credit));
+  const v = await uiPrompt(`Montant du crédit à utiliser (max ${credit} CHF) :`, String(credit));
   const amt = Math.min(Number(v) || 0, credit);
   if (!amt) return;
   await sb.from("gz_participants").update({ credit_chf: credit - amt }).eq("id", pid);
@@ -3028,7 +3046,7 @@ function renderSurveys(scope) {
 }
 
 async function createSurvey(scope) {
-  const title = prompt("Titre du questionnaire :", "Questionnaire de satisfaction");
+  const title = await uiPrompt("Titre du questionnaire :", "Questionnaire de satisfaction");
   if (!title) return;
   const { error } = await sb.from("gz_surveys").insert({ title, tag: SURVEY_CFG[scope].newTag });
   if (error) return alert(error.message);
@@ -3057,13 +3075,13 @@ async function delSurvey(scope, id) {
 }
 
 async function addQuestion(scope, sid) {
-  const label = prompt("Question :");
+  const label = await uiPrompt("Question :");
   if (!label) return;
-  const t = (prompt("Type — tape : choix / texte / note", "choix") || "").toLowerCase().trim();
+  const t = (await uiPrompt("Type — tape : choix / texte / note", "choix") || "").toLowerCase().trim();
   const qtype = t.startsWith("t") ? "text" : t.startsWith("n") ? "rating" : "choice";
   let options = [];
   if (qtype === "choice") {
-    const o = prompt("Réponses possibles, séparées par des virgules :", "Oui, Non");
+    const o = await uiPrompt("Réponses possibles, séparées par des virgules :", "Oui, Non");
     options = (o || "").split(",").map((x) => x.trim()).filter(Boolean);
     if (!options.length) return alert("Au moins une réponse est nécessaire.");
   }
@@ -3207,11 +3225,11 @@ async function loadSeasons() {
 }
 
 async function createSeason() {
-  const name = prompt("Nom de la saison (ex. GameZone 2025/26) :");
+  const name = await uiPrompt("Nom de la saison (ex. GameZone 2025/26) :");
   if (!name) return;
-  const start = prompt("Date de début (AAAA-MM-JJ) :");
+  const start = await uiPrompt("Date de début (AAAA-MM-JJ) :");
   if (!start || !/^\d{4}-\d{2}-\d{2}$/.test(start)) return alert("Date de début invalide.");
-  const end = prompt("Date de fin (AAAA-MM-JJ) :");
+  const end = await uiPrompt("Date de fin (AAAA-MM-JJ) :");
   if (!end || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return alert("Date de fin invalide.");
   const { error } = await sb.from("gz_seasons").insert({ name, start_date: start, end_date: end });
   if (error) return alert(error.message);
@@ -3278,7 +3296,7 @@ async function saveCat(card) {
 }
 
 async function createCat() {
-  const name = prompt("Nom de la catégorie de tarifs :");
+  const name = await uiPrompt("Nom de la catégorie de tarifs :");
   if (!name) return;
   await sb.from("gz_price_categories").insert({ name, prices: [] });
   loadCats();
@@ -5062,7 +5080,7 @@ async function saveReg(e) {
 }
 
 async function setDiscount(id) {
-  const t = (prompt("Motif du rabais −20% — tape : famille / 2e semaine", "famille") || "").toLowerCase().trim();
+  const t = (await uiPrompt("Motif du rabais −20% — tape : famille / 2e semaine", "famille") || "").toLowerCase().trim();
   if (!t) return;
   const reason = t.startsWith("2") || t.includes("sem") ? "2e semaine" : "famille";
   await sb.from("stage_registrations").update({ discount_pct: 20, discount_reason: reason }).eq("id", id);
@@ -5902,7 +5920,7 @@ async function peAddRemark() {
 }
 async function peEditRemark(id) {
   const el = document.querySelector(`#pe-rem-list .obj-item[data-id="${id}"] .obj-body`);
-  const next = prompt("Modifier la remarque :", el ? el.textContent : "");
+  const next = await uiPrompt("Modifier la remarque :", el ? el.textContent : "");
   if (next === null) return;
   const body = next.trim(); if (!body) return;
   await sb.from("etudes_remarks").update({ body, updated_at: new Date().toISOString() }).eq("id", id);
@@ -6052,7 +6070,7 @@ async function mentalAddComment(youthId, bodyId, refresh) {
 }
 async function mentalEditComment(id, refresh) {
   const el = document.querySelector(`.obj-item[data-id="${id}"] .obj-body`);
-  const next = prompt("Modifier le commentaire :", el ? el.textContent : "");
+  const next = await uiPrompt("Modifier le commentaire :", el ? el.textContent : "");
   if (next === null) return;
   const body = next.trim(); if (!body) return;
   await sb.from("mental_comments").update({ body, updated_at: new Date().toISOString() }).eq("id", id);
@@ -7244,7 +7262,7 @@ async function addEtRemark() {
 }
 async function editEtRemark(id) {
   const el = document.querySelector(`#et-rem-list .obj-item[data-id="${id}"] .obj-body`);
-  const next = prompt("Modifier la remarque :", el ? el.textContent : "");
+  const next = await uiPrompt("Modifier la remarque :", el ? el.textContent : "");
   if (next === null) return;
   const body = next.trim(); if (!body) return;
   await sb.from("etudes_remarks").update({ body, updated_at: new Date().toISOString() }).eq("id", id);
