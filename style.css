@@ -1993,3 +1993,7 @@ label.fld select{min-width:180px}
 .youth-tr .crm-table td{padding:6px 8px}
 .tr-tally-lbl{font-size:.78rem;font-weight:700;color:var(--muted);margin:8px 0 3px}
 .tr-warn{background:#fff3e0;color:#8a4b00;border:1px solid #f0c98a;border-radius:9px;padding:8px 11px;font-size:.84rem;margin:6px 0 4px}
+.cours-toolbar{margin:0 0 12px}
+.cours-box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:var(--card)}
+.cours-box-h{font-weight:800;font-size:1.02rem;margin-bottom:6px}
+.cours-line{font-size:.9rem;margin:3px 0;line-height:1.5}

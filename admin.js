@@ -1376,73 +1376,102 @@ async function deleteMedia(mid, storagePath) {
 }
 
 // ---- Cours d'une personne (présences + cours annoncés à venir) ----
-async function loadCourses(personId, showByRole) {
-  const box = $("cours-content");
-  const now = new Date();
-  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  // Tous les cours où le jeune est inscrit (passés ET annoncés) + ses présences.
-  const [{ data: parts, error }, { data: att }] = await Promise.all([
-    sb.from("course_participants").select("course_id,courses(course_date,start_time,end_time,title,course_type_id,course_types(name,color))").eq("child_person_id", personId),
-    sb.from("attendance").select("course_id,status").eq("person_id", personId).eq("is_coach", false),
-  ]);
-  const attOf = {}; (att || []).forEach((a) => (attOf[a.course_id] = a.status));
-  const rows = (error ? [] : (parts || [])).filter((p) => p.courses).map((p) => {
-    const c = p.courses;
-    const st = attOf[p.course_id] || (c.course_date >= todayISO ? "annonce" : "nonmarque");
-    return { date: c.course_date, start: c.start_time, end: c.end_time, title: c.title, tid: c.course_type_id || "?", tname: c.course_types?.name || "Cours", color: c.course_types?.color || "#3563E9", status: st };
-  });
-  showPersonTab("cours", showByRole || rows.length > 0);
-  if (error) { box.innerHTML = `<p class="obj-empty">Erreur : ${esc(error.message)}</p>`; return; }
-  if (!rows.length) box.innerHTML = `<p class="obj-empty">Aucun cours.</p>`;
-  else {
-    const groups = {};
-    for (const r of rows) { const g = (groups[r.tid] = groups[r.tid] || { name: r.tname, color: r.color, items: [] }); g.items.push(r); }
-    const stLabel = { present: "Présent", late: "En retard", absent: "Absent", annonce: "Annoncé", nonmarque: "—" };
-    const stClass = { present: "att-present", late: "att-late", absent: "att-absent", annonce: "att-annonce", nonmarque: "" };
-    box.innerHTML = Object.values(groups).map((g) => {
-      g.items.sort((x, y) => (y.date || "").localeCompare(x.date || "") || (y.start || "").localeCompare(x.start || ""));
-      const done = g.items.filter((i) => ["present", "late", "absent"].includes(i.status));
-      const tot = done.length, pres = done.filter((i) => i.status === "present").length, late = done.filter((i) => i.status === "late").length, abs = done.filter((i) => i.status === "absent").length;
-      const upc = g.items.filter((i) => i.status === "annonce").length;
-      const pct = tot ? Math.round((pres / tot) * 100) : 0;
-      const list = g.items.map((i) => {
-        const d = i.date ? frDate(i.date) : "—", h = `${(i.start || "").slice(0, 5)}–${(i.end || "").slice(0, 5)}`;
-        return `<div class="att-row"><span class="att-d">${d}</span><span class="att-h">${h}</span><span class="att-badge ${stClass[i.status] || ""}">${stLabel[i.status] || i.status}</span></div>`;
-      }).join("");
-      return `<div class="cours-group"><div class="cours-group-h"><span class="cours-dot" style="background:${esc(g.color)}"></span><b>${esc(g.name)}</b>${tot ? `<span class="cours-pct">${pct}% présent</span>` : ""}<span class="cours-brk">${pres} présent · ${late} retard · ${abs} absent${upc ? ` · ${upc} annoncé` : ""} · ${g.items.length} cours</span></div><div class="att-list">${list}</div></div>`;
-    }).join("");
+// Lecture par lots (contourne la limite 1000 lignes + URL trop longue sur .in()).
+async function fetchInChunks(table, cols, col, ids, tweak) {
+  const out = []; const CH = 80;
+  for (let i = 0; i < ids.length; i += CH) {
+    let q = sb.from(table).select(cols).in(col, ids.slice(i, i + CH));
+    if (tweak) q = tweak(q);
+    const { data } = await q; if (data) out.push(...data);
   }
-  // Détail d'entraînement (head coach/admin uniquement — RLS le protège aussi côté serveur)
-  if (hasAny(myAppRoles, ["superadmin", "admin", "head_coach"])) loadYouthTrainingDetail(personId, box);
+  return out;
 }
 
-// Détail d'entraînement du jeune : avec qui / quel coach / combien de temps (depuis les blocs).
-async function loadYouthTrainingDetail(personId, box) {
-  const { data: mine } = await sb.from("course_segment_players").select("segment_id").eq("person_id", personId);
-  if (!mine || !mine.length) return;
-  const segIds = mine.map((x) => x.segment_id);
-  const [{ data: segs }, { data: allp }] = await Promise.all([
-    sb.from("course_segments").select("id,course_id,minutes,coach_person_id").in("id", segIds),
-    sb.from("course_segment_players").select("segment_id,person_id").in("segment_id", segIds),
+async function loadCourses(personId, showByRole) {
+  const box = $("cours-content");
+  const { data: parts0 } = await sb.from("course_participants").select("course_id,courses(course_date)").eq("child_person_id", personId);
+  const anyCourse = (parts0 || []).some((p) => p.courses);
+  showPersonTab("cours", showByRole || anyCourse);
+  const juns = (typeof seasonsOf === "function" ? seasonsOf("juniors") : []) || [];
+  if (!juns.length) { box.innerHTML = '<p class="obj-empty">Aucune saison définie.</p>'; return; }
+  const cur = (typeof currentSeason === "function" ? currentSeason("juniors") : null);
+  box.innerHTML = `<div class="cours-toolbar"><label class="fld">Saison <select id="cours-season">${juns.map((s) => `<option value="${s.id}">${esc(s.label || (s.start_date + "→" + s.end_date))}</option>`).join("")}</select></label></div><div id="cours-body"></div>`;
+  const sel = $("cours-season");
+  sel.value = (cur && cur.id) || juns[0].id;   // forcer la valeur (pretty-select)
+  sel.addEventListener("change", () => renderCoursSeason(personId, sel.value));
+  renderCoursSeason(personId, sel.value);
+}
+
+// Stats de jeu par saison, basées sur les PRÉSENCES RÉELLES (et le détail pour pro/SE).
+async function renderCoursSeason(personId, seasonId) {
+  const body = $("cours-body"); if (!body) return;
+  const juns = (typeof seasonsOf === "function" ? seasonsOf("juniors") : []) || [];
+  const s = juns.find((x) => String(x.id) === String(seasonId));
+  if (!s) { body.innerHTML = '<p class="obj-empty">Choisis une saison.</p>'; return; }
+  body.innerHTML = '<p class="muted">Chargement…</p>';
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const { data: parts } = await sb.from("course_participants")
+    .select("course_id,courses(course_date,start_time,end_time,course_type_id,course_types(name))").eq("child_person_id", personId);
+  const mine = (parts || []).filter((p) => p.courses && p.courses.course_date >= s.start_date && p.courses.course_date <= s.end_date);
+  if (!mine.length) { body.innerHTML = '<p class="obj-empty">Aucun cours cette saison.</p>'; return; }
+  const courseIds = mine.map((p) => p.course_id);
+  const [att, segs] = await Promise.all([
+    fetchInChunks("attendance", "course_id,person_id,status", "course_id", courseIds, (q) => q.eq("is_coach", false)),
+    fetchInChunks("course_segments", "id,course_id,minutes", "course_id", courseIds),
   ]);
-  if (!segs || !segs.length) return;
-  const courseIds = [...new Set(segs.map((s) => s.course_id))];
-  const { data: courses } = await sb.from("courses").select("id,course_date,course_types(name)").in("id", courseIds);
-  const cOf = {}; (courses || []).forEach((c) => (cOf[c.id] = c));
-  const partOf = {}; (allp || []).forEach((r) => { if (r.person_id !== personId) (partOf[r.segment_id] || (partOf[r.segment_id] = [])).push(r.person_id); });
-  segs.sort((a, b) => ((cOf[b.course_id] || {}).course_date || "").localeCompare((cOf[a.course_id] || {}).course_date || ""));
-  const nm = (id) => { const p = people.find((x) => x.id === id); return p ? `${p.first_name} ${(p.last_name || "").slice(0, 1)}.` : "?"; };
+  const sp = segs.length ? await fetchInChunks("course_segment_players", "segment_id,person_id", "segment_id", segs.map((x) => x.id)) : [];
+  const attByCourse = {}; att.forEach((a) => ((attByCourse[a.course_id] || (attByCourse[a.course_id] = {}))[a.person_id] = a.status));
+  const segByCourse = {}; segs.forEach((sg) => (segByCourse[sg.course_id] || (segByCourse[sg.course_id] = [])).push(sg));
+  const playersBySeg = {}; sp.forEach((r) => (playersBySeg[r.segment_id] || (playersBySeg[r.segment_id] = [])).push(r.person_id));
+  const isPhys = (name) => /physique|fitness/i.test(name || "");
+  const mk = () => ({ present: 0, absent: 0, late: 0, annonce: 0, g: { 1: 0, 2: 0, 3: 0, 4: 0 }, withMin: {}, total: 0 });
+  const D = { tennis: mk(), phys: mk() };
+  mine.forEach((p) => {
+    const c = p.courses, cid = p.course_id;
+    const d = isPhys(c.course_types?.name) ? D.phys : D.tennis;
+    const st = (attByCourse[cid] || {})[personId];
+    if (st === "present") d.present++; else if (st === "absent") d.absent++; else if (st === "late") d.late++;
+    else { if (c.course_date >= todayISO) d.annonce++; return; }
+    if (st !== "present" && st !== "late") return;            // pas de temps de jeu si absent
+    const segList = segByCourse[cid];
+    if (segList && segList.length) {                          // pro/SE détaillé → selon le détail (blocs)
+      segList.forEach((sg) => {
+        const pls = playersBySeg[sg.id] || []; if (!pls.includes(personId)) return;
+        const m = sg.minutes || 0, gs = Math.min(pls.length, 4) || 1;
+        d.g[gs] += m; d.total += m;
+        pls.forEach((o) => { if (o !== personId) d.withMin[o] = (d.withMin[o] || 0) + m; });
+      });
+    } else {                                                  // cours normal → durée pleine, groupe = présents
+      const dur = trMinBetween(c.start_time, c.end_time);
+      const pres = Object.keys(attByCourse[cid] || {}).filter((pid) => ["present", "late"].includes(attByCourse[cid][pid]));
+      const gs = Math.min(pres.length || 1, 4);
+      d.g[gs] += dur; d.total += dur;
+      pres.forEach((o) => { if (o !== personId) d.withMin[o] = (d.withMin[o] || 0) + dur; });
+    }
+  });
+  body.innerHTML = coursBoxHtml("🎾 Tennis", D.tennis, "tn") + coursBoxHtml("💪 Physique", D.phys, "ph");
+  body.querySelectorAll(".cours-more").forEach((b) => b.addEventListener("click", () => { const r = $(b.dataset.t + "-rest"); if (r) r.classList.remove("hidden"); b.remove(); }));
+}
+
+function coursBoxHtml(title, d, key) {
   const fmt = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}h${String(r).padStart(2, "0")}` : h ? `${h}h` : `${r}min`; };
-  const totalMin = segs.reduce((s, x) => s + (x.minutes || 0), 0);
-  const trows = segs.map((s) => {
-    const c = cOf[s.course_id] || {}, parts = (partOf[s.id] || []).map(nm).join(", ") || "—";
-    return `<tr><td>${c.course_date ? frDate(c.course_date) : "—"}</td><td>${esc(c.course_types?.name || "—")}</td><td>${fmt(s.minutes || 0)}</td><td>${s.coach_person_id ? esc(nm(s.coach_person_id)) : "—"}</td><td>${esc(parts)}</td></tr>`;
-  }).join("");
-  const el = document.createElement("div");
-  el.className = "youth-tr";
-  el.innerHTML = `<div class="cours-group-h" style="margin-top:18px"><b>Détail d'entraînement</b><span class="cours-brk">${segs.length} bloc(s) · ${fmt(totalMin)} au total</span></div>
-    <div class="table-wrap"><table class="crm-table"><thead><tr><th>Date</th><th>Type</th><th>Durée</th><th>Coach</th><th>Avec</th></tr></thead><tbody>${trows}</tbody></table></div>`;
-  box.appendChild(el);
+  const marked = d.present + d.absent + d.late;
+  if (!marked && !d.annonce) return `<div class="cours-box"><div class="cours-box-h">${title}</div><p class="muted" style="font-size:.85rem;margin:6px 0 0">Aucun cours cette saison.</p></div>`;
+  const pct = marked ? Math.round((d.present / marked) * 100) : 0;
+  const partners = Object.entries(d.withMin).map(([id, m]) => ({ id, m })).sort((a, b) => b.m - a.m);
+  const row = (p) => `<div class="att-row"><span class="att-d">${esc(trFull(p.id))}</span><span class="att-badge">${fmt(p.m)}</span></div>`;
+  const shown = partners.slice(0, 8), rest = partners.slice(8);
+  const partHtml = partners.length
+    ? shown.map(row).join("") + (rest.length ? `<div id="${key}-rest" class="hidden">${rest.map(row).join("")}</div><button type="button" class="ghost cours-more" data-t="${key}" style="margin-top:6px">Afficher plus (${rest.length})</button>` : "")
+    : '<span class="muted" style="font-size:.85rem">— personne —</span>';
+  return `<div class="cours-box">
+    <div class="cours-box-h">${title}</div>
+    <div class="cours-line"><b>Présences</b> — ${d.present} présent · ${d.late} retard · ${d.absent} absent${marked ? ` · <b>${pct}%</b>` : ""}${d.annonce ? ` · ${d.annonce} annoncé` : ""}</div>
+    <div class="cours-line"><b>Temps de jeu réel</b> — seul ${fmt(d.g[1])} · à 2 ${fmt(d.g[2])} · à 3 ${fmt(d.g[3])} · à 4+ ${fmt(d.g[4])} · <b>total ${fmt(d.total)}</b></div>
+    <div class="cours-line" style="margin-top:6px"><b>Joué avec</b></div>
+    <div class="att-list">${partHtml}</div>
+  </div>`;
 }
 
 // ---- Réservations d'une personne ----
