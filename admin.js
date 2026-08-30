@@ -3006,6 +3006,10 @@ function renderMailCards() {
 
 // Liste des tournois GameZone sur mytennis ({lien_tournois} + repli de {url_tournoi}).
 const GZ_MYTENNIS_LIST = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
+// {url_tournoi} = page mytennis du tournoi, derivee du swiss_id (ex. "Id159321" -> .../159321).
+// Un lien saisi a la main (registration_url) reste prioritaire ; sinon repli sur la liste.
+const gzTournoiUrl = (t) => (t?.registration_url && t.registration_url.trim())
+  || (t?.swiss_id ? "https://www.mytennis.ch/fr/tournois/" + String(t.swiss_id).replace(/\D/g, "") : GZ_MYTENNIS_LIST);
 const gzFillVars = (s, map) => String(s || "").replace(/\{(\w+)\}/g, (mm, k) => (map[k] != null ? map[k] : mm));
 async function gzMailTest(key, card) {
   const to = card.querySelector(".gz-mail-testmail").value.trim();
@@ -3014,7 +3018,7 @@ async function gzMailTest(key, card) {
   const btn = card.querySelector(".gz-mail-testbtn"); btn.disabled = true; st.textContent = "Préparation…";
   try {
     // Tournoi le plus proche (avant ou après aujourd'hui) comme exemple
-    const { data: ts } = await sb.from("gz_tournaments").select("id,name,registration_url,tournament_date").not("tournament_date", "is", null);
+    const { data: ts } = await sb.from("gz_tournaments").select("id,name,registration_url,swiss_id,tournament_date").not("tournament_date", "is", null);
     const now = Date.now(); let t = null, best = Infinity;
     for (const x of (ts || [])) { const d = Math.abs(new Date(x.tournament_date).getTime() - now); if (d < best) { best = d; t = x; } }
     let respo = pName(myPersonId);
@@ -3023,7 +3027,7 @@ async function gzMailTest(key, card) {
     const fill = {
       prenom: meFirst,
       tournoi: t?.name || "Tournoi test",
-      url_tournoi: t?.registration_url || GZ_MYTENNIS_LIST,
+      url_tournoi: gzTournoiUrl(t),
       code_vestiaire: "2848#",
       responsables: respo,
       lien_tournois: GZ_MYTENNIS_LIST,
