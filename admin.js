@@ -3631,10 +3631,12 @@ async function savePerson(e) {
 // pour une personne AYANT un compte). On ne touche PAS membre/junior/parent
 // (saisonniers, gérés dans role_periods). Écriture réservée aux admins (RLS is_admin).
 const ACCESS_SYNC_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "coach_physique", "moniteur", "prof", "coach_mental", "organisateur"];
+// Correspondance chip répertoire (person_roles) -> rôle d'accès (user_roles) quand les libellés diffèrent.
+const CHIP_TO_ACCESS = { official: "organisateur", "head-coach": "head_coach", "coach-mental": "coach_mental" };
 async function syncAccessRoles(personId, rolesSet) {
   const { data: prof } = await sb.from("profiles").select("user_id").eq("person_id", personId).maybeSingle();
   if (!prof?.user_id) return true;                       // pas de compte -> rien à synchroniser
-  const want = ACCESS_SYNC_ROLES.filter((r) => rolesSet.has(r)).sort();
+  const want = [...new Set([...rolesSet].map((r) => CHIP_TO_ACCESS[r] || r).filter((r) => ACCESS_SYNC_ROLES.includes(r)))].sort();
   const { data: cur } = await sb.from("user_roles").select("role").eq("user_id", prof.user_id).in("role", ACCESS_SYNC_ROLES);
   const have = (cur || []).map((x) => x.role).sort();
   if (have.length === want.length && have.every((r, i) => r === want[i])) return true; // déjà aligné
