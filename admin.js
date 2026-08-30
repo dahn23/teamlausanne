@@ -6349,7 +6349,7 @@ async function openMail(id) {
   const m = mailView.find((x) => x.id === id) || mailMsgs.find((x) => x.id === id);
   if (!m) return;
   mailSelId = id;
-  if (!m.is_read) { m.is_read = true; const c = mailMsgs.find((x) => x.id === id); if (c) c.is_read = true; sb.from("mail_messages").update({ is_read: true }).eq("id", id); renderMailAccts(); }
+  if (!m.is_read) { m.is_read = true; const c = mailMsgs.find((x) => x.id === id); if (c) c.is_read = true; renderMailAccts(); await sb.from("mail_messages").update({ is_read: true }).eq("id", id); }
   const isOut = (m.direction || "in") === "out";
   const staff = people.filter((p) => hasRoleIn(p.id, MAIL_STAFF_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
   const acctLabel = mailAccounts.find((a) => a.address === m.account_address)?.label || m.account_address;
