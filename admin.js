@@ -3201,7 +3201,7 @@ function openCourse(course, related) {
   $("c-del").classList.toggle("hidden", !course);
   // Présences (seulement en édition d'un cours existant)
   // Cours détaillé (pro/SE + plusieurs courts/coachs) : le détail remplace les présences manuelles.
-  const needsDetail = courseNeedsDetail(course, related?.courts || [], related?.coaches || []);
+  const needsDetail = courseNeedsDetail(course, related?.coaches || [], related?.children || []);
   $("c-att-block").classList.toggle("hidden", !course || needsDetail);
   if (course && !needsDetail) renderCourseAtt(course, related?.coaches || [], related?.children || [], related?.attendance || []);
   if (course) courseDetailMaybe(course, related?.courts || [], related?.coaches || [], related?.children || []);
@@ -6966,18 +6966,19 @@ const trFmtH = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r 
 // ---------- Saisie embarquée dans le modal du cours ----------
 // Un cours "détaillé" = pro/sport-études AVEC plusieurs courts OU plusieurs coachs
 // (head coach/admin). Pour ces cours, le détail REMPLACE la validation des présences.
-function courseNeedsDetail(course, courtIds, coachIds) {
+function courseNeedsDetail(course, coachIds, childIds) {
   if (!course) return false;
   const canEdit = hasAny(myAppRoles, ["superadmin", "admin", "head_coach"]);
   const typeName = (courseTypes.find((t) => t.id === course.course_type_id) || {}).name || "";
-  const multi = (courtIds || []).length > 1 || (coachIds || []).length > 1;
+  // Aligné sur le serveur course_is_detailed : plusieurs coachs OU plusieurs joueurs.
+  const multi = (coachIds || []).length > 1 || (childIds || []).length > 1;
   return canEdit && TR_TYPE_RE.test(typeName) && multi;
 }
 // Appelée par openCourse : affiche (ou non) le bloc détail.
 async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
   const block = $("c-detail-block"); if (!block) return;
   const typeName = (courseTypes.find((t) => t.id === course.course_type_id) || {}).name || "";
-  if (!courseNeedsDetail(course, courtIds, coachIds)) { block.classList.add("hidden"); $("c-detail").innerHTML = ""; return; }
+  if (!courseNeedsDetail(course, coachIds, childIds)) { block.classList.add("hidden"); $("c-detail").innerHTML = ""; return; }
   block.classList.remove("hidden");
   const coachLike = (id) => (peopleRoles[id] || []).some((r) => ["coach", "head-coach", "coach-prive"].includes(r));
   const coachSet = new Set(coachIds || []); people.forEach((p) => { if (coachLike(p.id)) coachSet.add(p.id); });
