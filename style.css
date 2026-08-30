@@ -1991,3 +1991,5 @@ label.fld select{min-width:180px}
 .c-detail-block{margin-top:14px;padding-top:12px;border-top:2px dashed var(--line)}
 .att-annonce{background:#e7edff;color:#123cc4}
 .youth-tr .crm-table td{padding:6px 8px}
+.tr-tally-lbl{font-size:.78rem;font-weight:700;color:var(--muted);margin:8px 0 3px}
+.tr-warn{background:#fff3e0;color:#8a4b00;border:1px solid #f0c98a;border-radius:9px;padding:8px 11px;font-size:.84rem;margin:6px 0 4px}

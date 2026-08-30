@@ -6999,6 +6999,18 @@ function renderTrEditor() {
     const m = tally[pid] || 0, cls = m === tgt ? "ok" : m > tgt ? "over" : "under";
     return `<span class="tr-tchip ${cls}">${esc(trShort(pid))} <b>${m}′</b>${tgt ? `/${tgt}` : ""}</span>`;
   }).join("");
+  // Tally COACHS = temps réellement encadré (→ paie). Chaque coach de la séance devrait totaliser la durée.
+  const coachMin = {}; (e.courseCoaches || []).forEach((id) => (coachMin[id] = 0));
+  trBlocs.forEach((b) => { if (b.coach) coachMin[b.coach] = (coachMin[b.coach] || 0) + (b.minutes || 0); });
+  const coachIdsShown = Object.keys(coachMin);
+  const coachTallyHtml = coachIdsShown.map((id) => {
+    const m = coachMin[id] || 0, cls = m === tgt ? "ok" : m > tgt ? "over" : "under";
+    return `<span class="tr-tchip ${cls}">${esc(trShort(id))} <b>${trFmtH(m)}</b>${tgt ? `/${trFmtH(tgt)}` : ""}</span>`;
+  }).join("");
+  const mism = coachIdsShown.filter((id) => (coachMin[id] || 0) !== tgt);
+  const warnHtml = mism.length
+    ? `<div class="tr-warn">⚠️ Le temps encadré ne correspond pas à la durée de la séance (${trFmtH(tgt)}) pour&nbsp;: ${mism.map((id) => `<b>${esc(trShort(id))}</b> (${trFmtH(coachMin[id] || 0)})`).join(", ")}. Ils seront payés au temps saisi — vérifie que c'est voulu.</div>`
+    : "";
   const coachOptions = (sel) => `<option value="">— coach —</option>` +
     e.coachOpts.map((id) => `<option value="${id}"${String(sel) === String(id) ? " selected" : ""}>${esc(trFull(id))}</option>`).join("");
   const courtOptions = (sel) => `<option value="">— court —</option>` +
@@ -7022,9 +7034,13 @@ function renderTrEditor() {
   }).join("");
   host.innerHTML = `
     <label class="cs-lbl">Détail de la séance <span class="muted" style="font-weight:400">— qui a joué avec qui, quel coach, combien de temps</span></label>
-    <p class="muted" style="font-size:.8rem;margin:0 0 8px"><b>Ce détail remplace le pointage des présences</b> pour ce cours : un joueur présent dans ≥1 bloc = présent, sinon absent.</p>
+    <p class="muted" style="font-size:.8rem;margin:0 0 8px"><b>Ce détail remplace le pointage des présences ET les heures</b> pour ce cours : un joueur dans ≥1 bloc = présent ; chaque coach est payé au temps saisi.</p>
+    <div class="tr-tally-lbl">Joueurs</div>
     <div class="tr-tally">${tallyHtml || '<span class="muted">Aucun joueur.</span>'}</div>
-    <p class="muted" style="font-size:.8rem;margin:2px 0 8px">🟢 complet · 🟠 incomplet · 🔴 dépassé (un joueur peut légitimement faire moins que la durée totale).</p>
+    <div class="tr-tally-lbl">Coachs <span class="muted" style="font-weight:400">— temps encadré (paie)</span></div>
+    <div class="tr-tally">${coachTallyHtml || '<span class="muted">Aucun coach.</span>'}</div>
+    ${warnHtml}
+    <p class="muted" style="font-size:.8rem;margin:2px 0 8px">🟢 complet · 🟠 incomplet · 🔴 dépassé. Un <b>joueur</b> peut faire moins ; un <b>coach</b> devrait couvrir toute la séance (sinon avertissement).</p>
     <div class="tr-blocs">${blocsHtml}</div>
     <div class="tr-ed-actions"><button type="button" class="tr-add">+ Ajouter un bloc</button><button type="button" class="tr-save">Enregistrer le détail</button><span class="tr-save-st muted"></span></div>`;
   const newBloc = () => ({ minutes: 60, coach: e.coachOpts[0] || "", court: (e.courtIds || [])[0] || "", note: "", players: [] });
