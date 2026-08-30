@@ -6462,6 +6462,14 @@ async function loadEtudesCalendar() {
     ]);
   }
   const attOf = (dayId, yid) => att.find((a) => a.day_id === dayId && a.youth_person_id === yid)?.status || "";
+  // Colonnes triées : jeunes qui viennent le plus souvent d'abord (moins de « pas prévu »), puis prénom.
+  const npCount = {};
+  for (const a of att) if (a.status === "not_planned") npCount[a.youth_person_id] = (npCount[a.youth_person_id] || 0) + 1;
+  const nDays = (days || []).length;
+  youths.sort((a, b) => {
+    const sched = (nDays - (npCount[b.id] || 0)) - (nDays - (npCount[a.id] || 0));
+    return sched !== 0 ? sched : (a.first_name || "").localeCompare(b.first_name || "");
+  });
   const profOptions = people.filter((p) => hasRoleIn(p.id, ["prof"]));
   const canEditProfs = hasAny(myAppRoles, ["superadmin", "admin"]); // admin : saisie possible à tout moment
   if (!(days || []).length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jour dans le calendrier pour cette saison.</p>'; return; }
@@ -6472,8 +6480,9 @@ async function loadEtudesCalendar() {
   for (const d of days) {
     const dp = profs.filter((p) => p.day_id === d.id);
     const iAmProf = myPersonId && dp.some((p) => p.prof_person_id === myPersonId);
-    // Saisie des jeunes verrouillée avant 12h50 le jour-j (sauf admin) — comme la présence du prof.
-    const dayOpen = canEditProfs || nowLocal >= new Date(d.day + "T12:50:00");
+    // Saisie ouverte pour un prof seulement les jours où il est ASSIGNÉ et à partir de 12h50 ; admin = toujours.
+    const timeOk = nowLocal >= new Date(d.day + "T12:50:00");
+    const dayOpen = canEditProfs || (iAmProf && timeOk);
     const myV = iAmProf ? etvals.find((v) => v.day_id === d.id && v.prof_person_id === myPersonId) : null;
     const mySt = myV?.status || "";
     // Pastille de présence du prof (comme un coach) : blanc → absent → présent → blanc.
@@ -6481,7 +6490,7 @@ async function loadEtudesCalendar() {
     const presCls = mySt === "present" ? "st-present" : mySt === "absent" ? "st-absent" : "st-none";
     const presBtn = iAmProf ? `<div style="margin-top:6px"><button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${presLbl}</button></div>` : "";
     html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${presBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions, false)}</td>`
-      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; return `<td><button type="button" class="att-chip et-cell ${due ? "et-due " : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? 'data-locked="1" title="Saisie dès 12h50 le jour du cours"' : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
+      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; const lockTitle = !timeOk ? "Saisie dès 12h50 le jour du cours" : (!iAmProf ? "Vous n'êtes pas prof assigné ce jour-là" : ""); return `<td><button type="button" class="att-chip et-cell ${due ? (lk ? "et-due-lock " : "et-due ") : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? `data-locked="1" title="${esc(lockTitle)}"` : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
   cont.innerHTML = html + "</tbody></table>";
