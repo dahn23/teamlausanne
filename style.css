@@ -2002,3 +2002,23 @@ label.fld select{min-width:180px}
 .cw-ev.cw-absent{background:#f8dcda}
 .cw-ev.cw-absent:hover{background:#f4cfcc}
 .he-month{min-width:160px}
+/* ===== Messagerie v2 : boutons de filtre + statuts + pièces jointes ===== */
+.mail-btns{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.mail-fbtn{padding:5px 11px;border:1px solid var(--line);background:#fff;border-radius:999px;cursor:pointer;font-size:.84rem;font-weight:600;color:#444}
+.mail-fbtn:hover{background:#eef3f0}
+.mail-fbtn.sel{background:var(--blue);color:#fff;border-color:var(--blue)}
+.mail-fbtn-lbl{font-size:.8rem;color:var(--muted);margin-right:2px}
+.ms-todo{color:#b45309}.ms-doing{color:#1d4ed8}.ms-done{color:#1c7a45}
+.mail-fbtn.ms-todo.sel{background:#e9820e;border-color:#e9820e;color:#fff}
+.mail-fbtn.ms-doing.sel{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+.mail-fbtn.ms-done.sel{background:#1c7a45;border-color:#1c7a45;color:#fff}
+.mail-d-controls{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:8px 0}
+.mail-stbtns{display:flex;gap:5px;flex-wrap:wrap}
+.mail-encours{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:2px}
+.mail-encours input{padding:5px 8px;border:1px solid var(--line);border-radius:8px;font-size:.85rem;min-width:200px}
+.mail-statusinfo{font-size:.84rem;margin-top:2px}
+.mail-warn{color:#b3261e;font-weight:600}
+.mail-d-atts{margin:6px 0}
+.mail-atts{display:flex;flex-wrap:wrap;gap:8px}
+.mail-att{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:.85rem;text-decoration:none;color:var(--blue-ink)}
+.mail-att:hover{background:#eef3ff}

@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=107" />
+  <link rel="stylesheet" href="style.css?v=108" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -565,18 +565,9 @@
           <div class="mail-toolbar">
             <button id="mail-new">✉ Nouveau message</button>
             <div id="mail-accts" class="mail-accts"></div>
-            <select id="mail-dir">
-              <option value="in">Reçus</option>
-              <option value="out">Envoyés</option>
-            </select>
-            <select id="mail-status">
-              <option value="actifs">À traiter</option>
-              <option value="nouveau">Nouveau</option>
-              <option value="en_cours">En cours</option>
-              <option value="traite">Traité</option>
-              <option value="archive">Archivé</option>
-              <option value="">Tous les statuts</option>
-            </select>
+            <div id="mail-dir-btns" class="mail-btns"></div>
+            <div id="mail-status-btns" class="mail-btns"></div>
+            <div id="mail-assignee-btns" class="mail-btns"></div>
             <input id="mail-search" type="text" autocomplete="off" placeholder="Rechercher (dans tout l'historique)…" />
             <button id="mail-importboxes-btn" class="ghost" style="margin-left:auto" title="Importer les 100 derniers mails de tournoi@ et info@lausanneopen@">Importer autres boîtes</button>
             <button id="mail-history-btn" class="ghost" title="Importer les 6 derniers mois du hub depuis Gmail">Importer 6 mois</button>
