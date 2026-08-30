@@ -6,6 +6,23 @@ import "./pretty-date.js";
 const $ = (id) => document.getElementById(id);
 // Petite coupe SVG (remplace l'emoji 🏆 dans les tableaux)
 const ICO_CUP = '<svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-1px" fill="none" stroke="#c8901f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/><path d="M8 5.5H5V7a3 3 0 0 0 3 3M16 5.5h3V7a3 3 0 0 1-3 3"/><path d="M10 13.5V16h4v-2.5M8 20h8M12 16v4"/></svg>';
+// Modal maison (remplace alert/confirm natifs) : fond blanc, contour bleu, icône warning bleue.
+function uiModal(message, opts = {}) {
+  return new Promise((resolve) => {
+    const ov = document.createElement("div");
+    ov.className = "ui-modal";
+    const ico = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2L2 20.5h20L12 3.2z"/><path d="M12 9.5v4.6"/><circle cx="12" cy="17.4" r=".7" fill="currentColor" stroke="none"/></svg>';
+    ov.innerHTML = `<div class="ui-box"><div class="ui-ico">${ico}</div><p class="ui-msg">${esc(message).replace(/\n/g, "<br>")}</p><div class="ui-actions">${opts.confirm ? '<button type="button" class="ui-btn ui-no">Non</button><button type="button" class="ui-btn ui-yes">Oui</button>' : '<button type="button" class="ui-btn ui-yes">OK</button>'}</div></div>`;
+    document.body.appendChild(ov);
+    const done = (v) => { ov.remove(); resolve(v); };
+    ov.querySelector(".ui-yes").addEventListener("click", () => done(true));
+    const no = ov.querySelector(".ui-no"); if (no) no.addEventListener("click", () => done(false));
+    ov.addEventListener("click", (e) => { if (e.target === ov) done(false); });
+    ov.querySelector(".ui-yes").focus();
+  });
+}
+const uiAlert = (m) => uiModal(m);
+const uiConfirm = (m) => uiModal(m, { confirm: true });
 let people = [];
 let meId = null;
 let myAppRoles = [];
@@ -255,6 +272,7 @@ function applyTabAccess(roles) {
 async function init(roles) {
   myAppRoles = roles || [];
   $("logout").addEventListener("click", async () => {
+    if (!(await uiConfirm("Êtes-vous sûr de vouloir vous déconnecter ?"))) return;
     await sb.auth.signOut();
     location.href = "/";
   });
@@ -6503,7 +6521,7 @@ async function loadEtudesCalendar() {
   }
   cont.innerHTML = html + "</tbody></table>";
   cont.querySelectorAll(".et-cell").forEach((c) => c.addEventListener("click", () => {
-    if (c.dataset.locked) { alert(c.dataset.lockmsg || "Saisie non disponible pour ce jour."); return; }
+    if (c.dataset.locked) { uiAlert(c.dataset.lockmsg || "Saisie non disponible pour ce jour."); return; }
     etCycle(c);
   }));
   cont.querySelectorAll(".et-presence").forEach((b) => b.addEventListener("click", () => etProfPresence(b)));
