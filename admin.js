@@ -2330,7 +2330,7 @@ async function loadTournaments() {
       ti += c.p; ts += c.s;
       const drawn = /peuvent être joués|visibles au public/i.test((t.status || "") + JSON.stringify(t.epreuves || ""));
       const badge = t.is_gamezone ? '<span class="gz-badge">GameZone</span>' : '<span class="gz-badge off">autre</span>';
-      html += `<tr class="gz-trow" data-tid="${t.id}"><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date || "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✓" : ""}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
+      html += `<tr class="gz-trow" data-tid="${t.id}"><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date ? frDate(t.tournament_date) : "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✓" : ""}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
     }
     html += `<tr class="gz-total"><td colspan="3">Total — ${g.length} tournoi(s)</td><td>${ti}</td><td>${ts}</td></tr>`;
     html += "</tbody></table></div>";
@@ -2348,7 +2348,7 @@ async function openTournamentMgr(tid) {
   const { data: t } = await sb.from("gz_tournaments").select("*").eq("id", tid).single();
   mgrIsGz = !!t.is_gamezone;
   mgrTournamentName = t.name || "Tournoi";
-  $("gz-mgr-title").textContent = `Gérer — ${t.name || "tournoi"} (${t.tournament_date || ""})`;
+  $("gz-mgr-title").textContent = `Gérer — ${t.name || "tournoi"}${t.tournament_date ? " (" + frDate(t.tournament_date) + ")" : ""}`;
   $("gz-mgr-gz").checked = mgrIsGz;
   const { data: cats } = await sb.from("gz_price_categories").select("*").order("created_at");
   mgrCats = cats || [];
@@ -2893,7 +2893,7 @@ function renderFinance() {
     const twint = Number(r.twint), cash = Number(r.cash), carte = Number(r.carte), sal = Number(r.salaires);
     const total = twint + cash + carte, net = total - sal;
     T.presents += r.presents; T.twint += twint; T.cash += cash; T.carte += carte; T.total += total; T.salaires += sal; T.net += net;
-    return `<tr><td>${esc(r.name || "—")}</td><td>${r.tournament_date || "—"}</td><td>${r.presents}</td>
+    return `<tr><td>${esc(r.name || "—")}</td><td>${r.tournament_date ? frDate(r.tournament_date) : "—"}</td><td>${r.presents}</td>
       <td>${twint}</td><td>${cash}</td><td>${carte}</td><td><b>${total}</b></td><td>${sal}</td><td>${net}</td>
       <td class="muted" style="font-size:.8rem">${(gzFinMgrs[r.tournament_id] || []).join(", ")}</td></tr>`;
   }).join("");
@@ -3226,7 +3226,7 @@ function renderSitePhotos() {
       <img src="${esc(r.photo_url)}" alt="" />
       <div class="gz-site-meta">
         <b>${esc(p.first_name || "")} ${esc(p.last_name || "")}</b>
-        <span class="muted">${esc(t.name || "")}${t.tournament_date ? " · " + t.tournament_date : ""}</span>
+        <span class="muted">${esc(t.name || "")}${t.tournament_date ? " · " + frDate(t.tournament_date) : ""}</span>
       </div>
       <button class="ghost gz-site-toggle">${hidden ? "Afficher" : "Retirer du public"}</button>
       ${hidden ? '<span class="gz-site-badge">Masquée</span>' : ""}
