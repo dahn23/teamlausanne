@@ -2052,3 +2052,9 @@ label.fld select{min-width:180px}
 .gz-mail-test-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 .gz-mail-testmail{flex:1;min-width:180px;padding:7px 9px;border:1px solid var(--line);border-radius:8px}
 .gz-mail-teststatus{font-size:.82rem}
+/* GameZone : envois e-mails d'un tournoi */
+.gz-send-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.gz-send-row:last-child{border-bottom:0}
+.gz-send-lbl{font-weight:600;flex:1}
+.gz-send-auto{font-weight:400;font-size:.72rem;background:#eef3ff;color:var(--blue);padding:1px 7px;border-radius:999px;margin-left:4px;white-space:nowrap}
+.gz-send-count{font-size:.82rem;white-space:nowrap}
