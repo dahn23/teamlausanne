@@ -4057,9 +4057,23 @@ async function loadProspBookmarklet() {
 // ===================================================================
 let heuresData = { coaches: [], profs: [] }, heuresYm = null, heuresInit = false;
 const ymNow = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
+const MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+function fillHeuresMonths() {
+  const sel = $("heures-month"); if (!sel || sel.options.length) return;
+  const d = new Date(); d.setDate(1);
+  let html = "";
+  for (let i = 0; i < 18; i++) {   // 18 derniers mois, du plus récent au plus ancien
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const lbl = `${MOIS_FR[d.getMonth()]} ${d.getFullYear()}`;
+    html += `<option value="${ym}">${lbl.charAt(0).toUpperCase() + lbl.slice(1)}</option>`;
+    d.setMonth(d.getMonth() - 1);
+  }
+  sel.innerHTML = html;
+  sel.value = ymNow();             // forcer la valeur (pretty-select)
+}
 function initHeures() {
   if (heuresInit) return; heuresInit = true;
-  if (!$("heures-month").value) $("heures-month").value = ymNow();
+  fillHeuresMonths();
   $("heures-month").addEventListener("change", loadHeures);
   $("heures-export").addEventListener("click", exportHeures);
 }
