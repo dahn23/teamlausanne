@@ -3014,7 +3014,7 @@ function renderSurveys(scope) {
     const qs = qmap[s.id] || [];
     const link = `${SITE_ORIGIN}/sondage.html?s=${s.id}`;
     const qhtml = qs.map((q) => {
-      const opts = q.qtype === "choice" ? ` <span class="muted">(${(q.options || []).map(esc).join(" · ")})</span>` : q.qtype === "rating" ? ' <span class="muted">(note 1–5)</span>' : ' <span class="muted">(texte libre)</span>';
+      const opts = q.qtype === "choice" ? ` <span class="muted">(${(q.options || []).map(esc).join(" · ")})</span>` : q.qtype === "rating" ? ' <span class="muted">(note 1–5)</span>' : q.qtype === "scale" ? ' <span class="muted">(échelle 1–10)</span>' : ' <span class="muted">(texte libre)</span>';
       return `<li>${esc(q.label)}${opts} <button class="fam-del gz-q-del" data-id="${q.id}">✕</button></li>`;
     }).join("");
     return `<div class="gz-survey-card" data-id="${s.id}">
@@ -3077,8 +3077,8 @@ async function delSurvey(scope, id) {
 async function addQuestion(scope, sid) {
   const label = await uiPrompt("Question :");
   if (!label) return;
-  const t = (await uiPrompt("Type — tape : choix / texte / note", "choix") || "").toLowerCase().trim();
-  const qtype = t.startsWith("t") ? "text" : t.startsWith("n") ? "rating" : "choice";
+  const t = (await uiPrompt("Type — tape : choix / texte / note / échelle", "choix") || "").toLowerCase().trim();
+  const qtype = t.startsWith("t") ? "text" : t.startsWith("n") ? "rating" : (t.startsWith("é") || t.startsWith("e")) ? "scale" : "choice";
   let options = [];
   if (qtype === "choice") {
     const o = await uiPrompt("Réponses possibles, séparées par des virgules :", "Oui, Non");
@@ -3138,10 +3138,14 @@ function renderSurveyResults(scope, sid, box) {
   for (const q of qs) {
     const qa = okAns.filter((a) => a.question_id === q.id);
     html += `<div class="gz-res-q"><b>${esc(q.label)}</b>`;
-    if (q.qtype === "choice" || q.qtype === "rating") {
-      const buckets = q.qtype === "rating" ? ["1", "2", "3", "4", "5"] : (q.options || []);
+    if (q.qtype === "choice" || q.qtype === "rating" || q.qtype === "scale") {
+      const buckets = q.qtype === "rating" ? ["1", "2", "3", "4", "5"] : q.qtype === "scale" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : (q.options || []);
       const counts = {}; qa.forEach((a) => (counts[a.value] = (counts[a.value] || 0) + 1));
       const tot = qa.length || 1;
+      if (q.qtype === "rating" || q.qtype === "scale") {
+        const nums = qa.map((a) => parseFloat(a.value)).filter((n) => !isNaN(n));
+        if (nums.length) html += `<div class="muted" style="font-size:.85rem;margin:3px 0 5px">Moyenne : <b>${(nums.reduce((s, n) => s + n, 0) / nums.length).toFixed(1)}</b> / ${q.qtype === "scale" ? 10 : 5}</div>`;
+      }
       html += "<ul class='gz-res-bars'>" + buckets.map((opt) => {
         const c = counts[opt] || 0; const pct = Math.round((c / tot) * 100);
         return `<li><span class="gz-res-lbl">${esc(opt)}</span><span class="gz-res-bar"><span style="width:${pct}%"></span></span><span class="gz-res-n">${c} (${pct}%)</span></li>`;

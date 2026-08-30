@@ -25,6 +25,8 @@ async function load() {
       field = (q.options || []).map((o) => `<label class="sv-opt"><input type="radio" name="q${i}" value="${esc(o)}"/> ${esc(o)}</label>`).join("");
     } else if (q.qtype === "rating") {
       field = `<div class="sv-rating">${[1, 2, 3, 4, 5].map((n) => `<label class="sv-opt"><input type="radio" name="q${i}" value="${n}"/> ${n}</label>`).join("")}</div>`;
+    } else if (q.qtype === "scale") {
+      field = `<div class="sv-scale"><span>1</span><input type="range" name="q${i}" min="1" max="10" step="1" value="5" oninput="this.nextElementSibling.nextElementSibling.textContent=this.value"/><span>10</span><output class="sv-scale-val">5</output></div>`;
     } else {
       field = `<textarea name="q${i}" rows="3" style="width:100%;box-sizing:border-box"></textarea>`;
     }

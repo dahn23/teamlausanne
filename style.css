@@ -2060,3 +2060,8 @@ label.fld select{min-width:180px}
 .gz-send-count{font-size:.82rem;white-space:nowrap}
 .ui-input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:.95rem;margin:6px 0 4px;box-sizing:border-box}
 .ui-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,58,209,.15)}
+/* Sondage : type "échelle 1–10" (curseur) */
+.sv-scale{display:flex;align-items:center;gap:10px}
+.sv-scale input[type=range]{flex:1;accent-color:var(--blue,#1e3ad1)}
+.sv-scale-val{min-width:30px;text-align:center;font-weight:800;color:var(--blue,#1e3ad1);font-size:1.05rem}
+.sv-scale>span{color:#888;font-size:.85rem}
