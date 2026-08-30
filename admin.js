@@ -2499,12 +2499,15 @@ async function loadResponsables(tid) {
   $("gz-resp-list").querySelectorAll(".gz-resp-del").forEach((b) =>
     b.addEventListener("click", async () => { await sb.from("gz_managers").delete().eq("tournament_id", tid).eq("person_id", b.dataset.id); loadResponsables(tid); loadFinances(tid); }));
   // Candidats = uniquement les tagues "Responsable de tournoi", non deja nommes.
-  // On relit person_roles EN BASE (pas peopleRoles en memoire, qui peut etre perime
-  // si on vient de taguer quelqu'un sans recharger la page) -> liste toujours a jour.
-  const { data: tagged } = await sb.from("person_roles").select("person_id").eq("role", RESP_CANDIDATE_ROLES[0]);
+  // On relit person_roles EN BASE avec le nom joint (people(...)) : aucune dependance
+  // a l'etat en memoire (peopleRoles/people), qui peut etre perime si on vient de
+  // taguer quelqu'un sans recharger -> liste toujours a jour.
+  const { data: tagged, error: tagErr } = await sb.from("person_roles")
+    .select("person_id, people(id,last_name,first_name)").eq("role", RESP_CANDIDATE_ROLES[0]);
+  if (tagErr) console.warn("loadResponsables person_roles:", tagErr.message);
   const seen = new Set();
   const elig = (tagged || [])
-    .map((r) => people.find((p) => p.id === r.person_id))
+    .map((r) => r.people)
     .filter((p) => p && !namedIds.has(p.id) && !seen.has(p.id) && seen.add(p.id))
     .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || "") || (a.first_name || "").localeCompare(b.first_name || ""));
   $("gz-resp-select").innerHTML = elig.length
