@@ -23,6 +23,8 @@ function uiModal(message, opts = {}) {
 }
 const uiAlert = (m) => uiModal(m);
 const uiConfirm = (m) => uiModal(m, { confirm: true });
+// Homogénéise : tous les alert natifs passent par le modal bleu ; les confirmations deviennent await uiConfirm.
+window.alert = (m) => { uiModal(String(m)); };
 let people = [];
 let meId = null;
 let myAppRoles = [];
@@ -703,13 +705,13 @@ async function saveResa(e) {
 
 async function deleteOccurrence() {
   const id = $("r-id").value;
-  if (!id || !confirm("Supprimer cette réservation ?")) return;
+  if (!id || !await uiConfirm("Supprimer cette réservation ?")) return;
   await sb.from("court_bookings").delete().eq("id", id);
   closeResa(); loadResaDay();
 }
 async function deleteSeries() {
   const rec = $("r-recid").value;
-  if (!rec || !confirm("Supprimer TOUTE la série récurrente ?")) return;
+  if (!rec || !await uiConfirm("Supprimer TOUTE la série récurrente ?")) return;
   await sb.from("court_bookings").delete().eq("recurrence_id", rec);
   closeResa(); loadResaDay();
 }
@@ -940,7 +942,7 @@ async function saveRoleSeason(row) {
   setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
 }
 async function delRoleSeason(id) {
-  if (!confirm("Supprimer cette saison ? (les affectations de cette saison seront aussi supprimées)")) return;
+  if (!await uiConfirm("Supprimer cette saison ? (les affectations de cette saison seront aussi supprimées)")) return;
   const { error } = await sb.from("seasons").delete().eq("id", id);
   if (error) { alert(error.message); return; }
   loadSeasonsManage();
@@ -1348,7 +1350,7 @@ async function saveMediaComment(mid, comment) {
   setTimeout(() => { if ($("media-status").textContent.startsWith("✓")) $("media-status").textContent = ""; }, 1500);
 }
 async function deleteMedia(mid, storagePath) {
-  if (!confirm("Supprimer ce média ?")) return;
+  if (!await uiConfirm("Supprimer ce média ?")) return;
   if (storagePath) await sb.storage.from("gz-photos").remove([storagePath]);
   const { error } = await sb.from("person_media").delete().eq("id", mid);
   if (error) { $("media-status").textContent = "Suppression : " + error.message; return; }
@@ -1496,7 +1498,7 @@ async function editObjective(oid) {
   loadObjectives($("p-id").value);
 }
 async function deleteObjective(oid) {
-  if (!confirm("Supprimer cet objectif ?")) return;
+  if (!await uiConfirm("Supprimer cet objectif ?")) return;
   const { error } = await sb.from("person_objectives").delete().eq("id", oid);
   if (error) { alert("Objectif : " + error.message); return; }
   loadObjectives($("p-id").value);
@@ -1562,7 +1564,7 @@ async function updateSeasonPeriod(id, patch) {
   if ("paid" in patch) loadPeople();
 }
 async function deleteSeasonPeriod(id) {
-  if (!confirm("Retirer cette saison ?")) return;
+  if (!await uiConfirm("Retirer cette saison ?")) return;
   const { error } = await sb.from("role_periods").delete().eq("id", id);
   if (error) { alert(error.message); return; }
   loadPersonSeasons($("p-id").value);
@@ -1776,7 +1778,7 @@ async function deleteType(id) {
   const msg = n > 0
     ? `Ce type est utilisé par ${n} cours. Ils seront conservés mais repassés « sans type » (leur couleur et leur titre restent). Supprimer ce type ?`
     : "Supprimer ce type de cours ?";
-  if (!confirm(msg)) return;
+  if (!await uiConfirm(msg)) return;
   if (n > 0) {
     const { error: e1 } = await sb.from("courses").update({ course_type_id: null }).eq("course_type_id", id);
     if (e1) { alert("Impossible de détacher les cours : " + e1.message); return; }
@@ -2566,7 +2568,7 @@ async function closeTournament() {
   let warn = "";
   if (mgrIsGz && winnersNoPhoto > 0) warn += `\n• ${winnersNoPhoto} vainqueur(s) sans photo.`;
   if (c.counted !== null && c.diff !== 0) warn += `\n• La caisse comptée ne correspond pas (écart ${c.diff > 0 ? "+" : ""}${c.diff} CHF).`;
-  if (warn && !confirm("Attention :" + warn + "\n\nClôturer le tournoi quand même ?")) return;
+  if (warn && !await uiConfirm("Attention :" + warn + "\n\nClôturer le tournoi quand même ?")) return;
   const { data: cz } = await sb.from("gz_caisse").select("closed").eq("tournament_id", mgrTid).maybeSingle();
   await saveCaisse();
   if (!cz?.closed) {
@@ -2597,7 +2599,7 @@ async function loadCaisseTab() {
       <td>${r.run}</td><td><button type="button" class="fam-del gz-mov-del" data-id="${r.id}">✕</button></td></tr>`).join("")
     : '<tr><td colspan="5" class="muted">Aucun mouvement.</td></tr>';
   $("gz-ledger-rows").querySelectorAll(".gz-mov-del").forEach((b) =>
-    b.addEventListener("click", async () => { if (confirm("Supprimer ce mouvement de caisse ?")) { await sb.from("gz_caisse_ledger").delete().eq("id", b.dataset.id); loadCaisseTab(); } }));
+    b.addEventListener("click", async () => { if (await uiConfirm("Supprimer ce mouvement de caisse ?")) { await sb.from("gz_caisse_ledger").delete().eq("id", b.dataset.id); loadCaisseTab(); } }));
 }
 
 async function addMovement() {
@@ -2837,7 +2839,7 @@ async function saveSurvey(scope, id) {
 }
 
 async function delSurvey(scope, id) {
-  if (!confirm("Supprimer ce questionnaire et toutes ses réponses ?")) return;
+  if (!await uiConfirm("Supprimer ce questionnaire et toutes ses réponses ?")) return;
   await sb.from("gz_surveys").delete().eq("id", id);
   loadSurveyTab(scope);
 }
@@ -2860,7 +2862,7 @@ async function addQuestion(scope, sid) {
 }
 
 async function delQuestion(scope, qid) {
-  if (!confirm("Supprimer cette question ?")) return;
+  if (!await uiConfirm("Supprimer cette question ?")) return;
   await sb.from("gz_survey_questions").delete().eq("id", qid);
   loadSurveyTab(scope);
 }
@@ -3011,7 +3013,7 @@ async function setCurrentSeason(id) {
 }
 
 async function delSeason(id) {
-  if (!confirm("Supprimer cette saison ?")) return;
+  if (!await uiConfirm("Supprimer cette saison ?")) return;
   await sb.from("gz_seasons").delete().eq("id", id);
   loadSeasons();
 }
@@ -3071,7 +3073,7 @@ async function createCat() {
 }
 
 async function delCat(id) {
-  if (!confirm("Supprimer cette catégorie de tarifs ?")) return;
+  if (!await uiConfirm("Supprimer cette catégorie de tarifs ?")) return;
   await sb.from("gz_price_categories").delete().eq("id", id);
   loadCats();
 }
@@ -3208,7 +3210,7 @@ async function saveCourse(e) {
 
 async function deleteCourse() {
   const id = $("c-id").value;
-  if (!id || !confirm("Supprimer ce cours (et libérer les courts) ?")) return;
+  if (!id || !await uiConfirm("Supprimer ce cours (et libérer les courts) ?")) return;
   await sb.from("courses").delete().eq("id", id); // cascade : bookings, coaches, participants, présences
   $("course-modal").classList.add("hidden");
   loadCoursesCurrent();
@@ -3370,7 +3372,7 @@ async function syncAccessRoles(personId, rolesSet) {
 
 async function deletePerson() {
   const id = $("p-id").value;
-  if (!id || !confirm("Supprimer définitivement cette fiche ?")) return;
+  if (!id || !await uiConfirm("Supprimer définitivement cette fiche ?")) return;
   const { error } = await sb.from("people").delete().eq("id", id);
   if (error) { alert("Suppression impossible : " + error.message); return; }
   closePerson();
@@ -3409,7 +3411,7 @@ function updateLicHint() {
   }
 }
 async function findLicensesMt() {
-  if (!confirm("Chercher sur mytennis les licences manquantes (par nom, confirmées par la date de naissance) ?\nCela peut prendre quelques dizaines de secondes.")) return;
+  if (!await uiConfirm("Chercher sur mytennis les licences manquantes (par nom, confirmées par la date de naissance) ?\nCela peut prendre quelques dizaines de secondes.")) return;
   const btn = $("find-lic-mt"); btn.disabled = true; btn.textContent = "Recherche sur mytennis…";
   const { data, error } = await sb.functions.invoke("mt-find-licenses", { body: {} });
   btn.disabled = false; btn.textContent = "Chercher sur mytennis";
@@ -3420,7 +3422,7 @@ async function findLicensesMt() {
 }
 
 async function autofillLicenses() {
-  if (!confirm("Retrouver les n° de licence des membres depuis les participants GameZone (par nom + date de naissance) ?")) return;
+  if (!await uiConfirm("Retrouver les n° de licence des membres depuis les participants GameZone (par nom + date de naissance) ?")) return;
   const btn = $("autofill-lic"); btn.disabled = true; btn.textContent = "Recherche…";
   const { data, error } = await sb.rpc("autofill_licenses_from_gz");
   btn.disabled = false; btn.textContent = "Retrouver les licences";
@@ -3468,7 +3470,7 @@ async function invitePerson() {
   const email = $("p-email").value.trim();
   const box = $("p-invite-result");
   if (!email) { alert("Renseignez un email dans la fiche, enregistrez, puis créez l'accès."); return; }
-  if (!confirm(`Créer un accès au portail « Mon espace » pour ${email} ?`)) return;
+  if (!await uiConfirm(`Créer un accès au portail « Mon espace » pour ${email} ?`)) return;
   const btn = $("invite-person");
   btn.disabled = true; btn.textContent = "Création…";
   const { data, error } = await sb.functions.invoke("invite-member", {
@@ -3597,7 +3599,7 @@ async function saveNews(e) {
 
 async function deleteNews() {
   const id = $("n-id").value;
-  if (!id || !confirm("Supprimer cette news ?")) return;
+  if (!id || !await uiConfirm("Supprimer cette news ?")) return;
   const { error } = await sb.from("news").delete().eq("id", id);
   if (error) { alert("Suppression impossible : " + error.message); return; }
   closeNews();
@@ -3647,8 +3649,8 @@ async function loadInscriptions() {
 async function addToRepertoire(id) {
   const r = inscList.find((x) => x.id === id);
   if (!r) return;
-  if (r.dup && !confirm(`Un profil « ${r.dup.name} » existe peut-être déjà.\nCréer quand même une nouvelle fiche ?`)) return;
-  if (!r.dup && !confirm(`Ajouter ${r.first_name} ${r.last_name} au répertoire ?`)) return;
+  if (r.dup && !await uiConfirm(`Un profil « ${r.dup.name} » existe peut-être déjà.\nCréer quand même une nouvelle fiche ?`)) return;
+  if (!r.dup && !await uiConfirm(`Ajouter ${r.first_name} ${r.last_name} au répertoire ?`)) return;
   const ins = await sb.from("people").insert({
     first_name: r.first_name, last_name: r.last_name,
     birthdate: r.birthdate || null, avs: r.avs || null,
@@ -3665,7 +3667,7 @@ async function addToRepertoire(id) {
 }
 
 async function deleteInscription(id) {
-  if (!confirm("Supprimer cette demande ?")) return;
+  if (!await uiConfirm("Supprimer cette demande ?")) return;
   const { error } = await sb.from("enrollment_requests").delete().eq("id", id);
   if (error) { alert("Suppression impossible : " + error.message); return; }
   loadInscriptions();
@@ -4100,7 +4102,7 @@ function renderLocks() {
   host.querySelectorAll(".lk-edit").forEach((b) => b.addEventListener("click", () => openLock(locksList.find((x) => x.id === b.dataset.id))));
 }
 async function lockAction(lockId, action) {
-  if (!confirm(action === "open" ? "Ouvrir cette serrure ?" : "Fermer cette serrure ?")) return;
+  if (!await uiConfirm(action === "open" ? "Ouvrir cette serrure ?" : "Fermer cette serrure ?")) return;
   const { data, error } = await sb.functions.invoke("lock-control", { body: { lock_id: lockId, action } });
   if (error || data?.error) { alert("Échec : " + (data?.error || error?.message)); loadLocks(); return; }
   if (!data.ok) alert("Non effectué : " + (data.detail || "fournisseur non configuré"));
@@ -4133,7 +4135,7 @@ async function saveLock(e) {
 }
 async function deleteLock() {
   const id = $("lk-id").value;
-  if (!id || !confirm("Supprimer cette serrure ?")) return;
+  if (!id || !await uiConfirm("Supprimer cette serrure ?")) return;
   await sb.from("locks").delete().eq("id", id);
   $("lock-modal").classList.add("hidden");
   loadLocks();
@@ -4231,8 +4233,8 @@ function renderZones() {
 async function zoneAction(zoneId, action) {
   const z = irrList.find((x) => x.id === zoneId);
   const dur = z?.default_duration_min || 10;
-  if (action === "start" && !confirm(`Arroser « ${z?.name} » pendant ${dur} min ?`)) return;
-  if (action === "stop" && !confirm("Arrêter l'arrosage ?")) return;
+  if (action === "start" && !await uiConfirm(`Arroser « ${z?.name} » pendant ${dur} min ?`)) return;
+  if (action === "stop" && !await uiConfirm("Arrêter l'arrosage ?")) return;
   const body = { zone_id: zoneId, action };
   if (action === "start") body.duration_min = dur;
   const { data, error } = await sb.functions.invoke("irrigation-control", { body });
@@ -4269,7 +4271,7 @@ async function saveZone(e) {
 }
 async function deleteZone() {
   const id = $("iz-id").value;
-  if (!id || !confirm("Supprimer cette zone ?")) return;
+  if (!id || !await uiConfirm("Supprimer cette zone ?")) return;
   await sb.from("irrigation_zones").delete().eq("id", id);
   $("irr-modal").classList.add("hidden");
   loadIrrigation();
@@ -4435,7 +4437,7 @@ async function saveStageCat(id, card) {
 }
 
 async function delStageCat(id) {
-  if (!confirm("Supprimer cette catégorie ? (impossible si des stages l'utilisent)")) return;
+  if (!await uiConfirm("Supprimer cette catégorie ? (impossible si des stages l'utilisent)")) return;
   const { error } = await sb.from("stage_categories").delete().eq("id", id);
   if (error) return alert("Suppression impossible : " + error.message);
   loadStagesTab();
@@ -4568,7 +4570,7 @@ async function saveStage(e) {
 
 async function deleteStage() {
   const id = $("stg-f-id").value;
-  if (!id || !confirm("Supprimer ce stage et tous ses inscrits ?")) return;
+  if (!id || !await uiConfirm("Supprimer ce stage et tous ses inscrits ?")) return;
   await sb.from("stage_registrations").delete().eq("stage_id", id);
   await sb.from("stage_session_categories").delete().eq("session_id", id);
   const { error } = await sb.from("stage_sessions").delete().eq("id", id);
@@ -4845,7 +4847,7 @@ async function removeDiscount(id) {
 }
 
 async function createInvoice(id) {
-  if (!confirm("Créer la facture et envoyer le mail d'inscription (avec facture jointe) ?\nL'envoi réel s'activera en production.")) return;
+  if (!await uiConfirm("Créer la facture et envoyer le mail d'inscription (avec facture jointe) ?\nL'envoi réel s'activera en production.")) return;
   const now = new Date().toISOString();
   await sb.from("stage_registrations").update({ invoice_created: true, invoice_sent_at: now }).eq("id", id);
   const r = stgRegs.find((x) => x.id === id); Object.assign(r, { invoice_created: true, invoice_sent_at: now });
@@ -4859,7 +4861,7 @@ async function togglePaid(id, paid) {
 }
 
 async function delRegistrant(id) {
-  if (!confirm("Supprimer cet inscrit ?")) return;
+  if (!await uiConfirm("Supprimer cet inscrit ?")) return;
   await sb.from("stage_registrations").delete().eq("id", id);
   stgCounts[stgCurrent] = Math.max(0, (stgCounts[stgCurrent] || 1) - 1);
   loadRegistrations();
@@ -5027,7 +5029,7 @@ async function openPhysResult(id) {
 }
 
 async function deletePhysResult(id) {
-  if (!id || !confirm("Supprimer ce test rempli ?")) return;
+  if (!id || !await uiConfirm("Supprimer ce test rempli ?")) return;
   const { error } = await sb.from("phys_results").delete().eq("id", id);
   if (error) { alert(error.message); return; }
   $("phys-result-modal").classList.add("hidden");
@@ -5109,7 +5111,7 @@ async function savePhysTemplate(id, card) {
 }
 
 async function deletePhysTemplate(id) {
-  if (!confirm("Supprimer ce modèle de test ? (les tests déjà remplis sont conservés)")) return;
+  if (!await uiConfirm("Supprimer ce modèle de test ? (les tests déjà remplis sont conservés)")) return;
   const { error } = await sb.from("phys_tests").delete().eq("id", id);
   if (error) { alert(error.message); return; }
   loadPhysTemplates();
@@ -5421,7 +5423,7 @@ async function openMatchReport(id) {
       <button type="button" class="fam-del" id="mr-del" style="margin-top:14px">Supprimer cette feuille</button>
     </div>`;
   $("mr-back").addEventListener("click", loadMatchList);
-  $("mr-del").addEventListener("click", async () => { if (!confirm("Supprimer cette feuille ?")) return; await sb.from("match_reports").delete().eq("id", id); loadMatchList(); });
+  $("mr-del").addEventListener("click", async () => { if (!await uiConfirm("Supprimer cette feuille ?")) return; await sb.from("match_reports").delete().eq("id", id); loadMatchList(); });
 }
 
 async function loadPersonMatchs(personId, byRole) {
@@ -5677,7 +5679,7 @@ async function peEditRemark(id) {
   loadPeRemarks(peYouthId);
 }
 async function peDelRemark(id) {
-  if (!confirm("Supprimer cette remarque ?")) return;
+  if (!await uiConfirm("Supprimer cette remarque ?")) return;
   await sb.from("etudes_remarks").delete().eq("id", id);
   loadPeRemarks(peYouthId);
 }
@@ -5760,7 +5762,7 @@ async function addMentalSession() {
   loadMentalCalendar();
 }
 async function delMentalSession(id) {
-  if (!confirm("Supprimer cette séance ?")) return;
+  if (!await uiConfirm("Supprimer cette séance ?")) return;
   const { error } = await sb.from("mental_sessions").delete().eq("id", id);
   if (error) { alert(error.message); return; }
   loadMentalCalendar();
@@ -5827,7 +5829,7 @@ async function mentalEditComment(id, refresh) {
   refresh();
 }
 async function mentalDelComment(id, refresh) {
-  if (!confirm("Supprimer ce commentaire ?")) return;
+  if (!await uiConfirm("Supprimer ce commentaire ?")) return;
   await sb.from("mental_comments").delete().eq("id", id);
   refresh();
 }
@@ -5955,7 +5957,7 @@ async function refreshMailView() {
 }
 async function mailImportBoxes() {
   const boxes = ["tournoi@teamlausanne.ch", "info@lausanneopen.ch"];
-  if (!confirm("Importer les 100 derniers mails de tournoi@teamlausanne.ch et info@lausanneopen.ch ? (IMAP doit être activé sur ces boîtes)")) return;
+  if (!await uiConfirm("Importer les 100 derniers mails de tournoi@teamlausanne.ch et info@lausanneopen.ch ? (IMAP doit être activé sur ces boîtes)")) return;
   const btn = $("mail-importboxes-btn"); btn.disabled = true;
   const results = [];
   try {
@@ -5977,7 +5979,7 @@ async function mailImportBoxes() {
 }
 async function mailHistory() {
   const btn = $("mail-history-btn");
-  if (!confirm("Importer les mails des 6 derniers mois depuis Gmail dans la console ? (peut se faire en plusieurs passages)")) return;
+  if (!await uiConfirm("Importer les mails des 6 derniers mois depuis Gmail dans la console ? (peut se faire en plusieurs passages)")) return;
   btn.disabled = true;
   let total = 0;
   try {
@@ -6370,7 +6372,7 @@ async function cselToggle(cell) {
   renderCselRepas(cselWeekDates());
 }
 async function cselReset() {
-  if (!confirm("Réinitialiser cette semaine selon les contrats ? (efface les modifications faites pour cette semaine)")) return;
+  if (!await uiConfirm("Réinitialiser cette semaine selon les contrats ? (efface les modifications faites pour cette semaine)")) return;
   await sb.from("csel_meal_overrides").delete().eq("week_start", cselMonday);
   renderCselRepas(cselWeekDates());
 }
@@ -6752,7 +6754,7 @@ async function youthNotes(mountId, youthId) {
     youthNotes(mountId, youthId);
   });
   el.querySelectorAll(".del").forEach((b) => b.addEventListener("click", async () => {
-    if (!confirm("Supprimer cette note ?")) return;
+    if (!await uiConfirm("Supprimer cette note ?")) return;
     await sb.from("youth_notes").delete().eq("id", b.closest(".yn-item").dataset.id);
     youthNotes(mountId, youthId);
   }));
@@ -6813,7 +6815,7 @@ async function channelBox(mountId, table, youthId, internalOnly) {
     channelBox(mountId, table, youthId, internalOnly);
   });
   el.querySelectorAll(".del").forEach((b) => b.addEventListener("click", async () => {
-    if (!confirm("Supprimer ce message ?")) return;
+    if (!await uiConfirm("Supprimer ce message ?")) return;
     await sb.from(table).delete().eq("id", b.closest(".obj-item").dataset.id);
     channelBox(mountId, table, youthId, internalOnly);
   }));
@@ -6859,7 +6861,7 @@ async function editEtRemark(id) {
   loadEtRemarks(etYouthId);
 }
 async function delEtRemark(id) {
-  if (!confirm("Supprimer cette remarque ?")) return;
+  if (!await uiConfirm("Supprimer cette remarque ?")) return;
   await sb.from("etudes_remarks").delete().eq("id", id);
   loadEtRemarks(etYouthId);
 }
