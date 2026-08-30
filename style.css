@@ -2033,3 +2033,8 @@ label.fld select{min-width:180px}
 .mail-draft{color:#1c7a45;font-weight:600}
 .mail-d-reply-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .mail-d-reply-foot .spacer{flex:1}
+/* Popup d'attribution d'un mail */
+.mail-assign-box{max-width:420px}
+.ma-field{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted);margin:10px 0 0;text-align:left}
+.ma-field select,.ma-field input{padding:8px 10px;border:1px solid var(--line);border-radius:9px;font-size:.9rem;color:var(--ink);background:#fff}
+.ma-err{color:#b3261e;font-size:.82rem;margin:8px 0 0;text-align:left}

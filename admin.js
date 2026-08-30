@@ -6354,10 +6354,6 @@ async function openMail(id) {
     <div class="mail-d-controls">
       <button type="button" id="mail-d-unread" class="ghost mail-d-unread">Marquer non lu</button>
       <div class="mail-stbtns">${MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${m.status === k ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}</button>`).join("")}</div>
-      <div id="mail-encours" class="mail-encours${m.status === "en_cours" ? "" : " hidden"}">
-        <label>Attribué à <select id="mail-d-assign"><option value="">— choisir —</option>${staff.map((p) => `<option value="${p.id}"${m.assigned_user === p.id ? " selected" : ""}>${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")}</select></label>
-        <input id="mail-d-comment" type="text" placeholder="Commentaire (optionnel)" value="${esc(m.comment || "")}" />
-      </div>
       ${statusInfo ? `<div class="mail-statusinfo muted">${statusInfo}</div>` : ""}
     </div>`;
   const reply = isOut ? "" : `
@@ -6393,19 +6389,55 @@ async function openMail(id) {
     mailWireCompose();
     $("mail-detail").querySelectorAll(".mail-stbtns .mail-fbtn").forEach((b) => b.addEventListener("click", () => mailSetStatus(m, b.dataset.st)));
     $("mail-d-unread").addEventListener("click", async () => { m.is_read = false; mailSyncCache(m); await sb.from("mail_messages").update({ is_read: false }).eq("id", id); renderMailAccts(); refreshMailView(); });
-    $("mail-d-assign")?.addEventListener("change", async (e) => { m.assigned_user = e.target.value || null; mailSyncCache(m); await sb.from("mail_messages").update({ assigned_user: m.assigned_user }).eq("id", id); renderMailToolbar(); renderMailList(); });
-    $("mail-d-comment")?.addEventListener("change", async (e) => { m.comment = e.target.value.trim() || null; mailSyncCache(m); await sb.from("mail_messages").update({ comment: m.comment }).eq("id", id); });
     loadMailDraft(id);
   }
   renderMailList();
 }
+// Popup d'attribution : choisir une personne (obligatoire) + commentaire (optionnel).
+function mailAssignPrompt(m) {
+  return new Promise((resolve) => {
+    const staff = people.filter((p) => hasRoleIn(p.id, MAIL_STAFF_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+    const ico = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="7.5" r="3.3"/><path d="M18 8v6M15 11h6"/></svg>';
+    const ov = document.createElement("div");
+    ov.className = "ui-modal";
+    ov.innerHTML = `<div class="ui-box mail-assign-box">
+      <div class="ui-ico">${ico}</div>
+      <p class="ui-msg">Attribuer ce message</p>
+      <label class="ma-field">Attribué à
+        <select id="ma-person"><option value="">— choisir une personne —</option>${staff.map((p) => `<option value="${p.id}"${m.assigned_user === p.id ? " selected" : ""}>${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")}</select></label>
+      <label class="ma-field">Commentaire (optionnel)
+        <input id="ma-comment" type="text" value="${esc(m.comment || "")}" placeholder="ex. à rappeler, urgent…" /></label>
+      <p id="ma-err" class="ma-err" hidden>Choisis une personne pour pouvoir attribuer.</p>
+      <div class="ui-actions"><button type="button" class="ui-btn ui-no">Annuler</button><button type="button" class="ui-btn ui-yes">Attribuer</button></div>
+    </div>`;
+    document.body.appendChild(ov);
+    const done = (v) => { ov.remove(); resolve(v); };
+    ov.querySelector(".ui-yes").addEventListener("click", () => {
+      const pid = ov.querySelector("#ma-person").value;
+      if (!pid) { ov.querySelector("#ma-err").hidden = false; return; }
+      done({ personId: pid, comment: ov.querySelector("#ma-comment").value.trim() });
+    });
+    ov.querySelector(".ui-no").addEventListener("click", () => done(null));
+    ov.addEventListener("click", (e) => { if (e.target === ov) done(null); });
+    setTimeout(() => ov.querySelector("#ma-person").focus(), 30);
+  });
+}
 async function mailSetStatus(m, st) {
+  if (st === "en_cours") {                       // « Attribué » = popup, personne obligatoire
+    const res = await mailAssignPrompt(m);
+    if (!res) return;                            // annulé / personne non choisie → on ne change rien
+    const upd = { status: "en_cours", assigned_user: res.personId, comment: res.comment || null };
+    Object.assign(m, upd); mailSyncCache(m);
+    await sb.from("mail_messages").update(upd).eq("id", m.id);
+    openMail(m.id); renderMailToolbar(); refreshMailView();
+    return;
+  }
   const upd = { status: st };
   m.status = st;
   if (st === "traite") { upd.treated_by = myPersonId; upd.treated_at = new Date().toISOString(); m.treated_by = myPersonId; m.treated_at = upd.treated_at; }
   mailSyncCache(m);
   await sb.from("mail_messages").update(upd).eq("id", m.id);
-  openMail(m.id);        // re-render détail (boutons + bandeau + picker en cours)
+  openMail(m.id);
   renderMailToolbar();
   refreshMailView();
 }
