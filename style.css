@@ -2022,3 +2022,9 @@ label.fld select{min-width:180px}
 .mail-atts{display:flex;flex-wrap:wrap;gap:8px}
 .mail-att{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:.85rem;text-decoration:none;color:var(--blue-ink)}
 .mail-att:hover{background:#eef3ff}
+/* Messagerie : barre d'outils sur 3 lignes */
+.mail-toolbar{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.mail-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mail-row .spacer{flex:1}
+.mail-row-sep{width:1px;align-self:stretch;background:var(--line);margin:2px 3px}
+.mail-row #mail-search{flex:1;min-width:180px}
