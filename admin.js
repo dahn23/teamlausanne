@@ -255,6 +255,13 @@ async function init(roles) {
     await sb.auth.signOut();
     location.href = "/";
   });
+  // Barre latérale repliable (icônes seules), mémorisée
+  const sideEl = document.querySelector(".side");
+  try { if (localStorage.getItem("sideCollapsed") === "1") sideEl.classList.add("collapsed"); } catch (_) {}
+  $("side-toggle").addEventListener("click", () => {
+    sideEl.classList.toggle("collapsed");
+    try { localStorage.setItem("sideCollapsed", sideEl.classList.contains("collapsed") ? "1" : "0"); } catch (_) {}
+  });
   $("new-person").addEventListener("click", () => openPerson(null));
   $("import-people").addEventListener("click", openImport);
   $("import-close").addEventListener("click", () => $("import-modal").classList.add("hidden"));

@@ -572,6 +572,11 @@ input.pd-native{display:none}
 /* ===== Études (calendrier + par jeune) ===== */
 .et-cal th,.et-cal td{text-align:center;white-space:nowrap;padding:6px 8px}
 .et-cal th:first-child,.et-cal td:first-child,.et-cal td:nth-child(2),.et-cal th:nth-child(2){text-align:left}
+/* Scroll horizontal avec Date & Prof(s) figés à gauche */
+#et-calendar{overflow-x:auto}
+.et-cal td:first-child,.et-cal th:first-child{position:sticky;left:0;z-index:2;background:#fff;min-width:130px;width:130px}
+.et-cal td:nth-child(2),.et-cal th:nth-child(2){position:sticky;left:130px;z-index:2;background:#fff;min-width:120px;box-shadow:1px 0 0 var(--line)}
+.et-cal thead th:first-child,.et-cal thead th:nth-child(2){z-index:4}
 .att-chip.et-cell{width:34px;height:30px;padding:0;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
 .et-profwrap{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .et-profwrap .ps-wrap{flex:0 0 auto;width:auto;min-width:92px}
@@ -1455,6 +1460,14 @@ body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fl
 .side{width:210px;background:#fff;border-right:1px solid var(--line);padding:14px;
   display:flex;flex-direction:column;gap:6px;flex-shrink:0;transition:opacity .12s ease}
 .side:not(.ready){opacity:0}
+.side-toggle{background:transparent;border:0;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;align-self:flex-end;display:flex;margin-bottom:2px}
+.side-toggle:hover{background:#eef3f0;color:var(--ink)}
+.side-toggle .ico{width:20px;height:20px;transition:transform .15s}
+.side.collapsed{width:60px}
+.side.collapsed .side-label{display:none}
+.side.collapsed .side-item{justify-content:center;padding:12px 8px}
+.side.collapsed .side-toggle{align-self:center}
+.side.collapsed .side-toggle .ico{transform:rotate(180deg)}
 .side-block{display:flex;flex-direction:column;gap:6px}
 .side-block+.side-block{border-top:1px solid var(--line);margin-top:2px;padding-top:8px}
 .side-item{background:transparent;color:var(--ink);text-align:left;padding:10px 12px;
