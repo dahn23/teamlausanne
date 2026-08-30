@@ -2490,28 +2490,22 @@ async function gzSend(tid, key, btn, epreuve, n) {
 // Seules les personnes taguées « Responsable de tournoi » dans le répertoire.
 const RESP_CANDIDATE_ROLES = ["responsable-tournoi"];
 async function loadResponsables(tid) {
-  const { data: mgrs } = await sb.from("gz_managers").select("person_id").eq("tournament_id", tid);
-  const namedIds = new Set((mgrs || []).map((m) => m.person_id));
-  const named = [...namedIds].map((id) => people.find((p) => p.id === id)).filter(Boolean);
+  // Passe par la fonction serveur gz_resp_people : un OFFICIAL (organisateur) n'est
+  // pas "staff", donc la RLS lui interdit de lire person_roles / le repertoire people.
+  // La fonction (SECURITY DEFINER) renvoie candidats + deja-nommes avec leur nom,
+  // pour les officials comme pour le staff. Zero dependance a l'etat en memoire.
+  const { data: rows, error } = await sb.rpc("gz_resp_people", { p_tid: tid });
+  if (error) console.warn("gz_resp_people:", error.message);
+  const all = rows || [];
+  const named = all.filter((r) => r.named);
   $("gz-resp-list").innerHTML = named.length
-    ? named.map((p) => `<span class="gz-badge" style="background:var(--fluo-d);color:var(--fluo-ink)">${esc(p.last_name)} ${esc(p.first_name)} <b class="gz-resp-del" data-id="${p.id}" style="cursor:pointer">×</b></span>`).join(" ")
+    ? named.map((p) => `<span class="gz-badge" style="background:var(--fluo-d);color:var(--fluo-ink)">${esc(p.last_name)} ${esc(p.first_name)} <b class="gz-resp-del" data-id="${p.person_id}" style="cursor:pointer">×</b></span>`).join(" ")
     : '<span class="muted" style="font-size:.85rem">Aucun responsable nommé.</span>';
   $("gz-resp-list").querySelectorAll(".gz-resp-del").forEach((b) =>
     b.addEventListener("click", async () => { await sb.from("gz_managers").delete().eq("tournament_id", tid).eq("person_id", b.dataset.id); loadResponsables(tid); loadFinances(tid); }));
-  // Candidats = uniquement les tagues "Responsable de tournoi", non deja nommes.
-  // On relit person_roles EN BASE avec le nom joint (people(...)) : aucune dependance
-  // a l'etat en memoire (peopleRoles/people), qui peut etre perime si on vient de
-  // taguer quelqu'un sans recharger -> liste toujours a jour.
-  const { data: tagged, error: tagErr } = await sb.from("person_roles")
-    .select("person_id, people(id,last_name,first_name)").eq("role", RESP_CANDIDATE_ROLES[0]);
-  if (tagErr) console.warn("loadResponsables person_roles:", tagErr.message);
-  const seen = new Set();
-  const elig = (tagged || [])
-    .map((r) => r.people)
-    .filter((p) => p && !namedIds.has(p.id) && !seen.has(p.id) && seen.add(p.id))
-    .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || "") || (a.first_name || "").localeCompare(b.first_name || ""));
+  const elig = all.filter((r) => !r.named);
   $("gz-resp-select").innerHTML = elig.length
-    ? '<option value="">— choisir une personne à nommer —</option>' + elig.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")
+    ? '<option value="">— choisir une personne à nommer —</option>' + elig.map((p) => `<option value="${p.person_id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")
     : '<option value="">— aucun « Responsable de tournoi » disponible —</option>';
 }
 
