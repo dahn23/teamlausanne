@@ -726,6 +726,11 @@
                   <label>Catégorie de tarifs<select id="gz-mgr-cat"></select></label>
                   <label class="rg-check" style="align-self:flex-end"><input type="checkbox" id="gz-mgr-gz" /> Compte comme GameZone</label>
                 </div>
+                <div class="rg-row" style="margin-top:8px">
+                  <label style="flex:1">Lien mytennis du tournoi <span style="color:var(--muted);font-weight:400">(sert de <code>{url_tournoi}</code> dans les e-mails)</span>
+                    <input id="gz-mgr-url" type="url" placeholder="https://www.mytennis.ch/fr/tournois/159321" />
+                  </label>
+                </div>
                 <div style="margin-top:10px">
                   <label style="font-size:.88rem;color:var(--muted)">Responsables du tournoi</label>
                   <div id="gz-resp-list" class="role-cell" style="margin-top:6px"></div>
@@ -861,10 +866,20 @@
           <div id="gz-sub-communication" class="gz-sub hidden">
             <h2 style="margin-top:0">Communication — modèles d'e-mails</h2>
             <p class="muted" style="margin-top:0;font-size:.88rem">
-              L'envoi automatique s'activera en production (SMTP). Variables utilisables :
+              Variables utilisables :
               <code>{prenom}</code> <code>{nom}</code> <code>{tournoi}</code> <code>{date}</code>
               <code>{url_tournoi}</code> <code>{responsables}</code> <code>{lien_sondage}</code>
               <code>{lien_tournois}</code> <code>{code_vestiaire}</code>
+            </p>
+            <p class="muted" style="margin-top:0;font-size:.84rem">
+              <b><code>{url_tournoi}</code></b> = le lien <b>mytennis</b> du tournoi (à coller dans « Gérer le tournoi »,
+              ex. <code>mytennis.ch/fr/tournois/159321</code>). &nbsp;·&nbsp;
+              <b><code>{lien_tournois}</code></b> = la liste des tournois GameZone sur mytennis
+              (<code>mytennis.ch/fr/tournois?keyword=gamezone</code>).
+              <br>Pour <b>éditer</b> un modèle : clique dans son objet / son texte, modifie, puis <b>Enregistrer</b>.
+              Le bouton <b>Actif</b> l'active ou le désactive (un modèle inactif n'est jamais envoyé — c'est ainsi qu'on
+              « retire » un e-mail sans le supprimer). Les 6 modèles sont fixes (chacun lié à un moment du tournoi) ;
+              il n'y a pas de suppression, mais un modèle désactivé revient au même.
             </p>
             <div id="gz-mail-list"></div>
           </div>

@@ -2236,6 +2236,10 @@ async function initGameZone(roles) {
     await sb.from("gz_tournaments").update({ is_gamezone: mgrIsGz }).eq("id", mgrTid);
     renderMgr();
   });
+  $("gz-mgr-url").addEventListener("change", async () => {
+    const v = $("gz-mgr-url").value.trim();
+    await sb.from("gz_tournaments").update({ registration_url: v || null }).eq("id", mgrTid);
+  });
   $("gz-pay-add").addEventListener("click", addPayment);
   $("gz-sal-add").addEventListener("click", addSalary);
   $("gz-sal-person").addEventListener("change", () => {
@@ -2356,6 +2360,7 @@ async function openTournamentMgr(tid) {
   mgrTournamentName = t.name || "Tournoi";
   $("gz-mgr-title").textContent = `Gérer — ${t.name || "tournoi"}${t.tournament_date ? " (" + frDate(t.tournament_date) + ")" : ""}`;
   $("gz-mgr-gz").checked = mgrIsGz;
+  $("gz-mgr-url").value = t.registration_url || "";
   const { data: cats } = await sb.from("gz_price_categories").select("*").order("created_at");
   mgrCats = cats || [];
   $("gz-mgr-cat").innerHTML = '<option value="">— catégorie de tarifs —</option>' +
@@ -2999,6 +3004,8 @@ function renderMailCards() {
   });
 }
 
+// Liste des tournois GameZone sur mytennis ({lien_tournois} + repli de {url_tournoi}).
+const GZ_MYTENNIS_LIST = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 const gzFillVars = (s, map) => String(s || "").replace(/\{(\w+)\}/g, (mm, k) => (map[k] != null ? map[k] : mm));
 async function gzMailTest(key, card) {
   const to = card.querySelector(".gz-mail-testmail").value.trim();
@@ -3016,10 +3023,10 @@ async function gzMailTest(key, card) {
     const fill = {
       prenom: meFirst,
       tournoi: t?.name || "Tournoi test",
-      url_tournoi: t?.registration_url || "https://www.swisstennis.ch",
+      url_tournoi: t?.registration_url || GZ_MYTENNIS_LIST,
       code_vestiaire: "2848#",
       responsables: respo,
-      lien_tournois: "https://teamlausanne.ch",
+      lien_tournois: GZ_MYTENNIS_LIST,
       lien_sondage: "https://teamlausanne.ch",
     };
     const subject = "[TEST] " + gzFillVars(card.querySelector(".gz-mail-subject").value.trim(), fill);
