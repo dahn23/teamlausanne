@@ -6483,14 +6483,15 @@ async function loadEtudesCalendar() {
     // Saisie ouverte pour un prof seulement les jours où il est ASSIGNÉ et à partir de 12h50 ; admin = toujours.
     const timeOk = nowLocal >= new Date(d.day + "T12:50:00");
     const dayOpen = canEditProfs || (iAmProf && timeOk);
+    const notMine = !canEditProfs && !iAmProf; // prof : jour qui ne lui est pas attribué → ligne grisée
     const myV = iAmProf ? etvals.find((v) => v.day_id === d.id && v.prof_person_id === myPersonId) : null;
     const mySt = myV?.status || "";
     // Pastille de présence du prof (comme un coach) : blanc → absent → présent → blanc.
     const presLbl = mySt === "present" ? `Présent ${myV.hours ?? 4}h` : mySt === "absent" ? "Absent" : "Ma présence";
     const presCls = mySt === "present" ? "st-present" : mySt === "absent" ? "st-absent" : "st-none";
     const presBtn = iAmProf ? `<div style="margin-top:6px"><button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${presLbl}</button></div>` : "";
-    html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${presBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions, false)}</td>`
-      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; const lockTitle = !timeOk ? "Saisie dès 12h50 le jour du cours" : (!iAmProf ? "Vous n'êtes pas prof assigné ce jour-là" : ""); return `<td><button type="button" class="att-chip et-cell ${due ? (lk ? "et-due-lock " : "et-due ") : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? `data-locked="1" title="${esc(lockTitle)}"` : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
+    html += `<tr class="${notMine ? "et-notmine" : ""}"><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${presBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions, false)}</td>`
+      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; const lockTitle = notMine ? "Vous ne pouvez pas valider les présences d'un jour qui ne vous est pas attribué" : "Vous ne pouvez pas valider les présences avant 12h50"; return `<td><button type="button" class="att-chip et-cell ${due ? (lk ? "et-due-lock " : "et-due ") : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? `data-locked="1" title="${esc(lockTitle)}"` : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
   cont.innerHTML = html + "</tbody></table>";
