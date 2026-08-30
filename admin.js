@@ -6024,12 +6024,12 @@ async function etYouthsForSeason(seasonId) {
 //  Messagerie (secrétaire/admin/superadmin) — boîte unifiée
 //  Squelette : lit mail_messages (démo). IMAP (relève) + SMTP (envoi) à brancher.
 // ===================================================================
-const MAIL_STATUS = { a_traiter: ["À traiter", "ms-todo"], en_cours: ["En cours", "ms-doing"], traite: ["Traité", "ms-done"] };
+const MAIL_STATUS = { a_traiter: ["À traiter", "ms-todo"], en_cours: ["Attribué", "ms-doing"], traite: ["Traité", "ms-done"] };
 const MAIL_ORDER = ["a_traiter", "en_cours", "traite"];
 const MAIL_DIRS = [["in", "Reçus"], ["out", "Envoyés"], ["", "Tous"]];
 const MAIL_STAFF_ROLES = ["secretaire", "admin", "superadmin"];   // qui peut être attribué
 let mailAccounts = [], mailMsgs = [], mailView = [], mailFilterAddr = "info@teamlausanne.ch", mailSelId = null;
-let mailDir = "in", mailStatusF = "a_traiter", mailAssigneeF = "", mailDraftT = null;
+let mailDir = "in", mailStatusF = "a_traiter", mailAssigneeF = "", mailMineF = false, mailDraftT = null;
 const pName = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() : "?"; };
 const pShort = (pid) => { const p = people.find((x) => x.id === pid); return p ? (p.first_name || p.last_name || "?") : "?"; };
 function mailSyncCache(m) {
@@ -6047,7 +6047,6 @@ async function loadMail() {
     $("mail-sync").addEventListener("click", mailSync);
     $("mail-history-btn").addEventListener("click", mailHistory);
     $("mail-importboxes-btn").addEventListener("click", mailImportBoxes);
-    $("mail-reattach-btn").addEventListener("click", mailReattach);
     $("mail-new").addEventListener("click", openMailCompose);
     $("mailc-close").addEventListener("click", () => $("mailc-modal").classList.add("hidden"));
     $("mailc-modal").addEventListener("click", (e) => { if (e.target === $("mailc-modal")) $("mailc-modal").classList.add("hidden"); });
@@ -6062,48 +6061,62 @@ async function loadMail() {
   ]);
   mailAccounts = accts || [];
   mailMsgs = msgs || [];
+  const isSuper = myAppRoles.includes("superadmin");
+  $("mail-importboxes-btn").classList.toggle("hidden", !isSuper);
+  $("mail-history-btn").classList.toggle("hidden", !isSuper);
   renderMailAccts();
   renderMailToolbar();
   refreshMailView();
 }
 // Barre de filtres : Reçus/Envoyés/Tous, puis statuts (reçus/tous), puis personnes attribuées (en cours).
 function renderMailToolbar() {
-  $("mail-dir-btns").innerHTML = MAIL_DIRS.map(([v, l]) => `<button type="button" class="mail-fbtn${mailDir === v ? " sel" : ""}" data-dir="${v}">${l}</button>`).join("");
-  $("mail-dir-btns").querySelectorAll(".mail-fbtn").forEach((b) => b.addEventListener("click", () => { mailDir = b.dataset.dir; renderMailToolbar(); refreshMailView(); }));
-  const showStatus = mailDir !== "out";
+  $("mail-dir-btns").innerHTML = MAIL_DIRS.map(([v, l]) => `<button type="button" class="mail-fbtn${(!mailMineF && mailDir === v) ? " sel" : ""}" data-dir="${v}">${l}</button>`).join("");
+  $("mail-dir-btns").querySelectorAll(".mail-fbtn").forEach((b) => b.addEventListener("click", () => { mailDir = b.dataset.dir; mailMineF = false; renderMailToolbar(); refreshMailView(); }));
+  const showStatus = mailDir !== "out" || mailMineF;
   $("mail-status-btns").classList.toggle("hidden", !showStatus);
   if (showStatus) {
-    $("mail-status-btns").innerHTML = MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${mailStatusF === k ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}</button>`).join("");
-    $("mail-status-btns").querySelectorAll(".mail-fbtn").forEach((b) => b.addEventListener("click", () => { mailStatusF = b.dataset.st; if (mailStatusF !== "en_cours") mailAssigneeF = ""; renderMailToolbar(); refreshMailView(); }));
+    $("mail-status-btns").innerHTML = MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${(!mailMineF && mailStatusF === k) ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}</button>`).join("");
+    $("mail-status-btns").querySelectorAll(".mail-fbtn").forEach((b) => b.addEventListener("click", () => { mailStatusF = b.dataset.st; mailMineF = false; if (mailStatusF !== "en_cours") mailAssigneeF = ""; renderMailToolbar(); refreshMailView(); }));
   }
-  const showAssignee = showStatus && mailStatusF === "en_cours";
+  // Bouton « Attribué à moi » + compteur (nombre de messages, lus ou non)
+  if (myPersonId) {
+    const nMine = mailMsgs.filter((m) => m.status === "en_cours" && m.assigned_user === myPersonId).length;
+    $("mail-mine-wrap").innerHTML = `<button type="button" class="mail-fbtn mail-mine${mailMineF ? " sel" : ""}" id="mail-mine-btn">Attribué à moi${nMine ? ` <span class="mail-badge">${nMine}</span>` : ""}</button>`;
+    $("mail-mine-btn").addEventListener("click", () => { mailMineF = !mailMineF; renderMailToolbar(); refreshMailView(); });
+  } else { $("mail-mine-wrap").innerHTML = ""; }
+  const showAssignee = !mailMineF && showStatus && mailStatusF === "en_cours";
   $("mail-assignee-btns").classList.toggle("hidden", !showAssignee);
   if (showAssignee) {
     const ids = [...new Set(mailMsgs.filter((m) => m.status === "en_cours" && m.assigned_user).map((m) => m.assigned_user))];
     $("mail-assignee-btns").innerHTML = `<span class="mail-fbtn-lbl">Attribué à :</span><button type="button" class="mail-fbtn${mailAssigneeF === "" ? " sel" : ""}" data-as="">Tous</button>`
       + ids.map((pid) => `<button type="button" class="mail-fbtn${mailAssigneeF === pid ? " sel" : ""}" data-as="${pid}">${esc(pShort(pid))}</button>`).join("");
-    $("mail-assignee-btns").querySelectorAll(".mail-fbtn[data-as]").forEach((b) => b.addEventListener("click", () => { mailAssigneeF = b.dataset.as; renderMailToolbar(); refreshMailView(); }));
-  }
+    $("mail-assignee-btns").querySelectorAll(".mail-fbtn[data-as]").forEach((b) => b.addEventListener("click", () => { mailAssigneeF = b.dataset.as; mailMineF = false; renderMailToolbar(); refreshMailView(); }));
+  } else { $("mail-assignee-btns").classList.add("hidden"); }
 }
 async function refreshMailView() {
   const q = ($("mail-search").value || "").trim();
-  const useStatus = mailDir !== "out";   // le statut ne s'applique pas aux envoyés
+  // « Attribué à moi » = reçus, statut attribué, assigné à moi (prioritaire sur les autres filtres).
+  const mine = mailMineF && myPersonId;
+  const dir = mine ? "in" : mailDir;
+  const useStatus = dir !== "out";
+  const status = mine ? "en_cours" : (useStatus ? mailStatusF : "");
+  const assignee = mine ? myPersonId : (status === "en_cours" ? mailAssigneeF : "");
   if (q.length >= 2) {
     const safe = q.replace(/[,()%*]/g, " ").trim();
     let query = sb.from("mail_messages").select("*").order("received_at", { ascending: false }).limit(150)
       .or(`subject.ilike.%${safe}%,from_name.ilike.%${safe}%,from_address.ilike.%${safe}%,to_address.ilike.%${safe}%,body_text.ilike.%${safe}%`);
     if (mailFilterAddr) query = query.eq("account_address", mailFilterAddr);
-    if (mailDir) query = query.eq("direction", mailDir);
-    if (useStatus && mailStatusF) query = query.eq("status", mailStatusF);
-    if (useStatus && mailStatusF === "en_cours" && mailAssigneeF) query = query.eq("assigned_user", mailAssigneeF);
+    if (dir) query = query.eq("direction", dir);
+    if (status) query = query.eq("status", status);
+    if (assignee) query = query.eq("assigned_user", assignee);
     const { data } = await query;
     mailView = data || [];
   } else {
     mailView = mailMsgs.filter((m) => {
       if (mailFilterAddr && m.account_address !== mailFilterAddr) return false;
-      if (mailDir && (m.direction || "in") !== mailDir) return false;
-      if (useStatus && mailStatusF && m.status !== mailStatusF) return false;
-      if (useStatus && mailStatusF === "en_cours" && mailAssigneeF && m.assigned_user !== mailAssigneeF) return false;
+      if (dir && (m.direction || "in") !== dir) return false;
+      if (status && m.status !== status) return false;
+      if (assignee && m.assigned_user !== assignee) return false;
       return true;
     });
   }
@@ -6130,25 +6143,6 @@ async function mailImportBoxes() {
     alert("Import terminé.\n" + results.join("\n"));
   } catch (e) { alert("Import impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = "Importer autres boîtes";
-}
-async function mailReattach() {
-  const btn = $("mail-reattach-btn");
-  if (!await uiConfirm("Récupérer les pièces jointes des mails déjà importés depuis Gmail ? (par lots — peut prendre un moment)")) return;
-  btn.disabled = true;
-  let total = 0, withAtt = 0;
-  try {
-    for (let pass = 0; pass < 30; pass++) {
-      btn.textContent = `Récup PJ… (${total})`;
-      const { data, error } = await sb.functions.invoke("mail-reattach", { body: {} });
-      if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} uiAlert("Récupération : " + m); break; }
-      if (data?.error) { uiAlert("Récupération : " + data.error); break; }
-      total += data?.processed || 0; withAtt += data?.withAtt || 0;
-      if (!data || data.remaining <= 0 || (data.processed || 0) === 0) break;
-    }
-    await loadMail();
-    uiAlert(`Terminé — ${total} mail(s) traités, ${withAtt} avec pièce(s) jointe(s).`);
-  } catch (e) { uiAlert("Impossible : " + (e?.message || e)); }
-  btn.disabled = false; btn.textContent = "Récupérer les PJ";
 }
 async function mailHistory() {
   const btn = $("mail-history-btn");
@@ -6314,7 +6308,7 @@ function mailStatTag(m) {
   const isOut = (m.direction || "in") === "out";
   if (isOut) return '<span class="mail-stat mail-sent">Envoyé</span>';
   if (m.status === "traite") return `<span class="mail-stat ms-done">Traité${m.treated_by ? " · " + esc(pShort(m.treated_by)) : ""}</span>`;
-  if (m.status === "en_cours") return `<span class="mail-stat ms-doing">En cours${m.assigned_user ? " · " + esc(pShort(m.assigned_user)) : ""}</span>`;
+  if (m.status === "en_cours") return `<span class="mail-stat ms-doing">Attribué${m.assigned_user ? " · " + esc(pShort(m.assigned_user)) : ""}</span>`;
   const [slbl, scls] = MAIL_STATUS[m.status] || [m.status, "ms-todo"];
   return `<span class="mail-stat ${scls}">${slbl}</span>`;
 }
@@ -6354,7 +6348,7 @@ async function openMail(id) {
   const staff = people.filter((p) => hasRoleIn(p.id, MAIL_STAFF_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
   const acctLabel = mailAccounts.find((a) => a.address === m.account_address)?.label || m.account_address;
   let statusInfo = "";
-  if (m.status === "en_cours") statusInfo = `En cours${m.assigned_user ? " · attribué à <b>" + esc(pName(m.assigned_user)) + "</b>" : " · <span class=\"mail-warn\">à attribuer</span>"}${m.comment ? " · " + esc(m.comment) : ""}`;
+  if (m.status === "en_cours") statusInfo = `Attribué${m.assigned_user ? " à <b>" + esc(pName(m.assigned_user)) + "</b>" : " · <span class=\"mail-warn\">à attribuer</span>"}${m.comment ? " · " + esc(m.comment) : ""}`;
   else if (m.status === "traite") statusInfo = `Traité${m.treated_by ? " par <b>" + esc(pName(m.treated_by)) + "</b>" : ""}${m.treated_at ? " · " + mailDT(m.treated_at) : ""}`;
   const controls = isOut ? "" : `
     <div class="mail-d-controls">

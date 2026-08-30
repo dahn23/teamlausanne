@@ -2028,3 +2028,5 @@ label.fld select{min-width:180px}
 .mail-row .spacer{flex:1}
 .mail-row-sep{width:1px;align-self:stretch;background:var(--line);margin:2px 3px}
 .mail-row #mail-search{flex:1;min-width:180px}
+.mail-fbtn .mail-badge{margin-left:3px}
+.mail-mine.sel{background:#0b6b3a;border-color:#0b6b3a}
