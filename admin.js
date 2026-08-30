@@ -1998,14 +1998,16 @@ async function loadCoursesWeek() {
   const sun = days[6];
   const { data: courses } = await sb.from("courses").select("*").gte("course_date", mon).lte("course_date", sun).order("start_time");
   const ids = (courses || []).map((c) => c.id);
-  let books = [], coaches = [], parts = [];
+  let books = [], coaches = [], parts = [], myatt = [];
   if (ids.length) {
-    [books, coaches, parts] = await Promise.all([
+    [books, coaches, parts, myatt] = await Promise.all([
       sb.from("court_bookings").select("court_id,course_id").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_participants").select("course_id,child_person_id").in("course_id", ids).then((r) => r.data || []),
+      myPersonId ? sb.from("attendance").select("course_id,status").eq("person_id", myPersonId).eq("is_coach", true).in("course_id", ids).then((r) => r.data || []) : Promise.resolve([]),
     ]);
   }
+  const myAttOf = {}; myatt.forEach((a) => (myAttOf[a.course_id] = a.status)); // ma validation (coach) par cours
   const courtName = (id) => (resaCourtsAll.find((c) => c.id === id)?.name || "?").replace("Court ", "C");
   const nmeOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name} ${p.last_name}` : ""; };
   const firstOf = (pid) => people.find((x) => x.id === pid)?.first_name || "";
@@ -2018,7 +2020,9 @@ async function loadCoursesWeek() {
     const coachStr = coachNames.slice(0, 3).join(", ") + (coachNames.length > 3 ? ` +${coachNames.length - 3}c` : "");
     const childBday = childIds.some((id) => isBirthday(id, c.course_date));
     const search = esc([c.title || "", type?.name || "", ...coachIds.map(nmeOf), ...childIds.map(nmeOf)].join(" ").toLowerCase());
-    return `<div class="cw-ev" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
+    const mySt = myAttOf[c.id];
+    const stCls = mySt === "present" ? " cw-present" : mySt === "absent" ? " cw-absent" : "";
+    return `<div class="cw-ev${stCls}" data-id="${c.id}" data-date="${c.course_date}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cw-ev-t">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
       <div class="cw-ev-n">${esc(c.title || type?.name || "Cours")}</div>
       <div class="cw-ev-m muted">${cts || "—"}${childIds.length ? " · " + childIds.length + "j" : ""}${childBday ? " 🎁" : ""}</div>
@@ -2037,8 +2041,9 @@ async function loadCoursesWeek() {
     </div>`;
   }).join("") : '<p class="muted">Aucun cours cette semaine.</p>';
   const W = $("cs-week");
+  // Clic sur un cours de la semaine → bascule en vue Jour ce jour-là (cours + participants + appel).
+  W.querySelectorAll(".cw-ev").forEach((el) => el.addEventListener("click", () => { $("cs-date").value = el.dataset.date; setCoursView("day"); }));
   if (isCourseMgr) {
-    W.querySelectorAll(".cw-ev").forEach((el) => el.addEventListener("click", () => editCourse(el.dataset.id)));
     W.querySelectorAll(".cw-add").forEach((b) => b.addEventListener("click", () => { $("cs-date").value = b.dataset.d; openCourse(null); }));
   }
   filterCourses();
@@ -2050,8 +2055,8 @@ async function cycleAtt(chip) {
     const cstart = chip.dataset.cstart ? new Date(chip.dataset.cstart).getTime() : 0, now = Date.now();
     if (chip.dataset.detail === "1") uiAlert("Sur ce cours (pro / sport-études), les présences des jeunes sont gérées par le head coach via le détail de la séance.");
     else if (chip.dataset.coach === "1") uiAlert("Vous ne pouvez marquer que votre propre présence.");
-    else if (cstart && now < cstart - 10 * 60000) uiAlert("Le pointage des jeunes ouvre 10 minutes avant le début du cours — pas avant.");
-    else if (cstart && now > cstart + 14 * 24 * 3600000) uiAlert("Pointage clos (2 semaines écoulées). Demande à un head coach / admin.");
+    else if (cstart && now < cstart - 10 * 60000) uiAlert("L'appel des jeunes ouvre 10 minutes avant le début du cours — pas avant.");
+    else if (cstart && now > cstart + 14 * 24 * 3600000) uiAlert("Appel clos (2 semaines écoulées). Demande à un head coach / admin.");
     else uiAlert("Cette présence n'est pas modifiable pour le moment.");
     return;
   }
@@ -2107,7 +2112,7 @@ async function openAttendance(courseId) {
   const allKids = parts.length ? parts.every((pid) => statusOf(pid)) : true;
   $("att-note").textContent = isHeadUser
     ? "Cliquez pour marquer présent / absent / en retard."
-    : "Pointage ouvert de 10 min avant le début à 2 semaines après. Déclare-toi présent une fois tous les jeunes pointés.";
+    : "Appel ouvert de 10 min avant le début à 2 semaines après. Déclare-toi présent une fois tous les jeunes appelés.";
 
   $("att-children").innerHTML = parts.length ? parts.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), false)).join("") : '<p class="muted" style="font-size:.85rem">Aucun enfant.</p>';
   // Le coach ne peut se déclarer présent / en retard que si tous les jeunes ont un statut (il peut toujours se mettre absent).
@@ -7084,7 +7089,7 @@ function renderTrEditor() {
   }).join("");
   host.innerHTML = `
     <label class="cs-lbl">Détail de la séance <span class="muted" style="font-weight:400">— qui a joué avec qui, quel coach, combien de temps</span></label>
-    <p class="muted" style="font-size:.8rem;margin:0 0 8px"><b>Ce détail remplace le pointage des présences ET les heures</b> pour ce cours : un joueur dans ≥1 bloc = présent ; chaque coach est payé au temps saisi.</p>
+    <p class="muted" style="font-size:.8rem;margin:0 0 8px"><b>Ce détail remplace l'appel ET le calcul des heures</b> pour ce cours : un joueur dans ≥1 bloc = présent ; chaque coach est payé au temps saisi.</p>
     <div class="tr-tally-lbl">Joueurs</div>
     <div class="tr-tally">${tallyHtml || '<span class="muted">Aucun joueur.</span>'}</div>
     <div class="tr-tally-lbl">Coachs <span class="muted" style="font-weight:400">— temps encadré (paie)</span></div>

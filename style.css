@@ -1997,3 +1997,7 @@ label.fld select{min-width:180px}
 .cours-box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:var(--card)}
 .cours-box-h{font-weight:800;font-size:1.02rem;margin-bottom:6px}
 .cours-line{font-size:.9rem;margin:3px 0;line-height:1.5}
+.cw-ev.cw-present{background:#dcefe3}
+.cw-ev.cw-present:hover{background:#cfe9d8}
+.cw-ev.cw-absent{background:#f8dcda}
+.cw-ev.cw-absent:hover{background:#f4cfcc}
