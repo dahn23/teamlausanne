@@ -6474,7 +6474,8 @@ async function loadEtudesCalendar() {
   const canEditProfs = hasAny(myAppRoles, ["superadmin", "admin"]); // admin : saisie possible à tout moment
   if (!(days || []).length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jour dans le calendrier pour cette saison.</p>'; return; }
   if (!youths.length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun jeune en sport-études pour cette saison (à définir dans les fiches › Saisons).</p>'; return; }
-  let html = '<table class="crm-table et-cal"><thead><tr><th>Date</th><th>Prof(s)</th>'
+  const nmF = (id) => people.find((x) => x.id === id)?.first_name || "?";
+  let html = '<table class="crm-table et-cal"><thead><tr><th>Date &amp; prof(s)</th>'
     + youths.map((y) => `<th title="${esc(y.first_name)} ${esc(y.last_name)}">${esc(y.first_name)} ${esc((y.last_name || "").slice(0, 1))}.</th>`).join("") + "</tr></thead><tbody>";
   const nowLocal = new Date();
   for (const d of days) {
@@ -6486,12 +6487,14 @@ async function loadEtudesCalendar() {
     const notMine = !canEditProfs && !iAmProf; // prof : jour qui ne lui est pas attribué → ligne grisée
     const myV = iAmProf ? etvals.find((v) => v.day_id === d.id && v.prof_person_id === myPersonId) : null;
     const mySt = myV?.status || "";
-    // Pastille de présence du prof (comme un coach) : blanc → absent → présent → blanc.
-    const presLbl = mySt === "present" ? `Présent ${myV.hours ?? 4}h` : mySt === "absent" ? "Absent" : "Ma présence";
     const presCls = mySt === "present" ? "st-present" : mySt === "absent" ? "st-absent" : "st-none";
-    const presBtn = iAmProf ? `<div style="margin-top:6px"><button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${presLbl}</button></div>` : "";
-    html += `<tr class="${notMine ? "et-notmine" : ""}"><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${presBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions, false)}</td>`
-      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; const lockTitle = notMine ? "Vous ne pouvez pas valider les présences d'un jour qui ne vous est pas attribué" : "Vous ne pouvez pas valider les présences avant 12h50"; return `<td><button type="button" class="att-chip et-cell ${due ? (lk ? "et-due-lock " : "et-due ") : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? `data-locked="1" title="${esc(lockTitle)}"` : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
+    const mine = canEditProfs || iAmProf; // c'est mon jour (ou admin)
+    // Prof(s) du jour sous la date ; le mien = ma présence, cliquable (blanc→absent→présent), encadré bleu.
+    const dprofs = dp.map((pp) => pp.prof_person_id === myPersonId
+      ? `<button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${esc(nmF(pp.prof_person_id))}${mySt === "present" ? ` ${myV.hours ?? 4}h` : ""}</button>`
+      : `<span class="et-dprof">${esc(nmF(pp.prof_person_id))}</span>`).join(" ") || '<span class="et-dprof muted">— prof —</span>';
+    html += `<tr class="${notMine ? "et-notmine" : ""}"><td class="et-datecell"><div><b>${etDow(d.day)}</b> ${frDate(d.day)}</div><div class="et-dprofs">${dprofs}</div></td>`
+      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; const lockTitle = notMine ? "Vous ne pouvez pas valider les présences d'un jour qui ne vous est pas attribué" : "Vous ne pouvez pas valider les présences avant 12h50"; return `<td><button type="button" class="att-chip et-cell ${due ? (mine ? "et-due " : "et-due-lock ") : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? `data-locked="1" title="${esc(lockTitle)}"` : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
   cont.innerHTML = html + "</tbody></table>";
