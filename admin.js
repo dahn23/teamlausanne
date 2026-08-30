@@ -3066,6 +3066,7 @@ async function saveSurvey(scope, id) {
   btn.textContent = error ? "Erreur" : "Enregistré ✓";
   if (!error) Object.assign(surveyState[scope].list.find((x) => x.id === id), patch);
   setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
+  if (!error && patch.active) loadSurveyTab(scope);   // un seul actif à la fois → refléter la désactivation des autres
 }
 
 async function delSurvey(scope, id) {
