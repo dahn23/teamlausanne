@@ -2069,3 +2069,11 @@ label.fld select{min-width:180px}
 .gz-send-count-link{background:none;border:0;color:var(--muted);font-size:.82rem;cursor:pointer;text-decoration:underline dotted;padding:0 6px;white-space:nowrap}
 .gz-send-count-link:hover{color:var(--blue)}
 .gz-send-count-link:disabled{cursor:default;text-decoration:none;opacity:.7}
+/* Popup liste des destinataires (GameZone envois) */
+.gz-rec-box{max-width:680px}
+.gz-rec-box .ui-msg{text-align:center;font-weight:700;margin-bottom:6px}
+.gz-reclist{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;max-height:60vh;overflow:auto;margin:8px 0 4px;text-align:left}
+.gz-rec{font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gz-recname{color:var(--blue);font-weight:800}
+.gz-recmail{color:var(--muted)}
+@media (max-width:600px){.gz-reclist{grid-template-columns:1fr}}

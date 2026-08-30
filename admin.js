@@ -2445,11 +2445,21 @@ async function renderGzMailActions(tid) {
   html += row("Remerciements — sélectionnés présents", "auto lundi 11h", idsFor("remerciement"), doneKey("remerciement").size, "remerciement");
   html += row("Vainqueurs — avec photo", "auto lundi 11h", idsFor("vainqueur"), doneKey("vainqueur").size, "vainqueur");
   box.innerHTML = html;
-  box.querySelectorAll(".gz-send-count-link").forEach((b) => b.addEventListener("click", () => {
-    const ids = lists[b.dataset.list] || [];
-    uiAlert(ids.length ? ids.map((id) => `• ${nm(id)} — ${pInfo[id]?.email || "(sans email)"}`).join("\n") : "Aucun destinataire.");
-  }));
+  box.querySelectorAll(".gz-send-count-link").forEach((b) => b.addEventListener("click", () => gzShowRecipients(lists[b.dataset.list] || [], pInfo, nm)));
   box.querySelectorAll(".gz-send-btn").forEach((b) => b.addEventListener("click", () => gzSend(tid, b.dataset.key, b, b.dataset.epreuve || null, +b.dataset.n || 0)));
+}
+// Popup liste des destinataires : nom en gras bleu + email, sur 2 colonnes.
+function gzShowRecipients(ids, pInfo, nm) {
+  const ov = document.createElement("div");
+  ov.className = "ui-modal";
+  const items = ids.length
+    ? ids.map((id) => `<div class="gz-rec"><b class="gz-recname">${esc(nm(id))}</b> <span class="gz-recmail">${esc(pInfo[id]?.email || "(sans email)")}</span></div>`).join("")
+    : '<p class="muted" style="grid-column:1/-1">Aucun destinataire.</p>';
+  ov.innerHTML = `<div class="ui-box gz-rec-box"><p class="ui-msg">${ids.length} destinataire(s)</p><div class="gz-reclist">${items}</div><div class="ui-actions"><button type="button" class="ui-btn ui-yes">OK</button></div></div>`;
+  document.body.appendChild(ov);
+  const done = () => ov.remove();
+  ov.querySelector(".ui-yes").addEventListener("click", done);
+  ov.addEventListener("click", (e) => { if (e.target === ov) done(); });
 }
 async function gzSend(tid, key, btn, epreuve, n) {
   const cible = epreuve ? `la catégorie « ${epreuve} »` : "tous les destinataires concernés";
