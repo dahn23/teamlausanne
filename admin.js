@@ -1902,6 +1902,12 @@ async function loadCoursesDay() {
     const needMore = Math.max(coachIds.length, childIds.length) > 4;
     const nmeOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name} ${p.last_name}` : ""; };
     const search = esc([c.title || "", type?.name || "", ...coachIds.map(nmeOf), ...childIds.map(nmeOf)].join(" ").toLowerCase());
+    // Cours détaillé (pro/SE + plusieurs coachs OU joueurs) : les présences des jeunes
+    // se gèrent via le détail (head coach) → ici en lecture seule (non cliquables).
+    const detailed = !!type && TR_TYPE_RE.test(type.name || "") && (coachIds.length > 1 || childIds.length > 1);
+    const elevesCol = detailed
+      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const s = attOf(c.id, pid); const cls = s === "present" ? "st-present" : s === "absent" ? "st-absent" : s === "late" ? "st-late" : "st-none"; return `<span class="att-chip ${cls}" data-can="0" style="cursor:default" title="${esc(personName(pid))} — présence gérée par le head coach (détail)">${esc(personName(pid))}</span>`; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
+      : col(c, coachIds, childIds, false, "Élèves");
     return `<div class="cs-card" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cs-card-top">
         <div class="cs-time">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
@@ -1909,7 +1915,7 @@ async function loadCoursesDay() {
           <span class="muted">${type ? esc(type.name) + " · " : ""}Courts ${cts || "—"}</span></div>
         ${needMore ? '<button type="button" class="cs-more">Plus</button>' : ""}
       </div>
-      <div class="cs-att">${col(c, coachIds, coachIds, true, "Coachs")}${col(c, coachIds, childIds, false, "Élèves")}</div>
+      <div class="cs-att">${col(c, coachIds, coachIds, true, "Coachs")}${elevesCol}</div>
     </div>`;
   }).join("") : '<p class="muted">Aucun cours ce jour.</p>';
 
