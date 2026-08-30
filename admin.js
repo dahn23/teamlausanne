@@ -6047,6 +6047,7 @@ async function loadMail() {
     $("mail-sync").addEventListener("click", mailSync);
     $("mail-history-btn").addEventListener("click", mailHistory);
     $("mail-importboxes-btn").addEventListener("click", mailImportBoxes);
+    $("mail-reattach-btn").addEventListener("click", mailReattach);
     $("mail-new").addEventListener("click", openMailCompose);
     $("mailc-close").addEventListener("click", () => $("mailc-modal").classList.add("hidden"));
     $("mailc-modal").addEventListener("click", (e) => { if (e.target === $("mailc-modal")) $("mailc-modal").classList.add("hidden"); });
@@ -6129,6 +6130,25 @@ async function mailImportBoxes() {
     alert("Import terminé.\n" + results.join("\n"));
   } catch (e) { alert("Import impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = "Importer autres boîtes";
+}
+async function mailReattach() {
+  const btn = $("mail-reattach-btn");
+  if (!await uiConfirm("Récupérer les pièces jointes des mails déjà importés depuis Gmail ? (par lots — peut prendre un moment)")) return;
+  btn.disabled = true;
+  let total = 0, withAtt = 0;
+  try {
+    for (let pass = 0; pass < 30; pass++) {
+      btn.textContent = `Récup PJ… (${total})`;
+      const { data, error } = await sb.functions.invoke("mail-reattach", { body: {} });
+      if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} uiAlert("Récupération : " + m); break; }
+      if (data?.error) { uiAlert("Récupération : " + data.error); break; }
+      total += data?.processed || 0; withAtt += data?.withAtt || 0;
+      if (!data || data.remaining <= 0 || (data.processed || 0) === 0) break;
+    }
+    await loadMail();
+    uiAlert(`Terminé — ${total} mail(s) traités, ${withAtt} avec pièce(s) jointe(s).`);
+  } catch (e) { uiAlert("Impossible : " + (e?.message || e)); }
+  btn.disabled = false; btn.textContent = "Récupérer les PJ";
 }
 async function mailHistory() {
   const btn = $("mail-history-btn");
