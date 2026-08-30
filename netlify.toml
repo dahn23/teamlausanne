@@ -3,6 +3,15 @@
   publish = "."
   command = ""
 
+# La racine du site (app.teamlausanne.ch) n'affiche QUE la page de connexion.
+# force = true : sinon index.html (la vitrine) l'emporterait. La vitrine reste
+# accessible sur /index.html si besoin ; le vrai site public est sur Wix.
+[[redirects]]
+  from = "/"
+  to = "/connexion.html"
+  status = 200
+  force = true
+
 # URL neutre pour l'espace staff : /console sert la console.
 # Réécriture (status 200) → l'URL affichée reste /console, plus jamais « /admin ».
 [[redirects]]

@@ -50,6 +50,6 @@ export const jours = (d) => `${d} jour${d > 1 ? "s" : ""}`;
 // Redirige vers l'accueil si pas de session. Renvoie la session sinon.
 export async function requireLogin() {
   const session = await getSession();
-  if (!session) { location.href = "index.html"; return null; }
+  if (!session) { location.href = "/"; return null; }
   return session;
 }

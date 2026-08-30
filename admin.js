@@ -253,7 +253,7 @@ async function init(roles) {
   myAppRoles = roles || [];
   $("logout").addEventListener("click", async () => {
     await sb.auth.signOut();
-    location.href = "index.html";
+    location.href = "/";
   });
   $("new-person").addEventListener("click", () => openPerson(null));
   $("import-people").addEventListener("click", openImport);
