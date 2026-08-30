@@ -4,10 +4,10 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-export const STAFF_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach"];
+export const STAFF_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "coach_physique", "moniteur"];
 export const ADMIN_ROLES = ["superadmin", "admin", "secretaire"];
 // Tous les rôles qui ouvrent la console (staff élargi : coachs, profs, mental, officiels…).
-export const CONSOLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "prof", "coach_mental", "organisateur", "responsable"];
+export const CONSOLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "coach_physique", "moniteur", "prof", "coach_mental", "organisateur", "responsable"];
 
 export async function getSession() {
   const { data } = await sb.auth.getSession();
