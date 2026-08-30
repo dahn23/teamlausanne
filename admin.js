@@ -2482,8 +2482,8 @@ async function gzSend(tid, key, btn, epreuve, n) {
   renderGzMailActions(tid);
 }
 
-// Rôles pouvant être nommés responsable d'un tournoi (coachs / officials / staff).
-const RESP_CANDIDATE_ROLES = ["coach", "head-coach", "coach-prive", "coach_physique", "moniteur", "official", "responsable-tournoi", "secretaire", "finance", "admin", "superadmin"];
+// Seules les personnes taguées « Responsable de tournoi » dans le répertoire.
+const RESP_CANDIDATE_ROLES = ["responsable-tournoi"];
 async function loadResponsables(tid) {
   const { data: mgrs } = await sb.from("gz_managers").select("person_id").eq("tournament_id", tid);
   const namedIds = new Set((mgrs || []).map((m) => m.person_id));
@@ -2498,7 +2498,7 @@ async function loadResponsables(tid) {
     .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || "") || (a.first_name || "").localeCompare(b.first_name || ""));
   $("gz-resp-select").innerHTML = elig.length
     ? '<option value="">— choisir une personne à nommer —</option>' + elig.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")
-    : '<option value="">— aucun coach / official disponible —</option>';
+    : '<option value="">— aucun « Responsable de tournoi » disponible —</option>';
 }
 
 async function addResponsable() {
