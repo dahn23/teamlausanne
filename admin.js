@@ -2482,24 +2482,23 @@ async function gzSend(tid, key, btn, epreuve, n) {
   renderGzMailActions(tid);
 }
 
+// Rôles pouvant être nommés responsable d'un tournoi (coachs / officials / staff).
+const RESP_CANDIDATE_ROLES = ["coach", "head-coach", "coach-prive", "coach_physique", "moniteur", "official", "responsable-tournoi", "secretaire", "finance", "admin", "superadmin"];
 async function loadResponsables(tid) {
   const { data: mgrs } = await sb.from("gz_managers").select("person_id").eq("tournament_id", tid);
-  const ids = (mgrs || []).map((m) => m.person_id);
-  const named = ids.length ? (await sb.from("people").select("id,first_name,last_name").in("id", ids)).data || [] : [];
+  const namedIds = new Set((mgrs || []).map((m) => m.person_id));
+  const named = [...namedIds].map((id) => people.find((p) => p.id === id)).filter(Boolean);
   $("gz-resp-list").innerHTML = named.length
     ? named.map((p) => `<span class="gz-badge" style="background:var(--fluo-d);color:var(--fluo-ink)">${esc(p.last_name)} ${esc(p.first_name)} <b class="gz-resp-del" data-id="${p.id}" style="cursor:pointer">×</b></span>`).join(" ")
     : '<span class="muted" style="font-size:.85rem">Aucun responsable nommé.</span>';
   $("gz-resp-list").querySelectorAll(".gz-resp-del").forEach((b) =>
     b.addEventListener("click", async () => { await sb.from("gz_managers").delete().eq("tournament_id", tid).eq("person_id", b.dataset.id); loadResponsables(tid); loadFinances(tid); }));
-  // liste des personnes taguées « Responsable tournoi »
-  if (!$("gz-resp-select").dataset.loaded) {
-    const elig = people.filter((p) => p.id && hasRoleIn(p.id, ["responsable-tournoi"]));
-    const opts = elig.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("");
-    $("gz-resp-select").innerHTML = elig.length
-      ? '<option value="">— choisir une personne —</option>' + opts
-      : '<option value="">— aucun « Responsable de tournoi » dans le répertoire —</option>';
-    $("gz-resp-select").dataset.loaded = "1";
-  }
+  // Candidats = coachs / officials / staff, non déjà nommés (reconstruit à chaque fois)
+  const elig = people.filter((p) => p.id && !namedIds.has(p.id) && hasRoleIn(p.id, RESP_CANDIDATE_ROLES))
+    .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || "") || (a.first_name || "").localeCompare(b.first_name || ""));
+  $("gz-resp-select").innerHTML = elig.length
+    ? '<option value="">— choisir une personne à nommer —</option>' + elig.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("")
+    : '<option value="">— aucun coach / official disponible —</option>';
 }
 
 async function addResponsable() {
