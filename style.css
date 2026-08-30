@@ -1479,7 +1479,8 @@ body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fl
 .side-item:disabled .ico{color:var(--muted)}
 .side-item:disabled{color:var(--muted);cursor:default}
 .side-item:disabled:hover{background:transparent}
-.admin-main{flex:1;padding:22px;overflow:auto}
+.admin-main{flex:1;padding:22px;overflow:auto;transition:opacity .12s ease}
+.admin-main:not(.ready){opacity:0}
 .crm-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .crm-head h1{margin:0;font-size:1.5rem;flex:1}
 .crm-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}

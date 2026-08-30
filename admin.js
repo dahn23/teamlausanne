@@ -245,9 +245,11 @@ function applyTabAccess(roles) {
       .some((b) => b.dataset.view !== "bientot" && !b.classList.contains("hidden"));
     bl.classList.toggle("hidden", !anyVisible);
   });
-  // Le menu n'apparaît qu'une fois filtré par rôle (évite le flash « tous les onglets »).
-  document.querySelector(".side")?.classList.add("ready");
+  // Le menu ET le contenu n'apparaissent qu'une fois la bonne vue choisie
+  // (évite le flash de la vue Répertoire par défaut avant l'aiguillage par rôle).
   if (first) showView(first);
+  document.querySelector(".side")?.classList.add("ready");
+  document.querySelector(".admin-main")?.classList.add("ready");
 }
 
 async function init(roles) {
