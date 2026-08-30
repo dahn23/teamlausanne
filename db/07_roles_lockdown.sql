@@ -64,3 +64,20 @@ drop trigger if exists trg_protect_last_superadmin on user_roles;
 create trigger trg_protect_last_superadmin
   before update or delete on user_roles
   for each row execute function public.protect_last_superadmin();
+
+-- ===================== RPC set_user_role (onglet Comptes) =====================
+-- SECURITY DEFINER => contourne la RLS, donc on refait le controle ici :
+-- attribuer/retirer admin ou superadmin exige d'etre superadmin.
+create or replace function public.set_user_role(target uuid, r text, enabled boolean)
+returns void language plpgsql security definer set search_path to 'public' as $$
+begin
+  if not is_admin(auth.uid()) then raise exception 'forbidden'; end if;
+  if r in ('admin','superadmin') and not is_superadmin(auth.uid()) then
+    raise exception 'superadmin_required';
+  end if;
+  if enabled then
+    insert into user_roles(user_id, role) values (target, r::app_role) on conflict do nothing;
+  else
+    delete from user_roles where user_id = target and role = r::app_role;
+  end if;
+end; $$;

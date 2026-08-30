@@ -991,8 +991,26 @@ async function loadAccounts() {
 }
 
 async function toggleRole(c) {
-  const { error } = await sb.rpc("set_user_role", { target: c.dataset.uid, r: c.dataset.role, enabled: c.checked });
-  if (error) { alert("Erreur : " + error.message); c.checked = !c.checked; }
+  const r = c.dataset.role;
+  const enabling = c.checked;                 // action voulue : true = attribuer
+  const verbe = enabling ? "attribuer" : "désattribuer";
+  const lbl = ME_ROLE_LABELS[r] || r;
+  const privileged = r === "admin" || r === "superadmin";
+  // Seul un superadmin peut toucher aux rôles admin/superadmin : on bloque avant l'appel.
+  if (privileged && !myAppRoles.includes("superadmin")) {
+    c.checked = !c.checked;
+    uiAlert(`Vous n'avez pas les droits pour ${verbe} le rôle « ${lbl} ». Seul le superadmin peut le faire.`);
+    return;
+  }
+  const { error } = await sb.rpc("set_user_role", { target: c.dataset.uid, r, enabled: enabling });
+  if (error) {
+    c.checked = !c.checked;
+    if (/superadmin_required/.test(error.message))
+      uiAlert(`Vous n'avez pas les droits pour ${verbe} le rôle « ${lbl} ». Seul le superadmin peut le faire.`);
+    else if (/dernier superadmin/i.test(error.message))
+      uiAlert("Impossible de retirer le dernier superadmin.");
+    else uiAlert("Erreur : " + error.message);
+  }
 }
 
 async function loadPeople() {
