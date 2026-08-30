@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=114" />
+  <link rel="stylesheet" href="style.css?v=115" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -575,10 +575,10 @@
               <div id="mail-dir-btns" class="mail-btns"></div>
               <span class="mail-row-sep"></span>
               <div id="mail-status-btns" class="mail-btns"></div>
-              <div id="mail-mine-wrap" class="mail-btns"></div>
               <div id="mail-assignee-btns" class="mail-btns"></div>
               <input id="mail-search" type="text" autocomplete="off" placeholder="Rechercher (dans tout l'historique)…" />
             </div>
+            <div class="mail-row mail-mine-row"><div id="mail-mine-wrap" class="mail-btns"></div></div>
           </div>
           <div class="mail-layout">
             <div id="mail-list" class="mail-list"></div>

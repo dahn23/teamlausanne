@@ -6075,13 +6075,20 @@ function renderMailToolbar() {
   const showStatus = mailDir !== "out" || mailMineF;
   $("mail-status-btns").classList.toggle("hidden", !showStatus);
   if (showStatus) {
-    $("mail-status-btns").innerHTML = MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${(!mailMineF && mailStatusF === k) ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}</button>`).join("");
+    // Compteurs bleus par statut, pour la boîte sélectionnée
+    const stCount = { a_traiter: 0, en_cours: 0, traite: 0 };
+    for (const m of mailMsgs) {
+      if ((m.direction || "in") !== "in") continue;
+      if (mailFilterAddr && m.account_address !== mailFilterAddr) continue;
+      if (stCount[m.status] != null) stCount[m.status]++;
+    }
+    $("mail-status-btns").innerHTML = MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${(!mailMineF && mailStatusF === k) ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}${stCount[k] ? ` <span class="mail-badge mail-badge-blue">${stCount[k]}</span>` : ""}</button>`).join("");
     $("mail-status-btns").querySelectorAll(".mail-fbtn").forEach((b) => b.addEventListener("click", () => { mailStatusF = b.dataset.st; mailMineF = false; if (mailStatusF !== "en_cours") mailAssigneeF = ""; renderMailToolbar(); refreshMailView(); }));
   }
-  // Bouton « Attribué à moi » + compteur (nombre de messages, lus ou non)
+  // Bouton « Attribué à moi » (sa propre ligne) : compteur bleu, TOUTES boîtes confondues
   if (myPersonId) {
     const nMine = mailMsgs.filter((m) => m.status === "en_cours" && m.assigned_user === myPersonId).length;
-    $("mail-mine-wrap").innerHTML = `<button type="button" class="mail-fbtn mail-mine${mailMineF ? " sel" : ""}" id="mail-mine-btn">Attribué à moi${nMine ? ` <span class="mail-badge">${nMine}</span>` : ""}</button>`;
+    $("mail-mine-wrap").innerHTML = `<button type="button" class="mail-fbtn mail-mine${mailMineF ? " sel" : ""}" id="mail-mine-btn">Attribué à moi${nMine ? ` <span class="mail-badge mail-badge-blue">${nMine}</span>` : ""}</button>`;
     $("mail-mine-btn").addEventListener("click", () => { mailMineF = !mailMineF; renderMailToolbar(); refreshMailView(); });
   } else { $("mail-mine-wrap").innerHTML = ""; }
   const showAssignee = !mailMineF && showStatus && mailStatusF === "en_cours";
@@ -6101,11 +6108,12 @@ async function refreshMailView() {
   const useStatus = dir !== "out";
   const status = mine ? "en_cours" : (useStatus ? mailStatusF : "");
   const assignee = mine ? myPersonId : (status === "en_cours" ? mailAssigneeF : "");
+  const useAddr = mailFilterAddr && !mine;   // « attribué à moi » = toutes boîtes
   if (q.length >= 2) {
     const safe = q.replace(/[,()%*]/g, " ").trim();
     let query = sb.from("mail_messages").select("*").order("received_at", { ascending: false }).limit(150)
       .or(`subject.ilike.%${safe}%,from_name.ilike.%${safe}%,from_address.ilike.%${safe}%,to_address.ilike.%${safe}%,body_text.ilike.%${safe}%`);
-    if (mailFilterAddr) query = query.eq("account_address", mailFilterAddr);
+    if (useAddr) query = query.eq("account_address", mailFilterAddr);
     if (dir) query = query.eq("direction", dir);
     if (status) query = query.eq("status", status);
     if (assignee) query = query.eq("assigned_user", assignee);
@@ -6113,7 +6121,7 @@ async function refreshMailView() {
     mailView = data || [];
   } else {
     mailView = mailMsgs.filter((m) => {
-      if (mailFilterAddr && m.account_address !== mailFilterAddr) return false;
+      if (useAddr && m.account_address !== mailFilterAddr) return false;
       if (dir && (m.direction || "in") !== dir) return false;
       if (status && m.status !== status) return false;
       if (assignee && m.assigned_user !== assignee) return false;
@@ -6297,12 +6305,19 @@ async function mailSendReply(id) {
   btn.disabled = false;
 }
 function renderMailAccts() {
-  const counts = {};
-  for (const m of mailMsgs) if (!m.is_read) counts[m.account_address] = (counts[m.account_address] || 0) + 1;
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const chip = (addr, label, n) => `<button type="button" class="mail-acct${mailFilterAddr === addr ? " sel" : ""}" data-addr="${esc(addr)}">${esc(label)}${n ? ` <span class="mail-badge">${n}</span>` : ""}</button>`;
-  $("mail-accts").innerHTML = mailAccounts.map((a) => chip(a.address, a.label, counts[a.address] || 0)).join("") + chip("", "Toutes", total);
-  $("mail-accts").querySelectorAll(".mail-acct").forEach((b) => b.addEventListener("click", () => { mailFilterAddr = b.dataset.addr; renderMailAccts(); refreshMailView(); }));
+  // Rond BLEU = à traiter + attribué ; rond ROUGE = non lus (par boîte).
+  const unread = {}, active = {};
+  for (const m of mailMsgs) {
+    if ((m.direction || "in") !== "in") continue;
+    const a = m.account_address;
+    if (!m.is_read) unread[a] = (unread[a] || 0) + 1;
+    if (m.status === "a_traiter" || m.status === "en_cours") active[a] = (active[a] || 0) + 1;
+  }
+  const totU = Object.values(unread).reduce((a, b) => a + b, 0);
+  const totA = Object.values(active).reduce((a, b) => a + b, 0);
+  const chip = (addr, label, nA, nU) => `<button type="button" class="mail-acct${mailFilterAddr === addr ? " sel" : ""}" data-addr="${esc(addr)}">${esc(label)}${nA ? ` <span class="mail-badge mail-badge-blue" title="À traiter + attribué">${nA}</span>` : ""}${nU ? ` <span class="mail-badge" title="Non lus">${nU}</span>` : ""}</button>`;
+  $("mail-accts").innerHTML = mailAccounts.map((a) => chip(a.address, a.label, active[a.address] || 0, unread[a.address] || 0)).join("") + chip("", "Toutes", totA, totU);
+  $("mail-accts").querySelectorAll(".mail-acct").forEach((b) => b.addEventListener("click", () => { mailFilterAddr = b.dataset.addr; mailMineF = false; renderMailAccts(); renderMailToolbar(); refreshMailView(); }));
 }
 function mailStatTag(m) {
   const isOut = (m.direction || "in") === "out";

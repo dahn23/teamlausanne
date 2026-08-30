@@ -2043,3 +2043,8 @@ label.fld select{min-width:180px}
 .ui-box .ps-trigger,.ui-box .ps-trigger .ps-val,.ui-box .ps-chevron{color:#fff}
 .ui-box .ps-trigger .ps-val.ps-ph{color:#dbe3ff}
 .mail-treatedby{color:#1c7a45;font-weight:700;font-size:.84rem;align-self:center;margin-left:4px}
+/* Messagerie : double notif (bleu = a traiter+attribue ; rouge = non lus) */
+.mail-badge-blue{background:var(--blue);color:#fff}
+.mail-acct.sel .mail-badge{background:#fff;color:#e23b3b}
+.mail-acct.sel .mail-badge-blue{background:#fff;color:var(--blue)}
+.mail-fbtn.sel .mail-badge-blue{background:#fff;color:var(--blue)}
