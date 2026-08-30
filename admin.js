@@ -2411,7 +2411,7 @@ async function renderGzMailActions(tid) {
     if (key.startsWith("welcome")) ids = [...new Set((entries || []).filter((e) => e.confirmed).map((e) => e.participant_id))];
     // Non-sélection : liste d'attente, SAUF ceux dont l'épreuve a été annulée (ils reçoivent l'annulation, pas ça)
     else if (key === "non_selection") ids = [...new Set((entries || []).filter((e) => !e.confirmed).map((e) => e.participant_id))].filter((id) => !annulSent.has(id));
-    else if (key === "remerciement") ids = [...new Set((entries || []).map((e) => e.participant_id))].filter((pid) => !absent.has(pid));
+    else if (key === "remerciement") ids = [...new Set((entries || []).filter((e) => e.confirmed).map((e) => e.participant_id))].filter((pid) => !absent.has(pid));
     else if (key === "vainqueur") ids = [...new Set((status || []).filter((s) => s.is_winner && s.photo_url).map((s) => s.participant_id))];
     else ids = [];
     const done = doneKey(key);
@@ -2437,7 +2437,7 @@ async function renderGzMailActions(tid) {
     return row(`Annuler « ${ep} »`, "", n, doneN, "annulation", ep);
   }).join("") : '<p class="muted" style="font-size:.84rem">Aucune épreuve.</p>';
   html += `<div class="gz-send-sub">Après le tournoi</div>`;
-  html += row("Remerciements — présents", "auto lundi 11h", idsFor("remerciement").length, doneKey("remerciement").size, "remerciement");
+  html += row("Remerciements — sélectionnés présents", "auto lundi 11h", idsFor("remerciement").length, doneKey("remerciement").size, "remerciement");
   html += row("Vainqueurs — avec photo", "auto lundi 11h", idsFor("vainqueur").length, doneKey("vainqueur").size, "vainqueur");
   box.innerHTML = html;
   box.querySelectorAll(".gz-send-btn").forEach((b) => b.addEventListener("click", () => gzSend(tid, b.dataset.key, b, b.dataset.epreuve || null)));
