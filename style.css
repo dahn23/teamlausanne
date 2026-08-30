@@ -2038,3 +2038,7 @@ label.fld select{min-width:180px}
 .ma-field{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted);margin:10px 0 0;text-align:left}
 .ma-field select,.ma-field input{padding:8px 10px;border:1px solid var(--line);border-radius:9px;font-size:.9rem;color:var(--ink);background:#fff}
 .ma-err{color:#b3261e;font-size:.82rem;margin:8px 0 0;text-align:left}
+/* Menu déroulant stylé sur fond bleu (fenêtres) : texte + chevron en blanc, lisible */
+.ui-box .ps-trigger{background:var(--blue);border-color:var(--blue)}
+.ui-box .ps-trigger,.ui-box .ps-trigger .ps-val,.ui-box .ps-chevron{color:#fff}
+.ui-box .ps-trigger .ps-val.ps-ph{color:#dbe3ff}
