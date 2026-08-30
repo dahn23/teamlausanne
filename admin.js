@@ -1908,7 +1908,7 @@ async function loadCoursesDay() {
     // se gèrent via le détail (head coach) → ici en lecture seule (non cliquables).
     const detailed = !!type && TR_TYPE_RE.test(type.name || "") && (coachIds.length > 1 || childIds.length > 1);
     const elevesCol = detailed
-      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const s = attOf(c.id, pid); const cls = s === "present" ? "st-present" : s === "absent" ? "st-absent" : s === "late" ? "st-late" : "st-none"; return `<span class="att-chip ${cls}" data-can="0" style="cursor:default" title="${esc(personName(pid))} — présence gérée par le head coach (détail)">${esc(personName(pid))}</span>`; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
+      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const s = attOf(c.id, pid); const cls = s === "present" ? "st-present" : s === "absent" ? "st-absent" : s === "late" ? "st-late" : "st-none"; return `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))} — présence gérée par le head coach (détail)">${esc(personName(pid))}</span>`; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
       : col(c, coachIds, childIds, false, "Élèves");
     return `<div class="cs-card" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cs-card-top">
@@ -2016,7 +2016,15 @@ async function loadCoursesWeek() {
 
 // Clic sur une pastille : blanc → vert → rouge → orange → blanc
 async function cycleAtt(chip) {
-  if (chip.dataset.can !== "1") return; // verrouillé
+  if (chip.dataset.can !== "1") { // verrouillé → on explique pourquoi (popup)
+    const cstart = chip.dataset.cstart ? new Date(chip.dataset.cstart).getTime() : 0, now = Date.now();
+    if (chip.dataset.detail === "1") uiAlert("Sur ce cours (pro / sport-études), les présences des jeunes sont gérées par le head coach via le détail de la séance.");
+    else if (chip.dataset.coach === "1") uiAlert("Vous ne pouvez marquer que votre propre présence.");
+    else if (cstart && now < cstart - 10 * 60000) uiAlert("Le pointage des jeunes ouvre 10 minutes avant le début du cours — pas avant.");
+    else if (cstart && now > cstart + 14 * 24 * 3600000) uiAlert("Pointage clos (2 semaines écoulées). Demande à un head coach / admin.");
+    else uiAlert("Cette présence n'est pas modifiable pour le moment.");
+    return;
+  }
   const course = chip.dataset.course, pid = chip.dataset.person, isCoach = chip.dataset.coach === "1";
   const cur = chip.dataset.status || "";
   let next;
@@ -2025,9 +2033,14 @@ async function cycleAtt(chip) {
     // Avant l'ouverture (10 min avant) → seulement l'absence anticipée ; en fenêtre → présent si tous les jeunes marqués.
     const cstart = chip.dataset.cstart ? new Date(chip.dataset.cstart).getTime() : 0;
     const inWindow = !chip.dataset.cstart || Date.now() >= cstart - 10 * 60000;
-    const blockPresent = !isHeadUser && pid === myPersonId && (!inWindow || !allKidsMarked(course));
-    if (cur === "") next = blockPresent ? "absent" : "present";
-    else if (cur === "present") next = "absent";
+    const kidsPending = !allKidsMarked(course);
+    const blockPresent = !isHeadUser && pid === myPersonId && (!inWindow || kidsPending);
+    if (cur === "") {
+      next = blockPresent ? "absent" : "present";
+      // En fenêtre mais jeunes pas tous validés : on explique pourquoi « présent » est indisponible.
+      if (blockPresent && inWindow && kidsPending)
+        uiAlert("Tu ne peux pas te déclarer présent tant que tous les jeunes ne sont pas validés. Tu es noté absent pour l'instant — reclique pour effacer.");
+    } else if (cur === "present") next = "absent";
     else next = null; // absent (ou ancien statut) → efface
   } else {
     // Élève : blanc → présent → absent → en retard → blanc.
