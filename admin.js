@@ -110,7 +110,8 @@ async function openMyProfile() {
   const editable = !confirmed;          // avant validation : on peut compléter les champs vides
   const roles = [...new Set(myAppRoles)].map((r) => ME_ROLE_LABELS[r] || r);
   const inits = (((p.first_name || "")[0] || "") + ((p.last_name || "")[0] || "")).toUpperCase();
-  const rows = ME_FIELDS.map((f) => {
+  const isProf = myAppRoles.includes("prof");
+  const rows = ME_FIELDS.filter((f) => !(f.k === "license_no" && isProf)).map((f) => {
     const val = p[f.k];
     if (editable && !val) {
       return `<div class="me-row edit"><span>${f.lbl}</span><input id="me-f-${f.k}" type="${f.type}" placeholder="À compléter" /></div>`;
