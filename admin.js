@@ -194,7 +194,7 @@ const DEFAULT_TAB_ACCESS = {
   moniteur:   ["cours", "heures"],
   prof:       ["etudes"],
   coach_mental: ["mental", "heures"],
-  organisateur: ["gamezone"],
+  organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
 const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
@@ -2815,6 +2815,12 @@ function renderMailCards() {
         </div>
         <button type="button" class="primary gz-mail-save">Enregistrer</button>
       </div>
+      <div class="gz-mail-test-row">
+        <span class="gz-mail-lbl" style="margin:0">Tester&nbsp;:</span>
+        <input type="email" class="gz-mail-testmail" placeholder="ton@email.ch — recevoir ce mail en test" />
+        <button type="button" class="ghost gz-mail-testbtn">Envoyer un test</button>
+        <span class="gz-mail-teststatus muted"></span>
+      </div>
     </div>`).join("");
   $("gz-mail-list").querySelectorAll(".gz-mail-card").forEach((card) => {
     const key = card.dataset.key;
@@ -2823,9 +2829,28 @@ function renderMailCards() {
     card.querySelector(".gz-mail-imgbtn").addEventListener("click", () => file.click());
     file.addEventListener("change", () => uploadMailImage(key, file));
     card.querySelector(".gz-mail-imgdel")?.addEventListener("click", () => removeMailImage(key));
+    card.querySelector(".gz-mail-testbtn").addEventListener("click", () => gzMailTest(key, card));
   });
 }
 
+async function gzMailTest(key, card) {
+  const to = card.querySelector(".gz-mail-testmail").value.trim();
+  const st = card.querySelector(".gz-mail-teststatus");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { st.textContent = "Entre un email valide."; return; }
+  const subject = "[TEST] " + card.querySelector(".gz-mail-subject").value.trim();
+  const body = card.querySelector(".gz-mail-body").value;
+  const m = gzMails.find((x) => x.key === key);
+  const img = m?.image_url ? `<div style="margin-top:14px"><img src="${esc(m.image_url)}" style="max-width:100%"/></div>` : "";
+  const html = `<div style="font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111">${draftToHtml(body)}${img}</div>`;
+  const btn = card.querySelector(".gz-mail-testbtn"); btn.disabled = true; st.textContent = "Envoi…";
+  try {
+    const { data, error } = await sb.functions.invoke("mail-send", { body: { account: "tournoi@teamlausanne.ch", to, subject, text: body, html } });
+    if (error) { let e = error.message; try { e = (await error.context.json())?.error || e; } catch (_) {} st.textContent = "Échec : " + e; }
+    else if (data?.error) { st.textContent = "Échec : " + data.error; }
+    else { st.textContent = `✓ Test envoyé à ${to} (depuis ${data?.from || "tournoi@"})`; }
+  } catch (e) { st.textContent = "Échec : " + (e?.message || e); }
+  btn.disabled = false;
+}
 async function saveMail(key, card) {
   const patch = {
     subject: card.querySelector(".gz-mail-subject").value.trim(),
@@ -6030,6 +6055,8 @@ const MAIL_DIRS = [["in", "Reçus"], ["out", "Envoyés"], ["", "Tous"]];
 const MAIL_STAFF_ROLES = ["secretaire", "admin", "superadmin"];   // qui peut être attribué
 let mailAccounts = [], mailMsgs = [], mailView = [], mailFilterAddr = "info@teamlausanne.ch", mailSelId = null;
 let mailDir = "in", mailStatusF = "a_traiter", mailAssigneeF = "", mailMineF = false, mailDraftT = null;
+let mailTournoiOnly = false;   // official : messagerie limitée à tournoi@teamlausanne.ch
+const MAIL_TOURNOI = "tournoi@teamlausanne.ch";
 const pName = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() : "?"; };
 const pShort = (pid) => { const p = people.find((x) => x.id === pid); return p ? (p.first_name || p.last_name || "?") : "?"; };
 function mailSyncCache(m) {
@@ -6064,6 +6091,9 @@ async function loadMail() {
   const isSuper = myAppRoles.includes("superadmin");
   $("mail-importboxes-btn").classList.toggle("hidden", !isSuper);
   $("mail-history-btn").classList.toggle("hidden", !isSuper);
+  // Official (organisateur non-staff) : messagerie verrouillée sur tournoi@
+  mailTournoiOnly = myAppRoles.includes("organisateur") && !hasAny(myAppRoles, MAIL_STAFF_ROLES);
+  if (mailTournoiOnly) mailFilterAddr = MAIL_TOURNOI;
   renderMailAccts();
   renderMailToolbar();
   refreshMailView();
@@ -6256,8 +6286,9 @@ const fileToB64 = (f) => new Promise((res) => { const r = new FileReader(); r.on
 // ---- Nouveau message ----
 let mailcFiles = [];
 function openMailCompose() {
-  const cur = mailFilterAddr || (mailAccounts[0]?.address) || "";
-  $("mailc-from").innerHTML = mailAccounts.map((a) => `<option value="${esc(a.address)}">${esc(a.label)} — ${esc(a.address)}</option>`).join("");
+  const froms = mailTournoiOnly ? mailAccounts.filter((a) => a.address === MAIL_TOURNOI) : mailAccounts;
+  const cur = mailTournoiOnly ? MAIL_TOURNOI : (mailFilterAddr || (mailAccounts[0]?.address) || "");
+  $("mailc-from").innerHTML = froms.map((a) => `<option value="${esc(a.address)}">${esc(a.label)} — ${esc(a.address)}</option>`).join("");
   if (cur) $("mailc-from").value = cur;
   $("mailc-to").value = ""; $("mailc-subject").value = ""; $("mailc-body").innerHTML = ""; $("mailc-status").textContent = "";
   mailcFiles = []; renderMailcFiles();
@@ -6316,7 +6347,8 @@ function renderMailAccts() {
   const totU = Object.values(unread).reduce((a, b) => a + b, 0);
   const totA = Object.values(active).reduce((a, b) => a + b, 0);
   const chip = (addr, label, nA, nU) => `<button type="button" class="mail-acct${mailFilterAddr === addr ? " sel" : ""}" data-addr="${esc(addr)}">${esc(label)}${nA ? ` <span class="mail-badge mail-badge-blue" title="À traiter + attribué">${nA}</span>` : ""}${nU ? ` <span class="mail-badge" title="Non lus">${nU}</span>` : ""}</button>`;
-  $("mail-accts").innerHTML = mailAccounts.map((a) => chip(a.address, a.label, active[a.address] || 0, unread[a.address] || 0)).join("") + chip("", "Toutes", totA, totU);
+  const accts = mailTournoiOnly ? mailAccounts.filter((a) => a.address === MAIL_TOURNOI) : mailAccounts;
+  $("mail-accts").innerHTML = accts.map((a) => chip(a.address, a.label, active[a.address] || 0, unread[a.address] || 0)).join("") + (mailTournoiOnly ? "" : chip("", "Toutes", totA, totU));
   $("mail-accts").querySelectorAll(".mail-acct").forEach((b) => b.addEventListener("click", () => { mailFilterAddr = b.dataset.addr; mailMineF = false; renderMailAccts(); renderMailToolbar(); refreshMailView(); }));
 }
 function mailStatTag(m) {
