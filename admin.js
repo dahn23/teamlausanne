@@ -2841,22 +2841,58 @@ async function addMovement() {
 // ---- Tous les participants ----
 let gzParts = [], gzPartSort = "last";
 
+// Sélecteur de saison commun (Participants / Financier / Site public) : la saison
+// EN COURS est pré-sélectionnée par défaut, suivie de toutes les saisons puis de
+// « Toutes les saisons » (valeur vide = pas de filtre).
+let gzSeasonsCache = [], gzCurSeasonId = null;
+async function gzLoadSeasons() {
+  if (!gzSeasonsCache.length) {
+    const { data } = await sb.from("gz_seasons").select("id,name,start_date,is_current").order("start_date", { ascending: false });
+    gzSeasonsCache = data || [];
+    gzCurSeasonId = (gzSeasonsCache.find((s) => s.is_current) || {}).id || null;
+  }
+  return gzSeasonsCache;
+}
+function gzSeasonOptions(selId) {
+  const sel = selId === undefined ? gzCurSeasonId : selId;
+  return gzSeasonsCache.map((s) => `<option value="${s.id}"${s.id === sel ? " selected" : ""}>${esc(s.name)}${s.is_current ? " (en cours)" : ""}</option>`).join("")
+    + `<option value=""${sel ? "" : " selected"}>Toutes les saisons</option>`;
+}
+
+let gzPartSeasonStats = {}, gzPartSeasonLoaded = false;
+
 async function loadParticipantsTab() {
-  const [{ data: parts }, { data: stats }] = await Promise.all([
+  await gzLoadSeasons();
+  const [{ data: parts }, { data: stats }, { data: sstats }] = await Promise.all([
     sb.from("gz_participants").select("*"),
     sb.from("gz_participant_stats").select("*"),
+    sb.from("gz_participant_season_stats").select("*"),
   ]);
   const sMap = {}; for (const s of stats || []) sMap[s.participant_id] = s;
   gzParts = (parts || []).map((p) => ({ ...p, part: sMap[p.id]?.participations || 0, vic: sMap[p.id]?.victoires || 0 }));
+  gzPartSeasonStats = {};
+  for (const r of sstats || []) gzPartSeasonStats[`${r.participant_id}|${r.season_id}`] = { part: r.participations || 0, vic: r.victoires || 0 };
+  if (!gzPartSeasonLoaded) {
+    $("gz-part-season").innerHTML = gzSeasonOptions();
+    $("gz-part-season").value = gzCurSeasonId || "";
+    $("gz-part-season").addEventListener("change", renderParts);
+    gzPartSeasonLoaded = true;
+  }
   renderParts();
 }
 
 function renderParts() {
+  const sid = $("gz-part-season") ? $("gz-part-season").value : "";
+  // Quand une saison est choisie : n'afficher que les participants de cette saison,
+  // et compter participations/victoires POUR cette saison. « Toutes » = total cumulé.
+  const partOf = (p) => sid ? (gzPartSeasonStats[`${p.id}|${sid}`]?.part || 0) : p.part;
+  const vicOf = (p) => sid ? (gzPartSeasonStats[`${p.id}|${sid}`]?.vic || 0) : p.vic;
   const q = $("gz-part-search").value.trim().toLowerCase();
-  let rows = gzParts.filter((p) => !q ||
-    `${p.last_name} ${p.first_name} ${p.email || ""} ${p.phone || ""} ${p.city || ""} ${p.club || ""} ${p.note || ""}`.toLowerCase().includes(q));
+  let rows = gzParts.filter((p) =>
+    (!sid || gzPartSeasonStats[`${p.id}|${sid}`]) &&
+    (!q || `${p.last_name} ${p.first_name} ${p.email || ""} ${p.phone || ""} ${p.city || ""} ${p.club || ""} ${p.note || ""}`.toLowerCase().includes(q)));
   const val = (p) => ({ last: p.last_name, first: p.first_name, email: p.email, birth: p.birthdate,
-    phone: p.phone, part: p.part, vic: p.vic, credit: Number(p.credit_chf || 0), note: p.note }[gzPartSort]);
+    phone: p.phone, part: partOf(p), vic: vicOf(p), credit: Number(p.credit_chf || 0), note: p.note }[gzPartSort]);
   rows = rows.slice().sort((a, b) => {
     const x = val(a), y = val(b);
     if (["part", "vic", "credit"].includes(gzPartSort)) return (y || 0) - (x || 0);
@@ -2865,7 +2901,7 @@ function renderParts() {
   $("gz-part-rows").innerHTML = rows.map((p) => `<tr>
     <td>${esc(p.last_name)}</td><td>${esc(p.first_name)}</td><td>${esc(p.email || "")}</td>
     <td>${p.birthdate || ""}</td><td>${esc(p.phone || "")}</td>
-    <td>${p.part}</td><td>${p.vic > 0 ? ICO_CUP + " " + p.vic : "0"}</td>
+    <td>${partOf(p)}</td><td>${vicOf(p) > 0 ? ICO_CUP + " " + vicOf(p) : "0"}</td>
     <td>${p.credit_chf > 0 ? p.credit_chf + " CHF" : ""}</td><td class="muted" style="font-size:.82rem">${esc(p.note || "")}</td></tr>`).join("");
   $("gz-part-count").textContent = `${rows.length} participant(s)`;
 }
@@ -2874,18 +2910,18 @@ function renderParts() {
 let gzFin = [], gzFinMgrs = {}, gzFinSeasonsLoaded = false;
 
 async function loadFinanceTab() {
-  const [{ data: fin }, { data: mgrs }, { data: seasons }] = await Promise.all([
+  await gzLoadSeasons();
+  const [{ data: fin }, { data: mgrs }] = await Promise.all([
     sb.from("gz_tournament_finance").select("*"),
     sb.from("gz_managers").select("tournament_id,person_id"),
-    sb.from("gz_seasons").select("id,name,start_date,end_date").order("start_date", { ascending: false }),
   ]);
   const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : ""; };
   gzFinMgrs = {};
   for (const m of mgrs || []) { (gzFinMgrs[m.tournament_id] || (gzFinMgrs[m.tournament_id] = [])).push(nameOf(m.person_id)); }
   gzFin = fin || [];
   if (!gzFinSeasonsLoaded) {
-    $("gz-fin-season").innerHTML = '<option value="">Toutes les saisons</option>' +
-      (seasons || []).map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("");
+    $("gz-fin-season").innerHTML = gzSeasonOptions();
+    $("gz-fin-season").value = gzCurSeasonId || "";
     gzFinSeasonsLoaded = true;
   }
   renderFinance();
@@ -3204,16 +3240,14 @@ function renderSurveyResults(scope, sid, box) {
 let gzSitePhotos = [], gzSiteSeasonsLoaded = false;
 
 async function loadSiteTab() {
-  const [{ data: st }, { data: seasons }] = await Promise.all([
-    sb.from("gz_player_status")
-      .select("participant_id,tournament_id,photo_url,photo_public,updated_at,gz_participants(first_name,last_name),gz_tournaments(name,tournament_date,season_id,is_gamezone)")
-      .eq("is_winner", true).not("photo_url", "is", null),
-    sb.from("gz_seasons").select("id,name,start_date").order("start_date", { ascending: false }),
-  ]);
+  await gzLoadSeasons();
+  const { data: st } = await sb.from("gz_player_status")
+    .select("participant_id,tournament_id,photo_url,photo_public,updated_at,gz_participants(first_name,last_name),gz_tournaments(name,tournament_date,season_id,is_gamezone)")
+    .eq("is_winner", true).not("photo_url", "is", null);
   gzSitePhotos = (st || []).filter((r) => r.gz_tournaments?.is_gamezone);
   if (!gzSiteSeasonsLoaded) {
-    $("gz-site-season").innerHTML = '<option value="">Toutes les saisons</option>' +
-      (seasons || []).map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("");
+    $("gz-site-season").innerHTML = gzSeasonOptions();
+    $("gz-site-season").value = gzCurSeasonId || "";
     $("gz-site-season").addEventListener("change", renderSitePhotos);
     gzSiteSeasonsLoaded = true;
   }
