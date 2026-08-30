@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=100" />
+  <link rel="stylesheet" href="style.css?v=101" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -42,7 +42,7 @@
         </div>
         <div class="side-block">
           <button class="side-item" data-view="cours"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg><span class="side-label">Cours</span></button>
-          <button class="side-item" data-view="training"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V9"/><path d="M12 13l3 2"/><path d="M9 2h6"/></svg><span class="side-label">Détail séances</span></button>
+          <button class="side-item" data-view="training"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V9"/><path d="M12 13l3 2"/><path d="M9 2h6"/></svg><span class="side-label">Stats séances</span></button>
           <button class="side-item" data-view="inscriptions"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2.5" width="8" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg><span class="side-label">Inscriptions</span></button>
           <button class="side-item" data-view="prospects"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><circle cx="11" cy="11" r="3"/><path d="M11 1v3M11 18v3M1 11h3M18 11h3"/></svg><span class="side-label">Prospects</span></button>
           <button class="side-item" data-view="phystests"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9.5 4V2.8h5V4"/><path d="M9 12l2 2 4-4"/></svg><span class="side-label">Tests physiques</span></button>
@@ -617,29 +617,17 @@
           <div id="bday-body"></div>
         </div>
 
-        <!-- ---- Vue Détail séances (head coach / admin) : découpage en blocs ---- -->
+        <!-- ---- Vue Stats séances (head coach / admin) : bilan des blocs ---- -->
         <div id="view-training" class="view hidden">
-          <div class="crm-head"><h1>Détail séances <span class="muted" style="font-size:1rem;font-weight:400">— pro / sport-études</span></h1></div>
-          <div class="subnav">
-            <button class="subtab tr-subtab active" data-sub="saisie">Saisie</button>
-            <button class="subtab tr-subtab" data-sub="stats">Statistiques</button>
+          <div class="crm-head"><h1>Stats séances <span class="muted" style="font-size:1rem;font-weight:400">— pro / sport-études</span></h1></div>
+          <p class="muted" style="font-size:.84rem;margin:0 0 10px">Le détail se saisit <b>dans le cours</b> (au moment des présences), quand il y a plusieurs courts ou plusieurs coachs. Ici : le bilan de fin d'année.</p>
+          <div class="crm-actions" style="flex-wrap:wrap;gap:8px;align-items:flex-end">
+            <label class="fld">Saison <select id="tr-stat-season"></select></label>
+            <label class="fld">Joueur <select id="tr-stat-player"></select></label>
+            <button id="tr-stat-run">Calculer</button>
+            <button id="tr-stat-csv" class="ghost">Export CSV</button>
           </div>
-          <div id="tr-sub-saisie" class="tr-sub">
-            <div id="tr-list-wrap">
-              <p class="muted" style="font-size:.84rem;margin:0 0 10px">Séances pro / sport-études des 14 derniers jours. Clique pour détailler qui a joué avec qui, avec quel coach et combien de temps.</p>
-              <div id="tr-sessions"></div>
-            </div>
-            <div id="tr-editor" class="hidden"></div>
-          </div>
-          <div id="tr-sub-stats" class="tr-sub hidden">
-            <div class="crm-actions" style="flex-wrap:wrap;gap:8px;align-items:flex-end">
-              <label class="fld">Saison <select id="tr-stat-season"></select></label>
-              <label class="fld">Joueur <select id="tr-stat-player"></select></label>
-              <button id="tr-stat-run">Calculer</button>
-              <button id="tr-stat-csv" class="ghost">Export CSV</button>
-            </div>
-            <div id="tr-stat-body"></div>
-          </div>
+          <div id="tr-stat-body"></div>
         </div>
 
         <!-- ---- Vue CSEL (admin/superadmin) : planning hebdo repas + études ---- -->
@@ -1538,6 +1526,9 @@
       <div id="c-att-block" class="hidden">
         <label class="cs-lbl">Présences <span class="muted" style="font-weight:400">(clic : blanc → vert → rouge → orange)</span></label>
         <div id="c-att" class="cs-att"></div>
+      </div>
+      <div id="c-detail-block" class="c-detail-block hidden">
+        <div id="c-detail"></div>
       </div>
       <div class="form-foot">
         <button type="button" id="c-del" class="danger hidden">Supprimer le cours</button>

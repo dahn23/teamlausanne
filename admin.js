@@ -197,7 +197,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["training", "Détail séances"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["training", "Stats séances"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -3152,6 +3152,9 @@ function openCourse(course, related) {
   // Présences (seulement en édition d'un cours existant)
   $("c-att-block").classList.toggle("hidden", !course);
   if (course) renderCourseAtt(course, related?.coaches || [], related?.children || [], related?.attendance || []);
+  // Détail de séance (head coach/admin) : pro/SE + plusieurs courts ou coachs
+  if (course) courseDetailMaybe(course, related?.courts || [], related?.coaches || [], related?.children || []);
+  else { $("c-detail-block")?.classList.add("hidden"); $("c-detail").innerHTML = ""; }
   $("course-modal").classList.remove("hidden");
 }
 
@@ -6888,15 +6891,17 @@ async function delEtRemark(id) {
 
 // ===================================================================
 //  Détail des séances (head coach / admin) — qui a joué avec qui,
-//  avec quel coach, combien de temps. Données SÉPARÉES (RLS) : invisibles
-//  pour les jeunes et les autres coachs.
+//  avec quel coach, combien de temps.
+//  SAISIE directement dans le modal du cours (au moment des présences),
+//  pour les types pro / sport-études quand il y a >1 court OU >1 coach.
+//  Onglet "Stats séances" = consultation (paires, coachs, CSV).
+//  Données SÉPARÉES (RLS) : invisibles pour jeunes et autres coachs.
 // ===================================================================
-const TR_TYPE_RE = /pro|étud|etud/i;          // types de cours pro / sport-études
+const TR_TYPE_RE = /pro|étud|etud/i;                 // familles pro / sport-études
 const TR_DURS = [15, 30, 45, 60, 75, 90, 105, 120];
-let trWired = false;
-let trCourts = [];
-let trEditing = null;                          // { id, date, start, end, dur, roster:[], coachOpts:[] }
-let trBlocs = [];                              // [{ minutes, coach, court, note, players:[] }]
+let trStatWired = false;
+let trEditing = null;   // { id, date, start, end, dur, label, roster:[], coachOpts:[], courtIds:[] }
+let trBlocs = [];       // [{ minutes, coach, court, note, players:[] }]
 
 const trFull = (id) => { const p = people.find((x) => x.id === id); return p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() : "?"; };
 const trShort = (id) => { const p = people.find((x) => x.id === id); return p ? `${p.first_name || ""} ${(p.last_name || "").slice(0, 1)}.`.trim() : "?"; };
@@ -6905,105 +6910,42 @@ function trMinBetween(a, b) {
   const [h1, m1] = a.split(":").map(Number), [h2, m2] = b.split(":").map(Number);
   return Math.max(0, (h2 * 60 + m2) - (h1 * 60 + m1));
 }
-function trIsoDay(offset = 0) {
-  const n = new Date(); n.setDate(n.getDate() + offset);
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
-}
 const trFmtH = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}h${String(r).padStart(2, "0")}` : h ? `${h}h` : `${r}min`; };
 
-async function loadTraining() {
-  if (!$("view-training")) return;
-  if (!trWired) {
-    document.querySelectorAll("#view-training .tr-subtab").forEach((b) =>
-      b.addEventListener("click", () => trShowSub(b.dataset.sub)));
-    $("tr-stat-run").addEventListener("click", loadTrStats);
-    $("tr-stat-csv").addEventListener("click", trStatsCsv);
-    trWired = true;
-  }
-  if (!trCourts.length) {
-    const { data } = await sb.from("courts").select("id,name").order("display_order");
-    trCourts = data || [];
-  }
-  trShowSub("saisie");
-  trBackToList();
-  loadTrSessions();
-}
-function trShowSub(sub) {
-  document.querySelectorAll("#view-training .tr-subtab").forEach((b) => b.classList.toggle("active", b.dataset.sub === sub));
-  $("tr-sub-saisie").classList.toggle("hidden", sub !== "saisie");
-  $("tr-sub-stats").classList.toggle("hidden", sub !== "stats");
-  if (sub === "stats") trInitStatsFilters();
-}
-
-async function loadTrSessions() {
-  const box = $("tr-sessions"); if (!box) return;
-  box.innerHTML = '<p class="muted">Chargement…</p>';
-  const { data: cs } = await sb.from("courses")
-    .select("id,course_date,start_time,end_time,title,course_types(name)")
-    .gte("course_date", trIsoDay(-14)).lte("course_date", trIsoDay(0))
-    .order("course_date", { ascending: false }).order("start_time", { ascending: false });
-  const sess = (cs || []).filter((c) => TR_TYPE_RE.test(c.course_types?.name || ""));
-  if (!sess.length) { box.innerHTML = '<p class="muted">Aucune séance pro / sport-études sur les 14 derniers jours.</p>'; return; }
-  const ids = sess.map((c) => c.id);
-  const [{ data: segs }, { data: cps }] = await Promise.all([
-    sb.from("course_segments").select("course_id,minutes").in("course_id", ids),
-    sb.from("course_participants").select("course_id").in("course_id", ids),
-  ]);
-  const nBloc = {}, detMin = {}, nJ = {};
-  (segs || []).forEach((s) => { nBloc[s.course_id] = (nBloc[s.course_id] || 0) + 1; detMin[s.course_id] = (detMin[s.course_id] || 0) + s.minutes; });
-  (cps || []).forEach((r) => { nJ[r.course_id] = (nJ[r.course_id] || 0) + 1; });
-  box.innerHTML = sess.map((c) => {
-    const done = nBloc[c.id] > 0;
-    const badge = done
-      ? `<span class="tr-badge done">✓ Détaillée — ${nBloc[c.id]} bloc${nBloc[c.id] > 1 ? "s" : ""} · ${trFmtH(detMin[c.id] || 0)}</span>`
-      : `<span class="tr-badge todo">À détailler</span>`;
-    return `<div class="tr-srow" data-id="${c.id}">
-      <div class="tr-srow-main">
-        <b>${esc(c.course_types?.name || c.title || "Séance")}</b>
-        <span class="muted"> — ${frDate(c.course_date)} · ${(c.start_time || "").slice(0, 5)}–${(c.end_time || "").slice(0, 5)} · ${nJ[c.id] || 0} joueur${(nJ[c.id] || 0) > 1 ? "s" : ""}</span>
-      </div>
-      <div class="tr-srow-side">${badge}<button type="button" class="tr-open" data-id="${c.id}">${done ? "Modifier" : "Détailler"}</button></div>
-    </div>`;
-  }).join("");
-  box.querySelectorAll(".tr-open").forEach((b) => b.addEventListener("click", () => openTrEditor(b.dataset.id)));
-}
-
-function trBackToList() { $("tr-editor").classList.add("hidden"); $("tr-list-wrap").classList.remove("hidden"); }
-
-async function openTrEditor(courseId) {
-  const { data: c } = await sb.from("courses").select("id,course_date,start_time,end_time,title,course_types(name)").eq("id", courseId).maybeSingle();
-  if (!c) { uiAlert("Séance introuvable."); return; }
-  const [{ data: cp }, { data: cc }, { data: segs }] = await Promise.all([
-    sb.from("course_participants").select("child_person_id").eq("course_id", courseId),
-    sb.from("course_coaches").select("coach_person_id").eq("course_id", courseId),
-    sb.from("course_segments").select("id,seq,minutes,coach_person_id,court_id,note").eq("course_id", courseId).order("seq"),
-  ]);
-  let existPlayers = {};
+// ---------- Saisie embarquée dans le modal du cours ----------
+// Appelée par openCourse : décide d'afficher (ou non) le bloc détail.
+async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
+  const block = $("c-detail-block"); if (!block) return;
+  const canEdit = hasAny(myAppRoles, ["superadmin", "admin", "head_coach"]);
+  const typeName = (courseTypes.find((t) => t.id === course.course_type_id) || {}).name || "";
+  const multi = (courtIds || []).length > 1 || (coachIds || []).length > 1;
+  if (!(canEdit && TR_TYPE_RE.test(typeName) && multi)) { block.classList.add("hidden"); $("c-detail").innerHTML = ""; return; }
+  block.classList.remove("hidden");
+  const coachLike = (id) => (peopleRoles[id] || []).some((r) => ["coach", "head-coach", "coach-prive"].includes(r));
+  const coachSet = new Set(coachIds || []); people.forEach((p) => { if (coachLike(p.id)) coachSet.add(p.id); });
+  trEditing = {
+    id: course.id, date: course.course_date, start: course.start_time, end: course.end_time,
+    label: typeName || course.title || "Séance", dur: trMinBetween(course.start_time, course.end_time),
+    roster: [...new Set(childIds || [])], coachOpts: [...coachSet], courtIds: (courtIds || []).map(Number),
+  };
+  const { data: segs } = await sb.from("course_segments").select("id,seq,minutes,coach_person_id,court_id,note").eq("course_id", course.id).order("seq");
+  let ex = {};
   if ((segs || []).length) {
     const { data: sp } = await sb.from("course_segment_players").select("segment_id,person_id").in("segment_id", segs.map((s) => s.id));
-    (sp || []).forEach((r) => (existPlayers[r.segment_id] || (existPlayers[r.segment_id] = [])).push(r.person_id));
+    (sp || []).forEach((r) => (ex[r.segment_id] || (ex[r.segment_id] = [])).push(r.person_id));
   }
-  const roster = [...new Set((cp || []).map((r) => r.child_person_id))];
-  // Coachs proposés : ceux de la séance + tous les coachs du répertoire (souplesse).
-  const coachLike = (id) => (peopleRoles[id] || []).some((r) => r === "coach" || r === "head-coach" || r === "coach-prive");
-  const coachSet = new Set((cc || []).map((r) => r.coach_person_id));
-  people.forEach((p) => { if (coachLike(p.id)) coachSet.add(p.id); });
-  trEditing = {
-    id: courseId, date: c.course_date, start: c.start_time, end: c.end_time,
-    label: c.course_types?.name || c.title || "Séance",
-    dur: trMinBetween(c.start_time, c.end_time),
-    roster, coachOpts: [...coachSet],
-  };
-  // Complète le vivier avec d'éventuels joueurs déjà saisis mais retirés du cours depuis
-  (segs || []).forEach((s) => (existPlayers[s.id] || []).forEach((pid) => { if (!trEditing.roster.includes(pid)) trEditing.roster.push(pid); }));
+  (segs || []).forEach((s) => (ex[s.id] || []).forEach((pid) => { if (!trEditing.roster.includes(pid)) trEditing.roster.push(pid); }));
   trBlocs = (segs || []).length
-    ? segs.map((s) => ({ minutes: s.minutes, coach: s.coach_person_id || "", court: s.court_id || "", note: s.note || "", players: existPlayers[s.id] || [] }))
-    : [{ minutes: Math.min(trEditing.dur || 60, 60), coach: trEditing.coachOpts[0] || "", court: "", note: "", players: [] }];
-  $("tr-list-wrap").classList.add("hidden");
-  $("tr-editor").classList.remove("hidden");
+    ? segs.map((s) => ({ minutes: s.minutes, coach: s.coach_person_id || "", court: s.court_id || "", note: s.note || "", players: ex[s.id] || [] }))
+    : [{ minutes: Math.min(trEditing.dur || 60, 60), coach: trEditing.coachOpts[0] || "", court: (courtIds || [])[0] || "", note: "", players: [] }];
   renderTrEditor();
 }
 
+function trCourtList() {
+  const all = (typeof resaCourtsAll !== "undefined" && resaCourtsAll.length) ? resaCourtsAll : [];
+  if (trEditing.courtIds && trEditing.courtIds.length) return all.filter((c) => trEditing.courtIds.includes(Number(c.id)));
+  return all;
+}
 function trTally() {
   const t = {}; trEditing.roster.forEach((pid) => (t[pid] = 0));
   trBlocs.forEach((b) => (b.players || []).forEach((pid) => { t[pid] = (t[pid] || 0) + (b.minutes || 0); }));
@@ -7011,17 +6953,16 @@ function trTally() {
 }
 
 function renderTrEditor() {
+  const host = $("c-detail"); if (!host || !trEditing) return;
   const e = trEditing, tgt = e.dur || 0, tally = trTally();
-  const nameSel = (id) => trFull(id);
   const tallyHtml = e.roster.map((pid) => {
-    const m = tally[pid] || 0;
-    const cls = m === tgt ? "ok" : m > tgt ? "over" : "under";
+    const m = tally[pid] || 0, cls = m === tgt ? "ok" : m > tgt ? "over" : "under";
     return `<span class="tr-tchip ${cls}">${esc(trShort(pid))} <b>${m}′</b>${tgt ? `/${tgt}` : ""}</span>`;
   }).join("");
   const coachOptions = (sel) => `<option value="">— coach —</option>` +
-    e.coachOpts.map((id) => `<option value="${id}"${String(sel) === String(id) ? " selected" : ""}>${esc(nameSel(id))}</option>`).join("");
+    e.coachOpts.map((id) => `<option value="${id}"${String(sel) === String(id) ? " selected" : ""}>${esc(trFull(id))}</option>`).join("");
   const courtOptions = (sel) => `<option value="">— court —</option>` +
-    trCourts.map((ct) => `<option value="${ct.id}"${String(sel) === String(ct.id) ? " selected" : ""}>${esc(ct.name)}</option>`).join("");
+    trCourtList().map((ct) => `<option value="${ct.id}"${String(sel) === String(ct.id) ? " selected" : ""}>${esc(ct.name)}</option>`).join("");
   const blocsHtml = trBlocs.map((b, i) => {
     const durs = TR_DURS.map((d) => `<button type="button" class="tr-dur${b.minutes === d ? " sel" : ""}" data-i="${i}" data-d="${d}">${d}′</button>`).join("");
     const chips = e.roster.map((pid) => {
@@ -7035,60 +6976,50 @@ function renderTrEditor() {
         <label class="tr-lbl2">Coach <select class="tr-coach" data-i="${i}">${coachOptions(b.coach)}</select></label>
         <label class="tr-lbl2">Court <select class="tr-court" data-i="${i}">${courtOptions(b.court)}</select></label>
       </div>
-      <div class="tr-row"><span class="tr-lbl">Joueurs</span><div class="tr-pchips">${chips || '<span class="muted">Aucun joueur au cours</span>'}</div></div>
+      <div class="tr-row"><span class="tr-lbl">Joueurs</span><div class="tr-pchips">${chips || '<span class="muted">Aucun joueur</span>'}</div></div>
       <div class="tr-row"><span class="tr-lbl">Note</span><input type="text" class="tr-note" data-i="${i}" value="${esc(b.note || "")}" placeholder="ex. travail service / points" /></div>
     </div>`;
   }).join("");
-  $("tr-editor").innerHTML = `
-    <div class="tr-ed-head">
-      <button type="button" id="tr-back" class="ghost">← Retour</button>
-      <div><b>${esc(e.label)}</b> <span class="muted">— ${frDate(e.date)} · ${(e.start || "").slice(0, 5)}–${(e.end || "").slice(0, 5)} · durée ${trFmtH(tgt)}</span></div>
-    </div>
-    <div class="tr-tally">${tallyHtml || '<span class="muted">Aucun joueur inscrit à cette séance.</span>'}</div>
-    <p class="muted" style="font-size:.82rem;margin:2px 0 10px">🟢 = temps complet · 🟠 = incomplet · 🔴 = dépassé. Un joueur peut légitimement faire moins que la durée totale.</p>
-    <div id="tr-blocs">${blocsHtml}</div>
-    <div class="tr-ed-actions">
-      <button type="button" id="tr-add">+ Ajouter un bloc</button>
-      <button type="button" id="tr-save">Enregistrer</button>
-      <span id="tr-save-st" class="muted"></span>
-    </div>`;
-  $("tr-back").addEventListener("click", () => { trBackToList(); loadTrSessions(); });
-  $("tr-add").addEventListener("click", () => {
-    trBlocs.push({ minutes: 60, coach: e.coachOpts[0] || "", court: "", note: "", players: [] });
-    renderTrEditor();
-  });
-  $("tr-save").addEventListener("click", trSave);
-  $("tr-editor").querySelectorAll(".tr-dur").forEach((b) => b.addEventListener("click", () => { trBlocs[+b.dataset.i].minutes = +b.dataset.d; renderTrEditor(); }));
-  $("tr-editor").querySelectorAll(".tr-del").forEach((b) => b.addEventListener("click", () => { trBlocs.splice(+b.dataset.i, 1); if (!trBlocs.length) trBlocs.push({ minutes: 60, coach: e.coachOpts[0] || "", court: "", note: "", players: [] }); renderTrEditor(); }));
-  $("tr-editor").querySelectorAll(".tr-pchip").forEach((b) => b.addEventListener("click", () => {
-    const arr = trBlocs[+b.dataset.i].players, pid = b.dataset.p, k = arr.indexOf(pid);
-    if (k >= 0) arr.splice(k, 1); else arr.push(pid);
-    renderTrEditor();
-  }));
-  $("tr-editor").querySelectorAll(".tr-coach").forEach((s) => s.addEventListener("change", () => { trBlocs[+s.dataset.i].coach = s.value; }));
-  $("tr-editor").querySelectorAll(".tr-court").forEach((s) => s.addEventListener("change", () => { trBlocs[+s.dataset.i].court = s.value; }));
-  $("tr-editor").querySelectorAll(".tr-note").forEach((s) => s.addEventListener("input", () => { trBlocs[+s.dataset.i].note = s.value; }));
+  host.innerHTML = `
+    <label class="cs-lbl">Détail de la séance <span class="muted" style="font-weight:400">— qui a joué avec qui, quel coach, combien de temps</span></label>
+    <div class="tr-tally">${tallyHtml || '<span class="muted">Aucun joueur.</span>'}</div>
+    <p class="muted" style="font-size:.8rem;margin:2px 0 8px">🟢 complet · 🟠 incomplet · 🔴 dépassé (un joueur peut légitimement faire moins que la durée totale).</p>
+    <div class="tr-blocs">${blocsHtml}</div>
+    <div class="tr-ed-actions"><button type="button" class="tr-add">+ Ajouter un bloc</button><button type="button" class="tr-save">Enregistrer le détail</button><span class="tr-save-st muted"></span></div>`;
+  const newBloc = () => ({ minutes: 60, coach: e.coachOpts[0] || "", court: (e.courtIds || [])[0] || "", note: "", players: [] });
+  host.querySelector(".tr-add").addEventListener("click", () => { trBlocs.push(newBloc()); renderTrEditor(); });
+  host.querySelector(".tr-save").addEventListener("click", trSave);
+  host.querySelectorAll(".tr-dur").forEach((b) => b.addEventListener("click", () => { trBlocs[+b.dataset.i].minutes = +b.dataset.d; renderTrEditor(); }));
+  host.querySelectorAll(".tr-del").forEach((b) => b.addEventListener("click", () => { trBlocs.splice(+b.dataset.i, 1); if (!trBlocs.length) trBlocs.push(newBloc()); renderTrEditor(); }));
+  host.querySelectorAll(".tr-pchip").forEach((b) => b.addEventListener("click", () => { const arr = trBlocs[+b.dataset.i].players, pid = b.dataset.p, k = arr.indexOf(pid); if (k >= 0) arr.splice(k, 1); else arr.push(pid); renderTrEditor(); }));
+  host.querySelectorAll(".tr-coach").forEach((s) => s.addEventListener("change", () => { trBlocs[+s.dataset.i].coach = s.value; }));
+  host.querySelectorAll(".tr-court").forEach((s) => s.addEventListener("change", () => { trBlocs[+s.dataset.i].court = s.value; }));
+  host.querySelectorAll(".tr-note").forEach((s) => s.addEventListener("input", () => { trBlocs[+s.dataset.i].note = s.value; }));
 }
 
 async function trSave() {
+  const host = $("c-detail"); const st = host.querySelector(".tr-save-st");
   const valid = trBlocs.filter((b) => b.minutes > 0 && (b.players || []).length > 0);
-  const st = $("tr-save-st");
   if (!valid.length) { uiAlert("Ajoute au moins un bloc avec une durée et au moins un joueur."); return; }
   st.textContent = "Enregistrement…";
   const id = trEditing.id;
-  await sb.from("course_segments").delete().eq("course_id", id);          // remplace tout (cascade sur les joueurs)
+  await sb.from("course_segments").delete().eq("course_id", id);           // remplace tout (cascade joueurs)
   const rows = valid.map((b, i) => ({ course_id: id, seq: i, minutes: b.minutes, coach_person_id: b.coach || null, court_id: b.court || null, note: b.note || null }));
   const { data: ins, error } = await sb.from("course_segments").insert(rows).select("id,seq");
   if (error) { st.textContent = "Erreur : " + error.message; return; }
   const pr = [];
   (ins || []).forEach((r) => (valid[r.seq].players || []).forEach((pid) => pr.push({ segment_id: r.id, person_id: pid })));
   if (pr.length) { const { error: e2 } = await sb.from("course_segment_players").insert(pr); if (e2) { st.textContent = "Erreur joueurs : " + e2.message; return; } }
-  st.textContent = "✓ Enregistré";
-  setTimeout(() => { trBackToList(); loadTrSessions(); }, 500);
+  st.textContent = "✓ Détail enregistré";
 }
 
-// ---------- Statistiques ----------
-let trStatData = null;   // dernier calcul, pour l'export CSV
+// ---------- Onglet Stats séances (consultation fin d'année) ----------
+let trStatData = null;
+function loadTraining() {
+  if (!$("tr-stat-season")) return;
+  if (!trStatWired) { $("tr-stat-run").addEventListener("click", loadTrStats); $("tr-stat-csv").addEventListener("click", trStatsCsv); trStatWired = true; }
+  trInitStatsFilters();
+}
 function trInitStatsFilters() {
   const ssel = $("tr-stat-season"); if (!ssel) return;
   const juns = (typeof seasonsOf === "function" ? seasonsOf("juniors") : []) || [];
@@ -7101,19 +7032,17 @@ function trInitStatsFilters() {
   psel.innerHTML = `<option value="">— Tous (paires globales) —</option>` +
     pro.map((p) => `<option value="${p.id}">${esc(trFull(p.id))}</option>`).join("");
 }
-
 async function loadTrStats() {
   const body = $("tr-stat-body");
   const juns = (typeof seasonsOf === "function" ? seasonsOf("juniors") : []) || [];
   const s = juns.find((x) => String(x.id) === $("tr-stat-season").value);
   if (!s) { body.innerHTML = '<p class="muted">Choisis une saison.</p>'; return; }
   body.innerHTML = '<p class="muted">Calcul…</p>';
-  const { data: cs } = await sb.from("courses").select("id,course_date,course_types(name)")
-    .gte("course_date", s.start_date).lte("course_date", s.end_date);
+  const { data: cs } = await sb.from("courses").select("id,course_date,course_types(name)").gte("course_date", s.start_date).lte("course_date", s.end_date);
   const proIds = (cs || []).filter((c) => TR_TYPE_RE.test(c.course_types?.name || "")).map((c) => c.id);
-  if (!proIds.length) { body.innerHTML = '<p class="muted">Aucune séance détaillée sur cette saison.</p>'; return; }
+  if (!proIds.length) { body.innerHTML = '<p class="muted">Aucune séance sur cette saison.</p>'; return; }
   const { data: segs } = await sb.from("course_segments").select("id,course_id,minutes,coach_person_id").in("course_id", proIds);
-  if (!(segs || []).length) { body.innerHTML = '<p class="muted">Aucun bloc saisi sur cette saison.</p>'; return; }
+  if (!(segs || []).length) { body.innerHTML = '<p class="muted">Aucun détail saisi sur cette saison.</p>'; return; }
   const { data: sp } = await sb.from("course_segment_players").select("segment_id,person_id").in("segment_id", segs.map((x) => x.id));
   const bySeg = {}; (sp || []).forEach((r) => (bySeg[r.segment_id] || (bySeg[r.segment_id] = [])).push(r.person_id));
   const pairMin = {}, pairCnt = {}, pcMin = {}, totMin = {}, sessOf = {};
@@ -7133,12 +7062,10 @@ async function loadTrStats() {
   const who = $("tr-stat-player").value;
   if (who) renderTrStatPlayer(who); else renderTrStatGlobal();
 }
-
 function renderTrStatPlayer(pid) {
   const { pairMin, pairCnt, pcMin, totMin, sessOf } = trStatData;
   const partners = Object.keys(pairMin).filter((k) => k.split("|").includes(pid))
-    .map((k) => { const o = k.split("|").find((x) => x !== pid); return { id: o, min: pairMin[k], cnt: pairCnt[k] }; })
-    .sort((a, b) => b.min - a.min);
+    .map((k) => { const o = k.split("|").find((x) => x !== pid); return { id: o, min: pairMin[k], cnt: pairCnt[k] }; }).sort((a, b) => b.min - a.min);
   const coaches = Object.keys(pcMin).filter((k) => k.startsWith(pid + "|"))
     .map((k) => ({ id: k.split("|")[1], min: pcMin[k] })).sort((a, b) => b.min - a.min);
   const tbl = (rows) => `<div class="table-wrap"><table class="crm-table"><thead><tr><th>Nom</th><th>Temps cumulé</th><th>Blocs</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -7149,17 +7076,14 @@ function renderTrStatPlayer(pid) {
      <h4 style="margin:14px 0 4px">Avec quels joueurs</h4>${tbl(pRows)}
      <h4 style="margin:16px 0 4px">Avec quels coachs</h4>${tbl(cRows)}`;
 }
-
 function renderTrStatGlobal() {
   const { pairMin, pairCnt } = trStatData;
-  const rows = Object.keys(pairMin).map((k) => { const [a, b] = k.split("|"); return { a, b, min: pairMin[k], cnt: pairCnt[k] }; })
-    .sort((x, y) => y.min - x.min);
+  const rows = Object.keys(pairMin).map((k) => { const [a, b] = k.split("|"); return { a, b, min: pairMin[k], cnt: pairCnt[k] }; }).sort((x, y) => y.min - x.min);
   const body = rows.map((r) => `<tr><td>${esc(trFull(r.a))}</td><td>${esc(trFull(r.b))}</td><td>${trFmtH(r.min)}</td><td>${r.cnt}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">—</td></tr>';
   $("tr-stat-body").innerHTML =
     `<h3 style="margin:14px 0 6px">Toutes les paires — ${esc(trStatData.season)}</h3>
      <div class="table-wrap"><table class="crm-table"><thead><tr><th>Joueur A</th><th>Joueur B</th><th>Temps ensemble</th><th>Blocs</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }
-
 function trStatsCsv() {
   if (!trStatData) { uiAlert("Lance d'abord un calcul."); return; }
   const { pairMin, pairCnt } = trStatData;
