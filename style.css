@@ -1989,3 +1989,5 @@ label.fld select{min-width:180px}
 .tr-ed-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px}
 
 .c-detail-block{margin-top:14px;padding-top:12px;border-top:2px dashed var(--line)}
+.att-annonce{background:#e7edff;color:#123cc4}
+.youth-tr .crm-table td{padding:6px 8px}

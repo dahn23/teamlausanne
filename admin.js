@@ -1376,49 +1376,74 @@ async function deleteMedia(mid, storagePath) {
   loadMedia($("p-id").value);
 }
 
-// ---- Cours suivis (présences) d'une personne ----
+// ---- Cours d'une personne (présences + cours annoncés à venir) ----
 async function loadCourses(personId, showByRole) {
   const box = $("cours-content");
-  const { data, error } = await sb.from("attendance")
-    .select("status,courses(course_date,start_time,end_time,title,course_type_id,course_types(name,color))")
-    .eq("person_id", personId).eq("is_coach", false);
-  const rows = error ? [] : (data || []).filter((a) => a.courses);
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  // Tous les cours où le jeune est inscrit (passés ET annoncés) + ses présences.
+  const [{ data: parts, error }, { data: att }] = await Promise.all([
+    sb.from("course_participants").select("course_id,courses(course_date,start_time,end_time,title,course_type_id,course_types(name,color))").eq("child_person_id", personId),
+    sb.from("attendance").select("course_id,status").eq("person_id", personId).eq("is_coach", false),
+  ]);
+  const attOf = {}; (att || []).forEach((a) => (attOf[a.course_id] = a.status));
+  const rows = (error ? [] : (parts || [])).filter((p) => p.courses).map((p) => {
+    const c = p.courses;
+    const st = attOf[p.course_id] || (c.course_date >= todayISO ? "annonce" : "nonmarque");
+    return { date: c.course_date, start: c.start_time, end: c.end_time, title: c.title, tid: c.course_type_id || "?", tname: c.course_types?.name || "Cours", color: c.course_types?.color || "#3563E9", status: st };
+  });
   showPersonTab("cours", showByRole || rows.length > 0);
   if (error) { box.innerHTML = `<p class="obj-empty">Erreur : ${esc(error.message)}</p>`; return; }
-  if (!rows.length) { box.innerHTML = `<p class="obj-empty">Aucun cours suivi.</p>`; return; }
-  // Regroupe par type de cours
-  const groups = {};
-  for (const a of rows) {
-    const c = a.courses;
-    const tid = c.course_type_id || "?";
-    const g = (groups[tid] = groups[tid] || { name: c.course_types?.name || "Cours", color: c.course_types?.color || "#3563E9", items: [] });
-    g.items.push({ date: c.course_date, start: c.start_time, end: c.end_time, title: c.title, status: a.status });
-  }
-  const stLabel = { present: "Présent", late: "En retard", absent: "Absent" };
-  const stClass = { present: "att-present", late: "att-late", absent: "att-absent" };
-  box.innerHTML = Object.values(groups).map((g) => {
-    g.items.sort((x, y) => (y.date || "").localeCompare(x.date || "") || (y.start || "").localeCompare(x.start || ""));
-    const tot = g.items.length;
-    const pres = g.items.filter((i) => i.status === "present").length;
-    const late = g.items.filter((i) => i.status === "late").length;
-    const abs = g.items.filter((i) => i.status === "absent").length;
-    const pct = tot ? Math.round((pres / tot) * 100) : 0;
-    const list = g.items.map((i) => {
-      const d = i.date ? frDate(i.date) : "—";
-      const h = `${(i.start || "").slice(0, 5)}–${(i.end || "").slice(0, 5)}`;
-      return `<div class="att-row"><span class="att-d">${d}</span><span class="att-h">${h}</span>
-        <span class="att-badge ${stClass[i.status] || ""}">${stLabel[i.status] || i.status}</span></div>`;
+  if (!rows.length) box.innerHTML = `<p class="obj-empty">Aucun cours.</p>`;
+  else {
+    const groups = {};
+    for (const r of rows) { const g = (groups[r.tid] = groups[r.tid] || { name: r.tname, color: r.color, items: [] }); g.items.push(r); }
+    const stLabel = { present: "Présent", late: "En retard", absent: "Absent", annonce: "Annoncé", nonmarque: "—" };
+    const stClass = { present: "att-present", late: "att-late", absent: "att-absent", annonce: "att-annonce", nonmarque: "" };
+    box.innerHTML = Object.values(groups).map((g) => {
+      g.items.sort((x, y) => (y.date || "").localeCompare(x.date || "") || (y.start || "").localeCompare(x.start || ""));
+      const done = g.items.filter((i) => ["present", "late", "absent"].includes(i.status));
+      const tot = done.length, pres = done.filter((i) => i.status === "present").length, late = done.filter((i) => i.status === "late").length, abs = done.filter((i) => i.status === "absent").length;
+      const upc = g.items.filter((i) => i.status === "annonce").length;
+      const pct = tot ? Math.round((pres / tot) * 100) : 0;
+      const list = g.items.map((i) => {
+        const d = i.date ? frDate(i.date) : "—", h = `${(i.start || "").slice(0, 5)}–${(i.end || "").slice(0, 5)}`;
+        return `<div class="att-row"><span class="att-d">${d}</span><span class="att-h">${h}</span><span class="att-badge ${stClass[i.status] || ""}">${stLabel[i.status] || i.status}</span></div>`;
+      }).join("");
+      return `<div class="cours-group"><div class="cours-group-h"><span class="cours-dot" style="background:${esc(g.color)}"></span><b>${esc(g.name)}</b>${tot ? `<span class="cours-pct">${pct}% présent</span>` : ""}<span class="cours-brk">${pres} présent · ${late} retard · ${abs} absent${upc ? ` · ${upc} annoncé` : ""} · ${g.items.length} cours</span></div><div class="att-list">${list}</div></div>`;
     }).join("");
-    return `<div class="cours-group">
-      <div class="cours-group-h">
-        <span class="cours-dot" style="background:${esc(g.color)}"></span>
-        <b>${esc(g.name)}</b>
-        <span class="cours-pct">${pct}% présent</span>
-        <span class="cours-brk">${pres} présent · ${late} retard · ${abs} absent · ${tot} cours</span>
-      </div>
-      <div class="att-list">${list}</div>
-    </div>`;
+  }
+  // Détail d'entraînement (head coach/admin uniquement — RLS le protège aussi côté serveur)
+  if (hasAny(myAppRoles, ["superadmin", "admin", "head_coach"])) loadYouthTrainingDetail(personId, box);
+}
+
+// Détail d'entraînement du jeune : avec qui / quel coach / combien de temps (depuis les blocs).
+async function loadYouthTrainingDetail(personId, box) {
+  const { data: mine } = await sb.from("course_segment_players").select("segment_id").eq("person_id", personId);
+  if (!mine || !mine.length) return;
+  const segIds = mine.map((x) => x.segment_id);
+  const [{ data: segs }, { data: allp }] = await Promise.all([
+    sb.from("course_segments").select("id,course_id,minutes,coach_person_id").in("id", segIds),
+    sb.from("course_segment_players").select("segment_id,person_id").in("segment_id", segIds),
+  ]);
+  if (!segs || !segs.length) return;
+  const courseIds = [...new Set(segs.map((s) => s.course_id))];
+  const { data: courses } = await sb.from("courses").select("id,course_date,course_types(name)").in("id", courseIds);
+  const cOf = {}; (courses || []).forEach((c) => (cOf[c.id] = c));
+  const partOf = {}; (allp || []).forEach((r) => { if (r.person_id !== personId) (partOf[r.segment_id] || (partOf[r.segment_id] = [])).push(r.person_id); });
+  segs.sort((a, b) => ((cOf[b.course_id] || {}).course_date || "").localeCompare((cOf[a.course_id] || {}).course_date || ""));
+  const nm = (id) => { const p = people.find((x) => x.id === id); return p ? `${p.first_name} ${(p.last_name || "").slice(0, 1)}.` : "?"; };
+  const fmt = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}h${String(r).padStart(2, "0")}` : h ? `${h}h` : `${r}min`; };
+  const totalMin = segs.reduce((s, x) => s + (x.minutes || 0), 0);
+  const trows = segs.map((s) => {
+    const c = cOf[s.course_id] || {}, parts = (partOf[s.id] || []).map(nm).join(", ") || "—";
+    return `<tr><td>${c.course_date ? frDate(c.course_date) : "—"}</td><td>${esc(c.course_types?.name || "—")}</td><td>${fmt(s.minutes || 0)}</td><td>${s.coach_person_id ? esc(nm(s.coach_person_id)) : "—"}</td><td>${esc(parts)}</td></tr>`;
   }).join("");
+  const el = document.createElement("div");
+  el.className = "youth-tr";
+  el.innerHTML = `<div class="cours-group-h" style="margin-top:18px"><b>Détail d'entraînement</b><span class="cours-brk">${segs.length} bloc(s) · ${fmt(totalMin)} au total</span></div>
+    <div class="table-wrap"><table class="crm-table"><thead><tr><th>Date</th><th>Type</th><th>Durée</th><th>Coach</th><th>Avec</th></tr></thead><tbody>${trows}</tbody></table></div>`;
+  box.appendChild(el);
 }
 
 // ---- Réservations d'une personne ----
@@ -3150,9 +3175,10 @@ function openCourse(course, related) {
   updateCount();
   $("c-del").classList.toggle("hidden", !course);
   // Présences (seulement en édition d'un cours existant)
-  $("c-att-block").classList.toggle("hidden", !course);
-  if (course) renderCourseAtt(course, related?.coaches || [], related?.children || [], related?.attendance || []);
-  // Détail de séance (head coach/admin) : pro/SE + plusieurs courts ou coachs
+  // Cours détaillé (pro/SE + plusieurs courts/coachs) : le détail remplace les présences manuelles.
+  const needsDetail = courseNeedsDetail(course, related?.courts || [], related?.coaches || []);
+  $("c-att-block").classList.toggle("hidden", !course || needsDetail);
+  if (course && !needsDetail) renderCourseAtt(course, related?.coaches || [], related?.children || [], related?.attendance || []);
   if (course) courseDetailMaybe(course, related?.courts || [], related?.coaches || [], related?.children || []);
   else { $("c-detail-block")?.classList.add("hidden"); $("c-detail").innerHTML = ""; }
   $("course-modal").classList.remove("hidden");
@@ -6913,13 +6939,20 @@ function trMinBetween(a, b) {
 const trFmtH = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}h${String(r).padStart(2, "0")}` : h ? `${h}h` : `${r}min`; };
 
 // ---------- Saisie embarquée dans le modal du cours ----------
-// Appelée par openCourse : décide d'afficher (ou non) le bloc détail.
-async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
-  const block = $("c-detail-block"); if (!block) return;
+// Un cours "détaillé" = pro/sport-études AVEC plusieurs courts OU plusieurs coachs
+// (head coach/admin). Pour ces cours, le détail REMPLACE la validation des présences.
+function courseNeedsDetail(course, courtIds, coachIds) {
+  if (!course) return false;
   const canEdit = hasAny(myAppRoles, ["superadmin", "admin", "head_coach"]);
   const typeName = (courseTypes.find((t) => t.id === course.course_type_id) || {}).name || "";
   const multi = (courtIds || []).length > 1 || (coachIds || []).length > 1;
-  if (!(canEdit && TR_TYPE_RE.test(typeName) && multi)) { block.classList.add("hidden"); $("c-detail").innerHTML = ""; return; }
+  return canEdit && TR_TYPE_RE.test(typeName) && multi;
+}
+// Appelée par openCourse : affiche (ou non) le bloc détail.
+async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
+  const block = $("c-detail-block"); if (!block) return;
+  const typeName = (courseTypes.find((t) => t.id === course.course_type_id) || {}).name || "";
+  if (!courseNeedsDetail(course, courtIds, coachIds)) { block.classList.add("hidden"); $("c-detail").innerHTML = ""; return; }
   block.classList.remove("hidden");
   const coachLike = (id) => (peopleRoles[id] || []).some((r) => ["coach", "head-coach", "coach-prive"].includes(r));
   const coachSet = new Set(coachIds || []); people.forEach((p) => { if (coachLike(p.id)) coachSet.add(p.id); });
@@ -6927,6 +6960,7 @@ async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
     id: course.id, date: course.course_date, start: course.start_time, end: course.end_time,
     label: typeName || course.title || "Séance", dur: trMinBetween(course.start_time, course.end_time),
     roster: [...new Set(childIds || [])], coachOpts: [...coachSet], courtIds: (courtIds || []).map(Number),
+    children: [...new Set(childIds || [])], courseCoaches: [...new Set(coachIds || [])],
   };
   const { data: segs } = await sb.from("course_segments").select("id,seq,minutes,coach_person_id,court_id,note").eq("course_id", course.id).order("seq");
   let ex = {};
@@ -6982,6 +7016,7 @@ function renderTrEditor() {
   }).join("");
   host.innerHTML = `
     <label class="cs-lbl">Détail de la séance <span class="muted" style="font-weight:400">— qui a joué avec qui, quel coach, combien de temps</span></label>
+    <p class="muted" style="font-size:.8rem;margin:0 0 8px"><b>Ce détail remplace le pointage des présences</b> pour ce cours : un joueur présent dans ≥1 bloc = présent, sinon absent.</p>
     <div class="tr-tally">${tallyHtml || '<span class="muted">Aucun joueur.</span>'}</div>
     <p class="muted" style="font-size:.8rem;margin:2px 0 8px">🟢 complet · 🟠 incomplet · 🔴 dépassé (un joueur peut légitimement faire moins que la durée totale).</p>
     <div class="tr-blocs">${blocsHtml}</div>
@@ -7010,7 +7045,14 @@ async function trSave() {
   const pr = [];
   (ins || []).forEach((r) => (valid[r.seq].players || []).forEach((pid) => pr.push({ segment_id: r.id, person_id: pid })));
   if (pr.length) { const { error: e2 } = await sb.from("course_segment_players").insert(pr); if (e2) { st.textContent = "Erreur joueurs : " + e2.message; return; } }
-  st.textContent = "✓ Détail enregistré";
+  // Le détail REMPLACE les présences : on les dérive (présent = joue dans ≥1 bloc).
+  const present = new Set(); valid.forEach((b) => (b.players || []).forEach((pid) => present.add(pid)));
+  const coachPresent = new Set(); valid.forEach((b) => { if (b.coach) coachPresent.add(b.coach); });
+  const attRows = [];
+  (trEditing.children || []).forEach((pid) => attRows.push({ course_id: id, person_id: pid, status: present.has(pid) ? "present" : "absent", is_coach: false, marked_by: meId, marked_at: new Date().toISOString() }));
+  coachPresent.forEach((pid) => attRows.push({ course_id: id, person_id: pid, status: "present", is_coach: true, marked_by: meId, marked_at: new Date().toISOString() }));
+  if (attRows.length) await sb.from("attendance").upsert(attRows, { onConflict: "course_id,person_id" });
+  st.textContent = "✓ Détail enregistré (présences mises à jour)";
 }
 
 // ---------- Onglet Stats séances (consultation fin d'année) ----------
