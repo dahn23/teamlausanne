@@ -29,7 +29,9 @@ body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   box-shadow:var(--shadow);padding:24px;width:100%;max-width:360px;
   display:flex;flex-direction:column;gap:12px}
 .brand{margin:0;font-size:1.5rem;color:var(--green)}
-.brand-sm{font-weight:700;color:var(--green)}
+.brand-sm{font-weight:700;color:var(--green);display:inline-flex;align-items:center;gap:8px;flex-shrink:0}
+.brand-logo{height:30px;width:auto;object-fit:contain;flex-shrink:0}
+#brand-role{font-size:.84rem;line-height:1.05;white-space:normal;max-width:88px}
 .card label{display:flex;flex-direction:column;gap:6px;font-size:.9rem;color:var(--muted)}
 input{font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:10px;
   background:#fff;color:var(--ink)}
@@ -54,8 +56,10 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .topbar{display:flex;align-items:center;gap:10px;padding:12px 14px;
   background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
 .spacer{flex:1}
-.who-btn{font-weight:700;color:var(--blue-ink)!important;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who-btn{font-weight:700;color:var(--blue-ink)!important;max-width:min(58vw,320px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .who-btn::before{content:"👤 "}
+.logout-x{font-size:1.15rem;line-height:1;padding:6px 11px;color:var(--muted)}
+.logout-x:hover{color:#b3261e}
 /* Mon profil (staff) */
 .me-head{display:flex;align-items:center;gap:14px;margin:2px 0 16px}
 .me-av{width:56px;height:56px;border-radius:50%;background:var(--blue);color:#fff;display:flex;
@@ -1531,10 +1535,10 @@ button.danger:hover{background:#8f1e17}
 #rg-pricing .crm-table td{padding:6px 8px}
 
 @media (max-width:600px){
-  .side{width:56px}
-  .side-item{padding:12px 8px;justify-content:center}
-  .side-item .side-label{display:none}
   .form-grid{grid-template-columns:1fr}
+  /* Menu : replié = icônes seules ; déplié = overlay (ne serre pas le contenu) */
+  .side.collapsed{width:56px}
+  .side:not(.collapsed){position:fixed;top:56px;left:0;bottom:0;z-index:60;box-shadow:6px 0 24px rgba(0,0,0,.3);overflow-y:auto}
 }
 
 /* ================= PORTAIL MEMBRE (Mon espace) ================= */

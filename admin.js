@@ -258,13 +258,17 @@ async function init(roles) {
     await sb.auth.signOut();
     location.href = "/";
   });
-  // Barre latérale repliable (icônes seules), mémorisée
+  // Barre latérale repliable (icônes seules), mémorisée ; repliée par défaut sur mobile
   const sideEl = document.querySelector(".side");
-  try { if (localStorage.getItem("sideCollapsed") === "1") sideEl.classList.add("collapsed"); } catch (_) {}
+  const isMobile = () => window.matchMedia("(max-width:600px)").matches;
+  let sideStored = null; try { sideStored = localStorage.getItem("sideCollapsed"); } catch (_) {}
+  if (sideStored === "1" || (sideStored === null && isMobile())) sideEl.classList.add("collapsed");
   $("side-toggle").addEventListener("click", () => {
     sideEl.classList.toggle("collapsed");
     try { localStorage.setItem("sideCollapsed", sideEl.classList.contains("collapsed") ? "1" : "0"); } catch (_) {}
   });
+  // Sur mobile, choisir un onglet referme le menu (overlay)
+  sideEl.addEventListener("click", (e) => { if (e.target.closest(".side-item") && isMobile()) sideEl.classList.add("collapsed"); });
   $("new-person").addEventListener("click", () => openPerson(null));
   $("import-people").addEventListener("click", openImport);
   $("import-close").addEventListener("click", () => $("import-modal").classList.add("hidden"));
@@ -6494,11 +6498,14 @@ async function loadEtudesCalendar() {
       ? `<button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${esc(nmF(pp.prof_person_id))}${mySt === "present" ? ` ${myV.hours ?? 4}h` : ""}</button>`
       : `<span class="et-dprof">${esc(nmF(pp.prof_person_id))}</span>`).join(" ") || '<span class="et-dprof muted">— prof —</span>';
     html += `<tr class="${notMine ? "et-notmine" : ""}"><td class="et-datecell"><div><b>${etDow(d.day)}</b> ${frDate(d.day)}</div><div class="et-dprofs">${dprofs}</div></td>`
-      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; const lockTitle = notMine ? "Vous ne pouvez pas valider les présences d'un jour qui ne vous est pas attribué" : "Vous ne pouvez pas valider les présences avant 12h50"; return `<td><button type="button" class="att-chip et-cell ${due ? (mine ? "et-due " : "et-due-lock ") : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? `data-locked="1" title="${esc(lockTitle)}"` : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
+      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; const lockTitle = notMine ? "Vous ne pouvez pas valider les présences d'un jour qui ne vous est pas attribué" : "Vous ne pouvez pas valider les présences avant 12h50"; return `<td><button type="button" class="att-chip et-cell ${due ? (mine ? "et-due " : "et-due-lock ") : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? `data-locked="1" data-lockmsg="${esc(lockTitle)}"` : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
   cont.innerHTML = html + "</tbody></table>";
-  cont.querySelectorAll(".et-cell:not([data-locked])").forEach((c) => c.addEventListener("click", () => etCycle(c)));
+  cont.querySelectorAll(".et-cell").forEach((c) => c.addEventListener("click", () => {
+    if (c.dataset.locked) { alert(c.dataset.lockmsg || "Saisie non disponible pour ce jour."); return; }
+    etCycle(c);
+  }));
   cont.querySelectorAll(".et-presence").forEach((b) => b.addEventListener("click", () => etProfPresence(b)));
   cont.querySelectorAll(".et-prof-rm").forEach((b) => b.addEventListener("click", async () => { await sb.from("etudes_day_profs").delete().eq("day_id", b.dataset.day).eq("prof_person_id", b.dataset.prof); loadEtudesCalendar(); }));
   cont.querySelectorAll(".et-prof-add").forEach((s) => s.addEventListener("change", async () => { if (!s.value) return; await sb.from("etudes_day_profs").insert({ day_id: s.dataset.day, prof_person_id: s.value }); loadEtudesCalendar(); }));
