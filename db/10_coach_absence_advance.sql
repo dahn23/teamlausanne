@@ -1,0 +1,7 @@
+-- 10_coach_absence_advance.sql
+-- Espace coach : un coach peut se declarer ABSENT a l'avance (avant l'ouverture
+-- du pointage). Les presences/absences des JEUNES restent ouvertes au plus tot
+-- 10 min avant le debut du cours. clear_attendance : le coach peut annuler sa
+-- propre absence anticipee ; pour les jeunes la borne 10 min s'applique.
+-- Corps complets dans la migration Supabase coach_absence_in_advance
+-- (mark_attendance + clear_attendance redefinies). Voir aussi 09_detailed_attendance_hours.sql.

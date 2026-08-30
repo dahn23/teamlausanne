@@ -1846,10 +1846,11 @@ function canMarkBox(course, coachIds, pid, isCoach) {
   if (isHeadUser) return true;                     // head/admin/superadmin : tout, tout le temps
   if (!myPersonId || !coachIds.includes(myPersonId)) return false; // doit être coach du cours
   if (isCoach && pid !== myPersonId) return false; // un coach ne marque que sa propre présence
-  // Fenêtre : de 10 min avant le début du cours à 2 semaines après.
+  // Fenêtre : 10 min avant → 2 semaines après. Le coach peut agir sur SA présence à l'avance (absence anticipée).
   const start = new Date(`${course.course_date}T${course.start_time}`).getTime();
-  const now = Date.now();
-  return now >= start - 10 * 60000 && now <= start + 14 * 24 * 3600000;
+  const now = Date.now(), upper = start + 14 * 24 * 3600000;
+  const ownCoach = isCoach && pid === myPersonId;
+  return ownCoach ? now <= upper : (now >= start - 10 * 60000 && now <= upper);
 }
 // Tous les jeunes d'un cours ont-ils un statut ? (pré-requis pour que le coach se déclare présent)
 function allKidsMarked(courseId) {
@@ -1865,7 +1866,7 @@ function attChip(course, coachIds, pid, isCoach, status) {
     : status === "absent" ? "st-absent" : (can ? "st-none" : "st-locked");
   const bday = isBirthday(pid, course.course_date);
   return `<button type="button" class="att-chip ${cls}" data-course="${course.id}" data-person="${pid}"
-    data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}"
+    data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}" data-cstart="${course.course_date}T${course.start_time}"
     title="${esc(personName(pid))}${bday ? " · anniversaire 🎁" : ""}">${bday ? "🎁 " : ""}${esc(personName(pid))}</button>`;
 }
 
@@ -1894,7 +1895,9 @@ async function loadCoursesDay() {
   const attOf = (cid, pid) => att.find((a) => a.course_id === cid && a.person_id === pid)?.status || "";
   const col = (course, coachIds, list, isCoach, title) => attCol(course, coachIds, list, isCoach, title, (pid) => attOf(course.id, pid));
 
-  $("cs-list").innerHTML = (courses || []).length ? (courses || []).map((c) => {
+  // Espace coach (pas manager) : n'afficher QUE les cours où il est coach.
+  const shownDay = (!isCourseMgr && myPersonId) ? (courses || []).filter((c) => coaches.some((x) => x.course_id === c.id && x.coach_person_id === myPersonId)) : (courses || []);
+  $("cs-list").innerHTML = shownDay.length ? shownDay.map((c) => {
     const cts = books.filter((b) => b.course_id === c.id).map((b) => courtName(b.court_id)).join(", ");
     const coachIds = coaches.filter((x) => x.course_id === c.id).map((x) => x.coach_person_id);
     const childIds = parts.filter((x) => x.course_id === c.id).map((x) => x.child_person_id);
@@ -1994,7 +1997,9 @@ async function loadCoursesWeek() {
     </div>`;
   };
   const today = isoA(new Date());
-  const filled = days.map((iso, i) => ({ iso, i, dc: (courses || []).filter((c) => c.course_date === iso) })).filter((x) => x.dc.length);
+  // Espace coach (pas manager) : n'afficher QUE les cours où il est coach.
+  const shownWk = (!isCourseMgr && myPersonId) ? (courses || []).filter((c) => coaches.some((x) => x.course_id === c.id && x.coach_person_id === myPersonId)) : (courses || []);
+  const filled = days.map((iso, i) => ({ iso, i, dc: shownWk.filter((c) => c.course_date === iso) })).filter((x) => x.dc.length);
   $("cs-week").innerHTML = filled.length ? filled.map(({ iso, i, dc }) => {
     const dd = iso.slice(8, 10) + "." + iso.slice(5, 7);
     return `<div class="cw-day${iso === today ? " cw-today" : ""}">
@@ -2018,8 +2023,10 @@ async function cycleAtt(chip) {
   let next;
   if (isCoach) {
     // Coach : présent / absent uniquement (jamais « en retard »).
-    // « présent » exige que TOUS les jeunes aient un statut (sinon seulement absent).
-    const blockPresent = !isHeadUser && pid === myPersonId && !allKidsMarked(course);
+    // Avant l'ouverture (10 min avant) → seulement l'absence anticipée ; en fenêtre → présent si tous les jeunes marqués.
+    const cstart = chip.dataset.cstart ? new Date(chip.dataset.cstart).getTime() : 0;
+    const inWindow = !chip.dataset.cstart || Date.now() >= cstart - 10 * 60000;
+    const blockPresent = !isHeadUser && pid === myPersonId && (!inWindow || !allKidsMarked(course));
     if (cur === "") next = blockPresent ? "absent" : "present";
     else if (cur === "present") next = "absent";
     else next = null; // absent (ou ancien statut) → efface
