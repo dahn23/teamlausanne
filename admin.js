@@ -6481,7 +6481,7 @@ async function loadEtudesCalendar() {
     const presCls = mySt === "present" ? "st-present" : mySt === "absent" ? "st-absent" : "st-none";
     const presBtn = iAmProf ? `<div style="margin-top:6px"><button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${presLbl}</button></div>` : "";
     html += `<tr><td><b>${etDow(d.day)}</b> ${frDate(d.day)}${presBtn}</td><td class="et-profcell">${etProfCellHtml(d.id, dp, profOptions, false)}</td>`
-      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; return `<td><button type="button" class="att-chip et-cell ${lk ? "st-locked" : ET_CLS[s]}" ${lk ? 'data-locked="1" title="Saisie dès 12h50 le jour du cours"' : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
+      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; return `<td><button type="button" class="att-chip et-cell ${due ? "et-due " : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? 'data-locked="1" title="Saisie dès 12h50 le jour du cours"' : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
   cont.innerHTML = html + "</tbody></table>";

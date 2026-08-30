@@ -575,8 +575,11 @@ input.pd-native{display:none}
 /* Scroll horizontal avec Date & Prof(s) figés à gauche */
 #et-calendar{overflow-x:auto}
 .et-cal td:first-child,.et-cal th:first-child{position:sticky;left:0;z-index:2;background:#fff;min-width:130px;width:130px}
-.et-cal td:nth-child(2),.et-cal th:nth-child(2){position:sticky;left:130px;z-index:2;background:#fff;min-width:120px;box-shadow:1px 0 0 var(--line)}
+.et-cal td:nth-child(2),.et-cal th:nth-child(2){position:sticky;left:130px;z-index:2;background:#fff;min-width:120px;
+  border-right:2px solid var(--blue);box-shadow:6px 0 8px -4px rgba(20,30,60,.28)}
 .et-cal thead th:first-child,.et-cal thead th:nth-child(2){z-index:4}
+/* Case « le jeune doit être là » (jour prévu) : contour bleu net pour la distinguer des « pas prévu » (—) */
+.et-cell.et-due{box-shadow:inset 0 0 0 2px var(--blue)}
 .att-chip.et-cell{width:34px;height:30px;padding:0;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
 .et-profwrap{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .et-profwrap .ps-wrap{flex:0 0 auto;width:auto;min-width:92px}
