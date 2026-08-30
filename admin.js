@@ -2462,6 +2462,11 @@ function gzShowRecipients(ids, pInfo, nm) {
   ov.addEventListener("click", (e) => { if (e.target === ov) done(); });
 }
 async function gzSend(tid, key, btn, epreuve, n) {
+  // « Bienvenue » mentionne le(s) responsable(s) → impossible sans au moins un responsable nommé.
+  if (key.startsWith("welcome")) {
+    const { count } = await sb.from("gz_managers").select("tournament_id", { count: "exact", head: true }).eq("tournament_id", tid);
+    if (!count) { uiAlert("Nomme au moins un responsable du tournoi avant d'envoyer la « Bienvenue » (ce mail indique le/les responsable(s))."); return; }
+  }
   const cible = epreuve ? `la catégorie « ${epreuve} »` : "tous les destinataires concernés";
   if (!(await uiConfirm(`Envoyer ce mail à ${n || "les"} destinataire(s) — ${cible} — depuis tournoi@teamlausanne.ch ?`))) return;
   btn.disabled = true;
