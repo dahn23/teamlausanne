@@ -6486,11 +6486,20 @@ async function enableMailNotifs() {
   if (Notification.permission === "denied") {
     uiAlert("Les notifications sont bloquées pour ce site. Autorise-les dans les réglages du navigateur (icône du cadenas → Notifications), puis reviens ici."); return;
   }
+  // IMPORTANT : demander la permission EN PREMIER, dans le geste du clic, AVANT tout await
+  // (enregistrer le service worker d'abord ferait perdre le « geste utilisateur » et
+  // Android/Chrome ignorerait la fenêtre → « non autorisé »).
+  let perm = Notification.permission;
+  if (perm !== "granted") { try { perm = await Notification.requestPermission(); } catch (_) {} }
+  updateNotifBtn();
+  if (perm !== "granted") {
+    uiAlert(perm === "denied"
+      ? "Tu as bloqué les notifications. Pour les activer : touche l'icône du cadenas (ou ⋮ → Infos du site) → Notifications → Autoriser, puis reclique ici."
+      : "La demande a été fermée sans choisir. Reclique sur « Activer les notifs » et touche « Autoriser » dans la fenêtre qui apparaît.");
+    return;
+  }
   const reg = await ensureMailSW();
   if (!reg) { uiAlert("Notifications indisponibles sur cet appareil."); return; }
-  const perm = await Notification.requestPermission();
-  updateNotifBtn();
-  if (perm !== "granted") { uiAlert("Notifications non autorisées."); return; }
   try {
     let sub = await reg.pushManager.getSubscription();
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(VAPID_PUBLIC) });
