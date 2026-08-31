@@ -927,8 +927,11 @@ html{-webkit-tap-highlight-color:transparent}
   font-weight:700;color:var(--blue-ink);cursor:pointer;margin:-2px 0 12px;position:sticky;top:0;z-index:3}
 /* (1) Barre de filtres repliable — bouton visible mobile seulement ; sur desktop les filtres restent toujours ouverts. */
 .mail-filters-toggle{display:none}
-/* Bouton notifs push : vert quand actif. */
+/* Bouton notifs push : cloche bleue (marque) ; verte quand actif, grise si bloque. */
+#mail-notif-btn{display:inline-flex;align-items:center;gap:7px;color:var(--blue)}
+#mail-notif-btn .ic-bell{width:16px;height:16px;flex:0 0 auto}
 #mail-notif-btn.on{color:var(--green,#1a8f4a);border-color:#bfe6cd;font-weight:700}
+#mail-notif-btn.denied{color:var(--muted)}
 /* (2/3) Boutons flottants (nouveau message / repondre) — mobile seulement. */
 .mail-fab{display:none;position:fixed;right:14px;bottom:14px;z-index:40;align-items:center;gap:6px;
   background:var(--blue);color:#fff;border:0;border-radius:26px;padding:13px 20px;font-weight:700;

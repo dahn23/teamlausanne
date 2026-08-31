@@ -6474,10 +6474,12 @@ async function saveSubscription(sub) {
 }
 function updateNotifBtn() {
   const btn = $("mail-notif-btn"); if (!btn) return;
+  const lbl = $("mail-notif-lbl"); if (!lbl) return;  // on garde la cloche SVG, on ne change que le texte
   const ok = ("Notification" in window) && Notification.permission === "granted";
   const denied = ("Notification" in window) && Notification.permission === "denied";
-  btn.textContent = ok ? "🔔 Notifs activées" : denied ? "🔕 Notifs bloquées" : "🔔 Activer les notifs";
+  lbl.textContent = ok ? "Notifs activées" : denied ? "Notifs bloquées" : "Activer les notifs";
   btn.classList.toggle("on", ok);
+  btn.classList.toggle("denied", denied);
 }
 async function enableMailNotifs() {
   if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
