@@ -211,7 +211,7 @@ async function saveMyProfile() {
 const DEFAULT_TAB_ACCESS = {
   superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
   admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "caisse", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["anniv", "resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "phystests", "heures"],
   coach_physique: ["cours", "phystests", "heures"],
