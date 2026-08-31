@@ -6523,7 +6523,7 @@ async function enableMailNotifs() {
     await saveSubscription(sub);
     updateNotifBtn();
     // Notif LOCALE de test : prouve immédiatement que l'affichage marche (indépendant du transport push).
-    try { await reg.showNotification("Notifications activées ✓", { body: "Tu recevras les nouveaux mails ici.", icon: "assets/pwa/admin-icon-192.png", badge: "assets/pwa/admin-badge.png?v=2", tag: "mail" }); } catch (_) {}
+    try { await reg.showNotification("Notifications activées ✓", { body: "Tu recevras les nouveaux mails ici.", icon: "assets/pwa/admin-icon-192.png", badge: "assets/pwa/admin-badge.png?v=3", tag: "mail" }); } catch (_) {}
     uiAlert("✓ Notifications activées. Une notif de test vient de s'afficher — si tu ne la vois pas dans tes notifications, dis-le moi.");
   } catch (e) { uiAlert("Activation impossible : " + (e?.message || e)); }
 }

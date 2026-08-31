@@ -10,7 +10,7 @@ self.addEventListener("push", (e) => {
   const options = {
     body: d.body || "",
     icon: d.icon || "assets/pwa/admin-icon-192.png",
-    badge: d.badge || "assets/pwa/admin-badge.png?v=2",
+    badge: d.badge || "assets/pwa/admin-badge.png?v=3",
     tag: d.tag || "mail",
     renotify: true,
     data: { url: d.url || "/console" },
