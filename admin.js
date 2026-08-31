@@ -6301,6 +6301,13 @@ async function loadMail() {
     $("mail-fab-reply").addEventListener("click", () => { const ed = $("mail-d-replyhtml"); if (ed) { ed.scrollIntoView({ behavior: "smooth", block: "center" }); ed.focus(); } });
     mailPTRInit();  // tirer-pour-actualiser (mobile)
     $("mail-notif-btn").addEventListener("click", enableMailNotifs);  // notifs push
+    // Rafraîchissement auto de la liste quand la messagerie est ouverte (le serveur relève
+    // chaque minute) — ne touche pas au message ouvert ni à un brouillon en cours.
+    setInterval(async () => {
+      if ($("view-mail").classList.contains("hidden")) return;
+      const { data: msgs } = await sb.from("mail_messages").select("*").order("received_at", { ascending: false }).limit(300);
+      if (msgs) { mailMsgs = msgs; renderMailAccts(); refreshMailView(); }
+    }, 60000);
     $("mailc-close").addEventListener("click", () => $("mailc-modal").classList.add("hidden"));
     $("mailc-modal").addEventListener("click", (e) => { if (e.target === $("mailc-modal")) $("mailc-modal").classList.add("hidden"); });
     $("mailc-send").addEventListener("click", mailComposeSend);
