@@ -6546,12 +6546,10 @@ async function mailSendReply(id) {
     if (error) { let msg = error.message; try { msg = (await error.context.json())?.error || msg; } catch (_) {} st.textContent = "Échec : " + msg; }
     else if (data?.error) { st.textContent = "Échec : " + data.error; }
     else {
+      // Le passage en « Traité » + le nom du traiteur sont poses cote serveur (mail-send).
       st.textContent = "✓ Réponse envoyée depuis " + (data?.name ? data.name + " <" + data.from + ">" : data?.from || "?") + ".";
       editor.innerHTML = ""; mailFiles = []; renderMailFiles();
       await sb.from("mail_drafts").delete().eq("mail_id", id);
-      // Répondre = le mail passe « Traité », au nom de celui qui répond. On n'écrase
-      // pas un mail déjà traité (on garde le 1er traiteur) grâce au filtre neq.
-      await sb.from("mail_messages").update({ status: "traite", treated_by: myPersonId, treated_at: new Date().toISOString() }).eq("id", id).neq("status", "traite");
       await loadMail();
     }
   } catch (e) { st.textContent = "Échec : " + (e?.message || e); }
