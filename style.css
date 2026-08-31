@@ -925,6 +925,17 @@ html{-webkit-tap-highlight-color:transparent}
 .mail-d-back{display:none;align-items:center;gap:6px;width:100%;justify-content:center;
   background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 14px;
   font-weight:700;color:var(--blue-ink);cursor:pointer;margin:-2px 0 12px;position:sticky;top:0;z-index:3}
+/* (1) Barre de filtres repliable — bouton visible mobile seulement ; sur desktop les filtres restent toujours ouverts. */
+.mail-filters-toggle{display:none}
+/* (2/3) Boutons flottants (nouveau message / repondre) — mobile seulement. */
+.mail-fab{display:none;position:fixed;right:14px;bottom:14px;z-index:40;align-items:center;gap:6px;
+  background:var(--blue);color:#fff;border:0;border-radius:26px;padding:13px 20px;font-weight:700;
+  box-shadow:0 8px 22px rgba(20,30,60,.32);cursor:pointer}
+/* (4) Actions rapides sur un mail de la liste — mobile seulement. */
+.mail-item-actions{display:none;gap:8px;margin-top:8px}
+.mail-quick{flex:1;padding:8px 10px;font-size:.82rem;font-weight:700;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer}
+.mail-q-treat{color:var(--green,#1a8f4a);border-color:#bfe6cd}
+.mail-q-assign{color:var(--blue-ink)}
 @media(max-width:820px){
   .mail-layout{grid-template-columns:1fr}
   .mail-list{max-height:none}
@@ -934,6 +945,15 @@ html{-webkit-tap-highlight-color:transparent}
   #view-mail.mail-showdetail .mail-list{display:none}
   #view-mail:not(.mail-showdetail) .mail-detail{display:none}
   .mail-showdetail .mail-d-back{display:flex}
+  /* (1) filtres replies par defaut ; le bouton Filtres les ouvre. */
+  .mail-filters-toggle{display:inline-flex}
+  .mail-filters-wrap{display:none}
+  #view-mail.mail-filters-open .mail-filters-wrap{display:block}
+  /* (2/3) FAB nouveau sur la liste ; FAB repondre quand un mail entrant est ouvert. */
+  #view-mail:not(.mail-showdetail) #mail-fab-new{display:inline-flex}
+  #view-mail.mail-showdetail.mail-canreply #mail-fab-reply{display:inline-flex}
+  /* (4) actions rapides visibles sur mobile. */
+  .mail-item-actions{display:flex}
 }
 /* Anniversaires */
 .bday-table td.bday-c{text-align:center;font-weight:800}

@@ -6290,6 +6290,15 @@ async function loadMail() {
     $("mail-history-btn").addEventListener("click", mailHistory);
     $("mail-importboxes-btn").addEventListener("click", mailImportBoxes);
     $("mail-new").addEventListener("click", openMailCompose);
+    // (1) Barre de filtres repliable (mobile).
+    $("mail-filters-toggle").addEventListener("click", () => {
+      const open = $("view-mail").classList.toggle("mail-filters-open");
+      $("mail-filters-toggle").setAttribute("aria-expanded", open ? "true" : "false");
+      $("mail-filters-toggle").textContent = open ? "Filtres ▴" : "Filtres ▾";
+    });
+    // (2/3) Boutons flottants : nouveau message / répondre (saute à l'éditeur).
+    $("mail-fab-new").addEventListener("click", openMailCompose);
+    $("mail-fab-reply").addEventListener("click", () => { const ed = $("mail-d-replyhtml"); if (ed) { ed.scrollIntoView({ behavior: "smooth", block: "center" }); ed.focus(); } });
     $("mailc-close").addEventListener("click", () => $("mailc-modal").classList.add("hidden"));
     $("mailc-modal").addEventListener("click", (e) => { if (e.target === $("mailc-modal")) $("mailc-modal").classList.add("hidden"); });
     $("mailc-send").addEventListener("click", mailComposeSend);
@@ -6593,6 +6602,10 @@ function renderMailList() {
       <div class="mail-item-foot"><span class="mail-acctbadge">${esc(acctLabel(m.account_address))}</span>
         <span class="mail-foot-right">${mailStatTag(m)}
         <button type="button" class="mail-rdtoggle" data-id="${m.id}" title="${m.is_read ? "Marquer non lu" : "Marquer lu"}">${m.is_read ? "✉" : "✓"}</button></span></div>
+      ${isOut ? "" : `<div class="mail-item-actions">
+        ${m.status !== "traite" ? `<button type="button" class="mail-quick mail-q-treat" data-id="${m.id}">✓ Traité</button>` : ""}
+        <button type="button" class="mail-quick mail-q-assign" data-id="${m.id}">Attribuer</button>
+      </div>`}
     </div>`;
   }).join("") : '<p class="muted" style="padding:16px">Aucun message.</p>';
   $("mail-list").querySelectorAll(".mail-item").forEach((el) => el.addEventListener("click", () => openMail(el.dataset.id)));
@@ -6606,6 +6619,25 @@ function renderMailList() {
     await sb.from("mail_messages").update({ is_read: nv }).eq("id", id);
     renderMailAccts(); renderMailList();
   }));
+  // (4) Actions rapides sans ouvrir le mail : Traité / Attribuer.
+  const findMsg = (id) => mailView.find((x) => x.id === id) || mailMsgs.find((x) => x.id === id);
+  $("mail-list").querySelectorAll(".mail-q-treat").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); const m = findMsg(b.dataset.id); if (m) mailQuickTreat(m); }));
+  $("mail-list").querySelectorAll(".mail-q-assign").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); const m = findMsg(b.dataset.id); if (m) mailQuickAssign(m); }));
+}
+// Actions rapides depuis la liste (sans ouvrir le message).
+async function mailQuickTreat(m) {
+  const upd = { status: "traite", treated_by: myPersonId, treated_at: new Date().toISOString() };
+  Object.assign(m, upd); mailSyncCache(m);
+  await sb.from("mail_messages").update(upd).eq("id", m.id);
+  renderMailAccts(); renderMailToolbar(); refreshMailView();
+}
+async function mailQuickAssign(m) {
+  const res = await mailAssignPrompt(m);
+  if (!res) return;
+  const upd = { status: "en_cours", assigned_user: res.personId, comment: res.comment || null };
+  Object.assign(m, upd); mailSyncCache(m);
+  await sb.from("mail_messages").update(upd).eq("id", m.id);
+  renderMailAccts(); renderMailToolbar(); refreshMailView();
 }
 async function openMail(id) {
   const m = mailView.find((x) => x.id === id) || mailMsgs.find((x) => x.id === id);
@@ -6657,6 +6689,7 @@ async function openMail(id) {
   // Mobile : maitre-detail facon appli mail — on ouvre le message en plein ecran
   // (la liste + la barre de filtres sont masquees) avec un bouton retour.
   $("view-mail").classList.add("mail-showdetail");
+  $("view-mail").classList.toggle("mail-canreply", !isOut);  // FAB « Répondre » seulement sur un mail entrant
   $("mail-d-back").addEventListener("click", mailBackToList);
   $("mail-detail").scrollTop = 0;
   window.scrollTo(0, 0);

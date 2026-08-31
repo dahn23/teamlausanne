@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=123" />
+  <link rel="stylesheet" href="style.css?v=124" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -565,25 +565,30 @@
           <div class="mail-toolbar">
             <div class="mail-row">
               <button id="mail-new">✉ Nouveau message</button>
+              <button type="button" id="mail-filters-toggle" class="ghost mail-filters-toggle" aria-expanded="false">Filtres ▾</button>
               <span class="spacer"></span>
               <button id="mail-importboxes-btn" class="ghost" title="Importer les 100 derniers mails de tournoi@ et info@lausanneopen@">Importer autres boîtes</button>
               <button id="mail-history-btn" class="ghost" title="Importer les 6 derniers mois du hub depuis Gmail">Importer 6 mois</button>
               <button id="mail-sync" class="ghost">Relever</button>
             </div>
-            <div class="mail-row"><div id="mail-accts" class="mail-accts"></div></div>
-            <div class="mail-row">
-              <div id="mail-dir-btns" class="mail-btns"></div>
-              <span class="mail-row-sep"></span>
-              <div id="mail-status-btns" class="mail-btns"></div>
-              <div id="mail-assignee-btns" class="mail-btns"></div>
-              <input id="mail-search" type="text" autocomplete="off" placeholder="Rechercher (dans tout l'historique)…" />
+            <div id="mail-filters-wrap" class="mail-filters-wrap">
+              <div class="mail-row"><div id="mail-accts" class="mail-accts"></div></div>
+              <div class="mail-row">
+                <div id="mail-dir-btns" class="mail-btns"></div>
+                <span class="mail-row-sep"></span>
+                <div id="mail-status-btns" class="mail-btns"></div>
+                <div id="mail-assignee-btns" class="mail-btns"></div>
+                <input id="mail-search" type="text" autocomplete="off" placeholder="Rechercher (dans tout l'historique)…" />
+              </div>
+              <div class="mail-row mail-mine-row"><div id="mail-mine-wrap" class="mail-btns"></div></div>
             </div>
-            <div class="mail-row mail-mine-row"><div id="mail-mine-wrap" class="mail-btns"></div></div>
           </div>
           <div class="mail-layout">
             <div id="mail-list" class="mail-list"></div>
             <div id="mail-detail" class="mail-detail"><p class="muted" style="padding:20px">Sélectionne un message.</p></div>
           </div>
+          <button type="button" id="mail-fab-new" class="mail-fab" title="Nouveau message">✉ Nouveau</button>
+          <button type="button" id="mail-fab-reply" class="mail-fab" title="Répondre">↩ Répondre</button>
         </div>
 
         <!-- Fenêtre : nouveau message -->
