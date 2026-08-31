@@ -6460,7 +6460,15 @@ function urlB64ToUint8(b64) {
 let mailSWReg = null;
 async function ensureMailSW() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
-  if (!mailSWReg) { try { mailSWReg = await navigator.serviceWorker.register("sw-admin.js"); } catch (e) { console.warn("SW console:", e); return null; } }
+  if (!mailSWReg) {
+    try {
+      // Périmètre DÉDIÉ (/tlpush/) : registration séparée de celle de Mon espace (sw.js,
+      // scope /) qui n'a PAS de gestionnaire push — sinon collision et notif jamais affichée.
+      mailSWReg = await navigator.serviceWorker.register("sw-admin.js", { scope: "/tlpush/" });
+      // Attendre que le worker soit prêt (sinon l'abonnement peut se lier à un worker sans push).
+      for (let i = 0; i < 30 && !mailSWReg.active; i++) await new Promise((r) => setTimeout(r, 100));
+    } catch (e) { console.warn("SW console:", e); return null; }
+  }
   return mailSWReg;
 }
 async function saveSubscription(sub) {
@@ -6507,7 +6515,9 @@ async function enableMailNotifs() {
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(VAPID_PUBLIC) });
     await saveSubscription(sub);
     updateNotifBtn();
-    uiAlert("✓ Notifications activées sur cet appareil. Tu seras alerté à chaque nouveau mail.");
+    // Notif LOCALE de test : prouve immédiatement que l'affichage marche (indépendant du transport push).
+    try { await reg.showNotification("Notifications activées ✓", { body: "Tu recevras les nouveaux mails ici.", icon: "assets/pwa/admin-icon-192.png", tag: "mail" }); } catch (_) {}
+    uiAlert("✓ Notifications activées. Une notif de test vient de s'afficher — si tu ne la vois pas dans tes notifications, dis-le moi.");
   } catch (e) { uiAlert("Activation impossible : " + (e?.message || e)); }
 }
 // Au chargement de la messagerie : si l'autorisation est déjà donnée, on rafraîchit
