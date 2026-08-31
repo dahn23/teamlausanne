@@ -2301,6 +2301,18 @@ async function loadBookmarklet() {
   $("gz-bm-holder").innerHTML = "";
   $("gz-bm-holder").appendChild(a);
   $("gz-bm-note").textContent = "Astuce : glissez-le dans la barre de favoris (ou clic droit → Ajouter aux favoris).";
+  // Tablette/mobile : pas de barre de favoris -> copier le code pour le coller dans l'URL d'un favori.
+  const copyBtn = $("gz-bm-copy"), copySt = $("gz-bm-copystatus");
+  if (copyBtn) copyBtn.onclick = async () => {
+    try { await navigator.clipboard.writeText(a.href); if (copySt) copySt.textContent = "✓ Code copié — collez-le dans l'URL du favori."; }
+    catch (_e) {
+      const ta = document.createElement("textarea"); ta.value = a.href; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand("copy"); if (copySt) copySt.textContent = "✓ Code copié."; }
+      catch (_e2) { if (copySt) copySt.textContent = "Copie auto impossible — sélectionnez le champ et copiez à la main."; }
+      ta.remove();
+    }
+  };
 }
 
 async function loadTournaments() {
