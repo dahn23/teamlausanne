@@ -6299,6 +6299,7 @@ async function loadMail() {
     // (2/3) Boutons flottants : nouveau message / répondre (saute à l'éditeur).
     $("mail-fab-new").addEventListener("click", openMailCompose);
     $("mail-fab-reply").addEventListener("click", () => { const ed = $("mail-d-replyhtml"); if (ed) { ed.scrollIntoView({ behavior: "smooth", block: "center" }); ed.focus(); } });
+    mailPTRInit();  // tirer-pour-actualiser (mobile)
     $("mailc-close").addEventListener("click", () => $("mailc-modal").classList.add("hidden"));
     $("mailc-modal").addEventListener("click", (e) => { if (e.target === $("mailc-modal")) $("mailc-modal").classList.add("hidden"); });
     $("mailc-send").addEventListener("click", mailComposeSend);
@@ -6442,6 +6443,37 @@ async function mailSync() {
     }
   } catch (e) { alert("Relève impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = "Relever";
+}
+// Tirer-pour-actualiser (mobile) : tirer la liste vers le bas depuis le haut relance la relève.
+function mailPTRInit() {
+  const ind = $("mail-ptr"); if (!ind || mailPTRInit.done) return;
+  mailPTRInit.done = true;
+  let startY = null, pulling = false, armed = false;
+  const atTop = () => (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
+  const active = () => !$("view-mail").classList.contains("hidden")
+    && !$("view-mail").classList.contains("mail-showdetail")
+    && matchMedia("(max-width:820px)").matches;
+  window.addEventListener("touchstart", (e) => {
+    if (!active() || !atTop()) { pulling = false; return; }
+    startY = e.touches[0].clientY; pulling = true; armed = false;
+  }, { passive: true });
+  window.addEventListener("touchmove", (e) => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy <= 0) { ind.style.height = "0"; armed = false; return; }
+    ind.style.height = Math.min(dy * 0.5, 70) + "px";
+    armed = dy > 90;
+    ind.textContent = armed ? "↻ Relâche pour actualiser" : "↓ Tire pour actualiser";
+  }, { passive: true });
+  const end = () => {
+    if (!pulling) return;
+    pulling = false;
+    if (armed) { ind.textContent = "↻ Actualisation…"; ind.style.height = "42px"; Promise.resolve(mailSync()).finally(() => { ind.style.height = "0"; }); }
+    else ind.style.height = "0";
+    armed = false; startY = null;
+  };
+  window.addEventListener("touchend", end);
+  window.addEventListener("touchcancel", end);
 }
 // Affiche le corps du mail : HTML (dans une iframe cloisonnée, liens cliquables) sinon texte
 function renderMailBodyEl(m) {
