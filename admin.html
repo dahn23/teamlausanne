@@ -868,14 +868,16 @@
             <p class="muted" style="margin-top:0;font-size:.88rem">
               Variables utilisables :
               <code>{prenom}</code> <code>{nom}</code> <code>{tournoi}</code> <code>{date}</code>
-              <code>{url_tournoi}</code> <code>{responsables}</code> <code>{lien_sondage}</code>
+              <code>{url_tournoi}</code> <code>{responsables}</code> <code>{resp_mot}</code> <code>{lien_sondage}</code>
               <code>{lien_tournois}</code> <code>{code_vestiaire}</code>
             </p>
             <p class="muted" style="margin-top:0;font-size:.84rem">
               <b><code>{url_tournoi}</code></b> = le lien <b>mytennis</b> du tournoi, <b>détecté automatiquement</b> à l'import
               (ex. <code>mytennis.ch/fr/tournois/159321</code> ; modifiable dans « Gérer le tournoi »). &nbsp;·&nbsp;
               <b><code>{lien_tournois}</code></b> = la liste des tournois GameZone sur mytennis
-              (<code>mytennis.ch/fr/tournois?keyword=gamezone</code>).
+              (<code>mytennis.ch/fr/tournois?keyword=gamezone</code>). &nbsp;·&nbsp;
+              <b><code>{resp_mot}</code></b> = « Responsable » ou « Responsables » selon le nombre (accorde le pluriel tout seul —
+              écris <code>{resp_mot} : {responsables}</code>).
               <br>Pour <b>éditer</b> un modèle : clique dans son objet / son texte, modifie, puis <b>Enregistrer</b>.
               Le bouton <b>Actif</b> l'active ou le désactive (un modèle inactif n'est jamais envoyé — c'est ainsi qu'on
               « retire » un e-mail sans le supprimer). Les 6 modèles sont fixes (chacun lié à un moment du tournoi) ;

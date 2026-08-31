@@ -3021,8 +3021,9 @@ async function gzMailTest(key, card) {
     const { data: ts } = await sb.from("gz_tournaments").select("id,name,registration_url,swiss_id,tournament_date").not("tournament_date", "is", null);
     const now = Date.now(); let t = null, best = Infinity;
     for (const x of (ts || [])) { const d = Math.abs(new Date(x.tournament_date).getTime() - now); if (d < best) { best = d; t = x; } }
-    let respo = pName(myPersonId);
-    if (t) { const { data: mgrs } = await sb.from("gz_managers").select("person_id").eq("tournament_id", t.id); const names = (mgrs || []).map((x) => pName(x.person_id)).filter((n) => n && n !== "?"); if (names.length) respo = names.join(", "); }
+    let respNames = [pName(myPersonId)].filter((n) => n && n !== "?");
+    if (t) { const { data: mgrs } = await sb.from("gz_managers").select("person_id").eq("tournament_id", t.id); const names = (mgrs || []).map((x) => pName(x.person_id)).filter((n) => n && n !== "?"); if (names.length) respNames = names; }
+    const respo = respNames.join(", ") || pName(myPersonId);
     const meFirst = (people.find((p) => p.id === myPersonId) || {}).first_name || "Prénom";
     const fill = {
       prenom: meFirst,
@@ -3030,6 +3031,7 @@ async function gzMailTest(key, card) {
       url_tournoi: gzTournoiUrl(t),
       code_vestiaire: "2848#",
       responsables: respo,
+      resp_mot: respNames.length > 1 ? "Responsables" : "Responsable",
       lien_tournois: GZ_MYTENNIS_LIST,
       lien_sondage: "https://teamlausanne.ch",
     };
