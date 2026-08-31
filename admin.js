@@ -6300,6 +6300,7 @@ async function loadMail() {
     $("mail-fab-new").addEventListener("click", openMailCompose);
     $("mail-fab-reply").addEventListener("click", () => { const ed = $("mail-d-replyhtml"); if (ed) { ed.scrollIntoView({ behavior: "smooth", block: "center" }); ed.focus(); } });
     mailPTRInit();  // tirer-pour-actualiser (mobile)
+    $("mail-notif-btn").addEventListener("click", enableMailNotifs);  // notifs push
     $("mailc-close").addEventListener("click", () => $("mailc-modal").classList.add("hidden"));
     $("mailc-modal").addEventListener("click", (e) => { if (e.target === $("mailc-modal")) $("mailc-modal").classList.add("hidden"); });
     $("mailc-send").addEventListener("click", mailComposeSend);
@@ -6322,6 +6323,7 @@ async function loadMail() {
   renderMailAccts();
   renderMailToolbar();
   refreshMailView();
+  refreshMailSub();  // notifs push : rafraîchit l'abonnement si déjà autorisé, met à jour le bouton
 }
 // Barre de filtres : Reçus/Envoyés/Tous, puis statuts (reçus/tous), puis personnes attribuées (en cours).
 function renderMailToolbar() {
@@ -6443,6 +6445,71 @@ async function mailSync() {
     }
   } catch (e) { alert("Relève impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = "Relever";
+}
+// ===================================================================
+//  Notifications push (Web Push, clés VAPID) — nouveaux mails
+// ===================================================================
+const VAPID_PUBLIC = "BCpLuh4lwYJMJuef00hPlsKP84SPrKl9ljrSyZKTdh9Wpz5X5Il4A26J9lbxFOjk-GQxp67EQYvPCsK7NeIGINk";
+function urlB64ToUint8(b64) {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const s = (b64 + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(s); const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+let mailSWReg = null;
+async function ensureMailSW() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+  if (!mailSWReg) { try { mailSWReg = await navigator.serviceWorker.register("sw-admin.js"); } catch (e) { console.warn("SW console:", e); return null; } }
+  return mailSWReg;
+}
+async function saveSubscription(sub) {
+  const j = sub.toJSON();
+  const { data: sess } = await sb.auth.getSession();
+  const uid = sess?.session?.user?.id; if (!uid) return;
+  await sb.from("push_subscriptions").upsert(
+    { user_id: uid, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, ua: navigator.userAgent },
+    { onConflict: "endpoint" }
+  );
+}
+function updateNotifBtn() {
+  const btn = $("mail-notif-btn"); if (!btn) return;
+  const ok = ("Notification" in window) && Notification.permission === "granted";
+  const denied = ("Notification" in window) && Notification.permission === "denied";
+  btn.textContent = ok ? "🔔 Notifs activées" : denied ? "🔕 Notifs bloquées" : "🔔 Activer les notifs";
+  btn.classList.toggle("on", ok);
+}
+async function enableMailNotifs() {
+  if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+    uiAlert("Cet appareil/navigateur ne gère pas les notifications. Sur iPhone, ajoute d'abord la console à l'écran d'accueil (Partager → Sur l'écran d'accueil)."); return;
+  }
+  if (Notification.permission === "denied") {
+    uiAlert("Les notifications sont bloquées pour ce site. Autorise-les dans les réglages du navigateur (icône du cadenas → Notifications), puis reviens ici."); return;
+  }
+  const reg = await ensureMailSW();
+  if (!reg) { uiAlert("Notifications indisponibles sur cet appareil."); return; }
+  const perm = await Notification.requestPermission();
+  updateNotifBtn();
+  if (perm !== "granted") { uiAlert("Notifications non autorisées."); return; }
+  try {
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(VAPID_PUBLIC) });
+    await saveSubscription(sub);
+    updateNotifBtn();
+    uiAlert("✓ Notifications activées sur cet appareil. Tu seras alerté à chaque nouveau mail.");
+  } catch (e) { uiAlert("Activation impossible : " + (e?.message || e)); }
+}
+// Au chargement de la messagerie : si l'autorisation est déjà donnée, on rafraîchit
+// l'abonnement en base (les endpoints peuvent expirer/changer).
+async function refreshMailSub() {
+  updateNotifBtn();
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const reg = await ensureMailSW(); if (!reg) return;
+  try {
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(VAPID_PUBLIC) });
+    await saveSubscription(sub);
+  } catch (e) { console.warn("push refresh:", e); }
 }
 // Tirer-pour-actualiser (mobile) : tirer la liste vers le bas depuis le haut relance la relève.
 function mailPTRInit() {

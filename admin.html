@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=125" />
+  <link rel="stylesheet" href="style.css?v=126" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -567,6 +567,7 @@
             <div class="mail-row">
               <button id="mail-new">✉ Nouveau message</button>
               <button type="button" id="mail-filters-toggle" class="ghost mail-filters-toggle" aria-expanded="false">Filtres ▾</button>
+              <button type="button" id="mail-notif-btn" class="ghost">🔔 Activer les notifs</button>
               <span class="spacer"></span>
               <button id="mail-importboxes-btn" class="ghost" title="Importer les 100 derniers mails de tournoi@ et info@lausanneopen@">Importer autres boîtes</button>
               <button id="mail-history-btn" class="ghost" title="Importer les 6 derniers mois du hub depuis Gmail">Importer 6 mois</button>
