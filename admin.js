@@ -6282,6 +6282,7 @@ const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() ==
 
 let mailSearchT = null;
 async function loadMail() {
+  $("view-mail").classList.remove("mail-showdetail");  // (re)entree dans la messagerie : mobile = liste d'abord
   if (!$("mail-search").dataset.wired) {
     $("mail-search").dataset.wired = "1";
     $("mail-search").addEventListener("input", () => { clearTimeout(mailSearchT); mailSearchT = setTimeout(refreshMailView, 250); });
@@ -6642,6 +6643,7 @@ async function openMail(id) {
       <p id="mail-d-sendstatus" class="muted" style="font-size:.8rem;margin:6px 0 0"></p>
     </div>`;
   $("mail-detail").innerHTML = `
+    <button type="button" id="mail-d-back" class="mail-d-back">← Retour à la liste</button>
     <div class="mail-d-head">
       <h3>${esc(m.subject || "(sans objet)")}</h3>
       <div class="mail-d-meta">${isOut ? "À " + esc(m.to_address || "") : "<b>" + esc(m.from_name || "") + "</b> &lt;" + esc(m.from_address || "") + "&gt;"} <span class="muted">· ${esc(acctLabel)} · ${mailDT(m.received_at)}</span></div>
@@ -6652,6 +6654,12 @@ async function openMail(id) {
     ${reply}`;
   renderMailBodyEl(m);
   loadMailAttachments(id);
+  // Mobile : maitre-detail facon appli mail — on ouvre le message en plein ecran
+  // (la liste + la barre de filtres sont masquees) avec un bouton retour.
+  $("view-mail").classList.add("mail-showdetail");
+  $("mail-d-back").addEventListener("click", mailBackToList);
+  $("mail-detail").scrollTop = 0;
+  window.scrollTo(0, 0);
   if (!isOut) {
     mailWireCompose();
     $("mail-detail").querySelectorAll(".mail-stbtns .mail-fbtn").forEach((b) => b.addEventListener("click", () => mailSetStatus(m, b.dataset.st)));
@@ -6659,6 +6667,11 @@ async function openMail(id) {
     loadMailDraft(id);
   }
   renderMailList();
+}
+// Retour a la liste (mobile) : on ressort du plein ecran message.
+function mailBackToList() {
+  $("view-mail").classList.remove("mail-showdetail");
+  window.scrollTo(0, 0);
 }
 // Popup d'attribution : choisir une personne (obligatoire) + commentaire (optionnel).
 function mailAssignPrompt(m) {
