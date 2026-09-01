@@ -3690,10 +3690,10 @@ async function savePerson(e) {
     // Répercute les rôles d'ACCÈS (staff) vers user_roles = source d'accès réelle.
     const okAcc = await syncAccessRoles(id, personRolesSel);
     if (!okAcc) alert("Fiche enregistrée. Mais les rôles d'ACCÈS (staff) n'ont pas pu être mis à jour — réservé à un admin (superadmin/admin). L'accès réel est inchangé.");
-    // Si le mail PRINCIPAL change ET la personne a un compte : on met à jour son LOGIN
-    // (auth.users.email). Réservé aux admins côté serveur (edge admin-set-login).
-    const orig = people.find((p) => p.id === id);
-    if (row.email && orig && (orig.email || "").toLowerCase() !== row.email.toLowerCase()) {
+    // Le LOGIN (auth.users.email) suit toujours le mail principal de la fiche : on
+    // (re)synchronise à chaque enregistrement — l'edge ne fait rien si déjà identique
+    // ou si la personne n'a pas de compte. Ré-enregistrer répare donc un login décalé.
+    if (row.email) {
       const { data: le, error: leErr } = await sb.functions.invoke("admin-set-login", { body: { person_id: id, email: row.email } });
       let emsg = "";
       if (leErr) { emsg = leErr.message; try { emsg = (await leErr.context.json())?.error || emsg; } catch (_) {} }
