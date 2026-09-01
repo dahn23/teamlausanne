@@ -3690,6 +3690,17 @@ async function savePerson(e) {
     // Répercute les rôles d'ACCÈS (staff) vers user_roles = source d'accès réelle.
     const okAcc = await syncAccessRoles(id, personRolesSel);
     if (!okAcc) alert("Fiche enregistrée. Mais les rôles d'ACCÈS (staff) n'ont pas pu être mis à jour — réservé à un admin (superadmin/admin). L'accès réel est inchangé.");
+    // Si le mail PRINCIPAL change ET la personne a un compte : on met à jour son LOGIN
+    // (auth.users.email). Réservé aux admins côté serveur (edge admin-set-login).
+    const orig = people.find((p) => p.id === id);
+    if (row.email && orig && (orig.email || "").toLowerCase() !== row.email.toLowerCase()) {
+      const { data: le, error: leErr } = await sb.functions.invoke("admin-set-login", { body: { person_id: id, email: row.email } });
+      let emsg = "";
+      if (leErr) { emsg = leErr.message; try { emsg = (await leErr.context.json())?.error || emsg; } catch (_) {} }
+      else if (le?.error) emsg = le.error;
+      if (emsg) alert("Fiche enregistrée. Mais le LOGIN n'a pas pu être changé (" + emsg + "). L'ancien mail de connexion reste valable.");
+      else if (le?.changed) alert("✓ Login mis à jour : cette personne se connectera désormais avec " + row.email + ".");
+    }
   }
   closePerson();
   loadPeople();
