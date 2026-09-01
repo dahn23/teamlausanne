@@ -8,3 +8,7 @@
 -- seul le service_role (edge/SQL) y accede. Donnees conservees.
 alter table public.stg_cadres enable row level security;
 revoke all on table public.stg_cadres from anon, authenticated;
+
+-- Puis, apres confirmation de Dan : la table etant vide (0 ligne) et sans dependance,
+-- on la SUPPRIME carrement (import J+S termine, plus aucune raison de garder ces donnees perso).
+drop table if exists public.stg_cadres;
