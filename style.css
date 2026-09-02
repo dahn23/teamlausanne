@@ -919,6 +919,14 @@ html{-webkit-tap-highlight-color:transparent}
 .mail-ac-it b{font-weight:600;font-size:.9rem}
 .mail-ac-it span{color:var(--muted);font-size:.82rem}
 .mail-ac-it.on,.mail-ac-it:hover{background:var(--bg)}
+/* Factures */
+.fac-filters{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+.fac-st{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.8rem;font-weight:700;white-space:nowrap}
+.fac-st.fac-todo{background:#fff3d6;color:#8a5a00}
+.fac-st.fac-done{background:#dff3e6;color:#1a8f4a}
+.fac-st.fac-paid{background:#e5e9f7;color:#2a3a8c}
+.btnlike{display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;font-size:.92rem}
+.btnlike:hover{background:var(--blue-d)}
 .mail-d-meta{font-size:.85rem;margin-bottom:12px}
 .mail-d-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:12px}
 .mail-d-unread{padding:8px 12px;font-size:.82rem;white-space:nowrap}

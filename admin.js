@@ -209,8 +209,8 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "heures", "locks", "irrigation", "stages", "stats"],
+  superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
   secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["anniv", "resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "phystests", "heures"],
@@ -221,7 +221,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -274,11 +274,12 @@ function applyTabAccess(roles) {
   const known = new Set(Object.values(access).flat());
   const allowedFor = (v) => roles.some((r) =>
     (known.has(v) ? (access[r] || []) : (DEFAULT_TAB_ACCESS[r] || [])).includes(v));
+  const finTag = !!(myPersonId && (peopleRoles[myPersonId] || []).includes("finance"));  // tag CRM "finance" → onglet Factures
   let first = null;
   document.querySelectorAll(".side-item[data-view]").forEach((b) => {
     const v = b.dataset.view;
     if (v === "bientot") return;
-    const allowed = allowedFor(v) || (v === "gamezone" && isGzManager);
+    const allowed = allowedFor(v) || (v === "gamezone" && isGzManager) || (v === "factures" && finTag);
     b.classList.toggle("hidden", !allowed);
     if (allowed && !first) first = v;
   });
@@ -391,6 +392,7 @@ function showView(view) {
   if (view === "inscriptions") loadInscriptions();
   if (view === "prospects") loadProspects();
   if (view === "heures") loadHeures();
+  if (view === "factures") loadFactures();
   if (view === "locks") loadLocks();
   if (view === "irrigation") loadIrrigation();
 }
@@ -4436,6 +4438,148 @@ function exportHeures() {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
   a.download = `heures-${heuresYm}.csv`; a.click();
+}
+
+// ===================================================================
+//  Factures (à payer) — upload PDF, validation, export fiduciaire
+// ===================================================================
+let facList = [], facFilter = "", facInit = false, facEditId = null;
+const FAC_ST = { a_valider: ["À valider", "fac-todo"], validee: ["Validée", "fac-done"], payee: ["Payée", "fac-paid"] };
+function initFactures() {
+  if (facInit) return; facInit = true;
+  $("fac-file").addEventListener("change", (e) => { facUpload([...e.target.files]); e.target.value = ""; });
+  $("fac-export").addEventListener("click", facExportZip);
+  $("fac-close").addEventListener("click", () => $("fac-modal").classList.add("hidden"));
+  $("fac-modal").addEventListener("click", (e) => { if (e.target === $("fac-modal")) $("fac-modal").classList.add("hidden"); });
+  $("fac-save").addEventListener("click", facSave);
+}
+async function loadFactures() {
+  initFactures();
+  const { data, error } = await sb.from("invoices").select("*").order("created_at", { ascending: false });
+  if (error) { $("fac-rows").innerHTML = `<tr><td colspan="7" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
+  facList = data || [];
+  renderFacFilters(); renderFactures();
+}
+function renderFacFilters() {
+  const counts = { "": facList.length, a_valider: 0, validee: 0, payee: 0 };
+  for (const f of facList) counts[f.status] = (counts[f.status] || 0) + 1;
+  const chip = (v, l) => `<button type="button" class="chip filt${facFilter === v ? " sel" : ""}" data-st="${v}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
+  $("fac-filters").innerHTML = chip("", "Toutes") + chip("a_valider", "À valider") + chip("validee", "Validées") + chip("payee", "Payées");
+  $("fac-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { facFilter = b.dataset.st; renderFacFilters(); renderFactures(); }));
+}
+function renderFactures() {
+  const rows = facList.filter((f) => !facFilter || f.status === facFilter);
+  $("fac-empty").hidden = rows.length > 0;
+  $("fac-rows").innerHTML = rows.map((f) => {
+    const [lbl, cls] = FAC_ST[f.status] || [f.status, ""];
+    const amt = f.amount != null ? Number(f.amount).toFixed(2) + " CHF" : '<span class="muted">?</span>';
+    const acts = `<button class="ghost fac-edit" data-id="${f.id}">Détail</button>`
+      + (f.status === "a_valider" ? `<button class="ghost fac-val" data-id="${f.id}">Valider</button>` : "")
+      + (f.status === "validee" ? `<button class="ghost fac-pay" data-id="${f.id}">Marquer payée</button>` : "")
+      + `<button class="ghost fac-del" data-id="${f.id}" title="Supprimer">✕</button>`;
+    return `<tr>
+      <td><b>${esc(f.creditor_name || "—")}</b>${f.source === "mail" ? ' <span class="muted" style="font-size:.75rem">✉</span>' : ""}</td>
+      <td class="muted" style="font-size:.84rem;max-width:340px">${esc((f.explanation || "").slice(0, 160))}</td>
+      <td style="white-space:nowrap">${amt}</td>
+      <td style="white-space:nowrap">${f.due_date ? frDate(f.due_date) : "—"}</td>
+      <td>${f.pdf_path ? `<button class="ghost fac-pdf" data-id="${f.id}">📄 Voir</button>` : "—"}</td>
+      <td><span class="fac-st ${cls}">${lbl}</span></td>
+      <td class="he-acts">${acts}</td></tr>`;
+  }).join("");
+  const R = $("fac-rows");
+  R.querySelectorAll(".fac-edit").forEach((b) => b.addEventListener("click", () => openFac(b.dataset.id)));
+  R.querySelectorAll(".fac-pdf").forEach((b) => b.addEventListener("click", () => facOpenPdf(b.dataset.id)));
+  R.querySelectorAll(".fac-val").forEach((b) => b.addEventListener("click", () => facSetStatus(b.dataset.id, "validee")));
+  R.querySelectorAll(".fac-pay").forEach((b) => b.addEventListener("click", () => facSetStatus(b.dataset.id, "payee")));
+  R.querySelectorAll(".fac-del").forEach((b) => b.addEventListener("click", () => facDelete(b.dataset.id)));
+}
+async function facUpload(files) {
+  const pdfs = files.filter((f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
+  if (!pdfs.length) { uiAlert("Ajoute un fichier PDF."); return; }
+  const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id;
+  for (const f of pdfs) {
+    const path = `${crypto.randomUUID()}.pdf`;
+    const up = await sb.storage.from("invoices").upload(path, f, { contentType: "application/pdf", upsert: false });
+    if (up.error) { uiAlert("Upload impossible : " + up.error.message); continue; }
+    await sb.from("invoices").insert({ source: "upload", pdf_path: path, filename: f.name, created_by: uid, status: "a_valider" });
+  }
+  await loadFactures();
+  uiAlert("✓ Facture(s) ajoutée(s). Complète le créancier, le montant et l'explication, puis valide.");
+}
+function openFac(id) {
+  const f = facList.find((x) => x.id === id); if (!f) return;
+  facEditId = id;
+  $("fac-creditor").value = f.creditor_name || "";
+  $("fac-iban").value = f.creditor_iban || "";
+  $("fac-amount").value = f.amount != null ? f.amount : "";
+  $("fac-ref").value = f.reference || "";
+  $("fac-due").value = f.due_date || "";
+  $("fac-expl").value = f.explanation || "";
+  $("fac-msave").textContent = "";
+  $("fac-modal").classList.remove("hidden");
+}
+async function facSave() {
+  if (!facEditId) return;
+  const patch = {
+    creditor_name: $("fac-creditor").value.trim() || null,
+    creditor_iban: $("fac-iban").value.trim() || null,
+    amount: $("fac-amount").value ? Number($("fac-amount").value) : null,
+    reference: $("fac-ref").value.trim() || null,
+    due_date: $("fac-due").value || null,
+    explanation: $("fac-expl").value.trim() || null,
+  };
+  $("fac-msave").textContent = "Enregistrement…";
+  const { error } = await sb.from("invoices").update(patch).eq("id", facEditId);
+  if (error) { $("fac-msave").textContent = "Erreur : " + error.message; return; }
+  $("fac-modal").classList.add("hidden");
+  await loadFactures();
+}
+async function facSetStatus(id, status) {
+  const f = facList.find((x) => x.id === id);
+  if (status === "validee" && f && (f.amount == null || !f.creditor_name)) {
+    if (!(await uiConfirm("Cette facture n'a pas de créancier/montant renseigné. Valider quand même ?"))) return;
+  }
+  const patch = { status };
+  if (status === "validee") { patch.validated_at = new Date().toISOString(); const { data: s } = await sb.auth.getSession(); patch.validated_by = s?.session?.user?.id || null; }
+  if (status === "payee") patch.paid_at = new Date().toISOString();
+  await sb.from("invoices").update(patch).eq("id", id);
+  await loadFactures();
+}
+async function facDelete(id) {
+  const f = facList.find((x) => x.id === id);
+  if (!(await uiConfirm(`Supprimer la facture ${f?.creditor_name ? "« " + f.creditor_name + " »" : ""} ? (définitif)`))) return;
+  if (f?.pdf_path) await sb.storage.from("invoices").remove([f.pdf_path]);
+  await sb.from("invoices").delete().eq("id", id);
+  await loadFactures();
+}
+async function facOpenPdf(id) {
+  const f = facList.find((x) => x.id === id); if (!f?.pdf_path) return;
+  const { data, error } = await sb.storage.from("invoices").createSignedUrl(f.pdf_path, 3600);
+  if (error || !data?.signedUrl) { uiAlert("PDF indisponible : " + (error?.message || "")); return; }
+  window.open(data.signedUrl, "_blank", "noopener");
+}
+function facLoadScript(src) { return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+async function facExportZip() {
+  const rows = facList.filter((f) => f.status !== "a_valider");  // validées + payées
+  if (!rows.length) { uiAlert("Aucune facture validée à exporter."); return; }
+  const btn = $("fac-export"); btn.disabled = true; const old = btn.textContent; btn.textContent = "Préparation…";
+  try {
+    if (!window.JSZip) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    const zip = new window.JSZip();
+    const lines = [["Créancier", "Montant CHF", "Échéance", "Statut", "Fichier", "Explication"]];
+    let n = 0;
+    for (const f of rows) {
+      const base = `${(f.creditor_name || "facture").replace(/[^\w\-]+/g, "_")}_${f.amount || ""}`;
+      const name = `${base}_${(f.id || "").slice(0, 6)}.pdf`;
+      if (f.pdf_path) { const { data } = await sb.storage.from("invoices").download(f.pdf_path); if (data) { zip.file(name, data); n++; } }
+      lines.push([f.creditor_name || "", f.amount ?? "", f.due_date || "", (FAC_ST[f.status] || [f.status])[0], name, (f.explanation || "").replace(/\n/g, " ")]);
+    }
+    zip.file("recapitulatif.csv", "﻿" + lines.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n"));
+    const blob = await zip.generateAsync({ type: "blob" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `factures-${new Date().toISOString().slice(0, 10)}.zip`; a.click();
+    uiAlert(`✓ ${n} PDF exporté(s) + récapitulatif.`);
+  } catch (e) { uiAlert("Export impossible : " + (e?.message || e)); }
+  btn.disabled = false; btn.textContent = old;
 }
 
 // ===================================================================

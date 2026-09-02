@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=130" />
+  <link rel="stylesheet" href="style.css?v=131" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -58,6 +58,7 @@
           <button class="side-item" data-view="news"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M14 8.5a4 4 0 0 1 0 7"/><path d="M16.5 5.5a7 7 0 0 1 0 13"/></svg><span class="side-label">News</span></button>
           <button class="side-item" data-view="gamezone"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/><path d="M8 5.5H5V7a3 3 0 0 0 3 3M16 5.5h3V7a3 3 0 0 1-3 3"/><path d="M10 13.5V16h4v-2.5M8 20h8M12 16v4"/></svg><span class="side-label">GameZone</span></button>
           <button class="side-item" data-view="caisse"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6.5A1.5 1.5 0 0 1 4.5 5H16"/><rect x="3" y="8" width="18" height="11" rx="2"/><circle cx="16.5" cy="13.5" r="1.3"/></svg><span class="side-label">Caisse</span></button>
+          <button class="side-item" data-view="factures"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M14 2v5h5"/><path d="M9 13h6M9 17h6M9 9h2"/></svg><span class="side-label">Factures</span></button>
           <button class="side-item" data-view="roles"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"/><path d="M9.2 12l1.9 1.9L15 10"/></svg><span class="side-label">Réglages</span></button>
         </div>
       </aside>
@@ -1059,6 +1060,39 @@
           <div id="irr-list"></div>
           <h2 style="margin:22px 0 8px;font-size:1.05rem">Journal récent</h2>
           <div id="irr-journal"></div>
+        </div>
+
+        <div id="view-factures" class="view hidden">
+          <div class="crm-head">
+            <h1>Factures <span class="muted" style="font-size:1rem;font-weight:400">— à payer</span></h1>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <label class="btnlike" style="cursor:pointer">➕ Ajouter un PDF<input id="fac-file" type="file" accept="application/pdf" multiple hidden /></label>
+              <button id="fac-export" class="ghost" title="Télécharger un ZIP des factures pour la fiduciaire">⬇ Export ZIP</button>
+            </div>
+          </div>
+          <p class="muted" style="margin-top:0;font-size:.88rem">Ajoute une facture (PDF). Renseigne le créancier, le montant et une explication, puis <b>valide</b>. Les factures validées/payées peuvent être exportées en ZIP pour la fiduciaire.</p>
+          <div id="fac-filters" class="fac-filters"></div>
+          <div class="table-wrap">
+            <table class="crm-table"><thead><tr>
+              <th>Créancier</th><th>Explication</th><th>Montant</th><th>Échéance</th><th>PDF</th><th>Statut</th><th></th>
+            </tr></thead><tbody id="fac-rows"></tbody></table>
+          </div>
+          <p id="fac-empty" class="muted" hidden>Aucune facture.</p>
+        </div>
+
+        <!-- Fenêtre : édition d'une facture -->
+        <div id="fac-modal" class="modal hidden">
+          <div class="card">
+            <button type="button" id="fac-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0">Facture</h2>
+            <label class="mailc-f">Créancier (à qui)<input id="fac-creditor" type="text" autocomplete="off" placeholder="Nom du fournisseur / créancier" /></label>
+            <label class="mailc-f">IBAN<input id="fac-iban" type="text" autocomplete="off" placeholder="CH.." /></label>
+            <label class="mailc-f">Montant (CHF)<input id="fac-amount" type="number" step="0.05" min="0" placeholder="0.00" /></label>
+            <label class="mailc-f">Référence<input id="fac-ref" type="text" autocomplete="off" placeholder="Référence de paiement" /></label>
+            <label class="mailc-f">Échéance<input id="fac-due" type="date" /></label>
+            <label class="mailc-f">Explication (à qui / pourquoi)<textarea id="fac-expl" rows="3" style="width:100%;box-sizing:border-box"></textarea></label>
+            <div class="form-foot"><span id="fac-msave" class="muted" style="font-size:.82rem"></span><span class="spacer"></span><button type="button" id="fac-save">Enregistrer</button></div>
+          </div>
         </div>
 
         <div id="view-caisse" class="view hidden">
