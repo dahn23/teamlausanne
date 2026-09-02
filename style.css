@@ -908,6 +908,11 @@ html{-webkit-tap-highlight-color:transparent}
 #mailc-body{margin-top:2px}
 .mail-detail{border:1px solid var(--line);border-radius:12px;background:#fff;min-height:300px;padding:18px}
 .mail-d-head h3{margin:0 0 4px}
+.mail-d-head-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.mail-d-fwd{padding:6px 12px;font-size:.82rem;white-space:nowrap;flex:0 0 auto}
+.mail-d-cc{display:flex;gap:8px;margin:8px 0}
+.mail-d-cc input{flex:1;min-width:0;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+@media(max-width:560px){.mail-d-cc{flex-direction:column}}
 .mail-d-meta{font-size:.85rem;margin-bottom:12px}
 .mail-d-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:12px}
 .mail-d-unread{padding:8px 12px;font-size:.82rem;white-space:nowrap}

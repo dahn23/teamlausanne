@@ -6660,15 +6660,41 @@ const fileToB64 = (f) => new Promise((res) => { const r = new FileReader(); r.on
 
 // ---- Nouveau message ----
 let mailcFiles = [];
-function openMailCompose() {
+function openMailCompose(prefill) {
+  if (prefill instanceof Event) prefill = null;  // appelé comme handler → pas de préremplissage
+  const pf = prefill || {};
   const froms = mailTournoiOnly ? mailAccounts.filter((a) => a.address === MAIL_TOURNOI) : mailAccounts;
-  const cur = mailTournoiOnly ? MAIL_TOURNOI : (mailFilterAddr || (mailAccounts[0]?.address) || "");
+  const cur = pf.account || (mailTournoiOnly ? MAIL_TOURNOI : (mailFilterAddr || (mailAccounts[0]?.address) || ""));
   $("mailc-from").innerHTML = froms.map((a) => `<option value="${esc(a.address)}">${esc(a.label)} — ${esc(a.address)}</option>`).join("");
   if (cur) $("mailc-from").value = cur;
-  $("mailc-to").value = ""; $("mailc-subject").value = ""; $("mailc-body").innerHTML = ""; $("mailc-status").textContent = "";
-  mailcFiles = []; renderMailcFiles();
+  $("mailc-to").value = pf.to || "";
+  $("mailc-cc").value = pf.cc || "";
+  $("mailc-bcc").value = pf.bcc || "";
+  $("mailc-subject").value = pf.subject || "";
+  $("mailc-body").innerHTML = pf.bodyHtml || "";
+  $("mailc-status").textContent = "";
+  mailcFiles = Array.isArray(pf.files) ? pf.files.slice() : [];
+  renderMailcFiles();
   $("mailc-modal").classList.remove("hidden");
   setTimeout(() => $("mailc-to").focus(), 50);
+}
+// Transférer un message : ouvre « Nouveau message » prérempli (objet Fwd:, corps cité,
+// pièces jointes d'origine reprises). Le destinataire reste à saisir.
+function b64ToFile(b64, name, type) {
+  const bin = atob(b64); const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new File([arr], name || "fichier", { type: type || "application/octet-stream" });
+}
+async function mailForward(m) {
+  const { data: atts } = await sb.from("mail_attachments").select("filename,content_type,content_b64").eq("mail_id", m.id).eq("is_inline", false);
+  const files = (atts || []).filter((a) => a.content_b64).map((a) => b64ToFile(a.content_b64, a.filename, a.content_type));
+  const subj = /^fwd?\s*:/i.test(m.subject || "") ? m.subject : "Fwd: " + (m.subject || "(sans objet)");
+  const who = (m.direction || "in") === "out"
+    ? "À : " + esc(m.to_address || "")
+    : "De : " + esc(m.from_name ? `${m.from_name} <${m.from_address}>` : (m.from_address || ""));
+  const orig = m.body_html || esc(m.body_text || "").replace(/\n/g, "<br>");
+  const quoted = `<br><br>---------- Message transféré ----------<br>${who}<br>Objet : ${esc(m.subject || "")}<br>Date : ${esc(mailDT(m.received_at))}<br><br>${orig}`;
+  openMailCompose({ account: m.account_address, subject: subj, bodyHtml: quoted, files });
 }
 function renderMailcFiles() {
   const box = $("mailc-files"); if (!box) return;
@@ -6677,6 +6703,7 @@ function renderMailcFiles() {
 }
 async function mailComposeSend() {
   const account = $("mailc-from").value, to = $("mailc-to").value.trim(), subject = $("mailc-subject").value.trim();
+  const cc = $("mailc-cc").value.trim(), bcc = $("mailc-bcc").value.trim();
   const html = $("mailc-body").innerHTML.trim(), text = $("mailc-body").innerText.trim();
   const st = $("mailc-status");
   if (!to) { st.textContent = "Indique un destinataire."; return; }
@@ -6685,7 +6712,7 @@ async function mailComposeSend() {
   try {
     const attachments = [];
     for (const f of mailcFiles) attachments.push({ filename: f.name, contentType: f.type || "application/octet-stream", content: await fileToB64(f) });
-    const { data, error } = await sb.functions.invoke("mail-send", { body: { account, to, subject, text, html: html || undefined, attachments } });
+    const { data, error } = await sb.functions.invoke("mail-send", { body: { account, to, cc: cc || undefined, bcc: bcc || undefined, subject, text, html: html || undefined, attachments } });
     if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} st.textContent = "Échec : " + m; }
     else if (data?.error) { st.textContent = "Échec : " + data.error; }
     else { $("mailc-modal").classList.add("hidden"); await loadMail(); }
@@ -6703,7 +6730,8 @@ async function mailSendReply(id) {
   try {
     const attachments = [];
     for (const f of mailFiles) attachments.push({ filename: f.name, contentType: f.type || "application/octet-stream", content: await fileToB64(f) });
-    const { data, error } = await sb.functions.invoke("mail-send", { body: { id, text, html: html || undefined, attachments } });
+    const cc = ($("mail-d-cc")?.value || "").trim(), bcc = ($("mail-d-bcc")?.value || "").trim();
+    const { data, error } = await sb.functions.invoke("mail-send", { body: { id, text, html: html || undefined, cc: cc || undefined, bcc: bcc || undefined, attachments } });
     if (error) { let msg = error.message; try { msg = (await error.context.json())?.error || msg; } catch (_) {} st.textContent = "Échec : " + msg; }
     else if (data?.error) { st.textContent = "Échec : " + data.error; }
     else {
@@ -6817,6 +6845,10 @@ async function openMail(id) {
         <label class="rt-attach" title="Joindre un fichier">📎 Joindre<input type="file" id="mail-d-file" multiple hidden /></label>
         <button type="button" id="mail-d-suggest" class="rt-suggest" title="Rédiger une réponse automatiquement">✨ Proposer une réponse</button>
       </div>
+      <div class="mail-d-cc">
+        <input id="mail-d-cc" type="text" autocomplete="off" placeholder="Cc (copie, optionnel)" />
+        <input id="mail-d-bcc" type="text" autocomplete="off" placeholder="Cci (copie cachée, optionnel)" />
+      </div>
       <div id="mail-d-replyhtml" class="rt-edit" contenteditable="true" data-ph="Répondre à ${esc(m.from_address || "")}…"></div>
       <div id="mail-d-files" class="rt-files"></div>
       <div class="mail-d-reply-foot"><span class="muted" style="font-size:.8rem">Envoi depuis ${esc(m.account_address)}</span>
@@ -6828,7 +6860,7 @@ async function openMail(id) {
   $("mail-detail").innerHTML = `
     <button type="button" id="mail-d-back" class="mail-d-back">← Retour à la liste</button>
     <div class="mail-d-head">
-      <h3>${esc(m.subject || "(sans objet)")}</h3>
+      <div class="mail-d-head-top"><h3>${esc(m.subject || "(sans objet)")}</h3><button type="button" id="mail-d-forward" class="ghost mail-d-fwd" title="Transférer ce message">↪ Transférer</button></div>
       <div class="mail-d-meta">${isOut ? "À " + esc(m.to_address || "") : "<b>" + esc(m.from_name || "") + "</b> &lt;" + esc(m.from_address || "") + "&gt;"} <span class="muted">· ${esc(acctLabel)} · ${mailDT(m.received_at)}</span></div>
     </div>
     ${controls}
@@ -6842,6 +6874,7 @@ async function openMail(id) {
   $("view-mail").classList.add("mail-showdetail");
   $("view-mail").classList.toggle("mail-canreply", !isOut);  // FAB « Répondre » seulement sur un mail entrant
   $("mail-d-back").addEventListener("click", mailBackToList);
+  $("mail-d-forward").addEventListener("click", () => mailForward(m));  // transfert (in ET out)
   $("mail-detail").scrollTop = 0;
   window.scrollTo(0, 0);
   if (!isOut) {

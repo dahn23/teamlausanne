@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=128" />
+  <link rel="stylesheet" href="style.css?v=129" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -600,6 +600,8 @@
             <h2 style="margin-top:0">Nouveau message</h2>
             <label class="mailc-f">Depuis<select id="mailc-from"></select></label>
             <label class="mailc-f">À<input id="mailc-to" type="text" autocomplete="off" placeholder="destinataire@exemple.ch" /></label>
+            <label class="mailc-f">Cc<input id="mailc-cc" type="text" autocomplete="off" placeholder="copie(s), séparées par des virgules" /></label>
+            <label class="mailc-f">Cci<input id="mailc-bcc" type="text" autocomplete="off" placeholder="copie(s) cachée(s), séparées par des virgules" /></label>
             <label class="mailc-f">Objet<input id="mailc-subject" type="text" autocomplete="off" placeholder="Objet du message" /></label>
             <div class="rt-toolbar">
               <button type="button" class="rt-btn" data-cmd="bold" title="Gras"><b>G</b></button>
