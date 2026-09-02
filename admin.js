@@ -4459,6 +4459,38 @@ async function loadFactures() {
   if (error) { $("fac-rows").innerHTML = `<tr><td colspan="7" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
   facList = data || [];
   renderFacFilters(); renderFactures();
+  facAutoScanQR();   // factures venues des mails (ou sans montant) : lecture du QR en arrière-plan
+}
+// Lit le QR des factures encore sans montant (surtout celles créées depuis un mail),
+// par petits lots, et met à jour la ligne. qr_raw non nul = déjà tenté (on ne rescanne pas).
+let facScanning = false;
+async function facAutoScanQR() {
+  if (facScanning) return;
+  const todo = facList.filter((f) => f.pdf_path && f.qr_raw == null && f.amount == null).slice(0, 4);
+  if (!todo.length) return;
+  facScanning = true;
+  let changed = false;
+  for (const f of todo) {
+    try {
+      const { data } = await sb.storage.from("invoices").download(f.pdf_path);
+      if (!data) continue;
+      const file = new File([data], f.filename || "facture.pdf", { type: "application/pdf" });
+      const qr = await facReadSwissQR(file);
+      const patch = { qr_raw: qr?.raw || "" };   // "" = scanné sans QR (évite de rescanner)
+      if (qr) {
+        patch.amount = qr.amount ?? null;
+        patch.creditor_iban = qr.iban || null;
+        patch.reference = qr.reference || null;
+        patch.currency = qr.currency || "CHF";
+        if (!f.creditor_name && qr.creditor) patch.creditor_name = qr.creditor;
+        if (!f.explanation && qr.message) patch.explanation = qr.message;
+      }
+      await sb.from("invoices").update(patch).eq("id", f.id);
+      changed = true;
+    } catch (_) {}
+  }
+  facScanning = false;
+  if (changed && !$("view-factures").classList.contains("hidden")) loadFactures();  // recharge → traite le lot suivant
 }
 function renderFacFilters() {
   const counts = { "": facList.length, a_valider: 0, validee: 0, payee: 0 };
