@@ -6576,6 +6576,9 @@ function mailSyncCache(m) {
 const mailDT = (iso) => { const d = new Date(iso); return `${frDate(iso)} ${d.toTimeString().slice(0, 5)}`; };
 const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() === new Date().toDateString() ? d.toTimeString().slice(0, 5) : `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`; };
 
+// Colonnes légères pour la LISTE (sans body_text/body_html, parfois énormes avec images
+// base64) → chargement rapide. Le contenu est chargé à l'ouverture d'un mail (openMail).
+const MAIL_COLS = "id,account_address,direction,from_name,from_address,to_address,subject,snippet,received_at,is_read,status,assigned_user,tags,imap_uid,created_at,message_id,comment,treated_by,treated_at,att_fetched,pushed,has_invoice";
 let mailSearchT = null;
 async function loadMail() {
   $("view-mail").classList.remove("mail-showdetail");  // (re)entree dans la messagerie : mobile = liste d'abord
@@ -6601,7 +6604,7 @@ async function loadMail() {
     // chaque minute) — ne touche pas au message ouvert ni à un brouillon en cours.
     setInterval(async () => {
       if ($("view-mail").classList.contains("hidden")) return;
-      const { data: msgs } = await sb.from("mail_messages").select("*").order("received_at", { ascending: false }).limit(300);
+      const { data: msgs } = await sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(300);
       if (msgs) { mailMsgs = msgs; renderMailAccts(); refreshMailView(); }
     }, 60000);
     $("mailc-close").addEventListener("click", () => $("mailc-modal").classList.add("hidden"));
@@ -6614,7 +6617,7 @@ async function loadMail() {
   }
   const [{ data: accts }, { data: msgs }] = await Promise.all([
     sb.from("mail_accounts").select("*").order("sort_order"),
-    sb.from("mail_messages").select("*").order("received_at", { ascending: false }).limit(300),
+    sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(300),
   ]);
   mailAccounts = accts || [];
   mailMsgs = msgs || [];
@@ -6673,7 +6676,7 @@ async function refreshMailView() {
   const useAddr = mailFilterAddr && !mine;   // « attribué à moi » = toutes boîtes
   if (q.length >= 2) {
     const safe = q.replace(/[,()%*]/g, " ").trim();
-    let query = sb.from("mail_messages").select("*").order("received_at", { ascending: false }).limit(150)
+    let query = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(150)
       .or(`subject.ilike.%${safe}%,from_name.ilike.%${safe}%,from_address.ilike.%${safe}%,to_address.ilike.%${safe}%,body_text.ilike.%${safe}%`);
     if (useAddr) query = query.eq("account_address", mailFilterAddr);
     if (dir) query = query.eq("direction", dir);
@@ -7148,6 +7151,11 @@ async function openMail(id) {
   const m = mailView.find((x) => x.id === id) || mailMsgs.find((x) => x.id === id);
   if (!m) return;
   mailSelId = id;
+  // Contenu (body) chargé à la demande (exclu de la liste pour la vitesse), puis mis en cache.
+  if (m.body_html === undefined && m.body_text === undefined) {
+    const { data: bd } = await sb.from("mail_messages").select("body_text,body_html").eq("id", id).maybeSingle();
+    if (bd) { m.body_text = bd.body_text; m.body_html = bd.body_html; const c = mailMsgs.find((x) => x.id === id); if (c && c !== m) { c.body_text = bd.body_text; c.body_html = bd.body_html; } }
+  }
   if (!m.is_read) { m.is_read = true; const c = mailMsgs.find((x) => x.id === id); if (c) c.is_read = true; renderMailAccts(); await sb.from("mail_messages").update({ is_read: true }).eq("id", id); }
   const isOut = (m.direction || "in") === "out";
   const staff = people.filter((p) => hasRoleIn(p.id, MAIL_STAFF_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
