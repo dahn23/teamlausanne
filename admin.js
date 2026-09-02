@@ -4497,14 +4497,57 @@ async function facUpload(files) {
   const pdfs = files.filter((f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
   if (!pdfs.length) { uiAlert("Ajoute un fichier PDF."); return; }
   const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id;
+  const lbl = document.querySelector('#view-factures .btnlike'); const lblTxt = lbl && lbl.firstChild ? lbl.firstChild.textContent : "";
+  if (lbl && lbl.firstChild) lbl.firstChild.textContent = "Lecture du QR…";
+  let withQr = 0;
   for (const f of pdfs) {
     const path = `${crypto.randomUUID()}.pdf`;
     const up = await sb.storage.from("invoices").upload(path, f, { contentType: "application/pdf", upsert: false });
     if (up.error) { uiAlert("Upload impossible : " + up.error.message); continue; }
-    await sb.from("invoices").insert({ source: "upload", pdf_path: path, filename: f.name, created_by: uid, status: "a_valider" });
+    const qr = await facReadSwissQR(f);   // lecture du QR-facture suisse (best-effort)
+    if (qr) withQr++;
+    await sb.from("invoices").insert({
+      source: "upload", pdf_path: path, filename: f.name, created_by: uid, status: "a_valider",
+      creditor_name: qr?.creditor || null, creditor_iban: qr?.iban || null,
+      amount: qr?.amount ?? null, currency: qr?.currency || "CHF",
+      reference: qr?.reference || null, qr_message: qr?.message || null, qr_raw: qr?.raw || null,
+      explanation: qr?.message || null,
+    });
   }
+  if (lbl && lbl.firstChild) lbl.firstChild.textContent = lblTxt;
   await loadFactures();
-  uiAlert("✓ Facture(s) ajoutée(s). Complète le créancier, le montant et l'explication, puis valide.");
+  uiAlert(`✓ ${pdfs.length} facture(s) ajoutée(s)${withQr ? `, ${withQr} avec montant/IBAN lus du QR` : ""}. Complète l'explication puis valide.`);
+}
+// Lecture du QR-facture suisse (Swiss QR-bill) d'un PDF, côté client (pdf.js + jsQR).
+async function facReadSwissQR(file) {
+  try {
+    if (!window.pdfjsLib) {
+      await facLoadScript("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js");
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+    }
+    if (!window.jsQR) await facLoadScript("https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js");
+    const buf = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+    for (let pn = pdf.numPages; pn >= 1; pn--) {          // le QR est souvent en bas / dernière page
+      const page = await pdf.getPage(pn);
+      const vp = page.getViewport({ scale: 2.5 });
+      const canvas = document.createElement("canvas"); canvas.width = vp.width; canvas.height = vp.height;
+      const ctx = canvas.getContext("2d");
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = window.jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
+      if (code?.data && code.data.startsWith("SPC")) return facParseSPC(code.data);
+    }
+  } catch (e) { console.warn("QR-facture:", e); }
+  return null;
+}
+// Payload Swiss QR-bill (SPC) : champs séparés par des retours ligne, positions fixes.
+function facParseSPC(raw) {
+  const f = raw.split(/\r?\n/);
+  if (f[0] !== "SPC") return null;
+  const amt = f[18] && !isNaN(parseFloat(f[18])) ? parseFloat(f[18]) : null;
+  return { iban: (f[3] || "").trim(), creditor: (f[5] || "").trim(), amount: amt,
+    currency: (f[19] || "CHF").trim(), reference: (f[28] || "").trim(), message: (f[29] || "").trim(), raw };
 }
 function openFac(id) {
   const f = facList.find((x) => x.id === id); if (!f) return;
