@@ -1003,7 +1003,7 @@ html{-webkit-tap-highlight-color:transparent}
 .chip.sel{background:var(--blue);color:#fff;border-color:var(--blue)}
 /* Les pastilles (filtres + sélecteur de rôles) : annule le width/height:14px
    du .chip « carré » de la légende réservation (collision de noms). */
-.chip-select .chip,.people-filters .chip{width:auto;height:auto;min-width:0;display:inline-block}
+.chip-select .chip,.people-filters .chip,.fac-filters .chip{width:auto;height:auto;min-width:0;display:inline-block}
 /* Fiche personne en pleine page (plus de pop-up) */
 #people-detail{display:block}
 .person-page{max-width:none;width:100%;box-shadow:none;border:1px solid var(--line);margin-top:10px}
