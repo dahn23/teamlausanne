@@ -2156,23 +2156,24 @@ async function openAttendance(courseId) {
   $("att-coaches").innerHTML = coaches.length ? coaches.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), true, pid === myPersonId && !isHeadUser && !allKids)).join("") : '<p class="muted" style="font-size:.85rem">Aucun coach.</p>';
   $("att-modal").querySelectorAll(".att-set").forEach((b) =>
     b.addEventListener("click", () => markAtt(b.dataset.person, b.dataset.status, b.dataset.coach === "1")));
-  renderAttValidate(courseId, coaches, vals);
+  const myPresent = !!att.find((a) => a.person_id === myPersonId && a.is_coach && a.status === "present");
+  const anyCoachPresent = coaches.some((pid) => att.some((a) => a.person_id === pid && a.is_coach && a.status === "present"));
+  renderAttValidate(courseId, coaches, myPresent, anyCoachPresent);
   $("att-modal").classList.remove("hidden");
 }
 
-function renderAttValidate(courseId, coaches, vals) {
+// La validation de l'heure = le coach s'est marqué PRÉSENT (plus de bouton séparé).
+function renderAttValidate(courseId, coaches, myPresent, anyCoachPresent) {
   const host = $("att-validate"); if (!host) return;
   const iAmCoach = myPersonId && coaches.includes(myPersonId);
   if (iAmCoach) {
-    const mine = vals.includes(myPersonId);
-    host.innerHTML = mine
-      ? `<span class="he-val">✓ Cours validé — compté dans tes heures</span> <button type="button" id="att-toggle-val" class="ghost">Annuler</button>`
-      : `<button type="button" id="att-toggle-val">Valider ce cours (mes heures)</button> <span class="muted" style="font-size:.82rem">À faire une fois les présences saisies.</span>`;
-    $("att-toggle-val").addEventListener("click", () => toggleCourseValidation(courseId, mine));
+    host.innerHTML = myPresent
+      ? `<span class="he-val">✓ Heure comptée dans tes heures (tu es marqué présent)</span>`
+      : `<span class="muted" style="font-size:.85rem">Marque-toi « présent » ci-dessus pour que cette heure compte.</span>`;
   } else {
-    host.innerHTML = vals.length
-      ? `<span class="he-val">✓ Validé par le coach</span>`
-      : `<span class="muted" style="font-size:.85rem">Pas encore validé par le coach.</span>`;
+    host.innerHTML = anyCoachPresent
+      ? `<span class="he-val">✓ Coach présent — heure comptée</span>`
+      : `<span class="muted" style="font-size:.85rem">Aucun coach ne s'est encore marqué présent.</span>`;
   }
 }
 async function toggleCourseValidation(courseId, mine) {
