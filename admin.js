@@ -4625,6 +4625,7 @@ async function facDelete(id) {
   if (!(await uiConfirm(`Supprimer la facture ${f?.creditor_name ? "« " + f.creditor_name + " »" : ""} ? (définitif)`))) return;
   if (f?.pdf_path) await sb.storage.from("invoices").remove([f.pdf_path]);
   await sb.from("invoices").delete().eq("id", id);
+  if (f?.source === "mail" && f.mail_id) await sb.from("mail_messages").update({ has_invoice: false }).eq("id", f.mail_id);
   await loadFactures();
 }
 async function facOpenPdf(id) {
@@ -7052,7 +7053,7 @@ function renderMailList() {
       <div class="mail-item-top"><span class="mail-from">${isOut ? '<span class="mail-outico">↗</span> ' : ""}${who}</span><span class="mail-date">${mailShort(m.received_at)}</span></div>
       <div class="mail-subj">${esc(m.subject || "(sans objet)")}</div>
       <div class="mail-snip muted">${esc(m.snippet || "")}</div>
-      <div class="mail-item-foot"><span class="mail-acctbadge">${esc(acctLabel(m.account_address))}</span>
+      <div class="mail-item-foot"><span class="mail-acctbadge">${esc(acctLabel(m.account_address))}</span>${m.has_invoice ? '<span class="mail-inv-badge" title="Une facture de ce mail a été ajoutée à l\'onglet Factures">📄 Facture</span>' : ""}
         <span class="mail-foot-right">${mailStatTag(m)}
         <button type="button" class="mail-rdtoggle" data-id="${m.id}" title="${m.is_read ? "Marquer non lu" : "Marquer lu"}">${m.is_read ? "✉" : "✓"}</button></span></div>
       ${isOut ? "" : `<div class="mail-item-actions">
@@ -7137,6 +7138,7 @@ async function openMail(id) {
       <div class="mail-d-head-top"><h3>${esc(m.subject || "(sans objet)")}</h3><button type="button" id="mail-d-forward" class="ghost mail-d-fwd" title="Transférer ce message">↪ Transférer</button></div>
       <div class="mail-d-meta">${isOut ? "À " + esc(m.to_address || "") : "<b>" + esc(m.from_name || "") + "</b> &lt;" + esc(m.from_address || "") + "&gt;"} <span class="muted">· ${esc(acctLabel)} · ${mailDT(m.received_at)}</span></div>
     </div>
+    ${m.has_invoice ? `<div class="mail-inv-note">📄 Une facture de ce mail a été ajoutée à l'onglet <b>Factures</b>. Tu peux passer ce mail en « Traité ».</div>` : ""}
     ${controls}
     <div id="mail-d-atts" class="mail-d-atts"></div>
     <div class="mail-d-body" id="mail-d-body"></div>

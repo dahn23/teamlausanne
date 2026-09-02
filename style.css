@@ -927,6 +927,9 @@ html{-webkit-tap-highlight-color:transparent}
 .fac-st.fac-paid{background:#e5e9f7;color:#2a3a8c}
 .btnlike{display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;font-size:.92rem}
 .btnlike:hover{background:var(--blue-d)}
+/* Indicateur "facture" sur les mails */
+.mail-inv-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:.72rem;font-weight:700;background:#fff3d6;color:#8a5a00;white-space:nowrap}
+.mail-inv-note{background:#fff8e6;border:1px solid #f0d78a;color:#7a5300;border-radius:10px;padding:9px 12px;font-size:.86rem;margin:0 0 12px}
 .mail-d-meta{font-size:.85rem;margin-bottom:12px}
 .mail-d-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:12px}
 .mail-d-unread{padding:8px 12px;font-size:.82rem;white-space:nowrap}
