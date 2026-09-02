@@ -1912,14 +1912,27 @@ function allKidsMarked(courseId) {
 }
 
 const isBirthday = (pid, dateIso) => { const p = people.find((x) => x.id === pid); return !!(p?.birthdate && dateIso && p.birthdate.slice(5, 10) === dateIso.slice(5, 10)); };
+// Âge (en années) à la date du cours — pour l'afficher entre parenthèses aux coachs.
+const ageAt = (birthdate, refIso) => {
+  if (!birthdate) return null;
+  const b = new Date(birthdate), r = refIso ? new Date(refIso) : new Date();
+  if (isNaN(b) || isNaN(r)) return null;
+  let a = r.getFullYear() - b.getFullYear();
+  if (r.getMonth() < b.getMonth() || (r.getMonth() === b.getMonth() && r.getDate() < b.getDate())) a--;
+  return a >= 0 && a < 120 ? a : null;
+};
 function attChip(course, coachIds, pid, isCoach, status) {
   const can = canMarkBox(course, coachIds, pid, isCoach);
   const cls = status === "present" ? "st-present" : status === "late" ? "st-late"
     : status === "absent" ? "st-absent" : (can ? "st-none" : "st-locked");
   const bday = isBirthday(pid, course.course_date);
+  // Âge entre parenthèses pour les élèves (pas les coachs).
+  const p = people.find((x) => x.id === pid);
+  const age = (!isCoach && p?.birthdate) ? ageAt(p.birthdate, course.course_date) : null;
+  const ageTxt = age != null ? ` <span class="att-age">(${age})</span>` : "";
   return `<button type="button" class="att-chip ${cls}" data-course="${course.id}" data-person="${pid}"
     data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}" data-cstart="${course.course_date}T${course.start_time}"
-    title="${esc(personName(pid))}${bday ? " · anniversaire 🎁" : ""}">${bday ? "🎁 " : ""}${esc(personName(pid))}</button>`;
+    title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${bday ? " · anniversaire 🎁" : ""}">${bday ? "🎁 " : ""}${esc(personName(pid))}${ageTxt}</button>`;
 }
 
 // Une colonne (Coachs ou Élèves) de pastilles de présence. statusFn(pid) → statut.

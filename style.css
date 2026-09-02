@@ -753,6 +753,7 @@ html{-webkit-tap-highlight-color:transparent}
 .att-chip{text-align:left;font-weight:600;font-size:.86rem;padding:7px 11px;border-radius:8px;
   border:1px solid var(--line);cursor:pointer;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   -webkit-user-select:none;user-select:none}
+.att-age{opacity:.6;font-weight:400}
 .att-chip.st-none{background:#fff;color:var(--ink)}
 .att-chip.st-present{background:#e3f6e8;border-color:#bfe6ca;color:#1c7d38}
 .att-chip.st-late{background:#fdf2dc;border-color:#f2e0b0;color:#a9721a}
