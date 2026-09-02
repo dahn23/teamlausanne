@@ -1067,7 +1067,9 @@
             <h1>Factures <span class="muted" style="font-size:1rem;font-weight:400">— à payer</span></h1>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <label class="btnlike" style="cursor:pointer">➕ Ajouter un PDF<input id="fac-file" type="file" accept="application/pdf" multiple hidden /></label>
+              <button id="fac-pain" class="ghost" title="Générer le fichier de paiement (pain.001) à déposer dans PostFinance">🏦 Générer paiement</button>
               <button id="fac-export" class="ghost" title="Télécharger un ZIP des factures pour la fiduciaire">⬇ Export ZIP</button>
+              <button id="fac-debtor" class="ghost" title="Définir le compte à débiter (le vôtre)">⚙ Compte à débiter</button>
             </div>
           </div>
           <p class="muted" style="margin-top:0;font-size:.88rem">Ajoute une facture (PDF). Renseigne le créancier, le montant et une explication, puis <b>valide</b>. Les factures validées/payées peuvent être exportées en ZIP pour la fiduciaire.</p>
