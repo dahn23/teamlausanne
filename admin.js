@@ -4443,20 +4443,21 @@ function exportHeures() {
 // ===================================================================
 //  Factures (à payer) — upload PDF, validation, export fiduciaire
 // ===================================================================
-let facList = [], facFilter = "", facInit = false, facEditId = null;
-const FAC_ST = { a_valider: ["À valider", "fac-todo"], validee: ["Validée", "fac-done"], payee: ["Payée", "fac-paid"] };
+let facList = [], facAccts = [], facFilter = "", facInit = false, facEditId = null;
+const FAC_ST = { a_valider: ["À valider", "fac-todo"], validee: ["Validée", "fac-done"], en_paiement: ["Paiement généré", "fac-pay"], payee: ["Payée", "fac-paid"] };
+const FAC_ORDER = ["a_valider", "validee", "en_paiement", "payee"];
 function initFactures() {
   if (facInit) return; facInit = true;
   $("fac-file").addEventListener("change", (e) => { facUpload([...e.target.files]); e.target.value = ""; });
   $("fac-export").addEventListener("click", facExportZip);
   $("fac-pain").addEventListener("click", facGenPain001);
-  $("fac-debtor").addEventListener("click", facSetDebtor);
   $("fac-close").addEventListener("click", () => $("fac-modal").classList.add("hidden"));
   $("fac-modal").addEventListener("click", (e) => { if (e.target === $("fac-modal")) $("fac-modal").classList.add("hidden"); });
   $("fac-save").addEventListener("click", facSave);
 }
 async function loadFactures() {
   initFactures();
+  if (!facAccts.length) { const { data: acc } = await sb.from("finance_accounts").select("*").order("sort"); facAccts = acc || []; }
   const { data, error } = await sb.from("invoices").select("*").order("created_at", { ascending: false });
   if (error) { $("fac-rows").innerHTML = `<tr><td colspan="7" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
   facList = data || [];
@@ -4495,10 +4496,10 @@ async function facAutoScanQR() {
   if (changed && !$("view-factures").classList.contains("hidden")) loadFactures();  // recharge → traite le lot suivant
 }
 function renderFacFilters() {
-  const counts = { "": facList.length, a_valider: 0, validee: 0, payee: 0 };
+  const counts = { "": facList.length };
   for (const f of facList) counts[f.status] = (counts[f.status] || 0) + 1;
   const chip = (v, l) => `<button type="button" class="chip filt${facFilter === v ? " sel" : ""}" data-st="${v}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
-  $("fac-filters").innerHTML = chip("", "Toutes") + chip("a_valider", "À valider") + chip("validee", "Validées") + chip("payee", "Payées");
+  $("fac-filters").innerHTML = chip("", "Toutes") + FAC_ORDER.map((s) => chip(s, FAC_ST[s][0])).join("");
   $("fac-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { facFilter = b.dataset.st; renderFacFilters(); renderFactures(); }));
 }
 function renderFactures() {
@@ -4509,7 +4510,7 @@ function renderFactures() {
     const amt = f.amount != null ? Number(f.amount).toFixed(2) + " CHF" : '<span class="muted">?</span>';
     const acts = `<button class="ghost fac-edit" data-id="${f.id}">Détail</button>`
       + (f.status === "a_valider" ? `<button class="ghost fac-val" data-id="${f.id}">Valider</button>` : "")
-      + (f.status === "validee" ? `<button class="ghost fac-pay" data-id="${f.id}">Marquer payée</button>` : "")
+      + ((f.status === "validee" || f.status === "en_paiement") ? `<button class="ghost fac-pay" data-id="${f.id}">Marquer payée</button>` : "")
       + `<button class="ghost fac-del" data-id="${f.id}" title="Supprimer">✕</button>`;
     return `<tr>
       <td><b>${esc(f.creditor_name || "—")}</b>${f.source === "mail" ? ' <span class="muted" style="font-size:.75rem">✉</span>' : ""}</td>
@@ -4592,8 +4593,22 @@ function openFac(id) {
   $("fac-ref").value = f.reference || "";
   $("fac-due").value = f.due_date || "";
   $("fac-expl").value = f.explanation || "";
+  const defId = (facAccts.find((a) => a.is_default) || facAccts[0])?.id || "";
+  $("fac-acct").innerHTML = facAccts.map((a) => `<option value="${a.id}">${esc(a.name)} — ${esc(a.iban)}</option>`).join("");
+  $("fac-acct").value = f.debtor_account_id || defId;
+  renderFacStatusBtns(f.status);
   $("fac-msave").textContent = "";
   $("fac-modal").classList.remove("hidden");
+}
+function renderFacStatusBtns(cur) {
+  $("fac-status-btns").innerHTML = FAC_ORDER.map((s) => `<button type="button" class="fac-stbtn ${FAC_ST[s][1]}${cur === s ? " on" : ""}" data-st="${s}">${FAC_ST[s][0]}</button>`).join("");
+  $("fac-status-btns").querySelectorAll(".fac-stbtn").forEach((b) => b.addEventListener("click", () => facModalStatus(b.dataset.st)));
+}
+async function facModalStatus(status) {
+  if (!facEditId) return;
+  await facSetStatus(facEditId, status);          // met à jour (avec horodatage) + recharge la liste
+  const f = facList.find((x) => x.id === facEditId);
+  if (f) renderFacStatusBtns(f.status);           // reflète le changement dans la fiche
 }
 async function facSave() {
   if (!facEditId) return;
@@ -4604,6 +4619,7 @@ async function facSave() {
     reference: $("fac-ref").value.trim() || null,
     due_date: $("fac-due").value || null,
     explanation: $("fac-expl").value.trim() || null,
+    debtor_account_id: $("fac-acct").value || null,
   };
   $("fac-msave").textContent = "Enregistrement…";
   const { error } = await sb.from("invoices").update(patch).eq("id", facEditId);
@@ -4659,54 +4675,58 @@ async function facExportZip() {
   } catch (e) { uiAlert("Export impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = old;
 }
-// ---- PostFinance : compte à débiter + génération du fichier de paiement pain.001 ----
-let facCfg = null;
-async function facLoadCfg() { const { data } = await sb.from("finance_config").select("*").eq("id", 1).maybeSingle(); facCfg = data || {}; return facCfg; }
-async function facSetDebtor() {
-  await facLoadCfg();
-  const name = await uiPrompt("Nom du titulaire du compte à débiter (le vôtre) :", facCfg?.debtor_name || "Team Lausanne");
-  if (name == null) return;
-  const iban = await uiPrompt("IBAN du compte à débiter (le vôtre) :", facCfg?.debtor_iban || "");
-  if (iban == null) return;
-  await sb.from("finance_config").update({ debtor_name: name.trim() || null, debtor_iban: iban.replace(/\s+/g, "").toUpperCase() || null, updated_at: new Date().toISOString() }).eq("id", 1);
-  await facLoadCfg();
-  uiAlert("✓ Compte à débiter enregistré.");
-}
+// ---- PostFinance : génération du fichier de paiement pain.001 (multi-comptes) ----
 const xmlEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function facTxXml(f, id, fmt) {
+  const ref = (f.reference || "").replace(/\s+/g, "");
+  let rmt;
+  if (/^\d{27}$/.test(ref)) rmt = `<RmtInf><Strd><CdtrRefInf><Tp><CdOrPrtry><Prtry>QRR</Prtry></CdOrPrtry></Tp><Ref>${xmlEsc(ref)}</Ref></CdtrRefInf></Strd></RmtInf>`;
+  else if (/^RF\d/i.test(ref)) rmt = `<RmtInf><Strd><CdtrRefInf><Tp><CdOrPrtry><Cd>SCOR</Cd></CdOrPrtry></Tp><Ref>${xmlEsc(ref)}</Ref></CdtrRefInf></Strd></RmtInf>`;
+  else rmt = `<RmtInf><Ustrd>${xmlEsc((f.explanation || f.reference || f.creditor_name || "Paiement").slice(0, 140))}</Ustrd></RmtInf>`;
+  return `<CdtTrfTxInf><PmtId><InstrId>${xmlEsc(id)}</InstrId><EndToEndId>${xmlEsc(ref || "NOTPROVIDED")}</EndToEndId></PmtId>`
+    + `<Amt><InstdAmt Ccy="${xmlEsc(f.currency || "CHF")}">${fmt(f.amount)}</InstdAmt></Amt>`
+    + `<Cdtr><Nm>${xmlEsc((f.creditor_name || "Créancier").slice(0, 70))}</Nm></Cdtr>`
+    + `<CdtrAcct><Id><IBAN>${xmlEsc((f.creditor_iban || "").replace(/\s+/g, ""))}</IBAN></Id></CdtrAcct>${rmt}</CdtTrfTxInf>`;
+}
 async function facGenPain001() {
-  await facLoadCfg();
-  if (!facCfg?.debtor_iban) { uiAlert("Renseigne d'abord le « Compte à débiter » (bouton ⚙)."); return; }
+  if (!facAccts.length) { const { data } = await sb.from("finance_accounts").select("*").order("sort"); facAccts = data || []; }
+  const defAcct = facAccts.find((a) => a.is_default) || facAccts[0];
+  if (!defAcct) { uiAlert("Aucun compte à débiter configuré."); return; }
   const rows = facList.filter((f) => f.status === "validee" && f.creditor_iban && f.amount > 0);
-  if (!rows.length) { uiAlert("Aucune facture VALIDÉE avec IBAN + montant à payer. (Valide d'abord les factures.)"); return; }
-  if (!(await uiConfirm(`Générer le fichier de paiement pour ${rows.length} facture(s) validée(s) ? Tu le déposeras dans PostFinance pour vérifier et signer.`))) return;
+  if (!rows.length) { uiAlert("Aucune facture VALIDÉE avec IBAN + montant. (Valide d'abord les factures.)"); return; }
+  const groups = new Map();
+  for (const f of rows) {
+    const acc = facAccts.find((a) => a.id === f.debtor_account_id) || defAcct;
+    if (!groups.has(acc.id)) groups.set(acc.id, { acc, items: [] });
+    groups.get(acc.id).items.push(f);
+  }
+  const total = rows.reduce((a, f) => a + Number(f.amount), 0);
+  if (!(await uiConfirm(`Générer le paiement pour ${rows.length} facture(s) — total ${total.toFixed(2)} CHF, sur ${groups.size} compte(s) ? Les factures passeront en « Paiement généré » et ne seront plus reprises.`))) return;
   const now = new Date();
   const msgId = "TL" + now.toISOString().replace(/[^0-9]/g, "").slice(0, 14);
-  const total = rows.reduce((a, f) => a + Number(f.amount), 0);
+  const exec = new Date(now.getTime() + 864e5).toISOString().slice(0, 10);
   const fmt = (n) => Number(n).toFixed(2);
-  const exec = new Date(now.getTime() + 24 * 3600000).toISOString().slice(0, 10);
-  const dbtrIban = facCfg.debtor_iban.replace(/\s+/g, ""); const dbtrName = facCfg.debtor_name || "Team Lausanne";
-  const tx = rows.map((f, i) => {
-    const ref = (f.reference || "").replace(/\s+/g, "");
-    let rmt;
-    if (/^\d{27}$/.test(ref)) rmt = `<RmtInf><Strd><CdtrRefInf><Tp><CdOrPrtry><Prtry>QRR</Prtry></CdOrPrtry></Tp><Ref>${xmlEsc(ref)}</Ref></CdtrRefInf></Strd></RmtInf>`;
-    else if (/^RF\d/i.test(ref)) rmt = `<RmtInf><Strd><CdtrRefInf><Tp><CdOrPrtry><Cd>SCOR</Cd></CdOrPrtry></Tp><Ref>${xmlEsc(ref)}</Ref></CdtrRefInf></Strd></RmtInf>`;
-    else rmt = `<RmtInf><Ustrd>${xmlEsc((f.explanation || f.reference || f.creditor_name || "Paiement").slice(0, 140))}</Ustrd></RmtInf>`;
-    return `<CdtTrfTxInf><PmtId><InstrId>${xmlEsc(msgId + "-" + (i + 1))}</InstrId><EndToEndId>${xmlEsc(ref || "NOTPROVIDED")}</EndToEndId></PmtId>`
-      + `<Amt><InstdAmt Ccy="${xmlEsc(f.currency || "CHF")}">${fmt(f.amount)}</InstdAmt></Amt>`
-      + `<Cdtr><Nm>${xmlEsc((f.creditor_name || "Créancier").slice(0, 70))}</Nm></Cdtr>`
-      + `<CdtrAcct><Id><IBAN>${xmlEsc(f.creditor_iban.replace(/\s+/g, ""))}</IBAN></Id></CdtrAcct>${rmt}</CdtTrfTxInf>`;
+  let gi = 0;
+  const pmtInfs = [...groups.values()].map(({ acc, items }) => {
+    gi++;
+    const sub = items.reduce((a, f) => a + Number(f.amount), 0);
+    const addr = (acc.addr_line1 || acc.addr_line2) ? `<PstlAdr>${acc.addr_line1 ? `<AdrLine>${xmlEsc(acc.addr_line1)}</AdrLine>` : ""}${acc.addr_line2 ? `<AdrLine>${xmlEsc(acc.addr_line2)}</AdrLine>` : ""}</PstlAdr>` : "";
+    const tx = items.map((f, i) => facTxXml(f, `${msgId}-${gi}-${i + 1}`, fmt)).join("");
+    return `<PmtInf><PmtInfId>${msgId}-${gi}</PmtInfId><PmtMtd>TRF</PmtMtd><BtchBookg>false</BtchBookg><NbOfTxs>${items.length}</NbOfTxs><CtrlSum>${fmt(sub)}</CtrlSum><PmtTpInf><InstrPrty>NORM</InstrPrty></PmtTpInf><ReqdExctnDt>${exec}</ReqdExctnDt><Dbtr><Nm>${xmlEsc(acc.name)}</Nm>${addr}</Dbtr><DbtrAcct><Id><IBAN>${xmlEsc(acc.iban.replace(/\s+/g, ""))}</IBAN></Id></DbtrAcct><DbtrAgt><FinInstnId><Othr><Id>NOTPROVIDED</Id></Othr></FinInstnId></DbtrAgt><ChrgBr>SLEV</ChrgBr>${tx}</PmtInf>`;
   }).join("");
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 <CstmrCdtTrfInitn>
-<GrpHdr><MsgId>${msgId}</MsgId><CreDtTm>${now.toISOString().slice(0, 19)}</CreDtTm><NbOfTxs>${rows.length}</NbOfTxs><CtrlSum>${fmt(total)}</CtrlSum><InitgPty><Nm>${xmlEsc(dbtrName)}</Nm></InitgPty></GrpHdr>
-<PmtInf><PmtInfId>${msgId}-1</PmtInfId><PmtMtd>TRF</PmtMtd><BtchBookg>false</BtchBookg><NbOfTxs>${rows.length}</NbOfTxs><CtrlSum>${fmt(total)}</CtrlSum><PmtTpInf><InstrPrty>NORM</InstrPrty></PmtTpInf><ReqdExctnDt>${exec}</ReqdExctnDt><Dbtr><Nm>${xmlEsc(dbtrName)}</Nm></Dbtr><DbtrAcct><Id><IBAN>${xmlEsc(dbtrIban)}</IBAN></Id></DbtrAcct><DbtrAgt><FinInstnId><Othr><Id>NOTPROVIDED</Id></Othr></FinInstnId></DbtrAgt><ChrgBr>SLEV</ChrgBr>${tx}</PmtInf>
+<GrpHdr><MsgId>${msgId}</MsgId><CreDtTm>${now.toISOString().slice(0, 19)}</CreDtTm><NbOfTxs>${rows.length}</NbOfTxs><CtrlSum>${fmt(total)}</CtrlSum><InitgPty><Nm>${xmlEsc(defAcct.name)}</Nm></InitgPty></GrpHdr>
+${pmtInfs}
 </CstmrCdtTrfInitn>
 </Document>`;
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([xml], { type: "application/xml" }));
   a.download = `paiement-${now.toISOString().slice(0, 10)}.xml`; a.click();
-  uiAlert(`✓ Fichier généré : ${rows.length} facture(s), total ${fmt(total)} CHF. Dépose-le dans PostFinance e-finance (import ISO 20022 / pain.001), vérifie et signe. Puis marque les factures « Payée ».`);
+  await sb.from("invoices").update({ status: "en_paiement" }).in("id", rows.map((f) => f.id));
+  await loadFactures();
+  uiAlert(`✓ Fichier généré : ${rows.length} facture(s), total ${fmt(total)} CHF. Dépose-le dans PostFinance (import ISO 20022 / pain.001), vérifie et signe. Les factures sont passées en « Paiement généré » ; marque-les « Payée » une fois exécutées.`);
 }
 
 // ===================================================================

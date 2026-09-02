@@ -924,7 +924,15 @@ html{-webkit-tap-highlight-color:transparent}
 .fac-st{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.8rem;font-weight:700;white-space:nowrap}
 .fac-st.fac-todo{background:#fff3d6;color:#8a5a00}
 .fac-st.fac-done{background:#dff3e6;color:#1a8f4a}
+.fac-st.fac-pay{background:#efe7fb;color:#5a3a8c}
 .fac-st.fac-paid{background:#e5e9f7;color:#2a3a8c}
+.fac-stbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.fac-stbtn{padding:6px 11px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:.82rem;font-weight:600;cursor:pointer}
+.fac-stbtn.on{color:#fff;border-color:transparent}
+.fac-stbtn.on.fac-todo{background:#c58a1a}
+.fac-stbtn.on.fac-done{background:#1a8f4a}
+.fac-stbtn.on.fac-pay{background:#7a5aa8}
+.fac-stbtn.on.fac-paid{background:#2a3a8c}
 .btnlike{display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;font-size:.92rem}
 .btnlike:hover{background:var(--blue-d)}
 /* Indicateur "facture" sur les mails */

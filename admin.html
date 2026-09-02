@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=133" />
+  <link rel="stylesheet" href="style.css?v=134" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1069,7 +1069,6 @@
               <label class="btnlike" style="cursor:pointer">➕ Ajouter un PDF<input id="fac-file" type="file" accept="application/pdf" multiple hidden /></label>
               <button id="fac-pain" class="ghost" title="Générer le fichier de paiement (pain.001) à déposer dans PostFinance">🏦 Générer paiement</button>
               <button id="fac-export" class="ghost" title="Télécharger un ZIP des factures pour la fiduciaire">⬇ Export ZIP</button>
-              <button id="fac-debtor" class="ghost" title="Définir le compte à débiter (le vôtre)">⚙ Compte à débiter</button>
             </div>
           </div>
           <p class="muted" style="margin-top:0;font-size:.88rem">Ajoute une facture (PDF). Renseigne le créancier, le montant et une explication, puis <b>valide</b>. Les factures validées/payées peuvent être exportées en ZIP pour la fiduciaire.</p>
@@ -1092,7 +1091,9 @@
             <label class="mailc-f">Montant (CHF)<input id="fac-amount" type="number" step="0.05" min="0" placeholder="0.00" /></label>
             <label class="mailc-f">Référence<input id="fac-ref" type="text" autocomplete="off" placeholder="Référence de paiement" /></label>
             <label class="mailc-f">Échéance<input id="fac-due" type="date" /></label>
+            <label class="mailc-f">Compte à débiter (qui paie)<select id="fac-acct"></select></label>
             <label class="mailc-f">Explication (à qui / pourquoi)<textarea id="fac-expl" rows="3" style="width:100%;box-sizing:border-box"></textarea></label>
+            <label class="mailc-f" style="margin-top:2px">Statut<div id="fac-status-btns" class="fac-stbtns"></div></label>
             <div class="form-foot"><span id="fac-msave" class="muted" style="font-size:.82rem"></span><span class="spacer"></span><button type="button" id="fac-save">Enregistrer</button></div>
           </div>
         </div>
