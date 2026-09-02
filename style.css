@@ -913,6 +913,12 @@ html{-webkit-tap-highlight-color:transparent}
 .mail-d-cc{display:flex;gap:8px;margin:8px 0}
 .mail-d-cc input{flex:1;min-width:0;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
 @media(max-width:560px){.mail-d-cc{flex-direction:column}}
+/* Autocomplétion des adresses (À / Cc / Cci) */
+.mail-ac{position:fixed;z-index:200;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 30px rgba(20,30,60,.18);max-height:260px;overflow:auto}
+.mail-ac-it{padding:8px 11px;cursor:pointer;display:flex;flex-direction:column;gap:1px;line-height:1.25}
+.mail-ac-it b{font-weight:600;font-size:.9rem}
+.mail-ac-it span{color:var(--muted);font-size:.82rem}
+.mail-ac-it.on,.mail-ac-it:hover{background:var(--bg)}
 .mail-d-meta{font-size:.85rem;margin-bottom:12px}
 .mail-d-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:12px}
 .mail-d-unread{padding:8px 12px;font-size:.82rem;white-space:nowrap}

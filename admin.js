@@ -6338,6 +6338,7 @@ async function loadMail() {
     document.querySelectorAll("#mailc-modal .rt-btn").forEach((b) => b.addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand(b.dataset.cmd, false, null); }));
     $("mailc-color").addEventListener("input", (e) => { document.execCommand("foreColor", false, e.target.value); $("mailc-body").focus(); });
     $("mailc-file").addEventListener("change", (e) => { for (const f of e.target.files) { if (f.size > 8 * 1024 * 1024) { alert(`${f.name} dépasse 8 Mo — trop lourd.`); continue; } mailcFiles.push(f); } e.target.value = ""; renderMailcFiles(); });
+    attachEmailAC($("mailc-to")); attachEmailAC($("mailc-cc")); attachEmailAC($("mailc-bcc"));  // autocompletion adresses
   }
   const [{ data: accts }, { data: msgs }] = await Promise.all([
     sb.from("mail_accounts").select("*").order("sort_order"),
@@ -6355,6 +6356,7 @@ async function loadMail() {
   renderMailToolbar();
   refreshMailView();
   refreshMailSub();  // notifs push : rafraîchit l'abonnement si déjà autorisé, met à jour le bouton
+  loadAddrBook();    // carnet d'adresses pour l'autocomplétion des champs À / Cc / Cci
 }
 // Barre de filtres : Reçus/Envoyés/Tous, puis statuts (reçus/tous), puis personnes attribuées (en cours).
 function renderMailToolbar() {
@@ -6701,6 +6703,58 @@ function renderMailcFiles() {
   box.innerHTML = mailcFiles.map((f, i) => `<span class="rt-file">📎 ${esc(f.name)} <button type="button" data-i="${i}" aria-label="Retirer">✕</button></span>`).join("");
   box.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { mailcFiles.splice(+b.dataset.i, 1); renderMailcFiles(); }));
 }
+// ---- Carnet d'adresses + autocomplétion des champs À / Cc / Cci ----
+let mailAddrBook = [];
+async function loadAddrBook() {
+  const book = new Map();
+  const add = (email, name) => {
+    if (!email) return;
+    const e = String(email).trim(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return;
+    const k = e.toLowerCase(); const cur = book.get(k);
+    if (!cur) book.set(k, { email: e, name: name || "" });
+    else if (name && !cur.name) cur.name = name;
+  };
+  for (const p of people) {                                   // répertoire
+    const nm = `${p.first_name || ""} ${p.last_name || ""}`.trim();
+    add(p.email, nm);
+    for (const e of (p.emails || [])) add(e, nm);
+  }
+  try { const { data } = await sb.rpc("mail_addressbook"); for (const r of (data || [])) add(r.email, r.name); } catch (_) {}
+  mailAddrBook = [...book.values()].sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+}
+// Autocomplétion multi-adresses (le dernier segment après une virgule est complété).
+function attachEmailAC(input) {
+  if (!input) return;
+  input.setAttribute("autocomplete", "off");
+  if (input.dataset.ac) return; input.dataset.ac = "1";
+  const dd = document.createElement("div"); dd.className = "mail-ac"; dd.hidden = true;
+  document.body.appendChild(dd);
+  let items = [], active = -1;
+  const token = () => { const v = input.value; const i = v.lastIndexOf(","); return v.slice(i + 1).trim(); };
+  const pick = (email) => { const v = input.value; const i = v.lastIndexOf(","); input.value = (i >= 0 ? v.slice(0, i + 1) + " " : "") + email + ", "; close(); input.focus(); };
+  const close = () => { dd.hidden = true; active = -1; };
+  const render = () => {
+    const q = token().toLowerCase();
+    if (q.length < 2) { close(); return; }
+    items = mailAddrBook.filter((c) => c.email.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q)).slice(0, 8);
+    if (!items.length) { close(); return; }
+    dd.innerHTML = items.map((c, i) => `<div class="mail-ac-it${i === active ? " on" : ""}" data-i="${i}"><b>${esc(c.name || c.email)}</b>${c.name ? `<span>${esc(c.email)}</span>` : ""}</div>`).join("");
+    const r = input.getBoundingClientRect();
+    dd.style.left = r.left + "px"; dd.style.top = (r.bottom + 2) + "px"; dd.style.width = r.width + "px";
+    dd.hidden = false;
+    dd.querySelectorAll(".mail-ac-it").forEach((el) => el.addEventListener("mousedown", (e) => { e.preventDefault(); pick(items[+el.dataset.i].email); }));
+  };
+  input.addEventListener("input", render);
+  input.addEventListener("focus", render);
+  input.addEventListener("blur", () => setTimeout(close, 150));
+  input.addEventListener("keydown", (e) => {
+    if (dd.hidden) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); active = Math.min(active + 1, items.length - 1); render(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); active = Math.max(active - 1, 0); render(); }
+    else if (e.key === "Enter" && active >= 0) { e.preventDefault(); pick(items[active].email); }
+    else if (e.key === "Escape") close();
+  });
+}
 async function mailComposeSend() {
   const account = $("mailc-from").value, to = $("mailc-to").value.trim(), subject = $("mailc-subject").value.trim();
   const cc = $("mailc-cc").value.trim(), bcc = $("mailc-bcc").value.trim();
@@ -6881,6 +6935,7 @@ async function openMail(id) {
     mailWireCompose();
     $("mail-detail").querySelectorAll(".mail-stbtns .mail-fbtn").forEach((b) => b.addEventListener("click", () => mailSetStatus(m, b.dataset.st)));
     $("mail-d-unread").addEventListener("click", async () => { m.is_read = false; mailSyncCache(m); await sb.from("mail_messages").update({ is_read: false }).eq("id", id); renderMailAccts(); refreshMailView(); });
+    attachEmailAC($("mail-d-cc")); attachEmailAC($("mail-d-bcc"));  // autocompletion Cc/Cci de la réponse
     loadMailDraft(id);
   }
   renderMailList();
