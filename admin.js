@@ -1267,7 +1267,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
 function openPerson(p) {
   $("person-error").hidden = true;
   tennisNav = null; $("return-course").classList.add("hidden"); $("tennis-nav")?.classList.add("hidden");   // barre Tennis ré-affichée seulement via openPersonToTennis
-  $("person-title").textContent = p ? "Modifier la fiche" : "Nouvelle personne";
+  $("person-title").textContent = p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || "Fiche" : "Nouvelle personne";
   $("delete-person").classList.toggle("hidden", !p);
   $("invite-person").classList.toggle("hidden", !p);
   $("p-invite-result").classList.add("hidden");
