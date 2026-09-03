@@ -3456,8 +3456,12 @@ function renderPlayerChips() {
   if (q) pool = pool.filter((p) => p[1].toLowerCase().includes(q));
   const shown = [...sel, ...pool.slice(0, 10)];
   const extra = pool.length - Math.min(pool.length, 10);
-  $("c-children").innerHTML = shown.map(([val, label]) =>
-    `<button type="button" class="chip ${cPlayerSel.has(String(val)) ? "sel" : ""}" data-val="${val}">${esc(label)}</button>`).join("")
+  $("c-children").innerHTML = shown.map(([val, label]) => {
+    const p = people.find((x) => String(x.id) === String(val));
+    const age = p?.birthdate ? ageAt(p.birthdate) : null;   // âge à aujourd'hui
+    const ageTxt = age != null ? ` <span class="att-age">(${age})</span>` : "";
+    return `<button type="button" class="chip ${cPlayerSel.has(String(val)) ? "sel" : ""}" data-val="${val}">${esc(label)}${ageTxt}</button>`;
+  }).join("")
     + (extra > 0 ? `<span class="muted c-more">+${extra} autres — affinez la recherche</span>` : "");
   $("c-children").querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
     const v = String(c.dataset.val);
