@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=135" />
+  <link rel="stylesheet" href="style.css?v=136" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1177,6 +1177,7 @@
         <button type="button" class="ptab" data-ptab="seasons">Saisons</button>
         <button type="button" class="ptab" data-ptab="resa">Réservations</button>
         <button type="button" class="ptab" data-ptab="cours">Cours</button>
+        <button type="button" class="ptab" data-ptab="tennis">Tennis</button>
         <button type="button" class="ptab" data-ptab="phys">Tests physiques</button>
         <button type="button" class="ptab" data-ptab="etudes">Études</button>
         <button type="button" class="ptab" data-ptab="matchs">Matchs</button>
@@ -1297,6 +1298,11 @@
 
       <div id="ptab-cours" class="ptab-panel hidden">
         <div id="cours-content"></div>
+      </div>
+
+      <div id="ptab-tennis" class="ptab-panel hidden">
+        <div class="crm-actions" style="margin-bottom:12px"><label class="bsc-lbl">Saison<select id="ptn-season"></select></label></div>
+        <div id="ptn-body"></div>
       </div>
 
       <div id="ptab-phys" class="ptab-panel hidden">

@@ -749,7 +749,15 @@ html{-webkit-tap-highlight-color:transparent}
 .cs-att-col{flex:1;min-width:170px}
 .cs-att-h{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px}
 .cs-att-items{display:flex;flex-direction:column;gap:5px}
-.cs-card:not(.expanded) .cs-att-items > .att-chip:nth-child(n+5){display:none}
+.cs-card:not(.expanded) .cs-att-items > *:nth-child(n+5){display:none}
+.att-unit{display:inline-flex;align-items:center;gap:3px}
+.att-goto{border:1px solid var(--line);background:#fff;color:var(--brand,#0b6b3a);border-radius:7px;
+  padding:5px 7px;font-size:.82rem;line-height:1;cursor:pointer;font-weight:700}
+.att-goto:hover{background:#f0f6f2}
+.tn-uline{text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:2px}
+.tn-theme{margin:0 0 18px;padding:0 0 4px;border-bottom:1px solid var(--line)}
+.tn-theme .tn-th{font-weight:800;font-size:1rem;color:var(--ink);margin:0 0 8px}
+.tn-theme .obj-add{margin:0 0 10px}
 .att-chip{text-align:left;font-weight:600;font-size:.86rem;padding:7px 11px;border-radius:8px;
   border:1px solid var(--line);cursor:pointer;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   -webkit-user-select:none;user-select:none}

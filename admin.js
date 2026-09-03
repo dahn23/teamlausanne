@@ -1310,6 +1310,8 @@ function openPerson(p) {
   showPersonTab("etudes", etudesByRole);
   showPersonTab("matchs", physByRole);
   showPersonTab("suivi", physByRole);   // fil « Suivi du jeune » pour tout junior
+  const tennisByRole = canTennisView() && TENNIS_ROLES.some((r) => roles.includes(r)); // onglet Tennis : filières compétition→pro, accès encadrement
+  showPersonTab("tennis", tennisByRole);
   const isPlayer = ["sport-etudes", "pro", "pro-u18"].some((r) => roles.includes(r)); // contrat = sport-études / pro
   showPersonTab("contrat", isPlayer);
   showPersonTab("stages", false);
@@ -1324,8 +1326,8 @@ function openPerson(p) {
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
-  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
-  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("pc-body").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
+  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonTennis(p.id, tennisByRole); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
+  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("ptn-body").innerHTML = ""; $("pc-body").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -1347,6 +1349,21 @@ function showPersonTab(tab, show) {
 const COURSE_ROLES = ["kidstennis", "club", "competition", "performance", "sport-etudes", "pro-u18", "pro", "adultes"];
 const COACH_ROLES = ["coach", "head-coach", "coach-prive", "coach_physique", "moniteur"];
 const hasRoleIn = (pid, list) => (peopleRoles[pid] || []).some((r) => list.includes(r));
+
+// ---- Onglet « Tennis » de la fiche (commentaires techniques par thème et par saison) ----
+// Filières concernées (person_roles) + accès de l'utilisateur (myAppRoles).
+const TENNIS_ROLES = ["competition", "performance", "sport-etudes", "pro-u18", "pro"];
+const TENNIS_THEMES = [["global", "Global"], ["coup_droit", "Coup droit"], ["revers", "Revers"], ["slice", "Slice"], ["service", "Service"], ["volee", "Volée"], ["tactique", "Tactique"]];
+const canTennisView = () => hasAny(myAppRoles, ["coach", "head_coach", "coach_physique", "moniteur", "admin", "superadmin"]);
+const canTennisEdit = () => hasAny(myAppRoles, ["head_coach", "admin", "superadmin"]);
+// Nom cliquable (souligné) dans « Cours » : l'utilisateur a accès ET la personne a l'onglet Tennis.
+const tennisReachable = (pid) => canTennisView() && hasRoleIn(pid, TENNIS_ROLES);
+function openPersonToTennis(pid) {
+  const p = people.find((x) => x.id === pid); if (!p) return;
+  showView("membres");     // referme toute fiche + affiche la section Répertoire
+  openPerson(p);
+  setPersonTab("tennis");
+}
 
 // ---- Photos / vidéos d'une personne ----
 async function loadMedia(personId) {
@@ -1940,9 +1957,13 @@ function attChip(course, coachIds, pid, isCoach, status) {
   const p = people.find((x) => x.id === pid);
   const age = (!isCoach && p?.birthdate) ? ageAt(p.birthdate, course.course_date) : null;
   const ageTxt = age != null ? ` <span class="att-age">(${age})</span>` : "";
-  return `<button type="button" class="att-chip ${cls}" data-course="${course.id}" data-person="${pid}"
+  const reach = !isCoach && tennisReachable(pid);   // nom souligné + ↗ vers la fiche Tennis
+  const nm = `${bday ? "🎁 " : ""}<span class="${reach ? "tn-uline" : ""}">${esc(personName(pid))}</span>${ageTxt}`;
+  const chip = `<button type="button" class="att-chip ${cls}" data-course="${course.id}" data-person="${pid}"
     data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}" data-cstart="${course.course_date}T${course.start_time}"
-    title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${bday ? " · anniversaire 🎁" : ""}">${bday ? "🎁 " : ""}${esc(personName(pid))}${ageTxt}</button>`;
+    title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${bday ? " · anniversaire 🎁" : ""}">${nm}</button>`;
+  // chip + ↗ regroupés dans .att-unit → 1 seul enfant par joueur (ne casse pas le masquage « > 4 »).
+  return reach ? `<span class="att-unit">${chip}<button type="button" class="att-goto" data-person="${pid}" title="Ouvrir la fiche › Tennis">↗</button></span>` : chip;
 }
 
 // Une colonne (Coachs ou Élèves) de pastilles de présence. statusFn(pid) → statut.
@@ -1996,7 +2017,7 @@ async function loadCoursesDay() {
     const courtCount = books.filter((b) => b.course_id === c.id).length;
     const detailed = !!type && TR_TYPE_RE.test(type.name || "") && (courtCount > 1 || coachIds.length > 1);
     const elevesCol = detailed
-      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; return `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${esc(personName(pid))}${agT}</span>`; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
+      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); return `<span class="att-chip ${cls}${reach ? " tn-uline" : ""}" data-can="0" data-detail="1"${reach ? ` data-goto="1" data-person="${pid}"` : ""} style="cursor:${reach ? "pointer" : "default"}" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — ${reach ? "ouvrir la fiche › Tennis" : "présence gérée par le head coach (détail)"}">${esc(personName(pid))}${agT}</span>`; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
       : col(c, coachIds, childIds, false, "Élèves");
     return `<div class="cs-card" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cs-card-top">
@@ -2011,6 +2032,7 @@ async function loadCoursesDay() {
 
   const L = $("cs-list");
   L.querySelectorAll(".att-chip").forEach((ch) => ch.addEventListener("click", (e) => { e.stopPropagation(); cycleAtt(ch); }));
+  L.querySelectorAll(".att-goto").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); openPersonToTennis(b.dataset.person); }));
   L.querySelectorAll(".cs-more").forEach((b) => b.addEventListener("click", (e) => {
     e.stopPropagation();
     const card = b.closest(".cs-card");
@@ -2109,6 +2131,7 @@ async function loadCoursesWeek() {
 
 // Clic sur une pastille : blanc → vert → rouge → orange → blanc
 async function cycleAtt(chip) {
+  if (chip.dataset.goto === "1") { openPersonToTennis(chip.dataset.person); return; } // nom cliquable → fiche › Tennis
   if (chip.dataset.can !== "1") { // verrouillé → on explique pourquoi (popup)
     const cstart = chip.dataset.cstart ? new Date(chip.dataset.cstart).getTime() : 0, now = Date.now();
     if (chip.dataset.detail === "1") uiAlert("Sur ce cours (pro / sport-études), les présences des jeunes sont gérées par le head coach via le détail de la séance.");
@@ -6238,6 +6261,76 @@ async function loadPersonSuivi(personId, byRole) {
   if (!personId) { $("ps-chan").innerHTML = ""; return; }
   showPersonTab("suivi", byRole);
   youthNotes("ps-chan", personId);
+}
+
+// ---- Onglet « Tennis » : commentaires techniques par thème, par saison ----
+let ptnPersonId = null;
+async function loadPersonTennis(personId, byRole) {
+  ptnPersonId = personId;
+  showPersonTab("tennis", byRole);
+  if (!personId || !byRole) { $("ptn-body").innerHTML = ""; return; }
+  await loadSeasonsList();
+  const cur = currentSeason("juniors")?.id;
+  const sel = $("ptn-season");
+  sel.innerHTML = seasonsOf("juniors").map((s) => seasonOpt(s, cur)).join("") || '<option value="">—</option>';
+  if (cur) sel.value = cur;   // force la saison en cours (sinon pretty-select n'applique pas la valeur)
+  sel.onchange = () => renderTennisSeason();
+  renderTennisSeason();
+}
+
+async function renderTennisSeason() {
+  const body = $("ptn-body"); if (!body || !ptnPersonId) return;
+  const seasonId = $("ptn-season").value || null;
+  if (!seasonId) { body.innerHTML = '<p class="obj-empty">Choisis une saison.</p>'; return; }
+  body.innerHTML = '<p class="muted">Chargement…</p>';
+  const { data } = await sb.from("tennis_notes").select("*")
+    .eq("player_person_id", ptnPersonId).eq("season_id", seasonId)
+    .order("created_at", { ascending: false });
+  const rows = data || [];
+  const canEdit = canTennisEdit();
+  const byTheme = {}; rows.forEach((r) => (byTheme[r.theme] || (byTheme[r.theme] = [])).push(r));
+  body.innerHTML = TENNIS_THEMES.map(([key, label]) => {
+    const list = byTheme[key] || [];
+    const items = list.map((r) => {
+      const edited = r.updated_at && r.updated_at !== r.created_at ? ' <span class="muted">(modifié)</span>' : "";
+      return `<div class="obj-item tn-item" data-id="${r.id}">
+        <div class="obj-meta"><span><b>${esc(r.author_name || "—")}</b></span><span>${frDateTime(r.created_at)}${edited}</span></div>
+        <div class="obj-body">${esc(r.body).replace(/\n/g, "<br/>")}</div>
+        ${canEdit ? `<div class="obj-acts"><button type="button" class="edit">Modifier</button><button type="button" class="del">Supprimer</button></div>` : ""}</div>`;
+    }).join("");
+    return `<section class="tn-theme" data-theme="${key}">
+      <div class="tn-th">${esc(label)}</div>
+      <div class="obj-add"><textarea class="tn-new" rows="2" placeholder="Ajouter un commentaire…"></textarea>
+        <button type="button" class="tn-add">Ajouter</button></div>
+      <div class="obj-list">${items || '<p class="obj-empty">—</p>'}</div></section>`;
+  }).join("");
+
+  body.querySelectorAll(".tn-theme").forEach((sec) => {
+    const theme = sec.dataset.theme;
+    sec.querySelector(".tn-add").addEventListener("click", async () => {
+      const ta = sec.querySelector(".tn-new"), b = ta.value.trim(); if (!b) return;
+      const { error } = await sb.from("tennis_notes").insert({
+        player_person_id: ptnPersonId, season_id: seasonId, theme, body: b,
+        author_person_id: myPersonId, author_name: meName, author_role: myNoteRole(), created_by: meId });
+      if (error) { alert(error.message); return; }
+      renderTennisSeason();
+    });
+  });
+  body.querySelectorAll(".del").forEach((b) => b.addEventListener("click", async () => {
+    if (!await uiConfirm("Supprimer ce commentaire ?")) return;
+    await sb.from("tennis_notes").delete().eq("id", b.closest(".tn-item").dataset.id);
+    renderTennisSeason();
+  }));
+  body.querySelectorAll(".edit").forEach((b) => b.addEventListener("click", () => {
+    const item = b.closest(".tn-item"), id = item.dataset.id, cur = rows.find((r) => r.id === id);
+    item.querySelector(".obj-body").innerHTML = `<textarea class="tn-edit" rows="2" style="width:100%">${esc(cur.body)}</textarea>
+      <div style="margin-top:6px"><button type="button" class="tn-save">Enregistrer</button></div>`;
+    item.querySelector(".tn-save").addEventListener("click", async () => {
+      const nb = item.querySelector(".tn-edit").value.trim(); if (!nb) return;
+      await sb.from("tennis_notes").update({ body: nb, updated_at: new Date().toISOString() }).eq("id", id);
+      renderTennisSeason();
+    });
+  }));
 }
 
 // ---- Onglet Contrat (joueurs sport-études / pro) : par saison ----
