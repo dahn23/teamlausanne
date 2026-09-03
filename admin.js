@@ -1446,10 +1446,14 @@ async function renderCoursSeason(personId, seasonId) {
   const mine = (parts || []).filter((p) => p.courses && p.courses.course_date >= s.start_date && p.courses.course_date <= s.end_date);
   if (!mine.length) { body.innerHTML = '<p class="obj-empty">Aucun cours cette saison.</p>'; return; }
   const courseIds = mine.map((p) => p.course_id);
-  const [att, segs] = await Promise.all([
+  const [att, segs, books] = await Promise.all([
     fetchInChunks("attendance", "course_id,person_id,status", "course_id", courseIds, (q) => q.eq("is_coach", false)),
     fetchInChunks("course_segments", "id,course_id,minutes", "course_id", courseIds),
+    fetchInChunks("court_bookings", "court_id,course_id", "course_id", courseIds),
   ]);
+  // Un cours réservé sur le court « Fitness » compte comme physique (même si son type ne dit pas « physique »).
+  const fitnessCourtIds = new Set(resaCourtsAll.filter(isFitnessCourt).map((c) => c.id));
+  const physByCourt = new Set((books || []).filter((b) => fitnessCourtIds.has(b.court_id)).map((b) => b.course_id));
   const sp = segs.length ? await fetchInChunks("course_segment_players", "segment_id,person_id", "segment_id", segs.map((x) => x.id)) : [];
   const attByCourse = {}; att.forEach((a) => ((attByCourse[a.course_id] || (attByCourse[a.course_id] = {}))[a.person_id] = a.status));
   const segByCourse = {}; segs.forEach((sg) => (segByCourse[sg.course_id] || (segByCourse[sg.course_id] = [])).push(sg));
@@ -1459,7 +1463,7 @@ async function renderCoursSeason(personId, seasonId) {
   const D = { tennis: mk(), phys: mk() };
   mine.forEach((p) => {
     const c = p.courses, cid = p.course_id;
-    const d = isPhys(c.course_types?.name) ? D.phys : D.tennis;
+    const d = (isPhys(c.course_types?.name) || physByCourt.has(cid)) ? D.phys : D.tennis;
     const st = (attByCourse[cid] || {})[personId];
     if (st === "present") d.present++; else if (st === "absent") d.absent++; else if (st === "late") d.late++;
     else { if (c.course_date >= todayISO) d.annonce++; return; }
