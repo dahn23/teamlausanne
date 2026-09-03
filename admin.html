@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=137" />
+  <link rel="stylesheet" href="style.css?v=138" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -104,6 +104,11 @@
           <!-- Fiche en pleine page (le formulaire y est déplacé au chargement) -->
           <div id="people-detail" class="hidden">
             <button type="button" id="return-course" class="ghost stg-back hidden">← Retour au cours</button>
+            <div id="tennis-nav" class="tnav hidden">
+              <button type="button" id="tn-prev" class="ghost">‹ Élève préc.</button>
+              <span id="tn-nav-pos" class="tnav-pos"></span>
+              <button type="button" id="tn-next" class="ghost">Élève suiv. ›</button>
+            </div>
             <button type="button" id="close-person" class="ghost stg-back">← Retour au répertoire</button>
           </div>
         </div>

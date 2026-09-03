@@ -328,7 +328,9 @@ async function init(roles) {
   // La fiche s'affiche en pleine page : on déplace le <form> dans #people-detail
   $("people-detail").appendChild($("person-form"));
   $("close-person").addEventListener("click", closePerson);
-  $("return-course").addEventListener("click", () => showView(tennisReturnView || "cours"));
+  $("return-course").addEventListener("click", () => showView(tennisNav?.back || "cours"));
+  $("tn-prev").addEventListener("click", () => tennisNavStep(-1));
+  $("tn-next").addEventListener("click", () => tennisNavStep(1));
   $("person-form").addEventListener("submit", savePerson);
   $("delete-person").addEventListener("click", deletePerson);
   $("invite-person").addEventListener("click", invitePerson);
@@ -1264,7 +1266,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
 // ---- Fiche ----
 function openPerson(p) {
   $("person-error").hidden = true;
-  tennisReturnView = null; $("return-course").classList.add("hidden");   // ré-affiché seulement via openPersonToTennis
+  tennisNav = null; $("return-course").classList.add("hidden"); $("tennis-nav")?.classList.add("hidden");   // barre Tennis ré-affichée seulement via openPersonToTennis
   $("person-title").textContent = p ? "Modifier la fiche" : "Nouvelle personne";
   $("delete-person").classList.toggle("hidden", !p);
   $("invite-person").classList.toggle("hidden", !p);
@@ -1360,14 +1362,33 @@ const canTennisView = () => hasAny(myAppRoles, ["coach", "head_coach", "coach_ph
 const canTennisEdit = () => hasAny(myAppRoles, ["head_coach", "admin", "superadmin"]);
 // Nom cliquable (souligné) dans « Cours » : l'utilisateur a accès ET la personne a l'onglet Tennis.
 const tennisReachable = (pid) => canTennisView() && hasRoleIn(pid, TENNIS_ROLES);
-let tennisReturnView = null;   // vue d'où l'on a cliqué le ↗ (pour « ← Retour au cours »)
-function openPersonToTennis(pid) {
-  const p = people.find((x) => x.id === pid); if (!p) return;
-  const back = document.querySelector(".view:not(.hidden)")?.id?.replace("view-", "") || null; // d'où on vient
+let courseRosters = {};        // course_id -> [pids éligibles Tennis] (rempli par loadCoursesDay)
+let tennisNav = null;          // { list:[pids], idx, back:"cours" } quand on parcourt un cours
+
+function openPersonToTennis(pid, courseId) {
+  const back = document.querySelector(".view:not(.hidden)")?.id?.replace("view-", "") || "cours"; // d'où on vient
+  const roster = (courseId && courseRosters[courseId] && courseRosters[courseId].length) ? courseRosters[courseId] : [pid];
+  showTennisPlayer({ list: roster, idx: Math.max(0, roster.indexOf(pid)), back });
+}
+function showTennisPlayer(nav) {
+  const pid = nav.list[nav.idx], p = people.find((x) => x.id === pid); if (!p) return;
   showView("membres");     // referme toute fiche + affiche la section Répertoire
-  openPerson(p);
+  openPerson(p);           // remet à zéro la barre (return + nav)
   setPersonTab("tennis");
-  if (back) { tennisReturnView = back; $("return-course").classList.remove("hidden"); }
+  tennisNav = nav;         // restauré APRÈS openPerson
+  $("return-course").classList.remove("hidden");
+  renderTennisNav();
+}
+function renderTennisNav() {
+  const el = $("tennis-nav"); if (!el) return;
+  if (!tennisNav || tennisNav.list.length < 2) { el.classList.add("hidden"); return; }
+  el.classList.remove("hidden");
+  $("tn-nav-pos").textContent = `${tennisNav.idx + 1} / ${tennisNav.list.length}`;
+}
+function tennisNavStep(d) {
+  if (!tennisNav) return;
+  const n = tennisNav.list.length;
+  showTennisPlayer({ ...tennisNav, idx: (tennisNav.idx + d + n) % n });
 }
 
 // ---- Photos / vidéos d'une personne ----
@@ -1968,7 +1989,7 @@ function attChip(course, coachIds, pid, isCoach, status) {
     data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}" data-cstart="${course.course_date}T${course.start_time}"
     title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${bday ? " · anniversaire 🎁" : ""}">${nm}</button>`;
   // chip + ↗ regroupés dans .att-unit → 1 seul enfant par joueur (ne casse pas le masquage « > 4 »).
-  return reach ? `<span class="att-unit">${chip}<button type="button" class="att-goto" data-person="${pid}" title="Ouvrir la fiche › Tennis">↗</button></span>` : chip;
+  return reach ? `<span class="att-unit">${chip}<button type="button" class="att-goto" data-person="${pid}" data-course="${course.id}" title="Ouvrir la fiche › Tennis">↗</button></span>` : chip;
 }
 
 // Une colonne (Coachs ou Élèves) de pastilles de présence. statusFn(pid) → statut.
@@ -2009,10 +2030,12 @@ async function loadCoursesDay() {
 
   // Espace coach (pas manager) : n'afficher QUE les cours où il est coach.
   const shownDay = (!isCourseMgr && myPersonId) ? (courses || []).filter((c) => coaches.some((x) => x.course_id === c.id && x.coach_person_id === myPersonId)) : (courses || []);
+  courseRosters = {};   // liste des élèves « fiche Tennis » par cours (pour naviguer ‹ préc / suiv ›)
   $("cs-list").innerHTML = shownDay.length ? shownDay.map((c) => {
     const cts = books.filter((b) => b.course_id === c.id).map((b) => courtName(b.court_id)).join(", ");
     const coachIds = coaches.filter((x) => x.course_id === c.id).map((x) => x.coach_person_id);
     const childIds = parts.filter((x) => x.course_id === c.id).map((x) => x.child_person_id);
+    courseRosters[c.id] = childIds.filter((pid) => tennisReachable(pid));
     const type = courseTypes.find((t) => t.id === c.course_type_id);
     const needMore = Math.max(coachIds.length, childIds.length) > 4;
     const nmeOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name} ${p.last_name}` : ""; };
@@ -2022,7 +2045,7 @@ async function loadCoursesDay() {
     const courtCount = books.filter((b) => b.course_id === c.id).length;
     const detailed = !!type && TR_TYPE_RE.test(type.name || "") && (courtCount > 1 || coachIds.length > 1);
     const elevesCol = detailed
-      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); const sp = `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${esc(personName(pid))}${agT}</span>`; return reach ? `<span class="att-unit">${sp}<button type="button" class="att-goto" data-person="${pid}" title="Ouvrir la fiche › Tennis">↗</button></span>` : sp; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
+      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); const sp = `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${esc(personName(pid))}${agT}</span>`; return reach ? `<span class="att-unit">${sp}<button type="button" class="att-goto" data-person="${pid}" data-course="${c.id}" title="Ouvrir la fiche › Tennis">↗</button></span>` : sp; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
       : col(c, coachIds, childIds, false, "Élèves");
     return `<div class="cs-card" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cs-card-top">
@@ -2037,7 +2060,7 @@ async function loadCoursesDay() {
 
   const L = $("cs-list");
   L.querySelectorAll(".att-chip").forEach((ch) => ch.addEventListener("click", (e) => { e.stopPropagation(); cycleAtt(ch); }));
-  L.querySelectorAll(".att-goto").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); openPersonToTennis(b.dataset.person); }));
+  L.querySelectorAll(".att-goto").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); openPersonToTennis(b.dataset.person, b.dataset.course); }));
   L.querySelectorAll(".cs-more").forEach((b) => b.addEventListener("click", (e) => {
     e.stopPropagation();
     const card = b.closest(".cs-card");
