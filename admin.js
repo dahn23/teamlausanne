@@ -328,6 +328,7 @@ async function init(roles) {
   // La fiche s'affiche en pleine page : on déplace le <form> dans #people-detail
   $("people-detail").appendChild($("person-form"));
   $("close-person").addEventListener("click", closePerson);
+  $("return-course").addEventListener("click", () => showView(tennisReturnView || "cours"));
   $("person-form").addEventListener("submit", savePerson);
   $("delete-person").addEventListener("click", deletePerson);
   $("invite-person").addEventListener("click", invitePerson);
@@ -1263,6 +1264,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
 // ---- Fiche ----
 function openPerson(p) {
   $("person-error").hidden = true;
+  tennisReturnView = null; $("return-course").classList.add("hidden");   // ré-affiché seulement via openPersonToTennis
   $("person-title").textContent = p ? "Modifier la fiche" : "Nouvelle personne";
   $("delete-person").classList.toggle("hidden", !p);
   $("invite-person").classList.toggle("hidden", !p);
@@ -1358,11 +1360,14 @@ const canTennisView = () => hasAny(myAppRoles, ["coach", "head_coach", "coach_ph
 const canTennisEdit = () => hasAny(myAppRoles, ["head_coach", "admin", "superadmin"]);
 // Nom cliquable (souligné) dans « Cours » : l'utilisateur a accès ET la personne a l'onglet Tennis.
 const tennisReachable = (pid) => canTennisView() && hasRoleIn(pid, TENNIS_ROLES);
+let tennisReturnView = null;   // vue d'où l'on a cliqué le ↗ (pour « ← Retour au cours »)
 function openPersonToTennis(pid) {
   const p = people.find((x) => x.id === pid); if (!p) return;
+  const back = document.querySelector(".view:not(.hidden)")?.id?.replace("view-", "") || null; // d'où on vient
   showView("membres");     // referme toute fiche + affiche la section Répertoire
   openPerson(p);
   setPersonTab("tennis");
+  if (back) { tennisReturnView = back; $("return-course").classList.remove("hidden"); }
 }
 
 // ---- Photos / vidéos d'une personne ----
