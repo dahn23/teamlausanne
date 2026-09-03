@@ -275,13 +275,13 @@ function applyTabAccess(roles) {
   const allowedFor = (v) => roles.some((r) =>
     (known.has(v) ? (access[r] || []) : (DEFAULT_TAB_ACCESS[r] || [])).includes(v));
   const finTag = !!(myPersonId && (peopleRoles[myPersonId] || []).includes("finance"));  // tag CRM "finance" → onglet Factures
-  let first = null;
+  let first = null; const allowedSet = new Set();
   document.querySelectorAll(".side-item[data-view]").forEach((b) => {
     const v = b.dataset.view;
     if (v === "bientot") return;
     const allowed = allowedFor(v) || (v === "gamezone" && isGzManager) || (v === "factures" && finTag);
     b.classList.toggle("hidden", !allowed);
-    if (allowed && !first) first = v;
+    if (allowed) { allowedSet.add(v); if (!first) first = v; }
   });
   // Masquer un bloc entier si aucun de ses onglets n'est visible (pas de trait orphelin).
   document.querySelectorAll(".side-block").forEach((bl) => {
@@ -291,7 +291,10 @@ function applyTabAccess(roles) {
   });
   // Le menu ET le contenu n'apparaissent qu'une fois la bonne vue choisie
   // (évite le flash de la vue Répertoire par défaut avant l'aiguillage par rôle).
-  if (first) showView(first);
+  // On restaure le dernier onglet vu (si toujours autorisé), sinon le 1er.
+  let saved = null; try { saved = localStorage.getItem("tl-view"); } catch (_) {}
+  const target = (saved && allowedSet.has(saved)) ? saved : first;
+  if (target) showView(target);
   document.querySelector(".side")?.classList.add("ready");
   document.querySelector(".admin-main")?.classList.add("ready");
 }
@@ -372,6 +375,7 @@ async function init(roles) {
 // ---- Bascule de vues ----
 function showView(view) {
   if (view === "bientot") return;
+  try { localStorage.setItem("tl-view", view); } catch (_) {}   // mémorise l'onglet pour le prochain rechargement
   // Toujours revenir à la liste : referme les fiches pleine page ouvertes
   closePerson();
   if ($("prosp-detail")) closeProspect();
