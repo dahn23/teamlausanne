@@ -1957,8 +1957,8 @@ function attChip(course, coachIds, pid, isCoach, status) {
   const p = people.find((x) => x.id === pid);
   const age = (!isCoach && p?.birthdate) ? ageAt(p.birthdate, course.course_date) : null;
   const ageTxt = age != null ? ` <span class="att-age">(${age})</span>` : "";
-  const reach = !isCoach && tennisReachable(pid);   // nom souligné + ↗ vers la fiche Tennis
-  const nm = `${bday ? "🎁 " : ""}<span class="${reach ? "tn-uline" : ""}">${esc(personName(pid))}</span>${ageTxt}`;
+  const reach = !isCoach && tennisReachable(pid);   // ↗ vers la fiche Tennis
+  const nm = `${bday ? "🎁 " : ""}${esc(personName(pid))}${ageTxt}`;
   const chip = `<button type="button" class="att-chip ${cls}" data-course="${course.id}" data-person="${pid}"
     data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}" data-cstart="${course.course_date}T${course.start_time}"
     title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${bday ? " · anniversaire 🎁" : ""}">${nm}</button>`;
@@ -2017,7 +2017,7 @@ async function loadCoursesDay() {
     const courtCount = books.filter((b) => b.course_id === c.id).length;
     const detailed = !!type && TR_TYPE_RE.test(type.name || "") && (courtCount > 1 || coachIds.length > 1);
     const elevesCol = detailed
-      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); return `<span class="att-chip ${cls}${reach ? " tn-uline" : ""}" data-can="0" data-detail="1"${reach ? ` data-goto="1" data-person="${pid}"` : ""} style="cursor:${reach ? "pointer" : "default"}" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — ${reach ? "ouvrir la fiche › Tennis" : "présence gérée par le head coach (détail)"}">${esc(personName(pid))}${agT}</span>`; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
+      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); const sp = `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${esc(personName(pid))}${agT}</span>`; return reach ? `<span class="att-unit">${sp}<button type="button" class="att-goto" data-person="${pid}" title="Ouvrir la fiche › Tennis">↗</button></span>` : sp; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
       : col(c, coachIds, childIds, false, "Élèves");
     return `<div class="cs-card" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cs-card-top">
@@ -2131,7 +2131,6 @@ async function loadCoursesWeek() {
 
 // Clic sur une pastille : blanc → vert → rouge → orange → blanc
 async function cycleAtt(chip) {
-  if (chip.dataset.goto === "1") { openPersonToTennis(chip.dataset.person); return; } // nom cliquable → fiche › Tennis
   if (chip.dataset.can !== "1") { // verrouillé → on explique pourquoi (popup)
     const cstart = chip.dataset.cstart ? new Date(chip.dataset.cstart).getTime() : 0, now = Date.now();
     if (chip.dataset.detail === "1") uiAlert("Sur ce cours (pro / sport-études), les présences des jeunes sont gérées par le head coach via le détail de la séance.");
