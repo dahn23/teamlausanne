@@ -1953,17 +1953,28 @@ async function loadCoursesDay() {
   const date = $("cs-date").value;
   const { data: courses } = await sb.from("courses").select("*").eq("course_date", date).order("start_time");
   const ids = (courses || []).map((c) => c.id);
-  let books = [], coaches = [], parts = [], att = [];
+  let books = [], coaches = [], parts = [], att = [], segs = [];
   if (ids.length) {
-    [books, coaches, parts, att] = await Promise.all([
+    [books, coaches, parts, att, segs] = await Promise.all([
       sb.from("court_bookings").select("court_id,course_id").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_participants").select("course_id,child_person_id").in("course_id", ids).then((r) => r.data || []),
       sb.from("attendance").select("course_id,person_id,status").in("course_id", ids).then((r) => r.data || []),
+      sb.from("course_segments").select("course_id,minutes,course_segment_players(person_id)").in("course_id", ids).then((r) => r.data || []),
     ]);
   }
   const courtName = (id) => (resaCourtsAll.find((c) => c.id === id)?.name || "?").replace("Court ", "C");
   const attOf = (cid, pid) => att.find((a) => a.course_id === cid && a.person_id === pid)?.status || "";
+  // Couverture par joueur d'un cours DÉTAILLÉ : minutes jouées (blocs) vs durée de la séance
+  // → couleur (vert complet · orange incomplet · rouge 0/absent · bleu dépassé).
+  const durMin = (c) => { const a = (c.start_time || "0:0").split(":").map(Number), b = (c.end_time || "0:0").split(":").map(Number); return (b[0] * 60 + b[1]) - (a[0] * 60 + a[1]); };
+  const segMin = {}; const segCourses = new Set();
+  for (const s of segs) { segCourses.add(s.course_id); for (const x of (s.course_segment_players || [])) { const cc = (segMin[s.course_id] || (segMin[s.course_id] = {})); cc[x.person_id] = (cc[x.person_id] || 0) + (s.minutes || 0); } }
+  const covClass = (course, pid) => {
+    if (!segCourses.has(course.id)) return null;                      // détail pas encore fait
+    const tgt = durMin(course), m = (segMin[course.id] && segMin[course.id][pid]) || 0;
+    return m === 0 ? "st-absent" : m > tgt ? "cov-over" : m === tgt ? "st-present" : "st-late";
+  };
   const col = (course, coachIds, list, isCoach, title) => attCol(course, coachIds, list, isCoach, title, (pid) => attOf(course.id, pid));
 
   // Espace coach (pas manager) : n'afficher QUE les cours où il est coach.
@@ -1981,7 +1992,7 @@ async function loadCoursesDay() {
     const courtCount = books.filter((b) => b.course_id === c.id).length;
     const detailed = !!type && TR_TYPE_RE.test(type.name || "") && (courtCount > 1 || coachIds.length > 1);
     const elevesCol = detailed
-      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const s = attOf(c.id, pid); const cls = s === "present" ? "st-present" : s === "absent" ? "st-absent" : s === "late" ? "st-late" : "st-none"; const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; return `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${esc(personName(pid))}${agT}</span>`; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
+      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; return `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${esc(personName(pid))}${agT}</span>`; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
       : col(c, coachIds, childIds, false, "Élèves");
     return `<div class="cs-card" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cs-card-top">
@@ -8064,7 +8075,7 @@ function renderTrEditor() {
   const host = $("c-detail"); if (!host || !trEditing) return;
   const e = trEditing, tgt = e.dur || 0, tally = trTally();
   const tallyHtml = e.roster.map((pid) => {
-    const m = tally[pid] || 0, cls = m === tgt ? "ok" : m > tgt ? "over" : "under";
+    const m = tally[pid] || 0, cls = m === 0 ? "absent" : m === tgt ? "ok" : m > tgt ? "over" : "under";
     return `<span class="tr-tchip ${cls}">${esc(trShort(pid))} <b>${m}′</b>${tgt ? `/${tgt}` : ""}</span>`;
   }).join("");
   // Tally COACHS = temps réellement encadré (→ paie). Chaque coach de la séance devrait totaliser la durée.
@@ -8072,7 +8083,7 @@ function renderTrEditor() {
   trBlocs.forEach((b) => { if (b.coach) coachMin[b.coach] = (coachMin[b.coach] || 0) + (b.minutes || 0); });
   const coachIdsShown = Object.keys(coachMin);
   const coachTallyHtml = coachIdsShown.map((id) => {
-    const m = coachMin[id] || 0, cls = m === tgt ? "ok" : m > tgt ? "over" : "under";
+    const m = coachMin[id] || 0, cls = m === 0 ? "absent" : m === tgt ? "ok" : m > tgt ? "over" : "under";
     return `<span class="tr-tchip ${cls}">${esc(trShort(id))} <b>${trFmtH(m)}</b>${tgt ? `/${trFmtH(tgt)}` : ""}</span>`;
   }).join("");
   const mism = coachIdsShown.filter((id) => (coachMin[id] || 0) !== tgt);
@@ -8108,7 +8119,7 @@ function renderTrEditor() {
     <div class="tr-tally-lbl">Coachs <span class="muted" style="font-weight:400">— temps encadré (paie)</span></div>
     <div class="tr-tally">${coachTallyHtml || '<span class="muted">Aucun coach.</span>'}</div>
     ${warnHtml}
-    <p class="muted" style="font-size:.8rem;margin:2px 0 8px">🟢 complet · 🟠 incomplet · 🔴 dépassé. Un <b>joueur</b> peut faire moins ; un <b>coach</b> devrait couvrir toute la séance (sinon avertissement).</p>
+    <p class="muted" style="font-size:.8rem;margin:2px 0 8px">🟢 complet · 🟠 incomplet · 🔴 absent (0) · 🔵 dépassé. Un <b>joueur</b> peut faire moins ; un <b>coach</b> devrait couvrir toute la séance (sinon avertissement).</p>
     <div class="tr-blocs">${blocsHtml}</div>
     <div class="tr-ed-actions"><button type="button" class="tr-add">+ Ajouter un bloc</button><button type="button" class="tr-save">Enregistrer le détail</button><span class="tr-save-st muted"></span></div>`;
   const newBloc = () => ({ minutes: 60, coach: e.coachOpts[0] || "", court: (e.courtIds || [])[0] || "", note: "", players: [] });

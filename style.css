@@ -758,6 +758,7 @@ html{-webkit-tap-highlight-color:transparent}
 .att-chip.st-present{background:#e3f6e8;border-color:#bfe6ca;color:#1c7d38}
 .att-chip.st-late{background:#fdf2dc;border-color:#f2e0b0;color:#a9721a}
 .att-chip.st-absent{background:#fbe4e4;border-color:#f0c9c9;color:#b23838}
+.att-chip.cov-over{background:#e4ecfb;border-color:#c3d3f5;color:#2a3a8c}
 .att-chip.st-locked{background:#eef0f4;border-color:var(--line);color:#aab2c4;cursor:not-allowed}
 .att-legend{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 12px;font-size:.8rem;color:var(--muted)}
 .att-legend span{display:inline-flex;align-items:center;gap:6px}
@@ -2046,7 +2047,8 @@ label.fld select{min-width:180px}
 .tr-tchip b{font-weight:800}
 .tr-tchip.ok{background:#e7f3ec;color:#1c7a45;box-shadow:inset 0 0 0 1.5px #57b483}
 .tr-tchip.under{background:#fff3e0;color:#b45309;box-shadow:inset 0 0 0 1.5px #f0b968}
-.tr-tchip.over{background:#fdeaea;color:#b3261e;box-shadow:inset 0 0 0 1.5px #e79a95}
+.tr-tchip.absent{background:#fbe4e4;color:#b3261e;box-shadow:inset 0 0 0 1.5px #e79a95}
+.tr-tchip.over{background:#e4ecfb;color:#2a3a8c;box-shadow:inset 0 0 0 1.5px #9db6ef}
 .tr-bloc{border:1px solid var(--line);border-radius:13px;padding:12px 13px;margin-bottom:12px;background:var(--card)}
 .tr-bloc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .tr-del{background:none;border:none;color:var(--muted);font-size:1.05rem;cursor:pointer;padding:2px 6px;border-radius:7px}
