@@ -1606,6 +1606,10 @@ body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fl
 .side-item:disabled .ico{color:var(--muted)}
 .side-item:disabled{color:var(--muted);cursor:default}
 .side-item:disabled:hover{background:transparent}
+/* Messagerie : icône du menu en rouge (état actif = blanc, désactivé = gris) */
+.side-item[data-view="mail"] .ico{color:#b3261e}
+.side-item[data-view="mail"].active .ico{color:#fff}
+.side-item[data-view="mail"]:disabled .ico{color:var(--muted)}
 .admin-main{flex:1;padding:22px;overflow:auto;transition:opacity .12s ease}
 .admin-main:not(.ready){opacity:0}
 .crm-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
