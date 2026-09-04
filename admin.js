@@ -1395,21 +1395,22 @@ function tennisNavStep(d) {
 // ===================================================================
 //  Saison hiver — planning FIXE des abonnements (pour facturer l'hiver)
 // ===================================================================
-const WP_COURTS = [4, 5, 6, 7, 10, 11];
+const WP_COURTS = ["4", "5", "6", "7", "10", "11", "Fitness"];
 const WP_START_HOURS = Array.from({ length: 14 }, (_, i) => 8 + i);   // 8h15 .. 21h15
 const WP_DAYS = [["Lundi", 1], ["Mardi", 2], ["Mercredi", 3], ["Jeudi", 4], ["Vendredi", 5]];
+const WP_ST_NEXT = { libre: "pre", pre: "confirme", confirme: "libre" };   // clic = libre→pré-réservé→confirmé
 function winterSeasonLabel() {
   const d = new Date(), y = d.getFullYear();
   const startY = d.getMonth() >= 4 ? y : y - 1;   // mai→déc = hiver y/y+1 ; janv→avril = (y-1)/y
   return `${startY}-${startY + 1}`;
 }
-let wpSeason = null, wpData = {}, wpDay = 1;
+let wpSeason = null, wpName = {}, wpStatus = {}, wpDay = 1;
 async function loadWinter() {
   wpSeason = winterSeasonLabel();
   $("wp-season").textContent = wpSeason.replace("-", " – ");
-  const { data } = await sb.from("winter_plan").select("day,court,slot,player_name").eq("season", wpSeason);
-  wpData = {};
-  (data || []).forEach((r) => { wpData[`${r.day}_${r.court}_${r.slot}`] = r.player_name || ""; });
+  const { data } = await sb.from("winter_plan").select("day,court,slot,player_name,status").eq("season", wpSeason);
+  wpName = {}; wpStatus = {};
+  (data || []).forEach((r) => { const k = `${r.day}_${r.court}_${r.slot}`; wpName[k] = r.player_name || ""; wpStatus[k] = r.status || "libre"; });
   $("wp-days").innerHTML = WP_DAYS.map(([lbl, d]) =>
     `<button type="button" class="wp-day${d === wpDay ? " active" : ""}" data-day="${d}">${lbl}</button>`).join("");
   $("wp-days").querySelectorAll(".wp-day").forEach((b) =>
@@ -1418,29 +1419,45 @@ async function loadWinter() {
 }
 function renderWinterGrid() {
   $("wp-days").querySelectorAll(".wp-day").forEach((b) => b.classList.toggle("active", Number(b.dataset.day) === wpDay));
-  const head = `<tr><th class="wp-h-time"></th>${WP_COURTS.map((c) => `<th>Court ${c}</th>`).join("")}</tr>`;
+  const head = `<tr><th class="wp-h-time"></th>${WP_COURTS.map((c) => `<th>${c === "Fitness" ? "Fitness" : "Court " + c}</th>`).join("")}</tr>`;
   const rows = WP_START_HOURS.map((h) => {
     const slot = h - 8, tlabel = `${h}h15&nbsp;–&nbsp;${h + 1}h15`;
     const cells = WP_COURTS.map((c) => {
-      const val = wpData[`${wpDay}_${c}_${slot}`] || "";
-      return `<td><input type="text" class="wp-cell" data-court="${c}" data-slot="${slot}" value="${esc(val)}" placeholder="—" /></td>`;
+      const k = `${wpDay}_${c}_${slot}`, val = wpName[k] || "", st = wpStatus[k] || "libre";
+      return `<td class="wp-td wp-st-${st}" data-court="${esc(c)}" data-slot="${slot}"><div class="wp-cellin">`
+        + `<button type="button" class="wp-dot" title="Cliquer : libre → pré-réservé → confirmé"></button>`
+        + `<input type="text" class="wp-cell" value="${esc(val)}" placeholder="—" /></div></td>`;
     }).join("");
     return `<tr><th class="wp-time">${tlabel}</th>${cells}</tr>`;
   }).join("");
   $("wp-grid").innerHTML = `<table class="wp-table">${head}${rows}</table>`;
-  $("wp-grid").querySelectorAll(".wp-cell").forEach((inp) =>
-    inp.addEventListener("change", () => saveWinterCell(Number(inp.dataset.court), Number(inp.dataset.slot), inp.value.trim(), inp)));
+  $("wp-grid").querySelectorAll(".wp-td").forEach((td) => {
+    const court = td.dataset.court, slot = Number(td.dataset.slot);
+    td.querySelector(".wp-cell").addEventListener("change", (e) => saveWinterCell(court, slot, e.target.value.trim(), td));
+    td.querySelector(".wp-dot").addEventListener("click", () => cycleWinterStatus(court, slot, td));
+  });
 }
-async function saveWinterCell(court, slot, name, inp) {
-  wpData[`${wpDay}_${court}_${slot}`] = name;
-  inp.classList.remove("wp-err");
-  const { error } = await sb.from("winter_plan").upsert({
-    season: wpSeason, day: wpDay, court, slot, player_name: name || null,
+async function winterUpsert(court, slot) {
+  const k = `${wpDay}_${court}_${slot}`;
+  return sb.from("winter_plan").upsert({
+    season: wpSeason, day: wpDay, court, slot,
+    player_name: wpName[k] || null, status: wpStatus[k] || "libre",
     updated_at: new Date().toISOString(), updated_by: meId,
   }, { onConflict: "season,day,court,slot" });
+}
+async function saveWinterCell(court, slot, name, td) {
+  wpName[`${wpDay}_${court}_${slot}`] = name;
+  const inp = td.querySelector(".wp-cell"); inp.classList.remove("wp-err");
+  const { error } = await winterUpsert(court, slot);
   if (error) { inp.classList.add("wp-err"); return; }
-  inp.classList.add("wp-saved");
-  setTimeout(() => inp.classList.remove("wp-saved"), 800);
+  inp.classList.add("wp-saved"); setTimeout(() => inp.classList.remove("wp-saved"), 800);
+}
+async function cycleWinterStatus(court, slot, td) {
+  const k = `${wpDay}_${court}_${slot}`;
+  const next = WP_ST_NEXT[wpStatus[k] || "libre"]; wpStatus[k] = next;
+  td.classList.remove("wp-st-libre", "wp-st-pre", "wp-st-confirme");
+  td.classList.add("wp-st-" + next);
+  await winterUpsert(court, slot);
 }
 
 // ---- Photos / vidéos d'une personne ----
