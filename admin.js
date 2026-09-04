@@ -1398,7 +1398,8 @@ function tennisNavStep(d) {
 const WP_COURTS = ["4", "5", "6", "7", "10", "11", "Fitness"];
 const WP_START_HOURS = Array.from({ length: 14 }, (_, i) => 8 + i);   // 8h15 .. 21h15
 const WP_DAYS = [["Lundi", 1], ["Mardi", 2], ["Mercredi", 3], ["Jeudi", 4], ["Vendredi", 5]];
-const WP_ST_NEXT = { libre: "pre", pre: "confirme", confirme: "libre" };   // clic = libre→pré-réservé→confirmé
+// clic = blanc(libre) → jaune(pré-réservé) → vert(TeamLausanne/gratuit) → bleu(tarif normal) → violet(tarif coach)
+const WP_ST_NEXT = { libre: "pre", pre: "gratuit", gratuit: "normal", normal: "coach", coach: "libre" };
 function winterSeasonLabel() {
   const d = new Date(), y = d.getFullYear();
   const startY = d.getMonth() >= 4 ? y : y - 1;   // mai→déc = hiver y/y+1 ; janv→avril = (y-1)/y
@@ -1419,7 +1420,9 @@ async function loadWinter() {
 }
 function renderWinterGrid() {
   $("wp-days").querySelectorAll(".wp-day").forEach((b) => b.classList.toggle("active", Number(b.dataset.day) === wpDay));
-  const head = `<tr><th class="wp-h-time"></th>${WP_COURTS.map((c) => `<th>${c === "Fitness" ? "Fitness" : "Court " + c}</th>`).join("")}</tr>`;
+  const head = `<tr><th class="wp-h-time"></th>${WP_COURTS.map((c) =>
+    `<th class="wp-colh" data-court="${esc(c)}"><span>${c === "Fitness" ? "Fitness" : "Court " + c}</span>`
+    + `<button type="button" class="wp-colmove" draggable="true" data-court="${esc(c)}" title="Glisser pour déplacer TOUTE la colonne vers un autre court">⠿ déplacer</button></th>`).join("")}</tr>`;
   const rows = WP_START_HOURS.map((h) => {
     const slot = h - 8, tlabel = `${h}h15&nbsp;–&nbsp;${h + 1}h15`;
     const cells = WP_COURTS.map((c) => {
@@ -1436,18 +1439,43 @@ function renderWinterGrid() {
     td.querySelector(".wp-cell").addEventListener("change", (e) => saveWinterCell(court, slot, e.target.value.trim(), td));
     const dot = td.querySelector(".wp-dot");
     dot.addEventListener("click", () => cycleWinterStatus(court, slot, td));
-    // Glisser la pastille = déplacer le cours (échange les 2 cases).
+    // Glisser la pastille = déplacer 1 cours (échange les 2 cases).
     dot.setAttribute("draggable", "true");
-    dot.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", `${court}|${slot}`); e.dataTransfer.effectAllowed = "move"; td.classList.add("wp-dragging"); });
+    dot.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", `cell|${court}|${slot}`); e.dataTransfer.effectAllowed = "move"; td.classList.add("wp-dragging"); });
     dot.addEventListener("dragend", () => td.classList.remove("wp-dragging"));
     td.addEventListener("dragover", (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; td.classList.add("wp-drop"); });
     td.addEventListener("dragleave", () => td.classList.remove("wp-drop"));
     td.addEventListener("drop", (e) => {
       e.preventDefault(); td.classList.remove("wp-drop");
-      const [sc, ss] = (e.dataTransfer.getData("text/plain") || "").split("|");
-      if (sc !== "" && sc !== undefined) swapWinter(sc, Number(ss), court, slot);
+      const d = (e.dataTransfer.getData("text/plain") || "").split("|");
+      if (d[0] === "cell") swapWinter(d[1], Number(d[2]), court, slot);
     });
   });
+  // Déplacer TOUTE une colonne (toutes les leçons du court) vers un autre court.
+  $("wp-grid").querySelectorAll("th.wp-colh").forEach((th) => {
+    const court = th.dataset.court, mv = th.querySelector(".wp-colmove");
+    mv.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", `col|${court}`); e.dataTransfer.effectAllowed = "move"; th.classList.add("wp-dragging"); });
+    mv.addEventListener("dragend", () => th.classList.remove("wp-dragging"));
+    th.addEventListener("dragover", (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; th.classList.add("wp-drop"); });
+    th.addEventListener("dragleave", () => th.classList.remove("wp-drop"));
+    th.addEventListener("drop", (e) => {
+      e.preventDefault(); th.classList.remove("wp-drop");
+      const d = (e.dataTransfer.getData("text/plain") || "").split("|");
+      if (d[0] === "col") swapWinterColumns(d[1], court);
+    });
+  });
+}
+async function swapWinterColumns(sc, dc) {
+  if (sc === dc) return;
+  const ups = [];
+  for (let slot = 0; slot < 14; slot++) {
+    const ks = `${wpDay}_${sc}_${slot}`, kd = `${wpDay}_${dc}_${slot}`;
+    const sN = wpName[ks] || "", sSt = wpStatus[ks] || "libre", dN = wpName[kd] || "", dSt = wpStatus[kd] || "libre";
+    wpName[ks] = dN; wpStatus[ks] = dSt; wpName[kd] = sN; wpStatus[kd] = sSt;
+    ups.push(winterUpsert(sc, slot), winterUpsert(dc, slot));
+  }
+  renderWinterGrid();
+  await Promise.all(ups);
 }
 async function swapWinter(sc, ss, dc, ds) {
   if (sc === dc && ss === ds) return;
@@ -1476,8 +1504,8 @@ async function saveWinterCell(court, slot, name, td) {
 }
 async function cycleWinterStatus(court, slot, td) {
   const k = `${wpDay}_${court}_${slot}`;
-  const next = WP_ST_NEXT[wpStatus[k] || "libre"]; wpStatus[k] = next;
-  td.classList.remove("wp-st-libre", "wp-st-pre", "wp-st-confirme");
+  const next = WP_ST_NEXT[wpStatus[k]] || "pre"; wpStatus[k] = next;
+  td.classList.remove("wp-st-libre", "wp-st-pre", "wp-st-gratuit", "wp-st-normal", "wp-st-coach", "wp-st-confirme");
   td.classList.add("wp-st-" + next);
   await winterUpsert(court, slot);
 }
