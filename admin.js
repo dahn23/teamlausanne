@@ -209,9 +209,9 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
+  superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "winter", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["anniv", "resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "phystests", "heures"],
   coach_physique: ["cours", "phystests", "heures"],
@@ -221,7 +221,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -400,6 +400,7 @@ function showView(view) {
   if (view === "prospects") loadProspects();
   if (view === "heures") loadHeures();
   if (view === "factures") loadFactures();
+  if (view === "winter") loadWinter();
   if (view === "locks") loadLocks();
   if (view === "irrigation") loadIrrigation();
 }
@@ -1389,6 +1390,57 @@ function tennisNavStep(d) {
   if (!tennisNav) return;
   const n = tennisNav.list.length;
   showTennisPlayer({ ...tennisNav, idx: (tennisNav.idx + d + n) % n });
+}
+
+// ===================================================================
+//  Saison hiver — planning FIXE des abonnements (pour facturer l'hiver)
+// ===================================================================
+const WP_COURTS = [4, 5, 6, 7, 10, 11];
+const WP_START_HOURS = Array.from({ length: 14 }, (_, i) => 8 + i);   // 8h15 .. 21h15
+const WP_DAYS = [["Lundi", 1], ["Mardi", 2], ["Mercredi", 3], ["Jeudi", 4], ["Vendredi", 5]];
+function winterSeasonLabel() {
+  const d = new Date(), y = d.getFullYear();
+  const startY = d.getMonth() >= 4 ? y : y - 1;   // mai→déc = hiver y/y+1 ; janv→avril = (y-1)/y
+  return `${startY}-${startY + 1}`;
+}
+let wpSeason = null, wpData = {}, wpDay = 1;
+async function loadWinter() {
+  wpSeason = winterSeasonLabel();
+  $("wp-season").textContent = wpSeason.replace("-", " – ");
+  const { data } = await sb.from("winter_plan").select("day,court,slot,player_name").eq("season", wpSeason);
+  wpData = {};
+  (data || []).forEach((r) => { wpData[`${r.day}_${r.court}_${r.slot}`] = r.player_name || ""; });
+  $("wp-days").innerHTML = WP_DAYS.map(([lbl, d]) =>
+    `<button type="button" class="wp-day${d === wpDay ? " active" : ""}" data-day="${d}">${lbl}</button>`).join("");
+  $("wp-days").querySelectorAll(".wp-day").forEach((b) =>
+    b.addEventListener("click", () => { wpDay = Number(b.dataset.day); renderWinterGrid(); }));
+  renderWinterGrid();
+}
+function renderWinterGrid() {
+  $("wp-days").querySelectorAll(".wp-day").forEach((b) => b.classList.toggle("active", Number(b.dataset.day) === wpDay));
+  const head = `<tr><th class="wp-h-time"></th>${WP_COURTS.map((c) => `<th>Court ${c}</th>`).join("")}</tr>`;
+  const rows = WP_START_HOURS.map((h) => {
+    const slot = h - 8, tlabel = `${h}h15&nbsp;–&nbsp;${h + 1}h15`;
+    const cells = WP_COURTS.map((c) => {
+      const val = wpData[`${wpDay}_${c}_${slot}`] || "";
+      return `<td><input type="text" class="wp-cell" data-court="${c}" data-slot="${slot}" value="${esc(val)}" placeholder="—" /></td>`;
+    }).join("");
+    return `<tr><th class="wp-time">${tlabel}</th>${cells}</tr>`;
+  }).join("");
+  $("wp-grid").innerHTML = `<table class="wp-table">${head}${rows}</table>`;
+  $("wp-grid").querySelectorAll(".wp-cell").forEach((inp) =>
+    inp.addEventListener("change", () => saveWinterCell(Number(inp.dataset.court), Number(inp.dataset.slot), inp.value.trim(), inp)));
+}
+async function saveWinterCell(court, slot, name, inp) {
+  wpData[`${wpDay}_${court}_${slot}`] = name;
+  inp.classList.remove("wp-err");
+  const { error } = await sb.from("winter_plan").upsert({
+    season: wpSeason, day: wpDay, court, slot, player_name: name || null,
+    updated_at: new Date().toISOString(), updated_by: meId,
+  }, { onConflict: "season,day,court,slot" });
+  if (error) { inp.classList.add("wp-err"); return; }
+  inp.classList.add("wp-saved");
+  setTimeout(() => inp.classList.remove("wp-saved"), 800);
 }
 
 // ---- Photos / vidéos d'une personne ----

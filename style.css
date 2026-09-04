@@ -756,6 +756,19 @@ html{-webkit-tap-highlight-color:transparent}
 .att-goto:hover{background:#f0f6f2}
 .tnav{display:inline-flex;align-items:center;gap:10px;margin:0 0 10px 8px;vertical-align:middle}
 .tnav-pos{font-size:.85rem;font-weight:700;color:var(--muted);min-width:44px;text-align:center}
+/* Saison hiver — planning fixe des abonnements */
+.wp-days{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.wp-day{padding:8px 16px;border:1px solid var(--line);background:#fff;border-radius:9px;font-weight:700;cursor:pointer;color:var(--ink)}
+.wp-day.active{background:var(--brand,#0b6b3a);border-color:var(--brand,#0b6b3a);color:#fff}
+.wp-grid-wrap{overflow-x:auto}
+.wp-table{border-collapse:separate;border-spacing:0;width:100%;min-width:640px;font-size:.86rem;background:#fff}
+.wp-table th,.wp-table td{border:1px solid var(--line);padding:0}
+.wp-table th{padding:8px 10px;font-weight:700;text-align:center;background:#f4f6f8;white-space:nowrap}
+.wp-time{text-align:right;color:var(--muted);font-weight:600;white-space:nowrap;position:sticky;left:0;z-index:1}
+.wp-cell{width:100%;min-width:118px;border:0;padding:8px 9px;font:inherit;background:transparent;color:var(--ink);box-sizing:border-box}
+.wp-cell:focus{outline:2px solid var(--brand,#0b6b3a);outline-offset:-2px;background:#fff}
+.wp-cell.wp-saved{background:#e3f6e8}
+.wp-cell.wp-err{background:#fbe4e4}
 .tn-theme{margin:0 0 18px;padding:0 0 4px;border-bottom:1px solid var(--line)}
 .tn-theme .tn-th{font-weight:800;font-size:1rem;color:var(--ink);margin:0 0 8px}
 .tn-theme .obj-add{margin:0 0 10px}
