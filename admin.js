@@ -1434,8 +1434,30 @@ function renderWinterGrid() {
   $("wp-grid").querySelectorAll(".wp-td").forEach((td) => {
     const court = td.dataset.court, slot = Number(td.dataset.slot);
     td.querySelector(".wp-cell").addEventListener("change", (e) => saveWinterCell(court, slot, e.target.value.trim(), td));
-    td.querySelector(".wp-dot").addEventListener("click", () => cycleWinterStatus(court, slot, td));
+    const dot = td.querySelector(".wp-dot");
+    dot.addEventListener("click", () => cycleWinterStatus(court, slot, td));
+    // Glisser la pastille = déplacer le cours (échange les 2 cases).
+    dot.setAttribute("draggable", "true");
+    dot.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", `${court}|${slot}`); e.dataTransfer.effectAllowed = "move"; td.classList.add("wp-dragging"); });
+    dot.addEventListener("dragend", () => td.classList.remove("wp-dragging"));
+    td.addEventListener("dragover", (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; td.classList.add("wp-drop"); });
+    td.addEventListener("dragleave", () => td.classList.remove("wp-drop"));
+    td.addEventListener("drop", (e) => {
+      e.preventDefault(); td.classList.remove("wp-drop");
+      const [sc, ss] = (e.dataTransfer.getData("text/plain") || "").split("|");
+      if (sc !== "" && sc !== undefined) swapWinter(sc, Number(ss), court, slot);
+    });
   });
+}
+async function swapWinter(sc, ss, dc, ds) {
+  if (sc === dc && ss === ds) return;
+  const ks = `${wpDay}_${sc}_${ss}`, kd = `${wpDay}_${dc}_${ds}`;
+  const sN = wpName[ks] || "", sSt = wpStatus[ks] || "libre";
+  const dN = wpName[kd] || "", dSt = wpStatus[kd] || "libre";
+  wpName[ks] = dN; wpStatus[ks] = dSt;   // échange
+  wpName[kd] = sN; wpStatus[kd] = sSt;
+  renderWinterGrid();
+  await Promise.all([winterUpsert(sc, ss), winterUpsert(dc, ds)]);
 }
 async function winterUpsert(court, slot) {
   const k = `${wpDay}_${court}_${slot}`;
