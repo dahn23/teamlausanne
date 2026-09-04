@@ -1420,8 +1420,9 @@ async function loadWinter() {
 }
 function renderWinterGrid() {
   $("wp-days").querySelectorAll(".wp-day").forEach((b) => b.classList.toggle("active", Number(b.dataset.day) === wpDay));
+  const surf = (c) => c === "Fitness" ? "wp-surf-fitness" : ["4", "5", "6", "7"].includes(c) ? "wp-surf-clay" : ["10", "11"].includes(c) ? "wp-surf-indoor" : "";
   const head = `<tr><th class="wp-h-time"></th>${WP_COURTS.map((c) =>
-    `<th class="wp-colh" data-court="${esc(c)}"><span>${c === "Fitness" ? "Fitness" : "Court " + c}</span>`
+    `<th class="wp-colh ${surf(c)}" data-court="${esc(c)}"><span>${c === "Fitness" ? "Fitness" : "Court " + c}</span>`
     + `<button type="button" class="wp-colmove" draggable="true" data-court="${esc(c)}" title="Glisser pour déplacer TOUTE la colonne vers un autre court">⠿ déplacer</button></th>`).join("")}</tr>`;
   const rows = WP_START_HOURS.map((h) => {
     const slot = h - 8, tlabel = `${h}h15&nbsp;–&nbsp;${h + 1}h15`;
