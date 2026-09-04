@@ -782,10 +782,10 @@ html{-webkit-tap-highlight-color:transparent}
 .wp-td.wp-drop,.wp-colh.wp-drop{outline:2px dashed var(--brand,#0b6b3a);outline-offset:-2px}
 .wp-td.wp-dragging,.wp-colh.wp-dragging{opacity:.45}
 .wp-colh span{display:block}
-.wp-surf-clay{background:rgba(214,116,44,.22)}
-.wp-surf-indoor{background:rgba(45,110,224,.20)}
-.wp-surf-fitness{background:#3a3f4a}
-.wp-surf-fitness span{color:#fff}
+.wp-colh.wp-surf-clay{background:rgba(214,116,44,.22)}
+.wp-colh.wp-surf-indoor{background:rgba(45,110,224,.20)}
+.wp-colh.wp-surf-fitness{background:#3a3f4a}
+.wp-colh.wp-surf-fitness span{color:#fff}
 .wp-colmove{margin-top:5px;display:inline-block;font-size:.68rem;font-weight:700;color:var(--muted);
   background:#fff;border:1px solid var(--line);border-radius:6px;padding:2px 6px;cursor:grab}
 .wp-colmove:active{cursor:grabbing}
