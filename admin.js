@@ -6890,8 +6890,14 @@ async function loadMail() {
       const { data: msgs } = await sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(300);
       if (msgs) { mailMsgs = msgs; renderMailAccts(); refreshMailView(); }
     }, 60000);
-    $("mailc-close").addEventListener("click", () => $("mailc-modal").classList.add("hidden"));
-    $("mailc-modal").addEventListener("click", (e) => { if (e.target === $("mailc-modal")) $("mailc-modal").classList.add("hidden"); });
+    $("mailc-close").addEventListener("click", () => { $("mailc-modal").classList.add("hidden"); $("mailc-restore").classList.add("hidden"); });
+    $("mailc-modal").addEventListener("click", (e) => { if (e.target === $("mailc-modal")) mailComposeMinimize(); });  // clic hors carte = réduire (ne perd rien)
+    $("mailc-min").addEventListener("click", mailComposeMinimize);
+    $("mailc-restore").addEventListener("click", () => { $("mailc-restore").classList.add("hidden"); $("mailc-modal").classList.remove("hidden"); });
+    $("mailc-draft").addEventListener("click", mailComposeSaveDraft);
+    $("mail-drafts-btn").addEventListener("click", openMailDrafts);
+    $("maildrafts-close").addEventListener("click", () => $("maildrafts-modal").classList.add("hidden"));
+    $("maildrafts-modal").addEventListener("click", (e) => { if (e.target === $("maildrafts-modal")) $("maildrafts-modal").classList.add("hidden"); });
     $("mailc-send").addEventListener("click", mailComposeSend);
     document.querySelectorAll("#mailc-modal .rt-btn").forEach((b) => b.addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand(b.dataset.cmd, false, null); }));
     $("mailc-color").addEventListener("input", (e) => { document.execCommand("foreColor", false, e.target.value); $("mailc-body").focus(); });
@@ -6958,13 +6964,12 @@ async function refreshMailView() {
   const assignee = mine ? myPersonId : (status === "en_cours" ? mailAssigneeF : "");
   const useAddr = mailFilterAddr && !mine;   // « attribué à moi » = toutes boîtes
   if (q.length >= 2) {
+    // Recherche = TOUT l'historique, indépendamment des filtres actifs (boîte, reçus/envoyés,
+    // statut, attribution). Seule exception : un official reste verrouillé sur tournoi@.
     const safe = q.replace(/[,()%*]/g, " ").trim();
     let query = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(150)
       .or(`subject.ilike.%${safe}%,from_name.ilike.%${safe}%,from_address.ilike.%${safe}%,to_address.ilike.%${safe}%,body_text.ilike.%${safe}%`);
-    if (useAddr) query = query.eq("account_address", mailFilterAddr);
-    if (dir) query = query.eq("direction", dir);
-    if (status) query = query.eq("status", status);
-    if (assignee) query = query.eq("assigned_user", assignee);
+    if (mailTournoiOnly) query = query.eq("account_address", MAIL_TOURNOI);
     const { data } = await query;
     mailView = data || [];
   } else {
@@ -7220,9 +7225,12 @@ const fileToB64 = (f) => new Promise((res) => { const r = new FileReader(); r.on
 
 // ---- Nouveau message ----
 let mailcFiles = [];
+let mailcDraftId = null;   // id du brouillon en cours d'édition (mail_compose_drafts), sinon null
 function openMailCompose(prefill) {
   if (prefill instanceof Event) prefill = null;  // appelé comme handler → pas de préremplissage
   const pf = prefill || {};
+  mailcDraftId = pf.draftId || null;
+  $("mailc-restore").classList.add("hidden");   // on rouvre en grand → plus de pastille réduite
   const froms = mailTournoiOnly ? mailAccounts.filter((a) => a.address === MAIL_TOURNOI) : mailAccounts;
   const cur = pf.account || (mailTournoiOnly ? MAIL_TOURNOI : (mailFilterAddr || (mailAccounts[0]?.address) || ""));
   $("mailc-from").innerHTML = froms.map((a) => `<option value="${esc(a.address)}">${esc(a.label)} — ${esc(a.address)}</option>`).join("");
@@ -7237,6 +7245,50 @@ function openMailCompose(prefill) {
   renderMailcFiles();
   $("mailc-modal").classList.remove("hidden");
   setTimeout(() => $("mailc-to").focus(), 50);
+}
+// Réduire : cache la fenêtre mais garde tout en mémoire (DOM) → pastille pour rouvrir.
+function mailComposeMinimize() {
+  const subj = $("mailc-subject").value.trim();
+  $("mailc-restore").textContent = "✉ " + (subj || "Nouveau message") + "  ⤢";
+  $("mailc-restore").classList.remove("hidden");
+  $("mailc-modal").classList.add("hidden");
+}
+// Enregistrer le brouillon (champs texte ; les pièces jointes ne sont pas conservées).
+async function mailComposeSaveDraft() {
+  const row = {
+    account: $("mailc-from").value || null, to_addr: $("mailc-to").value.trim() || null,
+    cc: $("mailc-cc").value.trim() || null, bcc: $("mailc-bcc").value.trim() || null,
+    subject: $("mailc-subject").value.trim() || null, body_html: $("mailc-body").innerHTML.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+  const st = $("mailc-status");
+  let error;
+  if (mailcDraftId) { ({ error } = await sb.from("mail_compose_drafts").update(row).eq("id", mailcDraftId)); }
+  else { const r = await sb.from("mail_compose_drafts").insert(row).select("id").single(); error = r.error; if (r.data) mailcDraftId = r.data.id; }
+  st.textContent = error ? "Échec du brouillon : " + error.message : "✓ Brouillon enregistré";
+}
+async function openMailDrafts() {
+  const box = $("maildrafts-list");
+  box.innerHTML = '<p class="muted">Chargement…</p>';
+  $("maildrafts-modal").classList.remove("hidden");
+  const { data } = await sb.from("mail_compose_drafts").select("*").order("updated_at", { ascending: false });
+  const rows = data || [];
+  box.innerHTML = rows.length ? rows.map((d) => `<div class="mdft-item" data-id="${d.id}">
+      <button type="button" class="mdft-open" data-id="${d.id}"><b>${esc(d.subject || "(sans objet)")}</b>
+        <span class="muted">${esc(d.to_addr || "—")} · ${frDateTime(d.updated_at)}</span></button>
+      <button type="button" class="mdft-del" data-id="${d.id}" title="Supprimer">✕</button></div>`).join("")
+    : '<p class="obj-empty">Aucun brouillon.</p>';
+  box.querySelectorAll(".mdft-open").forEach((b) => b.addEventListener("click", () => {
+    const d = rows.find((x) => x.id === b.dataset.id); if (!d) return;
+    $("maildrafts-modal").classList.add("hidden");
+    openMailCompose({ draftId: d.id, account: d.account, to: d.to_addr, cc: d.cc, bcc: d.bcc, subject: d.subject, bodyHtml: d.body_html });
+  }));
+  box.querySelectorAll(".mdft-del").forEach((b) => b.addEventListener("click", async () => {
+    if (!await uiConfirm("Supprimer ce brouillon ?")) return;
+    await sb.from("mail_compose_drafts").delete().eq("id", b.dataset.id);
+    if (mailcDraftId === b.dataset.id) mailcDraftId = null;
+    openMailDrafts();
+  }));
 }
 // Transférer un message : ouvre « Nouveau message » prérempli (objet Fwd:, corps cité,
 // pièces jointes d'origine reprises). Le destinataire reste à saisir.
@@ -7327,7 +7379,11 @@ async function mailComposeSend() {
     const { data, error } = await sb.functions.invoke("mail-send", { body: { account, to, cc: cc || undefined, bcc: bcc || undefined, subject, text, html: html || undefined, attachments } });
     if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} st.textContent = "Échec : " + m; }
     else if (data?.error) { st.textContent = "Échec : " + data.error; }
-    else { $("mailc-modal").classList.add("hidden"); await loadMail(); }
+    else {
+      if (mailcDraftId) { await sb.from("mail_compose_drafts").delete().eq("id", mailcDraftId); mailcDraftId = null; }
+      $("mailc-restore").classList.add("hidden");
+      $("mailc-modal").classList.add("hidden"); await loadMail();
+    }
   } catch (e) { st.textContent = "Échec : " + (e?.message || e); }
   btn.disabled = false;
 }

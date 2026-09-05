@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=144" />
+  <link rel="stylesheet" href="style.css?v=145" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -589,6 +589,7 @@
           <div class="mail-toolbar">
             <div class="mail-row">
               <button id="mail-new">✉ Nouveau message</button>
+              <button type="button" id="mail-drafts-btn" class="ghost" title="Mes brouillons">Brouillons</button>
               <button type="button" id="mail-filters-toggle" class="ghost mail-filters-toggle" aria-expanded="false">Filtres ▾</button>
               <button type="button" id="mail-notif-btn" class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ic-bell" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="mail-notif-lbl">Activer les notifs</span></button>
               <span class="spacer"></span>
@@ -620,6 +621,7 @@
         <div id="mailc-modal" class="modal hidden">
           <div class="card wide">
             <button type="button" id="mailc-close" class="modal-close" aria-label="Fermer">×</button>
+            <button type="button" id="mailc-min" class="mailc-min" aria-label="Réduire" title="Réduire (garder le message ouvert en arrière-plan)">▁</button>
             <h2 style="margin-top:0">Nouveau message</h2>
             <label class="mailc-f">Depuis<select id="mailc-from"></select></label>
             <label class="mailc-f">À<input id="mailc-to" type="text" autocomplete="off" placeholder="destinataire@exemple.ch" /></label>
@@ -635,7 +637,18 @@
             </div>
             <div id="mailc-body" class="rt-edit" contenteditable="true" data-ph="Votre message…"></div>
             <div id="mailc-files" class="rt-files"></div>
-            <div class="form-foot"><span id="mailc-status" class="muted" style="font-size:.82rem"></span><span class="spacer"></span><button type="button" id="mailc-send">Envoyer</button></div>
+            <div class="form-foot"><span id="mailc-status" class="muted" style="font-size:.82rem"></span><span class="spacer"></span><button type="button" id="mailc-draft" class="ghost">Enregistrer le brouillon</button><button type="button" id="mailc-send">Envoyer</button></div>
+          </div>
+        </div>
+        <!-- Brouillon réduit : pastille flottante pour rouvrir -->
+        <button type="button" id="mailc-restore" class="mailc-restore hidden"></button>
+
+        <!-- Fenêtre : mes brouillons -->
+        <div id="maildrafts-modal" class="modal hidden">
+          <div class="card">
+            <button type="button" id="maildrafts-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0">Mes brouillons</h2>
+            <div id="maildrafts-list"></div>
           </div>
         </div>
 
