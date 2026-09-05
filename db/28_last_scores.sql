@@ -39,6 +39,9 @@ returns table(
     and coalesce(m.is_double,false) = false
     and m.match_date >= current_date - (p_days || ' days')::interval
     and (m.won is not null or coalesce(m.score,'') <> '')
+    -- seulement les joueurs d'une filiere academie (role_periods = source des filieres par saison)
+    and exists (select 1 from role_periods rpp where rpp.person_id = m.person_id
+                and rpp.role in ('kidstennis','club','competition','performance','sport-etudes','pro-u18','pro'))
   order by m.match_date desc, tournament_name, person_name;
 $$;
 grant execute on function public.last_scores(int) to authenticated;

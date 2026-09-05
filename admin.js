@@ -1521,17 +1521,26 @@ async function loadLastScores() {
     lsWired = true;
     $("ls-days").addEventListener("change", loadLastScores);
     $("ls-perfonly").addEventListener("change", renderLastScores);
+    $("ls-player").addEventListener("change", renderLastScores);
   }
   const body = $("ls-body"); body.innerHTML = '<p class="muted">Chargement…</p>';
   const days = Number($("ls-days").value) || 28;
   const { data, error } = await sb.rpc("last_scores", { p_days: days });
   if (error) { body.innerHTML = `<p class="error">Erreur : ${esc(error.message)}</p>`; return; }
   lsData = data || [];
+  // Liste déroulante des joueurs présents (triée par nom), en gardant la sélection si possible.
+  const sel = $("ls-player"), cur = sel.value;
+  const players = [...new Map(lsData.map((r) => [r.person_id, r.person_name])).entries()]
+    .sort((a, b) => (a[1] || "").localeCompare(b[1] || ""));
+  sel.innerHTML = `<option value="">Tous les joueurs</option>` + players.map(([id, nm]) => `<option value="${id}">${esc(nm || "—")}</option>`).join("");
+  if (players.some(([id]) => id === cur)) sel.value = cur;
   renderLastScores();
 }
 function renderLastScores() {
   const body = $("ls-body"); if (!body) return;
-  const rows = $("ls-perfonly").checked ? lsData.filter((r) => r.is_perf) : lsData;
+  const pf = $("ls-player").value;
+  let rows = pf ? lsData.filter((r) => r.person_id === pf) : lsData;
+  if ($("ls-perfonly").checked) rows = rows.filter((r) => r.is_perf);
   const nPerf = lsData.filter((r) => r.is_perf).length;
   $("ls-sub").textContent = `— ${lsData.length} résultat${lsData.length > 1 ? "s" : ""} · ${nPerf} perf${nPerf > 1 ? "s" : ""}`;
   if (!rows.length) { body.innerHTML = '<p class="obj-empty">Aucun résultat sur la période.</p>'; return; }
