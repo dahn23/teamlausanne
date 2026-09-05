@@ -209,19 +209,19 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "winter", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
-  head_coach: ["anniv", "resa", "cours", "matchs", "phystests", "mental", "stages", "prospects", "heures"],
-  coach:      ["cours", "matchs", "phystests", "heures"],
-  coach_physique: ["cours", "phystests", "heures"],
-  moniteur:   ["cours", "heures"],
+  superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "winter", "cours", "lastscores", "caisse", "locks", "irrigation", "stages", "stats"],
+  head_coach: ["anniv", "resa", "cours", "matchs", "lastscores", "phystests", "mental", "stages", "prospects", "heures"],
+  coach:      ["cours", "matchs", "lastscores", "phystests", "heures"],
+  coach_physique: ["cours", "lastscores", "phystests", "heures"],
+  moniteur:   ["cours", "lastscores", "heures"],
   prof:       ["etudes"],
   coach_mental: ["mental", "heures"],
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -401,6 +401,7 @@ function showView(view) {
   if (view === "heures") loadHeures();
   if (view === "factures") loadFactures();
   if (view === "winter") loadWinter();
+  if (view === "lastscores") loadLastScores();
   if (view === "locks") loadLocks();
   if (view === "irrigation") loadIrrigation();
 }
@@ -1509,6 +1510,44 @@ async function cycleWinterStatus(court, slot, td) {
   td.classList.remove("wp-st-libre", "wp-st-pre", "wp-st-gratuit", "wp-st-normal", "wp-st-coach", "wp-st-confirme");
   td.classList.add("wp-st-" + next);
   await winterUpsert(court, slot);
+}
+
+// ===================================================================
+//  Last scores — résultats récents des joueurs du répertoire (4 dernières semaines)
+// ===================================================================
+let lsWired = false, lsData = [];
+async function loadLastScores() {
+  if (!lsWired) {
+    lsWired = true;
+    $("ls-days").addEventListener("change", loadLastScores);
+    $("ls-perfonly").addEventListener("change", renderLastScores);
+  }
+  const body = $("ls-body"); body.innerHTML = '<p class="muted">Chargement…</p>';
+  const days = Number($("ls-days").value) || 28;
+  const { data, error } = await sb.rpc("last_scores", { p_days: days });
+  if (error) { body.innerHTML = `<p class="error">Erreur : ${esc(error.message)}</p>`; return; }
+  lsData = data || [];
+  renderLastScores();
+}
+function renderLastScores() {
+  const body = $("ls-body"); if (!body) return;
+  const rows = $("ls-perfonly").checked ? lsData.filter((r) => r.is_perf) : lsData;
+  const nPerf = lsData.filter((r) => r.is_perf).length;
+  $("ls-sub").textContent = `— ${lsData.length} résultat${lsData.length > 1 ? "s" : ""} · ${nPerf} perf${nPerf > 1 ? "s" : ""}`;
+  if (!rows.length) { body.innerHTML = '<p class="obj-empty">Aucun résultat sur la période.</p>'; return; }
+  const cls = (c) => c ? ` <span class="ls-cls">${esc(c)}</span>` : "";
+  body.innerHTML = `<div class="table-wrap"><table class="crm-table ls-table"><thead><tr>
+      <th>Date</th><th>Tournoi</th><th>Joueur</th><th>Adversaire</th><th>Score</th></tr></thead><tbody>`
+    + rows.map((r) => {
+      const res = r.won === true ? '<span class="pm-w">V</span> ' : r.won === false ? '<span class="pm-l">D</span> ' : "";
+      return `<tr class="${r.is_perf ? "ls-perf" : ""}">
+        <td class="ls-date">${r.match_date ? frDate(r.match_date) : "—"}</td>
+        <td>${esc(r.tournament_name || "—")}</td>
+        <td><b>${esc(r.person_name || "—")}</b>${cls(r.person_class)}</td>
+        <td>${esc(r.opponent_name || "—")}${cls(r.opponent_class)}</td>
+        <td class="ls-score">${res}${esc(r.score || "")}${r.is_perf ? ' <span class="ls-badge">PERF</span>' : ""}</td>
+      </tr>`;
+    }).join("") + "</tbody></table></div>";
 }
 
 // ---- Photos / vidéos d'une personne ----
