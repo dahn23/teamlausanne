@@ -211,11 +211,11 @@ async function saveMyProfile() {
 const DEFAULT_TAB_ACCESS = {
   superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
   admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "winter", "cours", "lastscores", "caisse", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "winter", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["anniv", "resa", "cours", "matchs", "lastscores", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "lastscores", "phystests", "heures"],
-  coach_physique: ["cours", "lastscores", "phystests", "heures"],
-  moniteur:   ["cours", "lastscores", "heures"],
+  coach_physique: ["cours", "phystests", "heures"],
+  moniteur:   ["cours", "heures"],
   prof:       ["etudes"],
   coach_mental: ["mental", "heures"],
   organisateur: ["gamezone", "mail"],
@@ -1524,7 +1524,7 @@ async function loadLastScores() {
     $("ls-player").addEventListener("change", renderLastScores);
   }
   const body = $("ls-body"); body.innerHTML = '<p class="muted">Chargement…</p>';
-  const days = Number($("ls-days").value) || 28;
+  const days = Number($("ls-days").value) || 14;
   const { data, error } = await sb.rpc("last_scores", { p_days: days });
   if (error) { body.innerHTML = `<p class="error">Erreur : ${esc(error.message)}</p>`; return; }
   lsData = data || [];
