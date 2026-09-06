@@ -4,7 +4,7 @@ import { sb } from "./common.js";
 const FN = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/prospects-import";
 const AK = "sb_publishable_nsRKXBFgwmDjtmvS3mFc0w_Q4pi_qxK";
 const st = document.getElementById("st");
-const logOps = (a) => { try { sb.rpc("ops_log_write", { p_action: a }); } catch (_) {} };
+const logOps = async (a) => { try { await sb.rpc("ops_log_write", { p_action: a }); } catch (_) {} };
 let KEY = null;
 
 async function callFn(body) {
@@ -34,7 +34,7 @@ window.addEventListener("message", async (e) => {
     try {
       const j = await callFn({ key: KEY || d.key, action: "recent", rows: d.rows });
       if (!j.ok) { st.textContent = "Erreur : " + (j.error || JSON.stringify(j)); return; }
-      logOps("scan");
+      await logOps("scan");
       let msg = `✓ Terminé : ${j.stored} match(s) récents enregistrés pour ${j.matched} prospect(s), dont 🔥 ${j.upsets} exploit(s). Rafraîchis l'onglet Prospects.`;
       const g = d.diag;
       if (g && j.stored === 0) {
