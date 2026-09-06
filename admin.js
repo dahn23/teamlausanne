@@ -5295,8 +5295,322 @@ function initFactures() {
     document.querySelectorAll("#view-factures .fac-subtab").forEach((x) => x.classList.toggle("active", x === b));
     document.querySelectorAll("#view-factures .fac-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "fac-sub-" + b.dataset.fsub));
     if (b.dataset.fsub === "tarifs") { renderFacTarifs(); renderFacPeak(); }
+    if (b.dataset.fsub === "emises") loadOutInvoices();
+  }));
+  initOutInvoices();
+}
+// ===================================================================
+//  Factures ÉMISES (à encaisser) : lot par filière → n° + référence RF → PDF QR-facture → envoi mail → suivi
+// ===================================================================
+const OI_ST = { a_envoyer: ["À envoyer", "fac-todo"], envoyee: ["Envoyée", "fac-pay"], payee: ["Payée", "fac-paid"], annulee: ["Annulée", ""] };
+const OI_ORDER = ["a_envoyer", "envoyee", "payee", "annulee"];
+const OI_FILIERES = [["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"], ["performance", "Performance"], ["competition", "Compétition"], ["club", "Club"], ["kidstennis", "KidsTennis"], ["adultes", "Adultes"]];
+const OI_FROM = "info@teamlausanne.ch";
+let oiList = [], oiFilter = "", oiInit = false, oiPrep = [], oiSendIds = [];
+const oiChf = (n) => Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ");   // 1 234.50 (format QR-facture)
+const oiFmt4 = (s) => String(s || "").replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
+const oiFil = (v) => (OI_FILIERES.find(([k]) => k === v) || [v, v])[1];
+
+function initOutInvoices() {
+  if (oiInit) return; oiInit = true;
+  $("oi-prep").addEventListener("click", oiOpenPrep);
+  $("oi-close").addEventListener("click", () => $("oi-modal").classList.add("hidden"));
+  $("oi-load").addEventListener("click", oiLoadPlayers);
+  $("oi-generate").addEventListener("click", oiGenerate);
+  $("oi-all").addEventListener("change", () => { $("oi-prep-rows").querySelectorAll(".oi-inc").forEach((c) => { c.checked = $("oi-all").checked; oiPrep[c.dataset.i].include = c.checked; }); oiUpdateGenBtn(); });
+  $("oi-send-all").addEventListener("click", () => oiOpenSend(oiList.filter((x) => x.status === "a_envoyer" && x.pdf_path).map((x) => x.id)));
+  $("oi-send-close").addEventListener("click", () => $("oi-send-modal").classList.add("hidden"));
+  $("oi-send-go").addEventListener("click", oiSendGo);
+  ["oi-send-subject", "oi-send-text"].forEach((id) => $(id).addEventListener("input", oiSendPreview));
+}
+async function loadOutInvoices() {
+  initOutInvoices();
+  if (!facAccts.length) { const { data: acc } = await sb.from("finance_accounts").select("*").order("sort"); facAccts = acc || []; }
+  const { data, error } = await sb.from("out_invoices").select("*").order("number", { ascending: false });
+  if (error) { $("oi-rows").innerHTML = `<tr><td colspan="9" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
+  oiList = data || [];
+  const pids = [...new Set(oiList.map((x) => x.person_id).filter(Boolean))];
+  if (pids.length) {
+    const { data: pl } = await sb.from("people").select("id,first_name,last_name").in("id", pids);
+    const nm = {}; for (const p of pl || []) nm[p.id] = `${p.first_name} ${p.last_name}`;
+    for (const x of oiList) x.player_name = nm[x.person_id] || "";
+  }
+  renderOiFilters(); renderOutInvoices();
+}
+function renderOiFilters() {
+  const counts = { "": oiList.length };
+  for (const f of oiList) counts[f.status] = (counts[f.status] || 0) + 1;
+  const chip = (v, l) => `<button type="button" class="chip filt${oiFilter === v ? " sel" : ""}" data-st="${v}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
+  $("oi-filters").innerHTML = chip("", "Toutes") + OI_ORDER.map((s) => chip(s, OI_ST[s][0])).join("");
+  $("oi-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { oiFilter = b.dataset.st; renderOiFilters(); renderOutInvoices(); }));
+  const n = oiList.filter((x) => x.status === "a_envoyer" && x.pdf_path).length;
+  $("oi-send-all").textContent = `✉ Envoyer les factures à envoyer${n ? ` (${n})` : ""}`;
+  $("oi-send-all").disabled = !n;
+}
+function renderOutInvoices() {
+  const rows = oiList.filter((f) => !oiFilter || f.status === oiFilter);
+  $("oi-empty").hidden = rows.length > 0;
+  $("oi-rows").innerHTML = rows.map((f) => {
+    const [lbl, cls] = OI_ST[f.status] || [f.status, ""];
+    const acts = (f.status === "a_envoyer" && f.pdf_path ? `<button class="ghost oi-send" data-id="${f.id}">Envoyer</button>` : "")
+      + (f.status === "envoyee" ? `<button class="ghost oi-send" data-id="${f.id}" title="Renvoyer">↻</button><button class="ghost oi-paid" data-id="${f.id}">Payée</button>` : "")
+      + (f.status !== "annulee" && f.status !== "payee" ? `<button class="ghost oi-cancel" data-id="${f.id}" title="Annuler">✕</button>` : "");
+    return `<tr class="${f.status === "annulee" ? "muted" : ""}">
+      <td style="white-space:nowrap"><b>${esc(f.number)}</b>${f.reference ? `<div class="muted" style="font-size:.7rem">${esc(oiFmt4(f.reference))}</div>` : ""}</td>
+      <td>${esc(f.debtor_name || "—")}${f.debtor_email ? `<div class="muted" style="font-size:.75rem">${esc(f.debtor_email)}</div>` : ""}</td>
+      <td>${esc(f.player_name || "")}</td>
+      <td class="muted" style="font-size:.84rem">${esc(f.label || "")}</td>
+      <td style="white-space:nowrap">${oiChf(f.amount)} CHF</td>
+      <td style="white-space:nowrap">${f.due_date ? frDate(f.due_date) : "—"}</td>
+      <td>${f.pdf_path ? `<button class="ghost oi-pdf" data-path="${esc(f.pdf_path)}">📄 Voir</button>` : `<button class="ghost oi-regen" data-id="${f.id}" title="Générer le PDF">⟳ PDF</button>`}</td>
+      <td><span class="fac-st ${cls}">${lbl}</span>${f.sent_at ? `<div class="muted" style="font-size:.7rem">${frDate(f.sent_at)}</div>` : ""}</td>
+      <td class="he-acts">${acts}</td></tr>`;
+  }).join("");
+  const R = $("oi-rows");
+  R.querySelectorAll(".oi-pdf").forEach((b) => b.addEventListener("click", async () => {
+    const { data, error } = await sb.storage.from("out_invoices").createSignedUrl(b.dataset.path, 600);
+    if (error || !data?.signedUrl) { uiAlert("PDF indisponible : " + (error?.message || "")); return; }
+    window.open(data.signedUrl, "_blank", "noopener");
+  }));
+  R.querySelectorAll(".oi-regen").forEach((b) => b.addEventListener("click", async () => { const f = oiList.find((x) => x.id === b.dataset.id); if (f) { await oiMakePdf(f); loadOutInvoices(); } }));
+  R.querySelectorAll(".oi-send").forEach((b) => b.addEventListener("click", () => oiOpenSend([b.dataset.id])));
+  R.querySelectorAll(".oi-paid").forEach((b) => b.addEventListener("click", async () => { await sb.from("out_invoices").update({ status: "payee", paid_at: new Date().toISOString() }).eq("id", b.dataset.id); loadOutInvoices(); }));
+  R.querySelectorAll(".oi-cancel").forEach((b) => b.addEventListener("click", async () => {
+    const f = oiList.find((x) => x.id === b.dataset.id);
+    if (!(await uiConfirm(`Annuler la facture ${f?.number} ? (elle reste dans la liste, statut « Annulée »)`))) return;
+    await sb.from("out_invoices").update({ status: "annulee" }).eq("id", b.dataset.id); loadOutInvoices();
   }));
 }
+// ---- Préparation d'un lot ----
+async function oiOpenPrep() {
+  await loadSeasonsList();
+  const cur = currentSeason("juniors");
+  $("oi-filiere").innerHTML = OI_FILIERES.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
+  $("oi-season").innerHTML = seasonsOf("juniors").map((s) => `<option value="${s.id}">${esc(s.label)}</option>`).join("");
+  if (cur) $("oi-season").value = cur.id;
+  $("oi-acct").innerHTML = facAccts.map((a) => `<option value="${a.id}">${esc(a.name)} — ${esc(a.iban)}</option>`).join("");
+  const def = facAccts.find((a) => a.is_default) || facAccts[0]; if (def) $("oi-acct").value = def.id;
+  const due = new Date(); due.setDate(due.getDate() + 30); $("oi-due").value = due.toISOString().slice(0, 10);
+  oiPrep = []; $("oi-prep-rows").innerHTML = ""; $("oi-prep-note").textContent = ""; $("oi-gen-status").textContent = ""; $("oi-generate").disabled = true;
+  $("oi-modal").classList.remove("hidden");
+}
+function oiUpdateGenBtn() {
+  const n = oiPrep.filter((r) => r.include && r.amount > 0).length;
+  $("oi-generate").disabled = !n; $("oi-generate").textContent = n ? `Générer ${n} facture(s)` : "Générer les factures";
+}
+function oiAddr(p) { return p ? { street: (p.address || "").trim(), zip: (p.postal_code || "").trim(), city: (p.city || "").trim(), email: (p.email || "").trim() } : { street: "", zip: "", city: "", email: "" }; }
+async function oiLoadPlayers() {
+  const fil = $("oi-filiere").value, seasonId = $("oi-season").value;
+  const note = $("oi-prep-note"); note.textContent = "Chargement…";
+  const { data: rp } = await sb.from("role_periods").select("person_id").eq("season_id", seasonId).eq("role", fil);
+  const ids = [...new Set((rp || []).map((r) => r.person_id))];
+  if (!ids.length) { note.textContent = `Aucun joueur en ${oiFil(fil)} pour cette saison (rôles par saison de la fiche).`; oiPrep = []; $("oi-prep-rows").innerHTML = ""; oiUpdateGenBtn(); return; }
+  const [{ data: pl }, { data: gs }, { data: ct }, { data: st }] = await Promise.all([
+    sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").in("id", ids),
+    sb.from("guardianships").select("guardian_id,child_id,relation").in("child_id", ids),
+    sb.from("player_contracts").select("person_id,data").eq("season_id", seasonId).in("person_id", ids),
+    sb.from("app_settings").select("value").eq("key", "sub_prices").maybeSingle(),
+  ]);
+  const gIds = [...new Set((gs || []).filter((g) => g.relation !== "sibling").map((g) => g.guardian_id))];
+  const { data: gp } = gIds.length ? await sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").in("id", gIds) : { data: [] };
+  const byId = {}; for (const p of [...(pl || []), ...(gp || [])]) byId[p.id] = p;
+  const grid = st?.value || {}; const gridPrice = parseFloat(grid[fil]);
+  const nInst = parseInt($("oi-inst-total").value) || null;
+  oiPrep = (pl || []).sort((a, b) => a.last_name.localeCompare(b.last_name)).map((p) => {
+    const parents = (gs || []).filter((g) => g.child_id === p.id && g.relation !== "sibling").map((g) => byId[g.guardian_id]).filter(Boolean);
+    const cands = [...parents, p];
+    const debtor = parents.find((x) => x.email) || parents[0] || p;   // parent lié (avec e-mail de préférence), sinon le joueur
+    const d = (ct || []).find((c) => c.person_id === p.id)?.data || {};
+    const fee = parseFloat(d["Annual fee"]), cInst = parseInt(d["Instalments"]);
+    let amount = null, source = "—";
+    const total = nInst || cInst || 1;
+    if (fee > 0) { amount = Math.round((fee / total) * 100) / 100; source = `contrat ${oiChf(fee)} ÷ ${total}`; }
+    else if (gridPrice > 0) { amount = Math.round((gridPrice / total) * 100) / 100; source = `tarifs ${oiChf(gridPrice)} ÷ ${total}`; }
+    return { include: amount > 0, person: p, cands, debtor_id: debtor.id, amount, source, total };
+  });
+  renderOiPrep(byId);
+  const missing = oiPrep.filter((r) => !(r.amount > 0)).length;
+  note.textContent = `${oiPrep.length} joueur(s)${missing ? ` · ${missing} sans montant (pas de contrat ni de tarif : saisis-le ou décoche)` : ""}.`;
+}
+function renderOiPrep(byId) {
+  $("oi-prep-rows").innerHTML = oiPrep.map((r, i) => {
+    const d = byId[r.debtor_id] || r.person; const a = oiAddr(d);
+    const addrOk = a.street && a.zip && a.city;
+    return `<tr class="${r.include ? "" : "muted"}">
+      <td><input type="checkbox" class="oi-inc" data-i="${i}" ${r.include ? "checked" : ""} /></td>
+      <td><b>${esc(r.person.last_name + " " + r.person.first_name)}</b></td>
+      <td><select class="oi-debtor" data-i="${i}">${r.cands.map((c) => `<option value="${c.id}"${c.id === r.debtor_id ? " selected" : ""}>${esc(c.last_name + " " + c.first_name)}${c.id === r.person.id ? " (joueur)" : ""}</option>`).join("")}</select></td>
+      <td style="font-size:.82rem">${addrOk ? esc(`${a.street}, ${a.zip} ${a.city}`) : '<span style="color:#b45309">adresse incomplète</span>'}</td>
+      <td style="font-size:.82rem">${a.email ? esc(a.email) : '<span style="color:#b45309">pas d\'e-mail</span>'}</td>
+      <td class="muted" style="font-size:.8rem">${esc(r.source)}</td>
+      <td><input type="number" step="0.05" min="0" class="oi-amt" data-i="${i}" value="${r.amount != null ? r.amount.toFixed(2) : ""}" style="width:100px;text-align:right" /></td></tr>`;
+  }).join("");
+  $("oi-prep-rows").querySelectorAll(".oi-inc").forEach((c) => c.addEventListener("change", () => { oiPrep[c.dataset.i].include = c.checked; c.closest("tr").classList.toggle("muted", !c.checked); oiUpdateGenBtn(); }));
+  $("oi-prep-rows").querySelectorAll(".oi-amt").forEach((c) => c.addEventListener("change", () => { oiPrep[c.dataset.i].amount = c.value === "" ? null : Number(c.value); oiUpdateGenBtn(); }));
+  $("oi-prep-rows").querySelectorAll(".oi-debtor").forEach((c) => c.addEventListener("change", () => { oiPrep[c.dataset.i].debtor_id = c.value; renderOiPrep(byId); }));
+  oiUpdateGenBtn();
+}
+// Référence SCOR (ISO 11649) : « RF » + 2 chiffres de contrôle (mod 97-10) + n° de facture (chiffres).
+function oiScor(base) {
+  const s = (base + "RF00").toUpperCase().replace(/[A-Z]/g, (ch) => String(ch.charCodeAt(0) - 55));
+  let m = 0; for (const ch of s) m = (m * 10 + Number(ch)) % 97;
+  return "RF" + String(98 - m).padStart(2, "0") + base;
+}
+async function oiGenerate() {
+  const rows = oiPrep.filter((r) => r.include && r.amount > 0);
+  if (!rows.length) return;
+  const fil = $("oi-filiere").value, seasonId = $("oi-season").value, sea = seasons.find((s) => s.id === seasonId);
+  const acct = facAccts.find((a) => a.id === $("oi-acct").value) || facAccts[0];
+  const instNo = parseInt($("oi-inst-no").value) || 1, due = $("oi-due").value || null, tpl = $("oi-label").value || "{filiere} {saison} — {joueur}";
+  if (!acct?.iban) { uiAlert("Compte à créditer sans IBAN."); return; }
+  if (!(await uiConfirm(`Générer ${rows.length} facture(s) « ${oiFil(fil)} ${sea?.label || ""} » — total ${oiChf(rows.reduce((a, r) => a + r.amount, 0))} CHF ? (numérotées, avec PDF QR-facture ; à envoyer ensuite)`))) return;
+  const btn = $("oi-generate"); btn.disabled = true; const st = $("oi-gen-status");
+  const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
+  const byId = {}; for (const r of oiPrep) for (const c of r.cands) byId[c.id] = c;
+  let ok = 0; const errs = [];
+  for (const r of rows) {
+    st.textContent = `Facture ${ok + 1}/${rows.length}…`;
+    try {
+      const d = byId[r.debtor_id] || r.person; const a = oiAddr(d);
+      const { data: num, error: e1 } = await sb.rpc("out_invoice_next_number"); if (e1) throw new Error(e1.message);
+      const label = tpl.replace("{filiere}", oiFil(fil)).replace("{saison}", sea?.label || "").replace("{n}", instNo).replace("{total}", r.total).replace("{joueur}", r.person.first_name + " " + r.person.last_name);
+      const inv = { number: num, season_id: seasonId, filiere: fil, person_id: r.person.id, debtor_person_id: d.id,
+        debtor_name: `${d.first_name} ${d.last_name}`, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_email: a.email || null,
+        label, instalment_no: instNo, instalment_total: r.total, amount: r.amount, currency: "CHF", due_date: due,
+        reference: oiScor(num.replace(/\D/g, "")), account_id: acct.id, status: "a_envoyer", created_by: uid };
+      const { data: ins, error: e2 } = await sb.from("out_invoices").insert(inv).select().single(); if (e2) throw new Error(e2.message);
+      await oiMakePdf({ ...ins, player_name: r.person.first_name + " " + r.person.last_name });
+      ok++;
+    } catch (e) { errs.push(`${r.person.last_name} : ${e?.message || e}`); }
+  }
+  st.textContent = ""; btn.disabled = false;
+  $("oi-modal").classList.add("hidden");
+  await loadOutInvoices();
+  uiAlert(`✓ ${ok} facture(s) générée(s).${errs.length ? "\n\nErreurs :\n" + errs.join("\n") : ""}\n\nÉtape suivante : « Envoyer les factures à envoyer ».`);
+}
+// ---- PDF : facture A4 + section paiement QR-facture suisse (norme SIX v2.3, adresses structurées) ----
+function oiSplitStreet(line) {
+  const s = String(line || "").trim();
+  const cp = s.match(/^(?:CP|Case postale|Postfach)\s*(\d+)\s*$/i); if (cp) return ["Case postale", cp[1]];
+  const m = s.match(/^(.*?)[\s,]+(\d+[a-zA-Z]?(?:[-/]\d+[a-zA-Z]?)?)$/); return m ? [m[1].trim(), m[2]] : [s, ""];
+}
+function oiSpc(inv, acct) {
+  const [cStreet, cNo] = oiSplitStreet(acct.addr_line1);
+  const cm = String(acct.addr_line2 || "").trim().match(/^(\d{4})\s+(.+)$/); const cZip = cm ? cm[1] : "", cCity = cm ? cm[2] : String(acct.addr_line2 || "");
+  const hasD = inv.debtor_name && inv.debtor_street && inv.debtor_zip && inv.debtor_city;
+  const [dStreet, dNo] = oiSplitStreet(inv.debtor_street);
+  const L = ["SPC", "0200", "1", acct.iban.replace(/\s+/g, ""),
+    "S", acct.name.slice(0, 70), cStreet.slice(0, 70), cNo.slice(0, 16), cZip, cCity.slice(0, 35), "CH",
+    "", "", "", "", "", "", "",
+    Number(inv.amount).toFixed(2), inv.currency || "CHF",
+    ...(hasD ? ["S", inv.debtor_name.slice(0, 70), dStreet.slice(0, 70), dNo.slice(0, 16), inv.debtor_zip, inv.debtor_city.slice(0, 35), "CH"] : ["", "", "", "", "", "", ""]),
+    "SCOR", inv.reference, (inv.label || "").slice(0, 140), "EPD"];
+  return { payload: L.join("\n"), cStreet, cNo, cZip, cCity, dStreet, dNo, hasD };
+}
+async function oiLibs() {
+  if (!window.jspdf) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  if (!window.qrcode) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js");
+  if (window.qrcode?.stringToBytesFuncs?.["UTF-8"]) window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs["UTF-8"];
+}
+async function oiBuildPdf(inv) {
+  await oiLibs();
+  const acct = facAccts.find((a) => a.id === inv.account_id) || facAccts.find((a) => a.is_default) || facAccts[0];
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const T = (s, x, y, o = {}) => { doc.setFont("helvetica", o.b ? "bold" : "normal"); doc.setFontSize(o.s || 10); doc.text(String(s ?? ""), x, y, o.al ? { align: o.al } : undefined); };
+  const sp = oiSpc(inv, acct);
+  const cLines = [acct.name, [sp.cStreet, sp.cNo].filter(Boolean).join(" "), `${sp.cZip} ${sp.cCity}`.trim()];
+  const dLines = sp.hasD ? [inv.debtor_name, [sp.dStreet, sp.dNo].filter(Boolean).join(" "), `${inv.debtor_zip} ${inv.debtor_city}`] : [inv.debtor_name || ""];
+  // --- En-tête facture ---
+  T(acct.name, 20, 20, { b: true, s: 13 }); T(cLines[1], 20, 25.5, { s: 9 }); T(cLines[2], 20, 30, { s: 9 }); T(OI_FROM, 20, 34.5, { s: 9 });
+  T("FACTURE", 190, 20, { b: true, s: 18, al: "right" }); T(`N° ${inv.number}`, 190, 27, { s: 11, al: "right" });
+  T(`Date : ${frDate(inv.issue_date)}`, 190, 33, { s: 9, al: "right" }); if (inv.due_date) T(`Échéance : ${frDate(inv.due_date)}`, 190, 38, { s: 9, al: "right" });
+  let y = 55; for (const l of dLines) { T(l, 120, y, { s: 11 }); y += 5.5; }
+  // --- Corps ---
+  y = 90; doc.setDrawColor(180); doc.line(20, y, 190, y);
+  T("Description", 20, y + 6, { b: true, s: 10 }); T("Montant CHF", 190, y + 6, { b: true, s: 10, al: "right" }); doc.line(20, y + 9, 190, y + 9);
+  const desc = doc.splitTextToSize(inv.label || "", 130); T(desc, 20, y + 16, { s: 10 }); T(oiChf(inv.amount), 190, y + 16, { s: 10, al: "right" });
+  const yEnd = y + 16 + desc.length * 5 + 4; doc.line(20, yEnd, 190, yEnd);
+  T("Total à payer", 120, yEnd + 7, { b: true, s: 11 }); T(`CHF ${oiChf(inv.amount)}`, 190, yEnd + 7, { b: true, s: 11, al: "right" });
+  T(`Payable jusqu'au ${inv.due_date ? frDate(inv.due_date) : "réception"} au moyen de la QR-facture ci-dessous (référence ${oiFmt4(inv.reference)}).`, 20, yEnd + 18, { s: 9 });
+  T("Merci de votre confiance — Team Lausanne Tennis.", 20, yEnd + 24, { s: 9 });
+  // --- Section paiement (bas de page : récépissé 62 mm + section paiement 148 mm, hauteur 105 mm) ---
+  const Y = 192;
+  doc.setLineDashPattern([1.5, 1], 0); doc.setDrawColor(0); doc.line(0, Y, 210, Y); doc.line(62, Y, 62, 297); doc.setLineDashPattern([], 0);
+  T("À détacher avant le versement", 105, Y - 1.5, { s: 6, al: "center" });
+  const ibanF = oiFmt4(acct.iban), refF = oiFmt4(inv.reference);
+  // Récépissé
+  T("Récépissé", 5, Y + 7, { b: true, s: 11 });
+  T("Compte / Payable à", 5, Y + 15, { b: true, s: 6 }); T(ibanF, 5, Y + 18.5, { s: 8 }); cLines.forEach((l, i) => T(l, 5, Y + 22 + i * 3.5, { s: 8 }));
+  T("Référence", 5, Y + 36, { b: true, s: 6 }); T(refF, 5, Y + 39.5, { s: 8 });
+  T("Payable par", 5, Y + 45, { b: true, s: 6 }); dLines.forEach((l, i) => T(l, 5, Y + 48.5 + i * 3.5, { s: 8 }));
+  T("Monnaie", 5, Y + 76, { b: true, s: 6 }); T("Montant", 22, Y + 76, { b: true, s: 6 }); T("CHF", 5, Y + 80, { s: 8 }); T(oiChf(inv.amount), 22, Y + 80, { s: 8 });
+  T("Point de dépôt", 57, Y + 83, { b: true, s: 6, al: "right" });
+  // Section paiement : QR
+  T("Section paiement", 67, Y + 7, { b: true, s: 11 });
+  const qr = window.qrcode(0, "M"); qr.addData(sp.payload, "Byte"); qr.make();
+  const n = qr.getModuleCount(), qx = 67, qy = Y + 17, qs = 46, ms = qs / n;
+  doc.setFillColor(0);
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) doc.rect(qx + c * ms, qy + r * ms, ms + 0.02, ms + 0.02, "F");
+  const cx = qx + qs / 2, cy = qy + qs / 2;            // croix suisse 7 × 7 mm au centre
+  doc.setFillColor(255); doc.rect(cx - 3.5, cy - 3.5, 7, 7, "F"); doc.setFillColor(0); doc.rect(cx - 3.1, cy - 3.1, 6.2, 6.2, "F");
+  doc.setFillColor(255); doc.rect(cx - 0.6, cy - 2.1, 1.2, 4.2, "F"); doc.rect(cx - 2.1, cy - 0.6, 4.2, 1.2, "F");
+  T("Monnaie", 67, Y + 70, { b: true, s: 8 }); T("Montant", 87, Y + 70, { b: true, s: 8 }); T("CHF", 67, Y + 74.5, { s: 10 }); T(oiChf(inv.amount), 87, Y + 74.5, { s: 10 });
+  // Section paiement : informations
+  const X = 118;
+  T("Compte / Payable à", X, Y + 15, { b: true, s: 8 }); T(ibanF, X, Y + 19, { s: 10 }); cLines.forEach((l, i) => T(l, X, Y + 23 + i * 4, { s: 10 }));
+  T("Référence", X, Y + 38, { b: true, s: 8 }); T(refF, X, Y + 42, { s: 10 });
+  T("Informations supplémentaires", X, Y + 48, { b: true, s: 8 }); T(doc.splitTextToSize(inv.label || "", 85).slice(0, 2), X, Y + 52, { s: 9 });
+  T("Payable par", X, Y + 62, { b: true, s: 8 }); dLines.forEach((l, i) => T(l, X, Y + 66 + i * 4, { s: 10 }));
+  return doc;
+}
+async function oiMakePdf(inv) {
+  const doc = await oiBuildPdf(inv);
+  const path = `${inv.id}.pdf`;
+  const up = await sb.storage.from("out_invoices").upload(path, new Blob([doc.output("arraybuffer")], { type: "application/pdf" }), { contentType: "application/pdf", upsert: true });
+  if (up.error) throw new Error("PDF : " + up.error.message);
+  await sb.from("out_invoices").update({ pdf_path: path }).eq("id", inv.id);
+  inv.pdf_path = path;
+}
+// ---- Envoi par mail (depuis info@, PDF joint) ----
+const oiVars = (tpl, f) => tpl.replace(/\{destinataire\}/g, f.debtor_name || "").replace(/\{joueur\}/g, f.player_name || "").replace(/\{numero\}/g, f.number || "")
+  .replace(/\{montant\}/g, oiChf(f.amount)).replace(/\{echeance\}/g, f.due_date ? frDate(f.due_date) : "réception").replace(/\{libelle\}/g, f.label || "").replace(/\{reference\}/g, oiFmt4(f.reference));
+function oiOpenSend(ids) {
+  oiSendIds = ids.filter((id) => { const f = oiList.find((x) => x.id === id); return f && f.pdf_path; });
+  if (!oiSendIds.length) { uiAlert("Aucune facture avec PDF à envoyer."); return; }
+  const noMail = oiSendIds.map((id) => oiList.find((x) => x.id === id)).filter((f) => !f.debtor_email);
+  $("oi-send-count").textContent = oiSendIds.length;
+  $("oi-send-status").textContent = noMail.length ? `⚠ ${noMail.length} sans e-mail (${noMail.map((f) => f.debtor_name).join(", ")}) : elles seront ignorées.` : "";
+  oiSendPreview();
+  $("oi-send-modal").classList.remove("hidden");
+}
+function oiSendPreview() {
+  const f = oiList.find((x) => x.id === oiSendIds[0]); if (!f) return;
+  $("oi-send-preview").innerHTML = `<b>Aperçu (${esc(f.number)}, à ${esc(f.debtor_email || "?")})</b><br><b>${esc(oiVars($("oi-send-subject").value, f))}</b><br><span style="white-space:pre-wrap">${esc(oiVars($("oi-send-text").value, f))}</span>`;
+}
+async function oiSendGo() {
+  const btn = $("oi-send-go"); btn.disabled = true; const st = $("oi-send-status");
+  let ok = 0; const errs = [];
+  for (const id of oiSendIds) {
+    const f = oiList.find((x) => x.id === id); if (!f || !f.debtor_email) continue;
+    st.textContent = `Envoi ${ok + 1}/${oiSendIds.length} — ${f.number}…`;
+    try {
+      const { data: blob, error: e1 } = await sb.storage.from("out_invoices").download(f.pdf_path); if (e1) throw new Error(e1.message);
+      const b64 = await fileToB64(blob);
+      const { data, error } = await sb.functions.invoke("mail-send", { body: { account: OI_FROM, to: f.debtor_email, subject: oiVars($("oi-send-subject").value, f), text: oiVars($("oi-send-text").value, f),
+        attachments: [{ filename: `facture-${f.number}.pdf`, contentType: "application/pdf", content: b64 }] } });
+      if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} throw new Error(m); }
+      if (data?.error) throw new Error(data.error);
+      await sb.from("out_invoices").update({ status: "envoyee", sent_at: new Date().toISOString() }).eq("id", id);
+      ok++;
+    } catch (e) { errs.push(`${f.number} : ${e?.message || e}`); }
+  }
+  btn.disabled = false; st.textContent = "";
+  $("oi-send-modal").classList.add("hidden");
+  await loadOutInvoices();
+  uiAlert(`✓ ${ok} facture(s) envoyée(s) depuis ${OI_FROM}.${errs.length ? "\n\nErreurs :\n" + errs.join("\n") : ""}`);
+}
+
 // Grille heures pleines/creuses — MÊME réglage que les prix de réservation (app_settings clé 'peak',
 // format { "1":[17,18,…], … } avec 1=lundi…7=dimanche et l'heure = début du créneau). Une seule matrice.
 const PEAK_DAYS = [["Lun", 1], ["Mar", 2], ["Mer", 3], ["Jeu", 4], ["Ven", 5], ["Sam", 6], ["Dim", 7]];

@@ -1163,8 +1163,18 @@
           </div>
 
           <div id="fac-sub-emises" class="fac-sub hidden">
-            <p class="muted" style="margin-top:0;font-size:.88rem">Factures qu'on <b>envoie</b> (abonnements, stages, saison hiver). Les montants viennent des <b>contrats</b> (sport-études/pro), des <b>inscriptions</b> (stages) ou de la grille <b>Tarifs</b> (autres filières). <i>File « à facturer » + génération QR-facture : prochaine étape.</i></p>
-            <div id="fac-out"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+              <button id="oi-prep" type="button">➕ Préparer un lot</button>
+              <button id="oi-send-all" type="button" class="ghost" title="Envoie par mail toutes les factures « à envoyer » (PDF QR-facture joint)">✉ Envoyer les factures à envoyer</button>
+            </div>
+            <p class="muted" style="margin-top:0;font-size:.88rem">Factures qu'on <b>envoie</b>. Un lot = une filière + une saison + un n° d'échéance : le montant vient du <b>contrat</b> du joueur (montant annuel ÷ échéances) ou, à défaut, de la grille <b>Tarifs</b>. Chaque facture a un n°, une référence <b>RF</b> et un PDF <b>QR-facture</b> ; le destinataire est le parent lié (sinon le joueur).</p>
+            <div id="oi-filters" class="fac-filters"></div>
+            <div class="table-wrap">
+              <table class="crm-table fac-table"><thead><tr>
+                <th>N°</th><th>Destinataire</th><th>Joueur</th><th>Libellé</th><th>Montant</th><th>Échéance</th><th>PDF</th><th>Statut</th><th></th>
+              </tr></thead><tbody id="oi-rows"></tbody></table>
+            </div>
+            <p id="oi-empty" class="muted" hidden>Aucune facture émise.</p>
           </div>
 
           <div id="fac-sub-tarifs" class="fac-sub hidden">
@@ -1196,6 +1206,47 @@
             <div class="table-wrap"><table class="crm-table"><thead><tr><th></th><th>Page</th><th>Nom sur la fiche</th><th>N° AVS</th><th>Mois</th><th>Brut</th><th>Net à payer</th><th>→ Personne</th></tr></thead><tbody id="sal-rows"></tbody></table></div>
             <p id="sal-note" class="muted" style="font-size:.85rem"></p>
             <div class="form-foot"><span class="spacer"></span><button type="button" id="sal-import">Importer</button></div>
+          </div>
+        </div>
+
+        <!-- Fenêtre : préparation d'un lot de factures émises -->
+        <div id="oi-modal" class="modal hidden">
+          <div class="card" style="max-width:1040px">
+            <button type="button" id="oi-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0">Préparer un lot de factures</h2>
+            <div class="form-grid oi-grid">
+              <label>Filière<select id="oi-filiere"></select></label>
+              <label>Saison<select id="oi-season"></select></label>
+              <label>Échéance n°<input id="oi-inst-no" type="number" min="1" value="1" /></label>
+              <label>Nombre d'échéances<input id="oi-inst-total" type="number" min="1" value="10" title="Vide = utilise le nombre d'échéances du contrat de chaque joueur" /></label>
+              <label>Date d'échéance<input id="oi-due" type="date" /></label>
+              <label>Compte à créditer<select id="oi-acct"></select></label>
+              <label style="grid-column:1/-1">Libellé <span class="muted" style="font-weight:400">({filiere}, {saison}, {n}, {total}, {joueur})</span><input id="oi-label" value="{filiere} {saison} — échéance {n}/{total} — {joueur}" /></label>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin:10px 0">
+              <button type="button" id="oi-load" class="ghost">Charger les joueurs</button>
+              <span id="oi-prep-note" class="muted" style="font-size:.85rem"></span>
+            </div>
+            <div class="table-wrap"><table class="crm-table"><thead><tr><th><input type="checkbox" id="oi-all" checked /></th><th>Joueur</th><th>Destinataire</th><th>Adresse</th><th>E-mail</th><th>Source</th><th>Montant</th></tr></thead><tbody id="oi-prep-rows"></tbody></table></div>
+            <div class="form-foot"><span id="oi-gen-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span><button type="button" id="oi-generate" disabled>Générer les factures</button></div>
+          </div>
+        </div>
+
+        <!-- Fenêtre : envoi des factures émises -->
+        <div id="oi-send-modal" class="modal hidden">
+          <div class="card" style="max-width:720px">
+            <button type="button" id="oi-send-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0">Envoyer <span id="oi-send-count"></span> facture(s)</h2>
+            <p class="muted" style="margin-top:0;font-size:.88rem">Envoi depuis <b>info@teamlausanne.ch</b>, PDF QR-facture joint. Variables : {destinataire}, {joueur}, {numero}, {montant}, {echeance}, {libelle}, {reference}.</p>
+            <label>Objet<input id="oi-send-subject" value="Facture {numero} — {libelle}" /></label>
+            <label>Message<textarea id="oi-send-text" rows="9">Bonjour {destinataire},
+
+Vous trouverez ci-joint la facture n° {numero} ({libelle}) d'un montant de CHF {montant}, payable jusqu'au {echeance} au moyen de la QR-facture jointe (référence {reference}).
+
+Merci d'avance et meilleures salutations,
+Team Lausanne Tennis</textarea></label>
+            <div id="oi-send-preview" class="muted" style="font-size:.85rem;margin-top:8px"></div>
+            <div class="form-foot"><span id="oi-send-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span><button type="button" id="oi-send-go">Envoyer</button></div>
           </div>
         </div>
 
