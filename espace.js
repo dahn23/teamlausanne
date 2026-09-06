@@ -179,7 +179,7 @@ function renderYouthSelector() {
 
 /* ---------- Navigation (barre du bas) ---------- */
 let currentView = "accueil";
-const VIEW_TITLES = { accueil: "Accueil", cours: "Mes cours", matchs: "Feuille de match", comp: "Compétition", reserver: "Réserver", stages: "Stages", profil: "Profil" };
+const VIEW_TITLES = { accueil: "Accueil", cours: "Mes cours", matchs: "Feuille de match", comp: "Mental", reserver: "Réserver", stages: "Stages", profil: "Profil" };
 function bindNav() {
   document.querySelectorAll(".pt-nav-item").forEach((b) =>
     b.addEventListener("click", () => switchView(b.dataset.view)));
@@ -815,18 +815,114 @@ const COMP_ANALYSE = [
   ["appris", "Qu'est-ce que tu as appris pendant cette compétition ?", ""],
 ];
 
-async function renderComp() {
+let compSub = "messages";
+function renderComp() {
   const host = $("view-comp");
   if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>Réservé aux joueurs de compétition.</p></div>`; return; }
   if (!compSel || !PLAYERS.some((p) => p.person_id === compSel))
     compSel = (selYouth !== "all" && PLAYERS.some((p) => p.person_id === selYouth)) ? selYouth : PLAYERS[0].person_id;
   const selHtml = PLAYERS.length > 1
     ? `<div class="mrp-players">${PLAYERS.map((p) => `<button class="mrp-player ${p.person_id === compSel ? "sel" : ""}" data-id="${p.person_id}">${escHtml(p.first_name)}</button>`).join("")}</div>` : "";
-  host.innerHTML = selHtml + `<div id="comp-body"><p class="muted" style="text-align:center;padding:12px">Chargement…</p></div>`;
+  host.innerHTML = selHtml + `
+    <div class="comp-subtabs">
+      <button type="button" class="comp-subtab ${compSub === "messages" ? "on" : ""}" data-s="messages">Messages</button>
+      <button type="button" class="comp-subtab ${compSub === "competitions" ? "on" : ""}" data-s="competitions">Compétitions</button>
+      <button type="button" class="comp-subtab ${compSub === "proud" ? "on" : ""}" data-s="proud">Après séance</button>
+    </div>
+    <div id="comp-sub"></div>`;
   host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { compSel = b.dataset.id; compEditId = null; renderComp(); }));
+  host.querySelectorAll(".comp-subtab").forEach((b) => b.addEventListener("click", () => { compSub = b.dataset.s; renderCompSub(); }));
+  renderCompSub();
+}
+function renderCompSub() {
+  if (compSub === "messages") renderCompMessages();
+  else if (compSub === "proud") renderCompProud();
+  else renderCompComps();
+}
+async function renderCompComps() {
+  const sub = $("comp-sub"); if (!sub) return;
+  sub.innerHTML = `<div id="comp-body"><p class="muted" style="text-align:center;padding:12px">Chargement…</p></div>`;
   const { data } = await sb.rpc("portal_comp_forms", { p_youth: compSel });
   compList = data || [];
   if (compEditId) renderCompEditor(); else renderCompList();
+}
+// --- Messages (discussion avec l'encadrement) ---
+async function renderCompMessages() {
+  const host = $("comp-sub"); if (!host) return;
+  host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
+  const { data } = await sb.rpc("mental_thread_list", { p_youth: compSel });
+  const rows = data || [];
+  const msgs = rows.length ? rows.map(ptMtMsg).join("") : `<p class="muted" style="text-align:center;padding:12px">Aucun message pour l'instant. Ton coach mental peut t'écrire ici, et tu peux répondre.</p>`;
+  host.innerHTML = `<div class="mt-thread">${msgs}</div>
+    <div class="mt-composer">
+      <textarea class="mt-body" rows="2" placeholder="Écrire un message…"></textarea>
+      <input type="url" class="mt-link" placeholder="Lien (https://…) — optionnel" />
+      <div class="mt-crow"><label class="mt-file-lbl">📎 Document<input type="file" class="mt-file" hidden></label><span class="mt-file-name muted"></span><span class="spacer"></span><button type="button" class="mt-send">Envoyer</button></div>
+      <span class="mt-status muted"></span>
+    </div>`;
+  const fi = host.querySelector(".mt-file");
+  fi.addEventListener("change", () => { host.querySelector(".mt-file-name").textContent = fi.files[0]?.name || ""; });
+  host.querySelector(".mt-send").addEventListener("click", ptMtSend);
+  host.querySelectorAll(".mt-file-dl").forEach((b) => b.addEventListener("click", () => ptMtOpen(b.dataset.path)));
+}
+function ptMtMsg(m) {
+  const side = m.author_is_staff ? "staff" : "youth";
+  const link = m.link_url ? `<a href="${escHtml(m.link_url)}" target="_blank" rel="noopener" class="mt-linkout">🔗 ${escHtml(m.link_url)}</a>` : "";
+  const file = m.file_path ? `<button type="button" class="mt-file-dl" data-path="${escHtml(m.file_path)}">📎 ${escHtml(m.file_name || "document")}</button>` : "";
+  const body = m.body ? escHtml(m.body).replace(/\n/g, "<br/>") : "";
+  return `<div class="mt-msg ${side}"><div class="mt-meta"><b>${escHtml(m.author_name || "—")}</b> <span class="mt-role ${side}">${m.author_is_staff ? "Coach" : "Moi"}</span> <span class="muted">${frShort((m.created_at || "").slice(0, 10))}</span></div>${body ? `<div class="mt-text">${body}</div>` : ""}${link}${file}</div>`;
+}
+async function ptMtSend() {
+  const host = $("comp-sub");
+  const body = host.querySelector(".mt-body").value.trim(), link = host.querySelector(".mt-link").value.trim();
+  const fi = host.querySelector(".mt-file"), f = fi.files[0];
+  if (!body && !link && !f) return;
+  const st = host.querySelector(".mt-status"); st.textContent = "Envoi…";
+  let fp = null, fn = null;
+  if (f) {
+    if (f.size > 15 * 1024 * 1024) { st.textContent = "Fichier trop lourd (max 15 Mo)."; return; }
+    const path = `${compSel}/${crypto.randomUUID()}_${f.name.replace(/[^\w.\-]/g, "_")}`;
+    const up = await sb.storage.from("mental").upload(path, f);
+    if (up.error) { st.textContent = "Échec du fichier : " + up.error.message; return; }
+    fp = path; fn = f.name;
+  }
+  const { error } = await sb.rpc("mental_thread_post", { p_youth: compSel, p_body: body || null, p_link: link || null, p_file_path: fp, p_file_name: fn });
+  if (error) { st.textContent = "Erreur : " + error.message; return; }
+  renderCompMessages();
+}
+async function ptMtOpen(path) {
+  const { data, error } = await sb.storage.from("mental").createSignedUrl(path, 120);
+  if (error || !data) { alert("Impossible d'ouvrir le fichier."); return; }
+  window.open(data.signedUrl, "_blank");
+}
+// --- Après séance : 3 fiertés ---
+async function renderCompProud() {
+  const host = $("comp-sub"); if (!host) return;
+  host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
+  const { data } = await sb.rpc("portal_proud_list", { p_youth: compSel });
+  const rows = data || [];
+  const list = rows.map((r) => `<div class="comp-card" style="cursor:default">
+      <div class="comp-card-top"><b>${frShort((r.entry_date || "").slice(0, 10))}</b><button type="button" class="proud-del" data-id="${r.id}" title="Supprimer">✕</button></div>
+      <ol class="proud-ol">${[r.p1, r.p2, r.p3].filter(Boolean).map((p) => `<li>${escHtml(p)}</li>`).join("") || "<li class='muted'>—</li>"}</ol></div>`).join("");
+  host.innerHTML = `
+    <div class="comp-head">
+      <p class="muted" style="margin:0 0 8px">Après ta séance, note <b>3 points dont tu es fier·ère</b> 💪</p>
+      <label class="comp-f"><span>Date</span><input id="proud-date" type="date" value="${isoLocal(new Date())}"></label>
+      <label class="comp-f"><span>1.</span><input id="proud-p1" type="text" placeholder="Premier point"></label>
+      <label class="comp-f"><span>2.</span><input id="proud-p2" type="text" placeholder="Deuxième point"></label>
+      <label class="comp-f"><span>3.</span><input id="proud-p3" type="text" placeholder="Troisième point"></label>
+      <div class="comp-actions"><button type="button" id="proud-save">Enregistrer</button><span id="proud-status" class="muted"></span></div>
+    </div>
+    <h3 class="mrp-h2" style="margin-top:4px">Mes fiertés</h3>
+    ${rows.length ? `<div class="comp-list">${list}</div>` : `<p class="muted" style="text-align:center;padding:8px">Rien encore.</p>`}`;
+  $("proud-save").addEventListener("click", saveProud);
+  host.querySelectorAll(".proud-del").forEach((b) => b.addEventListener("click", async () => { if (!confirm("Supprimer ?")) return; await sb.rpc("portal_proud_delete", { p_youth: compSel, p_id: b.dataset.id }); renderCompProud(); }));
+}
+async function saveProud() {
+  const st = $("proud-status"); if (st) st.textContent = "Enregistrement…";
+  const { error } = await sb.rpc("portal_proud_save", { p_youth: compSel, p_id: null, p_date: $("proud-date").value || null, p1: $("proud-p1").value.trim(), p2: $("proud-p2").value.trim(), p3: $("proud-p3").value.trim() });
+  if (error) { if (st) st.textContent = "Erreur : " + error.message; return; }
+  renderCompProud();
 }
 function renderCompList() {
   const body = $("comp-body"); if (!body) return;

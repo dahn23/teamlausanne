@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=149" />
+  <link rel="stylesheet" href="style.css?v=150" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -730,8 +730,16 @@
                 <div id="mn-chan"></div>
               </div>
               <div class="rg-card" style="margin-top:10px">
+                <h3 style="margin:0 0 8px">Discussion avec le jeune <span class="muted" style="font-weight:400;font-size:.85rem">— message, lien, document</span></h3>
+                <div id="mn-thread"></div>
+              </div>
+              <div class="rg-card" style="margin-top:10px">
                 <h3 style="margin:0 0 8px">Compétitions (formulaires remplis par le jeune)</h3>
                 <div id="mn-comp"></div>
+              </div>
+              <div class="rg-card" style="margin-top:10px">
+                <h3 style="margin:0 0 8px">Après l'entraînement — 3 fiertés</h3>
+                <div id="mn-proud"></div>
               </div>
             </div>
           </div>
@@ -1372,8 +1380,12 @@
       </div>
 
       <div id="ptab-mental" class="ptab-panel hidden">
-        <h3 style="margin:0 0 8px">Compétitions — formulaires remplis par le jeune</h3>
+        <h3 style="margin:0 0 8px">Discussion mentale <span class="muted" style="font-weight:400;font-size:.85rem">— avec le jeune (message, lien, document)</span></h3>
+        <div id="pm-thread"></div>
+        <h3 style="margin:18px 0 8px">Compétitions — formulaires remplis par le jeune</h3>
         <div id="pm-comp"></div>
+        <h3 style="margin:18px 0 8px">Après l'entraînement — 3 fiertés</h3>
+        <div id="pm-proud"></div>
       </div>
 
       <div id="ptab-contrat" class="ptab-panel hidden">

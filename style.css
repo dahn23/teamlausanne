@@ -844,6 +844,32 @@ html{-webkit-tap-highlight-color:transparent}
 .mnf-row:hover{background:#f4f6f8}
 .mnf-who{flex:1;min-width:160px}
 .mnf-badges{display:flex;gap:6px}
+/* Canal de discussion mental (console + portail) + fiertés + sous-onglets portail */
+.mt-thread{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:440px;overflow-y:auto}
+.mt-msg{max-width:88%;padding:8px 11px;border-radius:12px;border:1px solid var(--line);background:#fff}
+.mt-msg.staff{align-self:flex-start;background:#eef2ff;border-color:#d6e0ff}
+.mt-msg.youth{align-self:flex-end;background:#e9f7ee;border-color:#cdead6}
+.mt-meta{display:flex;align-items:center;gap:6px;font-size:.78rem;margin-bottom:2px}
+.mt-role{font-size:.66rem;font-weight:800;border-radius:6px;padding:1px 6px}
+.mt-role.staff{background:#123cc4;color:#fff}
+.mt-role.youth{background:#1c7d38;color:#fff}
+.mt-text{white-space:pre-wrap;font-size:.9rem}
+.mt-linkout{display:inline-block;margin-top:4px;font-size:.85rem;word-break:break-all}
+.mt-file-dl{display:inline-block;margin-top:4px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:.82rem;cursor:pointer}
+.mt-file-dl:hover{background:#f0f3f8}
+.mt-del{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:.8rem;margin-left:auto}
+.mt-composer{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.mt-composer .mt-body,.mt-composer .mt-link{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;box-sizing:border-box}
+.mt-crow{display:flex;align-items:center;gap:10px}
+.mt-file-lbl{cursor:pointer;font-size:.85rem;color:#123cc4;font-weight:600}
+.mt-crow .spacer{flex:1}
+.mt-crow .mt-send{background:#123cc4;color:#fff;border:0;border-radius:9px;padding:9px 18px;font-weight:700;cursor:pointer}
+.proud-ol{margin:4px 0 0;padding-left:20px}
+.proud-ol li{margin:2px 0}
+.proud-del{background:transparent;border:0;color:#b23838;cursor:pointer;font-size:.9rem}
+.comp-subtabs{display:flex;gap:6px;margin:4px 0 14px}
+.comp-subtab{flex:1;padding:9px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:700;font-size:.82rem;cursor:pointer;color:var(--muted)}
+.comp-subtab.on{background:#123cc4;border-color:#123cc4;color:#fff}
 .wp-colmove{margin-top:5px;display:inline-block;font-size:.68rem;font-weight:700;color:var(--muted);
   background:#fff;border:1px solid var(--line);border-radius:6px;padding:2px 6px;cursor:grab}
 .wp-colmove:active{cursor:grabbing}

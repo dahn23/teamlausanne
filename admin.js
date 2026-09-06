@@ -1316,7 +1316,8 @@ function openPerson(p) {
   showPersonTab("etudes", etudesByRole);
   showPersonTab("matchs", physByRole);
   showPersonTab("suivi", physByRole);   // fil « Suivi du jeune » pour tout junior
-  showPersonTab("mental", false);       // onglet Mental (formulaires compétition) : révélé par loadPersonMental si le jeune en a rempli
+  const mentalTabRole = canMentalView() && MENTAL_TAB_ROLES.some((r) => roles.includes(r)); // onglet Mental : encadrement mental + jeune de filière
+  showPersonTab("mental", mentalTabRole);
   const tennisByRole = canTennisView() && TENNIS_ROLES.some((r) => roles.includes(r)); // onglet Tennis : filières compétition→pro, accès encadrement
   showPersonTab("tennis", tennisByRole);
   const isPlayer = ["sport-etudes", "pro", "pro-u18"].some((r) => roles.includes(r)); // contrat = sport-études / pro
@@ -1333,7 +1334,7 @@ function openPerson(p) {
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
-  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonTennis(p.id, tennisByRole); loadPersonMental(p.id); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
+  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonTennis(p.id, tennisByRole); loadPersonMental(p.id, mentalTabRole); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
   else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("ptn-body").innerHTML = ""; $("pm-comp").innerHTML = ""; $("pc-body").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
@@ -1361,6 +1362,9 @@ const hasRoleIn = (pid, list) => (peopleRoles[pid] || []).some((r) => list.inclu
 // Filières concernées (person_roles) + accès de l'utilisateur (myAppRoles).
 const TENNIS_ROLES = ["competition", "performance", "sport-etudes", "pro-u18", "pro"];
 const TENNIS_THEMES = [["global", "Global"], ["coup_droit", "Coup droit"], ["revers", "Revers"], ["slice", "Slice"], ["service", "Service"], ["volee", "Volée"], ["tactique", "Tactique"]];
+// Accès mental (canal de discussion + formulaires) : coach mental / head coach / admin / superadmin.
+const MENTAL_TAB_ROLES = ["competition", "performance", "sport-etudes", "pro-u18", "pro"];
+const canMentalView = () => hasAny(myAppRoles, ["coach_mental", "head_coach", "admin", "superadmin"]);
 const canTennisView = () => hasAny(myAppRoles, ["coach", "head_coach", "coach_physique", "moniteur", "admin", "superadmin"]);
 const canTennisEdit = () => hasAny(myAppRoles, ["head_coach", "admin", "superadmin"]);
 // Nom cliquable (souligné) dans « Cours » : l'utilisateur a accès ET la personne a l'onglet Tennis.
@@ -6781,7 +6785,9 @@ function openMentalParticipant(yid) {
   const p = people.find((x) => x.id === yid);
   $("mn-part-name").textContent = p ? `${p.last_name} ${p.first_name}` : "—";
   loadMnComments(yid);
+  mentalThread("mn-thread", yid);
   renderMnCompForms(yid);
+  mproudFetch(yid).then((r) => renderProudInto($("mn-proud"), r));
   $("mn-part-list").classList.add("hidden");
   $("mn-part-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -6888,16 +6894,75 @@ async function mentalDelComment(id, refresh) {
   await sb.from("mental_comments").delete().eq("id", id);
   refresh();
 }
-// Onglet Mental de la fiche du jeune
-let pmYouthId = null;
-// Sous-onglet « Mental » de la fiche = formulaires Compétition remplis par le jeune (lecture seule).
-// L'onglet n'apparaît que si le jeune a au moins un formulaire.
-async function loadPersonMental(personId) {
-  const host = $("pm-comp");
-  if (!personId) { showPersonTab("mental", false); if (host) host.innerHTML = ""; return; }
-  const rows = await mcfFetch(personId);
-  showPersonTab("mental", rows.length > 0);
-  renderMcfInto(host, rows);
+// ---- « 3 fiertés après l'entraînement » (lecture seule côté console) ----
+async function mproudFetch(yid) { const { data } = await sb.rpc("portal_proud_list", { p_youth: yid }); return data || []; }
+function renderProudInto(host, rows) {
+  if (!host) return;
+  if (!rows.length) { host.innerHTML = '<p class="obj-empty">Aucune fierté notée pour l\'instant.</p>'; return; }
+  host.innerHTML = rows.map((r) => `<div class="mcf-card"><div class="mcf-head"><b>${frDate(r.entry_date)}</b></div>
+    <ol class="proud-ol">${[r.p1, r.p2, r.p3].filter(Boolean).map((p) => `<li>${esc(p)}</li>`).join("") || "<li class='muted'>—</li>"}</ol></div>`).join("");
+}
+
+// ---- Canal de discussion mental (jeune <-> encadrement) : message / lien / document ----
+async function mentalThread(mountId, youthId) {
+  const el = $(mountId); if (!el) return;
+  if (!youthId) { el.innerHTML = ""; return; }
+  const { data } = await sb.rpc("mental_thread_list", { p_youth: youthId });
+  const rows = data || [];
+  const msgs = rows.length ? rows.map(mtMsgHtml).join("") : '<p class="obj-empty">Aucun message. Démarre la discussion ci-dessous.</p>';
+  el.innerHTML = `<div class="mt-thread">${msgs}</div>
+    <div class="mt-composer">
+      <textarea class="mt-body" rows="2" placeholder="Écrire un message au jeune…"></textarea>
+      <input type="url" class="mt-link" placeholder="Lien (https://…) — optionnel" />
+      <div class="mt-crow"><label class="mt-file-lbl">📎 Document<input type="file" class="mt-file" hidden></label><span class="mt-file-name muted"></span><span class="spacer"></span><button type="button" class="mt-send">Envoyer</button></div>
+      <span class="mt-status muted"></span>
+    </div>`;
+  const fi = el.querySelector(".mt-file");
+  fi.addEventListener("change", () => { el.querySelector(".mt-file-name").textContent = fi.files[0]?.name || ""; });
+  el.querySelector(".mt-send").addEventListener("click", () => mentalThreadSend(mountId, youthId, el));
+  el.querySelectorAll(".mt-file-dl").forEach((b) => b.addEventListener("click", () => mtOpenFile(b.dataset.path)));
+  el.querySelectorAll(".mt-del").forEach((b) => b.addEventListener("click", async () => { if (!await uiConfirm("Supprimer ce message ?")) return; await sb.rpc("mental_thread_delete", { p_id: b.dataset.id }); mentalThread(mountId, youthId); }));
+}
+function mtMsgHtml(m) {
+  const side = m.author_is_staff ? "staff" : "youth";
+  const canDel = m.created_by === meId || hasAny(myAppRoles, ["superadmin", "admin", "head_coach", "coach_mental"]);
+  const link = m.link_url ? `<a href="${esc(m.link_url)}" target="_blank" rel="noopener" class="mt-linkout">🔗 ${esc(m.link_url)}</a>` : "";
+  const file = m.file_path ? `<button type="button" class="mt-file-dl" data-path="${esc(m.file_path)}">📎 ${esc(m.file_name || "document")}</button>` : "";
+  const body = m.body ? esc(m.body).replace(/\n/g, "<br/>") : "";
+  return `<div class="mt-msg ${side}"><div class="mt-meta"><b>${esc(m.author_name || "—")}</b> <span class="mt-role ${side}">${m.author_is_staff ? "Coach" : "Joueur"}</span> <span class="muted">${frDateTime(m.created_at)}</span>${canDel ? ` <button type="button" class="mt-del" data-id="${m.id}" title="Supprimer">✕</button>` : ""}</div>${body ? `<div class="mt-text">${body}</div>` : ""}${link}${file}</div>`;
+}
+async function mentalThreadSend(mountId, youthId, el) {
+  const body = el.querySelector(".mt-body").value.trim();
+  const link = el.querySelector(".mt-link").value.trim();
+  const fi = el.querySelector(".mt-file"), f = fi.files[0];
+  if (!body && !link && !f) return;
+  const st = el.querySelector(".mt-status"); st.textContent = "Envoi…";
+  let file_path = null, file_name = null;
+  if (f) {
+    if (f.size > 15 * 1024 * 1024) { st.textContent = "Fichier trop lourd (max 15 Mo)."; return; }
+    const path = `${youthId}/${crypto.randomUUID()}_${f.name.replace(/[^\w.\-]/g, "_")}`;
+    const up = await sb.storage.from("mental").upload(path, f);
+    if (up.error) { st.textContent = "Échec de l'envoi du fichier : " + up.error.message; return; }
+    file_path = path; file_name = f.name;
+  }
+  const { error } = await sb.rpc("mental_thread_post", { p_youth: youthId, p_body: body || null, p_link: link || null, p_file_path: file_path, p_file_name: file_name });
+  if (error) { st.textContent = "Erreur : " + error.message; return; }
+  mentalThread(mountId, youthId);
+}
+async function mtOpenFile(path) {
+  const { data, error } = await sb.storage.from("mental").createSignedUrl(path, 120);
+  if (error || !data) { alert("Impossible d'ouvrir le fichier."); return; }
+  window.open(data.signedUrl, "_blank");
+}
+
+// Sous-onglet « Mental » de la fiche : discussion + formulaires compétition + 3 fiertés.
+async function loadPersonMental(personId, show) {
+  const ids = ["pm-thread", "pm-comp", "pm-proud"];
+  if (!personId || !show) { showPersonTab("mental", false); ids.forEach((id) => { const e = $(id); if (e) e.innerHTML = ""; }); return; }
+  showPersonTab("mental", true);
+  mentalThread("pm-thread", personId);
+  renderMcfInto($("pm-comp"), await mcfFetch(personId));
+  renderProudInto($("pm-proud"), await mproudFetch(personId));
 }
 
 // ===================================================================
