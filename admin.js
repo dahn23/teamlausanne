@@ -1326,7 +1326,7 @@ function openPerson(p) {
   showPersonTab("stages", false);
   const staffPayRole = [...COACH_ROLES, "prof", "coach-mental"].some((r) => roles.includes(r));
   showPersonTab("coach", staffPayRole);
-  const isCoachPerson = COACH_ROLES.some((r) => roles.includes(r)); // sous-onglet Repas = coachs
+  const isCoachPerson = COACH_ROLES.some((r) => roles.includes(r)) || roles.includes("admin") || roles.includes("superadmin"); // sous-onglet Repas = coachs + admins (vide par défaut)
   showPersonTab("repas", isCoachPerson);
   loadPersonMeals(p ? p.id : null, isCoachPerson);
   $("p-iban").value = p?.iban || "";
@@ -8156,7 +8156,10 @@ async function loadCsel() {
       document.querySelectorAll("#view-csel .csel-subtab").forEach((x) => x.classList.toggle("active", x === b));
       $("csel-sub-repas").classList.toggle("hidden", cselSub !== "repas");
       $("csel-sub-etudes").classList.toggle("hidden", cselSub !== "etudes");
+      $("csel-sub-totaux").classList.toggle("hidden", cselSub !== "totaux");
       $("csel-reset").classList.toggle("hidden", cselSub !== "repas");
+      // Totaux = vue par mois : la navigation par semaine et le PDF hebdo n'ont pas de sens ici.
+      ["csel-prev", "csel-next", "csel-week", "csel-range", "csel-pdf"].forEach((id) => { const e = $(id); if (e) e.classList.toggle("hidden", cselSub === "totaux"); });
       renderCsel();
     }));
   }
@@ -8167,7 +8170,7 @@ function renderCsel() {
   $("csel-week").value = cselMonday;
   const dates = cselWeekDates();
   $("csel-range").textContent = `Semaine du ${frDate(dates[0])} au ${frDate(dates[4])}`;
-  if (cselSub === "repas") renderCselRepas(dates); else renderCselEtudes(dates);
+  if (cselSub === "repas") renderCselRepas(dates); else if (cselSub === "totaux") renderCselTotaux(); else renderCselEtudes(dates);
 }
 
 async function renderCselRepas(dates) {
@@ -8236,6 +8239,42 @@ async function cselReset() {
   if (!await uiConfirm("Réinitialiser cette semaine selon les contrats ? (efface les modifications faites pour cette semaine)")) return;
   await sb.from("csel_meal_overrides").delete().eq("week_start", cselMonday);
   renderCselRepas(cselWeekDates());
+}
+// Totaux de repas par MOIS sur la saison juniors en cours (même règle que la vue hebdo :
+// défaut = contrat du jeune « <Jour> lunch » / repas déclarés du coach, puis exceptions par semaine).
+async function renderCselTotaux() {
+  const body = $("csel-totaux-body"); if (!body) return;
+  body.innerHTML = '<p class="muted">Calcul…</p>';
+  const season = currentSeason("juniors");
+  if (!season) { body.innerHTML = '<p class="muted" style="font-size:.85rem">Aucune saison juniors en cours.</p>'; return; }
+  const { data: rps } = await sb.from("role_periods").select("person_id").eq("season_id", season.id).in("role", CSEL_ROLES);
+  const ids = [...new Set((rps || []).map((r) => r.person_id))];
+  const [cRes, oRes, dRes] = await Promise.all([
+    ids.length ? sb.from("player_contracts").select("person_id,data").eq("season_id", season.id).in("person_id", ids) : Promise.resolve({ data: [] }),
+    sb.from("csel_meal_overrides").select("week_start,person_id,dow,present").gte("week_start", cselMondayOf(season.start_date)).lte("week_start", season.end_date),
+    sb.from("coach_meal_defaults").select("person_id,dow"),
+  ]);
+  const contract = {}; for (const c of cRes.data || []) contract[c.person_id] = c.data || {};
+  const ovr = {};  // week_start -> person -> dow -> present
+  for (const o of oRes.data || []) ((ovr[o.week_start] = ovr[o.week_start] || {})[o.person_id] = ovr[o.week_start][o.person_id] || {})[o.dow] = o.present;
+  const coachDef = {}; for (const r of dRes.data || []) (coachDef[r.person_id] = coachDef[r.person_id] || new Set()).add(r.dow);
+  const youthDef = (pid, dow) => contract[pid]?.[PC_DAYS[dow - 1][0] + " lunch"] === "Oui";
+  const months = {};  // "YYYY-MM" -> { y, c }
+  for (let d = new Date(season.start_date + "T00:00:00"), end = new Date(season.end_date + "T00:00:00"); d <= end; d.setDate(d.getDate() + 1)) {
+    const dow = (d.getDay() + 6) % 7 + 1; if (dow > 5) continue;                  // lun=1 … ven=5
+    const iso = isoA(d), ws = cselMondayOf(iso), ym = iso.slice(0, 7), m = months[ym] || (months[ym] = { y: 0, c: 0 });
+    const on = (pid, dflt) => { const o = ovr[ws]?.[pid]?.[dow]; return o === undefined ? dflt : o; };
+    for (const pid of ids) if (on(pid, youthDef(pid, dow))) m.y++;
+    for (const pid of Object.keys(coachDef)) if (on(pid, coachDef[pid].has(dow))) m.c++;
+  }
+  const keys = Object.keys(months).sort();
+  const lbl = (ym) => { const [y, mo] = ym.split("-"); return new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString("fr-CH", { month: "long", year: "numeric" }); };
+  let ty = 0, tc = 0;
+  const rows = keys.map((ym) => { const m = months[ym]; ty += m.y; tc += m.c; return `<tr><td><b>${esc(lbl(ym))}</b></td><td class="csel-c">${m.y}</td><td class="csel-c">${m.c}</td><td class="csel-c"><b>${m.y + m.c}</b></td></tr>`; }).join("");
+  body.innerHTML = `<div class="tbl-wrap"><table class="crm-table csel-table">
+    <thead><tr><th>Mois</th><th>Jeunes</th><th>Coachs / staff</th><th>Total repas</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="4" class="muted">Aucune donnée.</td></tr>'}</tbody>
+    <tfoot><tr class="csel-tot"><td><b>Saison ${esc(season.label || "")}</b></td><td class="csel-c"><b>${ty}</b></td><td class="csel-c"><b>${tc}</b></td><td class="csel-c"><b>${ty + tc}</b></td></tr></tfoot></table></div>`;
 }
 
 async function renderCselEtudes(dates) {
