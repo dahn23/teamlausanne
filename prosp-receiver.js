@@ -1,8 +1,10 @@
 // Relais : reçoit les lignes de classement scrappées (postMessage) et les
 // envoie à l'edge function prospects-import (depuis NOTRE domaine).
+import { sb } from "./common.js";
 const FN = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/prospects-import";
 const AK = "sb_publishable_nsRKXBFgwmDjtmvS3mFc0w_Q4pi_qxK";
 const st = document.getElementById("st");
+const logOps = (a) => { try { sb.rpc("ops_log_write", { p_action: a }); } catch (_) {} };
 
 window.addEventListener("message", async (e) => {
   const d = e.data;
@@ -18,6 +20,7 @@ window.addEventListener("message", async (e) => {
     });
     const j = await r.json();
     if (!j.ok) { st.textContent = "Erreur : " + (j.error || JSON.stringify(j)); return; }
+    logOps("classements");
     st.textContent = `✓ Terminé : ${j.kept} prospect(s) R7 ou mieux enregistrés (${j.skipped} ignorés sur ${j.total}). Vous pouvez fermer et rafraîchir l'onglet Prospects.`;
   } catch (err) { st.textContent = "Erreur d'envoi : " + err.message; }
 });

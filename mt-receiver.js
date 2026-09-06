@@ -2,9 +2,11 @@
 // liste des licences du répertoire au bookmarklet, puis reçoit les matchs
 // (postMessage) et les envoie à l'edge function mt-import (autorisé depuis
 // NOTRE domaine — la CSP de mytennis bloque l'appel direct).
+import { sb } from "./common.js";
 const FN = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/mt-import";
 const AK = "sb_publishable_nsRKXBFgwmDjtmvS3mFc0w_Q4pi_qxK";
 const st = document.getElementById("st");
+const logOps = (a) => { try { sb.rpc("ops_log_write", { p_action: a }); } catch (_) {} };  // trace « qui a actualisé »
 let KEY = null;
 
 async function callFn(body) {
@@ -39,6 +41,7 @@ window.addEventListener("message", async (e) => {
     try {
       const j = await callFn({ key: KEY || d.key, action: "import", players: d.players });
       if (!j.ok) { st.textContent = "Erreur : " + (j.error || JSON.stringify(j)); return; }
+      logOps("matchs");
       const totalMatches = j.report.reduce((a, x) => a + (x.matches || 0), 0);
       const matched = j.report.filter((x) => x.matched).length;
       let msg = `✓ Terminé : ${matched} joueur(s) reliés, ${totalMatches} match(s) enregistré(s). Vous pouvez fermer cette fenêtre et rafraîchir la fiche.`;
