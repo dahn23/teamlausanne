@@ -1098,6 +1098,7 @@
               <select id="heures-month" class="he-month"></select>
               <button id="heures-export" class="ghost">Exporter (CSV)</button>
               <button id="heures-export-pdf" class="ghost" title="Décompte mensuel en PDF pour la fiduciaire">⬇ Décompte PDF</button>
+              <button id="heures-send" title="Génère le décompte PDF et l'envoie par mail à la fiduciaire depuis info@teamlausanne.ch">✉ Envoyer à la fiduciaire</button>
             </div>
           </div>
           <div id="heures-mine"></div>
@@ -1105,10 +1106,10 @@
           <p class="muted" style="margin:-6px 0 12px">Décomptes mensuels : coachs (heures de cours) et profs (après-midis études). À valider par chacun, puis à envoyer à la fiduciaire.</p>
           <div id="heures-salaires"></div>
           <h2 style="margin:14px 0 6px;font-size:1.05rem">Coachs — cours</h2>
-          <div class="table-wrap"><table class="crm-table"><thead><tr><th>Coach</th><th>Cours</th><th>Heures</th><th>Tarif/h</th><th>Montant</th><th>IBAN</th><th>Validé</th><th class="sal-col">Net à payer</th><th></th></tr></thead><tbody id="heures-coaches"></tbody></table>
+          <div class="table-wrap"><table class="crm-table"><thead><tr><th>Coach</th><th>Cours</th><th>Heures</th><th>Tarif/h</th><th>Montant</th><th>IBAN</th><th>Validé</th><th class="sal-col" title="Montant brut ajouté au salaire ou aux heures × tarif">Extra (brut)</th><th class="sal-col">Net à payer</th><th></th></tr></thead><tbody id="heures-coaches"></tbody></table>
             <p id="heures-coaches-empty" class="muted" hidden style="font-size:.85rem">Aucun cours ce mois-ci.</p></div>
           <h2 style="margin:22px 0 6px;font-size:1.05rem">Profs — études</h2>
-          <div class="table-wrap"><table class="crm-table"><thead><tr><th>Prof</th><th>Après-midis</th><th>Heures</th><th>IBAN</th><th>Validé</th><th class="sal-col">Net à payer</th><th></th></tr></thead><tbody id="heures-profs"></tbody></table>
+          <div class="table-wrap"><table class="crm-table"><thead><tr><th>Prof</th><th>Après-midis</th><th>Heures</th><th>IBAN</th><th>Validé</th><th class="sal-col" title="Montant brut ajouté">Extra (brut)</th><th class="sal-col">Net à payer</th><th></th></tr></thead><tbody id="heures-profs"></tbody></table>
             <p id="heures-profs-empty" class="muted" hidden style="font-size:.85rem">Aucun prof assigné ce mois-ci (voir Études › Profs).</p></div>
           </div><!-- /heures-recap -->
         </div>

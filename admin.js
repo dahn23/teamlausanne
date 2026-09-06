@@ -4740,6 +4740,7 @@ function initHeures() {
   $("heures-month").addEventListener("change", loadHeures);
   $("heures-export").addEventListener("click", exportHeures);
   $("heures-export-pdf").addEventListener("click", exportHeuresPdf);
+  $("heures-send").addEventListener("click", sendHeuresToFiduciaire);
 }
 async function loadHeures() {
   initHeures();
@@ -4749,6 +4750,7 @@ async function loadHeures() {
   $("heures-recap").classList.toggle("hidden", !isManager);
   $("heures-export").classList.toggle("hidden", !isManager);
   $("heures-export-pdf").classList.toggle("hidden", !isManager);
+  $("heures-send").classList.toggle("hidden", !canSalaries());   // envoi à la fiduciaire : admin/superadmin
   if (isManager) {
     const [{ data, error }] = await Promise.all([sb.rpc("staff_hours_month", { p_ym: heuresYm }), loadSalSlips()]);
     heuresData = error ? { coaches: [], profs: [] } : (data || { coaches: [], profs: [] });
@@ -4792,14 +4794,16 @@ function renderHeures() {
   $("heures-profs-empty").hidden = p.length > 0;
   $("heures-coaches").innerHTML = c.map((x) => {
     const salaried = x.salary != null;   // salarié : on garde les heures, mais salaire brut à la place de tarif/montant
-    const amount = salaried ? Number(x.salary) : (x.rate != null ? Math.round(x.hours * Number(x.rate) * 100) / 100 : null);
+    const { base, extra, total } = heAmount(x);
     const allVal = x.total_courses > 0 && x.courses === x.total_courses;
+    const extraTxt = extra ? ` <span class="muted" style="font-size:.78rem">(dont ${extra.toLocaleString("fr-CH")} extra)</span>` : "";
     return `<tr>
       <td><b>${esc(x.name)}</b></td><td>${x.total_courses}</td><td>${x.hours} h</td>
       <td>${salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
-      <td>${salaried ? `<b>${amount.toLocaleString("fr-CH")} CHF</b> <span class="muted" style="font-size:.78rem">brut / mois</span>` : (amount != null ? amount + " CHF" : "—")}</td>
+      <td>${salaried ? `<b>${total.toLocaleString("fr-CH")} CHF</b> <span class="muted" style="font-size:.78rem">brut / mois</span>${extraTxt}` : (base != null || extra ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—")}</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.courses + "/" + x.total_courses + "</span>" : '<span class="muted">' + x.courses + "/" + x.total_courses + "</span>"}</td>
+      ${salExtraCell(x.person_id, x.extra)}
       ${salNetCell(x.person_id)}
       <td class="he-acts"><button class="ghost he-detail" data-id="${x.person_id}" data-name="${esc(x.name)}">Détail</button></td></tr>`;
   }).join("");
@@ -4809,6 +4813,7 @@ function renderHeures() {
       <td><b>${esc(x.name)}</b></td><td>${x.total_days}</td><td>${x.hours} h</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.days + "/" + x.total_days + "</span>" : '<span class="muted">' + x.days + "/" + x.total_days + "</span>"}</td>
+      ${salExtraCell(x.person_id, x.extra)}
       ${salNetCell(x.person_id)}
       <td></td></tr>`;
   }).join("");
@@ -4839,45 +4844,70 @@ async function coachDetail(personId, name) {
 }
 function exportHeures() {
   const c = heuresData.coaches || [], p = heuresData.profs || [];
-  const lines = [["Type", "Nom", "Cours/AM", "Heures", "Tarif", "Montant", "IBAN", "Valide"]];
-  for (const x of c) { const amt = x.rate != null ? Math.round(x.hours * Number(x.rate) * 100) / 100 : ""; lines.push(["Coach", x.name, x.courses, x.hours, x.rate ?? "", amt, x.iban ?? "", x.validated ? "oui" : "non"]); }
-  for (const x of p) lines.push(["Prof", x.name, x.days, x.hours, "", "", x.iban ?? "", x.validated ? "oui" : "non"]);
+  const lines = [["Type", "Nom", "Cours/AM", "Heures", "Tarif", "Extra", "Montant", "IBAN", "Valide"]];
+  for (const x of c) { const { base, extra, total } = heAmount(x); lines.push(["Coach", x.name, x.courses, x.hours, x.salary != null ? "salarié" : (x.rate ?? ""), extra || "", (base != null || extra) ? total : "", x.iban ?? "", x.total_courses > 0 && x.courses === x.total_courses ? "oui" : "non"]); }
+  for (const x of p) lines.push(["Prof", x.name, x.days, x.hours, "", x.extra ?? "", "", x.iban ?? "", x.total_days > 0 && x.days === x.total_days ? "oui" : "non"]);
   const csv = lines.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
   a.download = `heures-${heuresYm}.csv`; a.click();
 }
 // Décompte mensuel en PDF (fiduciaire) : coachs (heures, tarif OU salaire brut) + profs. jsPDF chargé à la demande.
+const heuresMoisLbl = () => { const [yy, mm] = heuresYm.split("-"); return new Date(Number(yy), Number(mm) - 1, 1).toLocaleDateString("fr-CH", { month: "long", year: "numeric" }); };
+async function buildHeuresPdf() {
+  if (!window.jspdf) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  if (!window.jspdf?.jsPDF?.API?.autoTable) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const c = heuresData.coaches || [], p = heuresData.profs || [];
+  const chf = (n) => (Math.round(Number(n) * 100) / 100).toLocaleString("fr-CH") + " CHF";
+  doc.setFontSize(15); doc.text(`Décompte mensuel — ${heuresMoisLbl()}`, 14, 14);
+  doc.setFontSize(9); doc.setTextColor(110); doc.text(`Team Lausanne · généré le ${frDate(new Date())}`, 14, 20); doc.setTextColor(0);
+  let total = 0;
+  const coachRows = c.map((x) => {
+    const sal = x.salary != null, { base, extra, total: t } = heAmount(x);
+    if (base != null || extra) total += t;
+    return [x.name, `${x.courses}/${x.total_courses}`, `${x.hours} h`, sal ? "Salarié" : (x.rate != null ? x.rate + ".–/h" : "—"),
+            extra ? chf(extra) : "—", (base != null || extra) ? (sal ? chf(t) + " brut" : chf(t)) : "—", x.iban || "—"];
+  });
+  doc.autoTable({ startY: 26, head: [["Coach", "Cours validés", "Heures", "Tarif", "Extra (brut)", "Montant", "IBAN"]], body: coachRows.length ? coachRows : [["—", "", "", "", "", "", ""]],
+    styles: { fontSize: 9 }, headStyles: { fillColor: [18, 60, 196] }, columnStyles: { 6: { fontSize: 8 } } });
+  const profRows = p.map((x) => [x.name, `${x.days}/${x.total_days}`, `${x.hours} h`, x.extra ? chf(x.extra) : "—", x.iban || "—"]);
+  doc.setFontSize(12); doc.text("Profs — études", 14, doc.lastAutoTable.finalY + 10);
+  doc.autoTable({ startY: doc.lastAutoTable.finalY + 13, head: [["Prof", "Après-midis validés", "Heures", "Extra (brut)", "IBAN"]], body: profRows.length ? profRows : [["—", "", "", "", ""]],
+    styles: { fontSize: 9 }, headStyles: { fillColor: [18, 60, 196] }, columnStyles: { 4: { fontSize: 8 } } });
+  doc.setFontSize(10); doc.text(`Total coachs (montants + salaires bruts + extras) : ${chf(total)}`, 14, doc.lastAutoTable.finalY + 10);
+  return doc;
+}
 async function exportHeuresPdf() {
   const btn = $("heures-export-pdf"); btn.disabled = true;
-  try {
-    if (!window.jspdf) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
-    if (!window.jspdf?.jsPDF?.API?.autoTable) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const c = heuresData.coaches || [], p = heuresData.profs || [];
-    const chf = (n) => (Math.round(Number(n) * 100) / 100).toLocaleString("fr-CH") + " CHF";
-    const [yy, mm] = heuresYm.split("-");
-    const moisLbl = new Date(Number(yy), Number(mm) - 1, 1).toLocaleDateString("fr-CH", { month: "long", year: "numeric" });
-    doc.setFontSize(15); doc.text(`Décompte mensuel — ${moisLbl}`, 14, 14);
-    doc.setFontSize(9); doc.setTextColor(110); doc.text(`Team Lausanne · généré le ${frDate(new Date())}`, 14, 20); doc.setTextColor(0);
-    let total = 0;
-    const coachRows = c.map((x) => {
-      const sal = x.salary != null, amt = sal ? Number(x.salary) : (x.rate != null ? Math.round(x.hours * Number(x.rate) * 100) / 100 : null);
-      if (amt != null) total += amt;
-      return [x.name, `${x.courses}/${x.total_courses}`, `${x.hours} h`, sal ? "Salarié" : (x.rate != null ? x.rate + ".–/h" : "—"),
-              amt != null ? (sal ? chf(amt) + " brut" : chf(amt)) : "—", x.iban || "—"];
-    });
-    doc.autoTable({ startY: 26, head: [["Coach", "Cours validés", "Heures", "Tarif", "Montant", "IBAN"]], body: coachRows.length ? coachRows : [["—", "", "", "", "", ""]],
-      styles: { fontSize: 9 }, headStyles: { fillColor: [18, 60, 196] }, columnStyles: { 5: { fontSize: 8 } } });
-    const profRows = p.map((x) => [x.name, `${x.days}/${x.total_days}`, `${x.hours} h`, x.iban || "—"]);
-    doc.setFontSize(12); doc.text("Profs — études", 14, doc.lastAutoTable.finalY + 10);
-    doc.autoTable({ startY: doc.lastAutoTable.finalY + 13, head: [["Prof", "Après-midis validés", "Heures", "IBAN"]], body: profRows.length ? profRows : [["—", "", "", ""]],
-      styles: { fontSize: 9 }, headStyles: { fillColor: [18, 60, 196] }, columnStyles: { 3: { fontSize: 8 } } });
-    doc.setFontSize(10); doc.text(`Total coachs (montants + salaires bruts) : ${chf(total)}`, 14, doc.lastAutoTable.finalY + 10);
-    doc.save(`decompte-${heuresYm}.pdf`);
-  } catch (e) { alert("Export PDF impossible : " + (e?.message || e)); }
+  try { (await buildHeuresPdf()).save(`decompte-${heuresYm}.pdf`); }
+  catch (e) { alert("Export PDF impossible : " + (e?.message || e)); }
   btn.disabled = false;
+}
+// Envoi du décompte à la fiduciaire : PDF généré + mail depuis info@ (visible dans Envoyés après la relève).
+const FIDU_TO = "sara.ninetti@fimisa.ch", FIDU_FROM = "info@teamlausanne.ch";
+async function sendHeuresToFiduciaire() {
+  const c = heuresData.coaches || [], p = heuresData.profs || [];
+  const nCoachPending = c.filter((x) => x.total_courses > 0 && x.courses !== x.total_courses).length;
+  const nProfPending = p.filter((x) => x.total_days > 0 && x.days !== x.total_days).length;
+  const warn = (nCoachPending || nProfPending) ? `\n\n⚠ Attention : ${nCoachPending} coach(s) et ${nProfPending} prof(s) n'ont pas encore tout validé ce mois-ci.` : "";
+  if (!(await uiConfirm(`Les heures et les montants de ${heuresMoisLbl()} sont-ils bien corrects ?${warn}\n\nLe décompte PDF sera envoyé à Sara (${FIDU_TO}) depuis ${FIDU_FROM}. Confirmer l'envoi ?`))) return;
+  const btn = $("heures-send"); btn.disabled = true; const lbl = btn.textContent; btn.textContent = "Envoi…";
+  try {
+    const doc = await buildHeuresPdf();
+    const u8 = new Uint8Array(doc.output("arraybuffer")); let bin = "";
+    for (let i = 0; i < u8.length; i += 8192) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
+    const b64 = btoa(bin);
+    const subject = `Décompte des heures — ${heuresMoisLbl()}`;
+    const text = "Salut Sara, j'espère que tu vas bien. Voici le PDF avec le décompte des heures du mois. Meilleures salutations, Dan.";
+    const { data, error } = await sb.functions.invoke("mail-send", { body: { account: FIDU_FROM, to: FIDU_TO, subject, text,
+      attachments: [{ filename: `decompte-${heuresYm}.pdf`, contentType: "application/pdf", content: b64 }] } });
+    if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} throw new Error(m); }
+    if (data?.error) throw new Error(data.error);
+    uiAlert(`✓ Décompte de ${heuresMoisLbl()} envoyé à ${FIDU_TO} depuis ${FIDU_FROM}. Il apparaîtra dans Messagerie › Envoyés à la prochaine relève.`);
+  } catch (e) { uiAlert("Envoi impossible : " + (e?.message || e)); }
+  btn.disabled = false; btn.textContent = lbl;
 }
 
 // ===================================================================
@@ -4895,6 +4925,15 @@ async function loadSalSlips() {
   salSlips = data || [];
 }
 const salSlipOf = (pid) => salSlips.find((s) => s.person_id === pid);
+// Montant d'une ligne coach : salaire brut OU heures × tarif, + extra (brut) du mois.
+function heAmount(x) {
+  const base = x.salary != null ? Number(x.salary) : (x.rate != null ? Math.round(x.hours * Number(x.rate) * 100) / 100 : null);
+  const extra = x.extra != null ? Number(x.extra) : 0;
+  return { base, extra, total: Math.round(((base || 0) + extra) * 100) / 100 };
+}
+function salExtraCell(pid, extra) {
+  return `<td class="sal-col"><input class="sal-net sal-extra" data-pid="${pid}" type="number" step="0.05" value="${extra != null ? Number(extra).toFixed(2) : ""}" placeholder="—" title="Montant brut ajouté au salaire / aux heures" /></td>`;
+}
 function salNetCell(pid) {
   const s = salSlipOf(pid);
   const val = s?.net != null ? Number(s.net).toFixed(2) : "";
@@ -4905,10 +4944,14 @@ function salNetCell(pid) {
 function bindSalCells() {
   document.querySelectorAll("#view-heures .sal-net").forEach((inp) => inp.addEventListener("change", async () => {
     const pid = inp.dataset.pid, v = inp.value === "" ? null : Number(inp.value);
+    const isExtra = inp.classList.contains("sal-extra");
     const { data: sess } = await sb.auth.getSession();
-    const { error } = await sb.from("salary_slips").upsert({ person_id: pid, ym: heuresYm, net: v, updated_at: new Date().toISOString(), updated_by: sess?.session?.user?.id || null }, { onConflict: "person_id,ym" });
+    const row = { person_id: pid, ym: heuresYm, updated_at: new Date().toISOString(), updated_by: sess?.session?.user?.id || null };
+    row[isExtra ? "extra" : "net"] = v;
+    const { error } = await sb.from("salary_slips").upsert(row, { onConflict: "person_id,ym" });
     if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
-    await loadSalSlips(); renderSalBox();
+    if (isExtra) await loadHeures();                       // recalcule le montant (salaire/heures + extra)
+    else { await loadSalSlips(); renderSalBox(); }
   }));
   document.querySelectorAll("#view-heures .sal-pdf").forEach((b) => b.addEventListener("click", () => salOpenPdf(b.dataset.path)));
 }
@@ -4930,7 +4973,13 @@ async function renderSalBox() {
     const { data } = await sb.from("mail_attachments").select("id,mail_id,filename,content_type").in("mail_id", mails.map((m) => m.id)).eq("is_inline", false);
     atts = (data || []).filter((a) => /pdf/i.test(a.content_type || "") || /\.pdf$/i.test(a.filename || ""));
   }
-  const imported = new Set(salSlips.map((s) => s.mail_id).filter(Boolean));
+  // Un PDF déjà importé (pour N'IMPORTE quel mois) n'est plus proposé : le fichier d'août arrive en septembre.
+  const imported = new Set();
+  if (atts.length) {
+    const { data: done } = await sb.from("salary_slips").select("mail_id").in("mail_id", [...new Set(atts.map((a) => a.mail_id))]);
+    for (const d of done || []) imported.add(d.mail_id);
+    atts = atts.filter((a) => !imported.has(a.mail_id));
+  }
   const pending = salSlips.filter((s) => s.net > 0 && !s.invoice_id).length;
   const done = salSlips.filter((s) => s.invoice_id).length;
   const total = salSlips.reduce((a, s) => a + (Number(s.net) || 0), 0);
