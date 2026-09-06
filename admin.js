@@ -5572,6 +5572,17 @@ async function oiLibs() {
   if (!window.qrcode) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js");
   if (window.qrcode?.stringToBytesFuncs?.["UTF-8"]) window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs["UTF-8"];
 }
+// Logo Team Lausanne (webp → PNG via canvas, jsPDF ne lit pas le webp), mis en cache.
+let oiLogoPng = null;
+async function oiLogo() {
+  if (oiLogoPng) return oiLogoPng;
+  try {
+    const img = new Image(); img.src = "assets/logo-academie.webp"; await img.decode();
+    const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
+    c.getContext("2d").drawImage(img, 0, 0); oiLogoPng = c.toDataURL("image/png");
+  } catch (e) { console.warn("logo facture :", e); oiLogoPng = null; }
+  return oiLogoPng;
+}
 async function oiBuildPdf(inv) {
   await oiLibs();
   const acct = facAccts.find((a) => a.id === inv.account_id) || facAccts.find((a) => a.is_default) || facAccts[0];
@@ -5581,24 +5592,41 @@ async function oiBuildPdf(inv) {
   const sp = oiSpc(inv, acct);
   const cLines = [acct.name, [sp.cStreet, sp.cNo].filter(Boolean).join(" "), `${sp.cZip} ${sp.cCity}`.trim()];
   const dLines = sp.hasD ? [inv.debtor_name, [sp.dStreet, sp.dNo].filter(Boolean).join(" "), `${inv.debtor_zip} ${inv.debtor_city}`] : [inv.debtor_name || ""];
-  // --- En-tête facture ---
-  T(acct.name, 20, 20, { b: true, s: 13 }); T(cLines[1], 20, 25.5, { s: 9 }); T(cLines[2], 20, 30, { s: 9 }); T(OI_FROM, 20, 34.5, { s: 9 });
-  T("FACTURE", 190, 20, { b: true, s: 18, al: "right" }); T(`N° ${inv.number}`, 190, 27, { s: 11, al: "right" });
-  T(`Date : ${frDate(inv.issue_date)}`, 190, 33, { s: 9, al: "right" }); if (inv.due_date) T(`Échéance : ${frDate(inv.due_date)}`, 190, 38, { s: 9, al: "right" });
-  let y = 55; for (const l of dLines) { T(l, 120, y, { s: 11 }); y += 5.5; }
-  // --- Corps ---
-  y = 90; doc.setDrawColor(180); doc.line(20, y, 190, y);
-  T("Description", 20, y + 6, { b: true, s: 10 }); T("Montant CHF", 190, y + 6, { b: true, s: 10, al: "right" }); doc.line(20, y + 9, 190, y + 9);
+  // --- En-tête : logo Team Lausanne + titre + bandeau bleu (charte : bleu #1e3ad1) ---
+  const BLUE = [30, 58, 209], INK = [15, 31, 110], LIGHT = [232, 237, 255], GREY = [110, 110, 110];
+  const logo = await oiLogo();
+  if (logo) doc.addImage(logo, "PNG", 18, 11, 26, 27);
+  doc.setTextColor(...BLUE); T("FACTURE", 192, 24, { b: true, s: 26, al: "right" });
+  doc.setTextColor(...GREY); T(`N° ${inv.number}`, 192, 31.5, { b: true, s: 12, al: "right" });
+  doc.setFillColor(...BLUE); doc.rect(18, 43, 174, 1.6, "F");
+  doc.setTextColor(...INK); T(acct.name, 18, 51, { b: true, s: 10.5 });
+  doc.setTextColor(...GREY); T(`${cLines[1]} · ${cLines[2]} · ${OI_FROM}`, 18, 56, { s: 8.5 });
+  // Encadré date / échéance / référence
+  doc.setFillColor(...LIGHT); doc.roundedRect(118, 47.5, 74, 24.5, 2, 2, "F");
+  const kv = (k, v, yy) => { doc.setTextColor(...GREY); T(k, 122, yy, { s: 7.5 }); doc.setTextColor(...INK); T(v, 188, yy, { b: true, s: 9, al: "right" }); };
+  kv("Date", frDate(inv.issue_date), 54); kv("Échéance", inv.due_date ? frDate(inv.due_date) : "à réception", 60.5); kv("Référence", oiFmt4(inv.reference), 67);
+  // Destinataire (fenêtre enveloppe, à gauche)
+  let y = 82; doc.setTextColor(...GREY); T("FACTURÉ À", 18, y - 5, { b: true, s: 7 }); doc.setTextColor(0);
+  for (const l of dLines) { T(l, 18, y, { s: 11 }); y += 5.5; }
+  if (inv.player_name && inv.player_name !== inv.debtor_name) { doc.setTextColor(...GREY); T(`Joueur·euse : ${inv.player_name}`, 18, y + 1, { s: 8.5 }); doc.setTextColor(0); }
+  // --- Articles (en-tête bleu, lignes alternées) ---
   const items = Array.isArray(inv.items) && inv.items.length ? inv.items : [{ label: inv.label || "", amount: inv.amount }];
-  let yi = y + 16;
+  y = 106;
+  doc.setFillColor(...BLUE); doc.rect(18, y, 174, 8, "F"); doc.setTextColor(255);
+  T("Désignation", 21, y + 5.5, { b: true, s: 9 }); T("Montant CHF", 189, y + 5.5, { b: true, s: 9, al: "right" }); doc.setTextColor(0);
+  let yi = y + 8, zebra = false;
   for (const it of items) {
-    const desc = doc.splitTextToSize(it.label || "", 130); T(desc, 20, yi, { s: 10 }); T(oiChf(it.amount || 0), 190, yi, { s: 10, al: "right" });
-    yi += desc.length * 5 + 2;
+    const desc = doc.splitTextToSize(it.label || "", 135); const h = desc.length * 5 + 4;
+    if (zebra) { doc.setFillColor(...LIGHT); doc.rect(18, yi, 174, h, "F"); } zebra = !zebra;
+    T(desc, 21, yi + 5.5, { s: 10 }); T(oiChf(it.amount || 0), 189, yi + 5.5, { s: 10, al: "right" });
+    yi += h;
   }
-  const yEnd = yi + 2; doc.line(20, yEnd, 190, yEnd);
-  T("Total à payer", 120, yEnd + 7, { b: true, s: 11 }); T(`CHF ${oiChf(inv.amount)}`, 190, yEnd + 7, { b: true, s: 11, al: "right" });
-  T(`Payable jusqu'au ${inv.due_date ? frDate(inv.due_date) : "réception"} au moyen de la QR-facture ci-dessous (référence ${oiFmt4(inv.reference)}).`, 20, yEnd + 18, { s: 9 });
-  T("Merci de votre confiance — Team Lausanne Tennis.", 20, yEnd + 24, { s: 9 });
+  doc.setDrawColor(...BLUE); doc.setLineWidth(0.6); doc.line(18, yi, 192, yi); doc.setLineWidth(0.2); doc.setDrawColor(0);
+  doc.setTextColor(...INK); T("Total à payer", 120, yi + 8.5, { b: true, s: 12 }); T(`CHF ${oiChf(inv.amount)}`, 189, yi + 8.5, { b: true, s: 13, al: "right" });
+  doc.setTextColor(...GREY);
+  T(`Payable jusqu'au ${inv.due_date ? frDate(inv.due_date) : "réception"} au moyen de la QR-facture ci-dessous (référence ${oiFmt4(inv.reference)}).`, 18, yi + 18, { s: 8.5 });
+  T("Merci de votre confiance — Team Lausanne Academy", 18, yi + 23, { s: 8.5 });
+  doc.setTextColor(0);
   // --- Section paiement (bas de page : récépissé 62 mm + section paiement 148 mm, hauteur 105 mm) ---
   const Y = 192;
   doc.setLineDashPattern([1.5, 1], 0); doc.setDrawColor(0); doc.line(0, Y, 210, Y); doc.line(62, Y, 62, 297); doc.setLineDashPattern([], 0);
