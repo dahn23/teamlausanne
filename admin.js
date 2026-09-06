@@ -4784,36 +4784,41 @@ function initFactures() {
     if (b.dataset.fsub === "tarifs") { renderFacTarifs(); renderFacPeak(); }
   }));
 }
-// Grille heures pleines/creuses (saison hiver) — app_settings clé 'hiver_peak'.
+// Grille heures pleines/creuses — MÊME réglage que les prix de réservation (app_settings clé 'peak',
+// format { "1":[17,18,…], … } avec 1=lundi…7=dimanche et l'heure = début du créneau). Une seule matrice.
 const PEAK_DAYS = [["Lun", 1], ["Mar", 2], ["Mer", 3], ["Jeu", 4], ["Ven", 5], ["Sam", 6], ["Dim", 7]];
 const PEAK_HOURS = Array.from({ length: 14 }, (_, i) => 8 + i);
-function defaultPeakSet() {
-  const s = new Set();
-  for (let d = 1; d <= 7; d++) for (let h = 17; h <= 21; h++) s.add(d + "_" + (h - 8));   // soirs (17h15+)
-  for (const d of [6, 7]) for (let h = 10; h <= 21; h++) s.add(d + "_" + (h - 8));         // week-end dès 10h15
-  for (let d = 1; d <= 5; d++) { s.add(d + "_4"); s.add(d + "_5"); }                       // mi-journée 12h15/13h15
-  for (const h of [14, 15, 16]) s.add("3_" + (h - 8));                                     // mercredi aprem
-  return s;
+function defaultPeakMap() {
+  const m = {}; const add = (d, h) => { (m[String(d)] || (m[String(d)] = [])).push(h); };
+  for (let d = 1; d <= 7; d++) for (let h = 17; h <= 21; h++) add(d, h);   // soirs
+  for (const d of [6, 7]) for (let h = 10; h <= 21; h++) add(d, h);        // week-end dès 10h15
+  for (let d = 1; d <= 5; d++) { add(d, 12); add(d, 13); }                 // mi-journée
+  for (const h of [14, 15, 16]) add(3, h);                                 // mercredi aprem
+  for (const k of Object.keys(m)) m[k] = [...new Set(m[k])];
+  return m;
 }
-let facPeakSet = null;
+let facPeakMap = null;
 async function renderFacPeak() {
   const host = $("fac-peak"); if (!host) return;
-  if (!facPeakSet) {
-    const { data } = await sb.from("app_settings").select("value").eq("key", "hiver_peak").maybeSingle();
-    const arr = data && data.value && Array.isArray(data.value.peak) ? data.value.peak : null;
-    facPeakSet = arr ? new Set(arr) : defaultPeakSet();
+  if (!facPeakMap) {
+    const { data } = await sb.from("app_settings").select("value").eq("key", "peak").maybeSingle();
+    const v = (data && data.value && typeof data.value === "object") ? data.value : null;
+    facPeakMap = (v && Object.keys(v).length) ? v : defaultPeakMap();
   }
+  const has = (d, h) => (facPeakMap[String(d)] || []).includes(h);
   const head = `<tr><th></th>${PEAK_DAYS.map(([l]) => `<th>${l}</th>`).join("")}</tr>`;
-  const rows = PEAK_HOURS.map((h) => { const slot = h - 8; return `<tr><th class="wp-time">${h}h15</th>${PEAK_DAYS.map(([, d]) => { const k = d + "_" + slot; return `<td class="pk-cell${facPeakSet.has(k) ? " pk-on" : ""}" data-k="${k}"></td>`; }).join("")}</tr>`; }).join("");
+  const rows = PEAK_HOURS.map((h) => `<tr><th class="wp-time">${h}h15</th>${PEAK_DAYS.map(([, d]) => `<td class="pk-cell${has(d, h) ? " pk-on" : ""}" data-d="${d}" data-h="${h}"></td>`).join("")}</tr>`).join("");
   host.innerHTML = `<div class="table-wrap" style="max-width:660px"><table class="wp-table pk-table">${head}${rows}</table></div>
     <div style="margin-top:10px"><button type="button" id="fac-peak-save">Enregistrer</button><span id="fac-peak-status" class="muted" style="margin-left:10px;font-size:.85rem"></span></div>`;
   host.querySelectorAll(".pk-cell").forEach((c) => c.addEventListener("click", () => {
-    const k = c.dataset.k;
-    if (facPeakSet.has(k)) { facPeakSet.delete(k); c.classList.remove("pk-on"); } else { facPeakSet.add(k); c.classList.add("pk-on"); }
+    const d = c.dataset.d, h = Number(c.dataset.h); const arr = facPeakMap[d] || (facPeakMap[d] = []);
+    const i = arr.indexOf(h); if (i >= 0) { arr.splice(i, 1); c.classList.remove("pk-on"); } else { arr.push(h); c.classList.add("pk-on"); }
   }));
   $("fac-peak-save").addEventListener("click", async () => {
-    const { error } = await sb.from("app_settings").upsert({ key: "hiver_peak", value: { peak: [...facPeakSet] }, updated_at: new Date().toISOString() }, { onConflict: "key" });
-    $("fac-peak-status").textContent = error ? "Erreur : " + error.message : "✓ Enregistré";
+    const clean = {}; for (const k of Object.keys(facPeakMap)) { if ((facPeakMap[k] || []).length) clean[k] = [...facPeakMap[k]].sort((a, b) => a - b); }
+    const { error } = await sb.from("app_settings").upsert({ key: "peak", value: clean, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    facPeakMap = clean; settings.peak = clean;
+    $("fac-peak-status").textContent = error ? "Erreur : " + error.message : "✓ Enregistré (prix des réservations mis à jour aussi)";
   });
 }
 // Grille des tarifs d'abonnement par filière (app_settings clé 'sub_prices').
