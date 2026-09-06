@@ -1337,6 +1337,7 @@ function openPerson(p) {
   $("p-salary").value = p?.salary_monthly != null ? p.salary_monthly : "";
   $("p-salary-from").value = p?.salary_from || "";
   $("p-standing").value = p?.standing_order != null ? p.standing_order : "";
+  $("p-byinv").checked = !!p?.pays_by_invoice;
   loadCoachRates(p ? p.id : null);
   loadPersonPay(p ? p.id : null, staffPayRole && canSalaries());
   setPersonTab("info");
@@ -4079,6 +4080,7 @@ async function savePerson(e) {
     salary_monthly: $("p-salary").value.trim() === "" ? null : Number($("p-salary").value),
     salary_from: $("p-salary-from").value || null,
     standing_order: $("p-standing").value.trim() === "" ? null : Number($("p-standing").value),
+    pays_by_invoice: $("p-byinv").checked,
     emails: lines("p-emails"),
     phones: lines("p-phones"),
     photo_url: personPhotoUrl,
@@ -4802,8 +4804,8 @@ function renderHeures() {
     const { base, extra, total } = heAmount(x);
     const allVal = x.total_courses > 0 && x.courses === x.total_courses;
     const extraTxt = extra ? ` <span class="muted" style="font-size:.78rem">(dont ${extra.toLocaleString("fr-CH")} extra)</span>` : "";
-    return `<tr>
-      <td><b>${esc(x.name)}</b></td><td>${x.total_courses}</td><td>${x.hours} h</td>
+    return `<tr${x.by_invoice ? ' class="he-inv" title="Sur facture : payé sur sa propre facture (montant attendu ci-contre), exclu du décompte fiduciaire et du paiement automatique"' : ""}>
+      <td><b>${esc(x.name)}</b>${x.by_invoice ? ' <span class="he-inv-badge">sur facture</span>' : ""}</td><td>${x.total_courses}</td><td>${x.hours} h</td>
       <td>${salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
       <td>${salaried ? `<b>${total.toLocaleString("fr-CH")} CHF</b> <span class="muted" style="font-size:.78rem">brut / mois</span>${extraTxt}` : (base != null || extra ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—")}</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
@@ -4814,8 +4816,8 @@ function renderHeures() {
   }).join("");
   $("heures-profs").innerHTML = p.map((x) => {
     const allVal = x.total_days > 0 && x.days === x.total_days;
-    return `<tr>
-      <td><b>${esc(x.name)}</b></td><td>${x.total_days}</td><td>${x.hours} h</td>
+    return `<tr${x.by_invoice ? ' class="he-inv" title="Sur facture : payé sur sa propre facture, exclu du décompte fiduciaire et du paiement automatique"' : ""}>
+      <td><b>${esc(x.name)}</b>${x.by_invoice ? ' <span class="he-inv-badge">sur facture</span>' : ""}</td><td>${x.total_days}</td><td>${x.hours} h</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.days + "/" + x.total_days + "</span>" : '<span class="muted">' + x.days + "/" + x.total_days + "</span>"}</td>
       ${salExtraCell(x.person_id, x.extra)}
@@ -4850,7 +4852,7 @@ async function coachDetail(personId, name) {
 function exportHeures() {
   const c = heuresData.coaches || [], p = heuresData.profs || [];
   const lines = [["Type", "Nom", "Cours/AM", "Heures", "Tarif", "Extra", "Montant", "IBAN", "Valide"]];
-  for (const x of c) { const { base, extra, total } = heAmount(x); lines.push(["Coach", x.name, x.courses, x.hours, x.salary != null ? "salarié" : (x.rate ?? ""), extra || "", (base != null || extra) ? total : "", x.iban ?? "", x.total_courses > 0 && x.courses === x.total_courses ? "oui" : "non"]); }
+  for (const x of c) { const { base, extra, total } = heAmount(x); lines.push([x.by_invoice ? "Coach (sur facture)" : "Coach", x.name, x.courses, x.hours, x.salary != null ? "salarié" : (x.rate ?? ""), extra || "", (base != null || extra) ? total : "", x.iban ?? "", x.total_courses > 0 && x.courses === x.total_courses ? "oui" : "non"]); }
   for (const x of p) lines.push(["Prof", x.name, x.days, x.hours, "", x.extra ?? "", "", x.iban ?? "", x.total_days > 0 && x.days === x.total_days ? "oui" : "non"]);
   const csv = lines.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
   const a = document.createElement("a");
@@ -4864,10 +4866,12 @@ async function buildHeuresPdf() {
   if (!window.jspdf?.jsPDF?.API?.autoTable) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const c = heuresData.coaches || [], p = heuresData.profs || [];
+  // Les personnes « sur facture » (indépendants) ne figurent PAS dans le décompte fiduciaire.
+  const c = (heuresData.coaches || []).filter((x) => !x.by_invoice), p = (heuresData.profs || []).filter((x) => !x.by_invoice);
+  const nInv = (heuresData.coaches || []).filter((x) => x.by_invoice).length + (heuresData.profs || []).filter((x) => x.by_invoice).length;
   const chf = (n) => (Math.round(Number(n) * 100) / 100).toLocaleString("fr-CH") + " CHF";
   doc.setFontSize(15); doc.text(`Décompte mensuel — ${heuresMoisLbl()}`, 14, 14);
-  doc.setFontSize(9); doc.setTextColor(110); doc.text(`Team Lausanne · généré le ${frDate(new Date())}`, 14, 20); doc.setTextColor(0);
+  doc.setFontSize(9); doc.setTextColor(110); doc.text(`Team Lausanne · généré le ${frDate(new Date())}${nInv ? ` · ${nInv} intervenant(s) sur facture non inclus` : ""}`, 14, 20); doc.setTextColor(0);
   let total = 0;
   const coachRows = c.map((x) => {
     const sal = x.salary != null, { base, extra, total: t } = heAmount(x);
@@ -4944,13 +4948,15 @@ function heSO(pid) {
   const x = [...(heuresData.coaches || []), ...(heuresData.profs || [])].find((r) => r.person_id === pid);
   return x?.standing_order != null ? Number(x.standing_order) : null;
 }
-// Montant qui partira en facture pour une fiche : net − ordre permanent (0 si couvert).
+const heByInv = (pid) => !![...(heuresData.coaches || []), ...(heuresData.profs || [])].find((r) => r.person_id === pid)?.by_invoice;
+// Montant qui partira en facture pour une fiche : net − ordre permanent (0 si couvert, 0 si « sur facture »).
 function salToPay(s) {
-  if (!s || !(s.net > 0)) return 0;
+  if (!s || !(s.net > 0) || heByInv(s.person_id)) return 0;
   const so = heSO(s.person_id);
   return Math.max(0, Math.round((Number(s.net) - (so || 0)) * 100) / 100);
 }
 function salNetCell(pid) {
+  if (heByInv(pid)) return `<td class="sal-col"><span class="muted" style="font-size:.8rem" title="Payé sur sa propre facture (onglet Factures)">sur facture</span></td>`;
   const s = salSlipOf(pid);
   const val = s?.net != null ? Number(s.net).toFixed(2) : "";
   const so = heSO(pid);
