@@ -870,6 +870,19 @@ html{-webkit-tap-highlight-color:transparent}
 .comp-subtabs{display:flex;gap:6px;margin:4px 0 14px}
 .comp-subtab{flex:1;padding:9px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:700;font-size:.82rem;cursor:pointer;color:var(--muted)}
 .comp-subtab.on{background:#123cc4;border-color:#123cc4;color:#fff}
+/* Dashboard */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start}
+.dash-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.dash-h{margin:0 0 6px;font-size:1.1rem;color:#123cc4}
+.dash-sub{margin:14px 0 4px;font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.02em;opacity:.7}
+.dash-row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid #f0f2f5;font-size:.9rem}
+.dash-li{padding:4px 0;border-bottom:1px solid #f0f2f5;font-size:.88rem}
+.dash-red{color:#b3261e;font-weight:700}
+.dash-ok{color:#1c7d38;font-size:.88rem;padding:2px 0}
+.dash-alert{background:#fbe4e4;border:1px solid #f0c9c9;color:#8a1c1c;border-radius:8px;padding:6px 9px;margin:4px 0;font-size:.86rem}
+.dash-win{color:#1c7d38}
+.dash-tag{font-size:.68rem;font-weight:800;background:#eef0f4;border-radius:5px;padding:1px 5px;color:var(--muted)}
+.dash-scroll{max-height:220px;overflow-y:auto}
 .wp-colmove{margin-top:5px;display:inline-block;font-size:.68rem;font-weight:700;color:var(--muted);
   background:#fff;border:1px solid var(--line);border-radius:6px;padding:2px 6px;cursor:grab}
 .wp-colmove:active{cursor:grabbing}

@@ -209,10 +209,10 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  superadmin: ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
   secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "winter", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
-  head_coach: ["anniv", "resa", "cours", "matchs", "lastscores", "phystests", "mental", "stages", "prospects", "heures"],
+  head_coach: ["dashboard", "anniv", "resa", "cours", "matchs", "lastscores", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "lastscores", "phystests", "heures"],
   coach_physique: ["cours", "phystests", "heures"],
   moniteur:   ["cours", "heures"],
@@ -221,7 +221,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -402,6 +402,7 @@ function showView(view) {
   if (view === "factures") loadFactures();
   if (view === "winter") loadWinter();
   if (view === "lastscores") loadLastScores();
+  if (view === "dashboard") loadDashboard();
   if (view === "locks") loadLocks();
   if (view === "irrigation") loadIrrigation();
 }
@@ -1562,6 +1563,80 @@ function renderLastScores() {
         <td class="ls-score">${res}${esc(r.score || "")}${r.is_perf ? ' <span class="ls-badge">PERF</span>' : ""}</td>
       </tr>`;
     }).join("") + "</tbody></table></div>";
+}
+
+// ===================================================================
+//  Dashboard (head coach / admin / superadmin) — vue anti-oubli
+// ===================================================================
+const dDaysAgo = (iso) => iso ? Math.floor((Date.now() - new Date(iso)) / 86400000) : 99999;
+const dFD = (iso) => iso ? frDate(String(iso).slice(0, 10)) : "—";
+function dashCard(title, inner) { return `<section class="dash-card"><h2 class="dash-h">${esc(title)}</h2>${inner}</section>`; }
+async function loadDashboard() {
+  const body = $("dash-body");
+  if (!$("dash-refresh").dataset.w) { $("dash-refresh").dataset.w = "1"; $("dash-refresh").addEventListener("click", loadDashboard); }
+  body.innerHTML = '<p class="muted">Chargement…</p>';
+  const { data, error } = await sb.rpc("dashboard_data");
+  if (error) { body.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  const D = data || {};
+  $("dash-gen").textContent = D.generated_at ? "— " + frDateTime(D.generated_at) : "";
+  body.innerHTML = `<div class="dash-grid">`
+    + dashGeneral(D.general || {}) + dashMail(D.mail || {})
+    + dashGroup("Pro · Pro U18 · Sport-études", D.se || {})
+    + dashGroup("Compétition & Performance", D.comp || {})
+    + dashClub(D.club || {}) + `</div>`;
+}
+function dashGeneral(g) {
+  const lu = g.lastup || {};
+  const line = (label, at, by) => { const red = dDaysAgo(at) > 10; return `<div class="dash-row"><span>${esc(label)}</span><span class="${red ? "dash-red" : ""}">${at ? dFD(at) : "jamais"}${by ? " · " + esc(by) : ""}${red ? " ⚠️" : ""}</span></div>`; };
+  const cov = ((g.nocoach || []).length || (g.coachabs || []).length)
+    ? (g.nocoach || []).map((c) => `<div class="dash-alert">Cours sans coach : <b>${esc(c.label)}</b> — ${dFD(c.date)}</div>`).join("")
+      + (g.coachabs || []).map((c) => `<div class="dash-alert">Seul coach absent : <b>${esc(c.label)}</b> — ${dFD(c.date)}</div>`).join("")
+    : `<div class="dash-ok">✓ Tous les cours à venir ont un coach attribué.</div>`;
+  const unval = ((g.unvalidated || []).length || (g.unvalidated_et || []).length)
+    ? (g.unvalidated || []).map((c) => `<div class="dash-li">${dFD(c.date)} — ${esc(c.label)}</div>`).join("")
+      + (g.unvalidated_et || []).map((c) => `<div class="dash-li">${dFD(c.date)} — Études</div>`).join("")
+    : `<div class="dash-ok">✓ Tout est validé.</div>`;
+  return dashCard("Général",
+    `<h3 class="dash-sub">Dernières mises à jour <span class="muted" style="font-weight:400;font-size:.8rem">(⚠️ rouge = &gt; 10 jours)</span></h3>
+     ${line("Tournois GameZone", lu.gz_at, lu.gz_by)}${line("Scanner les résultats", lu.scan_at)}${line("Importer les matchs", lu.matchs_at)}${line("Importer les classements", lu.rank_at)}
+     <h3 class="dash-sub">Couverture coachs (cours à venir)</h3>${cov}
+     <h3 class="dash-sub">Cours / études passés non validés (21 j)</h3>${unval}`);
+}
+function dashMail(m) {
+  const boxes = (m.boxes || []).map((b) => `<div class="dash-row"><span>${esc(b.label)}</span><span><b>${b.recv7}</b> reçus</span></div>`).join("");
+  const done = (m.done7 || []).map((d) => `<div class="dash-row"><span>${esc(d.who || "—")}</span><span>${d.traite} traité · ${d.repondu} répondu</span></div>`).join("") || '<div class="muted">—</div>';
+  const avgby = (m.avg_by || []).map((d) => `<div class="dash-row"><span>${esc(d.who || "—")}</span><span>${d.hours != null ? d.hours + " h" : "—"} <span class="muted">(${d.n})</span></span></div>`).join("") || '<div class="muted">—</div>';
+  return dashCard("Messagerie",
+    `<h3 class="dash-sub">Reçus (7 jours)</h3>${boxes}
+     <div class="dash-row"><span><b>À traiter</b> (toutes boîtes)</span><span class="${(m.a_traiter || 0) > 0 ? "dash-red" : ""}">${m.a_traiter || 0}</span></div>
+     <h3 class="dash-sub">Traités / répondus (7 j) par personne</h3>${done}
+     <h3 class="dash-sub">Délai moyen « à traiter → traité »</h3>
+     <div class="dash-row"><span>Global</span><span>${m.avg_all_h != null ? m.avg_all_h + " h" : "—"}</span></div>${avgby}`);
+}
+function dashGroup(title, g) {
+  const y = g.youths || [];
+  const abs = y.filter((x) => (x.absences || []).length).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> : ${x.absences.map((a) => `${esc(a.label)} (${dFD(a.date)})`).join(", ")}</div>`).join("") || '<div class="dash-ok">✓ Aucune absence.</div>';
+  const ret = y.filter((x) => (x.retards || []).length).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> : ${x.retards.map((a) => `${esc(a.label)} (${dFD(a.date)})`).join(", ")}</div>`).join("") || '<div class="dash-ok">✓ Aucun retard.</div>';
+  const stale = y.filter((x) => !x.tennis_last || dDaysAgo(x.tennis_last) > 21).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> — ${x.tennis_last ? "dernière : " + dFD(x.tennis_last) : "aucune remarque"}</div>`).join("") || '<div class="dash-ok">✓ Tous ont une remarque récente.</div>';
+  const forms = y.map((x) => `<div class="dash-row"><span>${esc(x.name)}</span><span>${x.coach_forms || 0}</span></div>`).join("") || '<div class="muted">—</div>';
+  const suivi = (g.suivi || []).map((s) => `<div class="dash-li">${dFD(s.date)} · <b>${esc(s.youth || "—")}</b> — ${esc(s.author || "—")}${s.role ? ` (${esc(s.role)})` : ""} : ${esc(s.body || "")}</div>`).join("") || '<div class="muted">—</div>';
+  const ls = (g.lastscores || []).map((s) => `<div class="dash-li${s.won ? " dash-win" : ""}">${dFD(s.date)} · <b>${esc(s.youth)}</b> vs ${esc(s.opponent || "—")}${s.oc ? ` (${esc(s.oc)})` : ""} — ${s.won === true ? "V" : s.won === false ? "D" : ""} ${esc(s.score || "")}</div>`).join("") || '<div class="muted">—</div>';
+  const rep = (g.reports || []).map((s) => `<div class="dash-li">${dFD(s.date)} · <b>${esc(s.youth)}</b> vs ${esc(s.opponent || "—")} — ${s.result === "gagne" ? "Gagné" : s.result === "perdu" ? "Perdu" : ""} ${esc(s.score || "")} <span class="dash-tag">${esc(s.role)}</span></div>`).join("") || '<div class="muted">—</div>';
+  return dashCard(title,
+    `<h3 class="dash-sub">Absences (10 j)</h3>${abs}
+     <h3 class="dash-sub">Retards (10 j)</h3>${ret}
+     <h3 class="dash-sub">Sans remarque « Tennis » depuis &gt; 3 semaines</h3>${stale}
+     <h3 class="dash-sub">Derniers messages « Suivi »</h3><div class="dash-scroll">${suivi}</div>
+     <h3 class="dash-sub">Matchs (14 j)</h3><div class="dash-scroll">${ls}</div>
+     <h3 class="dash-sub">Feuilles de match</h3><div class="dash-scroll">${rep}</div>
+     <h3 class="dash-sub">Feuilles remplies par un coach (saison)</h3><div class="dash-scroll">${forms}</div>`);
+}
+function dashClub(c) {
+  const abs = (c.abs_streak || []).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> — ${x.streak} absences de suite</div>`).join("") || '<div class="dash-ok">✓ Personne avec &gt; 2 absences de suite (2 sem.).</div>';
+  const ret = (c.retards || []).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> — ${x.n} retards</div>`).join("") || '<div class="dash-ok">✓ Personne avec &gt; 3 retards (saison).</div>';
+  return dashCard("Club & KidsTennis",
+    `<h3 class="dash-sub">Plus de 2 absences de suite (2 semaines)</h3>${abs}
+     <h3 class="dash-sub">Plus de 3 retards (saison)</h3>${ret}`);
 }
 
 // ---- Photos / vidéos d'une personne ----
