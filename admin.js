@@ -5304,12 +5304,15 @@ function initFactures() {
 // ===================================================================
 const OI_ST = { a_envoyer: ["À envoyer", "fac-todo"], envoyee: ["Envoyée", "fac-pay"], payee: ["Payée", "fac-paid"], annulee: ["Annulée", ""] };
 const OI_ORDER = ["a_envoyer", "envoyee", "payee", "annulee"];
-const OI_FILIERES = [["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"], ["performance", "Performance"], ["competition", "Compétition"], ["club", "Club"], ["kidstennis", "KidsTennis"], ["adultes", "Adultes"]];
+// Lot par filière = filières « grille Tarifs » ; sport-études / pro / pro U18 = depuis le contrat de la fiche.
+const OI_FILIERES = [["performance", "Performance"], ["competition", "Compétition"], ["club", "Club"], ["kidstennis", "KidsTennis"], ["adultes", "Adultes"]];
+const OI_FIL_ALL = [...OI_FILIERES, ["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"]];
 const OI_FROM = "info@teamlausanne.ch";
-let oiList = [], oiFilter = "", oiInit = false, oiPrep = [], oiSendIds = [];
+let oiList = [], oiFilter = "", oiInit = false, oiPrep = [], oiSendIds = [], oiSel = new Set();
+let oieId = null, oieDebtorPid = null, oiePlayerPid = null, oieSeason = null, oieFiliere = null;
 const oiChf = (n) => Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ");   // 1 234.50 (format QR-facture)
 const oiFmt4 = (s) => String(s || "").replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
-const oiFil = (v) => (OI_FILIERES.find(([k]) => k === v) || [v, v])[1];
+const oiFil = (v) => (OI_FIL_ALL.find(([k]) => k === v) || [v, v])[1];
 
 function initOutInvoices() {
   if (oiInit) return; oiInit = true;
@@ -5319,10 +5322,22 @@ function initOutInvoices() {
   $("oi-generate").addEventListener("click", oiGenerate);
   $("oi-all").addEventListener("change", () => { $("oi-prep-rows").querySelectorAll(".oi-inc").forEach((c) => { c.checked = $("oi-all").checked; oiPrep[c.dataset.i].include = c.checked; }); oiUpdateGenBtn(); });
   $("oi-send-all").addEventListener("click", () => oiOpenSend(oiList.filter((x) => x.status === "a_envoyer" && x.pdf_path).map((x) => x.id)));
+  $("oi-send-sel").addEventListener("click", () => { if (!oiSel.size) { uiAlert("Coche d'abord les factures à envoyer."); return; } oiOpenSend([...oiSel]); });
+  $("oi-sel-all").addEventListener("change", () => { const on = $("oi-sel-all").checked; $("oi-rows").querySelectorAll(".oi-chk").forEach((c) => { c.checked = on; if (on) oiSel.add(c.dataset.id); else oiSel.delete(c.dataset.id); }); oiUpdateSelBtn(); });
   $("oi-send-close").addEventListener("click", () => $("oi-send-modal").classList.add("hidden"));
   $("oi-send-go").addEventListener("click", oiSendGo);
   ["oi-send-subject", "oi-send-text"].forEach((id) => $(id).addEventListener("input", oiSendPreview));
+  ["oi-filiere", "oi-season", "oi-inst-total"].forEach((id) => $(id).addEventListener("change", oiLoadPlayers));   // liste chargée automatiquement
+  // Éditeur (nouvelle / personnelle / blanche / modification)
+  $("oi-new").addEventListener("click", () => oiOpenEdit(null));
+  $("oie-close").addEventListener("click", () => $("oi-edit-modal").classList.add("hidden"));
+  $("oie-add").addEventListener("click", () => { oieAddItem("", ""); });
+  $("oie-save").addEventListener("click", oiSaveEdit);
+  let t = null;
+  $("oie-search").addEventListener("input", () => { clearTimeout(t); t = setTimeout(oieSearch, 250); });
+  $("oie-search").addEventListener("blur", () => setTimeout(() => $("oie-results").classList.add("hidden"), 200));
 }
+function oiUpdateSelBtn() { $("oi-send-sel").textContent = `✉ Envoyer la sélection${oiSel.size ? ` (${oiSel.size})` : ""}`; }
 async function loadOutInvoices() {
   initOutInvoices();
   if (!facAccts.length) { const { data: acc } = await sb.from("finance_accounts").select("*").order("sort"); facAccts = acc || []; }
@@ -5350,23 +5365,43 @@ function renderOiFilters() {
 function renderOutInvoices() {
   const rows = oiList.filter((f) => !oiFilter || f.status === oiFilter);
   $("oi-empty").hidden = rows.length > 0;
+  for (const id of [...oiSel]) if (!oiList.find((x) => x.id === id && x.status !== "payee" && x.status !== "annulee")) oiSel.delete(id);
   $("oi-rows").innerHTML = rows.map((f) => {
     const [lbl, cls] = OI_ST[f.status] || [f.status, ""];
-    const acts = (f.status === "a_envoyer" && f.pdf_path ? `<button class="ghost oi-send" data-id="${f.id}">Envoyer</button>` : "")
+    const editable = f.status !== "payee" && f.status !== "annulee";
+    const items = Array.isArray(f.items) && f.items.length ? f.items : (f.label ? [{ label: f.label, amount: f.amount }] : []);
+    const acts = (editable ? `<button class="ghost oi-edit" data-id="${f.id}" title="Modifier (dates, articles, destinataire)">✎</button>` : "")
+      + (f.status === "a_envoyer" && f.pdf_path ? `<button class="ghost oi-send" data-id="${f.id}">Envoyer</button>` : "")
       + (f.status === "envoyee" ? `<button class="ghost oi-send" data-id="${f.id}" title="Renvoyer">↻</button><button class="ghost oi-paid" data-id="${f.id}">Payée</button>` : "")
-      + (f.status !== "annulee" && f.status !== "payee" ? `<button class="ghost oi-cancel" data-id="${f.id}" title="Annuler">✕</button>` : "");
+      + (editable ? `<button class="ghost oi-cancel" data-id="${f.id}" title="Annuler">✕</button>` : "");
+    const dateIn = (k) => editable ? `<input type="date" class="oi-date" data-id="${f.id}" data-k="${k}" value="${f[k] || ""}" style="width:118px" />` : (f[k] ? frDate(f[k]) : "—");
     return `<tr class="${f.status === "annulee" ? "muted" : ""}">
+      <td>${editable && f.pdf_path ? `<input type="checkbox" class="oi-chk" data-id="${f.id}" ${oiSel.has(f.id) ? "checked" : ""} />` : ""}</td>
       <td style="white-space:nowrap"><b>${esc(f.number)}</b>${f.reference ? `<div class="muted" style="font-size:.7rem">${esc(oiFmt4(f.reference))}</div>` : ""}</td>
-      <td>${esc(f.debtor_name || "—")}${f.debtor_email ? `<div class="muted" style="font-size:.75rem">${esc(f.debtor_email)}</div>` : ""}</td>
+      <td>${esc(f.debtor_name || "—")}</td>
+      <td style="font-size:.8rem">${f.debtor_email ? esc(f.debtor_email) : '<span style="color:#b45309">—</span>'}</td>
       <td>${esc(f.player_name || "")}</td>
-      <td class="muted" style="font-size:.84rem">${esc(f.label || "")}</td>
-      <td style="white-space:nowrap">${oiChf(f.amount)} CHF</td>
-      <td style="white-space:nowrap">${f.due_date ? frDate(f.due_date) : "—"}</td>
-      <td>${f.pdf_path ? `<button class="ghost oi-pdf" data-path="${esc(f.pdf_path)}">📄 Voir</button>` : `<button class="ghost oi-regen" data-id="${f.id}" title="Générer le PDF">⟳ PDF</button>`}</td>
+      <td class="muted" style="font-size:.82rem">${items.map((it) => `<div>${esc(it.label || "")}${items.length > 1 ? ` <span style="white-space:nowrap">— ${oiChf(it.amount || 0)}</span>` : ""}</div>`).join("")}</td>
+      <td style="white-space:nowrap"><b>${oiChf(f.amount)}</b></td>
+      <td style="white-space:nowrap">${dateIn("issue_date")}</td>
+      <td style="white-space:nowrap">${dateIn("due_date")}</td>
+      <td>${f.pdf_path ? `<button class="ghost oi-pdf" data-path="${esc(f.pdf_path)}">📄</button>` : `<button class="ghost oi-regen" data-id="${f.id}" title="Générer le PDF">⟳ PDF</button>`}</td>
       <td><span class="fac-st ${cls}">${lbl}</span>${f.sent_at ? `<div class="muted" style="font-size:.7rem">${frDate(f.sent_at)}</div>` : ""}</td>
       <td class="he-acts">${acts}</td></tr>`;
   }).join("");
   const R = $("oi-rows");
+  R.querySelectorAll(".oi-chk").forEach((c) => c.addEventListener("change", () => { if (c.checked) oiSel.add(c.dataset.id); else oiSel.delete(c.dataset.id); oiUpdateSelBtn(); }));
+  oiUpdateSelBtn();
+  R.querySelectorAll(".oi-edit").forEach((b) => b.addEventListener("click", () => oiOpenEdit(oiList.find((x) => x.id === b.dataset.id))));
+  R.querySelectorAll(".oi-date").forEach((inp) => inp.addEventListener("change", async () => {   // dates modifiables en ligne → PDF régénéré
+    const f = oiList.find((x) => x.id === inp.dataset.id); if (!f) return;
+    const patch = {}; patch[inp.dataset.k] = inp.value || null;
+    const { error } = await sb.from("out_invoices").update(patch).eq("id", f.id);
+    if (error) { uiAlert("Modification impossible : " + error.message); return; }
+    Object.assign(f, patch);
+    try { await oiMakePdf(f); } catch (e) { uiAlert(e?.message || e); }
+    loadOutInvoices();
+  }));
   R.querySelectorAll(".oi-pdf").forEach((b) => b.addEventListener("click", async () => {
     const { data, error } = await sb.storage.from("out_invoices").createSignedUrl(b.dataset.path, 600);
     if (error || !data?.signedUrl) { uiAlert("PDF indisponible : " + (error?.message || "")); return; }
@@ -5393,6 +5428,7 @@ async function oiOpenPrep() {
   const due = new Date(); due.setDate(due.getDate() + 30); $("oi-due").value = due.toISOString().slice(0, 10);
   oiPrep = []; $("oi-prep-rows").innerHTML = ""; $("oi-prep-note").textContent = ""; $("oi-gen-status").textContent = ""; $("oi-generate").disabled = true;
   $("oi-modal").classList.remove("hidden");
+  oiLoadPlayers();   // chargement automatique
 }
 function oiUpdateGenBtn() {
   const n = oiPrep.filter((r) => r.include && r.amount > 0).length;
@@ -5529,8 +5565,13 @@ async function oiBuildPdf(inv) {
   // --- Corps ---
   y = 90; doc.setDrawColor(180); doc.line(20, y, 190, y);
   T("Description", 20, y + 6, { b: true, s: 10 }); T("Montant CHF", 190, y + 6, { b: true, s: 10, al: "right" }); doc.line(20, y + 9, 190, y + 9);
-  const desc = doc.splitTextToSize(inv.label || "", 130); T(desc, 20, y + 16, { s: 10 }); T(oiChf(inv.amount), 190, y + 16, { s: 10, al: "right" });
-  const yEnd = y + 16 + desc.length * 5 + 4; doc.line(20, yEnd, 190, yEnd);
+  const items = Array.isArray(inv.items) && inv.items.length ? inv.items : [{ label: inv.label || "", amount: inv.amount }];
+  let yi = y + 16;
+  for (const it of items) {
+    const desc = doc.splitTextToSize(it.label || "", 130); T(desc, 20, yi, { s: 10 }); T(oiChf(it.amount || 0), 190, yi, { s: 10, al: "right" });
+    yi += desc.length * 5 + 2;
+  }
+  const yEnd = yi + 2; doc.line(20, yEnd, 190, yEnd);
   T("Total à payer", 120, yEnd + 7, { b: true, s: 11 }); T(`CHF ${oiChf(inv.amount)}`, 190, yEnd + 7, { b: true, s: 11, al: "right" });
   T(`Payable jusqu'au ${inv.due_date ? frDate(inv.due_date) : "réception"} au moyen de la QR-facture ci-dessous (référence ${oiFmt4(inv.reference)}).`, 20, yEnd + 18, { s: 9 });
   T("Merci de votre confiance — Team Lausanne Tennis.", 20, yEnd + 24, { s: 9 });
@@ -5609,6 +5650,127 @@ async function oiSendGo() {
   $("oi-send-modal").classList.add("hidden");
   await loadOutInvoices();
   uiAlert(`✓ ${ok} facture(s) envoyée(s) depuis ${OI_FROM}.${errs.length ? "\n\nErreurs :\n" + errs.join("\n") : ""}`);
+}
+
+// ---- Éditeur d'une facture émise : nouvelle (personnelle / blanche) ou modification ----
+async function oiOpenEdit(inv, preset) {
+  if (!facAccts.length) { const { data: acc } = await sb.from("finance_accounts").select("*").order("sort"); facAccts = acc || []; }
+  oieId = inv?.id || null; oieDebtorPid = inv?.debtor_person_id || preset?.debtor_person_id || null; oiePlayerPid = inv?.person_id || preset?.person_id || null;
+  oieSeason = inv?.season_id || preset?.season_id || null; oieFiliere = inv?.filiere || preset?.filiere || null;
+  const src = inv || preset || {};
+  $("oie-title").textContent = inv ? `Facture ${inv.number}` : "Nouvelle facture";
+  $("oie-search").value = ""; $("oie-results").classList.add("hidden");
+  $("oie-name").value = src.debtor_name || ""; $("oie-email").value = src.debtor_email || "";
+  $("oie-street").value = src.debtor_street || ""; $("oie-zip").value = src.debtor_zip || ""; $("oie-city").value = src.debtor_city || "";
+  $("oie-issue").value = src.issue_date || new Date().toISOString().slice(0, 10);
+  const due = new Date(); due.setDate(due.getDate() + 30);
+  $("oie-due").value = src.due_date || due.toISOString().slice(0, 10);
+  $("oie-acct").innerHTML = facAccts.map((a) => `<option value="${a.id}">${esc(a.name)} — ${esc(a.iban)}</option>`).join("");
+  $("oie-acct").value = src.account_id || (facAccts.find((a) => a.is_default) || facAccts[0])?.id || "";
+  $("oie-note").value = src.note || "";
+  $("oie-items").innerHTML = "";
+  const items = Array.isArray(src.items) && src.items.length ? src.items : (src.label ? [{ label: src.label, amount: src.amount }] : [{ label: "", amount: "" }]);
+  for (const it of items) oieAddItem(it.label, it.amount);
+  $("oie-status").textContent = "";
+  $("oi-edit-modal").classList.remove("hidden");
+}
+function oieAddItem(label, amount) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td><input class="oie-l" value="${esc(label || "")}" placeholder="Désignation" style="width:100%" /></td>
+    <td><input class="oie-a" type="number" step="0.05" value="${amount !== "" && amount != null ? Number(amount).toFixed(2) : ""}" style="width:120px;text-align:right" /></td>
+    <td><button type="button" class="ghost oie-rm" title="Retirer">✕</button></td>`;
+  $("oie-items").appendChild(tr);
+  tr.querySelector(".oie-rm").addEventListener("click", () => { tr.remove(); oieTotal(); });
+  tr.querySelector(".oie-a").addEventListener("input", oieTotal);
+  oieTotal();
+}
+function oieItems() { return [...$("oie-items").querySelectorAll("tr")].map((tr) => ({ label: tr.querySelector(".oie-l").value.trim(), amount: tr.querySelector(".oie-a").value === "" ? 0 : Math.round(Number(tr.querySelector(".oie-a").value) * 100) / 100 })).filter((it) => it.label || it.amount); }
+function oieTotal() { $("oie-total").textContent = oiChf(oieItems().reduce((a, it) => a + (it.amount || 0), 0)); }
+async function oieSearch() {
+  const q = $("oie-search").value.trim(); const box = $("oie-results");
+  if (q.length < 2) { box.classList.add("hidden"); return; }
+  const { data } = await sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%`).order("last_name").limit(15);
+  const rows = data || [];
+  box.innerHTML = rows.length ? rows.map((p) => `<button type="button" class="oie-hit" data-id="${p.id}"><b>${esc(p.last_name)} ${esc(p.first_name)}</b> <span class="muted">${esc([p.address, p.postal_code, p.city].filter(Boolean).join(", ") || "sans adresse")}${p.email ? " · " + esc(p.email) : ""}</span></button>`).join("") : '<span class="muted" style="padding:6px 10px;display:block">Aucun résultat</span>';
+  box.classList.remove("hidden");
+  box.querySelectorAll(".oie-hit").forEach((b) => b.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    const p = rows.find((x) => x.id === b.dataset.id); if (!p) return;
+    oieDebtorPid = p.id; if (!oiePlayerPid) oiePlayerPid = p.id;
+    $("oie-name").value = `${p.first_name} ${p.last_name}`; $("oie-email").value = p.email || "";
+    $("oie-street").value = p.address || ""; $("oie-zip").value = p.postal_code || ""; $("oie-city").value = p.city || "";
+    $("oie-search").value = ""; box.classList.add("hidden");
+  }));
+}
+async function oiSaveEdit() {
+  const items = oieItems();
+  const amount = Math.round(items.reduce((a, it) => a + (it.amount || 0), 0) * 100) / 100;
+  const name = $("oie-name").value.trim();
+  if (!name) { uiAlert("Indique le destinataire (personne du répertoire ou nom libre)."); return; }
+  if (!items.length || !(amount > 0)) { uiAlert("Ajoute au moins un article avec un montant."); return; }
+  const btn = $("oie-save"); btn.disabled = true; $("oie-status").textContent = "Enregistrement…";
+  try {
+    const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
+    const patch = { debtor_person_id: oieDebtorPid, debtor_name: name, debtor_email: $("oie-email").value.trim() || null,
+      debtor_street: $("oie-street").value.trim() || null, debtor_zip: $("oie-zip").value.trim() || null, debtor_city: $("oie-city").value.trim() || null,
+      issue_date: $("oie-issue").value || new Date().toISOString().slice(0, 10), due_date: $("oie-due").value || null,
+      account_id: $("oie-acct").value || null, note: $("oie-note").value.trim() || null,
+      items, amount, label: items.map((it) => it.label).filter(Boolean).join(" · ").slice(0, 140) };
+    let row;
+    if (oieId) {
+      const { data, error } = await sb.from("out_invoices").update(patch).eq("id", oieId).select().single(); if (error) throw new Error(error.message); row = data;
+    } else {
+      const { data: num, error: e1 } = await sb.rpc("out_invoice_next_number"); if (e1) throw new Error(e1.message);
+      const ins = { ...patch, number: num, reference: oiScor(num.replace(/\D/g, "")), person_id: oiePlayerPid, season_id: oieSeason, filiere: oieFiliere, currency: "CHF", status: "a_envoyer", created_by: uid };
+      const { data, error } = await sb.from("out_invoices").insert(ins).select().single(); if (error) throw new Error(error.message); row = data;
+    }
+    $("oie-status").textContent = "PDF…";
+    await oiMakePdf(row);
+    $("oi-edit-modal").classList.add("hidden");
+    await loadOutInvoices();
+  } catch (e) { $("oie-status").textContent = "Erreur : " + (e?.message || e); }
+  btn.disabled = false;
+}
+// ---- Sport-études / pro : n factures depuis le contrat de la fiche (montant annuel ÷ n, échéances mensuelles) ----
+async function oiFromContract(personId, seasonId, d, n, startDate) {
+  if (!facAccts.length) { const { data: acc } = await sb.from("finance_accounts").select("*").order("sort"); facAccts = acc || []; }
+  const fee = parseFloat(d["Annual fee"]); n = parseInt(n) || parseInt(d["Instalments"]) || 1;
+  if (!(fee > 0)) { uiAlert("Renseigne d'abord le montant annuel du contrat (et enregistre-le)."); return 0; }
+  const sea = seasons.find((s) => s.id === seasonId);
+  const [{ data: p }, { data: gs }] = await Promise.all([
+    sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").eq("id", personId).single(),
+    sb.from("guardianships").select("guardian_id,relation").eq("child_id", personId),
+  ]);
+  const gIds = (gs || []).filter((g) => g.relation !== "sibling").map((g) => g.guardian_id);
+  const { data: gp } = gIds.length ? await sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").in("id", gIds) : { data: [] };
+  const parents = gp || []; const debtor = parents.find((x) => x.email) || parents[0] || p;
+  const a = oiAddr(debtor);
+  const acct = facAccts.find((x) => x.is_default) || facAccts[0]; if (!acct?.iban) { uiAlert("Aucun compte à créditer configuré."); return 0; }
+  const prog = d["Programme"] || "Sport-études";
+  const each = Math.round((fee / n) * 100) / 100, last = Math.round((fee - each * (n - 1)) * 100) / 100;   // dernier = solde exact
+  const start = startDate ? new Date(startDate + "T00:00:00") : new Date();
+  if (!(await uiConfirm(`Générer ${n} facture(s) de ${oiChf(each)} CHF (contrat ${oiChf(fee)} CHF, ${prog} ${sea?.label || ""}) pour ${p.first_name} ${p.last_name}, destinataire ${debtor.first_name} ${debtor.last_name}${a.email ? " <" + a.email + ">" : " (sans e-mail)"}, échéances mensuelles dès le ${frDate(start)} ?`))) return 0;
+  const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
+  let ok = 0; const errs = [];
+  for (let i = 1; i <= n; i++) {
+    try {
+      const due = new Date(start.getFullYear(), start.getMonth() + (i - 1), start.getDate());
+      const issue = new Date(due); issue.setDate(issue.getDate() - 30); const today = new Date();
+      const label = `${prog} ${sea?.label || ""} — échéance ${i}/${n} — ${p.first_name} ${p.last_name}`;
+      const { data: num, error: e1 } = await sb.rpc("out_invoice_next_number"); if (e1) throw new Error(e1.message);
+      const amt = i === n ? last : each;
+      const inv = { number: num, season_id: seasonId, filiere: d["Programme"] === "pro" ? "pro" : "sport-etudes", person_id: personId, debtor_person_id: debtor.id,
+        debtor_name: `${debtor.first_name} ${debtor.last_name}`, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_email: a.email || null,
+        label, instalment_no: i, instalment_total: n, items: [{ label, amount: amt }], amount: amt, currency: "CHF",
+        issue_date: (issue < today ? today : issue).toISOString().slice(0, 10), due_date: due.toISOString().slice(0, 10),
+        reference: oiScor(num.replace(/\D/g, "")), account_id: acct.id, status: "a_envoyer", created_by: uid };
+      const { data: ins, error: e2 } = await sb.from("out_invoices").insert(inv).select().single(); if (e2) throw new Error(e2.message);
+      await oiMakePdf({ ...ins, player_name: `${p.first_name} ${p.last_name}` });
+      ok++;
+    } catch (e) { errs.push(`${i}/${n} : ${e?.message || e}`); }
+  }
+  uiAlert(`✓ ${ok} facture(s) générée(s) → Factures › Émises (à envoyer).${errs.length ? "\n\nErreurs :\n" + errs.join("\n") : ""}`);
+  return ok;
 }
 
 // Grille heures pleines/creuses — MÊME réglage que les prix de réservation (app_settings clé 'peak',
@@ -7572,7 +7734,16 @@ async function renderPersonContract() {
       </div>
     </div>
     <div class="pc-sec"><h4>Notes</h4><textarea id="pc-notes" rows="2" style="width:100%">${esc(d["Notes"] || "")}</textarea></div>
-    <div class="pc-actions"><button type="button" id="pc-save">Enregistrer le contrat</button><span id="pc-status" class="muted"></span></div>`;
+    <div class="pc-actions"><button type="button" id="pc-save">Enregistrer le contrat</button><span id="pc-status" class="muted"></span></div>
+    <div class="pc-sec" id="pc-inv-sec"><h4>Facturation</h4>
+      <p class="muted" style="font-size:.85rem;margin:0 0 8px">Découpe le montant annuel du contrat <b>enregistré</b> en n factures (échéances mensuelles), destinataire = parent lié (sinon le joueur). Les factures se retrouvent dans <b>Factures › Émises</b>, où tu peux modifier dates et articles avant l'envoi.</p>
+      <div class="pc-grid">
+        <label class="pc-f"><span>Nombre de factures</span><input id="pc-inv-n" type="number" min="1" value="${esc(d["Instalments"] || "10")}" /></label>
+        <label class="pc-f"><span>Première échéance</span><input id="pc-inv-start" type="date" value="${esc(d["Start date"] || new Date().toISOString().slice(0, 10))}" /></label>
+        <label class="pc-f"><span>Montant par facture (auto)</span><input id="pc-inv-each" type="text" disabled /></label>
+      </div>
+      <div class="pc-actions"><button type="button" id="pc-gen-inv" ${d["Annual fee"] > 0 ? "" : "disabled"}>Générer les factures</button><span id="pc-inv-status" class="muted"></span></div>
+    </div>`;
   const bindSessRm = () => body.querySelectorAll(".pc-sess-rm").forEach((b) => { b.onclick = () => b.closest(".pc-sess-row").remove(); });
   bindSessRm();
   body.querySelectorAll(".pc-week.edit .pc-tog[data-k]").forEach((b) => b.addEventListener("click", () => {
@@ -7588,6 +7759,18 @@ async function renderPersonContract() {
   body.querySelector('[data-k="Annual fee"]').addEventListener("input", upd);
   body.querySelector('[data-k="Instalments"]').addEventListener("input", upd);
   $("pc-save").addEventListener("click", savePersonContract);
+  // Facturation depuis le contrat (montant enregistré ÷ n)
+  const updEach = () => { const n = parseInt($("pc-inv-n").value) || 0, fee = parseFloat(d["Annual fee"]); $("pc-inv-each").value = (fee > 0 && n > 0) ? oiChf(fee / n) + " CHF" : ""; };
+  $("pc-inv-n").addEventListener("input", updEach); updEach();
+  sb.from("out_invoices").select("id,status").eq("person_id", pcPersonId).eq("season_id", seasonId).then(({ data: ex }) => {
+    const live = (ex || []).filter((x) => x.status !== "annulee").length;
+    if (live) $("pc-inv-status").textContent = `${live} facture(s) déjà générée(s) pour cette saison (Factures › Émises).`;
+  });
+  $("pc-gen-inv").addEventListener("click", async () => {
+    $("pc-gen-inv").disabled = true;
+    await oiFromContract(pcPersonId, seasonId, d, $("pc-inv-n").value, $("pc-inv-start").value);
+    $("pc-gen-inv").disabled = false; renderPersonContract();
+  });
 }
 async function savePersonContract() {
   const body = $("pc-body");

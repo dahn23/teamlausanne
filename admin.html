@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=164" />
+  <link rel="stylesheet" href="style.css?v=165" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1164,14 +1164,16 @@
 
           <div id="fac-sub-emises" class="fac-sub hidden">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-              <button id="oi-prep" type="button">➕ Préparer un lot</button>
-              <button id="oi-send-all" type="button" class="ghost" title="Envoie par mail toutes les factures « à envoyer » (PDF QR-facture joint)">✉ Envoyer les factures à envoyer</button>
+              <button id="oi-new" type="button">➕ Nouvelle facture</button>
+              <button id="oi-prep" type="button" class="ghost" title="Un lot par filière (performance, compétition, club, KidsTennis, adultes) depuis la grille Tarifs">Lot par filière</button>
+              <button id="oi-send-sel" type="button" class="ghost" title="Envoie par mail les factures cochées (PDF QR-facture joint)">✉ Envoyer la sélection</button>
+              <button id="oi-send-all" type="button" class="ghost" title="Envoie par mail toutes les factures « à envoyer »">✉ Envoyer toutes les « à envoyer »</button>
             </div>
-            <p class="muted" style="margin-top:0;font-size:.88rem">Factures qu'on <b>envoie</b>. Un lot = une filière + une saison + un n° d'échéance : le montant vient du <b>contrat</b> du joueur (montant annuel ÷ échéances) ou, à défaut, de la grille <b>Tarifs</b>. Chaque facture a un n°, une référence <b>RF</b> et un PDF <b>QR-facture</b> ; le destinataire est le parent lié (sinon le joueur).</p>
+            <p class="muted" style="margin-top:0;font-size:.88rem"><b>Sport-études / pro</b> : les factures se génèrent depuis <b>Fiche › Contrat</b> (montant annuel découpé en n échéances). <b>Autres filières</b> : « Lot par filière » (grille Tarifs). <b>Facture personnelle ou blanche</b> : « Nouvelle facture » (choisir une personne ou écrire un nom, ajouter des articles). Chaque facture est éditable (dates, articles, destinataire) tant qu'elle n'est pas payée ; le PDF QR-facture est régénéré à chaque modification.</p>
             <div id="oi-filters" class="fac-filters"></div>
             <div class="table-wrap">
-              <table class="crm-table fac-table"><thead><tr>
-                <th>N°</th><th>Destinataire</th><th>Joueur</th><th>Libellé</th><th>Montant</th><th>Échéance</th><th>PDF</th><th>Statut</th><th></th>
+              <table class="crm-table fac-table oi-table"><thead><tr>
+                <th><input type="checkbox" id="oi-sel-all" title="Tout cocher" /></th><th>N°</th><th>Destinataire</th><th>E-mail</th><th>Joueur</th><th>Articles</th><th>Montant</th><th>Émise le</th><th>Échéance</th><th>PDF</th><th>Statut</th><th></th>
               </tr></thead><tbody id="oi-rows"></tbody></table>
             </div>
             <p id="oi-empty" class="muted" hidden>Aucune facture émise.</p>
@@ -1224,11 +1226,37 @@
               <label style="grid-column:1/-1">Libellé <span class="muted" style="font-weight:400">({filiere}, {saison}, {n}, {total}, {joueur})</span><input id="oi-label" value="{filiere} {saison} — échéance {n}/{total} — {joueur}" /></label>
             </div>
             <div style="display:flex;gap:8px;align-items:center;margin:10px 0">
-              <button type="button" id="oi-load" class="ghost">Charger les joueurs</button>
+              <button type="button" id="oi-load" class="ghost">↻ Recharger la liste</button>
               <span id="oi-prep-note" class="muted" style="font-size:.85rem"></span>
             </div>
             <div class="table-wrap"><table class="crm-table"><thead><tr><th><input type="checkbox" id="oi-all" checked /></th><th>Joueur</th><th>Destinataire</th><th>Adresse</th><th>E-mail</th><th>Source</th><th>Montant</th></tr></thead><tbody id="oi-prep-rows"></tbody></table></div>
             <div class="form-foot"><span id="oi-gen-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span><button type="button" id="oi-generate" disabled>Générer les factures</button></div>
+          </div>
+        </div>
+
+        <!-- Fenêtre : éditeur d'une facture émise (nouvelle / personnelle / blanche / modification) -->
+        <div id="oi-edit-modal" class="modal hidden">
+          <div class="card" style="max-width:880px">
+            <button type="button" id="oie-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0" id="oie-title">Nouvelle facture</h2>
+            <div class="oie-search-wrap">
+              <label>Personne du répertoire <span class="muted" style="font-weight:400">(ou écris un nom libre ci-dessous)</span><input id="oie-search" placeholder="Rechercher nom / prénom…" autocomplete="off" /></label>
+              <div id="oie-results" class="oie-results hidden"></div>
+            </div>
+            <div class="form-grid oi-grid">
+              <label>Destinataire (nom)<input id="oie-name" /></label>
+              <label>E-mail<input id="oie-email" type="email" /></label>
+              <label>Rue et n°<input id="oie-street" /></label>
+              <label>NPA / Localité<span style="display:flex;gap:6px"><input id="oie-zip" style="width:90px" placeholder="NPA" /><input id="oie-city" placeholder="Localité" /></span></label>
+              <label>Date d'émission<input id="oie-issue" type="date" /></label>
+              <label>Échéance<input id="oie-due" type="date" /></label>
+              <label>Compte à créditer<select id="oie-acct"></select></label>
+              <label>Note interne<input id="oie-note" /></label>
+            </div>
+            <h3 style="margin:14px 0 6px;font-size:1rem">Articles</h3>
+            <div class="table-wrap"><table class="crm-table oie-items"><thead><tr><th>Désignation</th><th style="width:130px">Montant CHF</th><th style="width:40px"></th></tr></thead><tbody id="oie-items"></tbody>
+              <tfoot><tr><td><button type="button" id="oie-add" class="ghost">+ Ajouter un article</button></td><td><b id="oie-total">0.00</b></td><td></td></tr></tfoot></table></div>
+            <div class="form-foot"><span id="oie-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span><button type="button" id="oie-save">Enregistrer + PDF</button></div>
           </div>
         </div>
 
