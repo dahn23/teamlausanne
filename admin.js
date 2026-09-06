@@ -5435,6 +5435,23 @@ function oiUpdateGenBtn() {
   $("oi-generate").disabled = !n; $("oi-generate").textContent = n ? `Générer ${n} facture(s)` : "Générer les factures";
 }
 function oiAddr(p) { return p ? { street: (p.address || "").trim(), zip: (p.postal_code || "").trim(), city: (p.city || "").trim(), email: (p.email || "").trim() } : { street: "", zip: "", city: "", email: "" }; }
+// Champ texte « Parent 1 / Parent 2 » de la fiche du jeune : « Nom Prénom · 079 … · email »
+function oiParseParent(s) {
+  if (!s || !String(s).trim()) return null;
+  const parts = String(s).split("·").map((x) => x.trim()).filter(Boolean);
+  const email = parts.find((x) => /@/.test(x)) || "";
+  return { name: parts[0] || "", email };
+}
+// Candidats destinataires d'un joueur, par ordre de priorité : parent LIÉ (avec e-mail), Parent 1, Parent 2 (texte de la
+// fiche, adresse postale = celle du jeune), parent lié sans e-mail, puis le joueur lui-même.
+function oiDebtorCands(p, linkedParents) {
+  const a = oiAddr(p); const c = [];
+  for (const lp of linkedParents || []) { const la = oiAddr(lp); c.push({ key: "l:" + lp.id, pid: lp.id, name: `${lp.first_name} ${lp.last_name}`, street: la.street || a.street, zip: la.zip || a.zip, city: la.city || a.city, email: la.email, label: `${lp.last_name} ${lp.first_name} (parent lié)` }); }
+  for (const [k, lbl] of [["parent1", "Parent 1"], ["parent2", "Parent 2"]]) { const pp = oiParseParent(p[k]); if (pp) c.push({ key: k, pid: null, name: pp.name, street: a.street, zip: a.zip, city: a.city, email: pp.email, label: `${pp.name} (${lbl})` }); }
+  c.push({ key: "self", pid: p.id, name: `${p.first_name} ${p.last_name}`, street: a.street, zip: a.zip, city: a.city, email: a.email, label: `${p.last_name} ${p.first_name} (joueur)` });
+  const def = c.find((x) => x.key.startsWith("l:") && x.email) || c.find((x) => (x.key === "parent1" || x.key === "parent2") && x.email) || c.find((x) => x.key.startsWith("l:")) || c[c.length - 1];
+  return { cands: c, def };
+}
 async function oiLoadPlayers() {
   const fil = $("oi-filiere").value, seasonId = $("oi-season").value;
   const note = $("oi-prep-note"); note.textContent = "Chargement…";
@@ -5442,7 +5459,7 @@ async function oiLoadPlayers() {
   const ids = [...new Set((rp || []).map((r) => r.person_id))];
   if (!ids.length) { note.textContent = `Aucun joueur en ${oiFil(fil)} pour cette saison (rôles par saison de la fiche).`; oiPrep = []; $("oi-prep-rows").innerHTML = ""; oiUpdateGenBtn(); return; }
   const [{ data: pl }, { data: gs }, { data: ct }, { data: st }] = await Promise.all([
-    sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").in("id", ids),
+    sb.from("people").select("id,first_name,last_name,address,postal_code,city,email,parent1,parent2").in("id", ids),
     sb.from("guardianships").select("guardian_id,child_id,relation").in("child_id", ids),
     sb.from("player_contracts").select("person_id,data").eq("season_id", seasonId).in("person_id", ids),
     sb.from("app_settings").select("value").eq("key", "sub_prices").maybeSingle(),
@@ -5454,28 +5471,27 @@ async function oiLoadPlayers() {
   const nInst = parseInt($("oi-inst-total").value) || null;
   oiPrep = (pl || []).sort((a, b) => a.last_name.localeCompare(b.last_name)).map((p) => {
     const parents = (gs || []).filter((g) => g.child_id === p.id && g.relation !== "sibling").map((g) => byId[g.guardian_id]).filter(Boolean);
-    const cands = [...parents, p];
-    const debtor = parents.find((x) => x.email) || parents[0] || p;   // parent lié (avec e-mail de préférence), sinon le joueur
+    const { cands, def } = oiDebtorCands(p, parents);   // parent lié / Parent 1 / Parent 2 / joueur
     const d = (ct || []).find((c) => c.person_id === p.id)?.data || {};
     const fee = parseFloat(d["Annual fee"]), cInst = parseInt(d["Instalments"]);
     let amount = null, source = "—";
     const total = nInst || cInst || 1;
     if (fee > 0) { amount = Math.round((fee / total) * 100) / 100; source = `contrat ${oiChf(fee)} ÷ ${total}`; }
     else if (gridPrice > 0) { amount = Math.round((gridPrice / total) * 100) / 100; source = `tarifs ${oiChf(gridPrice)} ÷ ${total}`; }
-    return { include: amount > 0, person: p, cands, debtor_id: debtor.id, amount, source, total };
+    return { include: amount > 0, person: p, cands, debtor: def.key, amount, source, total };
   });
-  renderOiPrep(byId);
+  renderOiPrep();
   const missing = oiPrep.filter((r) => !(r.amount > 0)).length;
   note.textContent = `${oiPrep.length} joueur(s)${missing ? ` · ${missing} sans montant (pas de contrat ni de tarif : saisis-le ou décoche)` : ""}.`;
 }
-function renderOiPrep(byId) {
+function renderOiPrep() {
   $("oi-prep-rows").innerHTML = oiPrep.map((r, i) => {
-    const d = byId[r.debtor_id] || r.person; const a = oiAddr(d);
+    const a = r.cands.find((c) => c.key === r.debtor) || r.cands[r.cands.length - 1];
     const addrOk = a.street && a.zip && a.city;
     return `<tr class="${r.include ? "" : "muted"}">
       <td><input type="checkbox" class="oi-inc" data-i="${i}" ${r.include ? "checked" : ""} /></td>
       <td><b>${esc(r.person.last_name + " " + r.person.first_name)}</b></td>
-      <td><select class="oi-debtor" data-i="${i}">${r.cands.map((c) => `<option value="${c.id}"${c.id === r.debtor_id ? " selected" : ""}>${esc(c.last_name + " " + c.first_name)}${c.id === r.person.id ? " (joueur)" : ""}</option>`).join("")}</select></td>
+      <td><select class="oi-debtor" data-i="${i}">${r.cands.map((c) => `<option value="${c.key}"${c.key === r.debtor ? " selected" : ""}>${esc(c.label)}</option>`).join("")}</select></td>
       <td style="font-size:.82rem">${addrOk ? esc(`${a.street}, ${a.zip} ${a.city}`) : '<span style="color:#b45309">adresse incomplète</span>'}</td>
       <td style="font-size:.82rem">${a.email ? esc(a.email) : '<span style="color:#b45309">pas d\'e-mail</span>'}</td>
       <td class="muted" style="font-size:.8rem">${esc(r.source)}</td>
@@ -5483,7 +5499,7 @@ function renderOiPrep(byId) {
   }).join("");
   $("oi-prep-rows").querySelectorAll(".oi-inc").forEach((c) => c.addEventListener("change", () => { oiPrep[c.dataset.i].include = c.checked; c.closest("tr").classList.toggle("muted", !c.checked); oiUpdateGenBtn(); }));
   $("oi-prep-rows").querySelectorAll(".oi-amt").forEach((c) => c.addEventListener("change", () => { oiPrep[c.dataset.i].amount = c.value === "" ? null : Number(c.value); oiUpdateGenBtn(); }));
-  $("oi-prep-rows").querySelectorAll(".oi-debtor").forEach((c) => c.addEventListener("change", () => { oiPrep[c.dataset.i].debtor_id = c.value; renderOiPrep(byId); }));
+  $("oi-prep-rows").querySelectorAll(".oi-debtor").forEach((c) => c.addEventListener("change", () => { oiPrep[c.dataset.i].debtor = c.value; renderOiPrep(); }));
   oiUpdateGenBtn();
 }
 // Référence SCOR (ISO 11649) : « RF » + 2 chiffres de contrôle (mod 97-10) + n° de facture (chiffres).
@@ -5502,17 +5518,16 @@ async function oiGenerate() {
   if (!(await uiConfirm(`Générer ${rows.length} facture(s) « ${oiFil(fil)} ${sea?.label || ""} » — total ${oiChf(rows.reduce((a, r) => a + r.amount, 0))} CHF ? (numérotées, avec PDF QR-facture ; à envoyer ensuite)`))) return;
   const btn = $("oi-generate"); btn.disabled = true; const st = $("oi-gen-status");
   const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
-  const byId = {}; for (const r of oiPrep) for (const c of r.cands) byId[c.id] = c;
   let ok = 0; const errs = [];
   for (const r of rows) {
     st.textContent = `Facture ${ok + 1}/${rows.length}…`;
     try {
-      const d = byId[r.debtor_id] || r.person; const a = oiAddr(d);
+      const a = r.cands.find((c) => c.key === r.debtor) || r.cands[r.cands.length - 1];
       const { data: num, error: e1 } = await sb.rpc("out_invoice_next_number"); if (e1) throw new Error(e1.message);
       const label = tpl.replace("{filiere}", oiFil(fil)).replace("{saison}", sea?.label || "").replace("{n}", instNo).replace("{total}", r.total).replace("{joueur}", r.person.first_name + " " + r.person.last_name);
-      const inv = { number: num, season_id: seasonId, filiere: fil, person_id: r.person.id, debtor_person_id: d.id,
-        debtor_name: `${d.first_name} ${d.last_name}`, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_email: a.email || null,
-        label, instalment_no: instNo, instalment_total: r.total, amount: r.amount, currency: "CHF", due_date: due,
+      const inv = { number: num, season_id: seasonId, filiere: fil, person_id: r.person.id, debtor_person_id: a.pid,
+        debtor_name: a.name, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_email: a.email || null,
+        label, items: [{ label, amount: r.amount }], instalment_no: instNo, instalment_total: r.total, amount: r.amount, currency: "CHF", due_date: due,
         reference: oiScor(num.replace(/\D/g, "")), account_id: acct.id, status: "a_envoyer", created_by: uid };
       const { data: ins, error: e2 } = await sb.from("out_invoices").insert(inv).select().single(); if (e2) throw new Error(e2.message);
       await oiMakePdf({ ...ins, player_name: r.person.first_name + " " + r.person.last_name });
@@ -5738,18 +5753,18 @@ async function oiFromContract(personId, seasonId, d, n, startDate) {
   if (!(fee > 0)) { uiAlert("Renseigne d'abord le montant annuel du contrat (et enregistre-le)."); return 0; }
   const sea = seasons.find((s) => s.id === seasonId);
   const [{ data: p }, { data: gs }] = await Promise.all([
-    sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").eq("id", personId).single(),
+    sb.from("people").select("id,first_name,last_name,address,postal_code,city,email,parent1,parent2").eq("id", personId).single(),
     sb.from("guardianships").select("guardian_id,relation").eq("child_id", personId),
   ]);
   const gIds = (gs || []).filter((g) => g.relation !== "sibling").map((g) => g.guardian_id);
   const { data: gp } = gIds.length ? await sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").in("id", gIds) : { data: [] };
-  const parents = gp || []; const debtor = parents.find((x) => x.email) || parents[0] || p;
-  const a = oiAddr(debtor);
+  const a = oiDebtorCands(p, gp || []).def;   // parent lié avec e-mail > Parent 1 > Parent 2 > joueur
+  const debtor = { id: a.pid, first_name: a.name, last_name: "" };
   const acct = facAccts.find((x) => x.is_default) || facAccts[0]; if (!acct?.iban) { uiAlert("Aucun compte à créditer configuré."); return 0; }
   const prog = d["Programme"] || "Sport-études";
   const each = Math.round((fee / n) * 100) / 100, last = Math.round((fee - each * (n - 1)) * 100) / 100;   // dernier = solde exact
   const start = startDate ? new Date(startDate + "T00:00:00") : new Date();
-  if (!(await uiConfirm(`Générer ${n} facture(s) de ${oiChf(each)} CHF (contrat ${oiChf(fee)} CHF, ${prog} ${sea?.label || ""}) pour ${p.first_name} ${p.last_name}, destinataire ${debtor.first_name} ${debtor.last_name}${a.email ? " <" + a.email + ">" : " (sans e-mail)"}, échéances mensuelles dès le ${frDate(start)} ?`))) return 0;
+  if (!(await uiConfirm(`Générer ${n} facture(s) de ${oiChf(each)} CHF (contrat ${oiChf(fee)} CHF, ${prog} ${sea?.label || ""}) pour ${p.first_name} ${p.last_name}, destinataire ${a.name}${a.email ? " <" + a.email + ">" : " (sans e-mail)"}, échéances mensuelles dès le ${frDate(start)} ?`))) return 0;
   const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
   let ok = 0; const errs = [];
   for (let i = 1; i <= n; i++) {
@@ -5760,7 +5775,7 @@ async function oiFromContract(personId, seasonId, d, n, startDate) {
       const { data: num, error: e1 } = await sb.rpc("out_invoice_next_number"); if (e1) throw new Error(e1.message);
       const amt = i === n ? last : each;
       const inv = { number: num, season_id: seasonId, filiere: d["Programme"] === "pro" ? "pro" : "sport-etudes", person_id: personId, debtor_person_id: debtor.id,
-        debtor_name: `${debtor.first_name} ${debtor.last_name}`, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_email: a.email || null,
+        debtor_name: a.name, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_email: a.email || null,
         label, instalment_no: i, instalment_total: n, items: [{ label, amount: amt }], amount: amt, currency: "CHF",
         issue_date: (issue < today ? today : issue).toISOString().slice(0, 10), due_date: due.toISOString().slice(0, 10),
         reference: oiScor(num.replace(/\D/g, "")), account_id: acct.id, status: "a_envoyer", created_by: uid };
