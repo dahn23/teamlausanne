@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=160" />
+  <link rel="stylesheet" href="style.css?v=161" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1103,11 +1103,12 @@
           <div id="heures-mine"></div>
           <div id="heures-recap">
           <p class="muted" style="margin:-6px 0 12px">Décomptes mensuels : coachs (heures de cours) et profs (après-midis études). À valider par chacun, puis à envoyer à la fiduciaire.</p>
+          <div id="heures-salaires"></div>
           <h2 style="margin:14px 0 6px;font-size:1.05rem">Coachs — cours</h2>
-          <div class="table-wrap"><table class="crm-table"><thead><tr><th>Coach</th><th>Cours</th><th>Heures</th><th>Tarif/h</th><th>Montant</th><th>IBAN</th><th>Validé</th><th></th></tr></thead><tbody id="heures-coaches"></tbody></table>
+          <div class="table-wrap"><table class="crm-table"><thead><tr><th>Coach</th><th>Cours</th><th>Heures</th><th>Tarif/h</th><th>Montant</th><th>IBAN</th><th>Validé</th><th class="sal-col">Net à payer</th><th></th></tr></thead><tbody id="heures-coaches"></tbody></table>
             <p id="heures-coaches-empty" class="muted" hidden style="font-size:.85rem">Aucun cours ce mois-ci.</p></div>
           <h2 style="margin:22px 0 6px;font-size:1.05rem">Profs — études</h2>
-          <div class="table-wrap"><table class="crm-table"><thead><tr><th>Prof</th><th>Après-midis</th><th>Heures</th><th>IBAN</th><th>Validé</th><th></th></tr></thead><tbody id="heures-profs"></tbody></table>
+          <div class="table-wrap"><table class="crm-table"><thead><tr><th>Prof</th><th>Après-midis</th><th>Heures</th><th>IBAN</th><th>Validé</th><th class="sal-col">Net à payer</th><th></th></tr></thead><tbody id="heures-profs"></tbody></table>
             <p id="heures-profs-empty" class="muted" hidden style="font-size:.85rem">Aucun prof assigné ce mois-ci (voir Études › Profs).</p></div>
           </div><!-- /heures-recap -->
         </div>
@@ -1182,6 +1183,18 @@
             <p class="muted" style="margin-top:0;font-size:.88rem">Coche le ou les profs présents ce jour-là.</p>
             <div id="et-prof-list" class="et-prof-list"></div>
             <div class="form-foot"><span class="spacer"></span><button type="button" id="et-prof-save">Enregistrer</button></div>
+          </div>
+        </div>
+
+        <!-- Fenêtre : import des fiches de salaire (PDF de la fiduciaire) -->
+        <div id="sal-modal" class="modal hidden">
+          <div class="card" style="max-width:900px">
+            <button type="button" id="sal-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0">Fiches de salaire — lecture du PDF</h2>
+            <p class="muted" style="margin-top:0;font-size:.88rem">Vérifie l'attribution de chaque page et les montants avant d'importer. Chaque page sera rangée dans la fiche de la personne concernée (visible uniquement par elle et par l'administration) et le net reporté dans Heures.</p>
+            <div class="table-wrap"><table class="crm-table"><thead><tr><th></th><th>Page</th><th>Nom sur la fiche</th><th>N° AVS</th><th>Mois</th><th>Brut</th><th>Net à payer</th><th>→ Personne</th></tr></thead><tbody id="sal-rows"></tbody></table></div>
+            <p id="sal-note" class="muted" style="font-size:.85rem"></p>
+            <div class="form-foot"><span class="spacer"></span><button type="button" id="sal-import">Importer</button></div>
           </div>
         </div>
 
@@ -1292,6 +1305,7 @@
         <button type="button" class="ptab" data-ptab="media">Photos / vidéos</button>
         <button type="button" class="ptab" data-ptab="obj">Objectifs</button>
         <button type="button" class="ptab" data-ptab="coach">Coach</button>
+        <button type="button" class="ptab" data-ptab="salaire">Fiche de salaire</button>
         <button type="button" class="ptab" data-ptab="repas">Repas</button>
       </div>
       <div id="ptab-info" class="ptab-panel">
@@ -1488,6 +1502,18 @@
           <button type="button" id="cr-add">Ajouter</button>
         </div>
         <p id="coach-need-save" class="muted" hidden style="font-size:.85rem">Enregistrez d'abord la personne.</p>
+      </div>
+
+      <div id="ptab-salaire" class="ptab-panel hidden">
+        <h3 style="margin-top:0">Fiches de salaire</h3>
+        <p class="muted" style="font-size:.88rem;max-width:640px">Pages du bulletin de salaire de la fiduciaire, une par mois. Visibles uniquement par la personne elle-même (onglet Heures › Mes fiches de salaire) et par l'administration. Import automatique depuis Heures, ou dépôt manuel ci-dessous.</p>
+        <div class="table-wrap"><table class="crm-table"><thead><tr><th>Mois</th><th>Brut</th><th>Net à payer</th><th>PDF</th><th>Facture</th><th></th></tr></thead><tbody id="psal-rows"></tbody></table></div>
+        <p id="psal-empty" class="muted" hidden style="font-size:.85rem">Aucune fiche de salaire.</p>
+        <div class="psal-add">
+          <input type="month" id="psal-month" />
+          <label class="btnlike ghost" style="margin:0">Déposer un PDF pour ce mois<input type="file" id="psal-file" accept="application/pdf" hidden /></label>
+          <span id="psal-status" class="muted" style="font-size:.85rem"></span>
+        </div>
       </div>
 
       <div id="ptab-repas" class="ptab-panel hidden">

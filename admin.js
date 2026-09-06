@@ -1326,6 +1326,9 @@ function openPerson(p) {
   showPersonTab("stages", false);
   const staffPayRole = [...COACH_ROLES, "prof", "coach-mental"].some((r) => roles.includes(r));
   showPersonTab("coach", staffPayRole);
+  const salTab = staffPayRole && canSalaries();   // fiches de salaire : staff payé, vues par l'administration (la personne : Heures › Mes fiches)
+  showPersonTab("salaire", salTab);
+  loadPersonSalaires(p ? p.id : null, salTab);
   const isCoachPerson = COACH_ROLES.some((r) => roles.includes(r)) || roles.includes("admin") || roles.includes("superadmin"); // sous-onglet Repas = coachs + admins (vide par défaut)
   showPersonTab("repas", isCoachPerson);
   loadPersonMeals(p ? p.id : null, isCoachPerson);
@@ -4746,9 +4749,10 @@ async function loadHeures() {
   $("heures-export").classList.toggle("hidden", !isManager);
   $("heures-export-pdf").classList.toggle("hidden", !isManager);
   if (isManager) {
-    const { data, error } = await sb.rpc("staff_hours_month", { p_ym: heuresYm });
+    const [{ data, error }] = await Promise.all([sb.rpc("staff_hours_month", { p_ym: heuresYm }), loadSalSlips()]);
     heuresData = error ? { coaches: [], profs: [] } : (data || { coaches: [], profs: [] });
     renderHeures();
+    renderSalBox();
   }
 }
 async function renderMyHours() {
@@ -4756,7 +4760,7 @@ async function renderMyHours() {
   const { data } = await sb.rpc("my_hours_month", { p_ym: heuresYm });
   const m = data || {};
   const hasCoach = (m.coach_total || 0) > 0, hasProf = (m.prof_total || 0) > 0;
-  if (!hasCoach && !hasProf) { host.innerHTML = ""; return; }
+  if (!hasCoach && !hasProf) { host.innerHTML = ""; await renderMySalaires(); return; }
   let inner = "";
   if (hasCoach) {
     const done = m.coach_total > 0 && m.coach_val === m.coach_total;
@@ -4773,6 +4777,7 @@ async function renderMyHours() {
     </div>`;
   }
   host.innerHTML = `<div class="he-mine"><div class="he-mine-h">Mes heures — ${heuresYm}</div>${inner}</div>`;
+  await renderMySalaires();
 }
 async function toggleMyValidation(kind, hours, isValidated) {
   if (!myPersonId) { alert("Ton compte n'est pas relié à une fiche."); return; }
@@ -4794,6 +4799,7 @@ function renderHeures() {
       <td>${salaried ? `<b>${amount.toLocaleString("fr-CH")} CHF</b> <span class="muted" style="font-size:.78rem">brut / mois</span>` : (amount != null ? amount + " CHF" : "—")}</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.courses + "/" + x.total_courses + "</span>" : '<span class="muted">' + x.courses + "/" + x.total_courses + "</span>"}</td>
+      ${salNetCell(x.person_id)}
       <td class="he-acts"><button class="ghost he-detail" data-id="${x.person_id}" data-name="${esc(x.name)}">Détail</button></td></tr>`;
   }).join("");
   $("heures-profs").innerHTML = p.map((x) => {
@@ -4802,9 +4808,12 @@ function renderHeures() {
       <td><b>${esc(x.name)}</b></td><td>${x.total_days}</td><td>${x.hours} h</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.days + "/" + x.total_days + "</span>" : '<span class="muted">' + x.days + "/" + x.total_days + "</span>"}</td>
+      ${salNetCell(x.person_id)}
       <td></td></tr>`;
   }).join("");
   document.querySelectorAll("#heures-coaches .he-detail").forEach((b) => b.addEventListener("click", () => coachDetail(b.dataset.id, b.dataset.name)));
+  document.querySelectorAll("#view-heures .sal-col").forEach((el) => el.classList.toggle("hidden", !canSalaries()));
+  bindSalCells();
 }
 async function toggleValidation(personId, kind, hours) {
   const arr = kind === "coach" ? heuresData.coaches : heuresData.profs;
@@ -4868,6 +4877,270 @@ async function exportHeuresPdf() {
     doc.save(`decompte-${heuresYm}.pdf`);
   } catch (e) { alert("Export PDF impossible : " + (e?.message || e)); }
   btn.disabled = false;
+}
+
+// ===================================================================
+//  Salaires — PDF de la fiduciaire → net à payer (Heures) → fiche de salaire par personne → Factures
+// ===================================================================
+const SAL_SENDER = "@fimisa.ch";                       // la fiduciaire (Sara Ninetti)
+const canSalaries = () => hasAny(myAppRoles, ["admin", "superadmin"]);
+let salSlips = [];                                     // salary_slips du mois affiché
+let salPeople = null;                                  // staff payable (attribution manuelle)
+let salParsed = null, salBytes = null, salMailId = null; // import en cours
+
+async function loadSalSlips() {
+  if (!canSalaries()) { salSlips = []; return; }
+  const { data } = await sb.from("salary_slips").select("*").eq("ym", heuresYm);
+  salSlips = data || [];
+}
+const salSlipOf = (pid) => salSlips.find((s) => s.person_id === pid);
+function salNetCell(pid) {
+  const s = salSlipOf(pid);
+  const val = s?.net != null ? Number(s.net).toFixed(2) : "";
+  return `<td class="sal-col"><span class="sal-cell"><input class="sal-net" data-pid="${pid}" type="number" step="0.05" min="0" value="${val}" placeholder="—" />
+    ${s?.pdf_path ? `<button type="button" class="ghost sal-pdf" data-path="${esc(s.pdf_path)}" title="Voir la fiche de salaire">📄</button>` : ""}
+    ${s?.invoice_id ? '<span class="sal-fact" title="Transmis à Factures">✓ facture</span>' : ""}</span></td>`;
+}
+function bindSalCells() {
+  document.querySelectorAll("#view-heures .sal-net").forEach((inp) => inp.addEventListener("change", async () => {
+    const pid = inp.dataset.pid, v = inp.value === "" ? null : Number(inp.value);
+    const { data: sess } = await sb.auth.getSession();
+    const { error } = await sb.from("salary_slips").upsert({ person_id: pid, ym: heuresYm, net: v, updated_at: new Date().toISOString(), updated_by: sess?.session?.user?.id || null }, { onConflict: "person_id,ym" });
+    if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
+    await loadSalSlips(); renderSalBox();
+  }));
+  document.querySelectorAll("#view-heures .sal-pdf").forEach((b) => b.addEventListener("click", () => salOpenPdf(b.dataset.path)));
+}
+async function salOpenPdf(path) {
+  const { data, error } = await sb.storage.from("salaries").createSignedUrl(path, 600);
+  if (error || !data?.signedUrl) { uiAlert("PDF indisponible : " + (error?.message || "")); return; }
+  window.open(data.signedUrl, "_blank", "noopener");
+}
+// Encadré au-dessus des tableaux : PDF de la fiduciaire détecté dans les mails + import manuel + validation.
+async function renderSalBox() {
+  const host = $("heures-salaires"); if (!host) return;
+  if (!canSalaries()) { host.innerHTML = ""; return; }
+  // Mails de la fiduciaire avec un PDF, reçus entre le début du mois et ~2 mois après (les salaires arrivent le mois suivant)
+  const [yy, mm] = heuresYm.split("-").map(Number);
+  const from = new Date(yy, mm - 1, 1).toISOString(), to = new Date(yy, mm + 2, 1).toISOString();
+  const { data: mails } = await sb.from("mail_messages").select("id,subject,received_at").ilike("from_address", "%" + SAL_SENDER).gte("received_at", from).lt("received_at", to).order("received_at", { ascending: false });
+  let atts = [];
+  if (mails?.length) {
+    const { data } = await sb.from("mail_attachments").select("id,mail_id,filename,content_type").in("mail_id", mails.map((m) => m.id)).eq("is_inline", false);
+    atts = (data || []).filter((a) => /pdf/i.test(a.content_type || "") || /\.pdf$/i.test(a.filename || ""));
+  }
+  const imported = new Set(salSlips.map((s) => s.mail_id).filter(Boolean));
+  const pending = salSlips.filter((s) => s.net > 0 && !s.invoice_id).length;
+  const done = salSlips.filter((s) => s.invoice_id).length;
+  const total = salSlips.reduce((a, s) => a + (Number(s.net) || 0), 0);
+  const mailRows = atts.map((a) => {
+    const m = mails.find((x) => x.id === a.mail_id);
+    const isImp = imported.has(a.mail_id);
+    return `<div class="sal-mail">📩 PDF de la fiduciaire reçu le <b>${frDate(m.received_at)}</b> — « ${esc(a.filename)} » <span class="muted">(${esc(m.subject || "")})</span>
+      ${isImp ? '<span class="sal-fact">✓ importé</span>' : `<button type="button" class="sal-from-mail" data-att="${a.id}" data-mail="${a.mail_id}">Lire et importer</button>`}</div>`;
+  }).join("");
+  host.innerHTML = `<div class="sal-box">
+    <div class="sal-mails">${mailRows || '<span class="muted" style="font-size:.88rem">Aucun PDF de salaires de la fiduciaire dans les mails pour ce mois.</span>'}</div>
+    <div class="sal-acts">
+      <label class="btnlike ghost" style="margin:0">Importer un PDF de salaires<input type="file" id="sal-file" accept="application/pdf" hidden /></label>
+      <button type="button" id="sal-validate" ${pending ? "" : "disabled"} title="Crée une facture à payer par personne (net, IBAN) dans l'onglet Factures">✓ Valider les salaires${pending ? ` (${pending})` : ""}</button>
+      <span class="muted" style="font-size:.85rem">${salSlips.length ? `Net total : <b>${total.toLocaleString("fr-CH", { minimumFractionDigits: 2 })} CHF</b>${done ? ` · ${done} déjà transmis à Factures` : ""}` : "Saisis ou importe les nets à payer, puis valide."}</span>
+    </div></div>`;
+  host.querySelectorAll(".sal-from-mail").forEach((b) => b.addEventListener("click", () => salImportFromMail(b.dataset.att, b.dataset.mail)));
+  $("sal-file").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) salStartImport(new Uint8Array(await f.arrayBuffer()), null); });
+  $("sal-validate").addEventListener("click", salValidate);
+}
+async function salImportFromMail(attId, mailId) {
+  const { data, error } = await sb.from("mail_attachments").select("content_b64").eq("id", attId).single();
+  if (error || !data?.content_b64) { uiAlert("Pièce jointe illisible : " + (error?.message || "")); return; }
+  const bin = atob(data.content_b64.replace(/\s+/g, ""));
+  const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  salStartImport(bytes, mailId);
+}
+async function salLibs() {
+  if (!window.pdfjsLib) {
+    await facLoadScript("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js");
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+  }
+  if (!window.PDFLib) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js");
+}
+const salNorm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").trim();
+const salNum = (s) => { const m = String(s).replace(/[' ’ ]/g, "").match(/^-?\d+(?:\.\d{1,2})?$/); return m ? Number(m[0]) : null; };
+const SAL_MONTHS = { janvier: 1, fevrier: 2, mars: 3, avril: 4, mai: 5, juin: 6, juillet: 7, aout: 8, septembre: 9, octobre: 10, novembre: 11, decembre: 12 };
+// Lecture du PDF : une page = une personne. Nom (ligne sous « Monsieur/Madame », NOM en majuscules),
+// AVS, période (→ mois), « Montant versé » (net = nombre le plus à droite sur la même ligne), brut (ligne « Totaux »).
+async function salParsePdf(bytes) {
+  const pdf = await window.pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+  const rows = [];
+  for (let pn = 1; pn <= pdf.numPages; pn++) {
+    const page = await pdf.getPage(pn);
+    const tc = await page.getTextContent();
+    const items = tc.items.filter((it) => it.str && it.str.trim()).map((it) => ({ s: it.str.trim(), x: it.transform[4], y: it.transform[5] }));
+    const lines = [];
+    for (const it of items) {
+      const L = lines.find((l) => Math.abs(l.y - it.y) <= 2);
+      if (L) L.items.push(it); else lines.push({ y: it.y, items: [it] });
+    }
+    lines.sort((a, b) => b.y - a.y);                                  // du haut vers le bas
+    for (const l of lines) l.items.sort((a, b) => a.x - b.x);
+    const txt = (l) => l.items.map((i) => i.s).join(" ");
+    const nums = (l) => l.items.map((i) => salNum(i.s)).filter((v) => v != null);
+    const all = lines.map(txt).join("\n");
+    const lNet = lines.find((l) => /montant\s+vers/i.test(txt(l)));
+    const net = lNet ? (nums(lNet).pop() ?? null) : null;
+    const lTot = lines.find((l) => /^totaux/i.test(txt(l)) && nums(l).length && nums(l).every((v) => v > 0));
+    const gross = lTot ? Math.max(...nums(lTot)) : null;
+    let ym = null;
+    const mPer = all.match(/p[ée]riode de salaire\s*:?\s*\d{2}\.(\d{2})\.(\d{4})/i);
+    if (mPer) ym = `${mPer[2]}-${mPer[1]}`;
+    else { const mT = salNorm(all).match(/bulletin de salaire\s+([a-z]+)\s+(\d{4})/); if (mT && SAL_MONTHS[mT[1]]) ym = `${mT[2]}-${String(SAL_MONTHS[mT[1]]).padStart(2, "0")}`; }
+    const avs = (all.match(/756\.\d{4}\.\d{4}\.\d{2}/) || [null])[0];
+    let name = lines.length ? txt(lines[0]) : "", first = "", last = "";
+    const iCiv = lines.findIndex((l) => /^(monsieur|madame)$/i.test(txt(l)));
+    const lName = iCiv >= 0 ? lines[iCiv + 1] : null;
+    if (lName) {
+      name = txt(lName);
+      const toks = name.split(/\s+/);
+      last = toks.filter((t) => t.length > 1 && t === t.toUpperCase() && /\p{L}/u.test(t)).join(" ");
+      first = toks.filter((t) => !(t.length > 1 && t === t.toUpperCase() && /\p{L}/u.test(t))).join(" ");
+    }
+    rows.push({ page: pn, name, first, last, avs, ym, net, gross });
+  }
+  return rows;
+}
+async function salLoadPeople() {
+  if (salPeople) return salPeople;
+  const roles = [...COACH_ROLES, "prof", "coach-mental", "admin", "superadmin", "secretaire", "finance"];
+  const { data: pr } = await sb.from("person_roles").select("person_id").in("role", roles);
+  const ids = [...new Set((pr || []).map((r) => r.person_id))];
+  const { data } = ids.length ? await sb.from("people").select("id,first_name,last_name,avs,iban").in("id", ids).order("last_name") : { data: [] };
+  salPeople = data || [];
+  return salPeople;
+}
+function salMatch(row, people) {
+  const digits = (s) => String(s || "").replace(/\D/g, "");
+  if (row.avs) { const p = people.find((x) => x.avs && digits(x.avs) === digits(row.avs)); if (p) return p; }
+  const rl = salNorm(row.last).split(" ").filter(Boolean), rf = salNorm(row.first).split(" ").filter(Boolean);
+  const cands = people.filter((p) => {
+    const pl = salNorm(p.last_name).split(" ").filter(Boolean);
+    return rl.length && pl.some((t) => rl.includes(t));
+  });
+  if (cands.length === 1) return cands[0];
+  const strict = cands.filter((p) => rf[0] && salNorm(p.first_name).split(" ")[0] === rf[0]);
+  return strict.length === 1 ? strict[0] : null;
+}
+async function salStartImport(bytes, mailId) {
+  try {
+    await salLibs();
+    const [rows, people] = await Promise.all([salParsePdf(bytes), salLoadPeople()]);
+    if (!rows.length) { uiAlert("Aucune page lisible dans ce PDF."); return; }
+    salParsed = rows.map((r) => ({ ...r, person_id: salMatch(r, people)?.id || "", include: true }));
+    salBytes = bytes; salMailId = mailId;
+    renderSalModal(people);
+  } catch (e) { uiAlert("Lecture du PDF impossible : " + (e?.message || e)); }
+}
+function renderSalModal(people) {
+  const opts = (sel) => `<option value="">— non attribué —</option>` + people.map((p) => `<option value="${p.id}"${p.id === sel ? " selected" : ""}>${esc(p.last_name + " " + p.first_name)}</option>`).join("");
+  $("sal-rows").innerHTML = salParsed.map((r, i) => `<tr class="${r.person_id ? "" : "sal-unmatched"}">
+    <td><input type="checkbox" class="sal-inc" data-i="${i}" ${r.include ? "checked" : ""} /></td>
+    <td>${r.page}</td><td><b>${esc(r.name || "?")}</b></td><td style="font-size:.82rem">${esc(r.avs || "—")}</td>
+    <td>${r.ym || '<span class="muted">?</span>'}${r.ym && r.ym !== heuresYm ? ' <span class="muted" style="font-size:.75rem">(≠ mois affiché)</span>' : ""}</td>
+    <td>${r.gross != null ? r.gross.toFixed(2) : "—"}</td>
+    <td><input type="number" step="0.05" class="sal-mnet" data-i="${i}" value="${r.net != null ? r.net.toFixed(2) : ""}" style="width:100px;text-align:right" /></td>
+    <td><select class="sal-mperson" data-i="${i}">${opts(r.person_id)}</select></td></tr>`).join("");
+  const n = salParsed.filter((r) => !r.person_id).length;
+  $("sal-note").textContent = n ? `${n} page(s) non attribuée(s) : choisis la personne dans la liste (ou décoche pour ignorer).` : "Toutes les pages sont attribuées.";
+  $("sal-rows").querySelectorAll(".sal-inc").forEach((c) => c.addEventListener("change", () => { salParsed[c.dataset.i].include = c.checked; }));
+  $("sal-rows").querySelectorAll(".sal-mnet").forEach((c) => c.addEventListener("change", () => { salParsed[c.dataset.i].net = c.value === "" ? null : Number(c.value); }));
+  $("sal-rows").querySelectorAll(".sal-mperson").forEach((c) => c.addEventListener("change", () => { salParsed[c.dataset.i].person_id = c.value; c.closest("tr").classList.toggle("sal-unmatched", !c.value); }));
+  $("sal-close").onclick = () => $("sal-modal").classList.add("hidden");
+  $("sal-import").onclick = salDoImport;
+  $("sal-modal").classList.remove("hidden");
+}
+async function salDoImport() {
+  const rows = salParsed.filter((r) => r.include && r.person_id && r.ym);
+  if (!rows.length) { uiAlert("Aucune page à importer (attribue au moins une page à une personne)."); return; }
+  const btn = $("sal-import"); btn.disabled = true; btn.textContent = "Import…";
+  const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
+  let ok = 0; const errs = [];
+  try {
+    const src = await window.PDFLib.PDFDocument.load(salBytes);
+    for (const r of rows) {
+      const doc = await window.PDFLib.PDFDocument.create();
+      const [pg] = await doc.copyPages(src, [r.page - 1]); doc.addPage(pg);
+      const out = await doc.save();
+      const path = `${r.person_id}/${r.ym}.pdf`;
+      const up = await sb.storage.from("salaries").upload(path, new Blob([out], { type: "application/pdf" }), { contentType: "application/pdf", upsert: true });
+      if (up.error) { errs.push(`${r.name} : ${up.error.message}`); continue; }
+      const { error } = await sb.from("salary_slips").upsert({ person_id: r.person_id, ym: r.ym, net: r.net, gross: r.gross, pdf_path: path, source: "fiduciaire", mail_id: salMailId, updated_at: new Date().toISOString(), updated_by: uid }, { onConflict: "person_id,ym" });
+      if (error) { errs.push(`${r.name} : ${error.message}`); continue; }
+      const p = (salPeople || []).find((x) => x.id === r.person_id);
+      if (r.avs && p && !p.avs) { await sb.from("people").update({ avs: r.avs }).eq("id", r.person_id); p.avs = r.avs; }  // on retient l'AVS → prochains imports exacts
+      ok++;
+    }
+  } catch (e) { errs.push(e?.message || String(e)); }
+  btn.disabled = false; btn.textContent = "Importer";
+  $("sal-modal").classList.add("hidden");
+  await loadHeures();
+  uiAlert(`✓ ${ok} fiche(s) de salaire importée(s).${errs.length ? "\n\nErreurs :\n" + errs.join("\n") : ""}`);
+}
+async function salValidate() {
+  const pending = salSlips.filter((s) => s.net > 0 && !s.invoice_id);
+  if (!pending.length) return;
+  const total = pending.reduce((a, s) => a + Number(s.net), 0);
+  const [yy, mm] = heuresYm.split("-");
+  const label = `Salaire net ${MOIS_FR[Number(mm) - 1]} ${yy}`;
+  if (!(await uiConfirm(`Transmettre ${pending.length} salaire(s) à Factures — total ${total.toLocaleString("fr-CH", { minimumFractionDigits: 2 })} CHF ? Une facture à payer sera créée par personne (validée si l'IBAN est connu).`))) return;
+  const { data, error } = await sb.rpc("salary_validate", { p_ym: heuresYm, p_label: label });
+  if (error) { uiAlert("Validation impossible : " + error.message); return; }
+  await loadHeures();
+  uiAlert(`✓ ${data} facture(s) créée(s) dans l'onglet Factures. Génère ensuite le paiement (pain.001) depuis Factures.`);
+}
+// ---- Fiche › « Fiche de salaire » (admin) ----
+async function loadPersonSalaires(pid, show) {
+  if (!pid || !show) { $("psal-rows").innerHTML = ""; return; }
+  const { data } = await sb.from("salary_slips").select("*").eq("person_id", pid).order("ym", { ascending: false });
+  const rows = data || [];
+  $("psal-empty").hidden = rows.length > 0;
+  const lbl = (ym) => { const [y, m] = ym.split("-"); const s = `${MOIS_FR[Number(m) - 1]} ${y}`; return s.charAt(0).toUpperCase() + s.slice(1); };
+  $("psal-rows").innerHTML = rows.map((s) => `<tr>
+    <td><b>${lbl(s.ym)}</b></td><td>${s.gross != null ? Number(s.gross).toFixed(2) : "—"}</td><td>${s.net != null ? "<b>" + Number(s.net).toFixed(2) + " CHF</b>" : "—"}</td>
+    <td>${s.pdf_path ? `<button type="button" class="ghost psal-pdf" data-path="${esc(s.pdf_path)}">📄 Voir</button>` : '<span class="muted">—</span>'}</td>
+    <td>${s.invoice_id ? '<span class="sal-fact">✓ transmise</span>' : '<span class="muted">—</span>'}</td>
+    <td class="he-acts">${canSalaries() ? `<button type="button" class="ghost psal-del" data-id="${s.id}" data-path="${esc(s.pdf_path || "")}" title="Supprimer">✕</button>` : ""}</td></tr>`).join("");
+  $("psal-rows").querySelectorAll(".psal-pdf").forEach((b) => b.addEventListener("click", () => salOpenPdf(b.dataset.path)));
+  $("psal-rows").querySelectorAll(".psal-del").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await uiConfirm("Supprimer cette fiche de salaire ?"))) return;
+    if (b.dataset.path) await sb.storage.from("salaries").remove([b.dataset.path]);
+    await sb.from("salary_slips").delete().eq("id", b.dataset.id);
+    loadPersonSalaires(pid, true);
+  }));
+  const mIn = $("psal-month"); if (!mIn.value) mIn.value = ymNow();
+  $("psal-file").onchange = async (e) => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    const ym = mIn.value; if (!/^\d{4}-\d{2}$/.test(ym)) { uiAlert("Choisis d'abord le mois."); return; }
+    $("psal-status").textContent = "Envoi…";
+    const path = `${pid}/${ym}.pdf`;
+    const up = await sb.storage.from("salaries").upload(path, f, { contentType: "application/pdf", upsert: true });
+    if (up.error) { $("psal-status").textContent = "Erreur : " + up.error.message; return; }
+    const { data: sess } = await sb.auth.getSession();
+    await sb.from("salary_slips").upsert({ person_id: pid, ym, pdf_path: path, source: "manual", updated_at: new Date().toISOString(), updated_by: sess?.session?.user?.id || null }, { onConflict: "person_id,ym" });
+    $("psal-status").textContent = "✓ Fiche déposée.";
+    loadPersonSalaires(pid, true);
+  };
+}
+// ---- Heures › « Mes fiches de salaire » (la personne ne voit que les siennes : RLS) ----
+async function renderMySalaires() {
+  const host = $("heures-mine"); if (!host || !myPersonId) return;
+  const { data } = await sb.from("salary_slips").select("ym,net,pdf_path").eq("person_id", myPersonId).order("ym", { ascending: false }).limit(24);
+  const rows = (data || []).filter((s) => s.pdf_path || s.net != null);
+  if (!rows.length) return;
+  const lbl = (ym) => { const [y, m] = ym.split("-"); const s = `${MOIS_FR[Number(m) - 1]} ${y}`; return s.charAt(0).toUpperCase() + s.slice(1); };
+  const div = document.createElement("div"); div.className = "he-mine";
+  div.innerHTML = `<div class="he-mine-h">Mes fiches de salaire</div>` + rows.map((s) => `<div class="he-mine-row"><span>${lbl(s.ym)}${s.net != null ? ` — net <b>${Number(s.net).toFixed(2)} CHF</b>` : ""}</span>
+    ${s.pdf_path ? `<button type="button" class="ghost sal-pdf" data-path="${esc(s.pdf_path)}">📄 Voir la fiche</button>` : '<span class="muted" style="font-size:.85rem">PDF pas encore disponible</span>'}</div>`).join("");
+  div.querySelectorAll(".sal-pdf").forEach((b) => b.addEventListener("click", () => salOpenPdf(b.dataset.path)));
+  host.appendChild(div);
 }
 
 // ===================================================================
@@ -5004,7 +5277,7 @@ function renderFactures() {
       + ((f.status === "validee" || f.status === "en_paiement") ? `<button class="ghost fac-pay" data-id="${f.id}">Marquer payée</button>` : "")
       + `<button class="ghost fac-del" data-id="${f.id}" title="Supprimer">✕</button>`;
     return `<tr>
-      <td><b>${esc(f.creditor_name || "—")}</b>${f.source === "mail" ? ' <span class="muted" style="font-size:.75rem">✉</span>' : ""}</td>
+      <td><b>${esc(f.creditor_name || "—")}</b>${f.source === "mail" ? ' <span class="muted" style="font-size:.75rem">✉</span>' : ""}${f.source === "salaire" ? ' <span title="Salaire (onglet Heures)" style="font-size:.8rem">💰</span>' : ""}</td>
       <td class="muted" style="font-size:.84rem;max-width:340px">${esc((f.explanation || "").slice(0, 160))}</td>
       <td style="white-space:nowrap">${amt}</td>
       <td style="white-space:nowrap">${f.due_date ? frDate(f.due_date) : "—"}</td>
