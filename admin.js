@@ -8338,10 +8338,18 @@ async function loadEtudesCalendar() {
     const presCls = mySt === "present" ? "st-present" : mySt === "absent" ? "st-absent" : "st-none";
     const mine = canEditProfs || iAmProf; // c'est mon jour (ou admin)
     // Prof(s) du jour sous la date ; le mien = ma présence, cliquable (blanc→absent→présent), encadré bleu.
-    const dprofs = dp.map((pp) => pp.prof_person_id === myPersonId
-      ? `<button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${esc(nmF(pp.prof_person_id))}${mySt === "present" ? ` ${myV.hours ?? 4}h` : ""}</button>`
-      : `<span class="et-dprof">${esc(nmF(pp.prof_person_id))}</span>`).join(" ") || '<span class="et-dprof muted">— prof —</span>';
-    html += `<tr class="${notMine ? "et-notmine" : ""}"><td class="et-datecell"><div><b>${etDow(d.day)}</b> ${frDate(d.day)}</div><div class="et-dprofs">${dprofs}</div></td>`
+    const dprofs = dp.map((pp) => {
+      const base = pp.prof_person_id === myPersonId
+        ? `<button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${esc(nmF(pp.prof_person_id))}${mySt === "present" ? ` ${myV.hours ?? 4}h` : ""}</button>`
+        : `<span class="et-dprof">${esc(nmF(pp.prof_person_id))}</span>`;
+      // admin / superadmin : retirer le prof directement depuis le calendrier
+      return canEditProfs ? `<span class="et-dprof-wrap">${base}<button type="button" class="et-prof-rm" data-day="${d.id}" data-prof="${pp.prof_person_id}" title="Retirer ce prof de cette journée">×</button></span>` : base;
+    }).join(" ") || '<span class="et-dprof muted">— prof —</span>';
+    // admin / superadmin : ajouter un prof (liste des profs pas encore assignés ce jour)
+    const addSel = canEditProfs
+      ? `<select class="et-prof-add" data-day="${d.id}" title="Ajouter un prof"><option value="">+ prof</option>${profOptions.filter((p) => !dp.some((x) => x.prof_person_id === p.id)).map((p) => `<option value="${p.id}">${esc(p.first_name)} ${esc(p.last_name)}</option>`).join("")}</select>`
+      : "";
+    html += `<tr class="${notMine ? "et-notmine" : ""}"><td class="et-datecell"><div><b>${etDow(d.day)}</b> ${frDate(d.day)}</div><div class="et-dprofs">${dprofs}${addSel}</div></td>`
       + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; const lockTitle = notMine ? "Vous ne pouvez pas valider les présences d'un jour qui ne vous est pas attribué" : "Vous ne pouvez pas valider les présences avant 12h50"; return `<td><button type="button" class="att-chip et-cell ${due ? (mine ? "et-due " : "et-due-lock ") : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? `data-locked="1" data-lockmsg="${esc(lockTitle)}"` : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
