@@ -6698,6 +6698,7 @@ function initMental() {
       document.querySelectorAll("#view-mental .mn-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "mn-sub-" + b.dataset.sub));
       if (b.dataset.sub === "calendrier") loadMentalCalendar();
       if (b.dataset.sub === "participants") loadMentalParticipants();
+      if (b.dataset.sub === "formulaire") loadMentalForms();
     }));
   $("mn-season").addEventListener("change", loadMentalCalendar);
   $("mn-season2").addEventListener("change", loadMentalParticipants);
@@ -6811,6 +6812,44 @@ async function renderMnCompForms(yid) {
   const host = $("mn-comp"); if (!host) return;
   if (!yid) { host.innerHTML = ""; return; }
   renderMcfInto(host, await mcfFetch(yid));
+}
+// Ouvre la fiche du jeune directement sur l'onglet Mental (formulaires compétition).
+function openPersonToMental(pid) {
+  const p = people.find((x) => x.id === pid); if (!p) return;
+  showView("membres"); openPerson(p); setPersonTab("mental");
+}
+// Sous-onglet « Formulaire » du menu Mental : aperçu des 2 formulaires + derniers remplis.
+async function loadMentalForms() {
+  const host = $("mn-forms"); if (!host) return;
+  host.innerHTML = '<p class="muted">Chargement…</p>';
+  const { data } = await sb.from("mental_comp_forms").select("id,youth_person_id,competition,comp_date,prep,bilan")
+    .order("comp_date", { ascending: false, nullsFirst: false }).limit(100);
+  const rows = data || [];
+  const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name} ${p.last_name}` : "—"; };
+  const preview = (title, arr) => `<div class="mcf-block"><h4>${esc(title)}</h4>${arr.map(([, l]) => `<div class="mcf-field"><b>${esc(l)}</b></div>`).join("")}</div>`;
+  const subs = rows.length ? rows.map((c) => {
+    const prepN = Object.values(c.prep || {}).filter((v) => (v || "").trim()).length;
+    const bilN = Object.values(c.bilan || {}).filter((v) => (v || "").trim()).length;
+    return `<button type="button" class="mnf-row" data-y="${c.youth_person_id}">
+      <span class="mnf-who"><b>${esc(nameOf(c.youth_person_id))}</b> · ${esc(c.competition || "Compétition")}</span>
+      <span class="muted">${c.comp_date ? frDate(c.comp_date) : ""}</span>
+      <span class="mnf-badges"><span class="comp-badge ${prepN ? "on" : ""}">Prép ${prepN ? "✓" : "·"}</span><span class="comp-badge ${bilN ? "on" : ""}">Analyse ${bilN ? "✓" : "·"}</span></span></button>`;
+  }).join("") : '<p class="obj-empty">Aucun formulaire rempli pour l\'instant.</p>';
+  host.innerHTML = `
+    <div class="rg-card">
+      <h3 style="margin-top:0">Formulaires « Compétition »</h3>
+      <p class="muted" style="font-size:.9rem;margin:0">Les jeunes de compétition remplissent ces 2 formulaires dans leur portail <b>« Mon espace » → Compét.</b> Les réponses apparaissent dans la <b>fiche du jeune → onglet Mental</b> et dans <b>Participants</b>.</p>
+    </div>
+    <div class="rg-card">
+      <h3 style="margin-top:0">Derniers formulaires remplis</h3>
+      <div class="mnf-list">${subs}</div>
+    </div>
+    <div class="rg-card">
+      <h3 style="margin-top:0">Aperçu des 2 formulaires (ce que remplit le jeune)</h3>
+      ${preview("Préparation — avant la compétition", MCF_PREP)}
+      ${preview("Analyse — après la compétition", MCF_ANALYSE)}
+    </div>`;
+  host.querySelectorAll(".mnf-row").forEach((b) => b.addEventListener("click", () => openPersonToMental(b.dataset.y)));
 }
 
 // ---- Commentaires mental (partagés participants / fiche) ----

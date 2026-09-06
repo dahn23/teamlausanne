@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=148" />
+  <link rel="stylesheet" href="style.css?v=149" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -737,10 +737,7 @@
           </div>
 
           <div id="mn-sub-formulaire" class="mn-sub hidden">
-            <div class="rg-card">
-              <h3 style="margin-top:0">Formulaire mental (à venir)</h3>
-              <p class="muted" style="font-size:.9rem;margin:0">Ce sous-onglet accueillera un <b>formulaire à remplir par les jeunes</b> (questions de préparation mentale). Comme pour la feuille de match, chaque formulaire rempli se retrouvera dans le <b>profil du jeune</b>. Les questions seront définies avec toi, puis on active le formulaire ici.</p>
-            </div>
+            <div id="mn-forms"></div>
           </div>
         </div>
 

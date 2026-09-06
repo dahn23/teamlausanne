@@ -839,6 +839,11 @@ html{-webkit-tap-highlight-color:transparent}
 .mcf-field{margin:0 0 8px}
 .mcf-field b{display:block;font-size:.82rem;color:var(--muted);font-weight:700}
 .mcf-field p{margin:2px 0 0;white-space:pre-wrap}
+.mnf-list{display:flex;flex-direction:column;gap:8px}
+.mnf-row{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left;width:100%}
+.mnf-row:hover{background:#f4f6f8}
+.mnf-who{flex:1;min-width:160px}
+.mnf-badges{display:flex;gap:6px}
 .wp-colmove{margin-top:5px;display:inline-block;font-size:.68rem;font-weight:700;color:var(--muted);
   background:#fff;border:1px solid var(--line);border-radius:6px;padding:2px 6px;cursor:grab}
 .wp-colmove:active{cursor:grabbing}
