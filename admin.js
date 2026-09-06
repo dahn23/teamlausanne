@@ -6946,7 +6946,8 @@ async function loadMail() {
   $("view-mail").classList.remove("mail-showdetail");  // (re)entree dans la messagerie : mobile = liste d'abord
   if (!$("mail-search").dataset.wired) {
     $("mail-search").dataset.wired = "1";
-    $("mail-search").addEventListener("input", () => { clearTimeout(mailSearchT); mailSearchT = setTimeout(refreshMailView, 250); });
+    $("mail-search").addEventListener("input", () => { $("mail-search-clear").classList.toggle("hidden", !$("mail-search").value); clearTimeout(mailSearchT); mailSearchT = setTimeout(refreshMailView, 250); });
+    $("mail-search-clear").addEventListener("click", () => { $("mail-search").value = ""; $("mail-search-clear").classList.add("hidden"); $("mail-search").focus(); refreshMailView(); });
     $("mail-sync").addEventListener("click", mailSync);
     $("mail-history-btn").addEventListener("click", mailHistory);
     $("mail-importboxes-btn").addEventListener("click", mailImportBoxes);
