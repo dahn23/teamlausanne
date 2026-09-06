@@ -1592,9 +1592,11 @@ function dashGeneral(g) {
     ? (g.nocoach || []).map((c) => `<div class="dash-alert">Cours sans coach : <b>${esc(c.label)}</b> — ${dFD(c.date)}</div>`).join("")
       + (g.coachabs || []).map((c) => `<div class="dash-alert">Seul coach absent : <b>${esc(c.label)}</b> — ${dFD(c.date)}</div>`).join("")
     : `<div class="dash-ok">✓ Tous les cours à venir ont un coach attribué.</div>`;
-  const unval = ((g.unvalidated || []).length || (g.unvalidated_et || []).length)
-    ? (g.unvalidated || []).map((c) => `<div class="dash-li">${dFD(c.date)} — ${esc(c.label)}</div>`).join("")
-      + (g.unvalidated_et || []).map((c) => `<div class="dash-li">${dFD(c.date)} — Études</div>`).join("")
+  const unvAll = [...(g.unvalidated || []).map((c) => ({ date: c.date, label: c.label })),
+                  ...(g.unvalidated_et || []).map((c) => ({ date: c.date, label: "Études" }))]
+                 .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));  // plus récent en haut
+  const unval = unvAll.length
+    ? unvAll.map((c) => `<div class="dash-li">${dFD(c.date)} — ${esc(c.label)}</div>`).join("")
     : `<div class="dash-ok">✓ Tout est validé.</div>`;
   return dashCard("Général",
     `<h3 class="dash-sub">Dernières mises à jour <span class="muted" style="font-weight:400;font-size:.8rem">(⚠️ rouge = &gt; 10 jours)</span></h3>
