@@ -1600,7 +1600,7 @@ function dashGeneral(g) {
     : `<div class="dash-ok">✓ Tout est validé.</div>`;
   return dashCard("Général",
     `<h3 class="dash-sub">Dernières mises à jour <span class="muted" style="font-weight:400;font-size:.8rem">(⚠️ rouge = &gt; 10 jours)</span></h3>
-     ${line("Tournois GameZone", lu.gz_at, lu.gz_by)}${line("Scanner les résultats", lu.scan_at, lu.scan_by)}${line("Importer les matchs", lu.matchs_at, lu.matchs_by)}${line("Importer les classements", lu.rank_at, lu.rank_by)}
+     ${line("Tournois GameZone", lu.gz_at, lu.gz_by)}${line("Importer les matchs TeamLausanne", lu.matchs_at, lu.matchs_by)}${line("Importer les prospects", lu.rank_at, lu.rank_by)}${line("Importer les matchs des prospects", lu.scan_at, lu.scan_by)}
      <h3 class="dash-sub">Couverture coachs (cours à venir)</h3>${cov}
      <h3 class="dash-sub">Cours / études passés non validés (21 j)</h3>${unval}`);
 }
