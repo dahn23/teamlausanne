@@ -4785,7 +4785,9 @@ function initFactures() {
   }));
 }
 // Grille des tarifs d'abonnement par filière (app_settings clé 'sub_prices').
-const FAC_TARIF_ROWS = [["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"], ["adultes", "Adultes"], ["hiver_normal", "Saison hiver — tarif normal"], ["hiver_coach", "Saison hiver — tarif coach"]];
+const FAC_TARIF_ROWS = [["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"], ["adultes", "Adultes"],
+  ["hiver_membre_pleine", "Saison hiver — membre · heure pleine"], ["hiver_membre_creuse", "Saison hiver — membre · heure creuse"],
+  ["hiver_nonmembre_pleine", "Saison hiver — non-membre · heure pleine"], ["hiver_nonmembre_creuse", "Saison hiver — non-membre · heure creuse"]];
 async function renderFacTarifs() {
   const host = $("fac-tarifs"); if (!host) return;
   const { data } = await sb.from("app_settings").select("value").eq("key", "sub_prices").maybeSingle();
