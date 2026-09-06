@@ -1105,8 +1105,10 @@ html{-webkit-tap-highlight-color:transparent}
 .fac-tarif-row{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #f0f2f5;padding:7px 0}
 .fac-tarif-in{white-space:nowrap;color:var(--muted);font-size:.9rem}
 .fac-tarif-in input{width:110px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;text-align:right;margin-right:4px}
-.pk-table th{padding:6px 8px}
-.pk-cell{cursor:pointer;background:#dbe7ff;border:1px solid var(--line);height:26px;min-width:56px}
+.pk-table{min-width:0;width:100%;table-layout:fixed}   /* 7 jours visibles d'un coup (pas de scroll : Dim doit se voir) */
+.pk-table th{padding:6px 4px;font-size:.82rem}
+.pk-table th.wp-time{width:52px;text-align:right}
+.pk-cell{cursor:pointer;background:#dbe7ff;border:1px solid var(--line);height:26px}
 .pk-cell.pk-on{background:#123cc4}
 .pk-cell:hover{opacity:.85}
 .fac-st{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.8rem;font-weight:700;white-space:nowrap}
@@ -2179,6 +2181,7 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 .he-val{color:#0b6b3a;font-weight:800}
 .fac-table{min-width:860px}
 .fac-table .he-acts{justify-content:flex-end}
+.he-sal{display:inline-block;font-size:.72rem;font-weight:800;color:#5a3a8c;background:#efe7fb;border-radius:6px;padding:2px 7px;text-transform:uppercase;letter-spacing:.03em}
 .he-acts{display:flex;gap:6px;white-space:nowrap}
 .he-acts button{padding:5px 10px;font-size:.82rem}
 

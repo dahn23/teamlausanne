@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=159" />
+  <link rel="stylesheet" href="style.css?v=160" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1092,6 +1092,7 @@
             <div class="crm-actions">
               <select id="heures-month" class="he-month"></select>
               <button id="heures-export" class="ghost">Exporter (CSV)</button>
+              <button id="heures-export-pdf" class="ghost" title="Décompte mensuel en PDF pour la fiduciaire">⬇ Décompte PDF</button>
             </div>
           </div>
           <div id="heures-mine"></div>
@@ -1471,6 +1472,7 @@
         <p class="muted" style="font-size:.85rem;margin:0 0 10px">Rémunération (pour les décomptes d'heures envoyés à la fiduciaire).</p>
         <div class="form-grid">
           <label>IBAN<input id="p-iban" placeholder="CH00 0000 0000 0000 0000 0" /></label>
+          <label>Salarié — salaire brut mensuel (CHF)<input id="p-salary" type="number" step="1" min="0" placeholder="vide = payé à l'heure" /></label>
         </div>
         <h3 style="margin:16px 0 8px;font-size:1rem">Tarifs horaires</h3>
         <div id="coach-rates-list"></div>

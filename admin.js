@@ -1330,6 +1330,7 @@ function openPerson(p) {
   showPersonTab("repas", isCoachPerson);
   loadPersonMeals(p ? p.id : null, isCoachPerson);
   $("p-iban").value = p?.iban || "";
+  $("p-salary").value = p?.salary_monthly != null ? p.salary_monthly : "";
   loadCoachRates(p ? p.id : null);
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
@@ -4068,6 +4069,7 @@ async function savePerson(e) {
     avs: $("p-avs").value.trim() || null,
     license_no: $("p-license").value.trim() || null,
     iban: $("p-iban").value.trim() || null,
+    salary_monthly: $("p-salary").value.trim() === "" ? null : Number($("p-salary").value),
     emails: lines("p-emails"),
     phones: lines("p-phones"),
     photo_url: personPhotoUrl,
@@ -4733,6 +4735,7 @@ function initHeures() {
   fillHeuresMonths();
   $("heures-month").addEventListener("change", loadHeures);
   $("heures-export").addEventListener("click", exportHeures);
+  $("heures-export-pdf").addEventListener("click", exportHeuresPdf);
 }
 async function loadHeures() {
   initHeures();
@@ -4741,6 +4744,7 @@ async function loadHeures() {
   const isManager = hasAny(myAppRoles, ["superadmin", "admin", "secretaire", "head_coach"]);
   $("heures-recap").classList.toggle("hidden", !isManager);
   $("heures-export").classList.toggle("hidden", !isManager);
+  $("heures-export-pdf").classList.toggle("hidden", !isManager);
   if (isManager) {
     const { data, error } = await sb.rpc("staff_hours_month", { p_ym: heuresYm });
     heuresData = error ? { coaches: [], profs: [] } : (data || { coaches: [], profs: [] });
@@ -4781,12 +4785,13 @@ function renderHeures() {
   $("heures-coaches-empty").hidden = c.length > 0;
   $("heures-profs-empty").hidden = p.length > 0;
   $("heures-coaches").innerHTML = c.map((x) => {
-    const amount = x.rate != null ? Math.round(x.hours * Number(x.rate) * 100) / 100 : null;
+    const salaried = x.salary != null;   // salarié : on garde les heures, mais salaire brut à la place de tarif/montant
+    const amount = salaried ? Number(x.salary) : (x.rate != null ? Math.round(x.hours * Number(x.rate) * 100) / 100 : null);
     const allVal = x.total_courses > 0 && x.courses === x.total_courses;
     return `<tr>
       <td><b>${esc(x.name)}</b></td><td>${x.total_courses}</td><td>${x.hours} h</td>
-      <td>${x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>'}</td>
-      <td>${amount != null ? amount + " CHF" : "—"}</td>
+      <td>${salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
+      <td>${salaried ? `<b>${amount.toLocaleString("fr-CH")} CHF</b> <span class="muted" style="font-size:.78rem">brut / mois</span>` : (amount != null ? amount + " CHF" : "—")}</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.courses + "/" + x.total_courses + "</span>" : '<span class="muted">' + x.courses + "/" + x.total_courses + "</span>"}</td>
       <td class="he-acts"><button class="ghost he-detail" data-id="${x.person_id}" data-name="${esc(x.name)}">Détail</button></td></tr>`;
@@ -4831,6 +4836,38 @@ function exportHeures() {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
   a.download = `heures-${heuresYm}.csv`; a.click();
+}
+// Décompte mensuel en PDF (fiduciaire) : coachs (heures, tarif OU salaire brut) + profs. jsPDF chargé à la demande.
+async function exportHeuresPdf() {
+  const btn = $("heures-export-pdf"); btn.disabled = true;
+  try {
+    if (!window.jspdf) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    if (!window.jspdf?.jsPDF?.API?.autoTable) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const c = heuresData.coaches || [], p = heuresData.profs || [];
+    const chf = (n) => (Math.round(Number(n) * 100) / 100).toLocaleString("fr-CH") + " CHF";
+    const [yy, mm] = heuresYm.split("-");
+    const moisLbl = new Date(Number(yy), Number(mm) - 1, 1).toLocaleDateString("fr-CH", { month: "long", year: "numeric" });
+    doc.setFontSize(15); doc.text(`Décompte mensuel — ${moisLbl}`, 14, 14);
+    doc.setFontSize(9); doc.setTextColor(110); doc.text(`Team Lausanne · généré le ${frDate(new Date())}`, 14, 20); doc.setTextColor(0);
+    let total = 0;
+    const coachRows = c.map((x) => {
+      const sal = x.salary != null, amt = sal ? Number(x.salary) : (x.rate != null ? Math.round(x.hours * Number(x.rate) * 100) / 100 : null);
+      if (amt != null) total += amt;
+      return [x.name, `${x.courses}/${x.total_courses}`, `${x.hours} h`, sal ? "Salarié" : (x.rate != null ? x.rate + ".–/h" : "—"),
+              amt != null ? (sal ? chf(amt) + " brut" : chf(amt)) : "—", x.iban || "—"];
+    });
+    doc.autoTable({ startY: 26, head: [["Coach", "Cours validés", "Heures", "Tarif", "Montant", "IBAN"]], body: coachRows.length ? coachRows : [["—", "", "", "", "", ""]],
+      styles: { fontSize: 9 }, headStyles: { fillColor: [18, 60, 196] }, columnStyles: { 5: { fontSize: 8 } } });
+    const profRows = p.map((x) => [x.name, `${x.days}/${x.total_days}`, `${x.hours} h`, x.iban || "—"]);
+    doc.setFontSize(12); doc.text("Profs — études", 14, doc.lastAutoTable.finalY + 10);
+    doc.autoTable({ startY: doc.lastAutoTable.finalY + 13, head: [["Prof", "Après-midis validés", "Heures", "IBAN"]], body: profRows.length ? profRows : [["—", "", "", ""]],
+      styles: { fontSize: 9 }, headStyles: { fillColor: [18, 60, 196] }, columnStyles: { 3: { fontSize: 8 } } });
+    doc.setFontSize(10); doc.text(`Total coachs (montants + salaires bruts) : ${chf(total)}`, 14, doc.lastAutoTable.finalY + 10);
+    doc.save(`decompte-${heuresYm}.pdf`);
+  } catch (e) { alert("Export PDF impossible : " + (e?.message || e)); }
+  btn.disabled = false;
 }
 
 // ===================================================================
