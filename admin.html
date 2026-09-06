@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=152" />
+  <link rel="stylesheet" href="style.css?v=153" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1128,22 +1128,38 @@
         </div>
 
         <div id="view-factures" class="view hidden">
-          <div class="crm-head">
-            <h1>Factures <span class="muted" style="font-size:1rem;font-weight:400">— à payer</span></h1>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <div class="crm-head"><h1>Factures</h1></div>
+          <div class="subnav">
+            <button type="button" class="subtab fac-subtab active" data-fsub="recues">Reçues — à payer</button>
+            <button type="button" class="subtab fac-subtab" data-fsub="emises">Émises — à encaisser</button>
+            <button type="button" class="subtab fac-subtab" data-fsub="tarifs">Tarifs</button>
+          </div>
+
+          <div id="fac-sub-recues" class="fac-sub">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
               <label class="btnlike" style="cursor:pointer">➕ Ajouter un PDF<input id="fac-file" type="file" accept="application/pdf" multiple hidden /></label>
               <button id="fac-pain" class="ghost" title="Générer le fichier de paiement (pain.001) à déposer dans PostFinance">🏦 Générer paiement</button>
               <button id="fac-export" class="ghost" title="Télécharger un ZIP des factures pour la fiduciaire">⬇ Export ZIP</button>
             </div>
+            <p class="muted" style="margin-top:0;font-size:.88rem">Ajoute une facture (PDF). Renseigne le créancier, le montant et une explication, puis <b>valide</b>. Les factures validées/payées peuvent être exportées en ZIP pour la fiduciaire.</p>
+            <div id="fac-filters" class="fac-filters"></div>
+            <div class="table-wrap">
+              <table class="crm-table fac-table"><thead><tr>
+                <th>Créancier</th><th>Explication</th><th>Montant</th><th>Échéance</th><th>PDF</th><th>Statut</th><th></th>
+              </tr></thead><tbody id="fac-rows"></tbody></table>
+            </div>
+            <p id="fac-empty" class="muted" hidden>Aucune facture.</p>
           </div>
-          <p class="muted" style="margin-top:0;font-size:.88rem">Ajoute une facture (PDF). Renseigne le créancier, le montant et une explication, puis <b>valide</b>. Les factures validées/payées peuvent être exportées en ZIP pour la fiduciaire.</p>
-          <div id="fac-filters" class="fac-filters"></div>
-          <div class="table-wrap">
-            <table class="crm-table fac-table"><thead><tr>
-              <th>Créancier</th><th>Explication</th><th>Montant</th><th>Échéance</th><th>PDF</th><th>Statut</th><th></th>
-            </tr></thead><tbody id="fac-rows"></tbody></table>
+
+          <div id="fac-sub-emises" class="fac-sub hidden">
+            <p class="muted" style="margin-top:0;font-size:.88rem">Factures qu'on <b>envoie</b> (abonnements, stages, saison hiver). Les montants viennent des <b>contrats</b> (sport-études/pro), des <b>inscriptions</b> (stages) ou de la grille <b>Tarifs</b> (autres filières). <i>File « à facturer » + génération QR-facture : prochaine étape.</i></p>
+            <div id="fac-out"></div>
           </div>
-          <p id="fac-empty" class="muted" hidden>Aucune facture.</p>
+
+          <div id="fac-sub-tarifs" class="fac-sub hidden">
+            <p class="muted" style="margin-top:0;font-size:.88rem">Grille des tarifs d'abonnement par filière (montant par défaut, modifiable par personne au moment de facturer). Laisse vide ce qui n'est pas encore fixé.</p>
+            <div id="fac-tarifs"></div>
+          </div>
         </div>
 
         <!-- Fenêtre : édition d'une facture -->

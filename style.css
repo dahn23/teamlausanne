@@ -1068,6 +1068,10 @@ html{-webkit-tap-highlight-color:transparent}
 .mail-ac-it.on,.mail-ac-it:hover{background:var(--bg)}
 /* Factures */
 .fac-filters{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+.fac-tarif-grid{display:flex;flex-direction:column;gap:2px;max-width:480px}
+.fac-tarif-row{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #f0f2f5;padding:7px 0}
+.fac-tarif-in{white-space:nowrap;color:var(--muted);font-size:.9rem}
+.fac-tarif-in input{width:110px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;text-align:right;margin-right:4px}
 .fac-st{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.8rem;font-weight:700;white-space:nowrap}
 .fac-st.fac-todo{background:#fff3d6;color:#8a5a00}
 .fac-st.fac-done{background:#dff3e6;color:#1a8f4a}

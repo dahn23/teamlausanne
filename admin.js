@@ -4778,6 +4778,28 @@ function initFactures() {
   $("fac-close").addEventListener("click", () => $("fac-modal").classList.add("hidden"));
   $("fac-modal").addEventListener("click", (e) => { if (e.target === $("fac-modal")) $("fac-modal").classList.add("hidden"); });
   $("fac-save").addEventListener("click", facSave);
+  document.querySelectorAll("#view-factures .fac-subtab").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("#view-factures .fac-subtab").forEach((x) => x.classList.toggle("active", x === b));
+    document.querySelectorAll("#view-factures .fac-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "fac-sub-" + b.dataset.fsub));
+    if (b.dataset.fsub === "tarifs") renderFacTarifs();
+  }));
+}
+// Grille des tarifs d'abonnement par filière (app_settings clé 'sub_prices').
+const FAC_TARIF_ROWS = [["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"], ["adultes", "Adultes"], ["hiver_normal", "Saison hiver — tarif normal"], ["hiver_coach", "Saison hiver — tarif coach"]];
+async function renderFacTarifs() {
+  const host = $("fac-tarifs"); if (!host) return;
+  const { data } = await sb.from("app_settings").select("value").eq("key", "sub_prices").maybeSingle();
+  const cur = (data && data.value) || {};
+  host.innerHTML = `<div class="fac-tarif-grid">${FAC_TARIF_ROWS.map(([k, l]) =>
+    `<label class="fac-tarif-row"><span>${esc(l)}</span><span class="fac-tarif-in"><input type="number" step="0.05" min="0" data-k="${k}" value="${cur[k] != null ? cur[k] : ""}" placeholder="—" /> CHF</span></label>`).join("")}</div>
+    <div style="margin-top:12px"><button type="button" id="fac-tarif-save">Enregistrer les tarifs</button><span id="fac-tarif-status" class="muted" style="margin-left:10px;font-size:.85rem"></span></div>`;
+  $("fac-tarif-save").addEventListener("click", async () => {
+    const val = {};
+    host.querySelectorAll("input[data-k]").forEach((i) => { const v = i.value.trim(); if (v !== "") val[i.dataset.k] = Number(v); });
+    const { error } = await sb.from("app_settings").upsert({ key: "sub_prices", value: val, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    $("fac-tarif-status").textContent = error ? "Erreur : " + error.message : "✓ Tarifs enregistrés";
+    settings.sub_prices = val;
+  });
 }
 async function loadFactures() {
   initFactures();
