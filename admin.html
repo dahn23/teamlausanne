@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=153" />
+  <link rel="stylesheet" href="style.css?v=154" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1159,6 +1159,9 @@
           <div id="fac-sub-tarifs" class="fac-sub hidden">
             <p class="muted" style="margin-top:0;font-size:.88rem">Grille des tarifs d'abonnement par filière (montant par défaut, modifiable par personne au moment de facturer). Laisse vide ce qui n'est pas encore fixé.</p>
             <div id="fac-tarifs"></div>
+            <h3 style="margin:22px 0 6px;font-size:1.02rem">Heures pleines / creuses (saison hiver)</h3>
+            <p class="muted" style="margin:0 0 8px;font-size:.85rem">Clique une case pour basculer <b style="color:#123cc4">pleine</b> ⇄ creuse. Sert à choisir le tarif hiver (membre/non-membre × pleine/creuse) au moment de facturer.</p>
+            <div id="fac-peak"></div>
           </div>
         </div>
 
