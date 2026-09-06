@@ -2183,11 +2183,14 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 .fac-table th,.fac-table td{padding:9px 10px;white-space:nowrap}
 .fac-table td:first-child{white-space:normal;min-width:130px}
 .fac-table td:nth-child(2){white-space:normal;min-width:200px}
-.fac-table .he-acts{justify-content:flex-end;flex-wrap:nowrap;gap:4px}
+.fac-table .he-acts{text-align:right}
 .fac-table .he-acts .ghost{padding:4px 8px}
 .he-sal{display:inline-block;font-size:.72rem;font-weight:800;color:#5a3a8c;background:#efe7fb;border-radius:6px;padding:2px 7px;text-transform:uppercase;letter-spacing:.03em}
-.he-acts{display:flex;gap:6px;white-space:nowrap}
-.he-acts button{padding:5px 10px;font-size:.82rem}
+/* Cellule d'actions : reste une VRAIE cellule de tableau (pas de flex sur le td, sinon elle se décale en haut
+   et son fond/bordure ne suit plus la ligne) ; les boutons sont alignés en ligne à l'intérieur. */
+td.he-acts{display:table-cell;vertical-align:middle;white-space:nowrap}
+.he-acts button{padding:5px 10px;font-size:.82rem;display:inline-block;vertical-align:middle;margin-left:4px}
+.he-acts button:first-child{margin-left:0}
 
 /* ---- Sous-onglet Coach (tarifs) ---- */
 .coach-rate-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
