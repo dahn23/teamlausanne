@@ -2136,6 +2136,8 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 
 /* ---- Heures (décomptes) ---- */
 .he-val{color:#0b6b3a;font-weight:800}
+.fac-table{min-width:860px}
+.fac-table .he-acts{justify-content:flex-end}
 .he-acts{display:flex;gap:6px;white-space:nowrap}
 .he-acts button{padding:5px 10px;font-size:.82rem}
 

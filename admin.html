@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=151" />
+  <link rel="stylesheet" href="style.css?v=152" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1139,7 +1139,7 @@
           <p class="muted" style="margin-top:0;font-size:.88rem">Ajoute une facture (PDF). Renseigne le créancier, le montant et une explication, puis <b>valide</b>. Les factures validées/payées peuvent être exportées en ZIP pour la fiduciaire.</p>
           <div id="fac-filters" class="fac-filters"></div>
           <div class="table-wrap">
-            <table class="crm-table"><thead><tr>
+            <table class="crm-table fac-table"><thead><tr>
               <th>Créancier</th><th>Explication</th><th>Montant</th><th>Échéance</th><th>PDF</th><th>Statut</th><th></th>
             </tr></thead><tbody id="fac-rows"></tbody></table>
           </div>
