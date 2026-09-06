@@ -805,6 +805,40 @@ html{-webkit-tap-highlight-color:transparent}
 .ls-date,.ls-score{white-space:nowrap}
 .ls-legend{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
 .ls-legend i{width:14px;height:14px;border-radius:3px;background:#c6ecd2;border:1px solid #a9d9b8;display:inline-block}
+/* Portail — Compétition (préparation avant / analyse après) */
+.comp-new{width:100%;padding:13px;border:0;border-radius:12px;background:#123cc4;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;margin-bottom:14px}
+.comp-list{display:flex;flex-direction:column;gap:10px}
+.comp-card{text-align:left;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.comp-card-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.comp-card-top b{font-size:1.05rem}
+.comp-card-sub{font-size:.85rem;color:var(--muted)}
+.comp-badges{display:flex;gap:8px;margin-top:2px}
+.comp-badge{font-size:.72rem;font-weight:700;border-radius:20px;padding:3px 10px;background:#eef0f4;color:var(--muted)}
+.comp-badge.on{background:#c6ecd2;color:#1c7d38}
+.comp-back{background:transparent;border:0;color:#123cc4;font-weight:700;cursor:pointer;padding:4px 0;margin-bottom:8px;font-size:.95rem}
+.comp-head{display:flex;flex-direction:column;gap:0;margin-bottom:6px}
+.comp-head-row{display:flex;gap:10px}
+.comp-head-row .comp-f{flex:1}
+.comp-f{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.comp-f>span{font-weight:700;font-size:.9rem;line-height:1.3}
+.comp-f>small{color:var(--muted);font-size:.78rem;margin-top:-2px}
+.comp-f input,.comp-f textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;background:#fff;box-sizing:border-box}
+.comp-f textarea{resize:vertical;min-height:52px}
+.comp-f input:focus,.comp-f textarea:focus{outline:2px solid #123cc4;outline-offset:-2px}
+.comp-tabs{display:flex;gap:6px;margin:4px 0 14px}
+.comp-tab{flex:1;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:700;font-size:.85rem;cursor:pointer;color:var(--muted)}
+.comp-tab.on{background:#123cc4;border-color:#123cc4;color:#fff}
+.comp-actions{display:flex;align-items:center;gap:14px;margin-top:8px;padding-bottom:24px}
+.comp-actions #comp-save{background:#123cc4;color:#fff;border:0;border-radius:10px;padding:12px 22px;font-weight:700;cursor:pointer}
+.comp-del{background:transparent;border:0;color:#b23838;cursor:pointer;font-weight:600}
+/* Console — formulaires compétition (lecture seule, onglet Mental) */
+.mcf-card{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;background:#fff}
+.mcf-head{font-size:1.02rem;margin-bottom:8px}
+.mcf-block{margin:8px 0}
+.mcf-block h4{margin:6px 0;font-size:.9rem;color:#123cc4}
+.mcf-field{margin:0 0 8px}
+.mcf-field b{display:block;font-size:.82rem;color:var(--muted);font-weight:700}
+.mcf-field p{margin:2px 0 0;white-space:pre-wrap}
 .wp-colmove{margin-top:5px;display:inline-block;font-size:.68rem;font-weight:700;color:var(--muted);
   background:#fff;border:1px solid var(--line);border-radius:6px;padding:2px 6px;cursor:grab}
 .wp-colmove:active{cursor:grabbing}

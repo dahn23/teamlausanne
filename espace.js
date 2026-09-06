@@ -151,6 +151,7 @@ async function startApp() {
   const { data: pl } = await sb.rpc("portal_player_youths");
   PLAYERS = pl || [];
   $("pt-nav-matchs").classList.toggle("hidden", PLAYERS.length === 0);
+  $("pt-nav-comp").classList.toggle("hidden", PLAYERS.length === 0);
   renderYouthSelector();
   bindNav();
   bindBot();
@@ -178,7 +179,7 @@ function renderYouthSelector() {
 
 /* ---------- Navigation (barre du bas) ---------- */
 let currentView = "accueil";
-const VIEW_TITLES = { accueil: "Accueil", cours: "Mes cours", matchs: "Feuille de match", reserver: "Réserver", stages: "Stages", profil: "Profil" };
+const VIEW_TITLES = { accueil: "Accueil", cours: "Mes cours", matchs: "Feuille de match", comp: "Compétition", reserver: "Réserver", stages: "Stages", profil: "Profil" };
 function bindNav() {
   document.querySelectorAll(".pt-nav-item").forEach((b) =>
     b.addEventListener("click", () => switchView(b.dataset.view)));
@@ -196,6 +197,7 @@ function renderCurrentView() {
   if (currentView === "accueil") renderAccueil();
   else if (currentView === "cours") renderCours();
   else if (currentView === "matchs") renderMatchs();
+  else if (currentView === "comp") renderComp();
   else if (currentView === "reserver") renderReserver();
   else if (currentView === "stages") renderStages();
   else if (currentView === "profil") renderProfil();
@@ -789,4 +791,107 @@ function mrpReportCard(r, player) {
     ${texts}
     ${r.comment ? `<div class="mrp-field"><b>Commentaire</b><p>${escHtml(r.comment).replace(/\n/g, "<br/>")}</p></div>` : ""}
   </div>`;
+}
+
+/* ---------- Compétition : préparation (avant) + analyse (après) ---------- */
+let compSel = null, compList = [], compEditId = null, compTab = "prep";
+const COMP_PREP = [
+  ["horaires", "Horaires et routines de préparation", "Réveil, repas, échauffement, trajet…"],
+  ["specifique", "Qu'est-ce qui est spécifique à cette compétition ? Qu'est-ce qui peut être différent ?", "L'horaire, l'entourage, le bruit, l'enchaînement des matchs…"],
+  ["represente", "Qu'est-ce que cette compétition représente pour moi ?", ""],
+  ["objectifs", "Quels sont mes objectifs ?", ""],
+  ["tester", "Qu'est-ce que je vais tester de nouveau ?", "Un autre échauffement, un mindset… ou rien"],
+  ["sentir", "Comment je veux me sentir pendant la compétition ?", "Confiant·e, puissant·e…"],
+];
+const COMP_ANALYSE = [
+  ["highlight", "Mon highlight", ""],
+  ["avant", "Comment tu t'es senti·e AVANT la compétition ?", ""],
+  ["pendant", "Comment tu t'es senti·e PENDANT la compétition ?", ""],
+  ["apres", "Comment tu t'es senti·e APRÈS la compétition ?", ""],
+  ["satisfait", "De quoi es-tu satisfait·e ? Qu'est-ce qui est bien allé ?", ""],
+  ["mieux", "Qu'est-ce qui pourrait être mieux ?", ""],
+  ["different", "Qu'est-ce qui était différent de ce que tu avais pensé ?", ""],
+  ["retour_coach", "Quel est le retour de ton entraîneur ?", ""],
+  ["appris", "Qu'est-ce que tu as appris pendant cette compétition ?", ""],
+];
+
+async function renderComp() {
+  const host = $("view-comp");
+  if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>Réservé aux joueurs de compétition.</p></div>`; return; }
+  if (!compSel || !PLAYERS.some((p) => p.person_id === compSel))
+    compSel = (selYouth !== "all" && PLAYERS.some((p) => p.person_id === selYouth)) ? selYouth : PLAYERS[0].person_id;
+  const selHtml = PLAYERS.length > 1
+    ? `<div class="mrp-players">${PLAYERS.map((p) => `<button class="mrp-player ${p.person_id === compSel ? "sel" : ""}" data-id="${p.person_id}">${escHtml(p.first_name)}</button>`).join("")}</div>` : "";
+  host.innerHTML = selHtml + `<div id="comp-body"><p class="muted" style="text-align:center;padding:12px">Chargement…</p></div>`;
+  host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { compSel = b.dataset.id; compEditId = null; renderComp(); }));
+  const { data } = await sb.rpc("portal_comp_forms", { p_youth: compSel });
+  compList = data || [];
+  if (compEditId) renderCompEditor(); else renderCompList();
+}
+function renderCompList() {
+  const body = $("comp-body"); if (!body) return;
+  const cards = compList.map((c) => {
+    const prepN = Object.values(c.prep || {}).filter((v) => (v || "").trim()).length;
+    const bilN = Object.values(c.bilan || {}).filter((v) => (v || "").trim()).length;
+    return `<button type="button" class="comp-card" data-id="${c.id}">
+      <div class="comp-card-top"><b>${escHtml(c.competition || "Compétition")}</b><span class="muted">${c.comp_date ? frShort(c.comp_date) : ""}</span></div>
+      ${c.lieu ? `<div class="comp-card-sub">📍 ${escHtml(c.lieu)}</div>` : ""}
+      <div class="comp-badges"><span class="comp-badge ${prepN ? "on" : ""}">Préparation ${prepN ? "✓" : "·"}</span><span class="comp-badge ${bilN ? "on" : ""}">Analyse ${bilN ? "✓" : "·"}</span></div>
+    </button>`;
+  }).join("");
+  body.innerHTML = `<button type="button" id="comp-new" class="comp-new">+ Nouvelle compétition</button>
+    ${compList.length ? `<div class="comp-list">${cards}</div>` : `<p class="muted" style="text-align:center;padding:16px">Aucune compétition pour l'instant.<br>Crée-en une avant ton prochain tournoi 💪</p>`}`;
+  $("comp-new").addEventListener("click", () => { compEditId = "new"; compTab = "prep"; renderCompEditor(); });
+  body.querySelectorAll(".comp-card").forEach((b) => b.addEventListener("click", () => { compEditId = b.dataset.id; compTab = "prep"; renderCompEditor(); }));
+}
+function renderCompEditor() {
+  const body = $("comp-body"); if (!body) return;
+  const c = compEditId === "new" ? { prep: {}, bilan: {} } : (compList.find((x) => x.id === compEditId) || { prep: {}, bilan: {} });
+  const fld = (arr, obj, pfx) => arr.map(([k, label, hint]) =>
+    `<label class="comp-f"><span>${escHtml(label)}</span>${hint ? `<small>${escHtml(hint)}</small>` : ""}
+      <textarea id="${pfx}-${k}" rows="2">${escHtml((obj || {})[k] || "")}</textarea></label>`).join("");
+  body.innerHTML = `
+    <button type="button" id="comp-back" class="comp-back">← Mes compétitions</button>
+    <div class="comp-head">
+      <label class="comp-f"><span>Compétition</span><input id="comp-name" type="text" value="${escHtml(c.competition || "")}" placeholder="Nom du tournoi"></label>
+      <div class="comp-head-row">
+        <label class="comp-f"><span>Date</span><input id="comp-date" type="date" value="${c.comp_date || ""}"></label>
+        <label class="comp-f"><span>Lieu</span><input id="comp-lieu" type="text" value="${escHtml(c.lieu || "")}" placeholder="Où ?"></label>
+      </div>
+    </div>
+    <div class="comp-tabs">
+      <button type="button" class="comp-tab ${compTab === "prep" ? "on" : ""}" data-t="prep">Avant · Préparation</button>
+      <button type="button" class="comp-tab ${compTab === "bilan" ? "on" : ""}" data-t="bilan">Après · Analyse</button>
+    </div>
+    <div class="comp-pane" id="comp-pane-prep" ${compTab === "prep" ? "" : "hidden"}>${fld(COMP_PREP, c.prep, "prep")}</div>
+    <div class="comp-pane" id="comp-pane-bilan" ${compTab === "bilan" ? "" : "hidden"}>${fld(COMP_ANALYSE, c.bilan, "bilan")}</div>
+    <div class="comp-actions">
+      <button type="button" id="comp-save">Enregistrer</button>
+      ${compEditId !== "new" ? `<button type="button" id="comp-del" class="comp-del">Supprimer</button>` : ""}
+      <span id="comp-status" class="muted"></span>
+    </div>`;
+  $("comp-back").addEventListener("click", () => { compEditId = null; renderCompList(); });
+  body.querySelectorAll(".comp-tab").forEach((b) => b.addEventListener("click", () => {
+    compTab = b.dataset.t;
+    body.querySelectorAll(".comp-tab").forEach((x) => x.classList.toggle("on", x.dataset.t === compTab));
+    $("comp-pane-prep").hidden = compTab !== "prep"; $("comp-pane-bilan").hidden = compTab !== "bilan";
+  }));
+  $("comp-save").addEventListener("click", saveComp);
+  if ($("comp-del")) $("comp-del").addEventListener("click", deleteComp);
+}
+async function saveComp() {
+  const gather = (arr, pfx) => { const o = {}; for (const [k] of arr) { const v = $(`${pfx}-${k}`).value.trim(); if (v) o[k] = v; } return o; };
+  const payload = {
+    competition: $("comp-name").value.trim(), comp_date: $("comp-date").value || null, lieu: $("comp-lieu").value.trim(),
+    prep: gather(COMP_PREP, "prep"), bilan: gather(COMP_ANALYSE, "bilan"),
+  };
+  $("comp-status").textContent = "Enregistrement…";
+  const { error } = await sb.rpc("portal_save_comp_form", { p_youth: compSel, p_id: compEditId === "new" ? null : compEditId, p_data: payload });
+  if (error) { $("comp-status").textContent = "Erreur : " + error.message; return; }
+  compEditId = null; renderComp();
+}
+async function deleteComp() {
+  if (!confirm("Supprimer cette compétition ?")) return;
+  await sb.rpc("portal_delete_comp_form", { p_youth: compSel, p_id: compEditId });
+  compEditId = null; renderComp();
 }

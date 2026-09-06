@@ -6779,11 +6779,32 @@ function openMentalParticipant(yid) {
   const p = people.find((x) => x.id === yid);
   $("mn-part-name").textContent = p ? `${p.last_name} ${p.first_name}` : "—";
   loadMnComments(yid);
+  renderMnCompForms(yid);
   $("mn-part-list").classList.add("hidden");
   $("mn-part-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
 }
 function loadMnComments(yid) { mnYouthId = yid; youthNotes("mn-chan", yid); }
+
+// ---- Formulaires « Compétition » remplis par le jeune (lecture seule, console) ----
+const MCF_PREP = [["horaires", "Horaires et routines de préparation"], ["specifique", "Spécifique à cette compétition / ce qui peut être différent"], ["represente", "Ce que cette compétition représente pour moi"], ["objectifs", "Mes objectifs"], ["tester", "Ce que je vais tester de nouveau"], ["sentir", "Comment je veux me sentir"]];
+const MCF_ANALYSE = [["highlight", "Mon highlight"], ["avant", "Ressenti avant"], ["pendant", "Ressenti pendant"], ["apres", "Ressenti après"], ["satisfait", "Satisfait·e de / ce qui est bien allé"], ["mieux", "Ce qui pourrait être mieux"], ["different", "Différent de ce que j'avais pensé"], ["retour_coach", "Retour de l'entraîneur"], ["appris", "Ce que j'ai appris"]];
+async function renderMnCompForms(yid) {
+  const host = $("mn-comp"); if (!host) return;
+  if (!yid) { host.innerHTML = ""; return; }
+  const { data } = await sb.from("mental_comp_forms").select("*").eq("youth_person_id", yid).order("comp_date", { ascending: false, nullsFirst: false });
+  const rows = data || [];
+  if (!rows.length) { host.innerHTML = '<p class="obj-empty">Aucun formulaire rempli pour l\'instant.</p>'; return; }
+  const block = (title, arr, obj) => {
+    const items = arr.filter(([k]) => (obj || {})[k]).map(([k, l]) => `<div class="mcf-field"><b>${esc(l)}</b><p>${esc(obj[k]).replace(/\n/g, "<br/>")}</p></div>`).join("");
+    return items ? `<div class="mcf-block"><h4>${esc(title)}</h4>${items}</div>` : "";
+  };
+  host.innerHTML = rows.map((c) => {
+    const prep = block("Préparation (avant)", MCF_PREP, c.prep);
+    const bil = block("Analyse (après)", MCF_ANALYSE, c.bilan);
+    return `<div class="mcf-card"><div class="mcf-head"><b>${esc(c.competition || "Compétition")}</b>${c.comp_date ? ` <span class="muted">${frDate(c.comp_date)}</span>` : ""}${c.lieu ? ` · ${esc(c.lieu)}` : ""}</div>${prep || '<p class="obj-empty">Préparation non remplie.</p>'}${bil}</div>`;
+  }).join("");
+}
 
 // ---- Commentaires mental (partagés participants / fiche) ----
 async function renderMentalComments(youthId, listId, refresh) {
