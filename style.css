@@ -767,18 +767,28 @@ html{-webkit-tap-highlight-color:transparent}
 .wp-time{text-align:right;color:var(--muted);font-weight:600;white-space:nowrap;position:sticky;left:0;z-index:1;background:#f4f6f8;padding:0 10px}
 .wp-td{padding:0}
 .wp-st-libre{background:#fff}
-.wp-st-pre{background:#fff3bf}
 .wp-st-gratuit,.wp-st-confirme{background:#c6ecd2}
-.wp-st-normal{background:#cfe0fb}
-.wp-st-coach{background:#e6d6f7}
+.wp-st-pre_m{background:#f0e6fa}
+.wp-st-membre,.wp-st-coach{background:#d4bff0}
+.wp-st-pre_nm,.wp-st-pre{background:#e8effc}
+.wp-st-normal{background:#c9dcfb}
 .wp-cellin{display:flex;align-items:stretch}
 .wp-dot{flex:0 0 auto;width:17px;border:0;border-right:1px solid var(--line);cursor:grab;padding:0}
 .wp-dot:active{cursor:grabbing}
 .wp-st-libre .wp-dot{background:#e6e8ec}
-.wp-st-pre .wp-dot{background:#f5c518}
 .wp-st-gratuit .wp-dot,.wp-st-confirme .wp-dot{background:#2f9e57}
+.wp-st-pre_m .wp-dot{background:#b48fe0}
+.wp-st-membre .wp-dot,.wp-st-coach .wp-dot{background:#8b4fd0}
+.wp-st-pre_nm .wp-dot,.wp-st-pre .wp-dot{background:#8fb1ea}
 .wp-st-normal .wp-dot{background:#2f6fe0}
-.wp-st-coach .wp-dot{background:#8b4fd0}
+.wp-price{flex:0 0 auto;padding:0 6px;font-size:.72rem;font-weight:700;color:var(--muted);align-self:center;white-space:nowrap}
+.wp-time.wp-peak{color:#123cc4;font-weight:800}
+.wp-totals{margin:0 0 12px}
+.wp-tot-row{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;margin-bottom:6px;font-size:.86rem}
+.wp-tot b{font-weight:800}
+.wp-tot.big{font-size:1rem}
+.wp-sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--line);margin-right:5px;vertical-align:-1px}
+.wp-tot-main{padding:8px 12px;background:#f4f6f8;border-radius:10px}
 .wp-td.wp-drop,.wp-colh.wp-drop{outline:2px dashed var(--brand,#0b6b3a);outline-offset:-2px}
 .wp-td.wp-dragging,.wp-colh.wp-dragging{opacity:.45}
 .wp-colh span{display:block}

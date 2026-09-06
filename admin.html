@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=154" />
+  <link rel="stylesheet" href="style.css?v=155" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -376,11 +376,14 @@
           <p class="muted" style="margin:-4px 0 10px">Planning fixe des abonnements — un nom par case (enregistrement auto). Clic sur la pastille = couleur ; glisser la pastille = déplacer un cours ; « ⠿ déplacer » sous un court = bouger toute la colonne.</p>
           <div class="wp-legend">
             <span><i style="background:#fff"></i> Libre</span>
-            <span><i style="background:#fff3bf"></i> Pré-réservé</span>
             <span><i style="background:#c6ecd2"></i> TeamLausanne (gratuit)</span>
-            <span><i style="background:#cfe0fb"></i> Tarif normal</span>
-            <span><i style="background:#e6d6f7"></i> Tarif coach</span>
+            <span><i style="background:#f0e6fa"></i> Pré-réservé membre</span>
+            <span><i style="background:#e8effc"></i> Pré-réservé non-membre</span>
+            <span><i style="background:#d4bff0"></i> Tarif membre</span>
+            <span><i style="background:#c9dcfb"></i> Tarif normal (non-membre)</span>
+            <span class="muted">· prix dans la case = selon heure pleine/creuse (« ~ » = pré-réservé)</span>
           </div>
+          <div id="wp-totals" class="wp-totals"></div>
           <div id="wp-days" class="wp-days"></div>
           <div id="wp-grid" class="wp-grid-wrap"></div>
         </div>

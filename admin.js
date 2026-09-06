@@ -1405,8 +1405,19 @@ function tennisNavStep(d) {
 const WP_COURTS = ["4", "5", "6", "7", "10", "11", "Fitness"];
 const WP_START_HOURS = Array.from({ length: 14 }, (_, i) => 8 + i);   // 8h15 .. 21h15
 const WP_DAYS = [["Lundi", 1], ["Mardi", 2], ["Mercredi", 3], ["Jeudi", 4], ["Vendredi", 5]];
-// clic = blanc(libre) → jaune(pré-réservé) → vert(TeamLausanne/gratuit) → bleu(tarif normal) → violet(tarif coach)
-const WP_ST_NEXT = { libre: "pre", pre: "gratuit", gratuit: "normal", normal: "coach", coach: "libre" };
+// Statuts : libre → TeamLausanne(gratuit=0) → pré-réservé membre → pré-réservé non-membre → tarif membre → tarif normal(non-membre) → libre
+const WP_ST_NEXT = { libre: "gratuit", gratuit: "pre_m", pre_m: "pre_nm", pre_nm: "membre", membre: "normal", normal: "libre" };
+const WP_ST_ALL = ["libre", "gratuit", "pre_m", "pre_nm", "membre", "normal"];
+const WP_ST_LABEL = { gratuit: "TeamLausanne (gratuit)", pre_m: "Pré-réservé membre", pre_nm: "Pré-réservé non-membre", membre: "Tarif membre", normal: "Tarif normal (non-membre)", libre: "Libre" };
+let wpPrices = {}, wpPeak = {};
+const wpPeakAt = (day, slot) => (wpPeak[String(day)] || []).includes(8 + slot);
+function wpPriceOf(st, day, slot) {
+  const peak = wpPeakAt(day, slot);
+  if (st === "membre" || st === "pre_m") return Number(wpPrices[peak ? "hiver_membre_pleine" : "hiver_membre_creuse"] || 0);
+  if (st === "normal" || st === "pre_nm") return Number(wpPrices[peak ? "hiver_nonmembre_pleine" : "hiver_nonmembre_creuse"] || 0);
+  return 0;
+}
+const wpPriceTxt = (st, pr) => pr > 0 ? ((st === "pre_m" || st === "pre_nm") ? "~" + pr : String(pr)) : "";   // « ~ » = pré-réservé
 function winterSeasonLabel() {
   const d = new Date(), y = d.getFullYear();
   const startY = d.getMonth() >= 4 ? y : y - 1;   // mai→déc = hiver y/y+1 ; janv→avril = (y-1)/y
@@ -1416,9 +1427,18 @@ let wpSeason = null, wpName = {}, wpStatus = {}, wpDay = 1;
 async function loadWinter() {
   wpSeason = winterSeasonLabel();
   $("wp-season").textContent = wpSeason.replace("-", " – ");
-  const { data } = await sb.from("winter_plan").select("day,court,slot,player_name,status").eq("season", wpSeason);
+  const [{ data }, { data: cfg }] = await Promise.all([
+    sb.from("winter_plan").select("day,court,slot,player_name,status").eq("season", wpSeason),
+    sb.from("app_settings").select("key,value").in("key", ["sub_prices", "peak"]),
+  ]);
+  wpPrices = {}; wpPeak = {};
+  (cfg || []).forEach((r) => { if (r.key === "sub_prices") wpPrices = r.value || {}; if (r.key === "peak") wpPeak = r.value || {}; });
   wpName = {}; wpStatus = {};
-  (data || []).forEach((r) => { const k = `${r.day}_${r.court}_${r.slot}`; wpName[k] = r.player_name || ""; wpStatus[k] = r.status || "libre"; });
+  (data || []).forEach((r) => {
+    const k = `${r.day}_${r.court}_${r.slot}`; wpName[k] = r.player_name || "";
+    let s = r.status || "libre"; if (s === "coach") s = "membre"; if (s === "pre" || s === "confirme") s = "pre_nm";  // anciens statuts
+    wpStatus[k] = s;
+  });
   $("wp-days").innerHTML = WP_DAYS.map(([lbl, d]) =>
     `<button type="button" class="wp-day${d === wpDay ? " active" : ""}" data-day="${d}">${lbl}</button>`).join("");
   $("wp-days").querySelectorAll(".wp-day").forEach((b) =>
@@ -1435,13 +1455,16 @@ function renderWinterGrid() {
     const slot = h - 8, tlabel = `${h}h15&nbsp;–&nbsp;${h + 1}h15`;
     const cells = WP_COURTS.map((c) => {
       const k = `${wpDay}_${c}_${slot}`, val = wpName[k] || "", st = wpStatus[k] || "libre";
+      const pr = wpPriceOf(st, wpDay, slot);
       return `<td class="wp-td wp-st-${st}" data-court="${esc(c)}" data-slot="${slot}"><div class="wp-cellin">`
-        + `<button type="button" class="wp-dot" title="Cliquer : libre → pré-réservé → confirmé"></button>`
-        + `<input type="text" class="wp-cell" value="${esc(val)}" placeholder="—" /></div></td>`;
+        + `<button type="button" class="wp-dot" title="${esc(WP_ST_LABEL[st] || st)} — cliquer pour changer"></button>`
+        + `<input type="text" class="wp-cell" value="${esc(val)}" placeholder="—" />`
+        + `<span class="wp-price" title="${wpPeakAt(wpDay, slot) ? "heure pleine" : "heure creuse"}">${wpPriceTxt(st, pr)}</span></div></td>`;
     }).join("");
-    return `<tr><th class="wp-time">${tlabel}</th>${cells}</tr>`;
+    return `<tr><th class="wp-time${wpPeakAt(wpDay, slot) ? " wp-peak" : ""}">${tlabel}</th>${cells}</tr>`;
   }).join("");
   $("wp-grid").innerHTML = `<table class="wp-table">${head}${rows}</table>`;
+  renderWinterTotals();
   $("wp-grid").querySelectorAll(".wp-td").forEach((td) => {
     const court = td.dataset.court, slot = Number(td.dataset.slot);
     td.querySelector(".wp-cell").addEventListener("change", (e) => saveWinterCell(court, slot, e.target.value.trim(), td));
@@ -1512,10 +1535,37 @@ async function saveWinterCell(court, slot, name, td) {
 }
 async function cycleWinterStatus(court, slot, td) {
   const k = `${wpDay}_${court}_${slot}`;
-  const next = WP_ST_NEXT[wpStatus[k]] || "pre"; wpStatus[k] = next;
-  td.classList.remove("wp-st-libre", "wp-st-pre", "wp-st-gratuit", "wp-st-normal", "wp-st-coach", "wp-st-confirme");
+  const next = WP_ST_NEXT[wpStatus[k]] || "gratuit"; wpStatus[k] = next;
+  WP_ST_ALL.forEach((s) => td.classList.remove("wp-st-" + s));
   td.classList.add("wp-st-" + next);
+  const pr = wpPriceOf(next, wpDay, slot), ps = td.querySelector(".wp-price"); if (ps) ps.textContent = wpPriceTxt(next, pr);
+  const dot = td.querySelector(".wp-dot"); if (dot) dot.title = (WP_ST_LABEL[next] || next) + " — cliquer pour changer";
+  renderWinterTotals();
   await winterUpsert(court, slot);
+}
+// Totaux (toute la semaine, toutes les cases à statut payant) : par catégorie, confirmé vs pré-réservé, par jour.
+function renderWinterTotals() {
+  const host = $("wp-totals"); if (!host) return;
+  const cats = { membre: 0, normal: 0, pre_m: 0, pre_nm: 0 }, perDay = {}, nFree = {};
+  for (const k of Object.keys(wpStatus)) {
+    const st = wpStatus[k]; const p = k.split("_"); const day = Number(p[0]), slot = Number(p[2]);
+    if (st === "gratuit") { nFree[day] = (nFree[day] || 0) + 1; continue; }
+    if (!(st in cats)) continue;
+    const pr = wpPriceOf(st, day, slot); cats[st] += pr;
+    if (st === "membre" || st === "normal") perDay[day] = (perDay[day] || 0) + pr;
+  }
+  const conf = cats.membre + cats.normal, pre = cats.pre_m + cats.pre_nm;
+  const chf = (n) => Math.round(n * 100) / 100 + " CHF";
+  const cat = (cls, lbl, v) => `<span class="wp-tot"><i class="wp-sw wp-st-${cls}"></i>${lbl} : <b>${chf(v)}</b></span>`;
+  host.innerHTML = `<div class="wp-tot-row">
+      ${cat("membre", "Tarif membre", cats.membre)}${cat("normal", "Tarif normal", cats.normal)}${cat("pre_m", "Pré-réservé membre", cats.pre_m)}${cat("pre_nm", "Pré-réservé non-membre", cats.pre_nm)}
+      <span class="wp-tot"><i class="wp-sw wp-st-gratuit"></i>TeamLausanne : <b>${Object.values(nFree).reduce((a, b) => a + b, 0)} case(s)</b> gratuites</span>
+    </div>
+    <div class="wp-tot-row wp-tot-main">
+      <span class="wp-tot big">Semaine (confirmé) : <b>${chf(conf)}</b></span>
+      <span class="wp-tot">+ pré-réservé : <b>${chf(pre)}</b> <span class="muted">(potentiel)</span></span>
+      ${WP_DAYS.map(([lbl, d]) => `<span class="wp-tot">${lbl} : <b>${chf(perDay[d] || 0)}</b></span>`).join("")}
+    </div>`;
 }
 
 // ===================================================================
