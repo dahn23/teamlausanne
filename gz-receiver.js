@@ -6,7 +6,7 @@ import { sb } from "./common.js";
 const FN = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/gz-import";
 const AK = "sb_publishable_nsRKXBFgwmDjtmvS3mFc0w_Q4pi_qxK";
 const st = document.getElementById("st");
-const logOps = async (a, who) => { try { await sb.rpc("ops_log_named", { p_action: a, p_name: who || null }); } catch (_) {} };
+const logOps = async (a, who) => { try { await sb.rpc("ops_log_smart", { p_action: a, p_name: who || null }); } catch (_) {} };
 
 window.addEventListener("message", async (e) => {
   const d = e.data;

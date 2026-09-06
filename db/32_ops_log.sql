@@ -34,6 +34,20 @@ begin
 end;$$;
 grant execute on function public.ops_log_named(text, text) to anon, authenticated;
 
+-- Version « intelligente » utilisée par les pages relais : prend d'abord le nom de la
+-- SESSION (le vrai cliqueur, automatique), sinon le nom porté par le favori ; ignore « __WHO__ ».
+create or replace function public.ops_log_smart(p_action text, p_name text)
+returns void language plpgsql security definer set search_path=public as $$
+declare v_name text;
+begin
+  select trim(coalesce(pe.first_name,'')||' '||coalesce(pe.last_name,'')) into v_name
+    from profiles pr join people pe on pe.id=pr.person_id where pr.user_id=auth.uid() limit 1;
+  if v_name is null or v_name='' then v_name := nullif(p_name,''); end if;
+  if v_name = '__WHO__' then v_name := null; end if;
+  insert into public.ops_log(action, by_name) values (p_action, v_name);
+end;$$;
+grant execute on function public.ops_log_smart(text, text) to anon, authenticated;
+
 -- dash_general lit désormais ops_log (date + auteur) pour matchs/classements/scan,
 -- avec repli sur les max(imported_at)/last_ranking_scan si aucun log encore.
 create or replace function public.dash_general() returns jsonb
