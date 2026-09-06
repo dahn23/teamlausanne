@@ -902,6 +902,9 @@ html{-webkit-tap-highlight-color:transparent}
 .dash-win{color:#1c7d38}
 .dash-tag{font-size:.68rem;font-weight:800;background:#eef0f4;border-radius:5px;padding:1px 5px;color:var(--muted)}
 .dash-scroll{max-height:220px;overflow-y:auto}
+.dash-showmore{margin-top:6px;padding:5px 12px;font-size:.82rem}
+.dash-bday-today{background:#eef2ff;color:#123cc4;border-radius:6px;padding:5px 8px;font-weight:600}
+.dash-bday-today b{color:#123cc4}
 .wp-colmove{margin-top:5px;display:inline-block;font-size:.68rem;font-weight:700;color:var(--muted);
   background:#fff;border:1px solid var(--line);border-radius:6px;padding:2px 6px;cursor:grab}
 .wp-colmove:active{cursor:grabbing}

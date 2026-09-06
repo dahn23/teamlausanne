@@ -1635,6 +1635,12 @@ async function loadDashboard() {
     + dashGroup("Pro · Pro U18 · Sport-études", D.se || {})
     + dashGroup("Compétition & Performance", D.comp || {})
     + dashClub(D.club || {}) + `</div>`;
+  // « Voir tous » : révèle les lignes masquées (.dash-more) du même bloc.
+  body.querySelectorAll(".dash-showmore").forEach((b) => b.addEventListener("click", () => {
+    let el = b.previousElementSibling;
+    while (el && el.classList.contains("dash-li")) { el.classList.remove("hidden"); el = el.previousElementSibling; }
+    b.remove();
+  }));
 }
 function dashGeneral(g) {
   const lu = g.lastup || {};
@@ -1649,11 +1655,19 @@ function dashGeneral(g) {
   const unval = unvAll.length
     ? unvAll.map((c) => `<div class="dash-li">${dFD(c.date)} — ${esc(c.label)}</div>`).join("")
     : `<div class="dash-ok">✓ Tout est validé.</div>`;
+  const bdays = g.birthdays || [];
+  const bday = bdays.length
+    ? bdays.map((b) => {
+        const when = b.off === 0 ? "🎂 aujourd'hui" : b.off > 0 ? `dans ${b.off} j` : `il y a ${-b.off} j`;
+        return `<div class="dash-li${b.off === 0 ? " dash-bday-today" : ""}"><b>${esc(b.name)}</b> — ${when} <span class="muted">(${b.age} ans)</span></div>`;
+      }).join("")
+    : '<div class="muted">Aucun anniversaire à ±3 jours.</div>';
   return dashCard("Général",
     `<h3 class="dash-sub">Dernières mises à jour <span class="muted" style="font-weight:400;font-size:.8rem">(⚠️ rouge = &gt; 10 jours)</span></h3>
      ${line("Tournois GameZone", lu.gz_at, lu.gz_by)}${line("Importer les matchs TeamLausanne", lu.matchs_at, lu.matchs_by)}${line("Importer les prospects", lu.rank_at, lu.rank_by)}${line("Importer les matchs des prospects", lu.scan_at, lu.scan_by)}
      <h3 class="dash-sub">Couverture coachs (cours à venir)</h3>${cov}
-     <h3 class="dash-sub">Cours / études passés non validés (21 j)</h3>${unval}`);
+     <h3 class="dash-sub">Cours / études passés non validés (21 j)</h3>${unval}
+     <h3 class="dash-sub">Anniversaires (J−3 → J+3)</h3>${bday}`);
 }
 function dashMail(m) {
   const boxes = (m.boxes || []).map((b) => `<div class="dash-row"><span>${esc(b.label)}</span><span><b>${b.recv7}</b> reçus</span></div>`).join("");
@@ -1670,7 +1684,11 @@ function dashGroup(title, g) {
   const y = g.youths || [];
   const abs = y.filter((x) => (x.absences || []).length).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> : ${x.absences.map((a) => `${esc(a.label)} (${dFD(a.date)})`).join(", ")}</div>`).join("") || '<div class="dash-ok">✓ Aucune absence.</div>';
   const ret = y.filter((x) => (x.retards || []).length).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> : ${x.retards.map((a) => `${esc(a.label)} (${dFD(a.date)})`).join(", ")}</div>`).join("") || '<div class="dash-ok">✓ Aucun retard.</div>';
-  const stale = y.filter((x) => !x.tennis_last || dDaysAgo(x.tennis_last) > 21).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> — ${x.tennis_last ? "dernière : " + dFD(x.tennis_last) : "aucune remarque"}</div>`).join("") || '<div class="dash-ok">✓ Tous ont une remarque récente.</div>';
+  const staleList = y.filter((x) => !x.tennis_last || dDaysAgo(x.tennis_last) > 21);
+  const stale = staleList.length
+    ? staleList.map((x, i) => `<div class="dash-li${i >= 5 ? " dash-more hidden" : ""}"><b>${esc(x.name)}</b> — ${x.tennis_last ? "dernière : " + dFD(x.tennis_last) : "aucune remarque"}</div>`).join("")
+      + (staleList.length > 5 ? `<button type="button" class="dash-showmore ghost">Voir tous (${staleList.length})</button>` : "")
+    : '<div class="dash-ok">✓ Tous ont une remarque récente.</div>';
   const forms = y.map((x) => `<div class="dash-row"><span>${esc(x.name)}</span><span>${x.coach_forms || 0}</span></div>`).join("") || '<div class="muted">—</div>';
   const suivi = (g.suivi || []).map((s) => `<div class="dash-li">${dFD(s.date)} · <b>${esc(s.youth || "—")}</b> — ${esc(s.author || "—")}${s.role ? ` (${esc(s.role)})` : ""} : ${esc(s.body || "")}</div>`).join("") || '<div class="muted">—</div>';
   const ls = (g.lastscores || []).map((s) => `<div class="dash-li${s.won ? " dash-win" : ""}">${dFD(s.date)} · <b>${esc(s.youth)}</b> vs ${esc(s.opponent || "—")}${s.oc ? ` (${esc(s.oc)})` : ""} — ${s.won === true ? "V" : s.won === false ? "D" : ""} ${esc(s.score || "")}</div>`).join("") || '<div class="muted">—</div>';
