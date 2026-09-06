@@ -5608,7 +5608,14 @@ async function oiBuildPdf(inv) {
   // Destinataire (fenêtre enveloppe, à gauche)
   let y = 82; doc.setTextColor(...GREY); T("FACTURÉ À", 18, y - 5, { b: true, s: 7 }); doc.setTextColor(0);
   for (const l of dLines) { T(l, 18, y, { s: 11 }); y += 5.5; }
-  if (inv.player_name && inv.player_name !== inv.debtor_name) { doc.setTextColor(...GREY); T(`Joueur·euse : ${inv.player_name}`, 18, y + 1, { s: 8.5 }); doc.setTextColor(0); }
+  if (inv.person_id && (!inv.player_name || !inv.player_gender)) {   // nom + genre du joueur (Joueur / Joueuse)
+    const { data: pj } = await sb.from("people").select("first_name,last_name,gender").eq("id", inv.person_id).maybeSingle();
+    if (pj) { inv.player_name = `${pj.first_name} ${pj.last_name}`; inv.player_gender = pj.gender || ""; }
+  }
+  if (inv.player_name && inv.player_name !== inv.debtor_name) {
+    const who = inv.player_gender === "F" ? "Joueuse" : inv.player_gender === "M" ? "Joueur" : "Joueur·euse";
+    doc.setTextColor(...GREY); T(`${who} : ${inv.player_name}`, 18, y + 1, { s: 8.5 }); doc.setTextColor(0);
+  }
   // --- Articles (en-tête bleu, lignes alternées) ---
   const items = Array.isArray(inv.items) && inv.items.length ? inv.items : [{ label: inv.label || "", amount: inv.amount }];
   y = 106;
@@ -5625,7 +5632,8 @@ async function oiBuildPdf(inv) {
   doc.setTextColor(...INK); T("Total à payer", 120, yi + 8.5, { b: true, s: 12 }); T(`CHF ${oiChf(inv.amount)}`, 189, yi + 8.5, { b: true, s: 13, al: "right" });
   doc.setTextColor(...GREY);
   T(`Payable jusqu'au ${inv.due_date ? frDate(inv.due_date) : "réception"} au moyen de la QR-facture ci-dessous (référence ${oiFmt4(inv.reference)}).`, 18, yi + 18, { s: 8.5 });
-  T("Merci de votre confiance — Team Lausanne Academy", 18, yi + 23, { s: 8.5 });
+  doc.setTextColor(...INK); T("Merci pour votre confiance", 18, yi + 27, { b: true, s: 13 });
+  doc.setTextColor(...GREY); T("Team Lausanne Academy", 18, yi + 32, { s: 9 });
   doc.setTextColor(0);
   // --- Section paiement (bas de page : récépissé 62 mm + section paiement 148 mm, hauteur 105 mm) ---
   const Y = 192;
