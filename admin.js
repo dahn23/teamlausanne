@@ -2491,17 +2491,17 @@ async function cycleAtt(chip) {
   const cur = chip.dataset.status || "";
   let next;
   if (isCoach) {
-    // Coach : présent / absent uniquement (jamais « en retard »).
-    // Avant l'ouverture (10 min avant) → seulement l'absence anticipée ; en fenêtre → présent si tous les jeunes marqués.
+    // Coach : présent / absent uniquement (jamais « en retard »). Règle pour TOUT LE MONDE (coach comme manager) :
+    //  - avant l'ouverture (10 min avant) → clic = absence anticipée ;
+    //  - en fenêtre, appel des élèves incomplet → refus (on ne peut pas marquer le coach présent) ;
+    //  - appel complet → présent.
     const cstart = chip.dataset.cstart ? new Date(chip.dataset.cstart).getTime() : 0;
     const inWindow = !chip.dataset.cstart || Date.now() >= cstart - 10 * 60000;
     const kidsPending = !allKidsMarked(course);
-    const blockPresent = !isHeadUser && pid === myPersonId && (!inWindow || kidsPending);
     if (cur === "") {
-      next = blockPresent ? "absent" : "present";
-      // En fenêtre mais jeunes pas tous validés : on explique pourquoi « présent » est indisponible.
-      if (blockPresent && inWindow && kidsPending)
-        uiAlert("Tu ne peux pas te déclarer présent tant que tous les jeunes ne sont pas validés. Tu es noté absent pour l'instant — reclique pour effacer.");
+      if (!inWindow) { next = "absent"; uiAlert("Le cours n'a pas encore commencé : le coach est noté ABSENT (absence anticipée). Reclique pour effacer."); }
+      else if (kidsPending) { uiAlert("Appel incomplet : marque d'abord TOUS les élèves (présent / absent / retard) avant de marquer le coach présent."); return; }
+      else next = "present";
     } else if (cur === "present") next = "absent";
     else next = null; // absent (ou ancien statut) → efface
   } else {
