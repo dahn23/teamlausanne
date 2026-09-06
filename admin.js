@@ -1336,6 +1336,7 @@ function openPerson(p) {
   $("p-iban").value = p?.iban || "";
   $("p-salary").value = p?.salary_monthly != null ? p.salary_monthly : "";
   loadCoachRates(p ? p.id : null);
+  loadPersonPay(p ? p.id : null, staffPayRole && canSalaries());
   setPersonTab("info");
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
@@ -5145,6 +5146,59 @@ async function salValidate() {
   if (error) { uiAlert("Validation impossible : " + error.message); return; }
   await loadHeures();
   uiAlert(`✓ ${data} facture(s) créée(s) dans l'onglet Factures. Génère ensuite le paiement (pain.001) depuis Factures.`);
+}
+// ---- Fiche › Coach › « Rémunération versée (brut) » : par saison (juniors), détail mensuel ----
+let payPid = null;
+async function loadPersonPay(pid, show) {
+  payPid = pid;
+  const block = $("pay-block"); if (!block) return;
+  block.classList.toggle("hidden", !(pid && show));
+  if (!pid || !show) return;
+  const sel = $("pay-season");
+  const list = seasonsOf("juniors");
+  const cur = currentSeason("juniors");
+  sel.innerHTML = list.map((s) => `<option value="${s.id}">${esc(s.label)}</option>`).join("");
+  sel.value = (cur || list[0])?.id || "";
+  sel.onchange = renderPersonPay;
+  renderPersonPay();
+}
+async function renderPersonPay() {
+  const pid = payPid, sea = seasons.find((s) => s.id === $("pay-season").value);
+  if (!pid || !sea) { $("pay-rows").innerHTML = ""; $("pay-foot").innerHTML = ""; return; }
+  const { data, error } = await sb.rpc("person_pay_season", { p_person: pid, p_from: sea.start_date, p_to: sea.end_date });
+  if (error) { $("pay-rows").innerHTML = `<tr><td colspan="8" class="muted">${esc(error.message)}</td></tr>`; return; }
+  const rows = data || [];
+  const chf = (n) => (Math.round(Number(n) * 100) / 100).toLocaleString("fr-CH", { minimumFractionDigits: 2 });
+  const lbl = (ym) => { const [y, m] = ym.split("-"); const s = `${MOIS_FR[Number(m) - 1]} ${y}`; return s.charAt(0).toUpperCase() + s.slice(1); };
+  const nowYm = ymNow();
+  let tBrut = 0, tNet = 0, tH = 0;
+  $("pay-rows").innerHTML = rows.map((r) => {
+    const salaried = r.salary != null;
+    const hoursPay = !salaried && r.rate != null ? Math.round(Number(r.coach_hours) * Number(r.rate) * 100) / 100 : 0;
+    const base = salaried ? Number(r.salary) : hoursPay;
+    const extra = r.extra != null ? Number(r.extra) : 0;
+    const brut = Math.round((base + extra) * 100) / 100;
+    const future = r.ym > nowYm;
+    const empty = !future && !Number(r.coach_hours) && !Number(r.prof_hours) && !extra && !salaried && r.net == null;
+    if (!future) { tBrut += brut; tNet += Number(r.net || 0); tH += Number(r.coach_hours) + Number(r.prof_hours); }
+    return `<tr class="${future || empty ? "muted" : ""}">
+      <td><b>${lbl(r.ym)}</b>${r.ym === nowYm ? ' <span class="muted" style="font-size:.75rem">(en cours)</span>' : ""}</td>
+      <td>${Number(r.coach_hours) ? `${r.coach_hours} h <span class="muted" style="font-size:.75rem">(${r.coach_courses}/${r.coach_total})</span>` : "—"}</td>
+      <td>${Number(r.prof_hours) ? `${r.prof_hours} h <span class="muted" style="font-size:.75rem">(${r.prof_days} ap.-m.)</span>` : "—"}</td>
+      <td>${salaried ? '<span class="he-sal">Salarié</span>' : (r.rate != null ? r.rate + ".–" : "—")}</td>
+      <td>${salaried ? chf(r.salary) : (hoursPay ? chf(hoursPay) : "—")}</td>
+      <td>${future ? "—" : `<input class="sal-net pay-extra" data-ym="${r.ym}" type="number" step="0.05" value="${r.extra != null ? Number(r.extra).toFixed(2) : ""}" placeholder="—" />`}</td>
+      <td>${!future && (brut || salaried) ? `<b>${chf(brut)}</b>` : "—"}</td>
+      <td>${r.net != null ? chf(r.net) : "—"}</td></tr>`;
+  }).join("");
+  $("pay-foot").innerHTML = `<tr><td><b>Total saison ${esc(sea.label)}</b></td><td colspan="5" class="muted" style="font-size:.85rem">${Math.round(tH * 100) / 100} h au total (mois écoulés)</td><td><b>${chf(tBrut)} CHF</b></td><td>${tNet ? chf(tNet) + " CHF" : "—"}</td></tr>`;
+  $("pay-rows").querySelectorAll(".pay-extra").forEach((inp) => inp.addEventListener("change", async () => {
+    const v = inp.value === "" ? null : Number(inp.value);
+    const { data: sess } = await sb.auth.getSession();
+    const { error: e2 } = await sb.from("salary_slips").upsert({ person_id: pid, ym: inp.dataset.ym, extra: v, updated_at: new Date().toISOString(), updated_by: sess?.session?.user?.id || null }, { onConflict: "person_id,ym" });
+    if (e2) { uiAlert("Enregistrement impossible : " + e2.message); return; }
+    renderPersonPay();
+  }));
 }
 // ---- Fiche › « Fiche de salaire » (admin) ----
 async function loadPersonSalaires(pid, show) {

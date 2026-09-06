@@ -1503,6 +1503,14 @@
           <button type="button" id="cr-add">Ajouter</button>
         </div>
         <p id="coach-need-save" class="muted" hidden style="font-size:.85rem">Enregistrez d'abord la personne.</p>
+        <div id="pay-block" class="hidden">
+          <div class="crm-head" style="margin:22px 0 6px;align-items:center">
+            <h3 style="margin:0;font-size:1rem">Rémunération versée (brut)</h3>
+            <div class="crm-actions"><select id="pay-season"></select></div>
+          </div>
+          <p class="muted" style="font-size:.85rem;margin:0 0 8px">Par mois : heures de cours validées × tarif par défaut, heures d'études (prof), salaire brut mensuel, extra. « Brut » = total transmis à la fiduciaire ; « Net » = montant versé (fiche de salaire).</p>
+          <div class="table-wrap"><table class="crm-table"><thead><tr><th>Mois</th><th>Cours (h)</th><th>Études (h)</th><th>Tarif/h</th><th>Salaire</th><th>Extra (brut)</th><th>Brut</th><th>Net versé</th></tr></thead><tbody id="pay-rows"></tbody><tfoot id="pay-foot"></tfoot></table></div>
+        </div>
       </div>
 
       <div id="ptab-salaire" class="ptab-panel hidden">
