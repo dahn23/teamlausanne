@@ -1316,6 +1316,7 @@ function openPerson(p) {
   showPersonTab("etudes", etudesByRole);
   showPersonTab("matchs", physByRole);
   showPersonTab("suivi", physByRole);   // fil « Suivi du jeune » pour tout junior
+  showPersonTab("mental", false);       // onglet Mental (formulaires compétition) : révélé par loadPersonMental si le jeune en a rempli
   const tennisByRole = canTennisView() && TENNIS_ROLES.some((r) => roles.includes(r)); // onglet Tennis : filières compétition→pro, accès encadrement
   showPersonTab("tennis", tennisByRole);
   const isPlayer = ["sport-etudes", "pro", "pro-u18"].some((r) => roles.includes(r)); // contrat = sport-études / pro
@@ -1332,8 +1333,8 @@ function openPerson(p) {
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
-  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonTennis(p.id, tennisByRole); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
-  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("ptn-body").innerHTML = ""; $("pc-body").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
+  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonTennis(p.id, tennisByRole); loadPersonMental(p.id); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
+  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("ptn-body").innerHTML = ""; $("pm-comp").innerHTML = ""; $("pc-body").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -6789,11 +6790,12 @@ function loadMnComments(yid) { mnYouthId = yid; youthNotes("mn-chan", yid); }
 // ---- Formulaires « Compétition » remplis par le jeune (lecture seule, console) ----
 const MCF_PREP = [["horaires", "Horaires et routines de préparation"], ["specifique", "Spécifique à cette compétition / ce qui peut être différent"], ["represente", "Ce que cette compétition représente pour moi"], ["objectifs", "Mes objectifs"], ["tester", "Ce que je vais tester de nouveau"], ["sentir", "Comment je veux me sentir"]];
 const MCF_ANALYSE = [["highlight", "Mon highlight"], ["avant", "Ressenti avant"], ["pendant", "Ressenti pendant"], ["apres", "Ressenti après"], ["satisfait", "Satisfait·e de / ce qui est bien allé"], ["mieux", "Ce qui pourrait être mieux"], ["different", "Différent de ce que j'avais pensé"], ["retour_coach", "Retour de l'entraîneur"], ["appris", "Ce que j'ai appris"]];
-async function renderMnCompForms(yid) {
-  const host = $("mn-comp"); if (!host) return;
-  if (!yid) { host.innerHTML = ""; return; }
+async function mcfFetch(yid) {
   const { data } = await sb.from("mental_comp_forms").select("*").eq("youth_person_id", yid).order("comp_date", { ascending: false, nullsFirst: false });
-  const rows = data || [];
+  return data || [];
+}
+function renderMcfInto(host, rows) {
+  if (!host) return;
   if (!rows.length) { host.innerHTML = '<p class="obj-empty">Aucun formulaire rempli pour l\'instant.</p>'; return; }
   const block = (title, arr, obj) => {
     const items = arr.filter(([k]) => (obj || {})[k]).map(([k, l]) => `<div class="mcf-field"><b>${esc(l)}</b><p>${esc(obj[k]).replace(/\n/g, "<br/>")}</p></div>`).join("");
@@ -6804,6 +6806,11 @@ async function renderMnCompForms(yid) {
     const bil = block("Analyse (après)", MCF_ANALYSE, c.bilan);
     return `<div class="mcf-card"><div class="mcf-head"><b>${esc(c.competition || "Compétition")}</b>${c.comp_date ? ` <span class="muted">${frDate(c.comp_date)}</span>` : ""}${c.lieu ? ` · ${esc(c.lieu)}` : ""}</div>${prep || '<p class="obj-empty">Préparation non remplie.</p>'}${bil}</div>`;
   }).join("");
+}
+async function renderMnCompForms(yid) {
+  const host = $("mn-comp"); if (!host) return;
+  if (!yid) { host.innerHTML = ""; return; }
+  renderMcfInto(host, await mcfFetch(yid));
 }
 
 // ---- Commentaires mental (partagés participants / fiche) ----
@@ -6844,11 +6851,14 @@ async function mentalDelComment(id, refresh) {
 }
 // Onglet Mental de la fiche du jeune
 let pmYouthId = null;
-async function loadPersonMental(personId, byRole) {
-  if (!personId) { $("pm-chan").innerHTML = ""; return; }
-  pmYouthId = personId;
-  showPersonTab("mental", byRole);
-  channelBox("pm-chan", "mental_comments", personId);
+// Sous-onglet « Mental » de la fiche = formulaires Compétition remplis par le jeune (lecture seule).
+// L'onglet n'apparaît que si le jeune a au moins un formulaire.
+async function loadPersonMental(personId) {
+  const host = $("pm-comp");
+  if (!personId) { showPersonTab("mental", false); if (host) host.innerHTML = ""; return; }
+  const rows = await mcfFetch(personId);
+  showPersonTab("mental", rows.length > 0);
+  renderMcfInto(host, rows);
 }
 
 // ===================================================================
