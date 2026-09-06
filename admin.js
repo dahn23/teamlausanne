@@ -1555,16 +1555,17 @@ function renderWinterTotals() {
     if (st === "membre" || st === "normal") perDay[day] = (perDay[day] || 0) + pr;
   }
   const conf = cats.membre + cats.normal, pre = cats.pre_m + cats.pre_nm;
-  const chf = (n) => Math.round(n * 100) / 100 + " CHF";
-  const cat = (cls, lbl, v) => `<span class="wp-tot"><i class="wp-sw wp-st-${cls}"></i>${lbl} : <b>${chf(v)}</b></span>`;
-  host.innerHTML = `<div class="wp-tot-row">
-      ${cat("membre", "Tarif membre", cats.membre)}${cat("normal", "Tarif normal", cats.normal)}${cat("pre_m", "Pré-réservé membre", cats.pre_m)}${cat("pre_nm", "Pré-réservé non-membre", cats.pre_nm)}
-      <span class="wp-tot"><i class="wp-sw wp-st-gratuit"></i>TeamLausanne : <b>${Object.values(nFree).reduce((a, b) => a + b, 0)} case(s)</b> gratuites</span>
+  const chf = (n) => (Math.round(n * 100) / 100).toLocaleString("fr-CH") + " CHF";
+  const tile = (cls, lbl, v, sub) => `<div class="wp-tile ${cls}"><span class="wp-tile-l">${lbl}</span><b>${v}</b>${sub ? `<span class="wp-tile-s">${sub}</span>` : ""}</div>`;
+  const nFreeTot = Object.values(nFree).reduce((a, b) => a + b, 0);
+  host.innerHTML = `<div class="wp-tiles">
+      ${tile("membre", "Tarif membre", chf(cats.membre))}${tile("normal", "Tarif normal (non-membre)", chf(cats.normal))}
+      ${tile("pre_m", "Pré-réservé membre", chf(cats.pre_m))}${tile("pre_nm", "Pré-réservé non-membre", chf(cats.pre_nm))}
+      ${tile("gratuit", "TeamLausanne (gratuit)", nFreeTot + " case" + (nFreeTot > 1 ? "s" : ""))}
     </div>
-    <div class="wp-tot-row wp-tot-main">
-      <span class="wp-tot big">Semaine (confirmé) : <b>${chf(conf)}</b></span>
-      <span class="wp-tot">+ pré-réservé : <b>${chf(pre)}</b> <span class="muted">(potentiel)</span></span>
-      ${WP_DAYS.map(([lbl, d]) => `<span class="wp-tot">${lbl} : <b>${chf(perDay[d] || 0)}</b></span>`).join("")}
+    <div class="wp-tiles wp-tiles-main">
+      ${tile("big", "Semaine — confirmé", chf(conf), "membre + non-membre")}${tile("pot", "+ pré-réservé", chf(pre), "potentiel")}
+      ${WP_DAYS.map(([lbl, d]) => tile("day", lbl, chf(perDay[d] || 0), "confirmé")).join("")}
     </div>`;
 }
 
