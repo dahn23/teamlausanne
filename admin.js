@@ -234,6 +234,7 @@ const PERSON_ROLES = [
   ["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"],
   ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"],
   ["prof", "Prof"], ["coach-mental", "Coach mental"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
+  ["concierge", "Concierge"],   // salarié sans aucun accès à l'app (fiche + salaire seulement)
 ];
 const roleLabel = (r) => (PERSON_ROLES.find(([v]) => v === r) || [r, r])[1];
 
@@ -1324,7 +1325,7 @@ function openPerson(p) {
   const isPlayer = ["sport-etudes", "pro", "pro-u18"].some((r) => roles.includes(r)); // contrat = sport-études / pro
   showPersonTab("contrat", isPlayer);
   showPersonTab("stages", false);
-  const staffPayRole = [...COACH_ROLES, "prof", "coach-mental"].some((r) => roles.includes(r));
+  const staffPayRole = [...COACH_ROLES, "prof", "coach-mental", "concierge"].some((r) => roles.includes(r));
   showPersonTab("coach", staffPayRole);
   const salTab = staffPayRole && canSalaries();   // fiches de salaire : staff payé, vues par l'administration (la personne : Heures › Mes fiches)
   showPersonTab("salaire", salTab);
@@ -5010,7 +5011,7 @@ async function salParsePdf(bytes) {
 }
 async function salLoadPeople() {
   if (salPeople) return salPeople;
-  const roles = [...COACH_ROLES, "prof", "coach-mental", "admin", "superadmin", "secretaire", "finance"];
+  const roles = [...COACH_ROLES, "prof", "coach-mental", "concierge", "admin", "superadmin", "secretaire", "finance"];
   const { data: pr } = await sb.from("person_roles").select("person_id").in("role", roles);
   const ids = [...new Set((pr || []).map((r) => r.person_id))];
   const { data } = ids.length ? await sb.from("people").select("id,first_name,last_name,avs,iban").in("id", ids).order("last_name") : { data: [] };
