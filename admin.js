@@ -1336,6 +1336,7 @@ function openPerson(p) {
   $("p-iban").value = p?.iban || "";
   $("p-salary").value = p?.salary_monthly != null ? p.salary_monthly : "";
   $("p-salary-from").value = p?.salary_from || "";
+  $("p-standing").value = p?.standing_order != null ? p.standing_order : "";
   loadCoachRates(p ? p.id : null);
   loadPersonPay(p ? p.id : null, staffPayRole && canSalaries());
   setPersonTab("info");
@@ -4077,6 +4078,7 @@ async function savePerson(e) {
     iban: $("p-iban").value.trim() || null,
     salary_monthly: $("p-salary").value.trim() === "" ? null : Number($("p-salary").value),
     salary_from: $("p-salary-from").value || null,
+    standing_order: $("p-standing").value.trim() === "" ? null : Number($("p-standing").value),
     emails: lines("p-emails"),
     phones: lines("p-phones"),
     photo_url: personPhotoUrl,
@@ -4937,12 +4939,29 @@ function heAmount(x) {
 function salExtraCell(pid, extra) {
   return `<td class="sal-col"><input class="sal-net sal-extra" data-pid="${pid}" type="number" step="0.05" value="${extra != null ? Number(extra).toFixed(2) : ""}" placeholder="—" title="Montant brut ajouté au salaire / aux heures" /></td>`;
 }
+// Ordre permanent (net mensuel déjà versé par la banque) d'une personne du mois affiché.
+function heSO(pid) {
+  const x = [...(heuresData.coaches || []), ...(heuresData.profs || [])].find((r) => r.person_id === pid);
+  return x?.standing_order != null ? Number(x.standing_order) : null;
+}
+// Montant qui partira en facture pour une fiche : net − ordre permanent (0 si couvert).
+function salToPay(s) {
+  if (!s || !(s.net > 0)) return 0;
+  const so = heSO(s.person_id);
+  return Math.max(0, Math.round((Number(s.net) - (so || 0)) * 100) / 100);
+}
 function salNetCell(pid) {
   const s = salSlipOf(pid);
   const val = s?.net != null ? Number(s.net).toFixed(2) : "";
+  const so = heSO(pid);
+  let soTxt = "";
+  if (so != null) {
+    const comp = salToPay(s);
+    soTxt = `<span class="muted" style="font-size:.75rem;white-space:nowrap" title="Ordre permanent ${so.toFixed(2)} CHF">OP ${so.toLocaleString("fr-CH")}${s?.net > 0 ? (comp > 0 ? ` → <b style="color:#b45309">+${comp.toFixed(2)}</b>` : " ✓") : ""}</span>`;
+  }
   return `<td class="sal-col"><span class="sal-cell"><input class="sal-net" data-pid="${pid}" type="number" step="0.05" min="0" value="${val}" placeholder="—" />
     ${s?.pdf_path ? `<button type="button" class="ghost sal-pdf" data-path="${esc(s.pdf_path)}" title="Voir la fiche de salaire">📄</button>` : ""}
-    ${s?.invoice_id ? '<span class="sal-fact" title="Transmis à Factures">✓ facture</span>' : ""}</span></td>`;
+    ${s?.invoice_id ? '<span class="sal-fact" title="Transmis à Factures">✓ facture</span>' : ""}${soTxt}</span></td>`;
 }
 function bindSalCells() {
   document.querySelectorAll("#view-heures .sal-net").forEach((inp) => inp.addEventListener("change", async () => {
@@ -4983,7 +5002,9 @@ async function renderSalBox() {
     for (const d of done || []) imported.add(d.mail_id);
     atts = atts.filter((a) => !imported.has(a.mail_id));
   }
-  const pending = salSlips.filter((s) => s.net > 0 && !s.invoice_id).length;
+  const pendList = salSlips.filter((s) => !s.invoice_id && salToPay(s) > 0);
+  const pending = pendList.length, pendAmt = pendList.reduce((a, s) => a + salToPay(s), 0);
+  const covered = salSlips.filter((s) => s.net > 0 && !s.invoice_id && salToPay(s) === 0).length;   // couverts par l'ordre permanent
   const done = salSlips.filter((s) => s.invoice_id).length;
   const total = salSlips.reduce((a, s) => a + (Number(s.net) || 0), 0);
   const mailRows = atts.map((a) => {
@@ -4997,7 +5018,7 @@ async function renderSalBox() {
     <div class="sal-acts">
       <label class="btnlike ghost" style="margin:0">Importer un PDF de salaires<input type="file" id="sal-file" accept="application/pdf" hidden /></label>
       <button type="button" id="sal-validate" ${pending ? "" : "disabled"} title="Crée une facture à payer par personne (net, IBAN) dans l'onglet Factures">✓ Valider les salaires${pending ? ` (${pending})` : ""}</button>
-      <span class="muted" style="font-size:.85rem">${salSlips.length ? `Net total : <b>${total.toLocaleString("fr-CH", { minimumFractionDigits: 2 })} CHF</b>${done ? ` · ${done} déjà transmis à Factures` : ""}` : "Saisis ou importe les nets à payer, puis valide."}</span>
+      <span class="muted" style="font-size:.85rem">${salSlips.length ? `Net total : <b>${total.toLocaleString("fr-CH", { minimumFractionDigits: 2 })} CHF</b>${pending ? ` · à payer via Factures : <b>${pendAmt.toLocaleString("fr-CH", { minimumFractionDigits: 2 })} CHF</b>` : ""}${covered ? ` · ${covered} couvert(s) par ordre permanent` : ""}${done ? ` · ${done} déjà transmis à Factures` : ""}` : "Saisis ou importe les nets à payer, puis valide."}</span>
     </div></div>`;
   host.querySelectorAll(".sal-from-mail").forEach((b) => b.addEventListener("click", () => salImportFromMail(b.dataset.att, b.dataset.mail)));
   $("sal-file").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) salStartImport(new Uint8Array(await f.arrayBuffer()), null); });
@@ -5138,12 +5159,13 @@ async function salDoImport() {
   uiAlert(`✓ ${ok} fiche(s) de salaire importée(s).${errs.length ? "\n\nErreurs :\n" + errs.join("\n") : ""}`);
 }
 async function salValidate() {
-  const pending = salSlips.filter((s) => s.net > 0 && !s.invoice_id);
+  const pending = salSlips.filter((s) => !s.invoice_id && salToPay(s) > 0);
   if (!pending.length) return;
-  const total = pending.reduce((a, s) => a + Number(s.net), 0);
+  const total = pending.reduce((a, s) => a + salToPay(s), 0);
+  const nComp = pending.filter((s) => heSO(s.person_id) != null).length;
   const [yy, mm] = heuresYm.split("-");
   const label = `Salaire net ${MOIS_FR[Number(mm) - 1]} ${yy}`;
-  if (!(await uiConfirm(`Transmettre ${pending.length} salaire(s) à Factures — total ${total.toLocaleString("fr-CH", { minimumFractionDigits: 2 })} CHF ? Une facture à payer sera créée par personne (validée si l'IBAN est connu).`))) return;
+  if (!(await uiConfirm(`Transmettre ${pending.length} paiement(s) à Factures — total ${total.toLocaleString("fr-CH", { minimumFractionDigits: 2 })} CHF ?${nComp ? ` (dont ${nComp} complément(s) au-delà de l'ordre permanent)` : ""} Une facture à payer sera créée par personne (validée si l'IBAN est connu). Les personnes couvertes par leur ordre permanent sont ignorées.`))) return;
   const { data, error } = await sb.rpc("salary_validate", { p_ym: heuresYm, p_label: label });
   if (error) { uiAlert("Validation impossible : " + error.message); return; }
   await loadHeures();
