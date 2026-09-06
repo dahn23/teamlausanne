@@ -1325,7 +1325,7 @@ function openPerson(p) {
   const isPlayer = ["sport-etudes", "pro", "pro-u18"].some((r) => roles.includes(r)); // contrat = sport-études / pro
   showPersonTab("contrat", isPlayer);
   showPersonTab("stages", false);
-  const staffPayRole = [...COACH_ROLES, "prof", "coach-mental", "concierge"].some((r) => roles.includes(r));
+  const staffPayRole = [...COACH_ROLES, "prof", "coach-mental", "concierge", "secretaire", "admin"].some((r) => roles.includes(r));  // onglet Rémunération
   showPersonTab("coach", staffPayRole);
   const salTab = staffPayRole && canSalaries();   // fiches de salaire : staff payé, vues par l'administration (la personne : Heures › Mes fiches)
   showPersonTab("salaire", salTab);
@@ -1335,6 +1335,7 @@ function openPerson(p) {
   loadPersonMeals(p ? p.id : null, isCoachPerson);
   $("p-iban").value = p?.iban || "";
   $("p-salary").value = p?.salary_monthly != null ? p.salary_monthly : "";
+  $("p-salary-from").value = p?.salary_from || "";
   loadCoachRates(p ? p.id : null);
   loadPersonPay(p ? p.id : null, staffPayRole && canSalaries());
   setPersonTab("info");
@@ -4075,6 +4076,7 @@ async function savePerson(e) {
     license_no: $("p-license").value.trim() || null,
     iban: $("p-iban").value.trim() || null,
     salary_monthly: $("p-salary").value.trim() === "" ? null : Number($("p-salary").value),
+    salary_from: $("p-salary-from").value || null,
     emails: lines("p-emails"),
     phones: lines("p-phones"),
     photo_url: personPhotoUrl,

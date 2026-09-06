@@ -2179,8 +2179,12 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 
 /* ---- Heures (décomptes) ---- */
 .he-val{color:#0b6b3a;font-weight:800}
-.fac-table{min-width:860px}
-.fac-table .he-acts{justify-content:flex-end}
+.fac-table{min-width:820px}
+.fac-table th,.fac-table td{padding:9px 10px;white-space:nowrap}
+.fac-table td:first-child{white-space:normal;min-width:130px}
+.fac-table td:nth-child(2){white-space:normal;min-width:200px}
+.fac-table .he-acts{justify-content:flex-end;flex-wrap:nowrap;gap:4px}
+.fac-table .he-acts .ghost{padding:4px 8px}
 .he-sal{display:inline-block;font-size:.72rem;font-weight:800;color:#5a3a8c;background:#efe7fb;border-radius:6px;padding:2px 7px;text-transform:uppercase;letter-spacing:.03em}
 .he-acts{display:flex;gap:6px;white-space:nowrap}
 .he-acts button{padding:5px 10px;font-size:.82rem}

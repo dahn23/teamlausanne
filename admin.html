@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=161" />
+  <link rel="stylesheet" href="style.css?v=162" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1305,7 +1305,7 @@
         <button type="button" class="ptab" data-ptab="stages">Stages</button>
         <button type="button" class="ptab" data-ptab="media">Photos / vidéos</button>
         <button type="button" class="ptab" data-ptab="obj">Objectifs</button>
-        <button type="button" class="ptab" data-ptab="coach">Coach</button>
+        <button type="button" class="ptab" data-ptab="coach">Rémunération</button>
         <button type="button" class="ptab" data-ptab="salaire">Fiche de salaire</button>
         <button type="button" class="ptab" data-ptab="repas">Repas</button>
       </div>
@@ -1493,6 +1493,7 @@
         <div class="form-grid">
           <label>IBAN<input id="p-iban" placeholder="CH00 0000 0000 0000 0000 0" /></label>
           <label>Salarié — salaire brut mensuel (CHF)<input id="p-salary" type="number" step="1" min="0" placeholder="vide = payé à l'heure" /></label>
+          <label>Salarié dès (mois de début)<input id="p-salary-from" type="date" /></label>
         </div>
         <h3 style="margin:16px 0 8px;font-size:1rem">Tarifs horaires</h3>
         <div id="coach-rates-list"></div>
