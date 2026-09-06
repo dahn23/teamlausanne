@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=158" />
+  <link rel="stylesheet" href="style.css?v=159" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1165,6 +1165,17 @@
             <h3 style="margin:22px 0 6px;font-size:1.02rem">Heures pleines / creuses (saison hiver)</h3>
             <p class="muted" style="margin:0 0 8px;font-size:.85rem">Clique une case pour basculer <b style="color:#123cc4">pleine</b> ⇄ creuse. Sert à choisir le tarif hiver (membre/non-membre × pleine/creuse) au moment de facturer.</p>
             <div id="fac-peak"></div>
+          </div>
+        </div>
+
+        <!-- Fenêtre : profs d'une journée d'études (admin / superadmin) -->
+        <div id="et-prof-modal" class="modal hidden">
+          <div class="card">
+            <button type="button" id="et-prof-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0">Prof(s) du <span id="et-prof-date"></span></h2>
+            <p class="muted" style="margin-top:0;font-size:.88rem">Coche le ou les profs présents ce jour-là.</p>
+            <div id="et-prof-list" class="et-prof-list"></div>
+            <div class="form-foot"><span class="spacer"></span><button type="button" id="et-prof-save">Enregistrer</button></div>
           </div>
         </div>
 

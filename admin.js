@@ -8338,18 +8338,12 @@ async function loadEtudesCalendar() {
     const presCls = mySt === "present" ? "st-present" : mySt === "absent" ? "st-absent" : "st-none";
     const mine = canEditProfs || iAmProf; // c'est mon jour (ou admin)
     // Prof(s) du jour sous la date ; le mien = ma présence, cliquable (blanc→absent→présent), encadré bleu.
-    const dprofs = dp.map((pp) => {
-      const base = pp.prof_person_id === myPersonId
-        ? `<button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${esc(nmF(pp.prof_person_id))}${mySt === "present" ? ` ${myV.hours ?? 4}h` : ""}</button>`
-        : `<span class="et-dprof">${esc(nmF(pp.prof_person_id))}</span>`;
-      // admin / superadmin : retirer le prof directement depuis le calendrier
-      return canEditProfs ? `<span class="et-dprof-wrap">${base}<button type="button" class="et-prof-rm" data-day="${d.id}" data-prof="${pp.prof_person_id}" title="Retirer ce prof de cette journée">×</button></span>` : base;
-    }).join(" ") || '<span class="et-dprof muted">— prof —</span>';
-    // admin / superadmin : ajouter un prof (liste des profs pas encore assignés ce jour)
-    const addSel = canEditProfs
-      ? `<select class="et-prof-add" data-day="${d.id}" title="Ajouter un prof"><option value="">+ prof</option>${profOptions.filter((p) => !dp.some((x) => x.prof_person_id === p.id)).map((p) => `<option value="${p.id}">${esc(p.first_name)} ${esc(p.last_name)}</option>`).join("")}</select>`
-      : "";
-    html += `<tr class="${notMine ? "et-notmine" : ""}"><td class="et-datecell"><div><b>${etDow(d.day)}</b> ${frDate(d.day)}</div><div class="et-dprofs">${dprofs}${addSel}</div></td>`
+    const dprofs = dp.map((pp) => pp.prof_person_id === myPersonId
+      ? `<button type="button" class="att-chip et-presence ${presCls}" data-day="${d.id}" data-date="${d.day}" data-status="${mySt}">${esc(nmF(pp.prof_person_id))}${mySt === "present" ? ` ${myV.hours ?? 4}h` : ""}</button>`
+      : `<span class="et-dprof">${esc(nmF(pp.prof_person_id))}</span>`).join(" ") || '<span class="et-dprof muted">— prof —</span>';
+    // admin / superadmin : ✎ ouvre le popup de choix des profs (plusieurs possibles)
+    const editBtn = canEditProfs ? `<button type="button" class="et-prof-edit" data-day="${d.id}" data-date="${d.day}" title="Choisir le(s) prof(s) de cette journée">✎</button>` : "";
+    html += `<tr class="${notMine ? "et-notmine" : ""}"><td class="et-datecell"><div><b>${etDow(d.day)}</b> ${frDate(d.day)}</div><div class="et-dprofs">${dprofs}${editBtn}</div></td>`
       + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; const lockTitle = notMine ? "Vous ne pouvez pas valider les présences d'un jour qui ne vous est pas attribué" : "Vous ne pouvez pas valider les présences avant 12h50"; return `<td><button type="button" class="att-chip et-cell ${due ? (mine ? "et-due " : "et-due-lock ") : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? `data-locked="1" data-lockmsg="${esc(lockTitle)}"` : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
       + "</tr>";
   }
@@ -8359,8 +8353,38 @@ async function loadEtudesCalendar() {
     etCycle(c);
   }));
   cont.querySelectorAll(".et-presence").forEach((b) => b.addEventListener("click", () => etProfPresence(b)));
-  cont.querySelectorAll(".et-prof-rm").forEach((b) => b.addEventListener("click", async () => { await sb.from("etudes_day_profs").delete().eq("day_id", b.dataset.day).eq("prof_person_id", b.dataset.prof); loadEtudesCalendar(); }));
-  cont.querySelectorAll(".et-prof-add").forEach((s) => s.addEventListener("change", async () => { if (!s.value) return; await sb.from("etudes_day_profs").insert({ day_id: s.dataset.day, prof_person_id: s.value }); loadEtudesCalendar(); }));
+  cont.querySelectorAll(".et-prof-edit").forEach((b) => b.addEventListener("click", () => openEtProfModal(b.dataset.day, b.dataset.date)));
+  if (!$("et-prof-save").dataset.w) {
+    $("et-prof-save").dataset.w = "1";
+    $("et-prof-save").addEventListener("click", saveEtProfModal);
+    $("et-prof-close").addEventListener("click", () => $("et-prof-modal").classList.add("hidden"));
+    $("et-prof-modal").addEventListener("click", (e) => { if (e.target === $("et-prof-modal")) $("et-prof-modal").classList.add("hidden"); });
+  }
+}
+// Popup admin : choisir le(s) prof(s) d'une journée d'études (cases à cocher, plusieurs possibles).
+let etProfDay = null;
+async function openEtProfModal(dayId, dayIso) {
+  etProfDay = dayId;
+  $("et-prof-date").textContent = `${etDow(dayIso)} ${frDate(dayIso)}`;
+  const { data: cur } = await sb.from("etudes_day_profs").select("prof_person_id").eq("day_id", dayId);
+  const assigned = new Set((cur || []).map((r) => r.prof_person_id));
+  const opts = people.filter((p) => hasRoleIn(p.id, ["prof"])).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+  $("et-prof-list").innerHTML = opts.length
+    ? opts.map((p) => `<label class="et-prof-opt"><input type="checkbox" value="${p.id}"${assigned.has(p.id) ? " checked" : ""} /> <span>${esc(p.first_name)} ${esc(p.last_name)}</span></label>`).join("")
+    : '<p class="muted">Aucune personne avec le tag « Prof » dans le répertoire.</p>';
+  $("et-prof-modal").classList.remove("hidden");
+}
+async function saveEtProfModal() {
+  if (!etProfDay) return;
+  const wanted = new Set([...$("et-prof-list").querySelectorAll("input:checked")].map((i) => i.value));
+  const { data: cur } = await sb.from("etudes_day_profs").select("prof_person_id").eq("day_id", etProfDay);
+  const have = new Set((cur || []).map((r) => r.prof_person_id));
+  const toAdd = [...wanted].filter((id) => !have.has(id)).map((id) => ({ day_id: etProfDay, prof_person_id: id }));
+  const toDel = [...have].filter((id) => !wanted.has(id));
+  if (toAdd.length) await sb.from("etudes_day_profs").insert(toAdd);
+  if (toDel.length) await sb.from("etudes_day_profs").delete().eq("day_id", etProfDay).in("prof_person_id", toDel);
+  $("et-prof-modal").classList.add("hidden");
+  loadEtudesCalendar();
 }
 // Tous les jeunes d'une journée ont-ils un statut ? (pré-requis pour se déclarer présent)
 function etAllYouthsMarked(dayId) {
