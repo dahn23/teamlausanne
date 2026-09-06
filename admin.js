@@ -5351,7 +5351,16 @@ async function loadOutInvoices() {
     for (const x of oiList) x.player_name = nm[x.person_id] || "";
   }
   renderOiFilters(); renderOutInvoices();
+  // PDF manquant (facture modifiée en base, échec précédent…) → régénéré automatiquement, en arrière-plan.
+  const missing = oiList.filter((x) => !x.pdf_path && (x.status === "a_envoyer" || x.status === "envoyee"));
+  if (missing.length && !oiRegen) {
+    oiRegen = true;
+    try { for (const x of missing) { try { await oiMakePdf(x); } catch (e) { console.warn("PDF", x.number, e); } } }
+    finally { oiRegen = false; }
+    renderOiFilters(); renderOutInvoices();
+  }
 }
+let oiRegen = false;
 function renderOiFilters() {
   const counts = { "": oiList.length };
   for (const f of oiList) counts[f.status] = (counts[f.status] || 0) + 1;
