@@ -1,6 +1,6 @@
 (async () => {
   try {
-    const KEY = "__KEY__", RCV = "__RCV__";
+    const KEY = "__KEY__", RCV = "__RCV__", WHO = "__WHO__";
     const HASURA = "https://hasura.swisstennis.ch/v1/graphql";
     const DAYS = 21;
     if (!/mytennis\.ch|swisstennis/.test(location.host)) {
@@ -36,7 +36,7 @@
       if (d.type === "presults-ready") { post({ type: "presults-start", key: KEY }); return; }
       if (d.type === "presults-ids") {
         window.removeEventListener("message", onmsg);
-        if (!token) { post({ type: "presults-data", key: KEY, rows: [], diag }); return; }
+        if (!token) { post({ type: "presults-data", key: KEY, who: WHO, rows: [], diag }); return; }
         const ids = d.ids || []; const out = []; const B = 400;
         for (let b = 0; b < ids.length; b += B) {
           const batch = ids.slice(b, b + B);
@@ -56,7 +56,7 @@
             if (list.length < 500) more = false; else offset += 500;
           }
         }
-        post({ type: "presults-data", key: KEY, rows: out, diag });
+        post({ type: "presults-data", key: KEY, who: WHO, rows: out, diag });
       }
     };
     window.addEventListener("message", onmsg);

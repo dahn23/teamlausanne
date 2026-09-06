@@ -1,6 +1,6 @@
 (async () => {
   try {
-    const KEY = "__KEY__", RCV = "__RCV__";
+    const KEY = "__KEY__", RCV = "__RCV__", WHO = "__WHO__";
     const HASURA = "https://hasura.swisstennis.ch/v1/graphql";
     const SEARCH = "https://high-scalability.microservices.swisstennis.ch/player-autocomplete-query";
     if (!/mytennis\.ch|swisstennis/.test(location.host)) {
@@ -120,7 +120,7 @@
             out.push({ license: pl.license, mt_person_id: mtId, classification, matches });
           } catch (err) { if (dg) { dg.exception = String(err); diag.first = dg; } out.push({ license: pl.license, error: String(err), matches: [] }); }
         }
-        post({ type: "mt-data", key: KEY, players: out, diag });
+        post({ type: "mt-data", key: KEY, who: WHO, players: out, diag });
         window.removeEventListener("message", onmsg);
       }
     };

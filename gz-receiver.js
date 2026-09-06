@@ -2,9 +2,11 @@
 // Elle reçoit les données (postMessage), puis les envoie à la fonction
 // d'import (autorisé depuis NOTRE domaine — le CSP de Swiss Tennis bloquait
 // l'appel direct).
+import { sb } from "./common.js";
 const FN = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/gz-import";
 const AK = "sb_publishable_nsRKXBFgwmDjtmvS3mFc0w_Q4pi_qxK";
 const st = document.getElementById("st");
+const logOps = async (a, who) => { try { await sb.rpc("ops_log_named", { p_action: a, p_name: who || null }); } catch (_) {} };
 
 window.addEventListener("message", async (e) => {
   const d = e.data;
@@ -19,6 +21,7 @@ window.addEventListener("message", async (e) => {
     });
     const j = await r.json();
     if (j.ok) {
+      await logOps("gamezone", d.who);
       const total = j.report.reduce((a, x) => a + x.players, 0);
       st.textContent = `✓ Terminé : ${j.report.length} tournoi(s), ${total} inscrits au total. Vous pouvez fermer cette fenêtre et rafraîchir l'onglet GameZone.`;
     } else {

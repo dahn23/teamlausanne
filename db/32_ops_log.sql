@@ -25,6 +25,15 @@ begin
 end;$$;
 grant execute on function public.ops_log_write(text) to authenticated;
 
+-- Variante avec nom fourni : le favori (généré depuis la console où l'user est connecté)
+-- embarque le nom (__WHO__) et la page relais l'enregistre — fiable même si la popup n'a pas de session.
+create or replace function public.ops_log_named(p_action text, p_name text)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  insert into public.ops_log(action, by_name) values (p_action, nullif(p_name,''));
+end;$$;
+grant execute on function public.ops_log_named(text, text) to anon, authenticated;
+
 -- dash_general lit désormais ops_log (date + auteur) pour matchs/classements/scan,
 -- avec repli sur les max(imported_at)/last_ranking_scan si aucun log encore.
 create or replace function public.dash_general() returns jsonb
@@ -51,8 +60,8 @@ pastet as (select d.id,d.day from etudes_days d
 ol as (select distinct on (action) action, at, by_name from ops_log order by action, at desc)
 select jsonb_build_object(
  'lastup', jsonb_build_object(
-    'gz_at',(select ts from gz),
-    'gz_by',(select trim(coalesce(pe.first_name,'')||' '||coalesce(pe.last_name,'')) from gz join profiles pr on pr.user_id=gz.created_by join people pe on pe.id=pr.person_id limit 1),
+    'gz_at',coalesce((select at from ol where action='gamezone'),(select ts from gz)),
+    'gz_by',coalesce((select by_name from ol where action='gamezone'),(select trim(coalesce(pe.first_name,'')||' '||coalesce(pe.last_name,'')) from gz join profiles pr on pr.user_id=gz.created_by join people pe on pe.id=pr.person_id limit 1)),
     'matchs_at',coalesce((select at from ol where action='matchs'),(select max(imported_at) from player_matches)),
     'matchs_by',(select by_name from ol where action='matchs'),
     'scan_at',coalesce((select at from ol where action='scan'),(select max(imported_at) from prospect_matches)),

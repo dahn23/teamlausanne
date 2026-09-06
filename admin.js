@@ -2600,7 +2600,7 @@ async function loadMtBookmarklet() {
   let src;
   try { src = await (await fetch("mt-bookmarklet.js")).text(); }
   catch (_e) { $("mt-bm-note").textContent = "Impossible de charger le bookmarklet."; return; }
-  const code = src.replace("__KEY__", data.import_key).replace("__RCV__", location.origin + "/mt-receiver.html");
+  const code = src.replace("__KEY__", data.import_key).replace("__RCV__", location.origin + "/mt-receiver.html").replace("__WHO__", (meName || "").replace(/["\\]/g, ""));
   const a = document.createElement("a");
   a.href = "javascript:" + encodeURIComponent(code);
   a.textContent = "Importer les matchs";
@@ -2623,7 +2623,8 @@ async function loadBookmarklet() {
   catch (_e) { $("gz-bm-note").textContent = "Impossible de charger le bookmarklet."; return; }
   const code = src
     .replace("__KEY__", data.import_key)
-    .replace("__RCV__", location.origin + "/gz-receiver.html");
+    .replace("__RCV__", location.origin + "/gz-receiver.html")
+    .replace("__WHO__", (meName || "").replace(/["\\]/g, ""));
   const a = document.createElement("a");
   a.href = "javascript:" + encodeURIComponent(code);
   a.textContent = "Importer GameZone";
@@ -4500,7 +4501,7 @@ async function loadProspResultsBookmarklet() {
   let src;
   try { src = await (await fetch("prosp-results-bookmarklet.js")).text(); }
   catch (_e) { $("prosp-res-note").textContent = "Impossible de charger le bookmarklet."; return; }
-  const code = src.replace("__KEY__", data.import_key).replace("__RCV__", location.origin + "/prosp-results-receiver.html");
+  const code = src.replace("__KEY__", data.import_key).replace("__RCV__", location.origin + "/prosp-results-receiver.html").replace("__WHO__", (meName || "").replace(/["\\]/g, ""));
   const aEl = document.createElement("a");
   aEl.href = "javascript:" + encodeURIComponent(code);
   aEl.textContent = "Scanner les résultats";
@@ -4629,7 +4630,7 @@ async function loadProspBookmarklet() {
   let src;
   try { src = await (await fetch("prosp-bookmarklet.js")).text(); }
   catch (_e) { $("prosp-bm-note").textContent = "Impossible de charger le bookmarklet."; return; }
-  const code = src.replace("__KEY__", data.import_key).replace("__RCV__", location.origin + "/prosp-receiver.html");
+  const code = src.replace("__KEY__", data.import_key).replace("__RCV__", location.origin + "/prosp-receiver.html").replace("__WHO__", (meName || "").replace(/["\\]/g, ""));
   const aEl = document.createElement("a");
   aEl.href = "javascript:" + encodeURIComponent(code);
   aEl.textContent = "Importer classements";

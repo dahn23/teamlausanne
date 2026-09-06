@@ -1,6 +1,6 @@
 (async () => {
   try {
-    const KEY = "__KEY__", RCV = "__RCV__";
+    const KEY = "__KEY__", RCV = "__RCV__", WHO = "__WHO__";
     const HASURA = "https://hasura.swisstennis.ch/v1/graphql";
     if (!/mytennis\.ch|swisstennis/.test(location.host)) {
       alert("Ouvre mytennis.ch (connecté), puis clique ce favori."); return;
@@ -55,7 +55,7 @@
         if (list.length < LIM) done = true;   // le filtre classification garantit qu'on ne prend que R7+
         offset += LIM;
       }
-      post({ type: "prosp-data", key: KEY, rows });
+      post({ type: "prosp-data", key: KEY, who: WHO, rows });
     };
     window.addEventListener("message", onmsg);
     setTimeout(() => window.removeEventListener("message", onmsg), 600000);

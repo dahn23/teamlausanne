@@ -1,6 +1,6 @@
 (async () => {
   try {
-    const KEY = "__KEY__", RCV = "__RCV__";
+    const KEY = "__KEY__", RCV = "__RCV__", WHO = "__WHO__";
     const base = "/advantage/servlet/";
     const g = async (u) => await (await fetch(u, { credentials: "include" })).text();
     if (!/swisstennis/.test(location.host)) { alert("Ouvre d'abord ta liste de tournois Swiss Tennis (connecté), puis clique ce favori."); return; }
@@ -81,7 +81,7 @@
     const origin = new URL(RCV).origin;
     const onmsg = (e) => {
       if (e.data && e.data.type === "gz-ready") {
-        w.postMessage({ type: "gz-data", key: KEY, tournaments: T }, origin);
+        w.postMessage({ type: "gz-data", key: KEY, who: WHO, tournaments: T }, origin);
         window.removeEventListener("message", onmsg);
       }
     };
