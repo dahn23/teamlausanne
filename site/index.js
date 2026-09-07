@@ -227,7 +227,7 @@ const DETAILS = {
         "Cinq semaines de tournois à l'étranger par an, deux entraînements quotidiens et un suivi rapproché pour progresser au classement mondial.",
       ]},
       { type: "features", title: "Une journée type", items: [
-        ["09h00–10h00", "Préparation physique (mercredi : 14h–16h)."],
+        ["09h00–10h00", "Préparation physique."],
         ["10h15–12h15", "Tennis, session du matin."],
         ["13h15–15h15", "Tennis, session de l'après-midi."],
         ["Suivi", "Planification annuelle."],
