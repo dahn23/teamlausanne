@@ -47,13 +47,13 @@ const WORLDS = {
         items: [
           { name: "KidsTennis", photo: "assets/photos/kidstennis-2026.jpg", href: "#kids" },
           { name: "Club", photo: "assets/photos/club-2026.jpg", href: "#club-academy" },
-          { name: "Compétition", photo: "assets/photos/competition-2026.jpg", href: "#competition" },
+          { name: "Compétition", photo: "assets/photos/competition-2026-card.jpg", href: "#competition" },
           { name: "Performance", photo: "assets/photos/performance-2026.jpg", href: "#performance" },
           { name: "Sport-études", photo: "assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
           { name: "Pro U18", photo: "assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
           { name: "Pro", photo: "assets/photos/pro-2026.jpg", href: "#pro" },
           { name: "Game Zone", photo: "assets/photos/gamezone-2026.jpg", href: "#gamezone" },
-          { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "#stages" },
+          { name: "Stages", photo: "assets/photos/stages-2026.jpg", href: "#stages" },
         ]},
     ],
   },
@@ -142,7 +142,7 @@ const DETAILS = {
   },
   stages: {
     world: "academie", title: "Nos stages", subtitle: "Vacances scolaires — dix semaines de stages à Lausanne",
-    hero: "assets/webflow/stage-discovery.webp",
+    hero: "assets/photos/stages-2026.jpg",
     sections: [
       { type: "formules", title: "Les formules",
         intro: "Du mini-tennis à l'entraînement de compétiteur, choisis la formule selon ton âge et tes envies, encadré par nos coachs aux Plaines-du-Loup. <b>−20 % dès la 2ᵉ semaine</b> ou pour un 2ᵉ membre de la famille.",
