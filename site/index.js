@@ -285,7 +285,7 @@ const DETAILS = {
         ["Sur mesure", "Cours supplémentaires possibles en fin d'après-midi."],
       ], link: { label: "Nous écrire", contact: "Cours juniors" } },
       { type: "rich", title: "Tarif", body: [
-        "CHF 490.– pour la saison complète, soit environ 44 CHF par mois.",
+        "CHF 490.– pour la saison complète.",
       ]},
       { type: "enroll", title: "Demander une inscription", filiere: "kidstennis", ranking: false,
         lead: "Envie d'inscrire votre enfant à KidsTennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
