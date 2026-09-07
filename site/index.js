@@ -49,7 +49,7 @@ const WORLDS = {
           { name: "Club", photo: "assets/photos/club-2026.jpg", href: "#club-academy" },
           { name: "Compétition", photo: "assets/webflow/prog-competition.webp", href: "#competition" },
           { name: "Performance", photo: "assets/webflow/prog-performance.webp", href: "#performance" },
-          { name: "Sport-études", photo: "assets/webflow/sport-studies.jpg", href: "#sport-etudes" },
+          { name: "Sport-études", photo: "assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
           { name: "Pro U18", photo: "assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
           { name: "Pro", photo: "assets/webflow/physical-training.jpg", href: "#pro" },
           { name: "Game Zone", photo: "assets/photos/gamezone-2026.jpg", href: "#gamezone" },
@@ -158,7 +158,7 @@ const DETAILS = {
   },
   "sport-etudes": {
     world: "academie", title: "Sport-études", subtitle: "Concilier études et tennis, au plus haut niveau",
-    hero: "assets/photos/coach1.jpg",
+    hero: "assets/photos/sport-etudes-2026.jpg",
     sections: [
       { type: "rich", title: "Le programme de référence", body: [
         "Le sport-études permet aux 14–19 ans de concilier études et entraînement intensif, dans un cadre optimal et un suivi individualisé.",
