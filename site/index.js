@@ -91,19 +91,14 @@ const WORLDS = {
         head: ["Année", "Simple", "Double"],
         rows: [["2026", `${FLAG_CH} Henry Bernet`, `${FLAG_CH} Johan Niklès · ${FLAG_CH} Adrien Burdet`],
                ["2025", `${FLAG_CH} Henry Bernet`, `${FLAG_IE} Charles Barry · ${FLAG_FR} Max Westphal`]] },
-      { type: "gallery", anchor: "photos", items: [
-        "assets/photos/open-trophy.jpg",
-        { src: "assets/photos/open-double1.jpg", pos: "center 22%" },
-        { src: "assets/photos/open-double2.jpg", pos: "center 12%" },
-        { src: "assets/photos/open-player.jpg", pos: "center 28%" },
-      ]},
+{ type: "gallery", anchor: "photos", items: [        "assets/photos/open-2026-1.jpg",        "assets/photos/open-2026-2.jpg",        "assets/photos/open-2026-3.jpg",        "assets/photos/open-2026-4.jpg",        "assets/photos/open-2026-5.jpg",        "assets/photos/open-2026-6.jpg",      ]},
       { type: "features", anchor: "infos", title: "Infos pratiques", items: [
         ["Dates", "Prochaine édition : août 2027."],
         ["Entrée libre", "Accès gratuit toute la semaine, sans billet."],
         ["Lieu", "TC Lausanne-Sports, Plaines-du-Loup, 1018 Lausanne."],
         ["Une question ?", "Écrivez-nous, nous répondons rapidement."],
       ], link: { label: "Nous écrire", scroll: "contact-lo" } },
-      { type: "sponsors", anchor: "partenaires", title: "Partenaires du tournoi",
+      { type: "sponsors", anchor: "partenaires", title: "Partenaires du tournoi 2026",
         sub: "Le Lausanne Open n’existerait pas sans eux.", items: [
         { n: "Ville de Lausanne",              l: "ville-lausanne",      u: "https://www.lausanne.ch/" },
         { n: "Canton de Vaud",                 l: "canton-vaud",         u: "https://www.vd.ch/" },
