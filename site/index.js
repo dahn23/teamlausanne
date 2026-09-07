@@ -761,7 +761,7 @@ function setTitle(world, sub) {
   const cs = document.querySelector("#contact-lo .wsec-sub");
   if (cs) cs.textContent = world === "tournoi"
     ? "Une question sur le Lausanne Open, une demande de presse, un partenariat — écrivez-nous, nous répondons rapidement."
-    : "Une question sur l'Academy, une inscription, une demande de presse, un partenariat — écrivez-nous, nous répondons rapidement.";
+    : "Une question sur l'Academy — écrivez-nous, nous répondons rapidement.";
 }
 function route() {
   const h = location.hash.replace("#", "");
