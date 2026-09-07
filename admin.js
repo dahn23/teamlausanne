@@ -2304,6 +2304,29 @@ const ageAt = (birthdate, refIso) => {
   if (r.getMonth() < b.getMonth() || (r.getMonth() === b.getMonth() && r.getDate() < b.getDate())) a--;
   return a >= 0 && a < 120 ? a : null;
 };
+// ---- Matchs récents (7 jours) dans Cours : 🔥 = perf (victoire contre mieux classé), 🎾 = a joué ; popup au clic ----
+let rmMap = {}, rmAt = 0;
+async function loadRecentMatches() {
+  if (!canTennisView()) { rmMap = {}; return; }
+  if (Date.now() - rmAt < 5 * 60e3) return;                 // cache 5 min
+  const { data } = await sb.rpc("last_scores", { p_days: 7 });
+  rmMap = {};
+  for (const m of data || []) (rmMap[m.person_id] || (rmMap[m.person_id] = [])).push(m);
+  rmAt = Date.now();
+}
+function rmBadge(pid) {
+  const list = rmMap[pid]; if (!list || !list.length) return "";
+  const perf = list.some((m) => m.is_perf);
+  return `<button type="button" class="att-rm" data-person="${pid}" title="${perf ? "Perf" : "A joué"} ces 7 derniers jours — clique pour le détail">${perf ? "🔥" : "🎾"}</button>`;
+}
+function rmPopup(pid) {
+  const list = rmMap[pid] || [];
+  $("rm-title").textContent = personName(pid);
+  $("rm-body").innerHTML = list.length ? `<table class="crm-table"><thead><tr><th>Date</th><th>Tournoi</th><th>Adversaire</th><th>Class.</th><th>Score</th><th></th></tr></thead><tbody>
+    ${list.map((m) => `<tr class="${m.is_perf ? "rm-perf" : ""}"><td style="white-space:nowrap">${frDate(m.match_date)}</td><td>${esc(m.tournament_name || "—")}</td><td>${esc(m.opponent_name || "—")}</td><td>${esc(m.opponent_class || "—")}</td><td style="white-space:nowrap">${esc(m.score || "—")}</td><td>${m.is_perf ? "🔥 Perf" : m.won === true ? "✓ Gagné" : m.won === false ? "✗ Perdu" : "—"}</td></tr>`).join("")}
+    </tbody></table>` : '<p class="muted">Aucun match ces 7 derniers jours.</p>';
+  $("rm-modal").classList.remove("hidden");
+}
 function attChip(course, coachIds, pid, isCoach, status) {
   const can = canMarkBox(course, coachIds, pid, isCoach);
   const cls = status === "present" ? "st-present" : status === "late" ? "st-late"
@@ -2319,7 +2342,8 @@ function attChip(course, coachIds, pid, isCoach, status) {
     data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}" data-cstart="${course.course_date}T${course.start_time}"
     title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${bday ? " · anniversaire 🎁" : ""}">${nm}</button>`;
   // chip + ↗ regroupés dans .att-unit → 1 seul enfant par joueur (ne casse pas le masquage « > 4 »).
-  return reach ? `<span class="att-unit">${chip}<button type="button" class="att-goto" data-person="${pid}" data-course="${course.id}" title="Ouvrir la fiche › Tennis">↗</button></span>` : chip;
+  const extra = (isCoach ? "" : rmBadge(pid)) + (reach ? `<button type="button" class="att-goto" data-person="${pid}" data-course="${course.id}" title="Ouvrir la fiche › Tennis">↗</button>` : "");
+  return extra ? `<span class="att-unit">${chip}${extra}</span>` : chip;
 }
 
 // Une colonne (Coachs ou Élèves) de pastilles de présence. statusFn(pid) → statut.
@@ -2331,6 +2355,7 @@ function attCol(course, coachIds, list, isCoach, title, statusFn) {
 }
 
 async function loadCoursesDay() {
+  await loadRecentMatches();   // 🔥 / 🎾 à côté des joueurs (7 jours, cache 5 min)
   const date = $("cs-date").value;
   const { data: courses } = await sb.from("courses").select("*").eq("course_date", date).order("start_time");
   const ids = (courses || []).map((c) => c.id);
@@ -2375,7 +2400,7 @@ async function loadCoursesDay() {
     const courtCount = books.filter((b) => b.course_id === c.id).length;
     const detailed = !!type && TR_TYPE_RE.test(type.name || "") && (courtCount > 1 || coachIds.length > 1);
     const elevesCol = detailed
-      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); const sp = `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${esc(personName(pid))}${agT}</span>`; return reach ? `<span class="att-unit">${sp}<button type="button" class="att-goto" data-person="${pid}" data-course="${c.id}" title="Ouvrir la fiche › Tennis">↗</button></span>` : sp; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
+      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); const sp = `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${esc(personName(pid))}${agT}</span>`; const ex = rmBadge(pid) + (reach ? `<button type="button" class="att-goto" data-person="${pid}" data-course="${c.id}" title="Ouvrir la fiche › Tennis">↗</button>` : ""); return ex ? `<span class="att-unit">${sp}${ex}</span>` : sp; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
       : col(c, coachIds, childIds, false, "Élèves");
     return `<div class="cs-card" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cs-card-top">
@@ -2391,6 +2416,8 @@ async function loadCoursesDay() {
   const L = $("cs-list");
   L.querySelectorAll(".att-chip").forEach((ch) => ch.addEventListener("click", (e) => { e.stopPropagation(); cycleAtt(ch); }));
   L.querySelectorAll(".att-goto").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); openPersonToTennis(b.dataset.person, b.dataset.course); }));
+  L.querySelectorAll(".att-rm").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); rmPopup(b.dataset.person); }));
+  if (!$("rm-close").dataset.w) { $("rm-close").dataset.w = "1"; $("rm-close").addEventListener("click", () => $("rm-modal").classList.add("hidden")); $("rm-modal").addEventListener("click", (e) => { if (e.target === $("rm-modal")) $("rm-modal").classList.add("hidden"); }); }
   L.querySelectorAll(".cs-more").forEach((b) => b.addEventListener("click", (e) => {
     e.stopPropagation();
     const card = b.closest(".cs-card");

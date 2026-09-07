@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=167" />
+  <link rel="stylesheet" href="style.css?v=168" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1226,6 +1226,16 @@
             <p class="muted" style="margin-top:0;font-size:.88rem">Coche le ou les profs présents ce jour-là.</p>
             <div id="et-prof-list" class="et-prof-list"></div>
             <div class="form-foot"><span class="spacer"></span><button type="button" id="et-prof-save">Enregistrer</button></div>
+          </div>
+        </div>
+
+        <!-- Fenêtre : matchs récents d'un joueur (🔥 perf / 🎾 a joué, depuis Cours) -->
+        <div id="rm-modal" class="modal hidden">
+          <div class="card" style="max-width:720px">
+            <button type="button" id="rm-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0">Matchs des 7 derniers jours — <span id="rm-title"></span></h2>
+            <div id="rm-body" class="table-wrap"></div>
+            <p class="muted" style="font-size:.8rem;margin:8px 0 0">🔥 Perf = victoire contre un adversaire mieux classé. Source : import des matchs Swiss Tennis.</p>
           </div>
         </div>
 
