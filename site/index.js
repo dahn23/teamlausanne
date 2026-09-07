@@ -289,7 +289,7 @@ const DETAILS = {
       ]},
       { type: "enroll", title: "Demander une inscription", filiere: "kidstennis", ranking: false,
         lead: "Envie d'inscrire votre enfant à KidsTennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
-      { type: "gallery", items: ["assets/photos/kids1.jpg", "assets/photos/kids2.jpg"] },
+      { type: "gallery", items: ["assets/photos/kids-2026-1.jpg", "assets/photos/kids-2026-2.jpg"] },
     ],
   },
   "club-academy": {
