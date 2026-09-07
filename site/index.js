@@ -46,7 +46,7 @@ const WORLDS = {
         sub: "Du premier échange à la performance, un parcours clair pour progresser avec plaisir.",
         items: [
           { name: "KidsTennis", photo: "assets/photos/kidstennis-2026.jpg", href: "#kids" },
-          { name: "Club", photo: "assets/webflow/prog-club.webp", href: "#club-academy" },
+          { name: "Club", photo: "assets/photos/club-2026.jpg", href: "#club-academy" },
           { name: "Compétition", photo: "assets/webflow/prog-competition.webp", href: "#competition" },
           { name: "Performance", photo: "assets/webflow/prog-performance.webp", href: "#performance" },
           { name: "Sport-études", photo: "assets/webflow/sport-studies.jpg", href: "#sport-etudes" },
@@ -294,7 +294,7 @@ const DETAILS = {
   },
   "club-academy": {
     world: "academie", title: "Club", subtitle: "L'entraînement à son rythme, toute l'année",
-    hero: "assets/webflow/prog-club.webp",
+    hero: "assets/photos/club-2026.jpg",
     sections: [
       { type: "rich", title: "Jouer et progresser, sans pression", body: [
         "L'offre Club s'adresse à celles et ceux qui veulent jouer 1 ou plusieurs heures par semaine toute l'année — débutants comme plus avancés.",
