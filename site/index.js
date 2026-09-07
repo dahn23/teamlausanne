@@ -47,7 +47,7 @@ const WORLDS = {
         items: [
           { name: "KidsTennis", photo: "assets/photos/kidstennis-2026.jpg", href: "#kids" },
           { name: "Club", photo: "assets/photos/club-2026.jpg", href: "#club-academy" },
-          { name: "Compétition", photo: "assets/webflow/prog-competition.webp", href: "#competition" },
+          { name: "Compétition", photo: "assets/photos/competition-2026.jpg", href: "#competition" },
           { name: "Performance", photo: "assets/webflow/prog-performance.webp", href: "#performance" },
           { name: "Sport-études", photo: "assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
           { name: "Pro U18", photo: "assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
@@ -180,7 +180,7 @@ const DETAILS = {
   },
   competition: {
     world: "academie", title: "Compétition", subtitle: "L'entrée en compétition, dès ~10 ans",
-    hero: "assets/webflow/prog-competition.webp",
+    hero: "assets/photos/competition-2026.jpg",
     sections: [
       { type: "rich", title: "Entrer en compétition", body: [
         "La filière Compétition accueille les jeunes d'environ 10 à 13 ans qui veulent se mesurer aux autres et progresser dans un cadre encadré.",
@@ -194,7 +194,7 @@ const DETAILS = {
       ], link: { label: "Nous écrire", contact: "Cours juniors" } },
       { type: "enroll", title: "Demander une inscription", filiere: "competition", ranking: true,
         lead: "Intéressé(e) par la filière Compétition ? Remplissez ce formulaire, le secrétariat vous recontacte." },
-      { type: "gallery", items: ["assets/webflow/prog-competition.webp", "assets/photos/kids2.jpg"] },
+      { type: "gallery", items: ["assets/photos/competition-2026-g1.jpg", "assets/photos/competition-2026-g2.jpg"] },
     ],
   },
   performance: {
