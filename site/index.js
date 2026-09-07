@@ -73,8 +73,8 @@ const WORLDS = {
     hero: "assets/photos/open-serve.jpg",
     cta: [],
     sections: [
-      { type: "stats", anchor: "tournoi", items: [["23–30 août", "2026"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
-      { type: "split", anchor: "presentation", title: "Le grand rendez-vous du tennis vaudois masculin", video: "Pw8oWWAlv40", body: [
+      { type: "stats", anchor: "tournoi", items: [["Août 2027", "prochaine édition"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
+      { type: "split", anchor: "presentation", title: "Le grand rendez-vous du tennis vaudois masculin", video: "13MXc0bwKa0", body: [
         "Le Lausanne Open réunit chaque année plusieurs dizaines de joueurs de toutes nationalités, pour la plupart classés à l'ATP, sur les courts de la Pontaise.",
         "L'accès est entièrement gratuit, toute la semaine.",
       ], link: { label: "Site & résultats ITF ↗", href: ITF_URL } },
@@ -82,10 +82,10 @@ const WORLDS = {
         sub: "Entrée libre toute la semaine, animations grand public et hospitalité.",
         items: [
           { name: "Initiation pour les écoles", photo: "assets/photos/open-kids.jpg" },
-          { name: "Journée Team Lausanne", photo: "assets/photos/journee-famille.jpg", href: "/samedi-famille" },
+          { name: "Journée Team Lausanne", photo: "assets/photos/journee-famille.jpg" },
           { name: "VIP · Tennis & Lunch", photo: "assets/photos/open-lunch.jpg" },
         ]},
-      { type: "seeds", anchor: "tetes-de-serie", title: "Voici les 8 têtes de série",
+      { type: "seeds", anchor: "tetes-de-serie", title: "Voici les 8 têtes de série de l'édition 2026",
         sub: "Le tenant du titre, ancien numéro 1 mondial junior, et sept autres joueurs classés parmi les 650 meilleurs du monde. Classement ATP au moment du tirage." },
       { type: "ranking", anchor: "palmares", title: "Palmarès",
         head: ["Année", "Simple", "Double"],
@@ -97,7 +97,7 @@ const WORLDS = {
         { src: "assets/photos/open-player.jpg", pos: "center 28%" },
       ]},
       { type: "features", anchor: "infos", title: "Infos pratiques", items: [
-        ["Dates", "Du 23 au 30 août 2026."],
+        ["Dates", "Prochaine édition : août 2027."],
         ["Entrée libre", "Accès gratuit toute la semaine, sans billet."],
         ["Lieu", "TC Lausanne-Sports, Plaines-du-Loup, 1018 Lausanne."],
         ["Une question ?", "Écrivez-nous, nous répondons rapidement."],
@@ -750,7 +750,7 @@ const DEFAULT_WORLD = LO_ONLY ? "tournoi" : "academie";
 if (LO_ONLY) document.body.classList.add("lo-only");
 const TITLES = {
   academie: ["Team Lausanne Academy — Tennis à Lausanne, du KidsTennis au Pro", "Team Lausanne Academy : le centre de formation tennis des Plaines-du-Loup à Lausanne. KidsTennis, Club, Compétition, Performance, Sport-études, Pro U18, Pro, stages et tournois GameZone."],
-  tournoi: ["Lausanne Open 2026 — ITF M25, du 23 au 30 août", "Lausanne Open : l’unique tournoi international de tennis masculin du canton de Vaud. ITF M25, 30 000 $ de dotation, entrée libre du 23 au 30 août 2026 aux Plaines-du-Loup."],
+  tournoi: ["Lausanne Open — ITF M25, prochaine édition août 2027", "Lausanne Open : l’unique tournoi international de tennis masculin du canton de Vaud. ITF M25, 30 000 $ de dotation, entrée libre. Prochaine édition en août 2027 aux Plaines-du-Loup."],
 };
 function setTitle(world, sub) {
   const t = TITLES[world] || TITLES.academie;
