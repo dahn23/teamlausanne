@@ -1345,6 +1345,7 @@ function openPerson(p) {
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
+  loadPersonPhysNotes(p ? p.id : null, !!p && canPhysNotes() && PHYS_NOTE_ROLES.some((r) => roles.includes(r)));   // fil « Physique » (sport-études / pro / pro U18)
   if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonTennis(p.id, tennisByRole); loadPersonMental(p.id, mentalTabRole); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
   else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("ptn-body").innerHTML = ""; $("pm-comp").innerHTML = ""; $("pc-body").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
@@ -4918,6 +4919,59 @@ async function sendHeuresToFiduciaire() {
     uiAlert(`✓ Décompte de ${heuresMoisLbl()} envoyé à ${FIDU_TO} depuis ${FIDU_FROM}. Il apparaîtra dans Messagerie › Envoyés à la prochaine relève.`);
   } catch (e) { uiAlert("Envoi impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = lbl;
+}
+
+// ===================================================================
+//  Fil « Physique » (Fiche › Tests physiques) : un seul fil, auteur + date/heure — sport-études / pro / pro U18
+// ===================================================================
+const PHYS_NOTE_ROLES = ["sport-etudes", "pro", "pro-u18"];
+const canPhysNotes = () => hasAny(myAppRoles, ["coach", "coach_physique", "head_coach", "admin", "superadmin"]);
+let pphPersonId = null, pphBound = false;
+async function loadPersonPhysNotes(personId, show) {
+  pphPersonId = personId;
+  const sec = $("pph-sec"); if (!sec) return;
+  sec.classList.toggle("hidden", !show);
+  if (!show) { $("pph-list").innerHTML = ""; return; }
+  if (!pphBound) {
+    pphBound = true;
+    $("pph-add").addEventListener("click", async () => {
+      const ta = $("pph-new"), b = ta.value.trim(); if (!b || !pphPersonId) return;
+      const { error } = await sb.from("phys_notes").insert({ player_person_id: pphPersonId, body: b, author_person_id: myPersonId, author_name: meName, author_role: myNoteRole(), created_by: meId });
+      if (error) { uiAlert(error.message); return; }
+      ta.value = ""; renderPhysNotes();
+    });
+  }
+  renderPhysNotes();
+}
+async function renderPhysNotes() {
+  const list = $("pph-list"); if (!list || !pphPersonId) return;
+  const { data } = await sb.from("phys_notes").select("*").eq("player_person_id", pphPersonId).order("created_at", { ascending: false });
+  const rows = data || [];
+  const canAll = canTennisEdit();
+  list.innerHTML = rows.length ? rows.map((r) => {
+    const mine = r.created_by && r.created_by === meId;
+    const edited = r.updated_at && r.updated_at !== r.created_at ? ' <span class="muted">(modifié)</span>' : "";
+    return `<div class="obj-item tn-item" data-id="${r.id}">
+      <div class="obj-meta"><span><b>${esc(r.author_name || "—")}</b>${r.author_role ? ` <span class="muted">· ${esc(r.author_role)}</span>` : ""}</span><span>${frDateTime(r.created_at)}${edited}</span></div>
+      <div class="obj-body">${esc(r.body).replace(/\n/g, "<br/>")}</div>
+      ${canAll || mine ? `<div class="obj-acts"><button type="button" class="edit">Modifier</button><button type="button" class="del">Supprimer</button></div>` : ""}</div>`;
+  }).join("") : '<p class="obj-empty">Aucune remarque pour l\'instant.</p>';
+  list.querySelectorAll(".del").forEach((b) => b.addEventListener("click", async () => {
+    if (!await uiConfirm("Supprimer cette remarque ?")) return;
+    await sb.from("phys_notes").delete().eq("id", b.closest(".tn-item").dataset.id);
+    renderPhysNotes();
+  }));
+  list.querySelectorAll(".edit").forEach((b) => b.addEventListener("click", () => {
+    const item = b.closest(".tn-item"), id = item.dataset.id, cur = rows.find((r) => r.id === id);
+    item.querySelector(".obj-body").innerHTML = `<textarea class="tn-edit" rows="2" style="width:100%">${esc(cur.body)}</textarea>
+      <div style="margin-top:6px"><button type="button" class="tn-save">Enregistrer</button></div>`;
+    item.querySelector(".tn-save").addEventListener("click", async () => {
+      const v = item.querySelector(".tn-edit").value.trim(); if (!v) return;
+      const { error } = await sb.from("phys_notes").update({ body: v, updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) { uiAlert(error.message); return; }
+      renderPhysNotes();
+    });
+  }));
 }
 
 // ===================================================================
