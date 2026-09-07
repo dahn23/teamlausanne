@@ -89,7 +89,8 @@ const WORLDS = {
         sub: "Le tenant du titre, ancien numéro 1 mondial junior, et sept autres joueurs classés parmi les 650 meilleurs du monde. Classement ATP au moment du tirage." },
       { type: "ranking", anchor: "palmares", title: "Palmarès",
         head: ["Année", "Simple", "Double"],
-        rows: [["2025", `${FLAG_CH} Henry Bernet`, `${FLAG_IE} Charles Barry · ${FLAG_FR} Max Westphal`]] },
+        rows: [["2026", `${FLAG_CH} Henry Bernet`, `${FLAG_CH} Johan Niklès · ${FLAG_CH} Adrien Burdet`],
+               ["2025", `${FLAG_CH} Henry Bernet`, `${FLAG_IE} Charles Barry · ${FLAG_FR} Max Westphal`]] },
       { type: "gallery", anchor: "photos", items: [
         "assets/photos/open-trophy.jpg",
         { src: "assets/photos/open-double1.jpg", pos: "center 22%" },
