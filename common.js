@@ -14,8 +14,13 @@ export async function getSession() {
   return data.session;
 }
 
+// MES rôles uniquement : filtrés sur mon user_id. (Sans ce filtre, un admin — autorisé par la RLS à lire
+// les accès de tout le monde — « héritait » à l'écran des rôles de tous les utilisateurs, superadmin compris.)
 export async function myRoles() {
-  const { data } = await sb.from("user_roles").select("role");
+  const session = await getSession();
+  const uid = session?.user?.id;
+  if (!uid) return [];
+  const { data } = await sb.from("user_roles").select("role").eq("user_id", uid);
   return (data || []).map((r) => r.role);
 }
 
