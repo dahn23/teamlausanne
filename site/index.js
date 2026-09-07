@@ -175,7 +175,7 @@ const DETAILS = {
         "Le programme développe autonomie, discipline et gestion du temps.",
         "Débouchés : université suisse, institutions américaines (NCAA) ou carrière tennistique professionnelle.",
       ], note: "Repas de midi inclus.", link: { label: "Nous écrire", contact: "Renseignement pour l'Academy" } },
-      { type: "gallery", items: ["assets/photos/p6.jpg", "assets/photos/coach3.jpg"] },
+      { type: "gallery", items: ["assets/photos/sport-etudes-2026-g1.jpg"] },
     ],
   },
   competition: {
