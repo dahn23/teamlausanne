@@ -51,7 +51,7 @@ const WORLDS = {
           { name: "Performance", photo: "assets/webflow/prog-performance.webp", href: "#performance" },
           { name: "Sport-études", photo: "assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
           { name: "Pro U18", photo: "assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
-          { name: "Pro", photo: "assets/webflow/physical-training.jpg", href: "#pro" },
+          { name: "Pro", photo: "assets/photos/pro-2026.jpg", href: "#pro" },
           { name: "Game Zone", photo: "assets/photos/gamezone-2026.jpg", href: "#gamezone" },
           { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "#stages" },
         ]},
@@ -241,7 +241,7 @@ const DETAILS = {
   },
   pro: {
     world: "academie", title: "Pro", subtitle: "Un accompagnement sur mesure vers le circuit professionnel",
-    hero: "assets/photos/coach2.jpg",
+    hero: "assets/photos/pro-2026.jpg",
     sections: [
       { type: "rich", title: "Du sur-mesure", body: [
         "Au niveau professionnel, il n'y a pas d'offre standard : chaque joueuse et joueur bénéficie d'un programme entièrement personnalisé.",
