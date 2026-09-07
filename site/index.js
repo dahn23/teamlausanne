@@ -752,6 +752,11 @@ function setTitle(world, sub) {
   const t = TITLES[world] || TITLES.academie;
   document.title = sub ? `${sub} — ${world === "tournoi" ? "Lausanne Open" : "Team Lausanne Academy"}` : t[0];
   const m = document.querySelector('meta[name="description"]'); if (m) m.setAttribute("content", t[1]);
+  // Texte du formulaire « Nous écrire » selon le monde affiché
+  const cs = document.querySelector("#contact-lo .wsec-sub");
+  if (cs) cs.textContent = world === "tournoi"
+    ? "Une question sur le Lausanne Open, une demande de presse, un partenariat — écrivez-nous, nous répondons rapidement."
+    : "Une question sur l'Academy, une inscription, une demande de presse, un partenariat — écrivez-nous, nous répondons rapidement.";
 }
 function route() {
   const h = location.hash.replace("#", "");
