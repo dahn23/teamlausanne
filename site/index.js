@@ -288,7 +288,7 @@ const DETAILS = {
         ["Offert", "T-shirt Team Lausanne offert, raquette prêtée si besoin."],
       ]},
       { type: "features", title: "Horaires", items: [
-        ["Mercredi", "13h15–14h00 ou 14h00–14h45."],
+        ["Mercredi", "13h30–14h15 ou 14h15–15h00."],
         ["Mardi ou jeudi", "16h30–17h15."],
         ["Sur mesure", "Cours supplémentaires possibles en fin d'après-midi."],
       ], link: { label: "Nous écrire", contact: "Cours juniors" } },
