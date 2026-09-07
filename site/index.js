@@ -52,7 +52,7 @@ const WORLDS = {
           { name: "Sport-études", photo: "assets/webflow/sport-studies.jpg", href: "#sport-etudes" },
           { name: "Pro U18", photo: "assets/webflow/coaching-technique.jpg", href: "#pro-u18" },
           { name: "Pro", photo: "assets/webflow/physical-training.jpg", href: "#pro" },
-          { name: "Game Zone", photo: "assets/webflow/event-gamezone.webp", href: "#gamezone" },
+          { name: "Game Zone", photo: "assets/photos/gamezone-2026.jpg", href: "#gamezone" },
           { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "#stages" },
         ]},
     ],
@@ -323,7 +323,7 @@ const DETAILS = {
   },
   gamezone: {
     world: "academie", title: "Game Zone", subtitle: "Des tournois juniors presque tous les week-ends",
-    hero: "assets/photos/kids2.jpg",
+    hero: "assets/photos/gamezone-2026.jpg",
     sections: [
       { type: "rich", title: "Le concept", body: [
         "Presque tous les week-ends, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant·e.",
