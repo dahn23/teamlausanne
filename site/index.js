@@ -91,7 +91,14 @@ const WORLDS = {
         head: ["Année", "Simple", "Double"],
         rows: [["2026", `${FLAG_CH} Henry Bernet`, `${FLAG_CH} Johan Niklès · ${FLAG_CH} Adrien Burdet`],
                ["2025", `${FLAG_CH} Henry Bernet`, `${FLAG_IE} Charles Barry · ${FLAG_FR} Max Westphal`]] },
-{ type: "gallery", anchor: "photos", items: [        "assets/photos/open-2026-1.jpg",        "assets/photos/open-2026-2.jpg",        "assets/photos/open-2026-3.jpg",        "assets/photos/open-2026-4.jpg",        "assets/photos/open-2026-5.jpg",        "assets/photos/open-2026-6.jpg",      ]},
+      { type: "gallery", anchor: "photos", items: [
+        "assets/photos/open-2026-1.jpg",
+        "assets/photos/open-2026-2.jpg",
+        "assets/photos/open-2026-3.jpg",
+        "assets/photos/open-2026-4.jpg",
+        "assets/photos/open-2026-5.jpg",
+        "assets/photos/open-2026-6.jpg",
+      ]},
       { type: "features", anchor: "infos", title: "Infos pratiques", items: [
         ["Dates", "Prochaine édition : août 2027."],
         ["Entrée libre", "Accès gratuit toute la semaine, sans billet."],
