@@ -50,7 +50,7 @@ const WORLDS = {
           { name: "Compétition", photo: "assets/webflow/prog-competition.webp", href: "#competition" },
           { name: "Performance", photo: "assets/webflow/prog-performance.webp", href: "#performance" },
           { name: "Sport-études", photo: "assets/webflow/sport-studies.jpg", href: "#sport-etudes" },
-          { name: "Pro U18", photo: "assets/webflow/coaching-technique.jpg", href: "#pro-u18" },
+          { name: "Pro U18", photo: "assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
           { name: "Pro", photo: "assets/webflow/physical-training.jpg", href: "#pro" },
           { name: "Game Zone", photo: "assets/photos/gamezone-2026.jpg", href: "#gamezone" },
           { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "#stages" },
@@ -218,7 +218,7 @@ const DETAILS = {
   },
   "pro-u18": {
     world: "academie", title: "Pro U18", subtitle: "Après la scolarité, viser le circuit ITF junior",
-    hero: "assets/webflow/coaching-technique.jpg",
+    hero: "assets/photos/pro-u18-2026.jpg",
     sections: [
       { type: "rich", title: "Monter dans la hiérarchie mondiale", body: [
         "Après la scolarité obligatoire, le programme Pro U18 permet de s'entraîner à plein temps tout en participant au circuit ITF junior.",
