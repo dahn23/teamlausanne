@@ -1766,3 +1766,4 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 }
 /* Vidéo hébergée sur le site (lecteur natif) : remplit le cadre sans rogner, fond noir */
 .split-video video.split-native{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;border:0;display:block}
+@media(max-width:760px){.split-video-vertical{min-height:0;aspect-ratio:480/848}}
