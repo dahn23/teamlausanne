@@ -1753,3 +1753,6 @@ a.flow-step{text-decoration:none;color:inherit;display:block}
 html.lo-only .nav,html.lo-only .foot,body.lo-only .nav,body.lo-only .foot{display:none!important}
 html.lo-only .hero,body.lo-only .hero{padding-top:40px}
 html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
+/* Vidéo verticale (YouTube Short) : encart plus haut, fond noir, pas de bandes latérales criardes */
+.split-video-vertical{min-height:560px;background:#000}
+@media(max-width:760px){.split-video-vertical{min-height:120vw}}
