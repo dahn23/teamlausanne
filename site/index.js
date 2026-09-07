@@ -17,73 +17,6 @@ const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 //  MONDES
 // ===================================================================
 const WORLDS = {
-  club: {
-    tag: "Le Club", logo: "assets/logo-club.webp",
-    slogan: "Votre club, toute l'année.",
-    desc: "Le club de tennis historique de Lausanne, aux Plaines-du-Loup depuis 1911. Devenez membre, jouez toute l'année et vivez la compétition en interclubs.",
-    hero: "assets/club/hero-balls.jpg",
-    cta: [{ label: "Réserver un court", type: "login" }],
-    sections: [
-      { type: "split", anchor: "cotisation", title: "Votre club, toute l'année", photo: "assets/club/club-racket.jpg", body: [
-        "Devenez membre du Lausanne-Sports Tennis : jouez librement sur tous les courts extérieurs durant tout l'été, et profitez de conditions avantageuses sur les courts couverts en hiver.",
-        "L'adhésion est payante (cotisation annuelle). Elle vous ouvre la réservation en ligne, le club-house et le restaurant, au cœur des Plaines-du-Loup.",
-      ], link: { label: "Réserver un court", action: "login" } },
-      { type: "carousel", eyebrow: "Le club", title: "Jouer toute l'année, à deux pas du centre",
-        sub: "Devenez membre et profitez de tous les courts, du club-house et de la compétition.",
-        items: [
-          { name: "Devenir membre", photo: "assets/club/devenir-membre.png", href: "#devenir-membre" },
-          { name: "Jouer librement", photo: "assets/club/jouer-librement.jpg", login: true },
-          { name: "Plan des courts", photo: "assets/club/plan-courts.webp", plan: true },
-          { name: "Interclubs 2027", photo: "assets/club/interclubs.jpg" },
-          { name: "Interclubs juniors 2027", photo: "assets/club/interclubs-juniors.jpg" },
-        ]},
-      { type: "instagram", anchor: "vie", title: "Vie du club", handle: "lausanne_sports_tennis",
-        photos: ["assets/webflow/tennis-day.webp", "assets/webflow/prog-club.webp",
-          "assets/webflow/coaching-technique.jpg", "assets/webflow/physical-training.jpg",
-          "assets/webflow/stage-development.webp", "assets/webflow/cta-young.jpg"] },
-      { type: "agenda", anchor: "agenda", title: "Agenda du club", items: [
-        { date: "2 mai", title: "Apéro d'ouverture", detail: "& 1ʳᵉ rencontre de LNB" },
-        { date: "5 juin", title: "Buffet canadien", detail: "Joue avec la LNB !" },
-        { date: "28 juil. – 2 août", title: "Short Set Open", detail: "" },
-        { date: "23 – 30 août", title: "Lausanne Open", detail: "" },
-        { date: "Fin septembre", title: "Tournoi interne", detail: "" },
-        { date: "Fin septembre", title: "Assemblée générale", detail: "" },
-        { date: "À venir", title: "Repas de soutien", detail: "" },
-      ] },
-      { type: "timeline", title: "Notre histoire", items: [
-        ["1911", "Fondation par des personnalités du Montriond F.C. Premier court au chemin du Signal, puis deux courts aux Plaines-du-Loup."],
-        ["1939", "Le club compte déjà 8 terrains."],
-        ["1954", "12 terrains et installation sur le site du Stade de la Pontaise."],
-        ["1965–1980", "Âge d'or : champion de Suisse en 1965, 1967, 1968, 1974 et 1980 — 12 titres, 3ᵉ du palmarès de Ligue nationale A."],
-        ["1980", "Inauguration du club-house actuel."],
-        ["1991", "Première bulle hivernale."],
-        ["2004", "Halle couverte avec deux courts en synthétique."],
-      ], note: "Le club a vu passer de grands noms : Thierry Grin (finaliste de Coupe Davis 1992), Marie-Gaïané Mikaelian et Timea Bacsinszky." },
-      { type: "features", anchor: "installations", title: "Nos installations", items: [
-        ["12 courts", "8 en terre battue, 2 en dur (halle), 2 en synthétique."],
-        ["Bulle d'hiver", "4 courts en terre battue couverts et chauffés l'hiver."],
-        ["Restaurant", "Restauration et club-house ouverts aux membres et visiteurs."],
-        ["Réservation en ligne", "Réservez votre terrain d'un clic, depuis votre mobile."],
-      ]},
-      { type: "committee", anchor: "comite", title: "Le comité",
-        members: [["Kazem Huber", "Président"], ["Bertrand Gygax", "Vice-président"],
-          ["Arsalan Huber", "Trésorier"], ["Laurent Aubert", "Infrastructures"],
-          ["Philémon Isakov", "Compétition"], ["Loïc Colotti", "Communication"],
-          ["Serge Devaud", "Membre consultant"]],
-        honor: ["Serge Devaud", "Françoise Tribolet", "Remo Zeraschi"] },
-      { type: "restaurant", anchor: "resto", title: "Restaurant du Tennis Lausanne-Sports",
-        body: [
-          "Chez Paco & Victor — le club-house et son restaurant vous accueillent au cœur des Plaines-du-Loup, membres comme visiteurs.",
-          "Formule à volonté · Terrasse · Idéal pour regarder le sport. À deux pas des courts, pour se retrouver avant ou après le jeu.",
-        ],
-        phone: "+41 21 646 13 48",
-        hours: "Lun 07h30–20h00 · Mar–Ven 07h30–00h00 · Sam–Dim 09h00–19h00" },
-      { type: "contact", anchor: "contact", title: "Contact & accès",
-        lines: ["Lausanne-Sports Tennis", "Stade de la Pontaise", "Route des Plaines-du-Loup 7", "1018 Lausanne"],
-        phone: "+41 21 646 13 50", contact: "Club — Contact", hours: "Secrétariat : lun–ven, 9h00–12h00 & 13h00–17h00" },
-    ],
-  },
-
   academie: {
     tag: "Academy", logo: "assets/logo-academie.webp",
     slogan: "Grandir. Progresser. Ensemble.",
@@ -122,10 +55,6 @@ const WORLDS = {
           { name: "Game Zone", photo: "assets/webflow/event-gamezone.webp", href: "#gamezone" },
           { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "#stages" },
         ]},
-      { type: "team", title: "Team Compétition & Performance",
-        sub: "Nos jeunes des filières sélectives Compétition et Performance (photos et noms à venir).", count: 20 },
-      { type: "team", title: "Team Sport-études, Pro & Pro U18",
-        sub: "Nos joueuses et joueurs des filières élite (photos et noms à venir).", count: 15 },
       { type: "coaches", anchor: "coaches", title: "Notre équipe de coachs",
         items: [
           { name: "Mariano Palena", role: "Head Coach", photo: "assets/webflow/coach-mariano.jpg" },
@@ -193,57 +122,12 @@ const WORLDS = {
     ],
   },
 
-  business: {
-    tag: "Business & partenaires", logo: "assets/logo-club.webp",
-    slogan: "S'associer. Rayonner. Ensemble.",
-    desc: "Associez votre entreprise à un club historique et à une académie de formation reconnue, au cœur de Lausanne.",
-    hero: "assets/webflow/cta-young.jpg",
-    cta: [{ label: "Devenir partenaire", type: "scroll", target: "biz-contact" }],
-    sections: [
-      { type: "rich", anchor: "presidents", title: "Club des Présidents", body: [
-        "Une offre exclusive et networking : chaque vendredi matin, jouez 2h en halle couverte (été comme hiver), puis prolongez autour d'un apéro dînatoire sur le court.",
-        "15 crédits à utiliser librement pour inviter vos clients ou partenaires, des coachs pour animer, une thématique par vendredi — et un soutien reversé aux jeunes de l'académie.",
-      ], link: { label: "Rejoindre le Club des Présidents", href: "presidents.html" } },
-      { type: "features", anchor: "avantages", title: "Avantages & offres partenaires", items: [
-        ["Visibilité", "Présence sur les courts, le site et les supports de communication."],
-        ["Réseau", "Accès au Club des Présidents et aux événements du club."],
-        ["Hospitalité", "Invitations au Lausanne Open et moments privilégiés."],
-        ["Sur mesure", "Des formules de partenariat adaptées à vos objectifs."],
-      ]},
-      { type: "rich", anchor: "devenir", title: "Devenir partenaire", body: [
-        "Vous souhaitez associer votre marque au tennis lausannois ? Construisons ensemble un partenariat qui vous ressemble.",
-      ], link: { label: "Nous contacter", scroll: "biz-contact" } },
-      { type: "rich", anchor: "privatisation", title: "Privatisations & événements d'entreprise", body: [
-        "Organisez votre événement d'entreprise au club : entraînement privatisé pour votre entreprise, team-building tennis avec apéro ou repas, dans un cadre unique aux Plaines-du-Loup.",
-      ], link: { label: "Demander une offre", scroll: "biz-contact" } },
-      { type: "contactform", anchor: "contact", title: "Parlons-en",
-        lead: "Devenir partenaire, privatiser un moment au club ou rejoindre le Club des Présidents ? Laissez-nous vos coordonnées, on vous rappelle — ou appelez directement Raphaël.",
-        person: "Raphaël Vergnaud", role: "Partenariats — Team Lausanne", tel: "+41799550694", telLabel: "079 955 06 94" },
-    ],
-  },
 };
 
 // ===================================================================
 //  PAGES DÉTAILLÉES
 // ===================================================================
 const DETAILS = {
-  "devenir-membre": {
-    world: "club", title: "Devenir membre", subtitle: "Rejoignez le Lausanne-Sports Tennis aux Plaines-du-Loup",
-    hero: "assets/club/devenir-hero.jpg",
-    sections: [
-      { type: "rich", title: "Jouez toute l'année", body: [
-        "En devenant membre du Lausanne-Sports Tennis, vous jouez librement sur les courts extérieurs tout l'été et profitez de conditions avantageuses sur les courts couverts en hiver.",
-        "L'adhésion vous ouvre la réservation en ligne, le club-house et le restaurant, au cœur des Plaines-du-Loup.",
-      ]},
-      { type: "pricing", title: "Tarifs d'adhésion — Cotisations", items: [
-        ["Actifs", "420.00 CHF"], ["Couples", "700.00 CHF"], ["Familles", "800.00 CHF"],
-        ["Étudiants, apprentis (25 ans max)", "270.00 CHF"], ["Juniors (jusqu'à 18 ans)", "150.00 CHF"],
-        ["Enfants (jusqu'à 12 ans)", "90.00 CHF"], ["Membres passifs", "60.00 CHF"],
-      ], note: "Cotisation annuelle. La demande ci-dessous ne vaut pas paiement : le secrétariat vous recontacte pour finaliser." },
-      { type: "memberform", title: "Demande d'adhésion",
-        lead: "Remplissez le formulaire, le secrétariat revient vers vous pour finaliser votre adhésion." },
-    ],
-  },
   "journee-team-lausanne": {
     world: "tournoi", title: "Journée Team Lausanne", subtitle: "Samedi, en marge du Lausanne Open — ouvert à toutes et tous",
     hero: "assets/photos/open-kids.jpg",
@@ -855,49 +739,41 @@ function animate() {
   window.addEventListener("scroll", revealCheck, { passive: true });
 }
 
+// ===================================================================
+//  Routage : deux mondes (Academy, Lausanne Open) + pages de détail.
+//  Sur le domaine lausanneopen.ch, le site n'affiche QUE le tournoi (ni barre, ni pied de page),
+//  jusqu'à ce que ce domaine soit redirigé vers teamlausanne.ch/#tournoi.
+//  Aucune connexion ni réservation sur le site public : l'app vit sur app.teamlausanne.ch.
+// ===================================================================
+const LO_ONLY = /lausanneopen/i.test(location.hostname);
+const DEFAULT_WORLD = LO_ONLY ? "tournoi" : "academie";
+if (LO_ONLY) document.body.classList.add("lo-only");
+const TITLES = {
+  academie: ["Team Lausanne Academy — Tennis à Lausanne, du KidsTennis au Pro", "Team Lausanne Academy : le centre de formation tennis des Plaines-du-Loup à Lausanne. KidsTennis, Club, Compétition, Performance, Sport-études, Pro U18, Pro, stages et tournois GameZone."],
+  tournoi: ["Lausanne Open 2026 — ITF M25, du 23 au 30 août", "Lausanne Open : l’unique tournoi international de tennis masculin du canton de Vaud. ITF M25, 30 000 $ de dotation, entrée libre du 23 au 30 août 2026 aux Plaines-du-Loup."],
+};
+function setTitle(world, sub) {
+  const t = TITLES[world] || TITLES.academie;
+  document.title = sub ? `${sub} — ${world === "tournoi" ? "Lausanne Open" : "Team Lausanne Academy"}` : t[0];
+  const m = document.querySelector('meta[name="description"]'); if (m) m.setAttribute("content", t[1]);
+}
 function route() {
   const h = location.hash.replace("#", "");
   hit("site", h || "accueil");
-  if (DETAILS[h]) renderDetail(h);
-  else renderWorld("tournoi");   // site du Lausanne Open : un seul monde
+  if (DETAILS[h] && WORLDS[DETAILS[h].world] && (!LO_ONLY || DETAILS[h].world === "tournoi")) { renderDetail(h); setTitle(DETAILS[h].world, DETAILS[h].title); }
+  else if (WORLDS[h] && !LO_ONLY) { renderWorld(h); setTitle(h); }
+  else { renderWorld(DEFAULT_WORLD); setTitle(DEFAULT_WORLD); }
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
 }
 
-// ===================================================================
-//  Connexion
-// ===================================================================
-const modal = $("login-modal");
-const openModal = () => modal.classList.remove("hidden");
-const closeModal = () => modal.classList.add("hidden");
-// Si déjà connecté : le bouton mène à l'espace membre au lieu d'ouvrir le login.
-let hasSession = false;
-// « Réserver » / « Jouer librement » : on va toujours sur la page de réservation
-// (publique). La connexion se fait là-bas, seulement au moment de réserver.
-const memberAction = () => { location.href = "reservation.html"; };
-$("open-login").addEventListener("click", memberAction);
-$("close-login").addEventListener("click", closeModal);
-modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
-
-$("login-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const err = $("login-error"); err.hidden = true; $("login-btn").disabled = true;
-  const { error } = await sb.auth.signInWithPassword({
-    email: $("email").value.trim(), password: $("password").value });
-  $("login-btn").disabled = false;
-  if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
-  // Aiguillage par rôle : staff → console, membre/parent/jeune → Mon espace.
-  location.href = landingFor(await myRoles());
-});
-// On NE redirige plus automatiquement : on reste sur le site vitrine même connecté.
-getSession().then(async (s) => {
-  hasSession = !!s;
-  // Staff logué : bouton « Console » dans l'entête du site public.
-  if (s) { const roles = await myRoles(); if (hasAny(roles, CONSOLE_ROLES)) $("to-console").classList.remove("hidden"); }
-});
-
-// ---- Contact : page à part (contact.html?src=…) ----
+// ---- Contact : le formulaire « Nous écrire » en bas de page ----
 function openContact(source) {
-  location.href = "contact.html?src=" + encodeURIComponent(source || "Contact");
+  const t = $("contact-lo"); if (!t) return;
+  const sel = t.querySelector('input[name="nom"]');
+  const msg = t.querySelector('textarea[name="message"]');
+  if (msg && source && !msg.value) msg.value = source + " : ";
+  t.scrollIntoView({ behavior: "smooth", block: "start" });
+  setTimeout(() => sel?.focus(), 600);
 }
 
 // ---- Inscription à un stage (page détail #stages) ----
@@ -1040,15 +916,15 @@ async function loadGzWinners(seasonId) {
 //  Interactions globales (délégation)
 // ===================================================================
 document.addEventListener("click", (e) => {
-  const login = e.target.closest("[data-login]");
-  if (login) { memberAction(); return; }
+  // Onglets du haut / étapes du pied de page : changement de monde (Academy ↔ Lausanne Open).
+  const sw = e.target.closest(".sw[data-world], .flow-step[data-world]");
+  if (sw) { if (!LO_ONLY) location.hash = sw.dataset.world; return; }
   const contact = e.target.closest("[data-contact]");
   if (contact) { openContact(contact.dataset.contact); return; }
   const cta = e.target.closest("[data-cta]");
   if (cta) {
     const t = cta.dataset.cta;
-    if (t === "login") memberAction();
-    else if (t === "stages") location.hash = "stages";
+    if (t === "stages") location.hash = "stages";
     else if (t === "gamezone") location.hash = "gamezone";
     return;
   }
@@ -1062,8 +938,7 @@ document.addEventListener("click", (e) => {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
-  const goto = null;   // renvois vers les autres mondes desactives
-  const _goto = e.target.closest("[data-goto]");
+  const goto = LO_ONLY ? null : e.target.closest("[data-goto]");   // menu déroulant : aller à une section d'un monde
   if (goto) {
     const w = goto.dataset.goto, a = goto.dataset.anchor;
     history.replaceState(null, "", "#" + w);

@@ -60,3 +60,11 @@
   for = "/*.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# L'ancienne vitrine (index.html à la racine, avec page club et connexion) n'est plus servie :
+# le site public vit dans site/ (teamlausanne.ch). Ici, tout ramène à la page de connexion.
+[[redirects]]
+  from = "/index.html"
+  to = "/"
+  status = 301
+  force = true

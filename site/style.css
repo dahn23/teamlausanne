@@ -1745,3 +1745,11 @@ a.sponsor span{font-size:.7rem;font-weight:700;color:#1b2340;text-align:center;l
 .seed-rank{margin:0!important;font-size:.7rem;font-weight:800;letter-spacing:.3px;
   text-transform:uppercase;color:var(--accent-ink,#1e3ad1)}
 .seed-bio{margin:0!important;font-size:.82rem;line-height:1.45;color:var(--muted)}
+/* ---- Site public teamlausanne.ch : deux mondes ---- */
+/* Onglet Club = lien externe (www.lstennis.ch), même look que les autres onglets */
+a.sw{text-decoration:none;display:inline-flex;align-items:center}
+a.flow-step{text-decoration:none;color:inherit;display:block}
+/* Domaine lausanneopen.ch : tournoi seul, ni barre ni pied de page (jusqu'à la redirection vers teamlausanne.ch) */
+html.lo-only .nav,html.lo-only .foot,body.lo-only .nav,body.lo-only .foot{display:none!important}
+html.lo-only .hero,body.lo-only .hero{padding-top:40px}
+html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}

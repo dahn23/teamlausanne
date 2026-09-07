@@ -68,3 +68,26 @@
   for = "/*.css"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# --- Site public teamlausanne.ch : Academy + Lausanne Open ---
+# Adresse propre du tournoi (utilisée quand lausanneopen.ch redirigera ici).
+[[redirects]]
+  from = "/lausanne-open"
+  to = "/#tournoi"
+  status = 301
+# Aucune réservation ni connexion sur le site public : l'app est sur app.teamlausanne.ch.
+[[redirects]]
+  from = "/reservation*"
+  to = "/"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/connexion*"
+  to = "/"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/espace*"
+  to = "/"
+  status = 301
+  force = true
