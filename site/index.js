@@ -170,6 +170,8 @@ const DETAILS = {
         ["Responsable pédagogique", "Un référent dédié : organisation, méthodologie, suivi des échéances."],
         ["Soutien académique", "Des assistants issus de l'EPFL et de l'UNIL, selon les besoins."],
         ["Objectif diplôme", "Maturité fédérale suisse ou baccalauréat français."],
+        ["Médical & physio", "Suivi médical, physiothérapie et tests réguliers."],
+        ["Préparation mentale", "Un accompagnement mental intégré."],
       ]},
       { type: "rich", title: "Et après ?", body: [
         "Le programme développe autonomie, discipline et gestion du temps.",
@@ -228,7 +230,7 @@ const DETAILS = {
         ["09h00–10h00", "Préparation physique (mercredi : 14h–16h)."],
         ["10h15–12h15", "Tennis, session du matin."],
         ["13h15–15h15", "Tennis, session de l'après-midi."],
-        ["Suivi", "Rapports bihebdomadaires et planification annuelle."],
+        ["Suivi", "Planification annuelle."],
       ]},
       { type: "features", title: "Ce qui est inclus", items: [
         ["Médical & physio", "Suivi médical, physiothérapie et tests réguliers."],
