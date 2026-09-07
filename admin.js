@@ -5002,14 +5002,14 @@ async function loadProspectFollowups() {
     $("pf-search").addEventListener("input", renderProspectFollowups);
   }
   const { data, error } = await sb.from("prospect_followups").select("*").order("created_at", { ascending: false });
-  if (error) { $("pf-rows").innerHTML = `<tr><td colspan="11" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
+  if (error) { $("pf-rows").innerHTML = `<tr><td colspan="12" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
   pfList = data || [];
   renderProspectFollowups();
 }
 function renderProspectFollowups() {
   const showDone = $("pf-show-done").checked, q = $("pf-search").value.trim().toLowerCase();
   const today = new Date().toISOString().slice(0, 10);
-  const rows = pfList.filter((r) => (showDone || !r.done) && (!q || [r.first_name, r.last_name, r.email, r.phone, r.license_no, r.ranking, r.status_text].some((v) => (v || "").toLowerCase().includes(q))));
+  const rows = pfList.filter((r) => (showDone || !r.done) && (!q || [r.first_name, r.last_name, r.description, r.email, r.phone, r.license_no, r.ranking, r.status_text].some((v) => (v || "").toLowerCase().includes(q))));
   $("pf-empty").hidden = pfList.length > 0;
   const inp = (r, k, extra = "") => `<input class="pf-f" data-k="${k}" value="${esc(r[k] || "")}" ${extra} />`;
   $("pf-rows").innerHTML = rows.map((r) => {
@@ -5018,6 +5018,7 @@ function renderProspectFollowups() {
     return `<tr class="${r.done ? "muted" : due ? "pf-due" : ""}" data-id="${r.id}">
       <td>${inp(r, "first_name", 'placeholder="Prénom" style="width:110px"')}</td>
       <td>${inp(r, "last_name", 'placeholder="Nom" style="width:120px"')}</td>
+      <td>${inp(r, "description", 'placeholder="ex. Garçon 12 ans" style="width:150px"')}</td>
       <td>${inp(r, "license_no", 'placeholder="n° licence" style="width:110px" title="Licence Swiss Tennis (facultatif)"')}</td>
       <td>${inp(r, "email", 'type="email" placeholder="—" style="width:180px"')}</td>
       <td>${inp(r, "phone", 'placeholder="—" style="width:120px"')}</td>
