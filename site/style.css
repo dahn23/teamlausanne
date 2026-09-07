@@ -1759,3 +1759,8 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 /* Mobile : liste d'accès directs ouverte au tap (classe .open posée par le script) */
 .sw-wrap.open .sw-menu{opacity:1;visibility:visible;transform:translateX(-50%) translateY(4px)}
 @media(max-width:760px){.sw-menu{max-width:min(92vw,320px)}}
+/* Mobile : la liste est masquée par défaut (règle plus haut), mais affichée quand l'onglet est ouvert au tap */
+@media (max-width:760px){
+  .sw-wrap.open .sw-menu{display:flex;flex-direction:column;z-index:40;left:0;transform:none;min-width:200px}
+  .sw-wrap.open .sw-menu::before{display:none}
+}
