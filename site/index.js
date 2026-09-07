@@ -48,7 +48,7 @@ const WORLDS = {
           { name: "KidsTennis", photo: "assets/photos/kidstennis-2026.jpg", href: "#kids" },
           { name: "Club", photo: "assets/photos/club-2026.jpg", href: "#club-academy" },
           { name: "Compétition", photo: "assets/photos/competition-2026.jpg", href: "#competition" },
-          { name: "Performance", photo: "assets/webflow/prog-performance.webp", href: "#performance" },
+          { name: "Performance", photo: "assets/photos/performance-2026.jpg", href: "#performance" },
           { name: "Sport-études", photo: "assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
           { name: "Pro U18", photo: "assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
           { name: "Pro", photo: "assets/photos/pro-2026.jpg", href: "#pro" },
@@ -199,7 +199,7 @@ const DETAILS = {
   },
   performance: {
     world: "academie", title: "Performance", subtitle: "La filière élite junior, ~12–15 ans",
-    hero: "assets/webflow/prog-performance.webp",
+    hero: "assets/photos/performance-2026.jpg",
     sections: [
       { type: "rich", title: "Viser le meilleur niveau", body: [
         "La filière Performance s'adresse aux jeunes d'environ 12 à 15 ans prêts à s'investir davantage. Elle se chevauche avec la Compétition : l'âge n'est pas un frein, c'est une évolution qui s'adapte à 1–2 ans près.",
