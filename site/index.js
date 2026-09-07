@@ -45,7 +45,7 @@ const WORLDS = {
       { type: "carousel", anchor: "programmes", eyebrow: "Cours pour tous", title: "Un programme pour chaque niveau",
         sub: "Du premier échange à la performance, un parcours clair pour progresser avec plaisir.",
         items: [
-          { name: "KidsTennis", photo: "assets/webflow/prog-kids.webp", href: "#kids" },
+          { name: "KidsTennis", photo: "assets/photos/kidstennis-2026.jpg", href: "#kids" },
           { name: "Club", photo: "assets/webflow/prog-club.webp", href: "#club-academy" },
           { name: "Compétition", photo: "assets/webflow/prog-competition.webp", href: "#competition" },
           { name: "Performance", photo: "assets/webflow/prog-performance.webp", href: "#performance" },
@@ -267,7 +267,7 @@ const DETAILS = {
   },
   kids: {
     world: "academie", title: "KidsTennis", subtitle: "Les cours juniors des 4–9 ans, toute l'année",
-    hero: "assets/photos/kids3.jpg",
+    hero: "assets/photos/kidstennis-2026.jpg",
     sections: [
       { type: "rich", title: "Apprendre en s'amusant", body: [
         "KidsTennis initie les enfants de 4 à 9 ans au tennis de façon ludique et progressive, tout au long de l'année scolaire.",
