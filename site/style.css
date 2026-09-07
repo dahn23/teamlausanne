@@ -1756,3 +1756,6 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 /* Vidéo verticale (YouTube Short) : encart plus haut, fond noir, pas de bandes latérales criardes */
 .split-video-vertical{min-height:560px;background:#000}
 @media(max-width:760px){.split-video-vertical{min-height:120vw}}
+/* Mobile : liste d'accès directs ouverte au tap (classe .open posée par le script) */
+.sw-wrap.open .sw-menu{opacity:1;visibility:visible;transform:translateX(-50%) translateY(4px)}
+@media(max-width:760px){.sw-menu{max-width:min(92vw,320px)}}

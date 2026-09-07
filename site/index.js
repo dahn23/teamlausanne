@@ -194,7 +194,7 @@ const DETAILS = {
       ], link: { label: "Nous écrire", contact: "Cours juniors" } },
       { type: "enroll", title: "Demander une inscription", filiere: "competition", ranking: true,
         lead: "Intéressé(e) par la filière Compétition ? Remplissez ce formulaire, le secrétariat vous recontacte." },
-      { type: "gallery", items: ["assets/photos/competition-2026-g1.jpg", "assets/photos/competition-2026-g2.jpg"] },
+      { type: "gallery", items: ["assets/photos/competition-2026-g3.jpg", "assets/photos/competition-2026-g2.jpg"] },
     ],
   },
   performance: {
@@ -914,7 +914,22 @@ async function loadGzWinners(seasonId) {
 document.addEventListener("click", (e) => {
   // Onglets du haut / étapes du pied de page : changement de monde (Academy ↔ Lausanne Open).
   const sw = e.target.closest(".sw[data-world], .flow-step[data-world]");
-  if (sw) { if (!LO_ONLY) location.hash = sw.dataset.world; return; }
+  if (sw) {
+    if (LO_ONLY) return;
+    // Mobile / écran tactile : le 1er tap sur un onglet ouvre sa liste d'accès directs, le 2e tap navigue.
+    const wrap = sw.closest(".sw-wrap"), menu = wrap?.querySelector(".sw-menu");
+    const touch = window.matchMedia("(hover: none)").matches || window.innerWidth <= 760;
+    if (menu && touch && !wrap.classList.contains("open")) {
+      document.querySelectorAll(".sw-wrap.open").forEach((w) => w.classList.remove("open"));
+      wrap.classList.add("open");
+      return;
+    }
+    document.querySelectorAll(".sw-wrap.open").forEach((w) => w.classList.remove("open"));
+    location.hash = sw.dataset.world; return;
+  }
+  // Tap ailleurs : referme les listes ouvertes (les liens de la liste naviguent normalement).
+  if (!e.target.closest(".sw-wrap")) document.querySelectorAll(".sw-wrap.open").forEach((w) => w.classList.remove("open"));
+  else if (e.target.closest(".sw-menu a")) setTimeout(() => document.querySelectorAll(".sw-wrap.open").forEach((w) => w.classList.remove("open")), 50);
   const contact = e.target.closest("[data-contact]");
   if (contact) { openContact(contact.dataset.contact); return; }
   const cta = e.target.closest("[data-cta]");
