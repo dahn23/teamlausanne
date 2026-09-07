@@ -873,6 +873,7 @@ $("stgp-form").addEventListener("submit", async (e) => {
 const GZ_CUP = (color, size) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/><path d="M8 5.5H5V7a3 3 0 0 0 3 3M16 5.5h3V7a3 3 0 0 1-3 3"/><path d="M10 13.5V16h4v-2.5M8 20h8M12 16v4"/></svg>`;
 const gzCups = (w) => (w >= 10 ? GZ_CUP("#c8901f", 18) : w >= 5 ? GZ_CUP("#9aa3ad", 16) : "");
 
+// Uniquement la saison EN COURS (la RPC la renvoie toujours, même sans tournoi encore importé).
 async function loadGamezone() {
   const { data: seasons } = await sb.rpc("gz_public_seasons");
   const cur = (seasons || []).find((s) => s.is_current) || (seasons || [])[0];
