@@ -70,7 +70,7 @@ const WORLDS = {
     tag: "Lausanne Open", logo: "assets/logo-open.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
     desc: "Lausanne Open — l'unique tournoi international de tennis masculin du canton de Vaud. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
-    hero: "assets/photos/open-serve.jpg",
+    hero: "assets/photos/open-hero-2026.jpg",
     cta: [],
     sections: [
       { type: "stats", anchor: "tournoi", items: [["Août 2027", "prochaine édition"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
