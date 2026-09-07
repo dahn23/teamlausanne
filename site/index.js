@@ -263,6 +263,7 @@ const DETAILS = {
         ["Cours rémunérés", "Donner des cours de tennis rémunérés au sein de l'académie."],
         ["Journées GameZone", "Organiser des journées de tournoi GameZone."],
         ["Formations coaching", "Prise en charge de formations de coaching."],
+        ["Logement", "Solutions de logement sur Lausanne."],
       ], link: { label: "Nous écrire", contact: "Renseignement pour l'Academy" } },
       { type: "gallery", items: ["assets/photos/pro-2026-g1.jpg", "assets/photos/open-serve.jpg"] },
     ],
