@@ -213,7 +213,7 @@ const DETAILS = {
       ], link: { label: "Nous écrire", contact: "Cours juniors" } },
       { type: "enroll", title: "Demander une inscription", filiere: "performance", ranking: true,
         lead: "Intéressé(e) par la filière Performance ? Remplissez ce formulaire, le secrétariat vous recontacte." },
-      { type: "gallery", items: ["assets/webflow/prog-performance.webp", "assets/photos/coach1.jpg"] },
+      { type: "gallery", items: ["assets/photos/performance-2026-g1.jpg", "assets/photos/performance-2026-g2.jpg"] },
     ],
   },
   "pro-u18": {
