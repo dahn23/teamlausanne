@@ -55,14 +55,6 @@ const WORLDS = {
           { name: "Game Zone", photo: "assets/webflow/event-gamezone.webp", href: "#gamezone" },
           { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "#stages" },
         ]},
-      { type: "coaches", anchor: "coaches", title: "Notre équipe de coachs",
-        items: [
-          { name: "Mariano Palena", role: "Head Coach", photo: "assets/webflow/coach-mariano.jpg" },
-          { name: "Yann Perez", role: "Coach", photo: "assets/webflow/coach-yann.jpg" },
-          { name: "Loris Gander", role: "Coach", photo: "assets/webflow/coach-loris.jpg" },
-          { name: "Séline Rivarolli", role: "Coach jeunesse", photo: "assets/webflow/coach-seline.jpg" },
-          { name: "Talia Picci", role: "Coach junior", photo: "assets/webflow/coach-talia.jpg" },
-        ]},
     ],
   },
 
