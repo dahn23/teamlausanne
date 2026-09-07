@@ -21,7 +21,7 @@ const WORLDS = {
     tag: "Academy", logo: "assets/logo-academie.webp",
     slogan: "Grandir. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
-    hero: "assets/webflow/hero-academy.webp",
+    hero: "assets/photos/competition-2026-g1.jpg",
     cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Nous contacter", type: "contact", source: "Renseignement pour l'Academy" }],
     sections: [
       { type: "rich", anchor: "philosophie", title: "Notre philosophie", body: [
