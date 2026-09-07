@@ -214,7 +214,7 @@ const DETAILS = {
         "8 places par sélection. Les autres poursuivent en Club ou en Compétition.",
       ]},
       { type: "features", title: "Le programme", items: [
-        ["≈ 12–15 ans", "Filière élite, 8 places."],
+        ["≈ 12–15 ans", "Filière Performance, 8 places."],
         ["Volume", "Charge d'entraînement renforcée, physique intégré."],
         ["Suivi", "Encadrement rapproché et planification individualisée."],
         ["Objectif", "Accès au Sport-études et à la voie Pro U18."],
