@@ -236,7 +236,7 @@ const DETAILS = {
         ["Cordage & équipement", "Cordages et vêtements fournis."],
         ["Tournois", "5 semaines de tournois à l'étranger par an."],
       ], link: { label: "Nous écrire", contact: "Renseignement pour l'Academy" } },
-      { type: "gallery", items: ["assets/photos/coach3.jpg", "assets/webflow/physical-training.jpg"] },
+      { type: "gallery", items: ["assets/photos/pro-u18-2026-g1.jpg", "assets/webflow/physical-training.jpg"] },
     ],
   },
   pro: {
