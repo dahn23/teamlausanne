@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Désinscription — Team Lausanne</title>
+  <style>
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f3f5fa;color:#1a1f36}
+    .box{max-width:520px;margin:12vh auto;background:#fff;border-radius:16px;padding:32px 28px;box-shadow:0 12px 40px rgba(20,26,46,.08);text-align:center}
+    h1{font-size:1.35rem;margin:0 0 12px;color:#1e3ad1}
+    p{line-height:1.5;margin:8px 0}
+    .muted{color:#6b7280;font-size:.92rem}
+    a{color:#1e3ad1}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Newsletter Team Lausanne</h1>
+    <p id="msg">Un instant…</p>
+    <p class="muted">Une question ? Écrivez-nous à <a href="mailto:info@teamlausanne.ch">info@teamlausanne.ch</a>.</p>
+  </div>
+  <script type="module">
+    import { sb } from "./common.js";
+    const msg = document.getElementById("msg");
+    const t = new URLSearchParams(location.search).get("t");
+    if (!t || !/^[0-9a-f-]{36}$/i.test(t)) { msg.textContent = "Lien de désinscription invalide."; }
+    else {
+      const { data, error } = await sb.rpc("newsletter_unsubscribe", { p_token: t });
+      if (error || !data) msg.textContent = "Lien invalide ou déjà utilisé.";
+      else msg.innerHTML = `C'est fait : <b>${String(data).replace(/[<>&]/g, "")}</b> ne recevra plus nos newsletters.`;
+    }
+  </script>
+</body>
+</html>

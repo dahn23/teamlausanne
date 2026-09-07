@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=169" />
+  <link rel="stylesheet" href="style.css?v=170" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -29,6 +29,7 @@
         <button type="button" id="side-toggle" class="side-toggle" title="Réduire / agrandir le menu" aria-label="Réduire le menu"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
         <div class="side-block">
           <button class="side-item" data-view="mail"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6 8.5-6"/></svg><span class="side-label">Messagerie</span></button>
+          <button class="side-item" data-view="newsletter"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H4z"/><path d="M4 8l8 5 8-5"/><path d="M8 20h8"/></svg><span class="side-label">Newsletter</span></button>
           <button class="side-item" data-view="dashboard"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="10" rx="1"/><rect x="13" y="3" width="8" height="6" rx="1"/><rect x="13" y="11" width="8" height="10" rx="1"/><rect x="3" y="15" width="8" height="6" rx="1"/></svg><span class="side-label">Dashboard</span></button>
           <button class="side-item active" data-view="membres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="9" cy="7.5" r="3.2"/><path d="M22 19v-1a4 4 0 0 0-3-3.87"/><path d="M16 3.7a4 4 0 0 1 0 7.6"/></svg><span class="side-label">Répertoire</span></button>
           <button class="side-item" data-view="anniv"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16v-7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2z"/><path d="M4 15c1.5 0 1.5 1.2 3 1.2S8.5 15 10 15s1.5 1.2 3 1.2S14.5 15 16 15s1.5 1.2 3 1.2"/><path d="M12 8V5"/><path d="M9 8V6"/><path d="M15 8V6"/></svg><span class="side-label">Anniversaires</span></button>
@@ -634,6 +635,17 @@
           <div id="dash-body"></div>
         </div>
 
+        <!-- ---- Vue Newsletter (superadmin / admin / secrétaire) ---- -->
+        <div id="view-newsletter" class="view hidden">
+          <div class="crm-head"><h1>Newsletter</h1>
+            <span class="spacer"></span><button type="button" id="nl-new">✉ Nouvelle newsletter</button></div>
+          <div id="nl-setup" class="mail-banner hidden"></div>
+          <p class="muted" style="margin:-6px 0 12px;font-size:.88rem">Envois groupés via <b>Resend</b> (domaine authentifié, lien de désinscription obligatoire dans chaque message). Les ouvertures, clics, rebonds et plaintes remontent automatiquement ; un destinataire qui se désinscrit ou signale un spam n'est plus jamais ciblé.</p>
+          <div class="table-wrap"><table class="crm-table nl-table"><thead><tr><th>Date</th><th>Objet</th><th>Ciblage</th><th>Destinataires</th><th>Envoyés</th><th>Délivrés</th><th>Ouvertures</th><th>Clics</th><th>Rebonds</th><th>Spam</th><th>Désinscrits</th><th>Statut</th><th></th></tr></thead><tbody id="nl-rows"></tbody></table></div>
+          <p id="nl-empty" class="muted" hidden>Aucune newsletter pour l'instant.</p>
+          <div id="nl-detail" class="hidden" style="margin-top:18px"></div>
+        </div>
+
         <!-- ---- Vue Mental (préparation mentale) ---- -->
         <!-- ---- Vue Messagerie (secrétaire/admin/superadmin) — boîte unifiée ---- -->
         <div id="view-mail" class="view hidden">
@@ -1226,6 +1238,53 @@
             <p class="muted" style="margin-top:0;font-size:.88rem">Coche le ou les profs présents ce jour-là.</p>
             <div id="et-prof-list" class="et-prof-list"></div>
             <div class="form-foot"><span class="spacer"></span><button type="button" id="et-prof-save">Enregistrer</button></div>
+          </div>
+        </div>
+
+        <!-- Fenêtre : éditeur de newsletter -->
+        <div id="nl-modal" class="modal hidden">
+          <div class="card" style="max-width:1000px">
+            <button type="button" id="nl-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0" id="nl-title">Nouvelle newsletter</h2>
+            <div class="nl-grid">
+              <div class="nl-col">
+                <label class="mailc-f">Objet<input id="nl-subject" type="text" placeholder="Objet de la newsletter" autocomplete="off" /></label>
+                <div class="nl-from">
+                  <label class="mailc-f">Nom d'expéditeur<input id="nl-from-name" type="text" value="Team Lausanne Academy" /></label>
+                  <label class="mailc-f">Adresse d'envoi<input id="nl-from-email" type="email" value="newsletter@teamlausanne.ch" /></label>
+                  <label class="mailc-f">Répondre à<input id="nl-reply" type="email" value="info@teamlausanne.ch" /></label>
+                </div>
+                <div class="rt-toolbar">
+                  <button type="button" class="rt-btn nl-rt" data-cmd="bold" title="Gras"><b>G</b></button>
+                  <button type="button" class="rt-btn nl-rt" data-cmd="italic" title="Italique"><i>I</i></button>
+                  <button type="button" class="rt-btn nl-rt" data-cmd="underline" title="Souligné"><u>S</u></button>
+                  <button type="button" class="rt-btn nl-rt" data-cmd="insertUnorderedList" title="Liste">•</button>
+                  <button type="button" class="rt-btn" id="nl-link" title="Insérer un lien">🔗</button>
+                  <button type="button" class="rt-btn" id="nl-h2" title="Titre">H</button>
+                  <label class="rt-color" title="Couleur du texte">A<input type="color" id="nl-color" value="#000000" /></label>
+                </div>
+                <div id="nl-body" class="rt-edit nl-edit" contenteditable="true" data-ph="Contenu de la newsletter…"></div>
+              </div>
+              <div class="nl-col nl-aud">
+                <h3 style="margin:0 0 6px;font-size:1rem">Destinataires</h3>
+                <label class="check"><input type="checkbox" id="nl-all" /> Tout le répertoire (toute personne avec un e-mail)</label>
+                <div class="muted" style="font-size:.8rem;margin:6px 0 4px">Ou par filière / tag (saison en cours) :</div>
+                <div id="nl-roles" class="nl-roles"></div>
+                <div class="muted" style="font-size:.8rem;margin:10px 0 4px">Participants GameZone :</div>
+                <label class="check"><input type="checkbox" id="nl-gz-all" /> Tous les participants GameZone</label>
+                <label class="check" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="nl-gz-season-on" /> Saison <select id="nl-gz-season" style="max-width:170px"></select></label>
+                <label class="mailc-f" style="margin-top:8px">E-mails supplémentaires <span class="muted" style="font-weight:400">(un par ligne)</span><textarea id="nl-extra" rows="3"></textarea></label>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+                  <button type="button" id="nl-count" class="ghost">Calculer les destinataires</button>
+                  <span id="nl-count-res" class="muted" style="font-size:.85rem"></span>
+                </div>
+                <div id="nl-preview" class="nl-preview"></div>
+              </div>
+            </div>
+            <div class="form-foot"><span id="nl-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span>
+              <button type="button" id="nl-test" class="ghost" title="Envoie la newsletter à ton adresse uniquement">Test → moi</button>
+              <button type="button" id="nl-save" class="ghost">Enregistrer le brouillon</button>
+              <button type="button" id="nl-send">Envoyer</button></div>
           </div>
         </div>
 

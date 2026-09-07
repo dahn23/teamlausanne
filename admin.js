@@ -209,9 +209,9 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "winter", "lockers", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
+  superadmin: ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "newsletter", "resa", "winter", "lockers", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["dashboard", "anniv", "resa", "cours", "matchs", "lastscores", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "lastscores", "phystests", "heures"],
   coach_physique: ["cours", "phystests", "heures"],
@@ -221,7 +221,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["dashboard", "Dashboard"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -405,6 +405,7 @@ function showView(view) {
   if (view === "lockers") loadLockers();
   if (view === "lastscores") loadLastScores();
   if (view === "dashboard") loadDashboard();
+  if (view === "newsletter") loadNewsletters();
   if (view === "locks") loadLocks();
   if (view === "irrigation") loadIrrigation();
 }
@@ -5090,6 +5091,199 @@ function dashProspects(p, lu) {
      ${due.length ? due.map(li).join("") : '<div class="dash-ok">✓ Aucune relance en retard.</div>'}
      <h3 class="dash-sub">À relancer dans les 7 jours</h3>
      ${soon.length ? soon.map((a) => li(a).replace("</b>", `</b> <span class="muted">→ ${dFD(a.alert_at)}</span>`)).join("") : '<div class="muted">—</div>'}`);
+}
+
+// ===================================================================
+//  Newsletter : ciblage (répertoire / filières / GameZone / manuel) → envoi Resend → historique + métriques
+// ===================================================================
+const NL_ROLE_OPTS = [["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"], ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"], ["adultes", "Adultes"], ["membre", "Membres"], ["coach", "Coachs"], ["prof", "Profs"], ["official", "Officials"]];
+const NL_ST = { brouillon: "Brouillon", envoi: "Envoi en cours", envoyee: "Envoyée" };
+const NL_RST = { en_attente: "En attente", envoye: "Envoyé", delivre: "Délivré", ouvert: "Ouvert", clique: "Cliqué", rebond: "Rebond", spam: "Spam", erreur: "Erreur", desinscrit: "Désinscrit" };
+let nlList = [], nlMetrics = {}, nlInit = false, nlEditId = null, nlAud = null;
+const nlPct = (a, b) => (b ? Math.round((a / b) * 100) + " %" : "—");
+
+function initNewsletter() {
+  if (nlInit) return; nlInit = true;
+  $("nl-new").addEventListener("click", () => nlOpen(null));
+  $("nl-close").addEventListener("click", () => $("nl-modal").classList.add("hidden"));
+  $("nl-count").addEventListener("click", nlComputeAudience);
+  $("nl-save").addEventListener("click", async () => { const id = await nlSave(); if (id) { $("nl-status").textContent = "✓ Brouillon enregistré."; loadNewsletters(); } });
+  $("nl-test").addEventListener("click", nlSendTest);
+  $("nl-send").addEventListener("click", nlSendAll);
+  document.querySelectorAll("#nl-modal .nl-rt").forEach((b) => b.addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand(b.dataset.cmd, false, null); }));
+  $("nl-color").addEventListener("input", (e) => { document.execCommand("foreColor", false, e.target.value); $("nl-body").focus(); });
+  $("nl-h2").addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand("formatBlock", false, "h2"); });
+  $("nl-link").addEventListener("mousedown", async (e) => {
+    e.preventDefault();
+    const sel = window.getSelection(); const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+    const url = await uiPrompt("Adresse du lien (https://…)", "https://");
+    if (!url) return;
+    if (range) { sel.removeAllRanges(); sel.addRange(range); }
+    if (sel && !sel.isCollapsed) document.execCommand("createLink", false, url);
+    else document.execCommand("insertHTML", false, `<a href="${esc(url)}">${esc(url)}</a>`);
+  });
+  $("nl-all").addEventListener("change", () => { $("nl-roles").querySelectorAll("input").forEach((c) => { c.disabled = $("nl-all").checked; }); });
+  $("nl-roles").innerHTML = NL_ROLE_OPTS.map(([v, l]) => `<label><input type="checkbox" class="nl-role" value="${v}" /> ${l}</label>`).join("");
+  $("nl-setup").innerHTML = `<b>Mise en place (une fois)</b> — <a href="#" id="nl-setup-toggle">voir la marche à suivre</a>
+    <div id="nl-setup-body" class="hidden" style="margin-top:8px;font-size:.86rem;line-height:1.5">
+      1. Crée un compte sur <b>resend.com</b> (gratuit jusqu'à 3 000 e-mails / mois) et ajoute le domaine <b>teamlausanne.ch</b> : Resend te donne 3 enregistrements DNS (DKIM, SPF, DMARC) à créer chez Wix, comme pour le site. Active <b>Open &amp; click tracking</b> sur le domaine.<br>
+      2. Crée une <b>API key</b> (Sending access) et colle-la dans Supabase › Edge Functions › Secrets sous le nom <b>RESEND_API_KEY</b>.<br>
+      3. Resend › Webhooks › Add : URL <code>https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/newsletter-webhook</code>, événements delivered / opened / clicked / bounced / complained ; colle le <b>Signing secret</b> dans Supabase sous <b>RESEND_WEBHOOK_SECRET</b>.<br>
+      Tant que l'étape 2 n'est pas faite, « Test → moi » et « Envoyer » répondent « clé absente ».
+    </div>`;
+  $("nl-setup").classList.remove("hidden");
+  $("nl-setup-toggle").addEventListener("click", (e) => { e.preventDefault(); $("nl-setup-body").classList.toggle("hidden"); });
+}
+async function loadNewsletters() {
+  initNewsletter();
+  const [{ data: rows, error }, { data: mets }] = await Promise.all([
+    sb.from("newsletters").select("*").order("created_at", { ascending: false }),
+    sb.from("newsletter_metrics").select("*"),
+  ]);
+  if (error) { $("nl-rows").innerHTML = `<tr><td colspan="13" class="muted">${esc(error.message)}</td></tr>`; return; }
+  nlList = rows || []; nlMetrics = {}; for (const m of mets || []) nlMetrics[m.newsletter_id] = m;
+  renderNewsletters();
+}
+function nlAudLabel(a) {
+  if (!a) return "—";
+  const parts = [];
+  if (a.all_people) parts.push("Tout le répertoire");
+  if (a.roles?.length) parts.push(a.roles.map((r) => (NL_ROLE_OPTS.find(([v]) => v === r) || [r, r])[1]).join(", "));
+  if (a.gz_all) parts.push("GameZone (tous)"); else if (a.gz_season_id) parts.push("GameZone " + (a.gz_season_name || "saison"));
+  if (a.extra_emails?.length) parts.push(`${a.extra_emails.length} e-mail(s) manuel(s)`);
+  return parts.join(" · ") || "—";
+}
+function renderNewsletters() {
+  $("nl-empty").hidden = nlList.length > 0;
+  $("nl-rows").innerHTML = nlList.map((n) => {
+    const m = nlMetrics[n.id] || {};
+    const acts = n.status === "brouillon"
+      ? `<button class="ghost nl-edit" data-id="${n.id}">Modifier</button><button class="ghost nl-del" data-id="${n.id}" title="Supprimer">✕</button>`
+      : `<button class="ghost nl-view" data-id="${n.id}">Voir</button><button class="ghost nl-dup" data-id="${n.id}" title="Réutiliser comme brouillon">Dupliquer</button>`;
+    return `<tr>
+      <td>${frDateTime(n.sent_at || n.created_at)}</td>
+      <td class="nl-subj"><b>${esc(n.subject || "(sans objet)")}</b></td>
+      <td class="muted" style="font-size:.8rem;white-space:normal;max-width:220px">${esc(nlAudLabel(n.audience))}</td>
+      <td>${m.n_total || 0}</td><td>${m.n_sent || 0}</td><td>${m.n_delivered || 0}</td>
+      <td><b>${m.n_opened || 0}</b> <span class="muted">${nlPct(m.n_opened, m.n_sent)}</span></td>
+      <td>${m.n_clicked || 0} <span class="muted">${nlPct(m.n_clicked, m.n_sent)}</span></td>
+      <td class="${m.n_bounced ? "dash-red" : ""}">${m.n_bounced || 0}</td>
+      <td class="${m.n_spam ? "dash-red" : ""}">${m.n_spam || 0}</td>
+      <td>${m.n_unsub || 0}</td>
+      <td><span class="nl-st ${n.status}">${NL_ST[n.status] || n.status}</span>${n.last_error ? `<div class="muted" style="font-size:.7rem;white-space:normal;max-width:180px" title="${esc(n.last_error)}">⚠ ${esc(n.last_error.slice(0, 60))}…</div>` : ""}</td>
+      <td class="he-acts">${acts}</td></tr>`;
+  }).join("");
+  const R = $("nl-rows");
+  R.querySelectorAll(".nl-edit").forEach((b) => b.addEventListener("click", () => nlOpen(nlList.find((x) => x.id === b.dataset.id))));
+  R.querySelectorAll(".nl-view").forEach((b) => b.addEventListener("click", () => nlShowDetail(b.dataset.id)));
+  R.querySelectorAll(".nl-dup").forEach((b) => b.addEventListener("click", () => { const n = nlList.find((x) => x.id === b.dataset.id); nlOpen({ ...n, id: null, status: "brouillon" }); }));
+  R.querySelectorAll(".nl-del").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await uiConfirm("Supprimer ce brouillon ?"))) return;
+    await sb.from("newsletters").delete().eq("id", b.dataset.id); loadNewsletters();
+  }));
+}
+async function nlShowDetail(id) {
+  const n = nlList.find((x) => x.id === id); if (!n) return;
+  const m = nlMetrics[id] || {};
+  const { data } = await sb.from("newsletter_recipients").select("email,name,source,status,open_count,click_count,error,sent_at").eq("newsletter_id", id).order("email");
+  const rows = data || [];
+  const kpi = (l, v, sub) => `<div><b>${v}</b>${esc(l)}${sub ? ` <span class="muted">${sub}</span>` : ""}</div>`;
+  $("nl-detail").innerHTML = `<div class="crm-head" style="align-items:center"><h2 style="margin:0;font-size:1.1rem">${esc(n.subject)} <span class="muted" style="font-weight:400;font-size:.85rem">— ${n.sent_at ? "envoyée le " + frDateTime(n.sent_at) : NL_ST[n.status]}</span></h2><span class="spacer"></span><button type="button" class="ghost" id="nl-detail-close">Fermer</button></div>
+    <div class="nl-kpi">${kpi("Destinataires", m.n_total || 0)}${kpi("Envoyés", m.n_sent || 0)}${kpi("Délivrés", m.n_delivered || 0, nlPct(m.n_delivered, m.n_sent))}${kpi("Ouvertures", m.n_opened || 0, nlPct(m.n_opened, m.n_sent))}${kpi("Clics", m.n_clicked || 0, nlPct(m.n_clicked, m.n_sent))}${kpi("Rebonds", m.n_bounced || 0)}${kpi("Spam", m.n_spam || 0)}${kpi("Désinscrits", m.n_unsub || 0)}${kpi("Erreurs", m.n_error || 0)}</div>
+    <div class="table-wrap"><table class="crm-table"><thead><tr><th>E-mail</th><th>Nom</th><th>Source</th><th>Statut</th><th>Ouv.</th><th>Clics</th><th>Détail</th></tr></thead><tbody>
+    ${rows.map((r) => `<tr><td>${esc(r.email)}</td><td>${esc(r.name || "")}</td><td class="muted">${esc(r.source || "")}</td><td><span class="nl-rcpt-st ${r.status}">${NL_RST[r.status] || r.status}</span></td><td>${r.open_count || ""}</td><td>${r.click_count || ""}</td><td class="muted" style="font-size:.78rem">${esc(r.error || "")}</td></tr>`).join("")}
+    </tbody></table></div>`;
+  $("nl-detail").classList.remove("hidden");
+  $("nl-detail-close").addEventListener("click", () => $("nl-detail").classList.add("hidden"));
+  $("nl-detail").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+// ---- Éditeur ----
+async function nlOpen(n) {
+  nlEditId = n?.id || null; nlAud = null;
+  $("nl-title").textContent = n?.id ? "Modifier la newsletter" : "Nouvelle newsletter";
+  $("nl-subject").value = n?.subject || "";
+  $("nl-from-name").value = n?.from_name || "Team Lausanne Academy";
+  $("nl-from-email").value = n?.from_email || "newsletter@teamlausanne.ch";
+  $("nl-reply").value = n?.reply_to || "info@teamlausanne.ch";
+  $("nl-body").innerHTML = n?.html || "";
+  const a = n?.audience || {};
+  $("nl-all").checked = !!a.all_people;
+  $("nl-roles").querySelectorAll("input").forEach((c) => { c.checked = (a.roles || []).includes(c.value); c.disabled = !!a.all_people; });
+  $("nl-gz-all").checked = !!a.gz_all;
+  const { data: gs } = await sb.from("gz_seasons").select("id,name,is_current").order("start_date", { ascending: false });
+  $("nl-gz-season").innerHTML = (gs || []).map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("");
+  $("nl-gz-season").value = a.gz_season_id || (gs || []).find((s) => s.is_current)?.id || (gs || [])[0]?.id || "";
+  $("nl-gz-season-on").checked = !!a.gz_season_id;
+  $("nl-extra").value = (a.extra_emails || []).join("\n");
+  $("nl-count-res").textContent = ""; $("nl-preview").innerHTML = ""; $("nl-status").textContent = "";
+  $("nl-modal").classList.remove("hidden");
+}
+function nlReadAudience() {
+  const roles = [...$("nl-roles").querySelectorAll("input:checked")].map((c) => c.value);
+  const gzSel = $("nl-gz-season");
+  return {
+    all_people: $("nl-all").checked, roles: $("nl-all").checked ? [] : roles,
+    gz_all: $("nl-gz-all").checked,
+    gz_season_id: (!$("nl-gz-all").checked && $("nl-gz-season-on").checked) ? (gzSel.value || null) : null,
+    gz_season_name: (!$("nl-gz-all").checked && $("nl-gz-season-on").checked) ? (gzSel.options[gzSel.selectedIndex]?.textContent || "") : "",
+    extra_emails: $("nl-extra").value.split(/[\n,;]+/).map((s) => s.trim()).filter((s) => /@/.test(s)),
+  };
+}
+async function nlComputeAudience() {
+  const aud = nlReadAudience();
+  $("nl-count-res").textContent = "Calcul…";
+  const { data, error } = await sb.rpc("newsletter_audience", { p_aud: aud });
+  if (error) { $("nl-count-res").textContent = "Erreur : " + error.message; return null; }
+  nlAud = data || [];
+  const bySrc = {}; for (const r of nlAud) bySrc[r.source] = (bySrc[r.source] || 0) + 1;
+  $("nl-count-res").innerHTML = `<b>${nlAud.length}</b> destinataire(s) uniques${nlAud.length ? " — " + Object.entries(bySrc).map(([k, v]) => `${esc(k)} : ${v}`).join(", ") : ""} <span class="muted">(désinscrits exclus)</span>`;
+  $("nl-preview").innerHTML = nlAud.slice(0, 40).map((r) => `<div>${esc(r.email)}${r.name ? ` <span class="muted">· ${esc(r.name)}</span>` : ""}</div>`).join("") + (nlAud.length > 40 ? `<div class="muted">… et ${nlAud.length - 40} autres</div>` : "");
+  return nlAud;
+}
+async function nlSave() {
+  const subject = $("nl-subject").value.trim(), html = $("nl-body").innerHTML.trim();
+  const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
+  const row = { subject, html, from_name: $("nl-from-name").value.trim() || "Team Lausanne Academy", from_email: $("nl-from-email").value.trim() || "newsletter@teamlausanne.ch", reply_to: $("nl-reply").value.trim() || null, audience: nlReadAudience() };
+  let res;
+  if (nlEditId) res = await sb.from("newsletters").update(row).eq("id", nlEditId).select("id").single();
+  else res = await sb.from("newsletters").insert({ ...row, created_by: uid, status: "brouillon" }).select("id").single();
+  if (res.error) { $("nl-status").textContent = "Erreur : " + res.error.message; return null; }
+  nlEditId = res.data.id; return nlEditId;
+}
+async function nlSendTest() {
+  if (!$("nl-subject").value.trim() || !$("nl-body").innerText.trim()) { uiAlert("Objet et contenu obligatoires."); return; }
+  const id = await nlSave(); if (!id) return;
+  const { data: sess } = await sb.auth.getSession(); const me = sess?.session?.user?.email;
+  $("nl-status").textContent = `Envoi du test à ${me}…`;
+  const { data, error } = await sb.functions.invoke("newsletter-send", { body: { id, test_to: me } });
+  if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} $("nl-status").textContent = "Échec : " + m; return; }
+  if (data?.error) { $("nl-status").textContent = "Échec : " + data.error; return; }
+  $("nl-status").textContent = `✓ Test envoyé à ${me}. Vérifie le rendu (et le dossier spam) avant l'envoi réel.`;
+  loadNewsletters();
+}
+async function nlSendAll() {
+  if (!$("nl-subject").value.trim() || !$("nl-body").innerText.trim()) { uiAlert("Objet et contenu obligatoires."); return; }
+  const id = await nlSave(); if (!id) return;
+  const aud = await nlComputeAudience(); if (!aud) return;
+  if (!aud.length) { uiAlert("Aucun destinataire : ajuste le ciblage."); return; }
+  if (!(await uiConfirm(`Envoyer « ${$("nl-subject").value.trim()} » à ${aud.length} destinataire(s) ? Cette action est définitive.`))) return;
+  const btn = $("nl-send"); btn.disabled = true; $("nl-status").textContent = "Préparation des destinataires…";
+  // (Re)construit la liste des destinataires en attente, puis envoie.
+  await sb.from("newsletter_recipients").delete().eq("newsletter_id", id).eq("status", "en_attente");
+  const rows = aud.map((r) => ({ newsletter_id: id, person_id: r.person_id, gz_participant_id: r.gz_participant_id, email: r.email, name: r.name, source: r.source }));
+  for (let i = 0; i < rows.length; i += 200) {
+    const { error } = await sb.from("newsletter_recipients").upsert(rows.slice(i, i + 200), { onConflict: "newsletter_id,email", ignoreDuplicates: true });
+    if (error) { $("nl-status").textContent = "Erreur : " + error.message; btn.disabled = false; return; }
+  }
+  await sb.from("newsletters").update({ n_recipients: rows.length }).eq("id", id);
+  $("nl-status").textContent = `Envoi à ${rows.length} destinataire(s)… (ne ferme pas la fenêtre)`;
+  const { data, error } = await sb.functions.invoke("newsletter-send", { body: { id } });
+  btn.disabled = false;
+  if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} $("nl-status").textContent = "Échec : " + m; loadNewsletters(); return; }
+  if (data?.error) { $("nl-status").textContent = "Échec : " + data.error; loadNewsletters(); return; }
+  $("nl-modal").classList.add("hidden");
+  await loadNewsletters();
+  uiAlert(`✓ Newsletter envoyée à ${data.sent} destinataire(s)${data.errors ? ` (${data.errors} lot(s) en erreur, voir le détail)` : ""}. Les ouvertures et clics apparaîtront au fil des heures.`);
 }
 
 // ===================================================================
