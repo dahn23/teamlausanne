@@ -66,7 +66,7 @@ const WORLDS = {
     cta: [],
     sections: [
       { type: "stats", anchor: "tournoi", items: [["Août 2027", "prochaine édition"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
-      { type: "split", anchor: "presentation", title: "Le grand rendez-vous du tennis vaudois masculin", video: "13MXc0bwKa0", vertical: true, body: [
+      { type: "split", anchor: "presentation", title: "Le grand rendez-vous du tennis vaudois masculin", videoFile: "assets/video/lausanne-open-2026.mp4", poster: "assets/video/lausanne-open-2026.jpg", vertical: true, body: [
         "Le Lausanne Open réunit chaque année plusieurs dizaines de joueurs de toutes nationalités, pour la plupart classés à l'ATP, sur les courts de la Pontaise.",
         "L'accès est entièrement gratuit, toute la semaine.",
       ], link: { label: "Site & résultats ITF ↗", href: ITF_URL } },
@@ -367,9 +367,11 @@ function sectionWrap(sec) {
 function sectionHTML(sec) {
   switch (sec.type) {
     case "split":
-      return `<section class="split${sec.video ? " split-hasvideo" : ""}">
-        ${sec.video
-          ? `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><iframe src="https://www.youtube.com/embed/${esc(sec.video)}" title="${esc(sec.title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
+      return `<section class="split${(sec.video || sec.videoFile) ? " split-hasvideo" : ""}">
+        ${(sec.video || sec.videoFile)
+          ? (sec.videoFile
+            ? `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><video class="split-native" controls playsinline preload="metadata" poster="${esc(sec.poster || "")}"><source src="${esc(sec.videoFile)}" type="video/mp4" />Votre navigateur ne peut pas lire cette vidéo.</video></div>`
+            : `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><iframe src="https://www.youtube.com/embed/${esc(sec.video)}" title="${esc(sec.title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`)
           : `<div class="split-media" style="background-image:url('${sec.photo}')"></div>`}
         <div class="split-body"><h2>${esc(sec.title)}</h2>
           ${sec.body.map((p) => `<p>${esc(p)}</p>`).join("")}${linkHTML(sec.link)}</div>
