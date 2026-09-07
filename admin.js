@@ -209,9 +209,9 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "winter", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
+  superadmin: ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "resa", "winter", "lockers", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["dashboard", "anniv", "resa", "cours", "matchs", "lastscores", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "lastscores", "phystests", "heures"],
   coach_physique: ["cours", "phystests", "heures"],
@@ -221,7 +221,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["dashboard", "Dashboard"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -402,6 +402,7 @@ function showView(view) {
   if (view === "heures") loadHeures();
   if (view === "factures") loadFactures();
   if (view === "winter") loadWinter();
+  if (view === "lockers") loadLockers();
   if (view === "lastscores") loadLastScores();
   if (view === "dashboard") loadDashboard();
   if (view === "locks") loadLocks();
@@ -4917,6 +4918,62 @@ async function sendHeuresToFiduciaire() {
     uiAlert(`✓ Décompte de ${heuresMoisLbl()} envoyé à ${FIDU_TO} depuis ${FIDU_FROM}. Il apparaîtra dans Messagerie › Envoyés à la prochaine relève.`);
   } catch (e) { uiAlert("Envoi impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = lbl;
+}
+
+// ===================================================================
+//  Casiers (vestiaires) : liste Hommes / Femmes, nom · e-mail · date · payé, sauvegarde automatique
+// ===================================================================
+let lkList = [], lkGender = "H", lkInit = false, lkQuery = "";
+async function loadLockers() {
+  if (!lkInit) {
+    lkInit = true;
+    document.querySelectorAll(".lk-subtab").forEach((b) => b.addEventListener("click", () => {
+      document.querySelectorAll(".lk-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      lkGender = b.dataset.g; loadLockers();
+    }));
+    $("lk-search").addEventListener("input", () => { lkQuery = $("lk-search").value.trim().toLowerCase(); renderLockers(); });
+  }
+  const { data, error } = await sb.from("lockers").select("*").eq("gender", lkGender).order("number");
+  if (error) { $("lk-rows").innerHTML = `<tr><td colspan="7" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
+  lkList = data || [];
+  renderLockers();
+}
+function renderLockers() {
+  const occ = lkList.filter((l) => (l.name || "").trim()).length, paid = lkList.filter((l) => (l.name || "").trim() && l.paid).length;
+  $("lk-stats").innerHTML = `<div class="et-stat"><b>${lkList.length}</b><span>casiers</span></div>
+    <div class="et-stat st-present"><b>${occ}</b><span>occupés</span></div>
+    <div class="et-stat"><b>${lkList.length - occ}</b><span>libres</span></div>
+    <div class="et-stat ${occ - paid ? "st-absent" : "st-present"}"><b>${occ - paid}</b><span>pas payés</span></div>`;
+  const q = lkQuery;
+  const rows = q ? lkList.filter((l) => String(l.number).includes(q) || (l.name || "").toLowerCase().includes(q) || (l.email || "").toLowerCase().includes(q)) : lkList;
+  $("lk-empty").hidden = lkList.length > 0;
+  $("lk-rows").innerHTML = rows.map((l) => {
+    const free = !(l.name || "").trim();
+    return `<tr class="${free ? "lk-free" : (l.paid ? "lk-paid" : "lk-due")}" data-id="${l.id}">
+      <td><b>${l.number}</b></td>
+      <td><input class="lk-f" data-k="name" value="${esc(l.name || "")}" placeholder="libre" /></td>
+      <td><input class="lk-f" data-k="email" type="email" value="${esc(l.email || "")}" placeholder="—" /></td>
+      <td><input class="lk-f lk-date" data-k="date" type="date" value="${l.date || ""}" /></td>
+      <td style="text-align:center"><input class="lk-f" data-k="paid" type="checkbox" ${l.paid ? "checked" : ""} title="Payé" /></td>
+      <td><input class="lk-f" data-k="note" value="${esc(l.note || "")}" placeholder="—" /></td>
+      <td class="he-acts">${free ? "" : `<button type="button" class="ghost lk-clear" title="Libérer le casier">✕</button>`}</td></tr>`;
+  }).join("");
+  const R = $("lk-rows");
+  R.querySelectorAll(".lk-f").forEach((inp) => inp.addEventListener("change", async () => {
+    const id = inp.closest("tr").dataset.id, l = lkList.find((x) => x.id === id); if (!l) return;
+    const k = inp.dataset.k; const v = inp.type === "checkbox" ? inp.checked : (inp.value.trim() || null);
+    const { data: sess } = await sb.auth.getSession();
+    const { error } = await sb.from("lockers").update({ [k]: v, updated_at: new Date().toISOString(), updated_by: sess?.session?.user?.id || null }).eq("id", id);
+    if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
+    l[k] = v; renderLockers();
+  }));
+  R.querySelectorAll(".lk-clear").forEach((b) => b.addEventListener("click", async () => {
+    const id = b.closest("tr").dataset.id, l = lkList.find((x) => x.id === id); if (!l) return;
+    if (!(await uiConfirm(`Libérer le casier ${l.number} (${l.name || ""}) ? Nom, e-mail, date et paiement seront effacés.`))) return;
+    const { error } = await sb.from("lockers").update({ name: null, email: null, date: null, paid: false, note: null, updated_at: new Date().toISOString() }).eq("id", id);
+    if (error) { uiAlert("Impossible : " + error.message); return; }
+    Object.assign(l, { name: null, email: null, date: null, paid: false, note: null }); renderLockers();
+  }));
 }
 
 // ===================================================================
