@@ -159,7 +159,7 @@ const DETAILS = {
           { name: "Loisirs", age: "9 à 18 ans", lines: ["9h00–17h00", "3h de tennis + 3h30 d'activité", "Repas inclus"], price: "450 CHF" },
           { name: "Loisirs ½ journée", age: "9 à 18 ans", lines: ["9h00–12h00 ou 14h00–17h00", "1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "290 CHF" },
           { name: "Entraîne-toi comme un pro", age: "10 à 19 ans · dès R7", lines: ["9h00–17h00", "4h de tennis + 1h30 physique + 1h d'activité", "Repas inclus · option privé +240 CHF (3h)"], price: "790 CHF", pro: true },
-          { name: "Stage adultes", age: "18 ans et +", lines: ["18h15–19h45 · semaines 4, 5 et 9", "1h30 de tennis par jour"], price: "240 CHF" },
+          { name: "Stage adultes", age: "18 ans et +", lines: ["18h15–19h45 · uniquement certaines semaines en été", "1h30 de tennis par jour"], price: "240 CHF" },
         ], link: { label: "Une question ? Nous écrire", contact: "Renseignement pour les stages" } },
       { type: "stageform", title: "Réserve ta place" },
     ],
