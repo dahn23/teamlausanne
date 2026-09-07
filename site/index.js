@@ -262,7 +262,7 @@ const DETAILS = {
         ["Journées GameZone", "Organiser des journées de tournoi GameZone."],
         ["Formations coaching", "Prise en charge de formations de coaching."],
       ], link: { label: "Nous écrire", contact: "Renseignement pour l'Academy" } },
-      { type: "gallery", items: ["assets/photos/coach2.jpg", "assets/photos/open-serve.jpg"] },
+      { type: "gallery", items: ["assets/photos/pro-2026-g1.jpg", "assets/photos/open-serve.jpg"] },
     ],
   },
   kids: {
