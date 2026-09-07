@@ -81,9 +81,9 @@ const WORLDS = {
       { type: "carousel", eyebrow: "Lausanne Open", title: "Une semaine d'événements",
         sub: "Entrée libre toute la semaine, animations grand public et hospitalité.",
         items: [
-          { name: "Initiation pour les écoles", photo: "assets/photos/open-kids.jpg" },
-          { name: "Journée Team Lausanne", photo: "assets/photos/journee-famille.jpg" },
-          { name: "VIP · Tennis & Lunch", photo: "assets/photos/open-lunch.jpg" },
+          { name: "Initiation pour les écoles", photo: "assets/photos/open-ecoles-2026.jpg" },
+          { name: "Journée Team Lausanne", photo: "assets/photos/journee-famille-2026.jpg" },
+          { name: "VIP · Tennis & Lunch", photo: "assets/photos/open-lunch-2026.jpg" },
         ]},
       { type: "seeds", anchor: "tetes-de-serie", title: "Voici les 8 têtes de série de l'édition 2026",
         sub: "Le tenant du titre, ancien numéro 1 mondial junior, et sept autres joueurs classés parmi les 650 meilleurs du monde. Classement ATP au moment du tirage." },
