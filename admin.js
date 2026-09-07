@@ -2323,7 +2323,7 @@ function rmPopup(pid) {
   const list = rmMap[pid] || [];
   $("rm-title").textContent = personName(pid);
   $("rm-body").innerHTML = list.length ? `<table class="crm-table"><thead><tr><th>Date</th><th>Tournoi</th><th>Adversaire</th><th>Class.</th><th>Score</th><th></th></tr></thead><tbody>
-    ${list.map((m) => `<tr class="${m.is_perf ? "rm-perf" : ""}"><td style="white-space:nowrap">${frDate(m.match_date)}</td><td>${esc(m.tournament_name || "—")}</td><td>${esc(m.opponent_name || "—")}</td><td>${esc(m.opponent_class || "—")}</td><td style="white-space:nowrap">${esc(m.score || "—")}</td><td>${m.is_perf ? "🔥 Perf" : m.won === true ? "✓ Gagné" : m.won === false ? "✗ Perdu" : "—"}</td></tr>`).join("")}
+    ${list.map((m) => `<tr class="${m.is_perf ? "rm-perf" : m.won === true ? "rm-win" : m.won === false ? "rm-loss" : ""}"><td style="white-space:nowrap">${frDate(m.match_date)}</td><td>${esc(m.tournament_name || "—")}</td><td>${esc(m.opponent_name || "—")}</td><td>${esc(m.opponent_class || "—")}</td><td style="white-space:nowrap">${esc(m.score || "—")}</td><td>${m.is_perf ? "🔥 Perf" : m.won === true ? "✓ Gagné" : m.won === false ? "✗ Perdu" : "—"}</td></tr>`).join("")}
     </tbody></table>` : '<p class="muted">Aucun match ces 7 derniers jours.</p>';
   $("rm-modal").classList.remove("hidden");
 }
