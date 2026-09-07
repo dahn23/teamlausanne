@@ -166,6 +166,7 @@ const DETAILS = {
       ]},
       { type: "stats", items: [["35", "semaines / an"], ["2h", "tennis / jour"], ["1h", "physique / jour"], ["4h", "études / jour"]] },
       { type: "features", title: "Un encadrement complet", items: [
+        ["Repas de midi", "Repas de midi inclus, pris sur place."],
         ["Écoles partenaires", "Enseignement à distance avec l'Institut DOMI, l'EPSU et le CNED."],
         ["Responsable pédagogique", "Un référent dédié : organisation, méthodologie, suivi des échéances."],
         ["Soutien académique", "Des assistants issus de l'EPFL et de l'UNIL, selon les besoins."],
@@ -176,7 +177,7 @@ const DETAILS = {
       { type: "rich", title: "Et après ?", body: [
         "Le programme développe autonomie, discipline et gestion du temps.",
         "Débouchés : université suisse, institutions américaines (NCAA) ou carrière tennistique professionnelle.",
-      ], note: "Repas de midi inclus.", link: { label: "Nous écrire", contact: "Renseignement pour l'Academy" } },
+      ], link: { label: "Nous écrire", contact: "Renseignement pour l'Academy" } },
       { type: "gallery", items: ["assets/photos/sport-etudes-2026-g1.jpg"] },
     ],
   },
@@ -233,6 +234,7 @@ const DETAILS = {
         ["Suivi", "Planification annuelle."],
       ]},
       { type: "features", title: "Ce qui est inclus", items: [
+        ["Repas de midi", "Repas de midi inclus, pris sur place."],
         ["Médical & physio", "Suivi médical, physiothérapie et tests réguliers."],
         ["Préparation mentale", "Un accompagnement mental intégré."],
         ["Cordage & équipement", "Cordages et vêtements fournis."],
