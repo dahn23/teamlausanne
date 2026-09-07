@@ -1645,7 +1645,7 @@ async function loadDashboard() {
     + dashGeneral(D.general || {}) + dashMail(D.mail || {})
     + dashGroup("Pro · Pro U18 · Sport-études", D.se || {})
     + dashGroup("Compétition & Performance", D.comp || {})
-    + dashClub(D.club || {}) + `</div>`;
+    + dashClub(D.club || {}) + dashProspects(D.prospects || {}, (D.general || {}).lastup || {}) + `</div>`;
   // « Voir tous » : révèle les lignes masquées (.dash-more) du même bloc.
   body.querySelectorAll(".dash-showmore").forEach((b) => b.addEventListener("click", () => {
     let el = b.previousElementSibling;
@@ -1675,7 +1675,7 @@ function dashGeneral(g) {
     : '<div class="muted">Aucun anniversaire à ±3 jours.</div>';
   return dashCard("Général",
     `<h3 class="dash-sub">Dernières mises à jour <span class="muted" style="font-weight:400;font-size:.8rem">(⚠️ rouge = &gt; 10 jours)</span></h3>
-     ${line("Tournois GameZone", lu.gz_at, lu.gz_by)}${line("Importer les matchs TeamLausanne", lu.matchs_at, lu.matchs_by)}${line("Importer les prospects", lu.rank_at, lu.rank_by)}${line("Importer les matchs des prospects", lu.scan_at, lu.scan_by)}
+     ${line("Tournois GameZone", lu.gz_at, lu.gz_by)}${line("Importer les matchs TeamLausanne", lu.matchs_at, lu.matchs_by)}
      <h3 class="dash-sub">Couverture coachs (cours à venir)</h3>${cov}
      <h3 class="dash-sub">Cours / études passés non validés (21 j)</h3>${unval}
      <h3 class="dash-sub">Anniversaires (J−3 → J+3)</h3>${bday}`);
@@ -4473,6 +4473,8 @@ function initProspects() {
     document.querySelectorAll(".prosp-subtab").forEach((x) => x.classList.toggle("active", x === b));
     $("prosp-sub-liste").classList.toggle("hidden", b.dataset.psub !== "liste");
     $("prosp-sub-import").classList.toggle("hidden", b.dataset.psub !== "import");
+    $("prosp-sub-suivi").classList.toggle("hidden", b.dataset.psub !== "suivi");
+    if (b.dataset.psub === "suivi") loadProspectFollowups();
   }));
   document.querySelectorAll(".prosp-table th[data-sort]").forEach((th) => th.addEventListener("click", () => {
     const k = th.dataset.sort;
@@ -4972,6 +4974,94 @@ async function renderPhysNotes() {
       renderPhysNotes();
     });
   }));
+}
+
+// ===================================================================
+//  Prospects › Suivi (saisie manuelle) + bloc Dashboard « Prospects »
+// ===================================================================
+const PF_MODES = [["surveiller", "À surveiller (alerte 1 mois)"], ["mail", "Contact pris par mail (1 sem.)"], ["tel", "Contact pris par téléphone (1 sem.)"], ["attente", "En attente d'un retour (1 sem.)"], ["standby", "En standby (3 mois)"], ["aucune", "Pas de relance pour le moment"]];
+const pfModeLbl = (m) => (PF_MODES.find(([k]) => k === m) || [m, m])[1];
+function pfAlertDate(mode, last) {
+  if (!last || mode === "aucune") return null;
+  const d = new Date(last + "T00:00:00");
+  if (mode === "surveiller") d.setMonth(d.getMonth() + 1); else if (mode === "standby") d.setMonth(d.getMonth() + 3); else d.setDate(d.getDate() + 7);
+  return d.toISOString().slice(0, 10);
+}
+let pfList = [], pfInit = false;
+async function loadProspectFollowups() {
+  if (!pfInit) {
+    pfInit = true;
+    $("pf-add").addEventListener("click", async () => {
+      const { data: sess } = await sb.auth.getSession();
+      const { error } = await sb.from("prospect_followups").insert({ created_by: sess?.session?.user?.id || null, last_contact: new Date().toISOString().slice(0, 10) });
+      if (error) { uiAlert(error.message); return; }
+      await loadProspectFollowups();
+      const first = $("pf-rows").querySelector('input[data-k="first_name"]'); if (first) first.focus();
+    });
+    $("pf-show-done").addEventListener("change", renderProspectFollowups);
+    $("pf-search").addEventListener("input", renderProspectFollowups);
+  }
+  const { data, error } = await sb.from("prospect_followups").select("*").order("created_at", { ascending: false });
+  if (error) { $("pf-rows").innerHTML = `<tr><td colspan="11" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
+  pfList = data || [];
+  renderProspectFollowups();
+}
+function renderProspectFollowups() {
+  const showDone = $("pf-show-done").checked, q = $("pf-search").value.trim().toLowerCase();
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = pfList.filter((r) => (showDone || !r.done) && (!q || [r.first_name, r.last_name, r.email, r.phone, r.license_no, r.ranking, r.status_text].some((v) => (v || "").toLowerCase().includes(q))));
+  $("pf-empty").hidden = pfList.length > 0;
+  const inp = (r, k, extra = "") => `<input class="pf-f" data-k="${k}" value="${esc(r[k] || "")}" ${extra} />`;
+  $("pf-rows").innerHTML = rows.map((r) => {
+    const al = pfAlertDate(r.mode, r.last_contact);
+    const due = al && al <= today, soon = al && !due && al <= new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+    return `<tr class="${r.done ? "muted" : due ? "pf-due" : ""}" data-id="${r.id}">
+      <td>${inp(r, "first_name", 'placeholder="Prénom" style="width:110px"')}</td>
+      <td>${inp(r, "last_name", 'placeholder="Nom" style="width:120px"')}</td>
+      <td>${inp(r, "license_no", 'placeholder="n° licence" style="width:110px" title="Licence Swiss Tennis (facultatif)"')}</td>
+      <td>${inp(r, "email", 'type="email" placeholder="—" style="width:180px"')}</td>
+      <td>${inp(r, "phone", 'placeholder="—" style="width:120px"')}</td>
+      <td>${inp(r, "ranking", 'placeholder="R5…" style="width:64px"')}</td>
+      <td><select class="pf-f" data-k="mode">${PF_MODES.map(([k, l]) => `<option value="${k}"${r.mode === k ? " selected" : ""}>${l}</option>`).join("")}</select></td>
+      <td><input class="pf-f" data-k="last_contact" type="date" value="${r.last_contact || ""}" style="width:130px" /></td>
+      <td style="white-space:nowrap">${al ? `<span class="${due ? "dash-red" : soon ? "pf-soon" : "muted"}">${due ? "⚠️ " : ""}${frDate(al)}</span>` : '<span class="muted">—</span>'}</td>
+      <td><textarea class="pf-f" data-k="status_text" rows="2" placeholder="Où ça en est…" style="width:220px">${esc(r.status_text || "")}</textarea></td>
+      <td class="he-acts"><button type="button" class="ghost pf-done" title="${r.done ? "Réactiver" : "Archiver (plus suivi)"}">${r.done ? "↩" : "✓"}</button><button type="button" class="ghost pf-del" title="Supprimer">✕</button></td></tr>`;
+  }).join("");
+  const R = $("pf-rows");
+  R.querySelectorAll(".pf-f").forEach((el) => el.addEventListener("change", async () => {
+    const id = el.closest("tr").dataset.id, r = pfList.find((x) => x.id === id); if (!r) return;
+    const k = el.dataset.k, v = el.value.trim() === "" ? (k === "last_contact" ? r.last_contact : null) : el.value.trim();
+    const { error } = await sb.from("prospect_followups").update({ [k]: v, updated_at: new Date().toISOString() }).eq("id", id);
+    if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
+    r[k] = v; if (k === "mode" || k === "last_contact") renderProspectFollowups();
+  }));
+  R.querySelectorAll(".pf-done").forEach((b) => b.addEventListener("click", async () => {
+    const id = b.closest("tr").dataset.id, r = pfList.find((x) => x.id === id); if (!r) return;
+    await sb.from("prospect_followups").update({ done: !r.done, updated_at: new Date().toISOString() }).eq("id", id);
+    r.done = !r.done; renderProspectFollowups();
+  }));
+  R.querySelectorAll(".pf-del").forEach((b) => b.addEventListener("click", async () => {
+    const id = b.closest("tr").dataset.id, r = pfList.find((x) => x.id === id); if (!r) return;
+    if (!(await uiConfirm(`Supprimer ${r.first_name || ""} ${r.last_name || ""} ? (définitif — sinon utilise ✓ pour archiver)`))) return;
+    await sb.from("prospect_followups").delete().eq("id", id);
+    pfList = pfList.filter((x) => x.id !== id); renderProspectFollowups();
+  }));
+}
+// Bloc Dashboard « Prospects » : alertes échues / à venir (7 j) + les deux mises à jour d'import liées aux prospects.
+function dashProspects(p, lu) {
+  const today = new Date().toISOString().slice(0, 10);
+  const line = (label, at, by) => { const red = dDaysAgo(at) > 10; return `<div class="dash-row"><span>${esc(label)}</span><span class="${red ? "dash-red" : ""}">${at ? dFD(at) : "jamais"}${by ? " · " + esc(by) : ""}${red ? " ⚠️" : ""}</span></div>`; };
+  const alerts = p.alerts || [];
+  const due = alerts.filter((a) => a.alert_at <= today), soon = alerts.filter((a) => a.alert_at > today);
+  const li = (a) => `<div class="dash-li"><b>${esc(a.name || "—")}</b>${a.ranking ? ` <span class="muted">(${esc(a.ranking)})</span>` : ""} — ${esc(pfModeLbl(a.mode))}, dernière interaction ${dFD(a.last_contact)}${a.status_text ? `<div class="muted" style="font-size:.8rem">${esc(a.status_text)}</div>` : ""}</div>`;
+  return dashCard("Prospects",
+    `<h3 class="dash-sub">Dernières mises à jour <span class="muted" style="font-weight:400;font-size:.8rem">(⚠️ rouge = &gt; 10 jours)</span></h3>
+     ${line("Importer les prospects", lu.rank_at, lu.rank_by)}${line("Importer les matchs des prospects", lu.scan_at, lu.scan_by)}
+     <h3 class="dash-sub">À relancer maintenant <span class="muted" style="font-weight:400;font-size:.8rem">(${p.n_active || 0} suivi(s) actifs)</span></h3>
+     ${due.length ? due.map(li).join("") : '<div class="dash-ok">✓ Aucune relance en retard.</div>'}
+     <h3 class="dash-sub">À relancer dans les 7 jours</h3>
+     ${soon.length ? soon.map((a) => li(a).replace("</b>", `</b> <span class="muted">→ ${dFD(a.alert_at)}</span>`)).join("") : '<div class="muted">—</div>'}`);
 }
 
 // ===================================================================

@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TL Console" />
-  <link rel="stylesheet" href="style.css?v=166" />
+  <link rel="stylesheet" href="style.css?v=167" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -130,7 +130,18 @@
           <div class="crm-head"><h1>Prospects</h1></div>
           <div class="prosp-subtabs">
             <button type="button" class="prosp-subtab active" data-psub="liste">Liste</button>
+            <button type="button" class="prosp-subtab" data-psub="suivi">Suivi</button>
             <button type="button" class="prosp-subtab" data-psub="import">Import / outils</button>
+          </div>
+          <div id="prosp-sub-suivi" class="hidden">
+            <p class="muted" style="margin:-6px 0 12px">Prospects suivis à la main. Le <b>mode de suivi</b> programme une alerte dans le Dashboard à partir de la <b>dernière interaction</b> : à surveiller → 1 mois · contact par mail / téléphone · en attente d'un retour → 1 semaine · standby → 3 mois · pas de relance → aucune alerte. Tout s'enregistre automatiquement.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+              <button type="button" id="pf-add">➕ Nouveau prospect</button>
+              <label class="check" style="margin:0"><input type="checkbox" id="pf-show-done" /> Afficher les archivés</label>
+              <input id="pf-search" placeholder="Rechercher…" style="min-width:200px" />
+            </div>
+            <div class="table-wrap"><table class="crm-table pf-table"><thead><tr><th>Prénom</th><th>Nom</th><th>Licence</th><th>E-mail</th><th>Tél.</th><th>Class.</th><th>Suivi</th><th>Dernière interaction</th><th>Alerte</th><th>Où ça en est</th><th></th></tr></thead><tbody id="pf-rows"></tbody></table></div>
+            <p id="pf-empty" class="muted" hidden>Aucun prospect suivi. Clique « Nouveau prospect ».</p>
           </div>
           <div id="prosp-sub-liste">
           <p class="muted" style="margin:-6px 0 12px">Repérage des jeunes joueurs suisses (moins de 19 ans, R7 ou mieux). Données issues des classements &amp; matchs Swiss Tennis.</p>
