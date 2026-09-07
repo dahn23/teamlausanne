@@ -21,7 +21,7 @@ const WORLDS = {
     tag: "Academy", logo: "assets/logo-academie.webp",
     slogan: "Grandir. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
-    hero: "assets/photos/competition-2026-g1.jpg",
+    hero: "assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
     cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Nous contacter", type: "contact", source: "Renseignement pour l'Academy" }],
     sections: [
       { type: "rich", anchor: "philosophie", title: "Notre philosophie", body: [
@@ -62,7 +62,7 @@ const WORLDS = {
     tag: "Lausanne Open", logo: "assets/logo-open.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
     desc: "Lausanne Open — l'unique tournoi international de tennis masculin du canton de Vaud. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
-    hero: "assets/photos/open-2026-6.jpg",
+    hero: "assets/photos/open-2026-6.jpg", heroPos: "center 30%",
     cta: [],
     sections: [
       { type: "stats", anchor: "tournoi", items: [["Août 2027", "prochaine édition"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
@@ -158,7 +158,7 @@ const DETAILS = {
   },
   "sport-etudes": {
     world: "academie", title: "Sport-études", subtitle: "Concilier études et tennis, au plus haut niveau",
-    hero: "assets/photos/sport-etudes-2026.jpg",
+    hero: "assets/photos/sport-etudes-2026.jpg", heroPos: "42% 22%",
     sections: [
       { type: "rich", title: "Le programme de référence", body: [
         "Le sport-études permet aux 14–19 ans de concilier études et entraînement intensif, dans un cadre optimal et un suivi individualisé.",
@@ -218,7 +218,7 @@ const DETAILS = {
   },
   "pro-u18": {
     world: "academie", title: "Pro U18", subtitle: "Après la scolarité, viser le circuit ITF junior",
-    hero: "assets/photos/pro-u18-2026.jpg",
+    hero: "assets/photos/pro-u18-2026.jpg", heroPos: "55% 12%",
     sections: [
       { type: "rich", title: "Monter dans la hiérarchie mondiale", body: [
         "Après la scolarité obligatoire, le programme Pro U18 permet de s'entraîner à plein temps tout en participant au circuit ITF junior.",
@@ -241,7 +241,7 @@ const DETAILS = {
   },
   pro: {
     world: "academie", title: "Pro", subtitle: "Un accompagnement sur mesure vers le circuit professionnel",
-    hero: "assets/photos/pro-2026.jpg",
+    hero: "assets/photos/pro-2026.jpg", heroPos: "center 42%",
     sections: [
       { type: "rich", title: "Du sur-mesure", body: [
         "Au niveau professionnel, il n'y a pas d'offre standard : chaque joueuse et joueur bénéficie d'un programme entièrement personnalisé.",
@@ -679,9 +679,10 @@ function sectionHTML(sec) {
   }
 }
 
-function paintHero({ logo, hero, tag, slogan, desc, ctaHTML }) {
+function paintHero({ logo, hero, heroPos, tag, slogan, desc, ctaHTML }) {
   $("nav-logo").src = logo;
   $("hero-bg").style.backgroundImage = `url("${hero}")`;
+  $("hero-bg").style.backgroundPosition = heroPos || "center";   // point d'intérêt (visages) par page
   $("hero-logo").src = logo;
   $("hero-tag").textContent = tag;
   $("hero-slogan").textContent = slogan;
@@ -697,7 +698,7 @@ function renderWorld(key) {
     c.type === "contact" ? `<button class="btn-cta" data-contact="${esc(c.source)}">${esc(c.label)}</button>`
     : c.type === "scroll" ? `<button class="btn-cta" data-scroll="${esc(c.target)}">${esc(c.label)}</button>`
     : `<button class="btn-cta" data-cta="${c.type}">${esc(c.label)}</button>`).join("");
-  paintHero({ logo: w.logo, hero: w.hero, tag: w.tag, slogan: w.slogan, desc: w.desc, ctaHTML });
+  paintHero({ logo: w.logo, hero: w.hero, heroPos: w.heroPos, tag: w.tag, slogan: w.slogan, desc: w.desc, ctaHTML });
   $("world-main").innerHTML = w.sections.map(sectionWrap).join("");
   animate();
 }
@@ -708,7 +709,7 @@ function renderDetail(id) {
   document.body.dataset.world = d.world;
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === d.world));
   const ctaHTML = `<button class="btn-cta ghost" data-back="${d.world}">← Retour à ${esc(w.tag.toLowerCase())}</button>`;
-  paintHero({ logo: w.logo, hero: d.hero, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML });
+  paintHero({ logo: w.logo, hero: d.hero, heroPos: d.heroPos, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML });
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();
   if ($("stgp-list")) stgLoad();
