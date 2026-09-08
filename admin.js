@@ -1858,14 +1858,20 @@ async function renderCoursSeason(personId, seasonId) {
       pres.forEach((o) => { if (o !== personId) d.withMin[o] = (d.withMin[o] || 0) + dur; });
     }
   });
-  body.innerHTML = coursBoxHtml("🎾 Tennis", D.tennis, "tn") + coursBoxHtml("💪 Physique", D.phys, "ph");
+  body.innerHTML = coursBoxHtml("Tennis", D.tennis, "tn") + coursBoxHtml("Physique", D.phys, "ph");
   body.querySelectorAll(".cours-more").forEach((b) => b.addEventListener("click", () => { const r = $(b.dataset.t + "-rest"); if (r) r.classList.remove("hidden"); b.remove(); }));
 }
 
+// Icônes « Team Lausanne » (trait bleu, comme le menu) : raquette pour Tennis, haltère pour Physique.
+const COURS_ICONS = {
+  tn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="14.5" cy="8.5" rx="5.5" ry="6.5" transform="rotate(35 14.5 8.5)"/><path d="M11 13.5 4.5 20"/><path d="M12.2 6.2l4.6 4.6M10.4 8.6l4.6 4.6M14.3 4.4l4.6 4.6"/><circle cx="5" cy="19.5" r="1.4"/></svg>',
+  ph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4M21 10v4"/><rect x="5" y="8" width="3" height="8" rx="1"/><rect x="16" y="8" width="3" height="8" rx="1"/><path d="M8 12h8"/></svg>',
+};
 function coursBoxHtml(title, d, key) {
   const fmt = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}h${String(r).padStart(2, "0")}` : h ? `${h}h` : `${r}min`; };
+  const head = `<div class="cours-box-h"><span class="cours-ico">${COURS_ICONS[key] || ""}</span>${esc(title)}</div>`;
   const marked = d.present + d.absent + d.late;
-  if (!marked && !d.annonce) return `<div class="cours-box"><div class="cours-box-h">${title}</div><p class="muted" style="font-size:.85rem;margin:6px 0 0">Aucun cours cette saison.</p></div>`;
+  if (!marked && !d.annonce) return `<div class="cours-box">${head}<p class="muted" style="font-size:.85rem;margin:6px 0 0">Aucun cours cette saison.</p></div>`;
   const pct = marked ? Math.round((d.present / marked) * 100) : 0;
   const partners = Object.entries(d.withMin).map(([id, m]) => ({ id, m })).sort((a, b) => b.m - a.m);
   const row = (p) => `<div class="att-row"><span class="att-d">${esc(trFull(p.id))}</span><span class="att-badge">${fmt(p.m)}</span></div>`;
@@ -1873,11 +1879,22 @@ function coursBoxHtml(title, d, key) {
   const partHtml = partners.length
     ? shown.map(row).join("") + (rest.length ? `<div id="${key}-rest" class="hidden">${rest.map(row).join("")}</div><button type="button" class="ghost cours-more" data-t="${key}" style="margin-top:6px">Afficher plus (${rest.length})</button>` : "")
     : '<span class="muted" style="font-size:.85rem">— personne —</span>';
+  const chip = (cls, n, l) => `<span class="ck-chip ${cls}"><b>${n}</b> ${l}</span>`;
   return `<div class="cours-box">
-    <div class="cours-box-h">${title}</div>
-    <div class="cours-line"><b>Présences</b> — ${d.present} présent · ${d.late} retard · ${d.absent} absent${marked ? ` · <b>${pct}%</b>` : ""}${d.annonce ? ` · ${d.annonce} annoncé` : ""}</div>
-    <div class="cours-line"><b>Temps de jeu réel</b> — seul ${fmt(d.g[1])} · à 2 ${fmt(d.g[2])} · à 3 ${fmt(d.g[3])} · à 4+ ${fmt(d.g[4])} · <b>total ${fmt(d.total)}</b></div>
-    <div class="cours-line" style="margin-top:6px"><b>Joué avec</b></div>
+    ${head}
+    <div class="cours-kpis">
+      <div class="cours-kpi">
+        <div class="ck-lbl">Présences</div>
+        <div class="ck-val">${marked ? pct + " %" : "—"}<span class="ck-unit">${marked ? ` de présence sur ${marked} cours` : ""}</span></div>
+        <div class="ck-chips">${chip("ok", d.present, "présent")}${chip("late", d.late, "retard")}${chip("ko", d.absent, "absent")}${d.annonce ? chip("", d.annonce, "annoncé") : ""}</div>
+      </div>
+      <div class="cours-kpi">
+        <div class="ck-lbl">Temps de jeu réel</div>
+        <div class="ck-val">${fmt(d.total)}<span class="ck-unit"> au total</span></div>
+        <div class="ck-chips">${chip("", fmt(d.g[1]), "seul")}${chip("", fmt(d.g[2]), "à 2")}${chip("", fmt(d.g[3]), "à 3")}${chip("", fmt(d.g[4]), "à 4+")}</div>
+      </div>
+    </div>
+    <div class="cours-line" style="margin-top:10px"><b>Joué avec</b></div>
     <div class="att-list">${partHtml}</div>
   </div>`;
 }

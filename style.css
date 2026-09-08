@@ -2424,3 +2424,17 @@ tr.rm-loss td{background:#fde8e8}
 .nl-st{display:inline-block;font-size:.72rem;font-weight:800;border-radius:6px;padding:2px 7px;text-transform:uppercase;letter-spacing:.03em}
 .nl-st.brouillon{background:#eef1f7;color:#4b5563}.nl-st.envoi{background:#fff4e5;color:#b45309}.nl-st.envoyee{background:#e3f6ea;color:#0b6b3a}
 .nl-rcpt-st.ouvert,.nl-rcpt-st.clique{color:#0b6b3a;font-weight:700}.nl-rcpt-st.rebond,.nl-rcpt-st.spam,.nl-rcpt-st.erreur{color:#b91c1c;font-weight:700}.nl-rcpt-st.desinscrit{color:#b45309}
+/* Fiche › Cours : en-tête avec icône Team Lausanne + cartes Présences / Temps de jeu */
+.cours-box-h{display:flex;align-items:center;gap:8px}
+.cours-ico{display:inline-flex;width:26px;height:26px;border-radius:8px;background:#e8edff;color:var(--blue,#1e3ad1);align-items:center;justify-content:center}
+.cours-ico svg{width:17px;height:17px}
+.cours-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+@media(max-width:640px){.cours-kpis{grid-template-columns:1fr}}
+.cours-kpi{background:#f4f7ff;border:1px solid #cfdaf7;border-radius:12px;padding:12px 14px}
+.ck-lbl{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#4b5563}
+.ck-val{font-size:1.55rem;font-weight:900;color:var(--blue-ink,#0f1f6e);margin:2px 0 6px;line-height:1.1}
+.ck-unit{font-size:.8rem;font-weight:500;color:#6b7280}
+.ck-chips{display:flex;flex-wrap:wrap;gap:5px}
+.ck-chip{font-size:.76rem;background:#fff;border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:#374151}
+.ck-chip b{color:#111}
+.ck-chip.ok b{color:#0b6b3a}.ck-chip.late b{color:#b45309}.ck-chip.ko b{color:#b91c1c}
