@@ -1822,7 +1822,7 @@ async function renderCoursSeason(personId, seasonId) {
   const courseIds = mine.map((p) => p.course_id);
   const [att, segs, books] = await Promise.all([
     fetchInChunks("attendance", "course_id,person_id,status", "course_id", courseIds, (q) => q.eq("is_coach", false)),
-    fetchInChunks("course_segments", "id,course_id,minutes", "course_id", courseIds),
+    fetchInChunks("course_segments", "id,course_id,minutes,note", "course_id", courseIds),
     fetchInChunks("court_bookings", "court_id,course_id", "course_id", courseIds),
   ]);
   // Un cours réservé sur le court « Fitness » compte comme physique (même si son type ne dit pas « physique »).
@@ -1833,7 +1833,17 @@ async function renderCoursSeason(personId, seasonId) {
   const segByCourse = {}; segs.forEach((sg) => (segByCourse[sg.course_id] || (segByCourse[sg.course_id] = [])).push(sg));
   const playersBySeg = {}; sp.forEach((r) => (playersBySeg[r.segment_id] || (playersBySeg[r.segment_id] = [])).push(r.person_id));
   const isPhys = (name) => /physique|fitness/i.test(name || "");
-  const mk = () => ({ present: 0, absent: 0, late: 0, annonce: 0, g: { 1: 0, 2: 0, 3: 0, 4: 0 }, withMin: {}, total: 0 });
+  const mk = () => ({ present: 0, absent: 0, late: 0, annonce: 0, g: { 1: 0, 2: 0, 3: 0, 4: 0 }, withMin: {}, total: 0, themes: {} });
+  // Notes des blocs (« Coup droit », « Service + volée »…) regroupées par thème : même texte à l'accent, la casse,
+  // la ponctuation et le pluriel près → une seule ligne, avec le total d'heures et les dates.
+  const themeKey = (t) => String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(Boolean).map((w) => (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w)).join(" ");
+  const addTheme = (d, note, minutes, date) => {
+    const raw = String(note || "").trim(); if (!raw) return;
+    const k = themeKey(raw); if (!k) return;
+    const t = d.themes[k] || (d.themes[k] = { minutes: 0, n: 0, dates: [], labels: {} });
+    t.minutes += minutes; t.n++; if (!t.dates.includes(date)) t.dates.push(date);
+    t.labels[raw] = (t.labels[raw] || 0) + 1;
+  };
   const D = { tennis: mk(), phys: mk() };
   mine.forEach((p) => {
     const c = p.courses, cid = p.course_id;
@@ -1848,6 +1858,7 @@ async function renderCoursSeason(personId, seasonId) {
         const pls = playersBySeg[sg.id] || []; if (!pls.includes(personId)) return;
         const m = sg.minutes || 0, gs = Math.min(pls.length, 4) || 1;
         d.g[gs] += m; d.total += m;
+        addTheme(d, sg.note, m, c.course_date);
         pls.forEach((o) => { if (o !== personId) d.withMin[o] = (d.withMin[o] || 0) + m; });
       });
     } else {                                                  // cours normal → durée pleine, groupe = présents
@@ -1880,6 +1891,18 @@ function coursBoxHtml(title, d, key) {
     ? shown.map(row).join("") + (rest.length ? `<div id="${key}-rest" class="hidden">${rest.map(row).join("")}</div><button type="button" class="ghost cours-more" data-t="${key}" style="margin-top:6px">Afficher plus (${rest.length})</button>` : "")
     : '<span class="muted" style="font-size:.85rem">— personne —</span>';
   const chip = (cls, n, l) => `<span class="ck-chip ${cls}"><b>${n}</b> ${l}</span>`;
+  // Thèmes travaillés (notes des blocs du head coach), regroupés, triés par temps, dans un menu replié.
+  const themes = Object.values(d.themes || {}).map((t) => {
+    const label = Object.entries(t.labels).sort((a, b) => b[1] - a[1])[0][0];
+    const variants = Object.keys(t.labels).filter((l) => l !== label);
+    return { label, variants, minutes: t.minutes, n: t.n, dates: t.dates.sort() };
+  }).sort((a, b) => b.minutes - a.minutes);
+  const themesHtml = themes.length ? `<details class="cours-themes">
+      <summary><b>Thèmes travaillés</b> <span class="muted">— ${themes.length} thème${themes.length > 1 ? "s" : ""} · ${fmt(themes.reduce((a, t) => a + t.minutes, 0))}</span></summary>
+      <div class="cours-themes-list">${themes.map((t) => `<div class="cours-theme" title="${esc(t.dates.map(frDate).join(", "))}">
+        <span class="ct-lbl">${esc(t.label)}${t.variants.length ? ` <span class="muted ct-var">(aussi : ${esc(t.variants.join(", "))})</span>` : ""}</span>
+        <span class="ct-meta"><b>${fmt(t.minutes)}</b> · ${t.n} bloc${t.n > 1 ? "s" : ""} · ${t.dates.length} jour${t.dates.length > 1 ? "s" : ""}</span></div>`).join("")}</div>
+    </details>` : "";
   return `<div class="cours-box">
     ${head}
     <div class="cours-kpis">
@@ -1894,6 +1917,7 @@ function coursBoxHtml(title, d, key) {
         <div class="ck-chips">${chip("", fmt(d.g[1]), "seul")}${chip("", fmt(d.g[2]), "à 2")}${chip("", fmt(d.g[3]), "à 3")}${chip("", fmt(d.g[4]), "à 4+")}</div>
       </div>
     </div>
+    ${themesHtml}
     <div class="cours-line" style="margin-top:10px"><b>Joué avec</b></div>
     <div class="att-list">${partHtml}</div>
   </div>`;
