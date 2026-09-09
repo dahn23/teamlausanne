@@ -4460,7 +4460,7 @@ async function deleteNews() {
 // ===================================================================
 //  Inscriptions (demandes depuis les pages de filière du site)
 // ===================================================================
-const FILIERE_LABEL = { competition: "Compétition", performance: "Performance", club: "Club", kidstennis: "KidsTennis" };
+const FILIERE_LABEL = { competition: "Compétition", performance: "Performance", club: "Club", kidstennis: "KidsTennis", adultes: "Adultes" };
 let inscList = [];
 
 async function loadInscriptions() {

@@ -54,6 +54,7 @@ const WORLDS = {
           { name: "Pro", photo: "assets/photos/pro-2026.jpg", href: "#pro" },
           { name: "Game Zone", photo: "assets/photos/gamezone-2026.jpg", href: "#gamezone" },
           { name: "Stages", photo: "assets/photos/stages-2026.jpg", href: "#stages" },
+          { name: "Adultes", photo: "assets/webflow/prog-adults.webp", href: "#adultes" },
         ]},
     ],
   },
@@ -324,6 +325,43 @@ const DETAILS = {
       ], link: { label: "Nous écrire", contact: "Cours juniors" } },
       { type: "enroll", title: "Demander une inscription", filiere: "club", ranking: false,
         lead: "Envie de rejoindre l'offre Club ? Remplissez ce formulaire, le secrétariat vous recontacte." },
+    ],
+  },
+  adultes: {
+    world: "academie", title: "Cours adultes", subtitle: "Saison 2026-2027 — cours privés, semi-privés et de groupe, tous niveaux",
+    hero: "assets/webflow/prog-adults.webp", heroPos: "center 40%",
+    sections: [
+      { type: "rich", title: "Le tennis pour les adultes, toute la saison", body: [
+        "Team Lausanne Cours Adultes est l'association qui organise désormais l'ensemble des cours adultes du TC Lausanne-Sports et de Team Lausanne.",
+        "Cours privés, semi-privés et de groupe, tous niveaux, du débutant au joueur classé, en français ou en anglais.",
+      ]},
+      { type: "features", title: "En pratique", items: [
+        ["Lieu", "TC Lausanne-Sports, Route des Plaines-du-Loup 7, 1018 Lausanne."],
+        ["Saison", "Du 26 octobre 2026 au 2 juillet 2027."],
+        ["Rythme", "Cours d'une heure, un créneau hebdomadaire fixe réservé pour toute la saison (29 à 31 semaines selon le jour choisi)."],
+        ["Fréquence", "1×, 2× ou 3× par semaine, avec possibilité de créneaux de 2 h consécutives."],
+        ["Langue", "Cours donnés en français ou en anglais."],
+      ]},
+      { type: "features", title: "Nos formules", items: [
+        ["Cours privé", "1 personne : progression sur mesure avec le coach."],
+        ["Cours semi-privé", "2 personnes : un partenaire de jeu, l'attention du coach."],
+        ["Cours de groupe — 3 personnes", "Petit groupe de niveau homogène."],
+        ["Cours de groupe — 4 personnes", "Le format le plus convivial, échanges et points joués."],
+        ["Formule flexible", "Rejoindre n'importe quel cours de groupe (3 ou 4 personnes) selon votre niveau et vos disponibilités."],
+      ]},
+      { type: "rich", title: "Cours d'essai en septembre", body: [
+        "Durant le mois de septembre 2026, des cours d'essai à tarif réduit vous permettent de tester avant de vous engager sur la saison complète.",
+      ], link: { label: "Demander un cours d'essai", scroll: "enroll-form" } },
+      { type: "features", title: "Conditions", items: [
+        ["Engagement", "Inscription pour l'ensemble de la saison, créneau réservé."],
+        ["Absences", "Cours non remboursés, sauf blessure ou maladie de longue durée avec certificat médical : remboursement possible après 4 semaines d'absence continue."],
+        ["Cours privé", "Replanifiable selon les disponibilités du club et des coachs."],
+        ["Semi-privé et groupe", "Cours non rattrapables."],
+        ["Paiement", "En 1 ou 3 fois."],
+        ["Places", "Limitées, attribuées par ordre d'inscription, confirmées à réception du paiement ou du premier acompte."],
+      ]},
+      { type: "enroll", filiere: "adultes", adultes: true, title: "Je m'inscris ou je demande un cours d'essai",
+        lead: "Indiquez la formule qui vous intéresse et vos disponibilités : le secrétariat vous propose un créneau et un coach." },
     ],
   },
   gamezone: {
@@ -664,16 +702,31 @@ function sectionHTML(sec) {
             <label class="cf-field"><span>Prénom</span><input type="text" id="en-first" required /></label>
             <label class="cf-field"><span>Nom</span><input type="text" id="en-last" required /></label>
           </div>
-          <div class="cf-row">
+          ${sec.adultes ? "" : `<div class="cf-row">
             <label class="cf-field"><span>Date de naissance</span><input type="date" id="en-birth" required /></label>
             <label class="cf-field"><span>N° AVS</span><input type="text" id="en-avs" placeholder="756.XXXX.XXXX.XX" /></label>
-          </div>
+          </div>`}
           <div class="cf-row">
             <label class="cf-field"><span>Téléphone</span><input type="tel" id="en-phone" autocomplete="tel" required /></label>
             <label class="cf-field"><span>Email</span><input type="email" id="en-email" autocomplete="email" required /></label>
           </div>
           ${sec.ranking ? `<label class="cf-field"><span>Classement</span><input type="text" id="en-ranking" placeholder="ex. R4, N3, sans classement…" /></label>` : ""}
-          <label class="cf-field"><span>Commentaire</span><textarea id="en-comment" rows="3"></textarea></label>
+          ${sec.adultes ? `<div class="cf-row">
+            <label class="cf-field"><span>Formule souhaitée</span><select id="en-formule" required>
+              <option value="">— choisir —</option>
+              <option>Cours d'essai (septembre)</option>
+              <option>Cours privé — 1 personne</option>
+              <option>Cours semi-privé — 2 personnes</option>
+              <option>Cours de groupe — 3 personnes</option>
+              <option>Cours de groupe — 4 personnes</option>
+              <option>Formule flexible</option>
+            </select></label>
+            <label class="cf-field"><span>Fréquence</span><select id="en-freq">
+              <option>1× par semaine</option><option>2× par semaine</option><option>3× par semaine</option>
+            </select></label>
+          </div>
+          <label class="cf-field"><span>Vos disponibilités</span><textarea id="en-dispo" rows="3" placeholder="ex. lundi et mercredi soir dès 18h, samedi matin…" required></textarea></label>
+          <label class="cf-field"><span>Niveau / remarques</span><textarea id="en-comment" rows="2" placeholder="Niveau actuel, classement éventuel, langue souhaitée…"></textarea></label>` : `<label class="cf-field"><span>Commentaire</span><textarea id="en-comment" rows="3"></textarea></label>`}
           <button type="submit" id="en-btn">Envoyer ma demande d'inscription</button>
           <p id="en-error" class="error" hidden></p>
         </form>
@@ -1036,13 +1089,16 @@ document.addEventListener("submit", async (e) => {
   const err = $("en-error"); err.hidden = true;
   const btn = $("en-btn"); btn.disabled = true; btn.textContent = "Envoi…";
   const v = (id) => ($(id) ? $(id).value.trim() : "");
+  // Formulaire adultes : formule + fréquence + disponibilités rangées dans le commentaire (même table, tag « adultes »).
+  const adult = [v("en-formule") ? "Formule : " + v("en-formule") : "", v("en-freq") ? "Fréquence : " + v("en-freq") : "", v("en-dispo") ? "Disponibilités : " + v("en-dispo") : ""].filter(Boolean);
+  const comment = [...adult, v("en-comment")].filter(Boolean).join("\n") || null;
   const row = {
     filiere: e.target.dataset.filiere,
     first_name: v("en-first"), last_name: v("en-last"),
-    birthdate: $("en-birth").value || null,
+    birthdate: $("en-birth") ? ($("en-birth").value || null) : null,
     avs: v("en-avs") || null, phone: v("en-phone") || null, email: v("en-email") || null,
     ranking: $("en-ranking") ? (v("en-ranking") || null) : null,
-    comment: v("en-comment") || null,
+    comment,
   };
   const { error } = await sb.from("enrollment_requests").insert(row);
   btn.disabled = false; btn.textContent = "Envoyer ma demande d'inscription";
