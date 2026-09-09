@@ -54,7 +54,7 @@ const WORLDS = {
           { name: "Pro", photo: "assets/photos/pro-2026.jpg", href: "#pro" },
           { name: "Game Zone", photo: "assets/photos/gamezone-2026.jpg", href: "#gamezone" },
           { name: "Stages", photo: "assets/photos/stages-2026.jpg", href: "#stages" },
-          { name: "Adultes", photo: "assets/webflow/prog-adults.webp", href: "#adultes" },
+          { name: "Adultes", photo: "assets/photos/adultes-2026.jpg", href: "#adultes" },
         ]},
     ],
   },
@@ -329,7 +329,7 @@ const DETAILS = {
   },
   adultes: {
     world: "academie", title: "Cours adultes", subtitle: "Saison 2026-2027 — cours privés, semi-privés et de groupe, tous niveaux",
-    hero: "assets/webflow/prog-adults.webp", heroPos: "center 40%",
+    hero: "assets/photos/adultes-2026.jpg", heroPos: "center 45%",
     sections: [
       { type: "rich", title: "Le tennis pour les adultes, toute la saison", body: [
         "Team Lausanne Cours Adultes est l'association qui organise désormais l'ensemble des cours adultes du TC Lausanne-Sports et de Team Lausanne.",
