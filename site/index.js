@@ -18,7 +18,7 @@ const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 // ===================================================================
 const WORLDS = {
   academie: {
-    tag: "Academy", logo: "assets/logo-academie.webp",
+    tag: "Academy", logo: "assets/logo-academie.webp", heroLogo: "assets/logo-academie-blanc.png",
     slogan: "Grandir. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
     hero: "assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
@@ -686,11 +686,11 @@ function sectionHTML(sec) {
   }
 }
 
-function paintHero({ logo, hero, heroPos, tag, slogan, desc, ctaHTML }) {
+function paintHero({ logo, heroLogo, hero, heroPos, tag, slogan, desc, ctaHTML }) {
   $("nav-logo").src = logo;
   $("hero-bg").style.backgroundImage = `url("${hero}")`;
   $("hero-bg").style.backgroundPosition = heroPos || "center";   // point d'intérêt (visages) par page
-  $("hero-logo").src = logo;
+  $("hero-logo").src = heroLogo || logo;   // hero sur photo : version blanche si le monde en a une
   $("hero-tag").textContent = tag;
   $("hero-slogan").textContent = slogan;
   $("hero-desc").textContent = desc;
@@ -705,7 +705,7 @@ function renderWorld(key) {
     c.type === "contact" ? `<button class="btn-cta" data-contact="${esc(c.source)}">${esc(c.label)}</button>`
     : c.type === "scroll" ? `<button class="btn-cta" data-scroll="${esc(c.target)}">${esc(c.label)}</button>`
     : `<button class="btn-cta" data-cta="${c.type}">${esc(c.label)}</button>`).join("");
-  paintHero({ logo: w.logo, hero: w.hero, heroPos: w.heroPos, tag: w.tag, slogan: w.slogan, desc: w.desc, ctaHTML });
+  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: w.hero, heroPos: w.heroPos, tag: w.tag, slogan: w.slogan, desc: w.desc, ctaHTML });
   $("world-main").innerHTML = w.sections.map(sectionWrap).join("");
   animate();
 }
@@ -716,7 +716,7 @@ function renderDetail(id) {
   document.body.dataset.world = d.world;
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === d.world));
   const ctaHTML = `<button class="btn-cta ghost" data-back="${d.world}">← Retour à ${esc(w.tag.toLowerCase())}</button>`;
-  paintHero({ logo: w.logo, hero: d.hero, heroPos: d.heroPos, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML });
+  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: d.hero, heroPos: d.heroPos, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML });
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();
   if ($("stgp-list")) stgLoad();
