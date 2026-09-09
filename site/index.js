@@ -361,7 +361,7 @@ const DETAILS = {
         ["Places", "Limitées, attribuées par ordre d'inscription, confirmées à réception du paiement ou du premier acompte."],
       ]},
       { type: "enroll", filiere: "adultes", adultes: true, title: "Ça m'intéresse — cours d'essai ou informations",
-        lead: "Sans engagement : indiquez la formule qui vous intéresse et vos disponibilités, le responsable des cours adultes, Renato Lombardi, vous recontactera pour vous proposer un créneau, un coach et les tarifs." },
+        lead: "Sans engagement : indiquez la formule qui vous intéresse et vos disponibilités, le responsable des cours adultes et privés, Renato Lombardi, vous recontactera pour vous proposer un créneau, un coach et les tarifs." },
     ],
   },
   gamezone: {
@@ -732,7 +732,7 @@ function sectionHTML(sec) {
         </form>
         <div id="en-done" class="hidden" style="max-width:720px;background:var(--accent-soft);border-radius:16px;padding:24px;text-align:center">
           <p style="font-size:1.15rem;font-weight:800;color:var(--blue-ink);margin:0 0 6px">Merci, votre demande est envoyée !</p>
-          <p class="muted" style="margin:0">${sec.adultes ? "Renato Lombardi, responsable des cours adultes, vous recontactera rapidement pour en discuter. Rien n'est engagé à ce stade." : "Le secrétariat vous recontacte rapidement."}</p>
+          <p class="muted" style="margin:0">${sec.adultes ? "Renato Lombardi, responsable des cours adultes et privés, vous recontactera rapidement pour en discuter. Rien n'est engagé à ce stade." : "Le secrétariat vous recontacte rapidement."}</p>
         </div></section>`;
 
     default: return "";
