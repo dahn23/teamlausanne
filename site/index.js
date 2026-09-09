@@ -361,7 +361,7 @@ const DETAILS = {
         ["Places", "Limitées, attribuées par ordre d'inscription, confirmées à réception du paiement ou du premier acompte."],
       ]},
       { type: "enroll", filiere: "adultes", adultes: true, title: "Je m'inscris ou je demande un cours d'essai",
-        lead: "Indiquez la formule qui vous intéresse et vos disponibilités : le secrétariat vous propose un créneau et un coach." },
+        lead: "Indiquez la formule qui vous intéresse et vos disponibilités : le responsable vous recontactera pour vous proposer un créneau et un coach." },
     ],
   },
   gamezone: {
@@ -732,7 +732,7 @@ function sectionHTML(sec) {
         </form>
         <div id="en-done" class="hidden" style="max-width:720px;background:var(--accent-soft);border-radius:16px;padding:24px;text-align:center">
           <p style="font-size:1.15rem;font-weight:800;color:var(--blue-ink);margin:0 0 6px">Merci, votre demande est envoyée !</p>
-          <p class="muted" style="margin:0">Le secrétariat vous recontacte rapidement.</p>
+          <p class="muted" style="margin:0">${sec.adultes ? "Le responsable vous recontactera rapidement." : "Le secrétariat vous recontacte rapidement."}</p>
         </div></section>`;
 
     default: return "";
