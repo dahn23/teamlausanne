@@ -331,9 +331,9 @@ const DETAILS = {
     world: "academie", title: "Cours adultes et privés", subtitle: "Saison 2026-2027 — cours privés, semi-privés et de groupe, tous niveaux",
     hero: "assets/photos/adultes-2026.jpg", heroPos: "center 45%",
     sections: [
-      { type: "rich", title: "Le tennis pour les adultes, toute la saison", body: [
-        "Team Lausanne Cours Adultes est l'association qui organise désormais l'ensemble des cours adultes du TC Lausanne-Sports et de Team Lausanne.",
-        "Cours privés, semi-privés et de groupe, tous niveaux, du débutant au joueur classé, en français ou en anglais.",
+      { type: "rich", title: "Cours adultes et privés, toute la saison", body: [
+        "Team Lausanne Cours Adultes est l'association qui organise désormais l'ensemble des cours adultes et privés du TC Lausanne-Sports et de Team Lausanne.",
+        "Cours privés, semi-privés et de groupe pour adultes, tous niveaux, du débutant au joueur classé, en français ou en anglais.",
       ]},
       { type: "features", title: "En pratique", items: [
         ["Lieu", "TC Lausanne-Sports, Route des Plaines-du-Loup 7, 1018 Lausanne."],
