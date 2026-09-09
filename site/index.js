@@ -360,8 +360,8 @@ const DETAILS = {
         ["Paiement", "En 1 ou 3 fois."],
         ["Places", "Limitées, attribuées par ordre d'inscription, confirmées à réception du paiement ou du premier acompte."],
       ]},
-      { type: "enroll", filiere: "adultes", adultes: true, title: "Je m'inscris ou je demande un cours d'essai",
-        lead: "Indiquez la formule qui vous intéresse et vos disponibilités : le responsable vous recontactera pour vous proposer un créneau et un coach." },
+      { type: "enroll", filiere: "adultes", adultes: true, title: "Ça m'intéresse — cours d'essai ou informations",
+        lead: "Sans engagement : indiquez la formule qui vous intéresse et vos disponibilités, le responsable vous recontactera pour vous proposer un créneau, un coach et les tarifs." },
     ],
   },
   gamezone: {
@@ -727,12 +727,12 @@ function sectionHTML(sec) {
           </div>
           <label class="cf-field"><span>Vos disponibilités</span><textarea id="en-dispo" rows="3" placeholder="ex. lundi et mercredi soir dès 18h, samedi matin…" required></textarea></label>
           <label class="cf-field"><span>Niveau / remarques</span><textarea id="en-comment" rows="2" placeholder="Niveau actuel, classement éventuel, langue souhaitée…"></textarea></label>` : `<label class="cf-field"><span>Commentaire</span><textarea id="en-comment" rows="3"></textarea></label>`}
-          <button type="submit" id="en-btn">Envoyer ma demande d'inscription</button>
+          <button type="submit" id="en-btn">${sec.adultes ? "Envoyer ma demande" : "Envoyer ma demande d'inscription"}</button>
           <p id="en-error" class="error" hidden></p>
         </form>
         <div id="en-done" class="hidden" style="max-width:720px;background:var(--accent-soft);border-radius:16px;padding:24px;text-align:center">
           <p style="font-size:1.15rem;font-weight:800;color:var(--blue-ink);margin:0 0 6px">Merci, votre demande est envoyée !</p>
-          <p class="muted" style="margin:0">${sec.adultes ? "Le responsable vous recontactera rapidement." : "Le secrétariat vous recontacte rapidement."}</p>
+          <p class="muted" style="margin:0">${sec.adultes ? "Le responsable vous recontactera rapidement pour en discuter. Rien n'est engagé à ce stade." : "Le secrétariat vous recontacte rapidement."}</p>
         </div></section>`;
 
     default: return "";
@@ -1101,7 +1101,7 @@ document.addEventListener("submit", async (e) => {
     comment,
   };
   const { error } = await sb.from("enrollment_requests").insert(row);
-  btn.disabled = false; btn.textContent = "Envoyer ma demande d'inscription";
+  btn.disabled = false; btn.textContent = e.target.dataset.filiere === "adultes" ? "Envoyer ma demande" : "Envoyer ma demande d'inscription";
   if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
   $("enroll-form").classList.add("hidden");
   $("en-done").classList.remove("hidden");
