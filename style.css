@@ -1285,7 +1285,7 @@ body[data-world="academie"] .sw.active{color:var(--fluo-ink)}
 .sw-menu::before{content:"";position:absolute;top:-10px;left:0;right:0;height:10px}
 .sw-wrap:hover .sw-menu,.sw-wrap:focus-within .sw-menu{opacity:1;visibility:visible;transform:translateX(-50%) translateY(4px)}
 .sw-menu a{padding:9px 12px;border-radius:8px;color:var(--ink);text-decoration:none;
-  font-size:.9rem;font-weight:700;cursor:pointer;white-space:nowrap;text-transform:none;font-style:normal}
+  font-size:.92rem;font-weight:400;cursor:pointer;white-space:nowrap;text-transform:none;font-style:normal}
 .sw-menu a:hover{background:#eef1f7;color:var(--blue-ink)}
 @media (max-width:760px){.sw-menu{display:none}}
 /* Sections Business / Club ajoutées */
