@@ -1310,6 +1310,11 @@ body[data-world="academie"] .btn-login{color:var(--fluo-ink)}
   border-radius:999px;font-weight:600;font-style:normal;text-transform:none;letter-spacing:0;
   font-size:.98rem;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
 .btn-contact:hover{background:var(--blue);color:#fff}
+/* Entete : meme logique de remplissage, sans disque (ces boutons n'ont pas de pastille). */
+.btn-contact{transition:background-color .25s,color .25s,border-color .25s}
+.btn-contact:hover{background:var(--fluo);color:var(--fluo-ink);border-color:var(--fluo)}
+.btn-login{transition:background-color .25s,color .25s,filter .25s}
+.btn-login:hover{background:var(--fluo);color:var(--fluo-ink);filter:none}
 /* Nav en liens (pages contact/stages) */
 .nav-brand a{display:inline-flex;text-decoration:none}
 .switcher a.sw{text-decoration:none}
@@ -1388,9 +1393,40 @@ body[data-world="academie"] .hero-logo{filter:drop-shadow(0 4px 16px rgba(0,0,0,
 .hero-slogan{font-size:clamp(2.2rem,6vw,3.6rem);margin:0 0 14px;line-height:1}
 .hero-desc{font-size:1.12rem;opacity:.95;margin:0 auto 26px;max-width:560px;line-height:1.5}
 .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn-cta{background:#fff;color:var(--accent-ink);font-size:1.05rem;padding:14px 28px;
-  font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:-.3px}
-.btn-cta:hover{background:#f0f2f8}
+/* Bouton d'appel a l'action : pilule blanche + pastille verte a la fleche.
+   Au survol, le disque vert grandit et inonde toute la pilule (comme la maquette,
+   qui fait passer un disque de scale(1) a scale(25) sous un masque).
+   Ici le disque est ::before en z-index:-1 et le bouton porte isolation:isolate :
+   dans un contexte d'empilement, un enfant en z-index negatif se peint APRES le
+   fond du parent mais AVANT son texte. Le libelle reste donc lisible, sans avoir
+   a l'envelopper dans un span cote JS. overflow:hidden rogne le disque a la pilule. */
+.btn-cta{background:#fff;color:var(--ink);font-size:1.02rem;
+  padding:9px 9px 9px 26px;border-radius:999px;
+  font-weight:700;font-style:normal;text-transform:none;letter-spacing:-.01em;
+  display:inline-flex;align-items:center;gap:18px;
+  position:relative;isolation:isolate;overflow:hidden;
+  box-shadow:0 2px 10px rgba(20,26,46,.14);
+  transition:transform .12s,box-shadow .12s,color .25s}
+/* Le disque : au repos il tient exactement la place de la pastille. */
+.btn-cta::before{content:"";position:absolute;z-index:-1;
+  right:9px;top:50%;width:40px;height:40px;margin-top:-20px;
+  border-radius:50%;background:var(--fluo);
+  transition:transform .45s cubic-bezier(.4,0,.2,1)}
+/* La fleche, posee par-dessus le disque : plus de fond, c'est ::before qui le donne. */
+.btn-cta::after{content:"\2197";flex-shrink:0;
+  width:40px;height:40px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:transparent;color:var(--fluo-ink);font-size:1.15rem;font-weight:700;
+  transition:transform .12s}
+.btn-cta:hover{background:#fff;transform:translateY(-1px);box-shadow:0 6px 18px rgba(20,26,46,.2);
+  color:var(--fluo-ink)}
+.btn-cta:hover::before{transform:scale(25)}
+.btn-cta:hover::after{transform:translate(2px,-2px)}
+.btn-cta:focus-visible::before{transform:scale(25)}
+/* Variante sobre (« Retour a … ») : ni pilule blanche, ni fleche, ni inondation. */
+.btn-cta.ghost::after{display:none}
+.btn-cta.ghost::before{display:none}
+.btn-cta.ghost{padding:12px 22px;gap:0}
 .hero-switch-hint{position:absolute;top:14px;left:0;right:0;z-index:2;text-align:center;
   font-size:.72rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.7)}
 .hero-switch-hint span{display:none}
@@ -1687,7 +1723,7 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 /* Cadre autour du hero — bleu par défaut, vert fluo seulement pour l'Academy */
 /* Lisere colle au bord de l'ecran : inset:0 + meme rayon que .hero, qui est
    en overflow:hidden, donc la photo est rognee net et rien ne depasse autour. */
-.hero::after{content:"";position:absolute;inset:0;border:4px solid var(--blue);
+.hero::after{content:"";position:absolute;inset:0;border:7px solid var(--blue);
   border-radius:18px;z-index:3;pointer-events:none}
 body[data-world="academie"] .hero::after{border-color:var(--fluo-d)}
 /* Carrousel de programmes (bandeau bleu foncé) */
