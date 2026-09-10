@@ -1,15 +1,24 @@
 :root{
-  /* Branding : bleu Lausanne-Sports (club + espace membres), vert fluo = académie.
-     À CONFIRMER avec la charte : hex exacts du bleu et du vert fluo. */
-  --blue:#1e3ad1; --blue-d:#152a9e; --blue-ink:#0f1f6e;
-  --fluo:#c4ff3d; --fluo-d:#a6e51f; --fluo-ink:#16350a;
+  /* Branding — couleurs exactes de la charte 2026 (« Court Colours »), relevees
+     aussi dans les variables du site Webflow :
+       #073EB5 Absolute Blue · #B2FD13 Energizing Mint Green
+       #003652 Prussian Blue · #137297 Ocean Blue
+     Les variantes -d (foncee) et -ink (texte) en sont derivees. */
+  --blue:#073eb5; --blue-d:#052f8c; --blue-ink:#04205e;
+  --fluo:#b2fd13; --fluo-d:#9ae00c; --fluo-ink:#14300a;
+  --prussian:#003652; --ocean:#137297;
 
   /* Le thème de l'app (espace membres) suit le bleu du club. */
-  --green:#1e3ad1; --green-d:#152a9e; --mine:#1e3ad1;
+  --green:#073eb5; --green-d:#052f8c; --mine:#073eb5;
   --bg:#f5f7fb; --card:#fff;
   --line:#e4e8f0; --ink:#141a2e; --muted:#69708a;
   --free:#ffffff; --busy:#c9ccd6;
-  --radius:14px; --shadow:0 2px 14px rgba(20,26,46,.08);
+  --radius:1.5rem; --shadow:0 2px 14px rgba(20,26,46,.08);
+
+  /* Echelle du systeme Webflow, disponible pour la suite. */
+  --radius-sm:.25rem; --radius-md:.5rem; --radius-lg:2rem;
+  --sec-sm:4rem; --sec-md:5rem; --sec-lg:7.5rem; --sec-xl:10rem;
+  --container:75rem;
 
   /* Polices de marque (guidelines 2026) : Acumin Pro pour les titres et le corps,
      Circe pour les titres. Noto Sans est le repli officiel prevu par la charte
@@ -143,13 +152,13 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
   box-shadow:0 0 0 3px #eef1f7, 5px 0 7px -3px rgba(0,0,0,.22)}
 .rslot{cursor:pointer;transition:outline .1s}
 .rslot.creuse{background:#bcd3ff;color:#0f2050}
-.rslot.pleine{background:#1e3ad1;color:#fff}
-.rslot.creuse:hover,.rslot.pleine:hover{outline:2px solid #0f1f6e}
+.rslot.pleine{background:#073eb5;color:#fff}
+.rslot.creuse:hover,.rslot.pleine:hover{outline:2px solid #04205e}
 .rslot.busy{background:#cbd0da;color:#5a5f6b;cursor:default;font-size:.68rem}
 .rslot.mine{background:#123cc4;color:#fff;outline:3px solid #f2c200;cursor:pointer}
 .rslot .pr{font-weight:800}
 .chip.creuse{background:#bcd3ff}
-.chip.pleine{background:#1e3ad1;border-color:#1e3ad1}
+.chip.pleine{background:#073eb5;border-color:#073eb5}
 .legend-note{display:block;width:100%;margin-top:8px;color:var(--muted);font-size:.8rem;line-height:1.4}
 .partner-choice{display:flex;flex-direction:column;gap:8px;margin:12px 0}
 .pc-opt{display:flex;align-items:center;gap:8px;font-size:.95rem;cursor:pointer}
@@ -862,23 +871,28 @@ a.pyr-level:hover{transform:translateY(-2px)}
 .coach-priv a:hover{text-decoration:underline}
 
 /* Hero plein écran avec photo */
+/* Hero aligne a gauche, comme la maquette : le titre demarre au meme fer que
+   les sections en dessous, au lieu d'etre centre. */
 .hero{position:relative;min-height:74vh;display:flex;align-items:center;
-  justify-content:center;text-align:center;color:#fff;overflow:hidden;
+  justify-content:flex-start;text-align:left;color:#fff;overflow:hidden;
   border-radius:18px}
 .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;
   transition:opacity .4s;animation:kenburns 18s ease-out infinite alternate}
 @keyframes kenburns{from{transform:scale(1.05)}to{transform:scale(1.14)}}
 .hero-scrim{position:absolute;inset:0;
   background:linear-gradient(180deg,rgba(0,0,0,.15),var(--scrim))}
-.hero-content{position:relative;z-index:2;max-width:760px;padding:56px 22px}
-.hero-logo{height:132px;width:auto;margin:0 auto 18px;display:block;
+.hero-content{position:relative;z-index:2;width:100%;max-width:var(--container);
+  margin:0 auto;padding:var(--sec-sm) 22px;text-align:left}
+.hero-logo{height:132px;width:auto;margin:0 0 18px;display:block;
   filter:brightness(0) invert(1) drop-shadow(0 2px 12px rgba(0,0,0,.3))}
 body[data-world="academie"] .hero-logo{filter:drop-shadow(0 4px 16px rgba(0,0,0,.45))}
-.hero-tag{text-transform:uppercase;letter-spacing:3px;font-size:.82rem;font-weight:800;
-  margin:0 0 10px;color:#fff;opacity:.9}
-.hero-slogan{font-size:clamp(2.2rem,6vw,3.6rem);margin:0 0 14px;line-height:1}
-.hero-desc{font-size:1.12rem;opacity:.95;margin:0 auto 26px;max-width:560px;line-height:1.5}
-.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+/* Le libelle du monde sous le logo n'apporte rien : la marque est deja dans
+   le logo et le titre. */
+.hero-tag{display:none}
+.hero-slogan{font-size:clamp(2.6rem,7vw,5rem);margin:0 0 18px;line-height:1;
+  max-width:55rem}
+.hero-desc{font-size:1.14rem;opacity:.95;margin:0 0 28px;max-width:44rem;line-height:1.55}
+.hero-cta{display:flex;gap:12px;justify-content:flex-start;flex-wrap:wrap}
 /* Bouton d'appel a l'action : pilule blanche + pastille verte a la fleche.
    Au survol, le disque vert grandit et inonde toute la pilule (comme la maquette,
    qui fait passer un disque de scale(1) a scale(25) sous un masque).
@@ -922,7 +936,7 @@ body[data-world="academie"] .hero-logo{filter:drop-shadow(0 4px 16px rgba(0,0,0,
 @keyframes fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
 /* Contenu du monde */
-.world-main{max-width:1040px;margin:0 auto;padding:56px 22px}
+.world-main{max-width:var(--container);margin:0 auto;padding:var(--sec-sm) 22px}
 .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;
   margin-bottom:26px}
 .stat{background:var(--accent);color:#fff;border-radius:var(--radius);padding:22px;text-align:center}
@@ -940,7 +954,7 @@ body[data-world="academie"] .stat{color:var(--fluo-ink)}
   border-radius:var(--radius);box-shadow:var(--shadow)}
 
 /* Sections riches par monde */
-.wsec{margin:0 0 48px}
+.wsec{margin:0 0 var(--sec-sm)}
 .wsec:last-child{margin-bottom:0}
 .wsec>h2{font-size:1.7rem;color:var(--blue-ink);margin:0 0 18px}
 .wsec-note{color:var(--muted);font-style:italic;font-size:.92rem;margin:14px 0 0}
@@ -1035,7 +1049,7 @@ button.wsec-link{color:#fff;border-bottom:0}
 .mr-comment{display:block;font-weight:700;font-size:.85rem}
 .mr-actions{display:flex;align-items:center;gap:12px;margin-top:12px}
 .mr-badge{display:inline-block;font-size:.7rem;font-weight:800;padding:1px 8px;border-radius:999px;text-transform:capitalize}
-.mr-badge.coach{background:#e6eefc;color:#1e3ad1}
+.mr-badge.coach{background:#e6eefc;color:#073eb5}
 .mr-badge.joueur{background:#e7f6ec;color:#0b6b3a}
 .mr-win{color:#0b6b3a;font-weight:800}
 .mr-loss{color:#b23838;font-weight:800}
@@ -1052,10 +1066,10 @@ button.wsec-link{color:#fff;border-bottom:0}
 .mr-comp-bars{display:flex;flex-direction:column;gap:4px}
 .mr-comp-line{display:flex;align-items:center;gap:8px}
 .mr-tag{font-size:.72rem;font-weight:700;width:84px;flex-shrink:0}
-.mr-tag.coach{color:#1e3ad1}.mr-tag.joueur{color:#0b6b3a}
+.mr-tag.coach{color:#073eb5}.mr-tag.joueur{color:#0b6b3a}
 .mr-bar{flex:1;height:9px;background:#eef1f7;border-radius:6px;overflow:hidden}
 .mr-bar-fill{height:100%;border-radius:6px}
-.mr-bar-fill.coach{background:#1e3ad1}.mr-bar-fill.joueur{background:#46a555}
+.mr-bar-fill.coach{background:#073eb5}.mr-bar-fill.joueur{background:#46a555}
 .mr-link{margin-bottom:10px}
 .mr-link-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .mr-conf{font-size:.74rem;font-weight:700;background:#eef1f7;color:var(--muted);padding:2px 9px;border-radius:999px}
@@ -1162,7 +1176,7 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 }
 
 /* Bandeau cohérence (cliquable = mini-switcher) */
-.coherence{max-width:1040px;margin:0 auto;padding:20px 22px 64px;text-align:center}
+.coherence{max-width:var(--container);margin:0 auto;padding:20px 22px 64px;text-align:center}
 .coherence h2{font-size:1.9rem;color:var(--blue-ink);margin:0 0 12px}
 .coherence-sub{color:var(--muted);max-width:640px;margin:0 auto 30px;font-size:1.05rem}
 .flow{display:flex;align-items:stretch;justify-content:center;gap:12px;flex-wrap:wrap}
@@ -1181,12 +1195,12 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 
 /* Pied de page */
 .foot{background:var(--blue-ink);color:#dfe4ff;padding:40px 22px 26px}
-.foot-cols{max-width:1040px;margin:0 auto;display:flex;gap:40px;flex-wrap:wrap;
+.foot-cols{max-width:var(--container);margin:0 auto;display:flex;gap:40px;flex-wrap:wrap;
   justify-content:space-between;font-size:.92rem;line-height:1.7}
 .foot-copy{text-align:center;margin:28px 0 0;opacity:.6;font-size:.82rem}
 .brand.blue{color:var(--blue)}
 /* Footer : sponsors communs + sélecteur 3 mondes */
-.foot-sponsors{max-width:1040px;margin:0 auto 34px;text-align:center}
+.foot-sponsors{max-width:var(--container);margin:0 auto 34px;text-align:center}
 .foot-sponsors-label{display:block;text-transform:uppercase;letter-spacing:.09em;font-size:.72rem;opacity:.7;margin-bottom:14px}
 .foot-sponsors .sponsor-wall{display:flex;flex-wrap:wrap;gap:30px;align-items:center;justify-content:center;background:#fff;border-radius:16px;padding:22px 28px}
 .foot-sponsors .sponsor-wall img{height:40px;width:auto;max-width:140px;object-fit:contain;filter:grayscale(1);opacity:.72;transition:filter .2s,opacity .2s}
@@ -1798,7 +1812,7 @@ a.sponsor span{font-size:.7rem;font-weight:700;color:#1b2340;text-align:center;l
   box-shadow:0 0 0 1px rgba(0,0,0,.12)}
 .seed-flag svg{width:100%;height:100%;display:block}
 .seed-rank{margin:0!important;font-size:.7rem;font-weight:800;letter-spacing:.3px;
-  text-transform:uppercase;color:var(--accent-ink,#1e3ad1)}
+  text-transform:uppercase;color:var(--accent-ink,#073eb5)}
 .seed-bio{margin:0!important;font-size:.82rem;line-height:1.45;color:var(--muted)}
 /* ---- Site public teamlausanne.ch : deux mondes ---- */
 /* Onglet Club = lien externe (www.lstennis.ch), même look que les autres onglets */
