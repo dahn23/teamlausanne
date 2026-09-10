@@ -516,6 +516,8 @@ async function initResa(roles) {
   // Sous-onglets Jour / Réglages ; les Réglages sont réservés aux admins.
   const isAdminUser = (roles || []).some((r) => ["superadmin", "admin"].includes(r));
   if (!isAdminUser) document.querySelector('#view-resa .resa-subtab[data-sub="reglages"]')?.classList.add("hidden");
+  $("rod-close").addEventListener("click", () => $("rodetail-modal").classList.add("hidden"));
+  $("rodetail-modal").addEventListener("click", (e) => { if (e.target === $("rodetail-modal")) $("rodetail-modal").classList.add("hidden"); });
   document.querySelectorAll("#view-resa .resa-subtab").forEach((b) =>
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-resa .resa-subtab").forEach((x) => x.classList.toggle("active", x === b));
@@ -620,7 +622,7 @@ function drawResaGrid(date, bookings, coachMap = {}, colorMap = {}) {
         }
         el.textContent = label;
         el.title = full + (b.recurrence_id ? " · série" : "");
-        if (!isDisplayOnly) el.addEventListener("click", () => editBooking(b, h));
+        el.addEventListener("click", () => isDisplayOnly ? showBookingDetail(b) : editBooking(b, h));
       } else {
         el.classList.add("rfree");
         el.dataset.court = c.id;
@@ -633,6 +635,31 @@ function drawResaGrid(date, bookings, coachMap = {}, colorMap = {}) {
       grid.appendChild(el);
     }
   }
+}
+
+
+// ---- Detail d'un cours en lecture seule (compte « affichage ») ----
+// Aucune ecriture possible : la fonction RPC ne renvoie que des noms, et le
+// compte n'a de toute facon pas les droits d'ecriture en base.
+async function showBookingDetail(b) {
+  const t = (x) => (x || "").slice(0, 5);
+  $("rod-title").textContent = b.title || kindLabel(b.kind);
+  const court = resaCourts.find((c) => c.id === b.court_id);
+  $("rod-meta").textContent = [court ? court.name : "", `${t(b.start_time)} – ${t(b.end_time)}`, frDate(b.booking_date)]
+    .filter(Boolean).join(" · ");
+  const body = $("rod-body");
+  $("rodetail-modal").classList.remove("hidden");
+  if (!b.course_id) { body.innerHTML = '<p class="muted">Réservation simple — pas de groupe rattaché.</p>'; return; }
+  body.innerHTML = '<p class="muted">Chargement…</p>';
+  const { data, error } = await sb.rpc("affichage_course_detail", { p_course: b.course_id });
+  if (error) { body.innerHTML = `<p class="muted">Détail indisponible : ${esc(error.message)}</p>`; return; }
+  const coachs = (data || []).filter((r) => r.role === "coach").map((r) => r.nom);
+  const joueurs = (data || []).filter((r) => r.role === "joueur").map((r) => r.nom);
+  const bloc = (titre, liste) => liste.length
+    ? `<p class="cs-lbl" style="margin:0 0 6px">${titre} <span class="muted">(${liste.length})</span></p>
+       <ul style="margin:0 0 16px;padding-left:18px">${liste.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`
+    : `<p class="cs-lbl" style="margin:0 0 6px">${titre}</p><p class="muted" style="margin:0 0 16px">—</p>`;
+  body.innerHTML = bloc("Encadrants", coachs) + bloc("Joueurs", joueurs);
 }
 
 const isFitnessCourt = (c) => /fitness/i.test(c?.name || "");

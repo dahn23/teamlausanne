@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=183" />
+  <link rel="stylesheet" href="style.css?v=184" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1950,6 +1950,18 @@ Team Lausanne Tennis</textarea></label>
   </div>
 
   <!-- ---- Copier la semaine ---- -->
+  <!-- Detail d'un cours en lecture seule (compte « affichage » : ecran du club).
+       Les noms viennent de la fonction affichage_course_detail, qui ne renvoie
+       que « Nom Prenom » — jamais les colonnes sensibles de people. -->
+  <div id="rodetail-modal" class="modal hidden">
+    <div class="card">
+      <button type="button" id="rod-close" class="modal-close" aria-label="Fermer">&times;</button>
+      <h2 id="rod-title" style="margin-top:0"></h2>
+      <p class="muted" id="rod-meta" style="margin:0 0 14px"></p>
+      <div id="rod-body"></div>
+    </div>
+  </div>
+
   <div id="copyweek-modal" class="modal hidden">
     <div class="card">
       <button type="button" id="cw-close" class="modal-close" aria-label="Fermer">×</button>
