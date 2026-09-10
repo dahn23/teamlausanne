@@ -1339,6 +1339,34 @@ a.ccard-pill:hover::before,button.ccard-pill:hover::before,
 a.ccard-pill:focus-visible::before,button.ccard-pill:focus-visible::before{transform:scale(22)}
 a.ccard-pill:hover .ccard-arrow,button.ccard-pill:hover .ccard-arrow{
   background-color:#fff;color:var(--fluo-ink);transform:translate(2px,-2px)}
+/* ---- Partenaires officiels (bas de page, avant le pied) ----
+   Bandeau sobre : les logos ne doivent pas concurrencer le contenu. Ils sont
+   legerement estompes au repos et reviennent au noir plein au survol, traitement
+   habituel d'un mur de partenaires. Les SVG portent fill="currentColor", donc
+   la couleur reste pilotable si un jour on veut autre chose que du noir. */
+.partners{max-width:var(--container);margin:0 auto;padding:0 22px var(--sec-sm);text-align:center}
+.partners-title{font-family:var(--font-accent);font-size:1.05rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.02em;color:var(--muted);
+  margin:0 0 26px;position:relative}
+/* Un filet de part et d'autre du titre, pour poser le bandeau sans l'alourdir. */
+.partners-title::before,.partners-title::after{content:"";position:absolute;top:50%;
+  width:clamp(24px,12%,110px);height:1px;background:var(--line)}
+.partners-title::before{right:calc(50% + 1em + 8.5em)}
+.partners-title::after{left:calc(50% + 1em + 8.5em)}
+.partners-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;
+  align-items:center;justify-content:center;gap:clamp(28px,6vw,72px)}
+.partner{display:flex;align-items:center;justify-content:center}
+.partner img{display:block;height:clamp(28px,4.2vw,42px);width:auto;object-fit:contain;
+  max-width:44vw;
+  opacity:.72;transition:opacity .22s,transform .22s}
+/* Version cliquable, des que les adresses seront connues. */
+a.partner{text-decoration:none;border-radius:var(--radius-md);padding:6px 10px}
+a.partner:hover img,a.partner:focus-visible img{opacity:1;transform:translateY(-2px)}
+a.partner:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.partner img{transition:none}}
+@media(max-width:560px){
+  .partners-title::before,.partners-title::after{display:none}
+}
 /* « Un lieu, trois mondes » dans le footer bleu */
 .foot .coherence{padding:8px 22px 40px}
 .foot .coherence h2{color:#fff}
