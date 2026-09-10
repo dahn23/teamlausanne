@@ -12,7 +12,7 @@
   --radius:14px; --shadow:0 2px 14px rgba(20,26,46,.08);
 
   /* Polices de marque (guidelines 2026) : Acumin Pro pour les titres et le corps,
-     Circe pour les accroches. Noto Sans est le repli officiel prevu par la charte
+     Circe pour les titres. Noto Sans est le repli officiel prevu par la charte
      quand ces polices ne peuvent pas etre servies. */
   --font-body:acumin-pro,"Noto Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --font-accent:circe,"Noto Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -721,13 +721,14 @@ html{-webkit-tap-highlight-color:transparent}
    SITE DYNAMIQUE — 3 mondes (Club · Académie · Tournoi)
    ===================================================================== */
 body.public{background:#fff}
+/* Titres : Circe, le display geometrique de la charte (« bold geometric display
+   font for headlines »). Le kit ne fournit que 400 et 700 : on force 700, sinon
+   une graisse 500 retomberait sur le 400 et les titres seraient plus fins que
+   les sous-titres. Le corps et l'interface restent en Acumin Pro (cf. body). */
 .public h1,.public h2,.public h3,.brand{
-  font-family:var(--font-body);font-weight:600;
+  font-family:var(--font-accent);font-weight:700;
   letter-spacing:-.04em;text-transform:uppercase}
-.public h1{font-weight:500}
-.public h2{font-weight:600}
-.public h3{font-weight:700}
-/* Accroches de marque : Circe (usage selectif, cf. guidelines). */
+/* Utilitaire pour porter Circe ailleurs si besoin. */
 .accent-font{font-family:var(--font-accent)}
 
 /* Thème par monde (accent) */
@@ -866,14 +867,27 @@ a.pyr-level:hover{transform:translateY(-2px)}
 body[data-world="academie"] .hero-logo{filter:drop-shadow(0 4px 16px rgba(0,0,0,.45))}
 .hero-tag{text-transform:uppercase;letter-spacing:3px;font-size:.82rem;font-weight:800;
   margin:0 0 10px;color:#fff;opacity:.9}
-/* Accroche de marque : Circe (guidelines : « brand statements »). */
-.public .hero-slogan{font-family:var(--font-accent);font-weight:700}   /* Circe n'a que 400 et 700 */
 .hero-slogan{font-size:clamp(2.2rem,6vw,3.6rem);margin:0 0 14px;line-height:1}
 .hero-desc{font-size:1.12rem;opacity:.95;margin:0 auto 26px;max-width:560px;line-height:1.5}
 .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn-cta{background:#fff;color:var(--accent-ink);font-size:1.05rem;padding:14px 28px;
-  font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:-.3px}
-.btn-cta:hover{background:#f0f2f8}
+/* Bouton d'appel a l'action : pilule blanche + pastille verte a la fleche.
+   La pastille est un ::after, donc aucun changement de balisage cote JS.
+   Casse normale (pas de capitales) : c'est le rendu de la maquette. */
+.btn-cta{background:#fff;color:var(--ink);font-size:1.02rem;
+  padding:9px 9px 9px 26px;border-radius:999px;
+  font-weight:700;font-style:normal;text-transform:none;letter-spacing:-.01em;
+  display:inline-flex;align-items:center;gap:18px;
+  box-shadow:0 2px 10px rgba(20,26,46,.14);transition:transform .12s,box-shadow .12s}
+.btn-cta::after{content:"\2197";flex-shrink:0;
+  width:40px;height:40px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--fluo);color:var(--fluo-ink);font-size:1.15rem;font-weight:700;
+  transition:transform .12s}
+.btn-cta:hover{background:#fff;transform:translateY(-1px);box-shadow:0 6px 18px rgba(20,26,46,.2)}
+.btn-cta:hover::after{transform:translate(2px,-2px)}
+/* Variante sobre (« Retour a … ») : ni pilule blanche ni fleche. */
+.btn-cta.ghost::after{display:none}
+.btn-cta.ghost{padding:12px 22px;gap:0}
 .hero-switch-hint{position:absolute;top:14px;left:0;right:0;z-index:2;text-align:center;
   font-size:.72rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.7)}
 .hero-switch-hint span{display:none}
@@ -1096,7 +1110,8 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 .ranking td:first-child{font-weight:800;color:var(--blue-ink);width:96px;white-space:nowrap}
 .ranking tbody tr:nth-child(even){background:#f7f9fc}
 .flag{vertical-align:-2px;margin-right:6px;border-radius:2px;overflow:hidden}
-.btn-cta-nav{font-size:.9rem;padding:9px 18px;text-transform:none;font-style:normal;letter-spacing:0}
+.btn-cta-nav{font-size:.9rem;padding:6px 6px 6px 16px;gap:10px;text-transform:none;font-style:normal;letter-spacing:0}
+.btn-cta-nav::after{width:30px;height:30px;font-size:.95rem}
 /* Aftermovie (iframe YouTube dans un split) */
 .split-video{position:relative;padding:0;overflow:hidden;min-height:340px}
 .split-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}

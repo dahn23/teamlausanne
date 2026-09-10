@@ -12,7 +12,7 @@
   --radius:14px; --shadow:0 2px 14px rgba(20,26,46,.08);
 
   /* Polices de marque (guidelines 2026) : Acumin Pro pour les titres et le corps,
-     Circe pour les accroches. Noto Sans est le repli officiel prevu par la charte. */
+     Circe pour les titres. Noto Sans est le repli officiel prevu par la charte. */
   --font-body:acumin-pro,"Noto Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --font-accent:circe,"Noto Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
@@ -1235,13 +1235,14 @@ html{-webkit-tap-highlight-color:transparent}
    SITE DYNAMIQUE — 3 mondes (Club · Académie · Tournoi)
    ===================================================================== */
 body.public{background:#fff}
+/* Titres : Circe, le display geometrique de la charte (« bold geometric display
+   font for headlines »). Le kit ne fournit que 400 et 700 : on force 700, sinon
+   une graisse 500 retomberait sur le 400 et les titres seraient plus fins que
+   les sous-titres. Le corps et l'interface restent en Acumin Pro (cf. body). */
 .public h1,.public h2,.public h3,.brand{
-  font-family:var(--font-body);font-weight:600;
+  font-family:var(--font-accent);font-weight:700;
   letter-spacing:-.04em;text-transform:uppercase}
-.public h1{font-weight:500}
-.public h2{font-weight:600}
-.public h3{font-weight:700}
-/* Accroches de marque : Circe (usage selectif, cf. guidelines). */
+/* Utilitaire pour porter Circe ailleurs si besoin. */
 .accent-font{font-family:var(--font-accent)}
 
 /* Thème par monde (accent) */
