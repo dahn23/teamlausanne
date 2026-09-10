@@ -1142,9 +1142,10 @@ route();
 
 // ---- Bandeau social : navigation par fleches ----
 // La photo courante vient se caler exactement dans la fenetre du cadre
-// Instagram, pour que les deux ne fassent qu'un. La serie est doublee dans le
-// HTML : quand l'index depasse la serie, on revient d'une serie en arriere sans
-// transition, ce qui rend la boucle continue sans saut visible.
+// Instagram, pour que les deux ne fassent qu'un. Le HTML porte trois series
+// (copie, serie reelle, copie) : quand l'index sort de la serie centrale, on se
+// replie d'une serie sans transition, ce qui rend la boucle continue sans saut
+// visible et garantit des photos des deux cotes du cadre.
 (() => {
   const piste = document.querySelector(".insta-track");
   const scene = document.querySelector(".insta-stage");
@@ -1153,7 +1154,10 @@ route();
   const n = vues.length;
   if (!n) return;
 
-  let i = 0, enCours = false;
+  // La piste contient trois series : copie, serie reelle, copie. On demarre
+  // sur la serie reelle (position n) pour que le cadre soit entoure de photos
+  // des les deux cotes — sinon la gauche reste vide au chargement.
+  let i = n;
 
   // Pas = largeur d'une vignette + espacement, lus au moment du calcul :
   // les deux dependent du viewport (clamp et gap en CSS).
@@ -1166,22 +1170,20 @@ route();
     const l = vues[0].getBoundingClientRect().width;
     const x = scene.clientWidth / 2 - (i * pas() + l / 2);
     piste.style.transition = anime ? "transform .45s cubic-bezier(.4,0,.2,1)" : "none";
+    if (anime) void piste.offsetWidth;   // force le recalcul, sinon la transition ne demarre pas
     piste.style.transform = `translateX(${x}px)`;
   };
 
   const aller = (d) => {
-    if (enCours) return;
-    enCours = true;
+    // Repli AVANT de bouger, et non a la fin de l'animation precedente : rien ne
+    // depend donc d'une minuterie ni d'un evenement de fin, qui se ratent ou se
+    // font attendre (onglet en arriere-plan) et figeaient les fleches.
+    // La vignette k et la vignette k+n portent la meme photo : se recaler d'une
+    // serie, sans transition, ne se voit pas.
+    if (i >= 2 * n) { i -= n; placer(false); }
+    else if (i < n) { i += n; placer(false); }
     i += d;
     placer(true);
-    const fin = () => {
-      piste.removeEventListener("transitionend", fin);
-      // Repli dans la serie d'origine, sans transition : invisible a l'oeil.
-      if (i >= n) { i -= n; placer(false); }
-      else if (i < 0) { i += n; placer(false); }
-      enCours = false;
-    };
-    piste.addEventListener("transitionend", fin);
   };
 
   document.querySelector(".insta-prev")?.addEventListener("click", () => aller(-1));
