@@ -882,7 +882,8 @@ body[data-world="academie"] .btn-login{color:var(--fluo-ink)}
 }
 /* Respecte le reglage systeme « animations reduites ». */
 @media(prefers-reduced-motion:reduce){
-  .path li,.path-step,.path-go{transition:none}
+  .path li,.path-step,.path-go,.ccard-pill,.ccard-arrow,
+  a.ccard-pill::before,button.ccard-pill::before{transition:none}
 }
 /* Survol : la carte se remplit du vert de marque. Pas de disque qui grandit ici
    contrairement aux boutons — sur une carte de cette taille, le pseudo-element
@@ -1288,7 +1289,7 @@ body[data-world="academie"] .eyebrow::before{background:var(--fluo-d)}
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
   mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)}
 .carousel-track{display:flex;gap:18px;width:max-content;
-  animation:carousel-defile calc(var(--n,6) * 5s) linear infinite}
+  animation:carousel-defile calc(var(--n,6) * 3.4s) linear infinite}
 .carousel-clone{display:contents}
 /* On s'arrete quand le visiteur survole ou navigue au clavier : sinon
    impossible de lire une carte ou de cliquer dessus. */
@@ -1310,14 +1311,34 @@ body[data-world="academie"] .eyebrow::before{background:var(--fluo-d)}
   border-radius:18px;overflow:hidden;aspect-ratio:3/4;box-shadow:0 12px 28px rgba(0,0,0,.3)}
 .ccard-media{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s}
 .ccard:hover .ccard-media{transform:scale(1.06)}
+/* Pastilles des cartes : meme mecanique que .btn-cta — un disque vert grandit
+   depuis la fleche et inonde la pilule. Le disque est ::before en z-index:-1
+   avec isolation:isolate : dans un contexte d'empilement, un enfant en z-index
+   negatif se peint apres le fond du parent mais avant son texte, donc le
+   libelle reste lisible. overflow:hidden le rogne a la forme de la pilule. */
 .ccard-pill{position:absolute;left:14px;bottom:14px;display:inline-flex;align-items:center;gap:10px;
-  background:#fff;color:var(--blue-ink);font-weight:800;padding:9px 12px 9px 16px;border-radius:999px;
-  text-decoration:none;font-size:.95rem;border:0;cursor:pointer}
+  background-color:#fff;color:var(--blue-ink);font-weight:700;padding:9px 9px 9px 16px;border-radius:999px;
+  text-decoration:none;font-size:.95rem;border:0;cursor:pointer;
+  isolation:isolate;overflow:hidden;transition:color .25s,box-shadow .14s}
 .ccard-pill-static{cursor:default}
 .ccard-arrow{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
-  border-radius:50%;background:var(--blue);color:#fff;font-size:.9rem;font-weight:700}
-body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fluo-ink)}
-.ccard-pill-static .ccard-arrow{background:#eef1f7;color:var(--muted)}
+  flex-shrink:0;border-radius:50%;background-color:var(--blue);color:#fff;font-size:.9rem;font-weight:700;
+  transition:transform .14s}
+body[data-world="academie"] .ccard-arrow{background-color:var(--fluo-d);color:var(--fluo-ink)}
+.ccard-pill-static .ccard-arrow{background-color:#eef1f7;color:var(--muted)}
+/* Le disque, cale sur la fleche. Seulement sur les pastilles cliquables :
+   une pastille statique ne doit pas suggerer une action. */
+a.ccard-pill::before,button.ccard-pill::before{content:"";position:absolute;z-index:-1;
+  right:9px;top:50%;width:26px;height:26px;margin-top:-13px;border-radius:50%;
+  background-color:var(--fluo);transform:scale(0);
+  transition:transform .42s cubic-bezier(.4,0,.2,1)}
+a.ccard-pill:hover,button.ccard-pill:hover,
+a.ccard-pill:focus-visible,button.ccard-pill:focus-visible{
+  color:var(--fluo-ink);box-shadow:0 4px 14px rgba(0,0,0,.28)}
+a.ccard-pill:hover::before,button.ccard-pill:hover::before,
+a.ccard-pill:focus-visible::before,button.ccard-pill:focus-visible::before{transform:scale(22)}
+a.ccard-pill:hover .ccard-arrow,button.ccard-pill:hover .ccard-arrow{
+  background-color:#fff;color:var(--fluo-ink);transform:translate(2px,-2px)}
 /* « Un lieu, trois mondes » dans le footer bleu */
 .foot .coherence{padding:8px 22px 40px}
 .foot .coherence h2{color:#fff}
