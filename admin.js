@@ -216,6 +216,7 @@ const DEFAULT_TAB_ACCESS = {
   coach:      ["cours", "matchs", "lastscores", "phystests", "heures"],
   coach_physique: ["cours", "phystests", "heures"],
   moniteur:   ["cours", "heures"],
+  affichage:  ["resa"],                      // ecran du club : grille des courts, lecture seule
   prof:       ["etudes"],
   coach_mental: ["mental", "heures"],
   organisateur: ["gamezone", "mail"],
@@ -619,13 +620,15 @@ function drawResaGrid(date, bookings, coachMap = {}, colorMap = {}) {
         }
         el.textContent = label;
         el.title = full + (b.recurrence_id ? " · série" : "");
-        el.addEventListener("click", () => editBooking(b, h));
+        if (!isDisplayOnly) el.addEventListener("click", () => editBooking(b, h));
       } else {
         el.classList.add("rfree");
         el.dataset.court = c.id;
         el.dataset.hour = h;
-        el.addEventListener("mousedown", (e) => { e.preventDefault(); startDrag(c.id, h); });
-        el.addEventListener("mouseover", () => overDrag(c.id, h));
+        if (!isDisplayOnly) {
+          el.addEventListener("mousedown", (e) => { e.preventDefault(); startDrag(c.id, h); });
+          el.addEventListener("mouseover", () => overDrag(c.id, h));
+        }
       }
       grid.appendChild(el);
     }
@@ -2207,12 +2210,13 @@ async function removeFamily(g, c, id) {
 //  Cours
 // ===================================================================
 let courseTypes = [];
-let isHeadUser = false, isAdminUser = false, isCourseMgr = false;
+let isHeadUser = false, isAdminUser = false, isCourseMgr = false, isDisplayOnly = false;
 const QH = (() => { const a = []; for (let h = 7; h <= 22; h++) for (const m of [0, 15, 30, 45]) { if (h === 22 && m > 0) break; a.push(pad2(h) + ":" + pad2(m)); } return a; })();
 
 function initCours(roles) {
   isHeadUser = roles.some((r) => ["superadmin", "admin", "head_coach"].includes(r));
   isCourseMgr = isHeadUser || roles.includes("secretaire"); // créer/éditer des cours = head/admin + secrétariat
+  isDisplayOnly = roles.includes("affichage");     // compte d'affichage : aucune interaction sur la grille
   isAdminUser = roles.some((r) => ["superadmin", "admin"].includes(r));
   $("ct-card").querySelector(".ct-add").classList.toggle("hidden", !isAdminUser);
   // Sous-onglet « Types de cours » : réservé admin/superadmin (impacte le paiement).

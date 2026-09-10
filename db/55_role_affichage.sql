@@ -1,0 +1,17 @@
+-- 55_role_affichage.sql
+-- Role « affichage » : compte d'ecran pour un poste en libre acces dans le club,
+-- qui montre la grille des courts de la journee sans pouvoir la modifier.
+--
+-- Choix de conception : le role est volontairement HORS de is_staff.
+-- C'est is_staff qui ouvre l'ecriture sur court_bookings (cb_update_own,
+-- cb_delete_own) ; rester dehors rend le compte lecture seule par nature,
+-- plutot que d'ajouter des exceptions a des policies existantes.
+--
+-- L'onglet Reservations n'a pas besoin de is_staff : courts, court_bookings,
+-- course_coaches et courses sont toutes lisibles par un compte connecte.
+-- Seule la table people etait un obstacle -> policy etroite en migration 56.
+--
+-- NB : valeur ajoutee seule. PostgreSQL interdit d'utiliser une valeur d'enum
+-- dans la transaction qui la cree. Et l'ajout est irreversible : on ne retire
+-- pas une valeur d'un enum sans recreer le type.
+alter type app_role add value if not exists 'affichage';
