@@ -934,6 +934,18 @@ body[data-world="academie"] .hero-logo{filter:drop-shadow(0 4px 16px rgba(0,0,0,
 /* Le libelle du monde sous le logo n'apporte rien : la marque est deja dans
    le logo et le titre. */
 .hero-tag{display:none}
+/* Chaque mot du slogan se souligne au survol, d'un trait qui part de la gauche.
+   scaleX depuis transform-origin:left : anime sur le compositeur, donc fluide,
+   la plus qu'une largeur en pixels. */
+.hs-w{position:relative;display:inline-block}
+.hs-w::after{content:"";position:absolute;left:0;right:0;bottom:.02em;
+  height:.075em;border-radius:.04em;background:var(--fluo);
+  transform:scaleX(0);transform-origin:left center;
+  transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.hs-w:hover::after{transform:scaleX(1)}
+@media(prefers-reduced-motion:reduce){
+  .hs-w::after{transition:none}
+}
 .hero-slogan{font-size:clamp(2.6rem,7vw,5rem);margin:0 0 18px;line-height:1;
   max-width:55rem}
 .hero-desc{font-size:1.14rem;opacity:.95;margin:0 0 28px;max-width:44rem;line-height:1.55}

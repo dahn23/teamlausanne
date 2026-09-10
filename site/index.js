@@ -19,7 +19,7 @@ const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 const WORLDS = {
   academie: {
     tag: "Academy", logo: "assets/logo-academie.webp", heroLogo: "assets/logo-academie-blanc.png",
-    slogan: "Grandir. Progresser. Ensemble.",
+    slogan: "Jouer. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
     hero: "assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
     cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Nous contacter", type: "contact", source: "Renseignement pour l'Academy" }],
@@ -764,7 +764,10 @@ function paintHero({ logo, heroLogo, hero, heroPos, tag, slogan, desc, ctaHTML }
   $("hero-bg").style.backgroundPosition = heroPos || "center";   // point d'intérêt (visages) par page
   $("hero-logo").src = heroLogo || logo;   // hero sur photo : version blanche si le monde en a une
   $("hero-tag").textContent = tag;
-  $("hero-slogan").textContent = slogan;
+  // Un span par mot : c'est ce qui rend chaque mot survolable separement.
+  // innerHTML est sur ici, le texte vient de la configuration et passe par esc().
+  $("hero-slogan").innerHTML = String(slogan).split(/\s+/).filter(Boolean)
+    .map((mot) => `<span class="hs-w">${esc(mot)}</span>`).join(" ");
   $("hero-desc").textContent = desc;
   $("hero-cta").innerHTML = ctaHTML;
 }
