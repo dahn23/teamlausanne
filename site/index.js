@@ -280,11 +280,14 @@ const DETAILS = {
         "Apprendre en jouant", "Encadrement adapté à l'âge", "Prendre confiance",
         "Cadre bienveillant", "Progression structurée", "Petits groupes",
       ]},
-      { type: "split", photo: "assets/photos/kids-2026-1.jpg",
+      { type: "split", photos: [
+          "assets/photos/kids-ambiance.jpg", "assets/photos/kids-2026-1.jpg",
+          "assets/photos/kids-open.jpg", "assets/photos/kids-2026-2.jpg",
+        ],
         eyebrow: "Un premier pas qui compte", title: "Apprendre le jeu comme il faut", body: [
           "Kids Tennis initie les enfants de 4 à 9 ans au tennis de façon ludique et progressive, tout au long de l'année scolaire.",
           "Le jeu avant tout : coordination, motricité et plaisir, avec du matériel adapté à chaque âge et un encadrement de proximité.",
-        ], link: { label: "Inscrire mon enfant", scroll: "enroll-sec" } },
+        ], link: { label: "Inscrire mon enfant", scroll: "enroll-sec", cta: true } },
       { type: "perks", eyebrow: "Pourquoi les parents nous choisissent",
         title: "Le bon cadre pour démarrer et progresser",
         lead: "Tout est pensé pour que votre enfant apprenne, prenne du plaisir et progresse à son rythme.", items: [
@@ -300,8 +303,7 @@ const DETAILS = {
           { jour: "Mardi ou jeudi", heures: ["16h30 – 17h15"] },
           { jour: "Sur mesure", heures: ["Fin d'après-midi"], note: "Des cours supplémentaires sont possibles : écrivez-nous." },
         ],
-        prix: { label: "Saison complète", montant: "CHF 490.–", detail: "45 minutes par semaine, matériel et t-shirt compris" },
-        link: { label: "Nous écrire", contact: "Cours juniors" } },
+        prix: { label: "Saison complète", montant: "CHF 490.–", detail: "45 minutes par semaine, matériel et t-shirt compris" } },
       { type: "faq", eyebrow: "Questions fréquentes",
         title: "Tout ce qu'il faut savoir avant de commencer", items: [
           ["Mon enfant doit-il avoir déjà joué ?", "Non. Le programme convient aussi bien aux enfants qui découvrent le tennis qu'à ceux qui ont déjà commencé."],
@@ -312,7 +314,6 @@ const DETAILS = {
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "kidstennis", ranking: false,
         lead: "Envie d'inscrire votre enfant à Kids Tennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
-      { type: "gallery", items: ["assets/photos/kids-2026-1.jpg", "assets/photos/kids-2026-2.jpg"] },
     ],
   },
   "club-academy": {
@@ -407,6 +408,11 @@ function linkHTML(link) {
     return `<button class="wsec-link" data-login>${esc(link.label)}</button>`;
   if (link.contact)
     return `<button class="contact-cta" data-contact="${esc(link.contact)}">${esc(link.label)}</button>`;
+  // Allure des boutons de l'accueil (pilule blanche, disque fluo, fleche).
+  if (link.cta) {
+    const cible = link.scroll ? `data-scroll="${esc(link.scroll)}"` : `data-contact="${esc(link.contact)}"`;
+    return `<button class="btn-cta wsec-cta" ${cible}>${esc(link.label)}</button>`;
+  }
   if (link.scroll)
     return `<button class="contact-cta" data-scroll="${esc(link.scroll)}">${esc(link.label)}</button>`;
   const ext = link.href.startsWith("http");
@@ -419,6 +425,14 @@ function sectionWrap(sec) {
   return html;
 }
 
+// Balle de tennis des bandeaux de mots-cles : disque plein, et les deux coutures
+// reprennent la couleur du fond pour se decouper dedans.
+const BALLE = `<svg class="kw-balle" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <circle cx="12" cy="12" r="10" fill="currentColor"/>
+  <path d="M4.7 5.1a9.4 9.4 0 0 1 3.1 6.9 9.4 9.4 0 0 1-3.1 6.9M19.3 5.1a9.4 9.4 0 0 0-3.1 6.9 9.4 9.4 0 0 0 3.1 6.9"
+        fill="none" stroke="var(--kw-fond)" stroke-width="1.7" stroke-linecap="round"/>
+</svg>`;
+
 function sectionHTML(sec) {
   switch (sec.type) {
     case "split":
@@ -427,7 +441,13 @@ function sectionHTML(sec) {
           ? (sec.videoFile
             ? `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><video class="split-native" controls playsinline preload="metadata" poster="${esc(sec.poster || "")}"><source src="${esc(sec.videoFile)}" type="video/mp4" />Votre navigateur ne peut pas lire cette vidéo.</video></div>`
             : `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><iframe src="https://www.youtube.com/embed/${esc(sec.video)}" title="${esc(sec.title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`)
-          : `<div class="split-media" style="background-image:url('${sec.photo}')"></div>`}
+          : sec.photos
+            ? `<div class="split-media split-scroller">${sec.photos.map((p, i) =>
+                `<div class="ss-photo${i ? "" : " on"}" style="background-image:url('${p}')"></div>`).join("")}
+                <div class="ss-dots">${sec.photos.map((_, i) =>
+                  `<button type="button" class="ss-dot${i ? "" : " on"}" data-ss="${i}" aria-label="Photo ${i + 1}"></button>`).join("")}</div>
+              </div>`
+            : `<div class="split-media" style="background-image:url('${sec.photo}')"></div>`}
         <div class="split-body">${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}<h2>${esc(sec.title)}</h2>
           ${sec.body.map((p) => `<p>${esc(p)}</p>`).join("")}${linkHTML(sec.link)}</div>
       </section>`;
@@ -778,7 +798,7 @@ function sectionHTML(sec) {
       return `<section class="wsec kw-band" aria-label="${esc(sec.label || "Nos points forts")}">
         <div class="kw-piste">${[0, 1].map((copie) =>
           `<ul class="kw-serie"${copie ? ' aria-hidden="true"' : ""}>${sec.items.map((m) =>
-            `<li class="kw"><span class="kw-point" aria-hidden="true"></span>${esc(m)}</li>`).join("")}</ul>`).join("")}
+            `<li class="kw">${BALLE}${esc(m)}</li>`).join("")}</ul>`).join("")}
         </div></section>`;
 
     // ---- Atouts numerotes ----
@@ -845,6 +865,36 @@ function paintHero({ logo, heroLogo, hero, heroPos, tag, slogan, desc, ctaHTML }
   $("hero-cta").innerHTML = ctaHTML;
 }
 
+// ---- Petit defile de photos dans un split ----
+// Un seul minuteur pour toute la page, relance a chaque rendu : les elements
+// sont recrees par innerHTML, donc rien ne s'empile d'un rendu a l'autre.
+let scrollerMinuteur = null;
+function demarrerScrollers() {
+  clearInterval(scrollerMinuteur);
+  const boites = [...document.querySelectorAll(".split-scroller")];
+  if (!boites.length) return;
+  const montrer = (b, vers) => {
+    const photos = [...b.querySelectorAll(".ss-photo")];
+    const points = [...b.querySelectorAll(".ss-dot")];
+    const i = photos.findIndex((p) => p.classList.contains("on"));
+    const n = ((vers ?? i + 1) + photos.length) % photos.length;
+    photos.forEach((p, k) => p.classList.toggle("on", k === n));
+    points.forEach((p, k) => p.classList.toggle("on", k === n));
+  };
+  boites.forEach((b) => b.addEventListener("click", (e) => {
+    const d = e.target.closest("[data-ss]");
+    if (!d) return;
+    montrer(b, +d.dataset.ss);
+    // Le visiteur a choisi sa photo : on lui laisse le temps de la regarder.
+    b.dataset.pause = "1";
+    clearTimeout(b._reprise);
+    b._reprise = setTimeout(() => delete b.dataset.pause, 9000);
+  }));
+  scrollerMinuteur = setInterval(() => boites.forEach((b) => {
+    if (!b.dataset.pause && !b.matches(":hover")) montrer(b);
+  }), 4200);
+}
+
 function renderWorld(key) {
   const w = WORLDS[key];
   document.body.dataset.world = key;
@@ -856,6 +906,7 @@ function renderWorld(key) {
   paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: w.hero, heroPos: w.heroPos, tag: w.tag, slogan: w.slogan, desc: w.desc, ctaHTML });
   $("world-main").innerHTML = w.sections.map(sectionWrap).join("");
   animate();
+  demarrerScrollers();
 }
 
 function renderDetail(id) {
@@ -872,6 +923,7 @@ function renderDetail(id) {
   paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: d.hero, heroPos: d.heroPos, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML });
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();
+  demarrerScrollers();
   if ($("stgp-list")) stgLoad();
   if ($("gz-winners") || $("gz-photos-carousel")) loadGamezone();
 }
