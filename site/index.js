@@ -274,25 +274,42 @@ const DETAILS = {
   kids: {
     world: "academie", title: "Kids Tennis", subtitle: "Le tennis dès 4 ans, dans un cadre ludique, structuré et bienveillant : nos cours posent des bases solides et donnent le goût du jeu dès les toutes premières séances.",
     hero: "assets/photos/kidstennis-2026.jpg",
+    cta: { label: "Demander un cours d'essai", scroll: "enroll-sec" },
     sections: [
-      { type: "rich", title: "Apprendre en s'amusant", body: [
-        "Kids Tennis initie les enfants de 4 à 9 ans au tennis de façon ludique et progressive, tout au long de l'année scolaire.",
-        "Le jeu avant tout : coordination, motricité et plaisir, avec du matériel adapté à chaque âge et un encadrement de proximité.",
+      { type: "keywords", label: "Ce qui fait le Kids Tennis", items: [
+        "Apprendre en jouant", "Encadrement adapté à l'âge", "Prendre confiance",
+        "Cadre bienveillant", "Progression structurée", "Petits groupes",
       ]},
-      { type: "features", title: "L'offre", items: [
-        ["4–9 ans", "Cours juniors sur toute la saison (31 août 2026 → 2 juillet 2027)."],
-        ["45 minutes", "Une séance de 45 minutes par semaine."],
-        ["1 coach / 4 enfants", "Un suivi personnalisé en tout petit groupe."],
-        ["Offert", "T-shirt Team Lausanne offert, raquette prêtée si besoin."],
-      ]},
-      { type: "features", title: "Horaires", items: [
-        ["Mercredi", "13h30–14h15 ou 14h15–15h00."],
-        ["Mardi ou jeudi", "16h30–17h15."],
-        ["Sur mesure", "Cours supplémentaires possibles en fin d'après-midi."],
-      ], link: { label: "Nous écrire", contact: "Cours juniors" } },
-      { type: "rich", title: "Tarif", body: [
-        "CHF 490.– pour la saison complète.",
-      ]},
+      { type: "split", photo: "assets/photos/kids-2026-1.jpg",
+        eyebrow: "Un premier pas qui compte", title: "Apprendre le jeu comme il faut", body: [
+          "Kids Tennis initie les enfants de 4 à 9 ans au tennis de façon ludique et progressive, tout au long de l'année scolaire.",
+          "Le jeu avant tout : coordination, motricité et plaisir, avec du matériel adapté à chaque âge et un encadrement de proximité.",
+        ], link: { label: "Inscrire mon enfant", scroll: "enroll-sec" } },
+      { type: "perks", eyebrow: "Pourquoi les parents nous choisissent",
+        title: "Le bon cadre pour démarrer et progresser",
+        lead: "Tout est pensé pour que votre enfant apprenne, prenne du plaisir et progresse à son rythme.", items: [
+          ["Quatre enfants par coach", "Un tout petit groupe : de l'attention, des retours immédiats et de vrais progrès."],
+          ["Toute la saison", "Une séance de 45 minutes par semaine, du 31 août 2026 au 2 juillet 2027."],
+          ["T-shirt offert", "Le t-shirt Team Lausanne Academy est offert à chaque enfant."],
+          ["Raquette prêtée", "Pas de matériel ? Nous prêtons la raquette, il n'y a qu'à venir jouer."],
+        ]},
+      { type: "slots", eyebrow: "Trouver le bon moment",
+        title: "Horaires et tarif",
+        lead: "Choisissez le créneau qui s'accorde avec la semaine de votre enfant.", items: [
+          { jour: "Mercredi", heures: ["13h30 – 14h15", "14h15 – 15h00"] },
+          { jour: "Mardi ou jeudi", heures: ["16h30 – 17h15"] },
+          { jour: "Sur mesure", heures: ["Fin d'après-midi"], note: "Des cours supplémentaires sont possibles : écrivez-nous." },
+        ],
+        prix: { label: "Saison complète", montant: "CHF 490.–", detail: "45 minutes par semaine, matériel et t-shirt compris" },
+        link: { label: "Nous écrire", contact: "Cours juniors" } },
+      { type: "faq", eyebrow: "Questions fréquentes",
+        title: "Tout ce qu'il faut savoir avant de commencer", items: [
+          ["Mon enfant doit-il avoir déjà joué ?", "Non. Le programme convient aussi bien aux enfants qui découvrent le tennis qu'à ceux qui ont déjà commencé."],
+          ["À quel âge peut-on débuter ?", "Dès 4 ans environ, avec des séances adaptées à l'âge et au niveau. À ce stade, l'accent est mis sur la coordination, le déplacement et le plaisir de jouer."],
+          ["Comment les groupes sont-ils formés ?", "Selon l'âge, le niveau, l'expérience et les disponibilités, pour que chaque enfant apprenne dans le bon environnement."],
+          ["De quel matériel a-t-il besoin ?", "Une tenue de sport confortable et des chaussures de tennis. La raquette peut être prêtée, en particulier pour les débutants."],
+          ["Comment mon enfant progresse-t-il ?", "Par un encadrement adapté à son âge, du travail de coordination, les bases techniques et les retours réguliers de l'équipe de coachs."],
+        ]},
       { type: "enroll", title: "Demander une inscription", filiere: "kidstennis", ranking: false,
         lead: "Envie d'inscrire votre enfant à Kids Tennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
       { type: "gallery", items: ["assets/photos/kids-2026-1.jpg", "assets/photos/kids-2026-2.jpg"] },
@@ -411,7 +428,7 @@ function sectionHTML(sec) {
             ? `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><video class="split-native" controls playsinline preload="metadata" poster="${esc(sec.poster || "")}"><source src="${esc(sec.videoFile)}" type="video/mp4" />Votre navigateur ne peut pas lire cette vidéo.</video></div>`
             : `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><iframe src="https://www.youtube.com/embed/${esc(sec.video)}" title="${esc(sec.title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`)
           : `<div class="split-media" style="background-image:url('${sec.photo}')"></div>`}
-        <div class="split-body"><h2>${esc(sec.title)}</h2>
+        <div class="split-body">${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}<h2>${esc(sec.title)}</h2>
           ${sec.body.map((p) => `<p>${esc(p)}</p>`).join("")}${linkHTML(sec.link)}</div>
       </section>`;
 
@@ -714,7 +731,7 @@ function sectionHTML(sec) {
         </div></section>`;
 
     case "enroll":
-      return `<section class="wsec"><h2>${esc(sec.title || "Demande d'inscription")}</h2>
+      return `<section class="wsec enroll-sec"><h2>${esc(sec.title || "Demande d'inscription")}</h2>
         ${sec.lead ? `<p class="muted" style="max-width:640px;margin:-6px 0 22px">${esc(sec.lead)}</p>` : ""}
         <form id="enroll-form" class="cform" style="max-width:720px" data-filiere="${esc(sec.filiere)}">
           <div class="cf-row">
@@ -754,6 +771,62 @@ function sectionHTML(sec) {
           <p class="muted" style="margin:0">${sec.adultes ? "Renato Lombardi, responsable des cours adultes et privés, vous recontactera rapidement pour en discuter. Rien n'est engagé à ce stade." : "Le secrétariat vous recontacte rapidement."}</p>
         </div></section>`;
 
+    // ---- Bandeau de mots-cles ----
+    // Meme principe que le carrousel : la serie est rendue deux fois et la piste
+    // se translate d'exactement une serie, d'ou une boucle sans saut visible.
+    case "keywords":
+      return `<section class="wsec kw-band" aria-label="${esc(sec.label || "Nos points forts")}">
+        <div class="kw-piste">${[0, 1].map((copie) =>
+          `<ul class="kw-serie"${copie ? ' aria-hidden="true"' : ""}>${sec.items.map((m) =>
+            `<li class="kw"><span class="kw-point" aria-hidden="true"></span>${esc(m)}</li>`).join("")}</ul>`).join("")}
+        </div></section>`;
+
+    // ---- Atouts numerotes ----
+    case "perks":
+      return `<section class="wsec perks">
+        <div class="perks-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
+        </div>
+        <div class="perk-grid">${sec.items.map(([h, t], k) =>
+          `<article class="perk"><span class="perk-num" aria-hidden="true">${String(k + 1).padStart(2, "0")}</span>
+            <h3>${esc(h)}</h3><p>${esc(t)}</p></article>`).join("")}</div>
+        ${linkHTML(sec.link)}</section>`;
+
+    // ---- Creneaux et tarif ----
+    case "slots":
+      return `<section class="wsec slots">
+        <div class="perks-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
+        </div>
+        <div class="slot-grid">${sec.items.map((o) =>
+          `<article class="slot"><span class="slot-jour">${esc(o.jour)}</span>
+            <ul class="slot-heures">${o.heures.map((h) => `<li>${esc(h)}</li>`).join("")}</ul>
+            ${o.note ? `<p class="slot-note">${esc(o.note)}</p>` : ""}</article>`).join("")}</div>
+        ${sec.prix ? `<div class="slot-prix">
+          <span class="slot-prix-quoi">${esc(sec.prix.label)}</span>
+          <b class="slot-prix-montant">${esc(sec.prix.montant)}</b>
+          ${sec.prix.detail ? `<span class="slot-prix-detail">${esc(sec.prix.detail)}</span>` : ""}
+        </div>` : ""}
+        ${linkHTML(sec.link)}</section>`;
+
+    // ---- Questions frequentes ----
+    // <details> natif : ouverture au clic comme au clavier, sans une ligne de JS.
+    case "faq":
+      return `<section class="wsec faq">
+        <div class="perks-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+        </div>
+        <div class="faq-list">${sec.items.map(([q, r]) =>
+          `<details class="faq-item"><summary><span class="faq-q">${esc(q)}</span>
+            <span class="faq-signe" aria-hidden="true"></span></summary>
+            <div class="faq-rep"><p>${esc(r)}</p></div></details>`).join("")}</div>
+        ${linkHTML(sec.link)}</section>`;
+
     default: return "";
   }
 }
@@ -790,7 +863,12 @@ function renderDetail(id) {
   const w = WORLDS[d.world];
   document.body.dataset.world = d.world;
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === d.world));
-  const ctaHTML = `<button class="btn-cta ghost" data-back="${d.world}">← Retour à ${esc(w.tag.toLowerCase())}</button>`;
+  // Une page de filiere peut porter son propre appel a l'action ; il passe
+  // devant le retour, qui devient secondaire.
+  const ctaPage = !d.cta ? ""
+    : d.cta.scroll ? `<button class="btn-cta" data-scroll="${esc(d.cta.scroll)}">${esc(d.cta.label)}</button>`
+    : `<button class="btn-cta" data-contact="${esc(d.cta.contact)}">${esc(d.cta.label)}</button>`;
+  const ctaHTML = ctaPage + `<button class="btn-cta ghost" data-back="${d.world}">← Retour à ${esc(w.tag.toLowerCase())}</button>`;
   paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: d.hero, heroPos: d.heroPos, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML });
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();

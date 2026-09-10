@@ -2048,3 +2048,97 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 /* Vidéo hébergée sur le site (lecteur natif) : remplit le cadre sans rogner, fond noir */
 .split-video video.split-native{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;border:0;display:block}
 @media(max-width:760px){.split-video-vertical{min-height:0;aspect-ratio:480/848}}
+
+/* ============================================================
+   Pages de filiere : bandeau de mots-cles, atouts, creneaux, FAQ
+   ============================================================ */
+
+/* Bandeau de mots-cles, pleine largeur. La serie est rendue deux fois et la
+   piste se translate d'exactement une serie : chaque serie porte son propre
+   espacement final, donc -50 % tombe pile sur le debut de la copie. */
+.kw-band{--kw-gap:clamp(22px,4vw,44px);
+  width:100vw;margin-inline:calc(50% - 50vw);
+  background:var(--blue);color:#fff;padding:18px 0;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.kw-piste{display:flex;width:max-content;animation:kw-defile 28s linear infinite}
+.kw-serie{list-style:none;margin:0;padding:0 var(--kw-gap) 0 0;display:flex;gap:var(--kw-gap)}
+.kw{display:inline-flex;align-items:center;gap:var(--kw-gap);white-space:nowrap;
+  font-family:var(--font-accent);font-weight:700;text-transform:uppercase;
+  letter-spacing:-.02em;font-size:clamp(1rem,2.2vw,1.5rem)}
+.kw-point{width:10px;height:10px;border-radius:50%;background:var(--fluo);flex:none}
+.kw-band:hover .kw-piste{animation-play-state:paused}
+@keyframes kw-defile{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* Atouts numerotes. Le chiffre glisse et s'allume au survol : c'est la seule
+   animation de la carte, le reste doit rester lisible. */
+.perks-head{max-width:640px;margin:0 0 28px}
+.perks-head h2{font-size:clamp(1.6rem,3.4vw,2.3rem);color:var(--blue-ink);margin:0 0 10px}
+.perks-lead{color:var(--muted);font-size:1.02rem;line-height:1.55;margin:0}
+.perk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.perk{position:relative;overflow:hidden;isolation:isolate;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:26px 22px 22px;box-shadow:var(--shadow);
+  transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}
+.perk::before{content:"";position:absolute;inset:auto auto 0 0;z-index:-1;
+  width:100%;height:0;background:var(--fluo);transition:height .32s cubic-bezier(.4,0,.2,1)}
+.perk:hover{transform:translateY(-6px);box-shadow:0 14px 30px rgba(20,26,46,.16);
+  border-color:var(--fluo)}
+.perk:hover::before{height:5px}
+.perk-num{display:block;font-family:var(--font-accent);font-weight:700;font-size:1.5rem;
+  color:var(--fluo-d);line-height:1;margin-bottom:12px;
+  transition:transform .28s ease,color .28s ease}
+.perk:hover .perk-num{transform:translateX(4px);color:var(--blue)}
+.perk h3{margin:0 0 8px;font-size:1.08rem;color:var(--blue-ink);
+  font-style:normal;text-transform:none;letter-spacing:0}
+.perk p{margin:0;color:var(--muted);font-size:.94rem;line-height:1.5}
+
+/* Creneaux : une carte par jour, puis le tarif en bandeau. */
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+.slot{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px;box-shadow:var(--shadow);
+  transition:transform .28s ease,border-color .28s ease}
+.slot:hover{transform:translateY(-4px);border-color:var(--blue)}
+.slot-jour{display:inline-block;font-family:var(--font-accent);font-weight:700;
+  text-transform:uppercase;letter-spacing:-.02em;color:var(--blue);font-size:1.05rem;
+  margin-bottom:12px}
+.slot-heures{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.slot-heures li{background:#eef1f7;color:var(--blue-ink);font-weight:700;
+  border-radius:var(--radius-md);padding:8px 12px;font-size:.95rem}
+.slot-note{margin:12px 0 0;color:var(--muted);font-size:.88rem;line-height:1.45}
+.slot-prix{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin-top:18px;
+  background:var(--blue-ink);color:#fff;border-radius:var(--radius);padding:22px 26px}
+.slot-prix-quoi{text-transform:uppercase;letter-spacing:.12em;font-size:.74rem;
+  font-weight:800;color:var(--fluo)}
+.slot-prix-montant{font-family:var(--font-accent);font-weight:700;letter-spacing:-.03em;
+  font-size:clamp(1.6rem,3.4vw,2.1rem);line-height:1}
+.slot-prix-detail{color:rgba(255,255,255,.82);font-size:.94rem}
+
+/* FAQ depliante : <details> natif, donc clavier et lecteurs d'ecran gratuits. */
+.faq-list{display:flex;flex-direction:column;gap:10px}
+.faq-item{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;transition:border-color .24s ease,box-shadow .24s ease}
+.faq-item[open]{border-color:var(--blue);box-shadow:var(--shadow)}
+.faq-item summary{list-style:none;cursor:pointer;display:flex;align-items:center;
+  justify-content:space-between;gap:18px;padding:18px 22px;
+  font-weight:800;color:var(--blue-ink);font-size:1.02rem}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary:hover{background:#f3f6fc}
+.faq-item summary:focus-visible{outline:3px solid var(--fluo);outline-offset:-3px}
+/* Le signe se construit en CSS : deux barres, dont l'une disparait a l'ouverture. */
+.faq-signe{position:relative;flex:none;width:20px;height:20px}
+.faq-signe::before,.faq-signe::after{content:"";position:absolute;inset:50% 0 auto 0;
+  height:2.5px;border-radius:2px;background:var(--blue);transform:translateY(-50%);
+  transition:transform .28s cubic-bezier(.4,0,.2,1),opacity .2s}
+.faq-signe::after{transform:translateY(-50%) rotate(90deg)}
+.faq-item[open] .faq-signe::after{transform:translateY(-50%) rotate(0);opacity:0}
+.faq-rep{padding:0 22px 20px;color:var(--muted);line-height:1.6;
+  animation:faq-ouvre .3s ease both}
+.faq-rep p{margin:0;max-width:62ch}
+@keyframes faq-ouvre{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+@media(prefers-reduced-motion:reduce){
+  .kw-piste{animation:none}
+  .perk,.perk::before,.perk-num,.slot,.faq-item,.faq-signe::before,.faq-signe::after{transition:none}
+  .faq-rep{animation:none}
+}
