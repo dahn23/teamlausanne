@@ -1394,7 +1394,7 @@ a.partner:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
    18 px, indispensable pour que calc(-50% - 9px) tombe juste. */
 .insta{position:relative;width:100vw;margin-inline:calc(50% - 50vw);
   padding:var(--sec-md) 0;color:#fff;isolation:isolate;
-  background:url("assets/photos/open-hero-2026.jpg") center/cover no-repeat}
+  background:url("assets/photos/insta-fond.jpg") center/cover no-repeat}
 /* Voile : sans lui, ni le titre ni le cadre blanc ne tiennent sur la photo. */
 .insta::before{content:"";position:absolute;inset:0;z-index:-1;
   background:linear-gradient(180deg,rgba(0,54,82,.88),rgba(0,54,82,.78))}
