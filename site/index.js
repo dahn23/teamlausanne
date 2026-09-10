@@ -610,24 +610,32 @@ function sectionHTML(sec) {
         <div class="ig-grid">${(sec.photos || []).map((src) =>
           `<a class="ig-cell" href="https://instagram.com/${esc(sec.handle)}" target="_blank" rel="noopener" style="background-image:url('${src}')"></a>`).join("")}</div></section>`;
 
-    case "pyramid":
+    // Le parcours de formation, presente en etapes numerotees plutot qu'en
+    // pyramide de barres. Les niveaux sont saisis du sommet vers la base
+    // (Pro d'abord) ; on les inverse ici pour qu'ils se lisent 01 -> 05, du
+    // premier echange a la performance.
+    case "pyramid": {
+      const etapes = sec.levels.slice().reverse();
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         ${sec.sub ? `<p class="wsec-sub">${esc(sec.sub)}</p>` : ""}
-        <div class="pyramid-wrap">
-          <div class="pyramid">${sec.levels.map((l, i) => {
-            const w = sec.levels.length > 1 ? 46 + i * (54 / (sec.levels.length - 1)) : 100;
-            const inner = `<b>${esc(l.name)}</b><span>${esc(l.meta)}</span>`;
+        <div class="path-wrap">
+          <ol class="path">${etapes.map((l, i) => {
+            const num = String(i + 1).padStart(2, "0");
+            const inner = `<span class="path-num">${num}</span>
+              <span class="path-name">${esc(l.name)}</span>
+              <span class="path-meta">${esc(l.meta)}</span>`;
             return l.href
-              ? `<a class="pyr-level" href="${esc(l.href)}" style="width:${w}%">${inner}<span class="pyr-arrow">↗</span></a>`
-              : `<div class="pyr-level" style="width:${w}%">${inner}</div>`;
-          }).join("")}</div>
-          ${sec.club ? `<aside class="pyr-club">
+              ? `<li><a class="path-step" href="${esc(l.href)}">${inner}<span class="path-go">↗</span></a></li>`
+              : `<li><div class="path-step">${inner}</div></li>`;
+          }).join("")}</ol>
+          ${sec.club ? `<aside class="path-club">
             <h3>${esc(sec.club.title)}</h3>
             ${sec.club.body.map((p) => `<p>${esc(p)}</p>`).join("")}
-            ${sec.club.href ? `<a class="pyr-club-link" href="${esc(sec.club.href)}">Découvrir le Club ↗</a>` : ""}
+            ${sec.club.href ? `<a class="path-club-link" href="${esc(sec.club.href)}">Découvrir le Club ↗</a>` : ""}
           </aside>` : ""}
         </div>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
+    }
 
     case "team": {
       const n = sec.count || (sec.items ? sec.items.length : 0);
