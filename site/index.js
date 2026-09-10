@@ -318,30 +318,51 @@ const DETAILS = {
     ],
   },
   "club-academy": {
-    world: "academie", title: "Club", subtitle: "L'entraînement à son rythme, toute l'année",
+    world: "academie", title: "Club",
+    subtitle: "Des entraînements encadrés, une à deux fois par semaine, pour tous les niveaux : progresser à son rythme, rester en mouvement et prendre du plaisir sur le court, toute l'année.",
     hero: "assets/photos/club-2026.jpg",
+    cta: { label: "Demander des informations", scroll: "enroll-sec" },
     sections: [
-      { type: "rich", title: "Jouer et progresser, sans pression", body: [
-        "L'offre Club s'adresse à celles et ceux qui veulent jouer 1 ou plusieurs heures par semaine toute l'année — débutants comme plus avancés.",
-        "Un entraînement régulier pour progresser à son rythme, avec la possibilité d'ajouter une deuxième séance par semaine.",
+      { type: "keywords", label: "Ce qui fait l'offre Club", items: [
+        "Ambiance club", "Encadrement professionnel", "Progression régulière",
+        "Apprendre en jouant", "Petits groupes", "Sur la durée",
       ]},
-      { type: "features", title: "L'offre", items: [
-        ["Toute l'année", "Du 31 août 2026 au 2 juillet 2027."],
-        ["1h / semaine", "Possibilité de prendre 2 entraînements par semaine."],
-        ["1 coach / 4 jeunes", "Un encadrement de proximité."],
-        ["Offert", "T-shirt Team Lausanne offert."],
-      ]},
-      { type: "features", title: "Horaires", items: [
-        ["Lun · Mar · Jeu · Ven", "17h15 – 19h15."],
-        ["Mercredi", "13h15 – 19h15."],
-      ]},
-      { type: "ranking", title: "Tarifs · saison 2026/27", head: ["Jour", "Prix / saison"], rows: [
-        ["Lundi", "770.–"], ["Mardi", "815.–"], ["Mercredi", "815.–"], ["Jeudi", "790.–"], ["Vendredi", "770.–"],
-      ]},
-      { type: "features", title: "Et la compétition ?", items: [
-        ["Ponctuelle", "Quelques compétitions au fil de la saison, selon l'envie et sans obligation."],
-        ["Interclubs", "Pour les membres du club, possibilité de participer aux interclubs selon disponibilité."],
-      ], link: { label: "Nous écrire", contact: "Cours juniors" } },
+      { type: "split", photos: [
+          "assets/photos/club-2026-2.jpg", "assets/photos/club-2026-1.jpg",
+          "assets/photos/club-2026-3.jpg",
+        ],
+        eyebrow: "Un lieu pour jouer et progresser", title: "Jouer et progresser, sans pression", body: [
+          "L'offre Club s'adresse à celles et ceux qui veulent jouer 1 ou plusieurs heures par semaine toute l'année — débutants comme plus avancés.",
+          "Un entraînement régulier pour progresser à son rythme, avec la possibilité d'ajouter une deuxième séance par semaine.",
+        ], link: { label: "Rejoindre le Club", scroll: "enroll-sec", cta: true } },
+      { type: "perks", eyebrow: "Pourquoi rejoindre le Club",
+        title: "Le bon équilibre entre encadrement et liberté",
+        lead: "Tout est prévu pour que chacun trouve son rythme, quel que soit son niveau de départ.", items: [
+          ["Quatre jeunes par coach", "Un encadrement de proximité, avec des retours immédiats sur le court."],
+          ["Toute la saison", "Une heure par semaine, du 31 août 2026 au 2 juillet 2027."],
+          ["Jusqu'à deux séances", "Possibilité d'ajouter un deuxième entraînement hebdomadaire."],
+          ["T-shirt offert", "Le t-shirt Team Lausanne est offert à chaque joueuse et joueur."],
+        ]},
+      { type: "slots", eyebrow: "Trouver le bon moment",
+        title: "Horaires et tarifs",
+        lead: "Le tarif dépend du jour choisi ; le t-shirt Team Lausanne est compris dans tous les cas.", items: [
+          { jour: "Lundi", heures: ["17h15 – 19h15"], prix: "770.–" },
+          { jour: "Mardi", heures: ["17h15 – 19h15"], prix: "815.–" },
+          { jour: "Mercredi", heures: ["13h15 – 19h15"], prix: "815.–" },
+          { jour: "Jeudi", heures: ["17h15 – 19h15"], prix: "790.–" },
+          { jour: "Vendredi", heures: ["17h15 – 19h15"], prix: "770.–" },
+        ],
+        prix: { label: "Saison complète", montant: "dès CHF 770.–",
+                detail: "selon le jour choisi · t-shirt Team Lausanne compris",
+                cta: { label: "Rejoindre le Club", scroll: "enroll-sec" } } },
+      { type: "faq", eyebrow: "Questions fréquentes",
+        title: "Tout ce qu'il faut savoir avant de commencer", items: [
+          ["Faut-il déjà savoir jouer ?", "Un peu d'expérience aide, mais chacun est orienté vers le bon groupe selon son niveau, son âge et son parcours."],
+          ["Comment les groupes sont-ils formés ?", "Selon l'âge, le niveau, les horaires et les besoins de chacun, pour que tout le monde s'entraîne dans le bon environnement."],
+          ["À quelle fréquence s'entraîne-t-on ?", "Une heure par semaine sur le créneau choisi, avec la possibilité d'ajouter un deuxième entraînement."],
+          ["Et la compétition ?", "Quelques compétitions au fil de la saison, selon l'envie et sans obligation. Les membres du club peuvent aussi disputer les interclubs, selon les disponibilités."],
+          ["Qu'est-ce qui est compris ?", "L'entraînement encadré en groupe, le suivi de la progression tout au long de la saison, et le t-shirt Team Lausanne."],
+        ]},
       { type: "enroll", title: "Demander une inscription", filiere: "club", ranking: false,
         lead: "Envie de rejoindre l'offre Club ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
@@ -826,7 +847,8 @@ function sectionHTML(sec) {
         <div class="slot-grid">${sec.items.map((o) =>
           `<article class="slot"><span class="slot-jour">${esc(o.jour)}</span>
             <ul class="slot-heures">${o.heures.map((h) => `<li>${esc(h)}</li>`).join("")}</ul>
-            ${o.note ? `<p class="slot-note">${esc(o.note)}</p>` : ""}</article>`).join("")}</div>
+            ${o.note ? `<p class="slot-note">${esc(o.note)}</p>` : ""}
+            ${o.prix ? `<span class="slot-tarif">${esc(o.prix)}</span>` : ""}</article>`).join("")}</div>
         ${sec.prix ? `<div class="slot-prix">
           <span class="slot-prix-quoi">${esc(sec.prix.label)}</span>
           <b class="slot-prix-montant">${esc(sec.prix.montant)}</b>

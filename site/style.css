@@ -2214,3 +2214,9 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 @media(prefers-reduced-motion:reduce){
   .hs-w-entier{transition:none}
 }
+
+/* Tarif propre a un creneau : au Club le prix depend du jour choisi, alors
+   qu'au Kids Tennis un seul prix vaut pour tous. */
+.slot-tarif{display:inline-block;margin-top:12px;background:var(--fluo);color:var(--fluo-ink);
+  font-family:var(--font-accent);font-weight:700;letter-spacing:-.02em;
+  font-size:1.02rem;padding:5px 12px;border-radius:999px}
