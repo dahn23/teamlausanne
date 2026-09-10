@@ -35,7 +35,7 @@ const WORLDS = {
           { name: "Sport-études & Pro U18", meta: "places limitées", href: "#sport-etudes" },
           { name: "Performance", meta: "≈ 12–15 ans · 8 places", href: "#performance" },
           { name: "Compétition", meta: "≈ 10–13 ans · 16 places", href: "#competition" },
-          { name: "KidsTennis", meta: "4–10 ans · ouvert à tous", href: "#kids" },
+          { name: "Kids Tennis", meta: "4–10 ans · ouvert à tous", href: "#kids" },
         ],
         club: { title: "Filière Club", href: "#club-academy", body: [
           "En parallèle de la pyramide de sélection, la filière Club s'adresse à celles et ceux qui veulent développer leur tennis à leur rythme, une ou plusieurs fois par semaine.",
@@ -45,7 +45,7 @@ const WORLDS = {
       { type: "carousel", anchor: "programmes", eyebrow: "Cours pour tous", title: "Un programme pour chaque niveau",
         sub: "Du premier échange à la performance, un parcours clair pour progresser avec plaisir.",
         items: [
-          { name: "KidsTennis", photo: "assets/photos/kidstennis-2026.jpg", href: "#kids" },
+          { name: "Kids Tennis", photo: "assets/photos/kidstennis-2026.jpg", href: "#kids" },
           { name: "Club", photo: "assets/photos/club-2026.jpg", href: "#club-academy" },
           { name: "Compétition", photo: "assets/photos/competition-2026-card.jpg", href: "#competition" },
           { name: "Performance", photo: "assets/photos/performance-2026.jpg", href: "#performance" },
@@ -148,7 +148,7 @@ const DETAILS = {
       { type: "formules", title: "Les formules",
         intro: "Du mini-tennis à l'entraînement de compétiteur, choisis la formule selon ton âge et tes envies, encadré par nos coachs aux Plaines-du-Loup. <b>−20 % dès la 2ᵉ semaine</b> ou pour un 2ᵉ membre de la famille.",
         items: [
-          { name: "KidsTennis", age: "4 à 9 ans", lines: ["9h00–12h00", "1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "250 CHF" },
+          { name: "Kids Tennis", age: "4 à 9 ans", lines: ["9h00–12h00", "1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "250 CHF" },
           { name: "Loisirs", age: "9 à 18 ans", lines: ["9h00–17h00", "3h de tennis + 3h30 d'activité", "Repas inclus"], price: "450 CHF" },
           { name: "Loisirs ½ journée", age: "9 à 18 ans", lines: ["9h00–12h00 ou 14h00–17h00", "1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "290 CHF" },
           { name: "Entraîne-toi comme un pro", age: "10 à 19 ans · dès R7", lines: ["9h00–17h00", "4h de tennis + 1h30 physique + 1h d'activité", "Repas inclus · option privé +240 CHF (3h)"], price: "790 CHF", pro: true },
@@ -272,11 +272,11 @@ const DETAILS = {
     ],
   },
   kids: {
-    world: "academie", title: "KidsTennis", subtitle: "Les cours juniors des 4–9 ans, toute l'année",
+    world: "academie", title: "Kids Tennis", subtitle: "Le tennis dès 4 ans, dans un cadre ludique, structuré et bienveillant : nos cours posent des bases solides et donnent le goût du jeu dès les toutes premières séances.",
     hero: "assets/photos/kidstennis-2026.jpg",
     sections: [
       { type: "rich", title: "Apprendre en s'amusant", body: [
-        "KidsTennis initie les enfants de 4 à 9 ans au tennis de façon ludique et progressive, tout au long de l'année scolaire.",
+        "Kids Tennis initie les enfants de 4 à 9 ans au tennis de façon ludique et progressive, tout au long de l'année scolaire.",
         "Le jeu avant tout : coordination, motricité et plaisir, avec du matériel adapté à chaque âge et un encadrement de proximité.",
       ]},
       { type: "features", title: "L'offre", items: [
@@ -294,7 +294,7 @@ const DETAILS = {
         "CHF 490.– pour la saison complète.",
       ]},
       { type: "enroll", title: "Demander une inscription", filiere: "kidstennis", ranking: false,
-        lead: "Envie d'inscrire votre enfant à KidsTennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
+        lead: "Envie d'inscrire votre enfant à Kids Tennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
       { type: "gallery", items: ["assets/photos/kids-2026-1.jpg", "assets/photos/kids-2026-2.jpg"] },
     ],
   },
@@ -827,7 +827,7 @@ const LO_ONLY = /lausanneopen/i.test(location.hostname);
 const DEFAULT_WORLD = LO_ONLY ? "tournoi" : "academie";
 if (LO_ONLY) document.body.classList.add("lo-only");
 const TITLES = {
-  academie: ["Team Lausanne Academy — Tennis à Lausanne, du KidsTennis au Pro", "Team Lausanne Academy : le centre de formation tennis des Plaines-du-Loup à Lausanne. KidsTennis, Club, Compétition, Performance, Sport-études, Pro U18, Pro, stages et tournois GameZone."],
+  academie: ["Team Lausanne Academy — Tennis à Lausanne, du Kids Tennis au Pro", "Team Lausanne Academy : le centre de formation tennis des Plaines-du-Loup à Lausanne. Kids Tennis, Club, Compétition, Performance, Sport-études, Pro U18, Pro, stages et tournois GameZone."],
   tournoi: ["Lausanne Open — ITF M25, prochaine édition août 2027", "Lausanne Open : l’unique tournoi international de tennis masculin du canton de Vaud. ITF M25, 30 000 $ de dotation, entrée libre. Prochaine édition en août 2027 aux Plaines-du-Loup."],
 };
 function setTitle(world, sub) {
@@ -1104,7 +1104,7 @@ document.addEventListener("submit", async (e) => {
   $("biz-done").classList.remove("hidden");
 });
 
-// Demande d'inscription (pages de filière : Compétition, Performance, Club, KidsTennis)
+// Demande d'inscription (pages de filière : Compétition, Performance, Club, Kids Tennis)
 document.addEventListener("submit", async (e) => {
   if (e.target.id !== "enroll-form") return;
   e.preventDefault();
