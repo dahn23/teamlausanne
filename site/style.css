@@ -1279,10 +1279,33 @@ body[data-world="academie"] .eyebrow{color:var(--fluo-d)}
 body[data-world="academie"] .eyebrow::before{background:var(--fluo-d)}
 .carousel-sec h2{font-size:clamp(1.7rem,4vw,2.6rem);margin:0 0 12px;color:#fff}
 .carousel-sub{color:rgba(255,255,255,.82);font-size:1.02rem;margin:0 auto;max-width:620px;line-height:1.5}
-.carousel{display:flex;gap:18px;overflow-x:auto;padding:6px 22px 16px;
-  scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:#7da2ff transparent}
-.carousel::-webkit-scrollbar{height:8px}
-.carousel::-webkit-scrollbar-thumb{background:#7da2ff;border-radius:8px}
+/* Carrousel : defilement continu, sans barre a tirer.
+   La serie de cartes est rendue deux fois ; la piste se translate de la largeur
+   d'une serie (50 % + la moitie de l'espacement), puis repart a zero — la copie
+   se trouve alors exactement ou etait l'originale, d'ou une boucle sans saut.
+   La duree suit le nombre de cartes pour garder une vitesse constante. */
+.carousel{overflow:hidden;padding:6px 0 16px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)}
+.carousel-track{display:flex;gap:18px;width:max-content;
+  animation:carousel-defile calc(var(--n,6) * 5s) linear infinite}
+.carousel-clone{display:contents}
+/* On s'arrete quand le visiteur survole ou navigue au clavier : sinon
+   impossible de lire une carte ou de cliquer dessus. */
+.carousel:hover .carousel-track,
+.carousel:focus-within .carousel-track{animation-play-state:paused}
+@keyframes carousel-defile{
+  from{transform:translateX(0)}
+  to{transform:translateX(calc(-50% - 9px))}
+}
+/* Animations reduites : on rend la main, avec le defilement manuel d'avant. */
+@media(prefers-reduced-motion:reduce){
+  .carousel{overflow-x:auto;scroll-snap-type:x mandatory;
+    scrollbar-width:thin;scrollbar-color:#7da2ff transparent;
+    -webkit-mask-image:none;mask-image:none}
+  .carousel-track{animation:none;width:auto}
+  .carousel-clone{display:none}
+}
 .ccard{position:relative;flex:0 0 clamp(240px,72vw,300px);scroll-snap-align:start;
   border-radius:18px;overflow:hidden;aspect-ratio:3/4;box-shadow:0 12px 28px rgba(0,0,0,.3)}
 .ccard-media{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s}

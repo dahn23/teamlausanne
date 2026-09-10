@@ -506,7 +506,14 @@ function sectionHTML(sec) {
              <img src="assets/lo/sponsors/${esc(s.l)}.png" alt="${esc(s.n)}" loading="lazy" />
              <span>${esc(s.n)}</span></a>`).join("")}</div></section>`;
 
+    // Une serie de cartes. Rendue deux fois : l'originale et une copie inerte,
+    // pour que le defilement puisse boucler sans saut visible.
     case "carousel": {
+      const carte = (items, mkPill) => items.map((o) =>
+        `<article class="ccard"><div class="ccard-media${o.plan ? " ccard-media-plan" : ""}" style="background-image:url('${o.photo}')"></div>
+          ${mkPill(o)}</article>`).join("");
+      const pillInerte = (o) =>
+        `<span class="ccard-pill ccard-pill-static">${esc(o.name)}<span class="ccard-arrow" aria-hidden="true">↗</span></span>`;
       const pill = (o) => {
         const inner = `${esc(o.name)}<span class="ccard-arrow" aria-hidden="true">↗</span>`;
         if (o.plan) return `<button class="ccard-pill" data-plan="${esc(o.photo)}">${inner}</button>`;
@@ -523,9 +530,13 @@ function sectionHTML(sec) {
           <h2>${esc(sec.title)}</h2>
           ${sec.sub ? `<p class="carousel-sub">${esc(sec.sub)}</p>` : ""}
         </div>
-        <div class="carousel">${sec.items.map((o) =>
-          `<article class="ccard"><div class="ccard-media${o.plan ? " ccard-media-plan" : ""}" style="background-image:url('${o.photo}')"></div>
-            ${pill(o)}</article>`).join("")}</div></section>`;
+        <div class="carousel"><div class="carousel-track" style="--n:${sec.items.length}">
+          ${carte(sec.items, pill)}
+          <!-- Copie de la serie : c'est elle qui rend la boucle continue. Retiree
+               de l'arbre d'accessibilite, et ses pastilles sont inertes pour ne
+               pas creer de doublons au clavier. -->
+          <div class="carousel-clone" aria-hidden="true">${carte(sec.items, pillInerte)}</div>
+        </div></div></section>`;
     }
 
     case "formules":
