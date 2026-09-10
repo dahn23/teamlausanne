@@ -1,15 +1,24 @@
 :root{
-  /* Branding : bleu Lausanne-Sports (club + espace membres), vert fluo = académie.
-     À CONFIRMER avec la charte : hex exacts du bleu et du vert fluo. */
-  --blue:#1e3ad1; --blue-d:#152a9e; --blue-ink:#0f1f6e;
-  --fluo:#c4ff3d; --fluo-d:#a6e51f; --fluo-ink:#16350a;
+  /* Branding — couleurs exactes de la charte 2026 (« Court Colours »), relevees
+     aussi dans les variables du site Webflow :
+       #073EB5 Absolute Blue · #B2FD13 Energizing Mint Green
+       #003652 Prussian Blue · #137297 Ocean Blue
+     Les variantes -d (foncee) et -ink (texte) en sont derivees. */
+  --blue:#073eb5; --blue-d:#052f8c; --blue-ink:#04205e;
+  --fluo:#b2fd13; --fluo-d:#9ae00c; --fluo-ink:#14300a;
+  --prussian:#003652; --ocean:#137297;
 
   /* Le thème de l'app (espace membres) suit le bleu du club. */
-  --green:#1e3ad1; --green-d:#152a9e; --mine:#1e3ad1;
+  --green:#073eb5; --green-d:#052f8c; --mine:#073eb5;
   --bg:#f5f7fb; --card:#fff;
   --line:#e4e8f0; --ink:#141a2e; --muted:#69708a;
   --free:#ffffff; --busy:#c9ccd6;
   --radius:14px; --shadow:0 2px 14px rgba(20,26,46,.08);
+
+  /* Echelle du systeme Webflow, disponible pour la suite. */
+  --radius-sm:.25rem; --radius-md:.5rem; --radius-lg:2rem;
+  --sec-sm:4rem; --sec-md:5rem; --sec-lg:7.5rem; --sec-xl:10rem;
+  --container:75rem;
 
   /* Polices de marque (guidelines 2026) : Acumin Pro pour les titres et le corps,
      Circe pour les titres. Noto Sans est le repli officiel prevu par la charte
@@ -143,13 +152,13 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
   box-shadow:0 0 0 3px #eef1f7, 5px 0 7px -3px rgba(0,0,0,.22)}
 .rslot{cursor:pointer;transition:outline .1s}
 .rslot.creuse{background:#bcd3ff;color:#0f2050}
-.rslot.pleine{background:#1e3ad1;color:#fff}
-.rslot.creuse:hover,.rslot.pleine:hover{outline:2px solid #0f1f6e}
+.rslot.pleine{background:#073eb5;color:#fff}
+.rslot.creuse:hover,.rslot.pleine:hover{outline:2px solid #04205e}
 .rslot.busy{background:#cbd0da;color:#5a5f6b;cursor:default;font-size:.68rem}
 .rslot.mine{background:#123cc4;color:#fff;outline:3px solid #f2c200;cursor:pointer}
 .rslot .pr{font-weight:800}
 .chip.creuse{background:#bcd3ff}
-.chip.pleine{background:#1e3ad1;border-color:#1e3ad1}
+.chip.pleine{background:#073eb5;border-color:#073eb5}
 .legend-note{display:block;width:100%;margin-top:8px;color:var(--muted);font-size:.8rem;line-height:1.4}
 .partner-choice{display:flex;flex-direction:column;gap:8px;margin:12px 0}
 .pc-opt{display:flex;align-items:center;gap:8px;font-size:.95rem;cursor:pointer}
@@ -1035,7 +1044,7 @@ button.wsec-link{color:#fff;border-bottom:0}
 .mr-comment{display:block;font-weight:700;font-size:.85rem}
 .mr-actions{display:flex;align-items:center;gap:12px;margin-top:12px}
 .mr-badge{display:inline-block;font-size:.7rem;font-weight:800;padding:1px 8px;border-radius:999px;text-transform:capitalize}
-.mr-badge.coach{background:#e6eefc;color:#1e3ad1}
+.mr-badge.coach{background:#e6eefc;color:#073eb5}
 .mr-badge.joueur{background:#e7f6ec;color:#0b6b3a}
 .mr-win{color:#0b6b3a;font-weight:800}
 .mr-loss{color:#b23838;font-weight:800}
@@ -1052,10 +1061,10 @@ button.wsec-link{color:#fff;border-bottom:0}
 .mr-comp-bars{display:flex;flex-direction:column;gap:4px}
 .mr-comp-line{display:flex;align-items:center;gap:8px}
 .mr-tag{font-size:.72rem;font-weight:700;width:84px;flex-shrink:0}
-.mr-tag.coach{color:#1e3ad1}.mr-tag.joueur{color:#0b6b3a}
+.mr-tag.coach{color:#073eb5}.mr-tag.joueur{color:#0b6b3a}
 .mr-bar{flex:1;height:9px;background:#eef1f7;border-radius:6px;overflow:hidden}
 .mr-bar-fill{height:100%;border-radius:6px}
-.mr-bar-fill.coach{background:#1e3ad1}.mr-bar-fill.joueur{background:#46a555}
+.mr-bar-fill.coach{background:#073eb5}.mr-bar-fill.joueur{background:#46a555}
 .mr-link{margin-bottom:10px}
 .mr-link-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .mr-conf{font-size:.74rem;font-weight:700;background:#eef1f7;color:var(--muted);padding:2px 9px;border-radius:999px}
@@ -1798,7 +1807,7 @@ a.sponsor span{font-size:.7rem;font-weight:700;color:#1b2340;text-align:center;l
   box-shadow:0 0 0 1px rgba(0,0,0,.12)}
 .seed-flag svg{width:100%;height:100%;display:block}
 .seed-rank{margin:0!important;font-size:.7rem;font-weight:800;letter-spacing:.3px;
-  text-transform:uppercase;color:var(--accent-ink,#1e3ad1)}
+  text-transform:uppercase;color:var(--accent-ink,#073eb5)}
 .seed-bio{margin:0!important;font-size:.82rem;line-height:1.45;color:var(--muted)}
 /* ---- Site public teamlausanne.ch : deux mondes ---- */
 /* Onglet Club = lien externe (www.lstennis.ch), même look que les autres onglets */
