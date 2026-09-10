@@ -729,7 +729,9 @@ html{-webkit-tap-highlight-color:transparent}
 /* =====================================================================
    SITE DYNAMIQUE — 3 mondes (Club · Académie · Tournoi)
    ===================================================================== */
-body.public{background:#fff}
+/* clip et non hidden : hidden creerait un contexte de defilement, ce qui
+   casserait le position:sticky de la barre de navigation. */
+body.public{background:#fff;overflow-x:clip}
 /* Titres : Circe, le display geometrique de la charte (« bold geometric display
    font for headlines »). Le kit ne fournit que 400 et 700 : on force 700, sinon
    une graisse 500 retomberait sur le 400 et les titres seraient plus fins que
@@ -1271,8 +1273,13 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
   border-radius:18px;z-index:3;pointer-events:none}
 body[data-world="academie"] .hero::after{border-color:var(--fluo-d)}
 /* Carrousel de programmes (bandeau bleu foncé) */
-.carousel-sec{background:var(--blue-ink);color:#fff;border-radius:24px;padding:46px 0 38px}
-.carousel-head{max-width:820px;margin:0 auto 28px;text-align:center;padding:0 22px}
+/* Pleine largeur : la section sort de .world-main, qui la bridait a 1200 px.
+   margin-inline:calc(50% - 50vw) la recentre sur la fenetre entiere. Plus de
+   coins arrondis : un bandeau pleine largeur n'en a pas. */
+.carousel-sec{background:var(--blue-ink);color:#fff;border-radius:0;
+  width:100vw;margin-inline:calc(50% - 50vw);
+  padding:var(--sec-md) 0}
+.carousel-head{max-width:820px;margin:0 auto 36px;text-align:center;padding:0 22px}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;text-transform:uppercase;
   letter-spacing:.12em;font-size:.74rem;font-weight:800;color:#7da2ff;margin-bottom:14px}
 .eyebrow::before{content:"";width:9px;height:9px;border-radius:50%;background:#7da2ff}
@@ -1307,7 +1314,7 @@ body[data-world="academie"] .eyebrow::before{background:var(--fluo-d)}
   .carousel-track{animation:none;width:auto}
   .carousel-clone{display:none}
 }
-.ccard{position:relative;flex:0 0 clamp(240px,72vw,300px);scroll-snap-align:start;
+.ccard{position:relative;flex:0 0 clamp(250px,70vw,330px);scroll-snap-align:start;
   border-radius:18px;overflow:hidden;aspect-ratio:3/4;box-shadow:0 12px 28px rgba(0,0,0,.3)}
 .ccard-media{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s}
 .ccard:hover .ccard-media{transform:scale(1.06)}
