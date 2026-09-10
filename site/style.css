@@ -855,7 +855,8 @@ a.pyr-level:hover{transform:translateY(-2px)}
 
 /* Hero plein écran avec photo */
 .hero{position:relative;min-height:74vh;display:flex;align-items:center;
-  justify-content:center;text-align:center;color:#fff;overflow:hidden}
+  justify-content:center;text-align:center;color:#fff;overflow:hidden;
+  border-radius:18px}
 .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;
   transition:opacity .4s;animation:kenburns 18s ease-out infinite alternate}
 @keyframes kenburns{from{transform:scale(1.05)}to{transform:scale(1.14)}}
@@ -1183,8 +1184,10 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 .reveal.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 /* Cadre autour du hero — bleu par défaut, vert fluo seulement pour l'Academy */
-.hero::after{content:"";position:absolute;inset:16px;border:3px solid var(--blue);
-  border-radius:16px;z-index:2;pointer-events:none}
+/* Lisere colle au bord de l'ecran : inset:0 + meme rayon que .hero, qui est
+   en overflow:hidden, donc la photo est rognee net et rien ne depasse autour. */
+.hero::after{content:"";position:absolute;inset:0;border:4px solid var(--blue);
+  border-radius:18px;z-index:3;pointer-events:none}
 body[data-world="academie"] .hero::after{border-color:var(--fluo-d)}
 /* Carrousel de programmes (bandeau bleu foncé) */
 .carousel-sec{background:var(--blue-ink);color:#fff;border-radius:24px;padding:46px 0 38px}
