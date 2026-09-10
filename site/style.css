@@ -871,23 +871,28 @@ a.pyr-level:hover{transform:translateY(-2px)}
 .coach-priv a:hover{text-decoration:underline}
 
 /* Hero plein écran avec photo */
+/* Hero aligne a gauche, comme la maquette : le titre demarre au meme fer que
+   les sections en dessous, au lieu d'etre centre. */
 .hero{position:relative;min-height:74vh;display:flex;align-items:center;
-  justify-content:center;text-align:center;color:#fff;overflow:hidden;
+  justify-content:flex-start;text-align:left;color:#fff;overflow:hidden;
   border-radius:18px}
 .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;
   transition:opacity .4s;animation:kenburns 18s ease-out infinite alternate}
 @keyframes kenburns{from{transform:scale(1.05)}to{transform:scale(1.14)}}
 .hero-scrim{position:absolute;inset:0;
   background:linear-gradient(180deg,rgba(0,0,0,.15),var(--scrim))}
-.hero-content{position:relative;z-index:2;max-width:760px;padding:56px 22px}
-.hero-logo{height:132px;width:auto;margin:0 auto 18px;display:block;
+.hero-content{position:relative;z-index:2;width:100%;max-width:var(--container);
+  margin:0 auto;padding:var(--sec-sm) 22px;text-align:left}
+.hero-logo{height:132px;width:auto;margin:0 0 18px;display:block;
   filter:brightness(0) invert(1) drop-shadow(0 2px 12px rgba(0,0,0,.3))}
 body[data-world="academie"] .hero-logo{filter:drop-shadow(0 4px 16px rgba(0,0,0,.45))}
-.hero-tag{text-transform:uppercase;letter-spacing:3px;font-size:.82rem;font-weight:800;
-  margin:0 0 10px;color:#fff;opacity:.9}
-.hero-slogan{font-size:clamp(2.2rem,6vw,3.6rem);margin:0 0 14px;line-height:1}
-.hero-desc{font-size:1.12rem;opacity:.95;margin:0 auto 26px;max-width:560px;line-height:1.5}
-.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+/* Le libelle du monde sous le logo n'apporte rien : la marque est deja dans
+   le logo et le titre. */
+.hero-tag{display:none}
+.hero-slogan{font-size:clamp(2.6rem,7vw,5rem);margin:0 0 18px;line-height:1;
+  max-width:55rem}
+.hero-desc{font-size:1.14rem;opacity:.95;margin:0 0 28px;max-width:44rem;line-height:1.55}
+.hero-cta{display:flex;gap:12px;justify-content:flex-start;flex-wrap:wrap}
 /* Bouton d'appel a l'action : pilule blanche + pastille verte a la fleche.
    Au survol, le disque vert grandit et inonde toute la pilule (comme la maquette,
    qui fait passer un disque de scale(1) a scale(25) sous un masque).
