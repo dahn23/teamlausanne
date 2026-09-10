@@ -54,7 +54,7 @@ const pad2 = (n) => String(n).padStart(2, "0");
 // Rôles qui donnent accès à la console (staff + rôles à onglet dédié).
 // Un responsable de tournoi (rôle « responsable ») n'est pas staff mais a droit
 // à l'onglet GameZone (limité à ses tournois — voir RLS gz_manages).
-const CONSOLE_ROLES = [...STAFF_ROLES, "prof", "coach_mental", "organisateur", "responsable"];
+const CONSOLE_ROLES = [...STAFF_ROLES, "prof", "coach_mental", "organisateur", "responsable", "affichage"];
 
 // ---- Garde d'accès : connecté + rôle staff ----
 // Accès direct à /admin sans session → on affiche un formulaire de connexion
