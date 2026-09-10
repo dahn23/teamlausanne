@@ -853,16 +853,20 @@ function sectionHTML(sec) {
   }
 }
 
-function paintHero({ logo, heroLogo, hero, heroPos, tag, slogan, desc, ctaHTML }) {
+function paintHero({ logo, heroLogo, hero, heroPos, tag, slogan, desc, ctaHTML, sloganEntier }) {
   $("nav-logo").src = logo;
   $("hero-bg").style.backgroundImage = `url("${hero}")`;
   $("hero-bg").style.backgroundPosition = heroPos || "center";   // point d'intérêt (visages) par page
   $("hero-logo").src = heroLogo || logo;   // hero sur photo : version blanche si le monde en a une
   $("hero-tag").textContent = tag;
-  // Un span par mot : c'est ce qui rend chaque mot survolable separement.
+  // Un span par mot : c'est ce qui rend chaque mot survolable separement, pour
+  // le slogan de l'accueil. Le titre d'une page de filiere, lui, est un seul
+  // nom (« Kids Tennis ») : il prend un trait continu et non un par mot.
   // innerHTML est sur ici, le texte vient de la configuration et passe par esc().
-  $("hero-slogan").innerHTML = String(slogan).split(/\s+/).filter(Boolean)
-    .map((mot) => `<span class="hs-w">${esc(mot)}</span>`).join(" ");
+  $("hero-slogan").innerHTML = sloganEntier
+    ? `<span class="hs-w hs-w-entier">${esc(slogan)}</span>`
+    : String(slogan).split(/\s+/).filter(Boolean)
+        .map((mot) => `<span class="hs-w">${esc(mot)}</span>`).join(" ");
   $("hero-desc").textContent = desc;
   $("hero-cta").innerHTML = ctaHTML;
 }
@@ -922,7 +926,7 @@ function renderDetail(id) {
     : d.cta.scroll ? `<button class="btn-cta" data-scroll="${esc(d.cta.scroll)}">${esc(d.cta.label)}</button>`
     : `<button class="btn-cta" data-contact="${esc(d.cta.contact)}">${esc(d.cta.label)}</button>`;
   const ctaHTML = ctaPage + `<button class="btn-cta ghost" data-back="${d.world}">← Retour à ${esc(w.tag.toLowerCase())}</button>`;
-  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: d.hero, heroPos: d.heroPos, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML });
+  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: d.hero, heroPos: d.heroPos, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML, sloganEntier: true });
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();
   demarrerScrollers();

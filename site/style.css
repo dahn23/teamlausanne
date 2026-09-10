@@ -2175,3 +2175,22 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 @media(prefers-reduced-motion:reduce){
   .ss-photo,.ss-dot{transition:none}
 }
+
+/* Titre d'une page de filiere : un seul trait continu sous tout le titre, et
+   non un trait par mot comme pour le slogan de l'accueil.
+   Le trait est ici un fond en degrade plutot qu'un ::after absolu : « Cours
+   adultes et prives » passe sur deux lignes, et un ::after n'aurait souligne
+   que la derniere, sur toute la largeur du bloc. Avec box-decoration-break,
+   chaque fragment de ligne recoit son propre trait, qui pousse de la gauche. */
+.hs-w-entier{display:inline;position:static;
+  background-image:linear-gradient(var(--fluo),var(--fluo));
+  background-repeat:no-repeat;
+  background-position:0 calc(100% - .02em);
+  background-size:0 .075em;
+  transition:background-size .3s cubic-bezier(.4,0,.2,1);
+  -webkit-box-decoration-break:clone;box-decoration-break:clone}
+.hs-w-entier::after{content:none}
+.hs-w-entier:hover{background-size:100% .075em}
+@media(prefers-reduced-motion:reduce){
+  .hs-w-entier{transition:none}
+}
