@@ -1392,7 +1392,11 @@ a.partner:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
    fenetre centrale est transparente. Meme mecanique que le carrousel : la serie
    est doublee et les keyframes carousel-defile sont reutilisees, d'ou un gap de
    18 px, indispensable pour que calc(-50% - 9px) tombe juste. */
-.insta{position:relative;width:100vw;margin-inline:calc(50% - 50vw);
+/* --vig pilote a la fois la largeur des vignettes, celle du cadre et la
+   hauteur de sa fenetre : c'est ce qui fait que la photo se cale au pixel
+   dans le cadre, et que les deux se lisent comme une seule piece. */
+.insta{--vig:clamp(190px,25vw,300px);
+  position:relative;width:100vw;margin-inline:calc(50% - 50vw);
   padding:var(--sec-md) 0;color:#fff;isolation:isolate;
   background:url("assets/photos/insta-fond.jpg") center/cover no-repeat}
 /* Voile : sans lui, ni le titre ni le cadre blanc ne tiennent sur la photo. */
@@ -1408,20 +1412,32 @@ a.partner:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .insta-strip{overflow:hidden;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
   mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+/* Position pilotee en JS : chaque clic cale une vignette dans la fenetre
+   du cadre. Plus de defilement automatique. */
 .insta-track{list-style:none;margin:0;padding:0;display:flex;gap:18px;width:max-content;
-  animation:carousel-defile 52s linear infinite}
+  will-change:transform}
 .insta-clone{display:contents}
 .insta-track li,.insta-clone img{flex:0 0 auto}
-.insta-track img{display:block;width:clamp(190px,25vw,300px);aspect-ratio:1;
+.insta-track img{display:block;width:var(--vig);aspect-ratio:1;
   object-fit:cover;border-radius:var(--radius-md);
   filter:saturate(.95);transition:transform .3s,filter .3s}
-.insta-stage:hover .insta-track{animation-play-state:paused}
 .insta-track img:hover{transform:scale(1.03);filter:saturate(1.1)}
 
+/* Fleches de navigation, posees sur les bords de la scene. */
+.insta-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:3;
+  width:46px;height:46px;border-radius:50%;border:0;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:#fff;color:var(--blue-ink);padding:0;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);transition:background-color .18s,transform .18s}
+.insta-arrow svg{width:22px;height:22px}
+.insta-arrow:hover{background:var(--fluo);color:var(--fluo-ink);transform:translateY(-50%) scale(1.06)}
+.insta-arrow:focus-visible{outline:3px solid var(--fluo);outline-offset:3px}
+.insta-prev{left:clamp(10px,3vw,34px)}
+.insta-next{right:clamp(10px,3vw,34px)}
 /* Cadre Instagram : purement decoratif, il ne capte pas la souris pour ne pas
    empecher la pause au survol des vignettes qui passent dessous. */
 .insta-frame{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  z-index:2;pointer-events:none;width:clamp(240px,30vw,340px);
+  z-index:2;pointer-events:none;width:var(--vig);
   filter:drop-shadow(0 18px 40px rgba(0,0,0,.45))}
 .if-head{display:flex;align-items:center;gap:10px;background:#fff;color:#111;
   padding:10px 12px;border-radius:14px 14px 0 0}
@@ -1430,21 +1446,20 @@ a.partner:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .if-id b{font-size:.9rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .if-id small{font-size:.76rem;color:#666}
 /* La fenetre : transparente, c'est par elle qu'on voit passer les photos. */
-.if-window{height:clamp(190px,25vw,300px)}
+.if-window{height:var(--vig)}
 .if-actions{display:flex;align-items:center;gap:16px;background:#fff;color:#111;
   padding:11px 14px;border-radius:0 0 14px 14px}
 .if-actions svg{width:22px;height:22px;flex-shrink:0}
 .if-actions .if-save{margin-left:auto}
 
 .insta-cta{text-align:center;margin-top:38px;padding:0 22px}
+/* Le soulignement venait du style de lien par defaut. */
+.insta-cta .btn-cta{text-decoration:none;text-transform:uppercase;letter-spacing:.02em}
 @media(max-width:640px){
-  .insta-frame{width:min(76vw,300px)}
+  .insta{--vig:min(76vw,300px)}
 }
 @media(prefers-reduced-motion:reduce){
-  .insta-strip{overflow-x:auto;-webkit-mask-image:none;mask-image:none}
-  .insta-track{animation:none;width:auto}
-  .insta-clone{display:none}
-  .insta-track img{transition:none}
+  .insta-track,.insta-track img,.insta-arrow{transition:none}
 }
 /* « Un lieu, trois mondes » dans le footer bleu */
 .foot .coherence{padding:8px 22px 40px}

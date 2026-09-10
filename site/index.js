@@ -1139,3 +1139,58 @@ route();
   requestAnimationFrame(() => document.querySelector(`[data-anchor="${at}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
   history.replaceState(null, "", location.pathname + location.hash);
 })();
+
+// ---- Bandeau social : navigation par fleches ----
+// La photo courante vient se caler exactement dans la fenetre du cadre
+// Instagram, pour que les deux ne fassent qu'un. La serie est doublee dans le
+// HTML : quand l'index depasse la serie, on revient d'une serie en arriere sans
+// transition, ce qui rend la boucle continue sans saut visible.
+(() => {
+  const piste = document.querySelector(".insta-track");
+  const scene = document.querySelector(".insta-stage");
+  if (!piste || !scene) return;
+  const vues = [...piste.querySelectorAll("li:not(.insta-clone) img")];
+  const n = vues.length;
+  if (!n) return;
+
+  let i = 0, enCours = false;
+
+  // Pas = largeur d'une vignette + espacement, lus au moment du calcul :
+  // les deux dependent du viewport (clamp et gap en CSS).
+  const pas = () => {
+    const l = vues[0].getBoundingClientRect().width;
+    const g = parseFloat(getComputedStyle(piste).gap) || 0;
+    return l + g;
+  };
+  const placer = (anime) => {
+    const l = vues[0].getBoundingClientRect().width;
+    const x = scene.clientWidth / 2 - (i * pas() + l / 2);
+    piste.style.transition = anime ? "transform .45s cubic-bezier(.4,0,.2,1)" : "none";
+    piste.style.transform = `translateX(${x}px)`;
+  };
+
+  const aller = (d) => {
+    if (enCours) return;
+    enCours = true;
+    i += d;
+    placer(true);
+    const fin = () => {
+      piste.removeEventListener("transitionend", fin);
+      // Repli dans la serie d'origine, sans transition : invisible a l'oeil.
+      if (i >= n) { i -= n; placer(false); }
+      else if (i < 0) { i += n; placer(false); }
+      enCours = false;
+    };
+    piste.addEventListener("transitionend", fin);
+  };
+
+  document.querySelector(".insta-prev")?.addEventListener("click", () => aller(-1));
+  document.querySelector(".insta-next")?.addEventListener("click", () => aller(1));
+
+  // Les images se chargent en differe : on replace des que les dimensions sont
+  // connues, sinon le premier calage tombe a cote.
+  const recaler = () => placer(false);
+  vues.forEach((v) => v.complete || v.addEventListener("load", recaler, { once: true }));
+  addEventListener("resize", recaler);
+  requestAnimationFrame(recaler);
+})();
