@@ -866,6 +866,8 @@ a.pyr-level:hover{transform:translateY(-2px)}
 body[data-world="academie"] .hero-logo{filter:drop-shadow(0 4px 16px rgba(0,0,0,.45))}
 .hero-tag{text-transform:uppercase;letter-spacing:3px;font-size:.82rem;font-weight:800;
   margin:0 0 10px;color:#fff;opacity:.9}
+/* Accroche de marque : Circe (guidelines : « brand statements »). */
+.public .hero-slogan{font-family:var(--font-accent);font-weight:700}   /* Circe n'a que 400 et 700 */
 .hero-slogan{font-size:clamp(2.2rem,6vw,3.6rem);margin:0 0 14px;line-height:1}
 .hero-desc{font-size:1.12rem;opacity:.95;margin:0 auto 26px;max-width:560px;line-height:1.5}
 .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
