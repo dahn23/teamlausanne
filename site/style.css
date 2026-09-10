@@ -13,7 +13,7 @@
   --bg:#f5f7fb; --card:#fff;
   --line:#e4e8f0; --ink:#141a2e; --muted:#69708a;
   --free:#ffffff; --busy:#c9ccd6;
-  --radius:14px; --shadow:0 2px 14px rgba(20,26,46,.08);
+  --radius:1.5rem; --shadow:0 2px 14px rgba(20,26,46,.08);
 
   /* Echelle du systeme Webflow, disponible pour la suite. */
   --radius-sm:.25rem; --radius-md:.5rem; --radius-lg:2rem;
@@ -931,7 +931,7 @@ body[data-world="academie"] .hero-logo{filter:drop-shadow(0 4px 16px rgba(0,0,0,
 @keyframes fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
 /* Contenu du monde */
-.world-main{max-width:1040px;margin:0 auto;padding:56px 22px}
+.world-main{max-width:var(--container);margin:0 auto;padding:var(--sec-sm) 22px}
 .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;
   margin-bottom:26px}
 .stat{background:var(--accent);color:#fff;border-radius:var(--radius);padding:22px;text-align:center}
@@ -949,7 +949,7 @@ body[data-world="academie"] .stat{color:var(--fluo-ink)}
   border-radius:var(--radius);box-shadow:var(--shadow)}
 
 /* Sections riches par monde */
-.wsec{margin:0 0 48px}
+.wsec{margin:0 0 var(--sec-sm)}
 .wsec:last-child{margin-bottom:0}
 .wsec>h2{font-size:1.7rem;color:var(--blue-ink);margin:0 0 18px}
 .wsec-note{color:var(--muted);font-style:italic;font-size:.92rem;margin:14px 0 0}
@@ -1171,7 +1171,7 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 }
 
 /* Bandeau cohérence (cliquable = mini-switcher) */
-.coherence{max-width:1040px;margin:0 auto;padding:20px 22px 64px;text-align:center}
+.coherence{max-width:var(--container);margin:0 auto;padding:20px 22px 64px;text-align:center}
 .coherence h2{font-size:1.9rem;color:var(--blue-ink);margin:0 0 12px}
 .coherence-sub{color:var(--muted);max-width:640px;margin:0 auto 30px;font-size:1.05rem}
 .flow{display:flex;align-items:stretch;justify-content:center;gap:12px;flex-wrap:wrap}
@@ -1190,12 +1190,12 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 
 /* Pied de page */
 .foot{background:var(--blue-ink);color:#dfe4ff;padding:40px 22px 26px}
-.foot-cols{max-width:1040px;margin:0 auto;display:flex;gap:40px;flex-wrap:wrap;
+.foot-cols{max-width:var(--container);margin:0 auto;display:flex;gap:40px;flex-wrap:wrap;
   justify-content:space-between;font-size:.92rem;line-height:1.7}
 .foot-copy{text-align:center;margin:28px 0 0;opacity:.6;font-size:.82rem}
 .brand.blue{color:var(--blue)}
 /* Footer : sponsors communs + sélecteur 3 mondes */
-.foot-sponsors{max-width:1040px;margin:0 auto 34px;text-align:center}
+.foot-sponsors{max-width:var(--container);margin:0 auto 34px;text-align:center}
 .foot-sponsors-label{display:block;text-transform:uppercase;letter-spacing:.09em;font-size:.72rem;opacity:.7;margin-bottom:14px}
 .foot-sponsors .sponsor-wall{display:flex;flex-wrap:wrap;gap:30px;align-items:center;justify-content:center;background:#fff;border-radius:16px;padding:22px 28px}
 .foot-sponsors .sponsor-wall img{height:40px;width:auto;max-width:140px;object-fit:contain;filter:grayscale(1);opacity:.72;transition:filter .2s,opacity .2s}
