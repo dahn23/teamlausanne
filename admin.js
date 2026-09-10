@@ -8747,7 +8747,18 @@ async function loadMail() {
       const { data: msgs } = await sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(300);
       if (msgs) { mailMsgs = msgs; renderMailAccts(); refreshMailView(); }
     }, 60000);
-    $("mailc-close").addEventListener("click", () => { $("mailc-modal").classList.add("hidden"); $("mailc-restore").classList.add("hidden"); });
+    // Fermer (✕) : on enregistre avant de jeter la fenêtre, sinon le message est perdu
+    // sans retour possible (la pastille de restauration disparaît elle aussi).
+    $("mailc-close").addEventListener("click", async () => {
+      if (mailcIsDirty()) await mailComposeSaveDraft(true);
+      $("mailc-modal").classList.add("hidden"); $("mailc-restore").classList.add("hidden");
+    });
+    // Filet de sécurité : enregistrement automatique toutes les 10 s si quelque chose a bougé.
+    setInterval(() => { if (mailcIsOpen() && mailcIsDirty() && !mailcSaving) mailComposeSaveDraft(true); }, 10000);
+    // Quitter/recharger la page ne laisse pas le temps d'écrire en base → on prévient.
+    window.addEventListener("beforeunload", (e) => {
+      if (mailcIsOpen() && mailcIsDirty()) { e.preventDefault(); e.returnValue = ""; }
+    });
     $("mailc-modal").addEventListener("click", (e) => { if (e.target === $("mailc-modal")) mailComposeMinimize(); });  // clic hors carte = réduire (ne perd rien)
     $("mailc-min").addEventListener("click", mailComposeMinimize);
     $("mailc-restore").addEventListener("click", () => { $("mailc-restore").classList.add("hidden"); $("mailc-modal").classList.remove("hidden"); });
@@ -9083,6 +9094,9 @@ const fileToB64 = (f) => new Promise((res) => { const r = new FileReader(); r.on
 // ---- Nouveau message ----
 let mailcFiles = [];
 let mailcDraftId = null;   // id du brouillon en cours d'édition (mail_compose_drafts), sinon null
+let mailcDraftFiles = [];  // métadonnées des pièces jointes déjà dans le stockage
+let mailcLastSig = "";     // contenu au dernier enregistrement → détecte les modifications
+let mailcSaving = false;   // évite deux enregistrements simultanés
 function openMailCompose(prefill) {
   if (prefill instanceof Event) prefill = null;  // appelé comme handler → pas de préremplissage
   const pf = prefill || {};
@@ -9099,8 +9113,10 @@ function openMailCompose(prefill) {
   $("mailc-body").innerHTML = pf.bodyHtml || "";
   $("mailc-status").textContent = "";
   mailcFiles = Array.isArray(pf.files) ? pf.files.slice() : [];
+  mailcDraftFiles = Array.isArray(pf.fileMeta) ? pf.fileMeta.slice() : [];
   renderMailcFiles();
   $("mailc-modal").classList.remove("hidden");
+  mailcLastSig = mailcSignature();   // un message fraîchement ouvert n'est pas « modifié »
   setTimeout(() => $("mailc-to").focus(), 50);
 }
 // Réduire : cache la fenêtre mais garde tout en mémoire (DOM) → pastille pour rouvrir.
@@ -9110,19 +9126,104 @@ function mailComposeMinimize() {
   $("mailc-restore").classList.remove("hidden");
   $("mailc-modal").classList.add("hidden");
 }
-// Enregistrer le brouillon (champs texte ; les pièces jointes ne sont pas conservées).
-async function mailComposeSaveDraft() {
+// ---- Pièces jointes des brouillons (bucket privé mail-drafts, migration 53) ----
+// Les objets File du navigateur ne peuvent pas être écrits en base : on les monte dans
+// le stockage et on ne garde que leurs métadonnées dans mail_compose_drafts.files.
+const MAILC_BUCKET = "mail-drafts";
+let mailcUid = null;
+async function mailcMyUid() {
+  if (!mailcUid) { const { data } = await sb.auth.getSession(); mailcUid = data?.session?.user?.id || null; }
+  return mailcUid;
+}
+// Monte les fichiers pas encore stockés, retire ceux que l'utilisateur a enlevés.
+async function mailcSyncFiles(draftId, prevMeta) {
+  const uid = await mailcMyUid();
+  if (!uid) throw new Error("session introuvable");
+  for (const f of mailcFiles) {
+    if (f._path) continue;                                   // déjà dans le stockage
+    const safe = f.name.replace(/[^\w.\-]+/g, "_");
+    const path = `${uid}/${draftId}/${crypto.randomUUID()}-${safe}`;
+    const { error } = await sb.storage.from(MAILC_BUCKET)
+      .upload(path, f, { contentType: f.type || "application/octet-stream" });
+    if (error) throw new Error(`${f.name} : ${error.message}`);
+    f._path = path;
+  }
+  const keep = new Set(mailcFiles.map((f) => f._path));
+  const stale = (prevMeta || []).map((m) => m.path).filter((p) => p && !keep.has(p));
+  if (stale.length) await sb.storage.from(MAILC_BUCKET).remove(stale);
+  return mailcFiles.map((f) => ({ path: f._path, name: f.name, type: f.type || "application/octet-stream", size: f.size }));
+}
+// Rouvre un brouillon : retélécharge les pièces jointes en objets File (cf. mailForward).
+async function mailcLoadFiles(meta) {
+  const out = [];
+  for (const m of meta || []) {
+    const { data, error } = await sb.storage.from(MAILC_BUCKET).download(m.path);
+    if (error || !data) continue;                            // fichier purgé ou illisible : on ignore
+    const f = new File([data], m.name || "fichier", { type: m.type || "application/octet-stream" });
+    f._path = m.path;
+    out.push(f);
+  }
+  return out;
+}
+// Vide le dossier de stockage d'un brouillon (après envoi ou suppression).
+async function mailcPurgeFiles(draftId) {
+  const uid = await mailcMyUid();
+  if (!uid || !draftId) return;
+  const dir = `${uid}/${draftId}`;
+  const { data } = await sb.storage.from(MAILC_BUCKET).list(dir);
+  if (data?.length) await sb.storage.from(MAILC_BUCKET).remove(data.map((o) => `${dir}/${o.name}`));
+}
+
+// ---- Enregistrement automatique ----
+// Signature du contenu : permet de n'enregistrer que si quelque chose a bougé.
+function mailcSignature() {
+  return [$("mailc-to").value, $("mailc-cc").value, $("mailc-bcc").value, $("mailc-subject").value,
+    $("mailc-body").innerHTML, mailcFiles.map((f) => `${f.name}:${f.size}`).join("|")].join("\u0000");
+}
+function mailcHasContent() {
+  return !!($("mailc-to").value.trim() || $("mailc-subject").value.trim()
+    || $("mailc-body").innerText.trim() || mailcFiles.length);
+}
+// Ouverte en grand OU réduite en pastille : dans les deux cas le message est vivant.
+function mailcIsOpen() {
+  return !$("mailc-modal").classList.contains("hidden") || !$("mailc-restore").classList.contains("hidden");
+}
+function mailcIsDirty() { return mailcHasContent() && mailcSignature() !== mailcLastSig; }
+
+// Enregistrer le brouillon, pièces jointes comprises.
+async function mailComposeSaveDraft(silent) {
+  if (silent instanceof Event) silent = false;   // branchée telle quelle sur le bouton « Enregistrer le brouillon »
+  if (mailcSaving) return;
+  mailcSaving = true;
+  const st = $("mailc-status");
   const row = {
     account: $("mailc-from").value || null, to_addr: $("mailc-to").value.trim() || null,
     cc: $("mailc-cc").value.trim() || null, bcc: $("mailc-bcc").value.trim() || null,
     subject: $("mailc-subject").value.trim() || null, body_html: $("mailc-body").innerHTML.trim() || null,
     updated_at: new Date().toISOString(),
   };
-  const st = $("mailc-status");
-  let error;
-  if (mailcDraftId) { ({ error } = await sb.from("mail_compose_drafts").update(row).eq("id", mailcDraftId)); }
-  else { const r = await sb.from("mail_compose_drafts").insert(row).select("id").single(); error = r.error; if (r.data) mailcDraftId = r.data.id; }
-  st.textContent = error ? "Échec du brouillon : " + error.message : "✓ Brouillon enregistré";
+  try {
+    if (mailcDraftId) {
+      const { error } = await sb.from("mail_compose_drafts").update(row).eq("id", mailcDraftId);
+      if (error) throw error;
+    } else {
+      const r = await sb.from("mail_compose_drafts").insert(row).select("id").single();
+      if (r.error) throw r.error;
+      mailcDraftId = r.data.id;
+    }
+    // Le dossier de stockage est nommé d'après l'id : il faut donc le brouillon d'abord.
+    const meta = await mailcSyncFiles(mailcDraftId, mailcDraftFiles);
+    const { error } = await sb.from("mail_compose_drafts").update({ files: meta }).eq("id", mailcDraftId);
+    if (error) throw error;
+    mailcDraftFiles = meta;
+    mailcLastSig = mailcSignature();
+    st.textContent = silent
+      ? "✓ Enregistré à " + new Date().toLocaleTimeString("fr-CH", { hour: "2-digit", minute: "2-digit" })
+      : "✓ Brouillon enregistré";
+  } catch (e) {
+    st.textContent = "Échec du brouillon : " + (e?.message || e);
+  }
+  mailcSaving = false;
 }
 async function openMailDrafts() {
   const box = $("maildrafts-list");
@@ -9135,15 +9236,20 @@ async function openMailDrafts() {
         <span class="muted">${esc(d.to_addr || "—")} · ${frDateTime(d.updated_at)}</span></button>
       <button type="button" class="mdft-del" data-id="${d.id}" title="Supprimer">✕</button></div>`).join("")
     : '<p class="obj-empty">Aucun brouillon.</p>';
-  box.querySelectorAll(".mdft-open").forEach((b) => b.addEventListener("click", () => {
+  box.querySelectorAll(".mdft-open").forEach((b) => b.addEventListener("click", async () => {
     const d = rows.find((x) => x.id === b.dataset.id); if (!d) return;
+    b.disabled = true;
+    const meta = Array.isArray(d.files) ? d.files : [];
+    const files = await mailcLoadFiles(meta);          // retélécharge les pièces jointes
     $("maildrafts-modal").classList.add("hidden");
-    openMailCompose({ draftId: d.id, account: d.account, to: d.to_addr, cc: d.cc, bcc: d.bcc, subject: d.subject, bodyHtml: d.body_html });
+    openMailCompose({ draftId: d.id, account: d.account, to: d.to_addr, cc: d.cc, bcc: d.bcc,
+      subject: d.subject, bodyHtml: d.body_html, files, fileMeta: meta });
   }));
   box.querySelectorAll(".mdft-del").forEach((b) => b.addEventListener("click", async () => {
     if (!await uiConfirm("Supprimer ce brouillon ?")) return;
+    await mailcPurgeFiles(b.dataset.id);               // pas de fichiers orphelins dans le bucket
     await sb.from("mail_compose_drafts").delete().eq("id", b.dataset.id);
-    if (mailcDraftId === b.dataset.id) mailcDraftId = null;
+    if (mailcDraftId === b.dataset.id) { mailcDraftId = null; mailcDraftFiles = []; }
     openMailDrafts();
   }));
 }
@@ -9237,7 +9343,12 @@ async function mailComposeSend() {
     if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} st.textContent = "Échec : " + m; }
     else if (data?.error) { st.textContent = "Échec : " + data.error; }
     else {
-      if (mailcDraftId) { await sb.from("mail_compose_drafts").delete().eq("id", mailcDraftId); mailcDraftId = null; }
+      if (mailcDraftId) {
+        await mailcPurgeFiles(mailcDraftId);           // message parti : le brouillon et ses fichiers aussi
+        await sb.from("mail_compose_drafts").delete().eq("id", mailcDraftId);
+        mailcDraftId = null;
+      }
+      mailcFiles = []; mailcDraftFiles = []; mailcLastSig = "";
       $("mailc-restore").classList.add("hidden");
       $("mailc-modal").classList.add("hidden"); await loadMail();
     }
