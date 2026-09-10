@@ -10,13 +10,19 @@
   --line:#e4e8f0; --ink:#141a2e; --muted:#69708a;
   --free:#ffffff; --busy:#c9ccd6;
   --radius:14px; --shadow:0 2px 14px rgba(20,26,46,.08);
+
+  /* Polices de marque (guidelines 2026) : Acumin Pro pour les titres et le corps,
+     Circe pour les accroches. Noto Sans est le repli officiel prevu par la charte
+     quand ces polices ne peuvent pas etre servies. */
+  --font-body:acumin-pro,"Noto Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-accent:circe,"Noto Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
 *{box-sizing:border-box}
 /* Icône inline (remplace les emoji dans les titres/labels) */
 .hi{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.14em;margin-right:.42em;flex-shrink:0}
 .hi *{vector-effect:non-scaling-stroke}
 html,body{margin:0;height:100%}
-body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+body{font-family:var(--font-body);
   color:var(--ink);background:var(--bg);-webkit-text-size-adjust:100%}
 .hidden{display:none!important}
 .screen{min-height:100dvh}
@@ -716,8 +722,13 @@ html{-webkit-tap-highlight-color:transparent}
    ===================================================================== */
 body.public{background:#fff}
 .public h1,.public h2,.public h3,.brand{
-  font-family:"Arial Black",system-ui,sans-serif;font-style:italic;
-  letter-spacing:-.5px;text-transform:uppercase}
+  font-family:var(--font-body);font-weight:600;
+  letter-spacing:-.04em;text-transform:uppercase}
+.public h1{font-weight:500}
+.public h2{font-weight:600}
+.public h3{font-weight:700}
+/* Accroches de marque : Circe (usage selectif, cf. guidelines). */
+.accent-font{font-family:var(--font-accent)}
 
 /* Thème par monde (accent) */
 body[data-world]{--accent:var(--blue);--accent-ink:var(--blue-ink);
