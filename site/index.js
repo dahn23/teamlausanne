@@ -303,7 +303,8 @@ const DETAILS = {
           { jour: "Mardi ou jeudi", heures: ["16h30 – 17h15"] },
           { jour: "Sur mesure", heures: ["Fin d'après-midi"], note: "Des cours supplémentaires sont possibles : écrivez-nous." },
         ],
-        prix: { label: "Saison complète", montant: "CHF 490.–", detail: "45 minutes par semaine, matériel et t-shirt compris" } },
+        prix: { label: "Saison complète", montant: "CHF 490.–", detail: "45 minutes par semaine, matériel et t-shirt compris",
+                cta: { label: "Inscrire mon enfant", scroll: "enroll-sec" } } },
       { type: "faq", eyebrow: "Questions fréquentes",
         title: "Tout ce qu'il faut savoir avant de commencer", items: [
           ["Mon enfant doit-il avoir déjà joué ?", "Non. Le programme convient aussi bien aux enfants qui découvrent le tennis qu'à ceux qui ont déjà commencé."],
@@ -830,6 +831,7 @@ function sectionHTML(sec) {
           <span class="slot-prix-quoi">${esc(sec.prix.label)}</span>
           <b class="slot-prix-montant">${esc(sec.prix.montant)}</b>
           ${sec.prix.detail ? `<span class="slot-prix-detail">${esc(sec.prix.detail)}</span>` : ""}
+          ${sec.prix.cta ? `<button class="btn-cta slot-prix-cta" data-scroll="${esc(sec.prix.cta.scroll)}">${esc(sec.prix.cta.label)}</button>` : ""}
         </div>` : ""}
         ${linkHTML(sec.link)}</section>`;
 

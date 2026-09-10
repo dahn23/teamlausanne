@@ -2074,7 +2074,9 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 
 /* Atouts numerotes. Le chiffre glisse et s'allume au survol : c'est la seule
    animation de la carte, le reste doit rester lisible. */
-.perks-head{max-width:640px;margin:0 0 28px}
+/* 760 px : la phrase d'accroche des atouts demande 658 px en Acumin et 668 px
+   avec le repli, donc elle tient sur une ligne meme avant que la police arrive. */
+.perks-head{max-width:760px;margin:0 0 28px}
 .perks-head h2{font-size:clamp(1.6rem,3.4vw,2.3rem);color:var(--blue-ink);margin:0 0 10px}
 .perks-lead{color:var(--muted);font-size:1.02rem;line-height:1.55;margin:0}
 .perk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
@@ -2115,6 +2117,13 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 .slot-prix-montant{font-family:var(--font-accent);font-weight:700;letter-spacing:-.03em;
   font-size:clamp(1.6rem,3.4vw,2.1rem);line-height:1}
 .slot-prix-detail{color:rgba(255,255,255,.82);font-size:.94rem}
+/* Le bouton est repousse a droite du bandeau ; align-self car le bandeau aligne
+   ses textes sur la ligne de base, ce qui decalerait la pilule. */
+.slot-prix-cta{margin-left:auto;align-self:center}
+@media(max-width:720px){
+  /* Empile : colle a droite, le bouton se retrouverait seul dans le vide. */
+  .slot-prix-cta{margin-left:0;margin-top:4px}
+}
 
 /* FAQ depliante : <details> natif, donc clavier et lecteurs d'ecran gratuits. */
 .faq-list{display:flex;flex-direction:column;gap:10px}
