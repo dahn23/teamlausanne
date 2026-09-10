@@ -13,7 +13,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=82" />
+  <link rel="stylesheet" href="style.css?v=84" />
   <!-- Site public teamlausanne.ch : deux mondes (Academy, Lausanne Open). L'onglet Club renvoie sur www.lstennis.ch.
        Aucune connexion ni réservation ici : l'app (console, portail) vit sur app.teamlausanne.ch.
        Sur le domaine lausanneopen.ch, le script bascule en mode « tournoi seul » (barre et pied de page masqués). -->
@@ -123,6 +123,53 @@
     </ul>
   </section>
 
+
+  <!-- Bandeau reseaux sociaux. Photos du site, pas un flux Instagram en direct :
+       cela demanderait l'API Graph de Meta, un compte Business et un jeton a
+       renouveler tous les 60 jours. La maquette de reference fait de meme — ses
+       43 images sont hebergees sur son propre CDN, sans aucun script tiers. -->
+  <section class="insta">
+    <div class="insta-head">
+      <span class="eyebrow">Suivez-nous</span>
+      <h2>Le club, au jour le jour</h2>
+      <p class="insta-sub">Entraînements, tournois, vie du club — tout se passe sur Instagram.</p>
+    </div>
+    <div class="insta-strip">
+      <ul class="insta-track">
+        <li><img src="assets/photos/competition-2026-g1.jpg" alt="" loading="lazy" /></li>
+        <li><img src="assets/photos/kidstennis-2026.jpg" alt="" loading="lazy" /></li>
+        <li><img src="assets/photos/open-serve.jpg" alt="" loading="lazy" /></li>
+        <li><img src="assets/photos/performance-2026-g1.jpg" alt="" loading="lazy" /></li>
+        <li><img src="assets/photos/club-2026.jpg" alt="" loading="lazy" /></li>
+        <li><img src="assets/photos/open-trophy.jpg" alt="" loading="lazy" /></li>
+        <li><img src="assets/photos/sport-etudes-2026-g1.jpg" alt="" loading="lazy" /></li>
+        <li><img src="assets/photos/kids-2026-1.jpg" alt="" loading="lazy" /></li>
+        <li><img src="assets/photos/open-double1.jpg" alt="" loading="lazy" /></li>
+        <li><img src="assets/photos/pro-2026-g1.jpg" alt="" loading="lazy" /></li>
+        <li><img src="assets/photos/journee-famille-2026.jpg" alt="" loading="lazy" /></li>
+        <li><img src="assets/photos/open-kids.jpg" alt="" loading="lazy" /></li>
+        <!-- Copie de la serie : c'est elle qui rend la boucle continue. -->
+        <li class="insta-clone" aria-hidden="true">
+          <img src="assets/photos/competition-2026-g1.jpg" alt="" loading="lazy" />
+          <img src="assets/photos/kidstennis-2026.jpg" alt="" loading="lazy" />
+          <img src="assets/photos/open-serve.jpg" alt="" loading="lazy" />
+          <img src="assets/photos/performance-2026-g1.jpg" alt="" loading="lazy" />
+          <img src="assets/photos/club-2026.jpg" alt="" loading="lazy" />
+          <img src="assets/photos/open-trophy.jpg" alt="" loading="lazy" />
+          <img src="assets/photos/sport-etudes-2026-g1.jpg" alt="" loading="lazy" />
+          <img src="assets/photos/kids-2026-1.jpg" alt="" loading="lazy" />
+          <img src="assets/photos/open-double1.jpg" alt="" loading="lazy" />
+          <img src="assets/photos/pro-2026-g1.jpg" alt="" loading="lazy" />
+          <img src="assets/photos/journee-famille-2026.jpg" alt="" loading="lazy" />
+          <img src="assets/photos/open-kids.jpg" alt="" loading="lazy" />
+        </li>
+      </ul>
+    </div>
+    <div class="insta-cta">
+      <a class="btn-cta" href="https://www.instagram.com/lausanne_sports_tennis/"
+         target="_blank" rel="noopener">@lausanne_sports_tennis</a>
+    </div>
+  </section>
 
   <footer class="foot">
     <!-- Un lieu, trois mondes (le sélecteur commun, dans le footer) -->
