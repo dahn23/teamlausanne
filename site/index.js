@@ -182,6 +182,7 @@ const DETAILS = {
       // sur un contenu que je n'ai pas vu.
       { type: "filmsec", eyebrow: "En images", title: "Viser haut, préparer son avenir",
         lead: "Le programme Sport-études en vidéo.",
+        poster: "assets/photos/sport-etudes-video.jpg",
         video: "ZBRb8MNP0nI" },
       { type: "perks", eyebrow: "Un encadrement complet",
         title: "Tout est prévu autour du joueur",
@@ -995,6 +996,12 @@ function sectionHTML(sec) {
              <source src="${esc(sec.videoFile)}" type="video/mp4" />
              Votre navigateur ne peut pas lire cette video.
            </video>`
+        : sec.poster
+        ? `<button type="button" class="film-lance" data-film="${esc(sec.video)}"
+             data-titre="${esc(sec.title)}" aria-label="Lire la vidéo : ${esc(sec.title)}">
+             <img class="film-affiche" src="${esc(sec.poster)}" alt="" loading="lazy" />
+             <span class="film-play" aria-hidden="true"></span>
+           </button>`
         : `<iframe class="film-media" src="https://www.youtube-nocookie.com/embed/${esc(sec.video)}?rel=0&amp;start=0"
              title="${esc(sec.title)}" loading="lazy" frameborder="0" allowfullscreen
              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>`;
@@ -1686,12 +1693,34 @@ document.addEventListener("submit", async (e) => {
   btn.disabled = false;
 });
 
+// ---- Video : l'affiche laisse place au lecteur au clic ----
+// Tant que personne n'a clique, le cadre est entierement a nous : ni habillage
+// YouTube, ni requete vers YouTube. Les parametres reduisent ensuite ce que le
+// lecteur affiche, sans pouvoir tout retirer — YouTube impose sa marque.
+const FILM_PARAMS = "autoplay=1&rel=0&start=0&modestbranding=1&iv_load_policy=3&playsinline=1";
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-film]");
+  if (!b) return;
+  const f = document.createElement("iframe");
+  f.className = "film-media";
+  f.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(b.dataset.film)}?${FILM_PARAMS}`;
+  f.title = b.dataset.titre || "Vidéo";
+  f.allow = "autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+  f.allowFullscreen = true;
+  f.setAttribute("frameborder", "0");
+  b.replaceWith(f);
+});
+
 // ---- Video : toujours reprise depuis le debut ----
 // Au retour arriere, le navigateur peut restaurer la page telle quelle (bfcache),
 // video comprise, la ou elle en etait. On recharge alors le cadre.
 addEventListener("pageshow", (e) => {
   if (!e.persisted) return;
-  document.querySelectorAll("iframe.film-media").forEach((f) => { f.src = f.src; });
+  document.querySelectorAll("iframe.film-media").forEach((f) => {
+    // Changer l'adresse recharge le cadre. On retire l'autoplay au passage :
+    // une video qui repart toute seule sur un retour arriere serait intrusive.
+    f.src = f.src.replace(/([?&])autoplay=1/, "$1autoplay=0");
+  });
   document.querySelectorAll("video.film-media").forEach((v) => { v.pause(); v.currentTime = 0; });
 });
 

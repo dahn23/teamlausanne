@@ -2385,3 +2385,25 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 .eleve-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .eleve-tag{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.3);
   border-radius:999px;padding:4px 10px;font-size:.76rem;font-weight:700;line-height:1.2}
+
+/* Affiche du film : tant que personne n'a clique, le cadre est entierement a
+   nous — ni titre YouTube, ni bouton « Regarder sur YouTube », ni requete vers
+   YouTube. Le lecteur ne nait qu'au clic. */
+.film-lance{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;
+  display:block;overflow:hidden;background:#000;cursor:pointer}
+.film-affiche{width:100%;height:100%;object-fit:cover;display:block;
+  transition:transform .5s ease,filter .35s ease}
+.film-lance:hover .film-affiche{transform:scale(1.04);filter:brightness(.82)}
+.film-lance:focus-visible{outline:3px solid var(--fluo);outline-offset:-5px}
+.film-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:clamp(62px,8vw,88px);aspect-ratio:1;border-radius:50%;background:var(--fluo);
+  display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.45);
+  transition:transform .28s ease}
+/* Triangle dessine en CSS : pas d'image a charger pour un chevron. */
+.film-play::before{content:"";margin-left:14%;
+  border-style:solid;border-width:.9em 0 .9em 1.5em;
+  border-color:transparent transparent transparent var(--fluo-ink)}
+.film-lance:hover .film-play{transform:translate(-50%,-50%) scale(1.09)}
+@media(prefers-reduced-motion:reduce){
+  .film-affiche,.film-play{transition:none}
+}
