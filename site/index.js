@@ -18,7 +18,8 @@ const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 // ===================================================================
 const WORLDS = {
   academie: {
-    tag: "Academy", logo: "assets/logo-academie.webp", heroLogo: "assets/logo-academie-blanc.png",
+    tag: "Academy", retour: "à l'Academy",
+    logo: "assets/logo-academie.webp", heroLogo: "assets/logo-academie-blanc.png",
     slogan: "Jouer. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
     hero: "assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
@@ -60,7 +61,8 @@ const WORLDS = {
   },
 
   tournoi: {
-    tag: "Lausanne Open", logo: "assets/logo-open.webp",
+    tag: "Lausanne Open", retour: "au Lausanne Open",
+    logo: "assets/logo-open.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
     desc: "Lausanne Open — l'unique tournoi international de tennis masculin du canton de Vaud. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
     hero: "assets/photos/open-2026-6.jpg", heroPos: "center 30%",
@@ -1070,7 +1072,7 @@ function renderDetail(id) {
   const ctaPage = !d.cta ? ""
     : d.cta.scroll ? `<button class="btn-cta" data-scroll="${esc(d.cta.scroll)}">${esc(d.cta.label)}</button>`
     : `<button class="btn-cta" data-contact="${esc(d.cta.contact)}">${esc(d.cta.label)}</button>`;
-  const ctaHTML = ctaPage + `<button class="btn-cta ghost" data-back="${d.world}">← Retour à ${esc(w.tag.toLowerCase())}</button>`;
+  const ctaHTML = ctaPage + `<button class="btn-cta ghost" data-back="${d.world}">← Retour ${esc(w.retour)}</button>`;
   paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: d.hero, heroPos: d.heroPos, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML, sloganEntier: true });
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();

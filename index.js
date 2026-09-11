@@ -83,7 +83,7 @@ const WORLDS = {
   },
 
   academie: {
-    tag: "Academy", logo: "assets/logo-academie.webp",
+    tag: "Academy", retour: "à l'Academy", logo: "assets/logo-academie.webp",
     slogan: "Grandir. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
     hero: "assets/webflow/hero-academy.webp",
@@ -136,7 +136,7 @@ const WORLDS = {
   },
 
   tournoi: {
-    tag: "Lausanne Open", logo: "assets/logo-open.webp",
+    tag: "Lausanne Open", retour: "au Lausanne Open", logo: "assets/logo-open.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
     desc: "Lausanne Open — l'unique tournoi international de tennis masculin du canton de Vaud. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
     hero: "assets/photos/open-serve.jpg",
@@ -793,7 +793,7 @@ function renderDetail(id) {
   const w = WORLDS[d.world];
   document.body.dataset.world = d.world;
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === d.world));
-  const ctaHTML = `<button class="btn-cta ghost" data-back="${d.world}">← Retour à ${esc(w.tag.toLowerCase())}</button>`;
+  const ctaHTML = `<button class="btn-cta ghost" data-back="${d.world}">← Retour ${esc(w.retour)}</button>`;
   paintHero({ logo: w.logo, hero: d.hero, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML });
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();
