@@ -1415,3 +1415,46 @@ route();
   addEventListener("resize", recaler);
   requestAnimationFrame(recaler);
 })();
+
+// ---- Formulaire « Nous ecrire » ----
+// Il ne partait qu'a Netlify, dont les envois n'atterrissent que dans le tableau
+// de bord de l'hebergeur — personne dans l'equipe ne les y lisait. Il ecrit
+// desormais dans contact_messages, d'ou un declencheur les recopie dans la boite
+// de la console (voir db/59_contact_vers_messagerie.sql).
+// L'envoi a Netlify est conserve, mais au mieux : c'est l'ecriture en base qui
+// decide si le visiteur voit un succes.
+document.addEventListener("submit", async (e) => {
+  const f = e.target;
+  if (f.id !== "lo-form") return;
+  e.preventDefault();
+  const btn = $("lo-send"), msg = $("lo-msg");
+  const lu = (n) => (f.querySelector(`[name="${n}"]`)?.value || "").trim();
+  const nom = lu("nom"), email = lu("email"), texte = lu("message");
+  if (!nom || !email || !texte) return;
+  btn.disabled = true; msg.className = "lo-msg"; msg.textContent = "Envoi…";
+
+  const { error } = await sb.from("contact_messages").insert({
+    source: "Nous écrire",
+    name: nom.slice(0, 200),
+    email: email.slice(0, 200),
+    message: texte.slice(0, 4000),          // la base refuse au-dela
+  });
+
+  if (error) {
+    msg.className = "lo-msg ko";
+    msg.textContent = "L’envoi a échoué. Écrivez-nous directement à info@teamlausanne.ch.";
+    btn.disabled = false;
+    return;
+  }
+  // Trace chez Netlify, sans consequence si elle echoue.
+  fetch("/", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(new FormData(f)).toString(),
+  }).catch(() => {});
+
+  f.reset();
+  msg.className = "lo-msg ok";
+  msg.textContent = "Merci, votre message est parti. Nous vous répondrons tout bientôt.";
+  btn.disabled = false;
+});

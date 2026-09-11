@@ -318,29 +318,9 @@
       }, 700);
     });
 
-    // Envoi du formulaire de contact sans quitter la page.
-    (function () {
-      var f = document.getElementById("lo-form");
-      if (!f) return;
-      f.addEventListener("submit", function (e) {
-        e.preventDefault();
-        var b = document.getElementById("lo-send"), m = document.getElementById("lo-msg");
-        b.disabled = true; m.className = "lo-msg"; m.textContent = "Envoi…";
-        fetch("/", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams(new FormData(f)).toString()
-        }).then(function (r) {
-          if (!r.ok) throw new Error(r.status);
-          f.reset();
-          m.className = "lo-msg ok";
-          m.textContent = "Merci, votre message est parti. Nous vous répondons rapidement.";
-        }).catch(function () {
-          m.className = "lo-msg ko";
-          m.textContent = "L’envoi a échoué. Écrivez-nous directement à info@teamlausanne.ch.";
-        }).finally(function () { b.disabled = false; });
-      });
-    })();
+    // L'envoi du formulaire « Nous ecrire » est traite dans index.js : il a
+    // besoin du client Supabase pour que le message arrive dans la boite de la
+    // console. Il ne partait qu'a Netlify, donc nulle part que l'equipe regarde.
   </script>
 </body>
 </html>
