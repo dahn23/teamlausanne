@@ -196,9 +196,10 @@ const DETAILS = {
       { type: "students", eyebrow: "Ils y sont",
         title: "Nos sport-études",
         lead: "Derrière le programme, il y a d'abord des joueuses et des joueurs. Touchez une carte pour en savoir plus.", items: [
-          { nom: "Talia Picci", age: "", classement: "",
+          { nom: "Talia Picci", age: "18 ans", classement: "R1 (117)",
             photo: "assets/photos/eleve-talia-picci.jpg",
-            mot: "Portrait à compléter." },
+            mot: "Dix-huit ans et déjà joueuse professionnelle : vivre de son tennis, c'est le projet. Un tournoi presque chaque week-end, et les premiers rendez-vous internationaux. Elle encadre stages, Kids Tennis, loisirs et sport-études, avec un coaching au mérite — l'implication se récompense, sinon on travaille plus dur, toujours dans la bonne humeur.",
+            tags: ["Meilleur classement : R1 (99)", "Certifiée loisir niveau 1"] },
           { nom: "Célyan Lorival", age: "", classement: "R2",
             photo: "assets/photos/eleve-celyan-lorival.jpg",
             mot: "Cinq ans de sport-études au Lausanne-Sports, et le bac en ligne de mire. Revers à une main, faible avoué pour l'ambiance des interclubs. Il enseigne depuis deux ans, en cours comme en stage : patient, et autant motivé par transmettre que par jouer.",
