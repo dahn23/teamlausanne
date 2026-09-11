@@ -2469,7 +2469,6 @@ tr.rm-loss td{background:#fde8e8}
 .nl-table{min-width:1180px}
 .nl-table td,.nl-table th{white-space:nowrap}
 .nl-table td.nl-subj{white-space:normal;min-width:220px}
-.nl-edit{min-height:280px}
 .nl-roles{display:flex;flex-wrap:wrap;gap:6px}
 .nl-roles label{font-size:.82rem;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
 .nl-preview{margin-top:8px;max-height:180px;overflow:auto;font-size:.8rem;color:#555}
@@ -2648,86 +2647,89 @@ tr.rm-loss td{background:#fde8e8}
   height:min(94vh,980px);max-height:94vh;display:flex;flex-direction:column;gap:12px;
   overflow:hidden}
 
+/* Modeles, en une rangee au-dessus de l'atelier. */
+.nl-haut{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.nl-haut .nl-sect-t{margin:0;flex-shrink:0}
+.nl-sect-t{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted)}
+.nl-gabarits{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;flex:1}
+.nl-gab{flex:0 0 116px;text-align:left;background:#fff;border:1px solid var(--line);
+  border-radius:10px;padding:7px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.nl-gab:hover{border-color:var(--blue);box-shadow:0 3px 12px rgba(7,62,181,.16)}
+.nl-gab-apercu{display:flex;flex-direction:column;gap:2px;background:#f6f8fc;
+  border-radius:5px;padding:5px;margin-bottom:5px;overflow:hidden}
+.nl-gab-apercu i{display:block;width:100%;border-radius:2px}
+.nl-gab-nom{display:block;font-size:.72rem;font-weight:700;color:var(--blue-ink);line-height:1.25}
+
 /* Reglages d'envoi, sur une seule ligne pour ne pas manger la hauteur. */
 .nl-reglages{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;flex-shrink:0}
 .nl-reglages .mailc-f{margin:0}
 @media(max-width:1100px){.nl-reglages{grid-template-columns:1fr 1fr}}
 
-.nl-atelier{display:grid;grid-template-columns:196px minmax(0,1fr) 296px;gap:14px;
+/* Deux panneaux : la toile prend tout le centre, les reglages sont a droite.
+   Les blocs s'ajoutent par les « + » de la toile, pas depuis une colonne. */
+.nl-atelier{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;
   flex:1;min-height:0}
-@media(max-width:1280px){.nl-atelier{grid-template-columns:170px minmax(0,1fr) 260px}}
 @media(max-width:980px){.nl-atelier{grid-template-columns:1fr;overflow-y:auto}}
 
-/* Chaque panneau defile pour son compte : on garde les blocs sous la main
-   meme au bas d'une longue newsletter. */
-.nl-gauche{overflow-y:auto;padding-right:4px;min-height:0}
-.nl-sect-t{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
-  color:var(--muted);margin:0 0 8px}
-.nl-sect-t:not(:first-child){margin-top:16px}
+/* La scene imite le fond d'une boite mail ; la toile fait la largeur reelle
+   d'un e-mail, donc ce qu'on voit est ce qui part. */
+.nl-scene{position:relative;background:#e8ecf4;border:1px solid var(--line);
+  border-radius:12px;overflow-y:auto;padding:44px 20px 20px;min-height:0}
+.nl-scene-barre{position:absolute;top:10px;right:14px;display:flex;gap:4px;z-index:3}
+.nl-vue{background:#fff;border:1px solid var(--line);border-radius:7px;cursor:pointer;
+  font-size:.9rem;line-height:1;padding:5px 8px;color:var(--muted)}
+.nl-vue.on{border-color:var(--blue);color:var(--blue-ink);box-shadow:0 0 0 1px var(--blue)}
+.nl-toile{background:#fff;width:600px;max-width:100%;margin:0 auto;
+  border-radius:10px;padding:24px;box-shadow:0 2px 14px rgba(20,26,46,.1);min-height:300px;
+  transition:width .25s ease}
+.nl-toile.mobile{width:375px}
+.nl-vide{text-align:center;padding:40px 10px 10px}
 
-/* Vignettes de modeles : un croquis de la structure, pas une miniature du
-   rendu — illisible a cette taille. */
-.nl-gabarits{display:flex;flex-direction:column;gap:8px;margin-bottom:4px}
-.nl-gab{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);
-  border-radius:10px;padding:8px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
-.nl-gab:hover{border-color:var(--blue);box-shadow:0 3px 12px rgba(7,62,181,.16)}
-.nl-gab-apercu{display:flex;flex-direction:column;gap:3px;background:#f6f8fc;
-  border-radius:6px;padding:6px;margin-bottom:6px;overflow:hidden}
-.nl-gab-apercu i{display:block;width:100%;border-radius:2px}
-.nl-gab-nom{display:block;font-size:.78rem;font-weight:700;color:var(--blue-ink);line-height:1.3}
+/* Un bloc de la toile. La barre d'outils est une colonne posee a droite du
+   bloc, hors du cadre : elle ne recouvre jamais le contenu. */
+.nl-bloc{position:relative;border:2px dashed transparent;border-radius:8px;
+  padding:2px;cursor:pointer}
+.nl-bloc:hover{border-color:#cdd7ea}
+.nl-bloc.sel{border-color:var(--blue);border-style:solid}
+.nl-bloc-outils{position:absolute;top:0;left:100%;margin-left:10px;
+  display:none;flex-direction:column;gap:2px;
+  background:#fff;border:1px solid var(--line);border-radius:9px;padding:4px;
+  box-shadow:0 3px 12px rgba(20,26,46,.16);z-index:2}
+.nl-bloc:hover .nl-bloc-outils,.nl-bloc.sel .nl-bloc-outils{display:flex}
+/* Le nom du bloc se lit au-dessus, pas dans la colonne d'icones. */
+.nl-bloc-nom{position:absolute;bottom:100%;left:0;margin-bottom:4px;white-space:nowrap;
+  font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted)}
+.nl-bloc-outils button{background:transparent;border:0;color:var(--muted);cursor:pointer;
+  padding:4px 6px;border-radius:6px;font-size:.82rem;line-height:1}
+.nl-bloc-outils button:hover:not(:disabled){background:#eef1f7;color:var(--blue-ink)}
+.nl-bloc-outils button:disabled{opacity:.3;cursor:default}
+.nl-bloc-outils button[data-del]:hover{background:#fdecec;color:#b23838}
 
-.nl-palette{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+/* Point d'insertion entre deux blocs : discret, puis franc au survol. */
+.nl-ins{position:relative;height:14px;display:flex;align-items:center;justify-content:center}
+.nl-ins::before{content:"";position:absolute;left:0;right:0;height:2px;border-radius:2px;
+  background:var(--blue);opacity:0;transition:opacity .15s}
+.nl-ins:hover::before{opacity:.5}
+.nl-ins button{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
+  background:#fff;color:var(--blue);font-size:.95rem;font-weight:700;line-height:1;
+  padding:0;cursor:pointer;opacity:0;transition:opacity .15s,transform .15s;z-index:1}
+.nl-ins:hover button,.nl-toile:not(:hover) .nl-ins:last-child button{opacity:1}
+.nl-ins button:hover{transform:scale(1.15);border-color:var(--blue)}
+
+/* Palette flottante, ouverte par un « + ». */
+.nl-palette{position:fixed;z-index:60;display:flex;flex-wrap:wrap;gap:6px;max-width:340px;
+  background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;
+  box-shadow:0 10px 30px rgba(20,26,46,.22)}
 .nl-pal{background:#eef1f7;color:var(--blue-ink);border:0;border-radius:999px;cursor:pointer;
   font-weight:700;font-size:.78rem;padding:6px 12px;transition:background-color .15s,transform .15s}
 .nl-pal:hover{background:var(--blue);color:#fff;transform:translateY(-1px)}
 
-/* La scene imite le fond d'une boite mail ; la toile fait la largeur reelle
-   d'un e-mail (600 px), donc ce qu'on voit est ce qui part. */
-.nl-scene{background:#e8ecf4;border:1px solid var(--line);border-radius:12px;
-  overflow-y:auto;padding:20px;min-height:0}
-.nl-toile{background:#fff;width:600px;max-width:100%;margin:0 auto;
-  border-radius:10px;padding:24px;box-shadow:0 2px 14px rgba(20,26,46,.1);min-height:300px}
-.nl-vide{text-align:center;padding:60px 10px}
-.nl-bloc{position:relative;border:2px dashed transparent;border-radius:8px;
-  padding:2px;margin-bottom:2px;cursor:pointer}
-.nl-bloc:hover{border-color:#cdd7ea}
-.nl-bloc.sel{border-color:var(--blue);border-style:solid}
-.nl-bloc-outils{position:absolute;top:-12px;right:6px;display:none;gap:2px;
-  background:#fff;border:1px solid var(--line);border-radius:999px;padding:2px 6px;
-  box-shadow:0 2px 8px rgba(20,26,46,.18);z-index:2}
-.nl-bloc:hover .nl-bloc-outils,.nl-bloc.sel .nl-bloc-outils{display:flex;align-items:center}
-.nl-bloc-nom{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
-  color:var(--muted);padding-right:4px}
-.nl-bloc-outils button{background:transparent;border:0;color:var(--muted);cursor:pointer;
-  padding:2px 5px;border-radius:5px;font-size:.8rem}
-.nl-bloc-outils button:hover:not(:disabled){background:#eef1f7;color:var(--blue-ink)}
-.nl-bloc-outils button:disabled{opacity:.3;cursor:default}
-/* La vue est un rendu, pas une zone cliquable : le clic atteint le bloc —
-   sauf sur les zones de texte, ou l'on ecrit directement. */
-.nl-bloc-vue{pointer-events:none}
-.nl-bloc-vue img{max-width:100%}
-.nl-bloc-vue .nl-edit{pointer-events:auto;cursor:text;outline:0;
-  border-radius:3px;transition:box-shadow .15s,background-color .15s}
-.nl-bloc-vue .nl-edit:hover{box-shadow:0 0 0 2px rgba(7,62,181,.18)}
-.nl-bloc-vue .nl-edit:focus{box-shadow:0 0 0 2px var(--blue);background:rgba(7,62,181,.04)}
-/* Une zone vide doit rester cliquable : sans hauteur, impossible de la viser. */
-.nl-bloc-vue .nl-edit:empty::before{content:"Écrivez ici…";color:#9aa3b8}
-.nl-bloc-a-remplir{pointer-events:none}
-
-/* Reglage de l'espacement, commun a tous les blocs. */
-.nl-esp{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
-.nl-esp-t{display:block;font-size:.72rem;font-weight:800;text-transform:uppercase;
-  letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
-.nl-esp-l{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-.nl-esp-l label{display:flex;flex-direction:column;gap:4px;
-  font-size:.72rem;font-weight:700;color:var(--muted)}
-.nl-esp-l input{width:100%;box-sizing:border-box;font-size:.88rem;padding:7px 9px}
-.nl-esp-raz{width:100%;font-size:.78rem}
-
-
 .nl-insp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;
   overflow-y:auto;min-height:0}
 .nl-insp-titre{margin:0 0 10px;font-size:.95rem;color:var(--blue-ink)}
+
 .nl-champ{display:flex;flex-direction:column;gap:5px;margin-bottom:11px;
   font-size:.78rem;font-weight:700;color:var(--muted)}
 .nl-champ input[type=text],.nl-champ input[type=number],.nl-champ select{width:100%;box-sizing:border-box;font-size:.9rem;padding:8px 10px}

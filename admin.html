@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=194" />
+  <link rel="stylesheet" href="style.css?v=195" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1271,6 +1271,10 @@
             <button type="button" id="nl-close" class="modal-close" aria-label="Fermer">×</button>
             <h2 style="margin:0" id="nl-title">Nouvelle newsletter</h2>
 
+            <div class="nl-haut">
+              <span class="nl-sect-t">Modèles</span>
+              <div id="nl-gabarits" class="nl-gabarits"></div>
+            </div>
             <div class="nl-reglages">
               <label class="mailc-f nl-r-objet">Objet<input id="nl-subject" type="text" placeholder="Objet de la newsletter" autocomplete="off" /></label>
               <label class="mailc-f">Nom d'expéditeur<input id="nl-from-name" type="text" value="Team Lausanne Academy" /></label>
@@ -1278,37 +1282,34 @@
               <label class="mailc-f">Répondre à<input id="nl-reply" type="email" value="info@teamlausanne.ch" /></label>
             </div>
 
+            <!-- Deux panneaux seulement : la toile occupe tout le centre, les
+                 reglages sont a droite. Les blocs ne s'ajoutent plus depuis une
+                 colonne de gauche mais par les « + » qui apparaissent entre
+                 deux blocs — la place gagnee revient a la composition. -->
             <div class="nl-atelier">
-              <aside class="nl-gauche">
-                <div class="nl-sect-t">Modèles</div>
-                <!-- Rempli par nlRenderGabarits() : chaque vignette remplace la
-                     composition en cours après confirmation. -->
-                <div id="nl-gabarits" class="nl-gabarits"></div>
-
-                <div class="nl-sect-t">Ajouter un bloc</div>
-                <!-- Chaque bouton insère un bloc sous celui qui est sélectionné. -->
-                <div class="nl-palette">
-                  <button type="button" class="nl-pal" data-nlnew="entete">En-tête</button>
-                  <button type="button" class="nl-pal" data-nlnew="titre">Titre</button>
-                  <button type="button" class="nl-pal" data-nlnew="texte">Texte</button>
-                  <button type="button" class="nl-pal" data-nlnew="image">Image</button>
-                  <button type="button" class="nl-pal" data-nlnew="bouton">Bouton</button>
-                  <button type="button" class="nl-pal" data-nlnew="duo">Image + texte</button>
-                  <button type="button" class="nl-pal" data-nlnew="bandeau">Bandeau</button>
-                  <button type="button" class="nl-pal" data-nlnew="chiffres">Chiffres</button>
-                  <button type="button" class="nl-pal" data-nlnew="sep">Séparateur</button>
-                  <button type="button" class="nl-pal" data-nlnew="espace">Espace</button>
-                  <button type="button" class="nl-pal" data-nlnew="pied">Pied de page</button>
-                </div>
-              </aside>
-
-              <!-- La scène donne le fond gris d'une boîte mail ; la toile rend
-                   exactement le HTML qui partira, à sa largeur réelle. -->
               <div class="nl-scene">
+                <div class="nl-scene-barre">
+                  <button type="button" class="nl-vue on" data-vue="bureau" title="Aperçu ordinateur">🖥</button>
+                  <button type="button" class="nl-vue" data-vue="mobile" title="Aperçu téléphone">📱</button>
+                </div>
                 <div id="nl-toile" class="nl-toile"></div>
               </div>
-
               <div id="nl-insp" class="nl-insp"></div>
+            </div>
+
+            <!-- Palette flottante, ouverte par un « + » de la toile. -->
+            <div id="nl-palette" class="nl-palette hidden">
+              <button type="button" class="nl-pal" data-nlnew="entete">En-tête</button>
+              <button type="button" class="nl-pal" data-nlnew="titre">Titre</button>
+              <button type="button" class="nl-pal" data-nlnew="texte">Texte</button>
+              <button type="button" class="nl-pal" data-nlnew="image">Image</button>
+              <button type="button" class="nl-pal" data-nlnew="bouton">Bouton</button>
+              <button type="button" class="nl-pal" data-nlnew="duo">Image + texte</button>
+              <button type="button" class="nl-pal" data-nlnew="bandeau">Bandeau</button>
+              <button type="button" class="nl-pal" data-nlnew="chiffres">Chiffres</button>
+              <button type="button" class="nl-pal" data-nlnew="sep">Séparateur</button>
+              <button type="button" class="nl-pal" data-nlnew="espace">Espace</button>
+              <button type="button" class="nl-pal" data-nlnew="pied">Pied de page</button>
             </div>
 
             <!-- Le HTML compilé vit ici, caché : l'envoi et l'enregistrement

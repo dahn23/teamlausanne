@@ -11227,7 +11227,7 @@ const NL_MODELES = {
   texte:  { t: "texte", html: "Votre texte…", align: "left" },
   image:  { t: "image", src: "", alt: "", href: "", largeur: 100 },
   bouton: { t: "bouton", texte: "En savoir plus", href: "https://teamlausanne.ch",
-            bg: NL_C.bleu, fg: "#ffffff", align: "center" },
+            bg: NL_C.bleu, fg: "#ffffff", pastille: NL_C.mint, fleche: true, align: "center" },
   duo:    { t: "duo", src: "", alt: "", html: "Votre texte…", sens: "image-gauche" },
   bandeau: { t: "bandeau", texte: "CHF 490.–", sous: "Saison complète",
              bg: NL_C.mint, fg: NL_C.mintEncre },
@@ -11288,12 +11288,26 @@ function nlBlocHtml(b) {
       const img = `<img src="${esc(b.src)}" alt="${esc(b.alt || "")}" width="${w}" style="display:block;width:${w}px;max-width:100%;height:auto;border:0;border-radius:8px" />`;
       return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center">${b.href ? `<a href="${esc(b.href)}">${img}</a>` : img}</td></tr></table>`;
     }
-    case "bouton":
-      // Bouton en tableau : les <a> stylises sont ignores par Outlook.
+    case "bouton": {
+      // La pilule du site (.btn-cta) : forme arrondie, libelle, puis une
+      // pastille ronde mint portant une fleche. Tout en tableaux — un <a>
+      // stylise seul est ignore par Outlook. Le survol du site (le disque qui
+      // inonde le bouton) n'a pas d'equivalent en e-mail : on garde l'etat au
+      // repos, qui porte deja la signature visuelle.
+      const lien = esc(b.href || "#");
+      const avecFleche = b.fleche !== false;
+      const pastille = avecFleche
+        ? `<td valign="middle" style="padding:9px 9px 9px 18px">
+             <a href="${lien}" style="display:block;width:40px;height:40px;border-radius:50%;background:${b.pastille || NL_C.mint};color:${NL_C.mintEncre};font-family:${NL_POLICE};font-size:17px;font-weight:700;line-height:40px;text-align:center;text-decoration:none">&#8599;</a>
+           </td>`
+        : "";
+      // Sans pastille, le libelle reprend un rembourrage symetrique.
+      const padLibelle = avecFleche ? "padding:9px 0 9px 26px" : "padding:11px 28px";
       return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="${al(b.align)}">
-        <table role="presentation" cellspacing="0" cellpadding="0"><tr><td align="center" bgcolor="${b.bg || NL_C.bleu}" style="border-radius:999px">
-        <a href="${esc(b.href || "#")}" style="display:inline-block;padding:12px 26px;font-family:${NL_POLICE};font-size:15px;font-weight:700;color:${b.fg || "#ffffff"};text-decoration:none;border-radius:999px">${esc(b.texte || "")}</a>
-        </td></tr></table></td></tr></table>`;
+        <table role="presentation" cellspacing="0" cellpadding="0" bgcolor="${b.bg || NL_C.bleu}" style="border-radius:999px"><tr>
+        <td valign="middle" style="${padLibelle}"><a href="${lien}" style="display:inline-block;font-family:${NL_POLICE};font-size:16px;font-weight:700;color:${b.fg || "#ffffff"};text-decoration:none;line-height:${avecFleche ? "40px" : "1.2"};white-space:nowrap">${esc(b.texte || "")}</a></td>
+        ${pastille}</tr></table></td></tr></table>`;
+    }
     case "duo": {
       const img = b.src
         ? `<img src="${esc(b.src)}" alt="${esc(b.alt || "")}" width="256" style="display:block;width:100%;max-width:256px;height:auto;border:0;border-radius:8px" />`
@@ -11465,8 +11479,11 @@ let nlSel = -1;            // index du bloc selectionne
 
 function nlRender() {
   const toile = $("nl-toile"); if (!toile) return;
+  // Un point d'insertion avant chaque bloc, et un dernier a la fin : c'est par
+  // la qu'on ajoute, plutot que depuis une colonne laterale.
+  const plus = (ou) => `<div class="nl-ins" data-ins="${ou}"><button type="button" title="Insérer un bloc ici">+</button></div>`;
   toile.innerHTML = nlBlocs.length
-    ? nlBlocs.map((b, i) => `<div class="nl-bloc${i === nlSel ? " sel" : ""}" data-bloc="${i}">
+    ? nlBlocs.map((b, i) => plus(i) + `<div class="nl-bloc${i === nlSel ? " sel" : ""}" data-bloc="${i}">
         <div class="nl-bloc-outils">
           <span class="nl-bloc-nom">${esc(NL_NOMS[b.t] || b.t)}</span>
           <button type="button" data-up="${i}" title="Monter"${i === 0 ? " disabled" : ""}>↑</button>
@@ -11475,8 +11492,8 @@ function nlRender() {
           <button type="button" data-del="${i}" title="Supprimer">✕</button>
         </div>
         <div class="nl-bloc-vue"></div>
-      </div>`).join("")
-    : '<p class="muted nl-vide">Ajoutez un bloc pour commencer : titre, texte, image, bouton…</p>';
+      </div>`).join("") + plus(nlBlocs.length)
+    : `<p class="muted nl-vide">Votre newsletter est vide.</p>` + plus(0);
   nlBlocs.forEach((b, i) => nlRendreVue(i));
   nlRenderInspecteur();
   nlSync();
@@ -11491,7 +11508,7 @@ function nlRendreVue(i) {
   for (const c of nlChampsEditables(b, vue)) {
     if (!c.el) continue;
     c.el.setAttribute("contenteditable", "true");
-    c.el.classList.add("nl-edit");
+    c.el.classList.add("nl-saisie");
     c.el.dataset.edit = c.f;
     c.el.dataset.editBloc = i;
     if (c.riche) c.el.dataset.riche = "1";
@@ -11569,8 +11586,13 @@ function nlRenderInspecteur() {
     html += champ("Libellé", `<input type="text" data-f="texte" value="${esc(b.texte || "")}" />`)
          +  champ("Lien", `<input type="text" data-f="href" value="${esc(b.href || "")}" />`)
          +  champ("Alignement", align(b.align))
-         +  champ("Fond", `<input type="color" data-f="bg" value="${esc(b.bg || "#073eb5")}" />`)
-         +  champ("Texte", `<input type="color" data-f="fg" value="${esc(b.fg || "#ffffff")}" />`);
+         +  champ("Pilule", `<input type="color" data-f="bg" value="${esc(b.bg || NL_C.bleu)}" />`)
+         +  champ("Couleur du libellé", `<input type="color" data-f="fg" value="${esc(b.fg || "#ffffff")}" />`)
+         +  champ("Flèche", `<select data-f="fleche">
+              <option value="oui"${b.fleche !== false ? " selected" : ""}>Avec pastille</option>
+              <option value="non"${b.fleche === false ? " selected" : ""}>Sans</option></select>`)
+         +  (b.fleche === false ? "" :
+              champ("Pastille", `<input type="color" data-f="pastille" value="${esc(b.pastille || NL_C.mint)}" />`));
   } else if (b.t === "duo") {
     html += champ("Image", `<div class="nl-img-zone">
               <input type="text" data-f="src" placeholder="https://… ou importez" value="${esc(b.src || "")}" />
@@ -11628,14 +11650,22 @@ function nlRenderInspecteur() {
 
 // --- Interactions de l'editeur ---
 document.addEventListener("click", async (e) => {
+  // Le « + » entre deux blocs ouvre la palette, en retenant ou inserer.
+  const ins = e.target.closest("[data-ins]");
+  if (ins) { nlOuvrirPalette(+ins.dataset.ins, ins); return; }
+
   const pal = e.target.closest("[data-nlnew]");
   if (pal) {
     const modele = NL_MODELES[pal.dataset.nlnew];
     if (!modele) return;
     const bloc = JSON.parse(JSON.stringify(modele));
-    const ou = nlSel >= 0 ? nlSel + 1 : nlBlocs.length;
-    nlBlocs.splice(ou, 0, bloc); nlSel = ou; nlRender(); return;
+    // Position retenue par le « + » ; a defaut, sous le bloc selectionne.
+    const ou = nlOuIns != null ? nlOuIns : (nlSel >= 0 ? nlSel + 1 : nlBlocs.length);
+    nlBlocs.splice(ou, 0, bloc); nlSel = ou;
+    nlFermerPalette(); nlRender(); return;
   }
+  // Un clic ailleurs referme la palette.
+  if (nlOuIns != null && !e.target.closest("#nl-palette")) nlFermerPalette();
   const sel = e.target.closest("[data-bloc]");
   // On ne redessine PAS la toile pour un simple changement de selection :
   // cela detruirait la zone de saisie sur laquelle on vient de cliquer.
@@ -11711,7 +11741,42 @@ document.addEventListener("click", (e) => {
   nlRenderInspecteur();   // les champs doivent reafficher les valeurs par defaut
 });
 
+// --- Palette flottante ---
+// Elle s'ouvre au point d'insertion choisi, la ou l'oeil est deja.
+let nlOuIns = null;
+function nlOuvrirPalette(ou, ancre) {
+  const p = $("nl-palette"); if (!p) return;
+  nlOuIns = ou;
+  p.classList.remove("hidden");
+  // Positionnement au-dessus du « + », recale pour ne pas sortir de l'ecran.
+  const r = ancre.getBoundingClientRect();
+  const pr = p.getBoundingClientRect();
+  let x = r.left + r.width / 2 - pr.width / 2;
+  x = Math.max(8, Math.min(x, innerWidth - pr.width - 8));
+  let y = r.bottom + 8;
+  if (y + pr.height > innerHeight - 8) y = Math.max(8, r.top - pr.height - 8);
+  p.style.left = Math.round(x) + "px";
+  p.style.top = Math.round(y) + "px";
+}
+function nlFermerPalette() {
+  nlOuIns = null;
+  $("nl-palette")?.classList.add("hidden");
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && nlOuIns != null) nlFermerPalette();
+});
+
+// --- Apercu ordinateur / telephone ---
+// La toile passe a 375 px : la largeur ou se lisent la plupart des newsletters.
+document.addEventListener("click", (e) => {
+  const v = e.target.closest("[data-vue]");
+  if (!v) return;
+  document.querySelectorAll("[data-vue]").forEach((b) => b.classList.toggle("on", b === v));
+  $("nl-toile")?.classList.toggle("mobile", v.dataset.vue === "mobile");
+});
+
 // Selection d'un bloc : on met a jour le lisere et l'inspecteur, sans
+
 
 // toucher a la toile.
 function nlSelectionner(i) {
@@ -11777,8 +11842,14 @@ document.addEventListener("change", (e) => {
   const f = e.target.closest("#nl-insp select[data-f]");
   if (!f || nlSel < 0 || !nlBlocs[nlSel]) return;
   // Le filet de l'en-tete est un booleen : un <select> rend « oui »/« non ».
-  nlBlocs[nlSel][f.dataset.f] = f.dataset.f === "trait" ? f.value === "oui" : f.value;
-  nlRender();
+  // Deux reglages sont des oui/non alors qu'un <select> rend du texte.
+  nlBlocs[nlSel][f.dataset.f] = ["trait", "fleche"].includes(f.dataset.f)
+    ? f.value === "oui" : f.value;
+  nlApercuSeul();
+  // Ces deux choix changent la liste des reglages proposes (pastille,
+  // filet) : l'inspecteur doit se redessiner. Rien n'est en cours de
+  // frappe ici, c'est un <select> — aucun focus a perdre.
+  if (["trait", "fleche"].includes(f.dataset.f)) nlRenderInspecteur();
 });
 
 // Redessine la seule vue du bloc courant, en laissant l'inspecteur intact.
