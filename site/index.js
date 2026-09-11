@@ -201,12 +201,12 @@ const DETAILS = {
         lead: "Derrière le programme, il y a d'abord des joueuses et des joueurs. Touchez une carte pour en savoir plus.", items: [
           { nom: "Talia Dupasquier Picci", age: "18 ans", classement: "R1 (117)",
             photo: "assets/photos/eleve-talia-picci.jpg",
-            mytennis: "716.08.506.0",
+            mytennis: "19757017",
             mot: "Dix-huit ans et déjà joueuse professionnelle : vivre de son tennis, c'est le projet. Un tournoi presque chaque week-end, et les premiers rendez-vous internationaux. Elle donne des cours en stage et au Kids Tennis. Son moteur : aller chercher tout ce qu'elle peut, et passer au-dessus de son R1.",
             tags: ["Meilleur classement : R1 (99)", "Certifiée loisir niveau 1"] },
           { nom: "Célyan Lorival", age: "18 ans", classement: "R2",
             photo: "assets/photos/eleve-celyan-lorival.jpg",
-            mytennis: "613.07.384.0",
+            mytennis: "19764390",
             mot: "Cinq ans de sport-études au Lausanne-Sports, et le bac en ligne de mire. Revers à une main, faible avoué pour l'ambiance des interclubs. Il enseigne depuis deux ans, en cours comme en stage : patient, et autant motivé par transmettre que par jouer.",
             tags: ["J+S continue 1", "J+S continue 2", "Official Swiss Tennis"] },
         ]},
@@ -1026,7 +1026,10 @@ function sectionHTML(sec) {
           ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
         </div>
         <div class="eleve-grid">${sec.items.map((e) => {
-          // Un numero de licence suffit ; une adresse complete est acceptee aussi.
+          // Identifiant de profil myTennis — celui qui figure dans l'adresse,
+          // et NON le numero de licence : les deux sont differents, et une
+          // adresse batie sur la licence ne mene nulle part. Une adresse
+          // complete est acceptee telle quelle.
           const lien = !e.mytennis ? ""
             : /^https?:/.test(e.mytennis) ? e.mytennis
             : `https://www.mytennis.ch/fr/joueur/${encodeURIComponent(e.mytennis)}`;
