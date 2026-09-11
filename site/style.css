@@ -2219,3 +2219,33 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 .slot-tarif{display:inline-block;margin-top:12px;background:var(--fluo);color:var(--fluo-ink);
   font-family:var(--font-accent);font-weight:700;letter-spacing:-.02em;
   font-size:1.02rem;padding:5px 12px;border-radius:999px}
+
+/* ---- Bandeau de la FAQ ----
+   Les pages de filiere etaient tres blanches. Une photo de terre battue en
+   pleine largeur leur donne du relief, comme sur la reference. Le voile sombre
+   n'est pas decoratif : sans lui, le titre blanc se perdrait dans les zones
+   claires de la photo. */
+.faq{position:relative;isolation:isolate;
+  width:100vw;margin-inline:calc(50% - 50vw);
+  padding:var(--sec-md) 22px;
+  background:#3a1d12 url("assets/photos/faq-fond.jpg") center/cover no-repeat}
+.faq::before{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(180deg,rgba(10,22,48,.58),rgba(10,22,48,.74))}
+.faq .perks-head{max-width:760px;margin:0 auto 30px;text-align:center}
+.faq .perks-head h2{color:#fff}
+.faq .eyebrow,body[data-world="academie"] .faq .eyebrow{color:#fff}
+.faq .eyebrow::before,body[data-world="academie"] .faq .eyebrow::before{background:var(--fluo)}
+/* La liste repose sur une carte blanche, qui la detache de la photo. */
+.faq .faq-list{max-width:880px;margin:0 auto;gap:8px;
+  background:#fff;border-radius:var(--radius);padding:16px;
+  box-shadow:0 18px 44px rgba(0,0,0,.3)}
+.faq .faq-item{background:#f2f4f8;border-color:transparent;border-radius:12px}
+.faq .faq-item summary:hover{background:#e8edf6}
+.faq .faq-item[open]{background:#fff;border-color:var(--blue)}
+/* Le signe passe dans une pastille bleue, plus lisible sur le gris clair. */
+.faq .faq-signe{width:26px;height:26px;border-radius:50%;background:var(--blue)}
+.faq .faq-signe::before,.faq .faq-signe::after{background:#fff;inset:50% 7px auto 7px}
+@media(max-width:640px){
+  .faq{padding:var(--sec-sm) 16px}
+  .faq .faq-list{padding:10px}
+}
