@@ -2440,13 +2440,17 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
   border-color:var(--fluo)}
 .formula:hover::before{height:5px}
 .formula-pro{border-color:var(--fluo-d)}
-.formula-etiq{position:absolute;top:14px;right:14px;background:var(--fluo);color:var(--fluo-ink);
-  font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
-  padding:4px 10px;border-radius:999px}
-.formula-haut{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
-.formula-age{font-weight:800;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;
-  color:var(--blue)}
-.formula-rythme{color:var(--muted);font-size:.86rem}
+/* Dans le flux, et non posee sur le coin : en absolu, l'etiquette recouvrait la
+   tranche d'age. Elle ouvre desormais la carte, et toutes les formules en ont
+   une — celle de la semaine intensive se distingue par le fluo. */
+.formula-etiq{align-self:flex-start;margin:0 0 12px;
+  background:#eef1f7;color:var(--blue-ink);
+  font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;
+  padding:6px 13px;border-radius:999px;line-height:1.25}
+.formula-etiq-pro{background:var(--fluo);color:var(--fluo-ink)}
+.formula-age{display:block;margin-bottom:6px;font-weight:800;font-size:.8rem;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--blue)}
+
 .formula h3{margin:0 0 6px;font-family:var(--font-accent);font-weight:700;
   text-transform:uppercase;letter-spacing:-.02em;font-size:1.18rem;color:var(--blue-ink);
   line-height:1.15}

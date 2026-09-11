@@ -159,23 +159,23 @@ const DETAILS = {
         intro: "Du mini-tennis à l'entraînement de compétiteur, choisis la formule selon ton âge et tes envies. <b>−20 % dès la 2ᵉ semaine</b> ou pour un 2ᵉ membre de la famille.",
         libelles: { "4-9": "4 à 9 ans", "9-18": "9 à 18 ans", adultes: "Adultes" },
         items: [
-          { name: "Kids Tennis", groupe: "4-9", age: "4 à 9 ans", rythme: "Découvrir en s'amusant",
+          { name: "Kids Tennis", groupe: "4-9", age: "4 à 9 ans", rythme: "Découvrir & s'amuser",
             horaire: "9h00 – 12h00",
             lines: ["1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "250 CHF" },
-          { name: "Loisirs ½ journée", groupe: "9-18", age: "9 à 18 ans", rythme: "Progresser à son rythme",
+          { name: "Loisirs ½ journée", groupe: "9-18", age: "9 à 18 ans", rythme: "Progresser & se faire plaisir",
             horaire: "9h00 – 12h00 ou 14h00 – 17h00",
             lines: ["1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "290 CHF" },
-          { name: "Loisirs journée", groupe: "9-18", age: "9 à 18 ans", rythme: "Progresser à son rythme",
+          { name: "Loisirs journée", groupe: "9-18", age: "9 à 18 ans", rythme: "Progresser & se faire plaisir",
             horaire: "9h00 – 17h00",
             lines: ["3h de tennis + 3h30 d'activité", "Repas inclus"], price: "450 CHF" },
-          { name: "Entraîne-toi comme un pro", groupe: "9-18", age: "10 à 19 ans · dès R7", rythme: "Viser la performance",
+          { name: "Entraîne-toi comme un pro", groupe: "9-18", age: "10 à 19 ans · dès R7", rythme: "Haute performance",
             horaire: "9h00 – 17h00",
             lines: ["4h de tennis + 1h30 physique + 1h d'activité", "Repas inclus", "Option cours privé +240 CHF (3h)"],
             price: "790 CHF", pro: true },
-          { name: "Stage adultes", groupe: "adultes", age: "18 ans et +", rythme: "Jouer en soirée",
+          { name: "Stage adultes", groupe: "adultes", age: "18 ans et +", rythme: "Entraînement adultes",
             horaire: "18h15 – 19h45",
             lines: ["1h30 de tennis par jour", "Certaines semaines d'été uniquement"], price: "240 CHF" },
-        ], link: { label: "Une question ? Nous écrire", contact: "Renseignement pour les stages" } },
+        ]},
       { type: "stageform", eyebrow: "Prochaines dates", title: "Réserve ta place",
         lead: "Choisis ta semaine : le formulaire s'ouvre en un clic, et le secrétariat confirme ton inscription." },
     ],
@@ -755,11 +755,8 @@ function sectionHTML(sec) {
         </div>` : ""}
         <div class="formula-grid">${sec.items.map((f) =>
           `<article class="formula${f.pro ? " formula-pro" : ""}" data-groupe="${esc(f.groupe || "")}">
-            ${f.pro ? `<span class="formula-etiq">Performance</span>` : ""}
-            <div class="formula-haut">
-              <span class="formula-age">${esc(f.age)}</span>
-              ${f.rythme ? `<span class="formula-rythme">${esc(f.rythme)}</span>` : ""}
-            </div>
+            ${f.rythme ? `<span class="formula-etiq${f.pro ? " formula-etiq-pro" : ""}">${esc(f.rythme)}</span>` : ""}
+            <span class="formula-age">${esc(f.age)}</span>
             <h3>${esc(f.name)}</h3>
             ${f.horaire ? `<p class="formula-horaire">${esc(f.horaire)}</p>` : ""}
             <ul>${f.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>
