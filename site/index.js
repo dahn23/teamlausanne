@@ -188,6 +188,10 @@ const DETAILS = {
     // raquette et la balle. Sur telephone c'est l'inverse, la photo deborde en
     // largeur : 30 % retient le joueur dans le cadre au lieu de le rogner.
     hero: "assets/photos/sport-etudes-2026.jpg", heroPos: "30% 40%",
+    // La photo reste le poster : elle s'affiche tout de suite, pendant le
+    // chargement de la video, et demeure seule sur telephone et en mode
+    // « animations reduites ». La video ne fait que passer par-dessus.
+    heroVideo: "assets/video/sport-etudes-hero.mp4",
     cta: { label: "Recevoir la brochure", scroll: "brochure" },
     sections: [
       { type: "keywords", label: "Ce qui fait le Sport-études", items: [
@@ -1130,7 +1134,7 @@ function sectionHTML(sec) {
   }
 }
 
-function paintHero({ logo, heroLogo, hero, heroPos, tag, slogan, desc, ctaHTML, sloganEntier }) {
+function paintHero({ logo, heroLogo, hero, heroPos, heroVideo, tag, slogan, desc, ctaHTML, sloganEntier }) {
   $("nav-logo").src = logo;
   $("hero-bg").style.backgroundImage = `url("${hero}")`;
   $("hero-bg").style.backgroundPosition = heroPos || "center";   // point d'intérêt (visages) par page
@@ -1146,7 +1150,68 @@ function paintHero({ logo, heroLogo, hero, heroPos, tag, slogan, desc, ctaHTML, 
         .map((mot) => `<span class="hs-w">${esc(mot)}</span>`).join(" ");
   $("hero-desc").textContent = desc;
   $("hero-cta").innerHTML = ctaHTML;
+  poserVideoHero(heroVideo);
 }
+
+// ---- Video de fond du hero ----
+// Une video de fond est un confort, jamais le contenu : la photo reste
+// dessous et suffit a elle seule. On ne charge donc le film que quand il
+// apporte vraiment quelque chose, et jamais au prix de la page.
+function poserVideoHero(src) {
+  const hero = $("hero");
+  const ancienne = hero?.querySelector(".hero-video");
+  if (ancienne) ancienne.remove();          // on change de page : on repart de la photo
+  if (!src || !hero) return;
+
+  // Trois raisons de s'abstenir :
+  //  - le visiteur demande des animations reduites ;
+  //  - son navigateur annonce une connexion econome ou lente ;
+  //  - l'ecran est etroit, ou la video pese plus que la page entiere pour
+  //    un fond que personne ne regarde.
+  const co = navigator.connection || {};
+  const econome = co.saveData === true || /^(slow-)?2g$/.test(co.effectiveType || "");
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (matchMedia("(max-width: 860px)").matches) return;
+  if (econome) return;
+
+  const v = document.createElement("video");
+  v.className = "hero-video";
+  // muted et playsInline sont les deux conditions de la lecture automatique :
+  // sans elles, iOS et Chrome refusent de demarrer.
+  v.muted = true; v.defaultMuted = true; v.playsInline = true;
+  v.loop = true; v.autoplay = true; v.preload = "auto";
+  v.setAttribute("aria-hidden", "true");   // decor : rien a annoncer
+  v.tabIndex = -1;
+  v.src = src;
+
+  // La video ne se montre qu'une fois qu'elle a vraiment des images :
+  // sinon on remplacerait la photo par un rectangle noir.
+  v.addEventListener("playing", () => { v.classList.add("prete"); hero.classList.add("a-video"); }, { once: true });
+  // Si la lecture est refusee ou echoue, on ne fait rien : la photo est deja la.
+  v.addEventListener("error", () => v.remove());
+
+  hero.insertBefore(v, hero.querySelector(".hero-scrim"));
+  lancer(v);
+
+  // Une page ouverte dans un onglet d'arriere-plan voit sa lecture refusee :
+  // Chrome met en pause les medias muets et sans son pour economiser la
+  // batterie (« video-only background media was paused to save power »). Ce
+  // n'est pas une panne — il faut simplement retenter quand l'onglet revient au
+  // premier plan, sinon le fond resterait fige pour qui ouvre le site dans un
+  // nouvel onglet.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && v.isConnected && v.paused) lancer(v);
+  });
+}
+
+function lancer(v) {
+  const essai = v.play();
+  // On n'enleve pas la video sur un refus : la photo est dessous de toute
+  // facon, et le refus est souvent temporaire. Seule une vraie erreur de
+  // lecture (evenement « error ») la retire.
+  if (essai && essai.catch) essai.catch(() => {});
+}
+
 
 // ---- Chiffres cles : comptage a l'entree dans l'ecran ----
 // Le chiffre grimpe jusqu'a sa valeur quand la tuile apparait. Une seule fois :
@@ -1296,7 +1361,7 @@ function renderWorld(key) {
     c.type === "contact" ? `<button class="btn-cta" data-contact="${esc(c.source)}">${esc(c.label)}</button>`
     : c.type === "scroll" ? `<button class="btn-cta" data-scroll="${esc(c.target)}">${esc(c.label)}</button>`
     : `<button class="btn-cta" data-cta="${c.type}">${esc(c.label)}</button>`).join("");
-  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: w.hero, heroPos: w.heroPos, tag: w.tag, slogan: w.slogan, desc: w.desc, ctaHTML });
+  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: w.hero, heroPos: w.heroPos, heroVideo: w.heroVideo, tag: w.tag, slogan: w.slogan, desc: w.desc, ctaHTML });
   $("world-main").innerHTML = w.sections.map(sectionWrap).join("");
   animate();
   demarrerScrollers();
@@ -1317,7 +1382,7 @@ function renderDetail(id) {
     : `<button class="btn-cta" data-contact="${esc(d.cta.contact)}">${esc(d.cta.label)}</button>`;
   const ctaHTML = ctaPage + `<button class="btn-cta ghost" data-back="${d.world}">← Retour ${esc(w.retour)}</button>`;
   // Une page peut porter son propre logo : la Game Zone a le sien.
-  paintHero({ logo: w.logo, heroLogo: d.heroLogo || w.heroLogo, hero: d.hero, heroPos: d.heroPos, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML, sloganEntier: true });
+  paintHero({ logo: w.logo, heroLogo: d.heroLogo || w.heroLogo, hero: d.hero, heroPos: d.heroPos, heroVideo: d.heroVideo, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML, sloganEntier: true });
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();
   demarrerScrollers();

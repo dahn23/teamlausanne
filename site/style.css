@@ -944,8 +944,19 @@ a.path-step:hover .path-go,a.path-step:focus-visible .path-go{
 .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;
   transition:opacity .4s;animation:kenburns 18s ease-out infinite alternate}
 @keyframes kenburns{from{transform:scale(1.05)}to{transform:scale(1.14)}}
-.hero-scrim{position:absolute;inset:0;
+/* Video de fond : elle se pose par-dessus la photo, qui lui sert de poster.
+   Elle n'apparait qu'une fois qu'elle a des images (classe « prete »), sinon
+   on troquerait la photo contre un rectangle noir le temps du chargement. */
+.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  object-position:center;z-index:1;opacity:0;transition:opacity .6s ease;
+  pointer-events:none}
+.hero-video.prete{opacity:1}
+/* Tant que le film tourne, le zoom lent de la photo n'a plus lieu d'etre :
+   deux mouvements a la fois se contrarient. */
+.hero.a-video .hero-bg{animation:none}
+.hero-scrim{position:absolute;inset:0;z-index:1;
   background:linear-gradient(180deg,rgba(0,0,0,.15),var(--scrim))}
+
 .hero-content{position:relative;z-index:2;width:100%;max-width:var(--container);
   margin:0 auto;padding:var(--sec-sm) 22px;text-align:left}
 .hero-logo{height:132px;width:auto;margin:0 0 18px;display:block;
