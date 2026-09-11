@@ -2619,3 +2619,52 @@ tr.rm-loss td{background:#fde8e8}
 .pm-chk-badge{background:#eef1f7;color:var(--muted);border-radius:6px;padding:2px 7px;font-weight:700}
 .pm-chk-ok{background:#e3f6e8;color:#1c7d38}
 @media(prefers-reduced-motion:reduce){ .pm-chk-barre span{transition:none} }
+
+/* ============================================================
+   Newsletter — editeur par blocs
+   ============================================================ */
+.nl-palette{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:0 0 12px}
+.nl-palette-t{font-size:.76rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.nl-pal{background:#eef1f7;color:var(--blue-ink);border:0;border-radius:999px;cursor:pointer;
+  font-weight:700;font-size:.82rem;padding:7px 14px;transition:background-color .15s,transform .15s}
+.nl-pal:hover{background:var(--blue);color:#fff;transform:translateY(-1px)}
+
+.nl-atelier{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:980px){.nl-atelier{grid-template-columns:1fr}}
+
+/* La toile reprend la largeur et le fond reels de l'e-mail : ce qu'on voit est
+   ce qui part. */
+.nl-toile{background:#f3f5fa;border:1px solid var(--line);border-radius:12px;padding:18px;
+  min-height:280px;max-height:60vh;overflow-y:auto}
+.nl-vide{text-align:center;padding:40px 10px}
+.nl-bloc{position:relative;background:#fff;border:2px solid transparent;border-radius:8px;
+  padding:10px 12px;margin-bottom:6px;cursor:pointer}
+.nl-bloc:hover{border-color:#cdd7ea}
+.nl-bloc.sel{border-color:var(--blue)}
+.nl-bloc-outils{position:absolute;top:-11px;right:8px;display:none;gap:2px;
+  background:#fff;border:1px solid var(--line);border-radius:999px;padding:2px 6px;
+  box-shadow:0 2px 8px rgba(20,26,46,.18);z-index:2}
+.nl-bloc:hover .nl-bloc-outils,.nl-bloc.sel .nl-bloc-outils{display:flex;align-items:center}
+.nl-bloc-nom{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);padding-right:4px}
+.nl-bloc-outils button{background:transparent;border:0;color:var(--muted);cursor:pointer;
+  padding:2px 5px;border-radius:5px;font-size:.8rem}
+.nl-bloc-outils button:hover:not(:disabled){background:#eef1f7;color:var(--blue-ink)}
+.nl-bloc-outils button:disabled{opacity:.3;cursor:default}
+.nl-bloc-vue{pointer-events:none}
+.nl-bloc-vue img{max-width:100%}
+
+.nl-insp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;
+  position:sticky;top:0}
+.nl-insp-titre{margin:0 0 10px;font-size:.95rem;color:var(--blue-ink)}
+.nl-champ{display:flex;flex-direction:column;gap:5px;margin-bottom:11px;
+  font-size:.78rem;font-weight:700;color:var(--muted)}
+.nl-champ input[type=text],.nl-champ input[type=number],.nl-champ select{width:100%;box-sizing:border-box;font-size:.9rem;padding:8px 10px}
+.nl-champ input[type=range]{width:100%}
+.nl-champ input[type=color]{width:100%;height:34px;padding:2px;cursor:pointer}
+.nl-rich{min-height:90px;font-size:.9rem;font-weight:400;color:var(--ink);
+  border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:#fff}
+.nl-rich:focus{outline:2px solid var(--blue);border-color:var(--blue)}
+.nl-rich-outils{display:flex;gap:5px;margin:-6px 0 11px}
+.nl-img-zone{display:flex;gap:6px}
+.nl-img-zone input{flex:1;min-width:0}

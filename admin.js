@@ -5184,9 +5184,8 @@ function initNewsletter() {
   $("nl-test").addEventListener("click", nlSendTest);
   $("nl-send").addEventListener("click", nlSendAll);
   document.querySelectorAll("#nl-modal .nl-rt").forEach((b) => b.addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand(b.dataset.cmd, false, null); }));
-  $("nl-color").addEventListener("input", (e) => { document.execCommand("foreColor", false, e.target.value); $("nl-body").focus(); });
-  $("nl-h2").addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand("formatBlock", false, "h2"); });
-  brancherLien("nl-link", "nl-body");
+  // La barre d'outils d'ensemble a cede la place a l'editeur par blocs :
+  // la mise en forme se fait desormais bloc par bloc, dans l'inspecteur.
   $("nl-all").addEventListener("change", () => { $("nl-roles").querySelectorAll("input").forEach((c) => { c.disabled = $("nl-all").checked; }); });
   $("nl-roles").innerHTML = NL_ROLE_OPTS.map(([v, l]) => `<label><input type="checkbox" class="nl-role" value="${v}" /> ${l}</label>`).join("");
   $("nl-setup").innerHTML = `<b>Mise en place (une fois)</b> — <a href="#" id="nl-setup-toggle">voir la marche à suivre</a>
@@ -5270,7 +5269,7 @@ async function nlOpen(n) {
   $("nl-from-name").value = n?.from_name || "Team Lausanne Academy";
   $("nl-from-email").value = n?.from_email || "newsletter@teamlausanne.ch";
   $("nl-reply").value = n?.reply_to || "info@teamlausanne.ch";
-  $("nl-body").innerHTML = n?.html || "";
+  nlChargerBlocs(n);
   const a = n?.audience || {};
   $("nl-all").checked = !!a.all_people;
   $("nl-roles").querySelectorAll("input").forEach((c) => { c.checked = (a.roles || []).includes(c.value); c.disabled = !!a.all_people; });
@@ -5308,7 +5307,7 @@ async function nlComputeAudience() {
 async function nlSave() {
   const subject = $("nl-subject").value.trim(), html = $("nl-body").innerHTML.trim();
   const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
-  const row = { subject, html, from_name: $("nl-from-name").value.trim() || "Team Lausanne Academy", from_email: $("nl-from-email").value.trim() || "newsletter@teamlausanne.ch", reply_to: $("nl-reply").value.trim() || null, audience: nlReadAudience() };
+  const row = { subject, html, blocks: nlBlocs, from_name: $("nl-from-name").value.trim() || "Team Lausanne Academy", from_email: $("nl-from-email").value.trim() || "newsletter@teamlausanne.ch", reply_to: $("nl-reply").value.trim() || null, audience: nlReadAudience() };
   let res;
   if (nlEditId) res = await sb.from("newsletters").update(row).eq("id", nlEditId).select("id").single();
   else res = await sb.from("newsletters").insert({ ...row, created_by: uid, status: "brouillon" }).select("id").single();
@@ -5316,7 +5315,7 @@ async function nlSave() {
   nlEditId = res.data.id; return nlEditId;
 }
 async function nlSendTest() {
-  if (!$("nl-subject").value.trim() || !$("nl-body").innerText.trim()) { uiAlert("Objet et contenu obligatoires."); return; }
+  if (!$("nl-subject").value.trim() || !nlCompiler(nlBlocs).trim()) { uiAlert("Objet et contenu obligatoires."); return; }
   const id = await nlSave(); if (!id) return;
   const { data: sess } = await sb.auth.getSession(); const me = sess?.session?.user?.email;
   $("nl-status").textContent = `Envoi du test à ${me}…`;
@@ -5327,7 +5326,7 @@ async function nlSendTest() {
   loadNewsletters();
 }
 async function nlSendAll() {
-  if (!$("nl-subject").value.trim() || !$("nl-body").innerText.trim()) { uiAlert("Objet et contenu obligatoires."); return; }
+  if (!$("nl-subject").value.trim() || !nlCompiler(nlBlocs).trim()) { uiAlert("Objet et contenu obligatoires."); return; }
   const id = await nlSave(); if (!id) return;
   const aud = await nlComputeAudience(); if (!aud) return;
   if (!aud.length) { uiAlert("Aucun destinataire : ajuste le ciblage."); return; }
@@ -11063,4 +11062,226 @@ function brancherLien(boutonId, editeurId) {
     if (s2 && !s2.isCollapsed) document.execCommand("createLink", false, url);
     else document.execCommand("insertHTML", false, `<a href="${esc(url)}">${esc(url)}</a>`);
   });
+}
+
+// ============================================================
+//  Newsletter — editeur par blocs
+//  Les blocs sont la source de verite ; le HTML envoye en est la compilation.
+//  Contrainte de l'e-mail : pas de flexbox ni de grille, pas de feuille de
+//  style externe. Tout passe par des tableaux et des styles en ligne, seule
+//  mise en page que Outlook et Gmail rendent de la meme facon.
+// ============================================================
+const NL_LARGEUR = 552;          // 600 px de gabarit moins 24 px de marge de chaque cote
+
+const NL_MODELES = {
+  titre:  { t: "titre", texte: "Votre titre", align: "left", couleur: "#04205e", taille: 24 },
+  texte:  { t: "texte", html: "Votre texte…", align: "left" },
+  image:  { t: "image", src: "", alt: "", href: "", largeur: 100 },
+  bouton: { t: "bouton", texte: "En savoir plus", href: "https://teamlausanne.ch",
+            bg: "#073eb5", fg: "#ffffff", align: "center" },
+  duo:    { t: "duo", src: "", alt: "", html: "Votre texte…", sens: "image-gauche" },
+  sep:    { t: "sep" },
+  espace: { t: "espace", h: 24 },
+};
+const NL_NOMS = { titre: "Titre", texte: "Texte", image: "Image", bouton: "Bouton",
+                  duo: "Image + texte", sep: "Séparateur", espace: "Espace" };
+
+// --- Compilation d'un bloc en HTML d'e-mail ---
+function nlBlocHtml(b) {
+  const al = (x) => (x === "center" ? "center" : x === "right" ? "right" : "left");
+  switch (b.t) {
+    case "titre":
+      return `<h2 style="margin:0 0 14px;font-family:Helvetica,Arial,sans-serif;font-size:${+b.taille || 24}px;line-height:1.25;color:${b.couleur || "#04205e"};text-align:${al(b.align)};font-weight:700">${b.texte || ""}</h2>`;
+    case "texte":
+      return `<div style="margin:0 0 14px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1f36;text-align:${al(b.align)}">${b.html || ""}</div>`;
+    case "image": {
+      if (!b.src) return "";
+      const w = Math.round(NL_LARGEUR * Math.min(100, Math.max(10, +b.largeur || 100)) / 100);
+      const img = `<img src="${esc(b.src)}" alt="${esc(b.alt || "")}" width="${w}" style="display:block;width:${w}px;max-width:100%;height:auto;border:0;border-radius:8px" />`;
+      const centre = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:0 0 14px">${b.href ? `<a href="${esc(b.href)}">${img}</a>` : img}</td></tr></table>`;
+      return centre;
+    }
+    case "bouton":
+      // Bouton en tableau : les <a> stylises sont ignores par Outlook.
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="${al(b.align)}" style="padding:4px 0 18px">
+        <table role="presentation" cellspacing="0" cellpadding="0"><tr><td align="center" bgcolor="${b.bg || "#073eb5"}" style="border-radius:999px">
+        <a href="${esc(b.href || "#")}" style="display:inline-block;padding:12px 26px;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;color:${b.fg || "#ffffff"};text-decoration:none;border-radius:999px">${esc(b.texte || "")}</a>
+        </td></tr></table></td></tr></table>`;
+    case "duo": {
+      const img = b.src
+        ? `<img src="${esc(b.src)}" alt="${esc(b.alt || "")}" width="256" style="display:block;width:100%;max-width:256px;height:auto;border:0;border-radius:8px" />`
+        : "";
+      const txt = `<div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1f36">${b.html || ""}</div>`;
+      const a = b.sens === "image-droite" ? txt : img;
+      const c = b.sens === "image-droite" ? img : txt;
+      // width en pourcentage : les colonnes se serrent sur petit ecran plutot
+      // que de deborder, sans dependre des media queries.
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 14px"><tr>
+        <td width="48%" valign="top" style="padding:0 10px 0 0">${a}</td>
+        <td width="52%" valign="top">${c}</td></tr></table>`;
+    }
+    case "sep":
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td style="padding:6px 0 18px"><div style="border-top:1px solid #e4e8f0;font-size:0;line-height:0">&nbsp;</div></td></tr></table>`;
+    case "espace":
+      return `<div style="height:${+b.h || 24}px;font-size:0;line-height:0">&nbsp;</div>`;
+    default: return "";
+  }
+}
+const nlCompiler = (blocs) => (blocs || []).map(nlBlocHtml).join("\n");
+
+// --- Etat de l'editeur ---
+let nlBlocs = [];
+let nlSel = -1;            // index du bloc selectionne
+
+function nlRender() {
+  const toile = $("nl-toile"); if (!toile) return;
+  toile.innerHTML = nlBlocs.length
+    ? nlBlocs.map((b, i) => `<div class="nl-bloc${i === nlSel ? " sel" : ""}" data-bloc="${i}">
+        <div class="nl-bloc-outils">
+          <span class="nl-bloc-nom">${esc(NL_NOMS[b.t] || b.t)}</span>
+          <button type="button" data-up="${i}" title="Monter"${i === 0 ? " disabled" : ""}>↑</button>
+          <button type="button" data-down="${i}" title="Descendre"${i === nlBlocs.length - 1 ? " disabled" : ""}>↓</button>
+          <button type="button" data-dup="${i}" title="Dupliquer">⧉</button>
+          <button type="button" data-del="${i}" title="Supprimer">✕</button>
+        </div>
+        <div class="nl-bloc-vue">${nlBlocHtml(b) || '<span class="muted">Bloc vide — complétez-le à droite.</span>'}</div>
+      </div>`).join("")
+    : '<p class="muted nl-vide">Ajoutez un bloc pour commencer : titre, texte, image, bouton…</p>';
+  nlRenderInspecteur();
+  nlSync();
+}
+
+// Le HTML compile est garde a jour dans le champ cache : l'envoi et
+// l'enregistrement continuent de lire newsletters.html sans rien savoir des blocs.
+function nlSync() { const c = $("nl-body"); if (c) c.innerHTML = nlCompiler(nlBlocs); }
+
+function nlRenderInspecteur() {
+  const z = $("nl-insp"); if (!z) return;
+  const b = nlBlocs[nlSel];
+  if (!b) { z.innerHTML = '<p class="muted">Cliquez un bloc pour le modifier.</p>'; return; }
+  const champ = (lab, html) => `<label class="nl-champ"><span>${lab}</span>${html}</label>`;
+  const align = (v) => `<select data-f="align">
+    <option value="left"${v === "left" ? " selected" : ""}>Gauche</option>
+    <option value="center"${v === "center" ? " selected" : ""}>Centré</option>
+    <option value="right"${v === "right" ? " selected" : ""}>Droite</option></select>`;
+  let html = `<h4 class="nl-insp-titre">${esc(NL_NOMS[b.t] || b.t)}</h4>`;
+  if (b.t === "titre") {
+    html += champ("Texte", `<input type="text" data-f="texte" value="${esc(b.texte || "")}" />`)
+         +  champ("Alignement", align(b.align))
+         +  champ("Taille (px)", `<input type="number" data-f="taille" min="14" max="40" value="${+b.taille || 24}" />`)
+         +  champ("Couleur", `<input type="color" data-f="couleur" value="${esc(b.couleur || "#04205e")}" />`);
+  } else if (b.t === "texte") {
+    html += champ("Contenu", `<div class="rt-edit nl-rich" contenteditable="true" data-f="html">${b.html || ""}</div>`)
+         +  `<div class="nl-rich-outils">
+              <button type="button" class="rt-btn" data-rt="bold"><b>G</b></button>
+              <button type="button" class="rt-btn" data-rt="italic"><i>I</i></button>
+              <button type="button" class="rt-btn" data-rt="insertUnorderedList">•</button>
+              <button type="button" class="rt-btn" id="nl-bloc-link" title="Insérer un lien">🔗</button>
+            </div>`
+         +  champ("Alignement", align(b.align));
+  } else if (b.t === "image") {
+    html += champ("Image", `<div class="nl-img-zone">
+              <input type="text" data-f="src" placeholder="https://… ou importez" value="${esc(b.src || "")}" />
+              <button type="button" id="nl-img-up" class="ghost">Importer</button>
+              <input type="file" id="nl-img-file" accept="image/*" hidden /></div>`)
+         +  champ("Texte alternatif", `<input type="text" data-f="alt" value="${esc(b.alt || "")}" />`)
+         +  champ("Lien au clic", `<input type="text" data-f="href" placeholder="https://…" value="${esc(b.href || "")}" />`)
+         +  champ("Largeur (%)", `<input type="range" data-f="largeur" min="25" max="100" value="${+b.largeur || 100}" />`);
+  } else if (b.t === "bouton") {
+    html += champ("Libellé", `<input type="text" data-f="texte" value="${esc(b.texte || "")}" />`)
+         +  champ("Lien", `<input type="text" data-f="href" value="${esc(b.href || "")}" />`)
+         +  champ("Alignement", align(b.align))
+         +  champ("Fond", `<input type="color" data-f="bg" value="${esc(b.bg || "#073eb5")}" />`)
+         +  champ("Texte", `<input type="color" data-f="fg" value="${esc(b.fg || "#ffffff")}" />`);
+  } else if (b.t === "duo") {
+    html += champ("Image", `<div class="nl-img-zone">
+              <input type="text" data-f="src" placeholder="https://… ou importez" value="${esc(b.src || "")}" />
+              <button type="button" id="nl-img-up" class="ghost">Importer</button>
+              <input type="file" id="nl-img-file" accept="image/*" hidden /></div>`)
+         +  champ("Texte", `<div class="rt-edit nl-rich" contenteditable="true" data-f="html">${b.html || ""}</div>`)
+         +  champ("Disposition", `<select data-f="sens">
+              <option value="image-gauche"${b.sens !== "image-droite" ? " selected" : ""}>Image à gauche</option>
+              <option value="image-droite"${b.sens === "image-droite" ? " selected" : ""}>Image à droite</option></select>`);
+  } else if (b.t === "espace") {
+    html += champ("Hauteur (px)", `<input type="range" data-f="h" min="8" max="80" value="${+b.h || 24}" />`);
+  } else {
+    html += '<p class="muted">Ce bloc n’a pas de réglage.</p>';
+  }
+  z.innerHTML = html;
+  brancherLien("nl-bloc-link", null);
+}
+
+// --- Interactions de l'editeur ---
+document.addEventListener("click", async (e) => {
+  const pal = e.target.closest("[data-nlnew]");
+  if (pal) {
+    const modele = NL_MODELES[pal.dataset.nlnew];
+    if (!modele) return;
+    const bloc = JSON.parse(JSON.stringify(modele));
+    const ou = nlSel >= 0 ? nlSel + 1 : nlBlocs.length;
+    nlBlocs.splice(ou, 0, bloc); nlSel = ou; nlRender(); return;
+  }
+  const sel = e.target.closest("[data-bloc]");
+  if (sel && !e.target.closest(".nl-bloc-outils")) { nlSel = +sel.dataset.bloc; nlRender(); return; }
+
+  const up = e.target.closest("[data-up]");
+  if (up) { const i = +up.dataset.up; if (i > 0) { [nlBlocs[i - 1], nlBlocs[i]] = [nlBlocs[i], nlBlocs[i - 1]]; nlSel = i - 1; nlRender(); } return; }
+  const dn = e.target.closest("[data-down]");
+  if (dn) { const i = +dn.dataset.down; if (i < nlBlocs.length - 1) { [nlBlocs[i + 1], nlBlocs[i]] = [nlBlocs[i], nlBlocs[i + 1]]; nlSel = i + 1; nlRender(); } return; }
+  const du = e.target.closest("[data-dup]");
+  if (du) { const i = +du.dataset.dup; nlBlocs.splice(i + 1, 0, JSON.parse(JSON.stringify(nlBlocs[i]))); nlSel = i + 1; nlRender(); return; }
+  const de = e.target.closest("[data-del]");
+  if (de) { const i = +de.dataset.del; nlBlocs.splice(i, 1); nlSel = Math.min(nlSel, nlBlocs.length - 1); nlRender(); return; }
+
+  const rt = e.target.closest("[data-rt]");
+  if (rt) { e.preventDefault(); document.execCommand(rt.dataset.rt, false, null); return; }
+  if (e.target.closest("#nl-img-up")) { $("nl-img-file")?.click(); return; }
+});
+
+// Les reglages s'appliquent a la frappe : le rendu suit sans bouton a presser.
+document.addEventListener("input", (e) => {
+  const f = e.target.closest("#nl-insp [data-f]");
+  if (!f || nlSel < 0) return;
+  const b = nlBlocs[nlSel]; if (!b) return;
+  const cle = f.dataset.f;
+  b[cle] = f.isContentEditable ? f.innerHTML : f.value;
+  // Le bloc de saisie ne doit pas etre redessine pendant qu'on y ecrit :
+  // le curseur sauterait au debut a chaque touche.
+  if (f.isContentEditable) { nlApercuSeul(); return; }
+  nlRender();
+});
+document.addEventListener("change", (e) => {
+  const f = e.target.closest("#nl-insp select[data-f]");
+  if (f && nlSel >= 0 && nlBlocs[nlSel]) { nlBlocs[nlSel][f.dataset.f] = f.value; nlRender(); }
+});
+
+// Redessine la seule vue du bloc courant, en laissant l'inspecteur intact.
+function nlApercuSeul() {
+  const vue = document.querySelector(`.nl-bloc[data-bloc="${nlSel}"] .nl-bloc-vue`);
+  if (vue) vue.innerHTML = nlBlocHtml(nlBlocs[nlSel]) || "";
+  nlSync();
+}
+
+// --- Import d'une image ---
+document.addEventListener("change", async (e) => {
+  if (e.target.id !== "nl-img-file" || !e.target.files?.length) return;
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (f.size > 5 * 1024 * 1024) return uiModal("Image trop lourde : 5 Mo au maximum.");
+  const nom = `${Date.now()}-${f.name.replace(/[^\w.-]+/g, "-")}`;
+  const { error } = await sb.storage.from("newsletter").upload(nom, f, { contentType: f.type, upsert: false });
+  if (error) return uiModal("Import impossible : " + error.message);
+  const { data } = sb.storage.from("newsletter").getPublicUrl(nom);
+  if (nlSel >= 0 && nlBlocs[nlSel]) { nlBlocs[nlSel].src = data.publicUrl; nlRender(); }
+});
+
+// --- Chargement / enregistrement ---
+// Une newsletter d'avant l'editeur n'a pas de blocs : son HTML devient un bloc
+// de texte, pour que rien ne soit perdu.
+function nlChargerBlocs(n) {
+  if (Array.isArray(n?.blocks) && n.blocks.length) nlBlocs = n.blocks;
+  else if (n?.html?.trim()) nlBlocs = [{ t: "texte", html: n.html, align: "left" }];
+  else nlBlocs = [];
+  nlSel = nlBlocs.length ? 0 : -1;
+  nlRender();
 }

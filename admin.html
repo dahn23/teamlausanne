@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=188" />
+  <link rel="stylesheet" href="style.css?v=189" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1274,16 +1274,25 @@
                   <label class="mailc-f">Adresse d'envoi<input id="nl-from-email" type="email" value="newsletter@teamlausanne.ch" /></label>
                   <label class="mailc-f">Répondre à<input id="nl-reply" type="email" value="info@teamlausanne.ch" /></label>
                 </div>
-                <div class="rt-toolbar">
-                  <button type="button" class="rt-btn nl-rt" data-cmd="bold" title="Gras"><b>G</b></button>
-                  <button type="button" class="rt-btn nl-rt" data-cmd="italic" title="Italique"><i>I</i></button>
-                  <button type="button" class="rt-btn nl-rt" data-cmd="underline" title="Souligné"><u>S</u></button>
-                  <button type="button" class="rt-btn nl-rt" data-cmd="insertUnorderedList" title="Liste">•</button>
-                  <button type="button" class="rt-btn" id="nl-link" title="Insérer un lien">🔗</button>
-                  <button type="button" class="rt-btn" id="nl-h2" title="Titre">H</button>
-                  <label class="rt-color" title="Couleur du texte">A<input type="color" id="nl-color" value="#000000" /></label>
+                <!-- Palette : chaque bouton ajoute un bloc sous celui qui est selectionne. -->
+                <div class="nl-palette">
+                  <span class="nl-palette-t">Ajouter</span>
+                  <button type="button" class="nl-pal" data-nlnew="titre">Titre</button>
+                  <button type="button" class="nl-pal" data-nlnew="texte">Texte</button>
+                  <button type="button" class="nl-pal" data-nlnew="image">Image</button>
+                  <button type="button" class="nl-pal" data-nlnew="bouton">Bouton</button>
+                  <button type="button" class="nl-pal" data-nlnew="duo">Image + texte</button>
+                  <button type="button" class="nl-pal" data-nlnew="sep">Séparateur</button>
+                  <button type="button" class="nl-pal" data-nlnew="espace">Espace</button>
                 </div>
-                <div id="nl-body" class="rt-edit nl-edit" contenteditable="true" data-ph="Contenu de la newsletter…"></div>
+                <div class="nl-atelier">
+                  <!-- La toile rend exactement le HTML qui sera envoye. -->
+                  <div id="nl-toile" class="nl-toile"></div>
+                  <div id="nl-insp" class="nl-insp"></div>
+                </div>
+                <!-- Le HTML compile vit ici, cache : l'envoi et l'enregistrement
+                     continuent de lire ce champ sans rien savoir des blocs. -->
+                <div id="nl-body" hidden></div>
               </div>
               <div class="nl-col nl-aud">
                 <h3 style="margin:0 0 6px;font-size:1rem">Destinataires</h3>
