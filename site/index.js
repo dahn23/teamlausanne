@@ -923,6 +923,65 @@ function demarrerScrollers() {
   }), 4200);
 }
 
+// ---- Carrousel des programmes ----
+// L'avancee est pilotee ici, a une vitesse en pixels par seconde, et non par une
+// animation CSS : la duree venait d'un calc() sur une variable personnalisee,
+// que les moteurs ne resolvent pas tous pareil — le defilement n'avait donc pas
+// la meme allure d'un navigateur a l'autre. On defile la vue plutot que de
+// translater la piste, ce qui laisse au visiteur une vraie barre a tirer.
+// Secondes par carte : c'est la formule d'origine (duree = nombre de cartes x
+// 3.4 s pour parcourir une serie), reprise telle quelle pour garder exactement
+// l'allure qu'avait Chrome, a toutes les largeurs d'ecran.
+const CAR_SEC_PAR_CARTE = 3.4;
+let carBoucle = null;
+function lancerCarrousel() {
+  cancelAnimationFrame(carBoucle);
+  const doux = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const vues = [...document.querySelectorAll(".carousel")];
+  if (!vues.length || doux) return;
+
+  const etats = vues.map((vue) => {
+    const cartes = [...vue.querySelectorAll(".ccard")];
+    const etat = { vue, cartes, moitie: cartes.length / 2, survol: false, jusqua: 0, reste: 0 };
+    // Le visiteur reprend la main : on se tait un moment.
+    const main = () => { etat.jusqua = performance.now() + 2500; };
+    vue.addEventListener("pointerenter", () => (etat.survol = true));
+    vue.addEventListener("pointerleave", () => (etat.survol = false));
+    vue.addEventListener("focusin", () => (etat.survol = true));
+    vue.addEventListener("focusout", () => (etat.survol = false));
+    vue.addEventListener("wheel", main, { passive: true });
+    vue.addEventListener("touchstart", main, { passive: true });
+    vue.addEventListener("pointerdown", main);
+    return etat;
+  });
+
+  let precedent = 0;
+  const pas = (t) => {
+    // Plafonne : apres un onglet en arriere-plan, dt vaudrait plusieurs secondes
+    // et le carrousel ferait un bond.
+    const dt = precedent ? Math.min((t - precedent) / 1000, 0.05) : 0;
+    precedent = t;
+    for (const e of etats) {
+      if (e.moitie < 1 || e.survol || t < e.jusqua) continue;
+      // Largeur d'une serie, mesuree : la carte n et la carte 0 portent la meme
+      // image, donc revenir de cette distance ne se voit pas.
+      const serie = e.cartes[e.moitie].offsetLeft - e.cartes[0].offsetLeft;
+      if (serie <= 0) continue;
+      // On accumule les fractions : un pas peut faire moins d'un pixel par
+      // image, et scrollLeft pourrait les perdre.
+      e.reste += (serie / (e.moitie * CAR_SEC_PAR_CARTE)) * dt;
+      const entier = Math.floor(e.reste);
+      if (entier) {
+        e.reste -= entier;
+        e.vue.scrollLeft += entier;
+        if (e.vue.scrollLeft >= serie) e.vue.scrollLeft -= serie;
+      }
+    }
+    carBoucle = requestAnimationFrame(pas);
+  };
+  carBoucle = requestAnimationFrame(pas);
+}
+
 function renderWorld(key) {
   const w = WORLDS[key];
   document.body.dataset.world = key;
@@ -935,6 +994,7 @@ function renderWorld(key) {
   $("world-main").innerHTML = w.sections.map(sectionWrap).join("");
   animate();
   demarrerScrollers();
+  lancerCarrousel();
 }
 
 function renderDetail(id) {
@@ -952,6 +1012,7 @@ function renderDetail(id) {
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();
   demarrerScrollers();
+  lancerCarrousel();
   if ($("stgp-list")) stgLoad();
   if ($("gz-winners") || $("gz-photos-carousel")) loadGamezone();
 }

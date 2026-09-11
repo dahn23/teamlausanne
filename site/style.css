@@ -1319,31 +1319,30 @@ body[data-world="academie"] .eyebrow{color:var(--fluo-d)}
 body[data-world="academie"] .eyebrow::before{background:var(--fluo-d)}
 .carousel-sec h2{font-size:clamp(1.7rem,4vw,2.6rem);margin:0 0 12px;color:#fff}
 .carousel-sub{color:rgba(255,255,255,.82);font-size:1.02rem;margin:0 auto;max-width:620px;line-height:1.5}
-/* Carrousel : defilement continu, sans barre a tirer.
-   La serie de cartes est rendue deux fois ; la piste se translate de la largeur
-   d'une serie (50 % + la moitie de l'espacement), puis repart a zero — la copie
-   se trouve alors exactement ou etait l'originale, d'ou une boucle sans saut.
-   La duree suit le nombre de cartes pour garder une vitesse constante. */
-.carousel{overflow:hidden;padding:6px 0 16px;
+/* Carrousel : defilement continu, avec une barre pour reprendre la main.
+   La serie de cartes est rendue deux fois ; la position de defilement avance en
+   continu et, des qu'elle a parcouru une serie, on la ramene d'une serie en
+   arriere — la copie se trouve alors exactement ou etait l'originale, d'ou une
+   boucle sans saut.
+   L'avancee est pilotee en JS, en pixels par seconde. Elle venait d'une
+   animation CSS dont la duree etait un calc() sur une variable personnalisee,
+   ce que les moteurs ne resolvent pas tous de la meme facon : le defilement
+   n'allait donc pas a la meme allure d'un navigateur a l'autre. */
+.carousel{overflow-x:auto;overflow-y:hidden;padding:6px 0 10px;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
-  mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)}
-.carousel-track{display:flex;gap:18px;width:max-content;
-  animation:carousel-defile calc(var(--n,6) * 3.4s) linear infinite}
+  mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+  scrollbar-width:thin;scrollbar-color:#7da2ff transparent}
+/* Barre toujours visible plutot qu'en surimpression : c'est elle qui indique
+   qu'on peut tirer. */
+.carousel::-webkit-scrollbar{height:8px}
+.carousel::-webkit-scrollbar-track{background:rgba(255,255,255,.14);border-radius:999px}
+.carousel::-webkit-scrollbar-thumb{background:#7da2ff;border-radius:999px}
+.carousel::-webkit-scrollbar-thumb:hover{background:#9fbaff}
+.carousel-track{display:flex;gap:18px;width:max-content}
 .carousel-clone{display:contents}
-/* On s'arrete quand le visiteur survole ou navigue au clavier : sinon
-   impossible de lire une carte ou de cliquer dessus. */
-.carousel:hover .carousel-track,
-.carousel:focus-within .carousel-track{animation-play-state:paused}
-@keyframes carousel-defile{
-  from{transform:translateX(0)}
-  to{transform:translateX(calc(-50% - 9px))}
-}
-/* Animations reduites : on rend la main, avec le defilement manuel d'avant. */
+/* Animations reduites : plus d'avancee automatique, seule la barre reste. */
 @media(prefers-reduced-motion:reduce){
-  .carousel{overflow-x:auto;scroll-snap-type:x mandatory;
-    scrollbar-width:thin;scrollbar-color:#7da2ff transparent;
-    -webkit-mask-image:none;mask-image:none}
-  .carousel-track{animation:none;width:auto}
+  .carousel{scroll-snap-type:x mandatory;-webkit-mask-image:none;mask-image:none}
   .carousel-clone{display:none}
 }
 .ccard{position:relative;flex:0 0 clamp(250px,70vw,330px);scroll-snap-align:start;
