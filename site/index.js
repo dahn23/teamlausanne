@@ -988,7 +988,7 @@ function sectionHTML(sec) {
              <source src="${esc(sec.videoFile)}" type="video/mp4" />
              Votre navigateur ne peut pas lire cette video.
            </video>`
-        : `<iframe class="film-media" src="https://www.youtube-nocookie.com/embed/${esc(sec.video)}?rel=0"
+        : `<iframe class="film-media" src="https://www.youtube-nocookie.com/embed/${esc(sec.video)}?rel=0&amp;start=0"
              title="${esc(sec.title)}" loading="lazy" frameborder="0" allowfullscreen
              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>`;
       return `<section class="wsec filmsec">
@@ -1646,6 +1646,15 @@ document.addEventListener("submit", async (e) => {
   msg.className = "lo-msg ok";
   msg.textContent = "Merci, votre message est parti. Nous vous répondrons tout bientôt.";
   btn.disabled = false;
+});
+
+// ---- Video : toujours reprise depuis le debut ----
+// Au retour arriere, le navigateur peut restaurer la page telle quelle (bfcache),
+// video comprise, la ou elle en etait. On recharge alors le cadre.
+addEventListener("pageshow", (e) => {
+  if (!e.persisted) return;
+  document.querySelectorAll("iframe.film-media").forEach((f) => { f.src = f.src; });
+  document.querySelectorAll("video.film-media").forEach((v) => { v.pause(); v.currentTime = 0; });
 });
 
 // ---- Portraits d'eleves : bascule au clic ----
