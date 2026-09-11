@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=192" />
+  <link rel="stylesheet" href="style.css?v=193" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1262,54 +1262,81 @@
         </div>
 
         <!-- Fenêtre : éditeur de newsletter -->
+        <!-- Atelier en trois panneaux : modèles et blocs à gauche, la toile au
+             centre à sa largeur réelle d'e-mail (600 px), les réglages du bloc
+             sélectionné à droite. La fenêtre occupe presque tout l'écran : on
+             compose une mise en page, il faut la voir en entier. -->
         <div id="nl-modal" class="modal hidden">
-          <div class="card" style="max-width:1000px">
+          <div class="card nl-modal-card">
             <button type="button" id="nl-close" class="modal-close" aria-label="Fermer">×</button>
-            <h2 style="margin-top:0" id="nl-title">Nouvelle newsletter</h2>
-            <div class="nl-grid">
-              <div class="nl-col">
-                <label class="mailc-f">Objet<input id="nl-subject" type="text" placeholder="Objet de la newsletter" autocomplete="off" /></label>
-                <div class="nl-from">
-                  <label class="mailc-f">Nom d'expéditeur<input id="nl-from-name" type="text" value="Team Lausanne Academy" /></label>
-                  <label class="mailc-f">Adresse d'envoi<input id="nl-from-email" type="email" value="newsletter@teamlausanne.ch" /></label>
-                  <label class="mailc-f">Répondre à<input id="nl-reply" type="email" value="info@teamlausanne.ch" /></label>
-                </div>
-                <!-- Palette : chaque bouton ajoute un bloc sous celui qui est selectionne. -->
+            <h2 style="margin:0" id="nl-title">Nouvelle newsletter</h2>
+
+            <div class="nl-reglages">
+              <label class="mailc-f nl-r-objet">Objet<input id="nl-subject" type="text" placeholder="Objet de la newsletter" autocomplete="off" /></label>
+              <label class="mailc-f">Nom d'expéditeur<input id="nl-from-name" type="text" value="Team Lausanne Academy" /></label>
+              <label class="mailc-f">Adresse d'envoi<input id="nl-from-email" type="email" value="newsletter@teamlausanne.ch" /></label>
+              <label class="mailc-f">Répondre à<input id="nl-reply" type="email" value="info@teamlausanne.ch" /></label>
+            </div>
+
+            <div class="nl-atelier">
+              <aside class="nl-gauche">
+                <div class="nl-sect-t">Modèles</div>
+                <!-- Rempli par nlRenderGabarits() : chaque vignette remplace la
+                     composition en cours après confirmation. -->
+                <div id="nl-gabarits" class="nl-gabarits"></div>
+
+                <div class="nl-sect-t">Ajouter un bloc</div>
+                <!-- Chaque bouton insère un bloc sous celui qui est sélectionné. -->
                 <div class="nl-palette">
-                  <span class="nl-palette-t">Ajouter</span>
+                  <button type="button" class="nl-pal" data-nlnew="entete">En-tête</button>
                   <button type="button" class="nl-pal" data-nlnew="titre">Titre</button>
                   <button type="button" class="nl-pal" data-nlnew="texte">Texte</button>
                   <button type="button" class="nl-pal" data-nlnew="image">Image</button>
                   <button type="button" class="nl-pal" data-nlnew="bouton">Bouton</button>
                   <button type="button" class="nl-pal" data-nlnew="duo">Image + texte</button>
+                  <button type="button" class="nl-pal" data-nlnew="bandeau">Bandeau</button>
+                  <button type="button" class="nl-pal" data-nlnew="chiffres">Chiffres</button>
                   <button type="button" class="nl-pal" data-nlnew="sep">Séparateur</button>
                   <button type="button" class="nl-pal" data-nlnew="espace">Espace</button>
+                  <button type="button" class="nl-pal" data-nlnew="pied">Pied de page</button>
                 </div>
-                <div class="nl-atelier">
-                  <!-- La toile rend exactement le HTML qui sera envoye. -->
-                  <div id="nl-toile" class="nl-toile"></div>
-                  <div id="nl-insp" class="nl-insp"></div>
-                </div>
-                <!-- Le HTML compile vit ici, cache : l'envoi et l'enregistrement
-                     continuent de lire ce champ sans rien savoir des blocs. -->
-                <div id="nl-body" hidden></div>
+              </aside>
+
+              <!-- La scène donne le fond gris d'une boîte mail ; la toile rend
+                   exactement le HTML qui partira, à sa largeur réelle. -->
+              <div class="nl-scene">
+                <div id="nl-toile" class="nl-toile"></div>
               </div>
-              <div class="nl-col nl-aud">
-                <h3 style="margin:0 0 6px;font-size:1rem">Destinataires</h3>
-                <label class="check"><input type="checkbox" id="nl-all" /> Tout le répertoire (toute personne avec un e-mail)</label>
-                <div class="muted" style="font-size:.8rem;margin:6px 0 4px">Ou par filière / tag (saison en cours) :</div>
-                <div id="nl-roles" class="nl-roles"></div>
-                <div class="muted" style="font-size:.8rem;margin:10px 0 4px">Participants GameZone :</div>
-                <label class="check"><input type="checkbox" id="nl-gz-all" /> Tous les participants GameZone</label>
-                <label class="check" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="nl-gz-season-on" /> Saison <select id="nl-gz-season" style="max-width:170px"></select></label>
-                <label class="mailc-f" style="margin-top:8px">E-mails supplémentaires <span class="muted" style="font-weight:400">(un par ligne)</span><textarea id="nl-extra" rows="3"></textarea></label>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-                  <button type="button" id="nl-count" class="ghost">Calculer les destinataires</button>
-                  <span id="nl-count-res" class="muted" style="font-size:.85rem"></span>
-                </div>
-                <div id="nl-preview" class="nl-preview"></div>
-              </div>
+
+              <div id="nl-insp" class="nl-insp"></div>
             </div>
+
+            <!-- Le HTML compilé vit ici, caché : l'envoi et l'enregistrement
+                 continuent de lire ce champ sans rien savoir des blocs. -->
+            <div id="nl-body" hidden></div>
+
+            <details class="nl-dest">
+              <summary>Destinataires <span id="nl-dest-resume" class="muted"></span></summary>
+              <div class="nl-dest-corps">
+                <div>
+                  <label class="check"><input type="checkbox" id="nl-all" /> Tout le répertoire (toute personne avec un e-mail)</label>
+                  <div class="muted" style="font-size:.8rem;margin:6px 0 4px">Ou par filière / tag (saison en cours) :</div>
+                  <div id="nl-roles" class="nl-roles"></div>
+                </div>
+                <div>
+                  <div class="muted" style="font-size:.8rem;margin:0 0 4px">Participants GameZone :</div>
+                  <label class="check"><input type="checkbox" id="nl-gz-all" /> Tous les participants GameZone</label>
+                  <label class="check" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="nl-gz-season-on" /> Saison <select id="nl-gz-season" style="max-width:170px"></select></label>
+                  <label class="mailc-f" style="margin-top:8px">E-mails supplémentaires <span class="muted" style="font-weight:400">(un par ligne)</span><textarea id="nl-extra" rows="3"></textarea></label>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+                    <button type="button" id="nl-count" class="ghost">Calculer les destinataires</button>
+                    <span id="nl-count-res" class="muted" style="font-size:.85rem"></span>
+                  </div>
+                  <div id="nl-preview" class="nl-preview"></div>
+                </div>
+              </div>
+            </details>
+
             <div class="form-foot"><span id="nl-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span>
               <button type="button" id="nl-test" class="ghost" title="Envoie la newsletter à ton adresse uniquement">Test → moi</button>
               <button type="button" id="nl-save" class="ghost">Enregistrer le brouillon</button>

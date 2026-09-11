@@ -11204,45 +11204,87 @@ function brancherLien(boutonId, editeurId) {
 // ============================================================
 const NL_LARGEUR = 552;          // 600 px de gabarit moins 24 px de marge de chaque cote
 
+// Couleurs de la charte 2026 (« Court Colours »), les memes que le site.
+const NL_C = {
+  bleu: "#073eb5", encre: "#04205e", mint: "#b2fd13", mintEncre: "#14300a",
+  prussien: "#003652", ocean: "#137297",
+  texte: "#1a1f36", gris: "#69708a", ligne: "#e4e8f0", fond: "#f3f5fa",
+};
+
+// Polices de marque. Acumin Pro et Circe ne peuvent pas etre servies dans un
+// e-mail : presque aucune messagerie ne charge de police distante, et Outlook
+// n'en charge aucune. La charte prevoit justement Noto Sans comme repli
+// officiel dans ce cas — d'ou ces piles, qui tentent la police de marque quand
+// elle est installee sur le poste et retombent proprement sinon.
+const NL_POLICE = "'Acumin Pro','Noto Sans',Helvetica,Arial,sans-serif";
+const NL_POLICE_T = "Circe,'Noto Sans',Helvetica,Arial,sans-serif";
+
+const NL_LOGO = "https://teamlausanne.ch/assets/logo-academie-blanc.png";
+
 const NL_MODELES = {
-  titre:  { t: "titre", texte: "Votre titre", align: "left", couleur: "#04205e", taille: 24 },
+  entete: { t: "entete", logo: NL_LOGO, fond: NL_C.bleu, trait: true },
+  titre:  { t: "titre", texte: "Votre titre", align: "left", couleur: NL_C.encre, taille: 24 },
   texte:  { t: "texte", html: "Votre texte…", align: "left" },
   image:  { t: "image", src: "", alt: "", href: "", largeur: 100 },
   bouton: { t: "bouton", texte: "En savoir plus", href: "https://teamlausanne.ch",
-            bg: "#073eb5", fg: "#ffffff", align: "center" },
+            bg: NL_C.bleu, fg: "#ffffff", align: "center" },
   duo:    { t: "duo", src: "", alt: "", html: "Votre texte…", sens: "image-gauche" },
+  bandeau: { t: "bandeau", texte: "CHF 490.–", sous: "Saison complète",
+             bg: NL_C.mint, fg: NL_C.mintEncre },
+  chiffres: { t: "chiffres", items: [ { n: "35", l: "semaines" },
+                                      { n: "2h", l: "de tennis" },
+                                      { n: "1h", l: "de physique" } ] },
   sep:    { t: "sep" },
   espace: { t: "espace", h: 24 },
+  pied:   { t: "pied",
+            html: "Team Lausanne Academy · Chemin du Stade 3, 1007 Lausanne<br />"
+                + '<a href="https://teamlausanne.ch" style="color:#69708a">teamlausanne.ch</a> · '
+                + '<a href="mailto:info@teamlausanne.ch" style="color:#69708a">info@teamlausanne.ch</a>' },
 };
-const NL_NOMS = { titre: "Titre", texte: "Texte", image: "Image", bouton: "Bouton",
-                  duo: "Image + texte", sep: "Séparateur", espace: "Espace" };
+const NL_NOMS = { entete: "En-tête", titre: "Titre", texte: "Texte", image: "Image",
+                  bouton: "Bouton", duo: "Image + texte", bandeau: "Bandeau",
+                  chiffres: "Chiffres", sep: "Séparateur", espace: "Espace",
+                  pied: "Pied de page" };
 
 // --- Compilation d'un bloc en HTML d'e-mail ---
+// Tableaux et styles en ligne uniquement : ni flexbox, ni grille, ni classe, ni
+// balise <style>. Outlook ignore tout le reste et la mise en page s'effondrerait.
 function nlBlocHtml(b) {
   const al = (x) => (x === "center" ? "center" : x === "right" ? "right" : "left");
   switch (b.t) {
+    case "entete": {
+      const fond = b.fond || NL_C.bleu;
+      const logo = b.logo
+        ? `<img src="${esc(b.logo)}" alt="Team Lausanne Academy" width="88" style="display:block;width:88px;max-width:88px;height:auto;border:0;margin:0 auto" />`
+        : "";
+      // Le filet mint sous le bandeau : un <td> de 4 px, pas une bordure — les
+      // bordures fines sautent d'un client a l'autre.
+      const trait = b.trait === false ? ""
+        : `<tr><td bgcolor="${NL_C.mint}" style="height:4px;font-size:0;line-height:0">&nbsp;</td></tr>`;
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 20px">
+        <tr><td align="center" bgcolor="${fond}" style="padding:26px 20px">${logo}</td></tr>${trait}</table>`;
+    }
     case "titre":
-      return `<h2 style="margin:0 0 14px;font-family:Helvetica,Arial,sans-serif;font-size:${+b.taille || 24}px;line-height:1.25;color:${b.couleur || "#04205e"};text-align:${al(b.align)};font-weight:700">${b.texte || ""}</h2>`;
+      return `<h2 style="margin:0 0 14px;font-family:${NL_POLICE_T};font-size:${+b.taille || 24}px;line-height:1.25;color:${b.couleur || NL_C.encre};text-align:${al(b.align)};font-weight:700">${b.texte || ""}</h2>`;
     case "texte":
-      return `<div style="margin:0 0 14px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1f36;text-align:${al(b.align)}">${b.html || ""}</div>`;
+      return `<div style="margin:0 0 14px;font-family:${NL_POLICE};font-size:15px;line-height:1.6;color:${NL_C.texte};text-align:${al(b.align)}">${b.html || ""}</div>`;
     case "image": {
       if (!b.src) return "";
       const w = Math.round(NL_LARGEUR * Math.min(100, Math.max(10, +b.largeur || 100)) / 100);
       const img = `<img src="${esc(b.src)}" alt="${esc(b.alt || "")}" width="${w}" style="display:block;width:${w}px;max-width:100%;height:auto;border:0;border-radius:8px" />`;
-      const centre = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:0 0 14px">${b.href ? `<a href="${esc(b.href)}">${img}</a>` : img}</td></tr></table>`;
-      return centre;
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:0 0 14px">${b.href ? `<a href="${esc(b.href)}">${img}</a>` : img}</td></tr></table>`;
     }
     case "bouton":
       // Bouton en tableau : les <a> stylises sont ignores par Outlook.
       return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="${al(b.align)}" style="padding:4px 0 18px">
-        <table role="presentation" cellspacing="0" cellpadding="0"><tr><td align="center" bgcolor="${b.bg || "#073eb5"}" style="border-radius:999px">
-        <a href="${esc(b.href || "#")}" style="display:inline-block;padding:12px 26px;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;color:${b.fg || "#ffffff"};text-decoration:none;border-radius:999px">${esc(b.texte || "")}</a>
+        <table role="presentation" cellspacing="0" cellpadding="0"><tr><td align="center" bgcolor="${b.bg || NL_C.bleu}" style="border-radius:999px">
+        <a href="${esc(b.href || "#")}" style="display:inline-block;padding:12px 26px;font-family:${NL_POLICE};font-size:15px;font-weight:700;color:${b.fg || "#ffffff"};text-decoration:none;border-radius:999px">${esc(b.texte || "")}</a>
         </td></tr></table></td></tr></table>`;
     case "duo": {
       const img = b.src
         ? `<img src="${esc(b.src)}" alt="${esc(b.alt || "")}" width="256" style="display:block;width:100%;max-width:256px;height:auto;border:0;border-radius:8px" />`
         : "";
-      const txt = `<div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1f36">${b.html || ""}</div>`;
+      const txt = `<div style="font-family:${NL_POLICE};font-size:15px;line-height:1.6;color:${NL_C.texte}">${b.html || ""}</div>`;
       const a = b.sens === "image-droite" ? txt : img;
       const c = b.sens === "image-droite" ? img : txt;
       // width en pourcentage : les colonnes se serrent sur petit ecran plutot
@@ -11251,16 +11293,148 @@ function nlBlocHtml(b) {
         <td width="48%" valign="top" style="padding:0 10px 0 0">${a}</td>
         <td width="52%" valign="top">${c}</td></tr></table>`;
     }
+    case "bandeau": {
+      // Bande de couleur pour un prix, une date, une accroche.
+      const sous = b.sous
+        ? `<div style="margin:4px 0 0;font-family:${NL_POLICE};font-size:14px;line-height:1.4;color:${b.fg || NL_C.mintEncre};opacity:.85">${esc(b.sous)}</div>`
+        : "";
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 18px">
+        <tr><td align="center" bgcolor="${b.bg || NL_C.mint}" style="padding:20px 18px;border-radius:10px">
+        <div style="font-family:${NL_POLICE_T};font-size:26px;line-height:1.2;font-weight:700;color:${b.fg || NL_C.mintEncre}">${esc(b.texte || "")}</div>${sous}
+        </td></tr></table>`;
+    }
+    case "chiffres": {
+      const items = (b.items || []).slice(0, 4);
+      if (!items.length) return "";
+      const w = Math.floor(100 / items.length);
+      const cell = (x) => `<td width="${w}%" align="center" valign="top" style="padding:0 6px">
+        <div style="font-family:${NL_POLICE_T};font-size:30px;line-height:1.1;font-weight:700;color:${NL_C.bleu}">${esc(x.n || "")}</div>
+        <div style="margin:4px 0 0;font-family:${NL_POLICE};font-size:13px;line-height:1.4;color:${NL_C.gris}">${esc(x.l || "")}</div></td>`;
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr>${items.map(cell).join("")}</tr></table>`;
+    }
     case "sep":
-      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td style="padding:6px 0 18px"><div style="border-top:1px solid #e4e8f0;font-size:0;line-height:0">&nbsp;</div></td></tr></table>`;
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td style="padding:6px 0 18px"><div style="border-top:1px solid ${NL_C.ligne};font-size:0;line-height:0">&nbsp;</div></td></tr></table>`;
     case "espace":
       return `<div style="height:${+b.h || 24}px;font-size:0;line-height:0">&nbsp;</div>`;
+    case "pied":
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:14px 0 0">
+        <tr><td style="padding:16px 0 0;border-top:1px solid ${NL_C.ligne}">
+        <div style="font-family:${NL_POLICE};font-size:12px;line-height:1.6;color:${NL_C.gris};text-align:center">${b.html || ""}</div>
+        </td></tr></table>`;
     default: return "";
   }
 }
 const nlCompiler = (blocs) => (blocs || []).map(nlBlocHtml).join("\n");
 
+
+// --- Modeles prets a l'emploi ---
+// Chaque modele est une simple liste de blocs : rien de fige, tout se modifie
+// ensuite comme une composition faite a la main. Les couleurs viennent de
+// NL_C, donc un changement de charte se repercute partout d'un coup.
+const NL_GABARITS = [
+  {
+    id: "actus", nom: "Actualités du club",
+    desc: "En-tête, édito, deux actualités en image + texte, bouton.",
+    blocs: () => [
+      { t: "entete", logo: NL_LOGO, fond: NL_C.bleu, trait: true },
+      { t: "titre", texte: "Les nouvelles de l’Academy", align: "left", couleur: NL_C.encre, taille: 26 },
+      { t: "texte", align: "left",
+        html: "Bonjour,<br />Voici ce qui se passe au club ce mois-ci — les résultats, les prochaines dates et quelques nouvelles de nos équipes." },
+      { t: "sep" },
+      { t: "duo", src: "", alt: "", sens: "image-gauche",
+        html: "<b>Première actualité</b><br />Quelques lignes pour raconter ce qui s’est passé, avec une photo à gauche." },
+      { t: "duo", src: "", alt: "", sens: "image-droite",
+        html: "<b>Deuxième actualité</b><br />Et une seconde, image à droite pour aérer la lecture." },
+      { t: "bouton", texte: "Lire la suite", href: "https://teamlausanne.ch",
+        bg: NL_C.bleu, fg: "#ffffff", align: "center" },
+      { t: "pied", html: NL_MODELES.pied.html },
+    ],
+  },
+  {
+    id: "stage", nom: "Stage / camp",
+    desc: "Photo pleine largeur, dates en chiffres, prix en bandeau mint, inscription.",
+    blocs: () => [
+      { t: "entete", logo: NL_LOGO, fond: NL_C.bleu, trait: true },
+      { t: "titre", texte: "Stages d’automne", align: "center", couleur: NL_C.encre, taille: 28 },
+      { t: "texte", align: "center",
+        html: "Une semaine de tennis, de jeux et de progrès, encadrée par nos coachs." },
+      { t: "image", src: "", alt: "", href: "", largeur: 100 },
+      { t: "chiffres", items: [ { n: "5", l: "jours" }, { n: "4h", l: "par jour" }, { n: "6-16", l: "ans" } ] },
+      { t: "bandeau", texte: "CHF 390.–", sous: "La semaine, repas de midi inclus",
+        bg: NL_C.mint, fg: NL_C.mintEncre },
+      { t: "bouton", texte: "Inscrire mon enfant", href: "https://teamlausanne.ch/stages.html",
+        bg: NL_C.bleu, fg: "#ffffff", align: "center" },
+      { t: "pied", html: NL_MODELES.pied.html },
+    ],
+  },
+  {
+    id: "event", nom: "Invitation à un événement",
+    desc: "En-tête prussien, date en bandeau, programme, bouton d’inscription.",
+    blocs: () => [
+      { t: "entete", logo: NL_LOGO, fond: NL_C.prussien, trait: true },
+      { t: "titre", texte: "Vous êtes invités", align: "center", couleur: NL_C.encre, taille: 28 },
+      { t: "bandeau", texte: "Samedi 18 octobre", sous: "Dès 14h00 · Courts de Vidy",
+        bg: NL_C.prussien, fg: "#ffffff" },
+      { t: "texte", align: "left",
+        html: "Le programme de la journée :<ul><li>14h00 — accueil</li><li>15h00 — animations</li><li>18h00 — apéritif</li></ul>" },
+      { t: "bouton", texte: "Je m’inscris", href: "https://teamlausanne.ch",
+        bg: NL_C.bleu, fg: "#ffffff", align: "center" },
+      { t: "pied", html: NL_MODELES.pied.html },
+    ],
+  },
+  {
+    id: "resultats", nom: "Résultats & performances",
+    desc: "Chiffres de la saison, portraits de joueurs, mot de la fin.",
+    blocs: () => [
+      { t: "entete", logo: NL_LOGO, fond: NL_C.bleu, trait: true },
+      { t: "titre", texte: "Les résultats du mois", align: "left", couleur: NL_C.encre, taille: 26 },
+      { t: "chiffres", items: [ { n: "12", l: "tournois" }, { n: "34", l: "victoires" }, { n: "5", l: "titres" } ] },
+      { t: "sep" },
+      { t: "duo", src: "", alt: "", sens: "image-gauche",
+        html: "<b>Nom du joueur</b><br />Classement, tournoi gagné, et une phrase sur sa performance." },
+      { t: "duo", src: "", alt: "", sens: "image-gauche",
+        html: "<b>Nom du joueur</b><br />Classement, tournoi gagné, et une phrase sur sa performance." },
+      { t: "texte", align: "left", html: "Bravo à toutes et à tous — et rendez-vous le mois prochain." },
+      { t: "pied", html: NL_MODELES.pied.html },
+    ],
+  },
+  {
+    id: "simple", nom: "Message simple",
+    desc: "L’essentiel : en-tête, un titre, un texte, une signature.",
+    blocs: () => [
+      { t: "entete", logo: NL_LOGO, fond: NL_C.bleu, trait: true },
+      { t: "titre", texte: "Une information importante", align: "left", couleur: NL_C.encre, taille: 24 },
+      { t: "texte", align: "left", html: "Bonjour,<br /><br />Votre message ici.<br /><br />Sportivement,<br />L’équipe Team Lausanne Academy" },
+      { t: "pied", html: NL_MODELES.pied.html },
+    ],
+  },
+];
+
+function nlRenderGabarits() {
+  const z = $("nl-gabarits"); if (!z) return;
+  z.innerHTML = NL_GABARITS.map((g) => `<button type="button" class="nl-gab" data-gab="${g.id}" title="${esc(g.desc)}">
+      <span class="nl-gab-apercu">${nlApercuGabarit(g)}</span>
+      <span class="nl-gab-nom">${esc(g.nom)}</span></button>`).join("");
+}
+
+// Petit croquis du modele : quelques barres qui evoquent sa structure. Plus
+// lisible qu'une miniature du HTML reel, qui serait illisible a cette taille.
+function nlApercuGabarit(g) {
+  return g.blocs().slice(0, 7).map((b) => {
+    if (b.t === "entete") return `<i style="height:9px;background:${b.fond}"></i>`;
+    if (b.t === "titre") return `<i style="height:5px;width:70%;background:${NL_C.encre}"></i>`;
+    if (b.t === "bandeau") return `<i style="height:8px;background:${b.bg}"></i>`;
+    if (b.t === "image") return `<i style="height:12px;background:#c9d3e6"></i>`;
+    if (b.t === "bouton") return `<i style="height:5px;width:42%;margin:0 auto;background:${b.bg};border-radius:9px"></i>`;
+    if (b.t === "duo") return `<i style="height:7px;background:linear-gradient(90deg,#c9d3e6 46%,#e8ecf4 46%)"></i>`;
+    if (b.t === "chiffres") return `<i style="height:6px;background:linear-gradient(90deg,${NL_C.bleu} 30%,transparent 30% 35%,${NL_C.bleu} 35% 65%,transparent 65% 70%,${NL_C.bleu} 70%)"></i>`;
+    if (b.t === "sep") return `<i style="height:1px;background:#d6dceb"></i>`;
+    return `<i style="height:3px;background:#e2e7f1"></i>`;
+  }).join("");
+}
+
 // --- Etat de l'editeur ---
+
 let nlBlocs = [];
 let nlSel = -1;            // index du bloc selectionne
 
@@ -11335,6 +11509,34 @@ function nlRenderInspecteur() {
               <option value="image-droite"${b.sens === "image-droite" ? " selected" : ""}>Image à droite</option></select>`);
   } else if (b.t === "espace") {
     html += champ("Hauteur (px)", `<input type="range" data-f="h" min="8" max="80" value="${+b.h || 24}" />`);
+  } else if (b.t === "entete") {
+    html += champ("Logo (URL)", `<div class="nl-img-zone">
+              <input type="text" data-f="logo" value="${esc(b.logo || "")}" />
+              <button type="button" id="nl-img-up" class="ghost">Importer</button>
+              <input type="file" id="nl-img-file" accept="image/*" hidden /></div>`)
+         +  champ("Fond", `<input type="color" data-f="fond" value="${esc(b.fond || NL_C.bleu)}" />`)
+         +  champ("Filet mint", `<select data-f="trait">
+              <option value="oui"${b.trait !== false ? " selected" : ""}>Oui</option>
+              <option value="non"${b.trait === false ? " selected" : ""}>Non</option></select>`);
+  } else if (b.t === "bandeau") {
+    html += champ("Texte", `<input type="text" data-f="texte" value="${esc(b.texte || "")}" />`)
+         +  champ("Sous-titre", `<input type="text" data-f="sous" value="${esc(b.sous || "")}" />`)
+         +  champ("Fond", `<input type="color" data-f="bg" value="${esc(b.bg || NL_C.mint)}" />`)
+         +  champ("Texte", `<input type="color" data-f="fg" value="${esc(b.fg || NL_C.mintEncre)}" />`);
+  } else if (b.t === "chiffres") {
+    // Une ligne de reglages par chiffre : le nombre et son libelle.
+    const items = b.items || [];
+    html += items.map((x, i) => `<div class="nl-chiffre">
+        <input type="text" data-chn="${i}" value="${esc(x.n || "")}" placeholder="35" />
+        <input type="text" data-chl="${i}" value="${esc(x.l || "")}" placeholder="semaines" />
+        <button type="button" data-chdel="${i}" title="Retirer">✕</button></div>`).join("")
+      + (items.length < 4 ? `<button type="button" id="nl-ch-add" class="ghost nl-ch-add">+ Ajouter un chiffre</button>` : "");
+  } else if (b.t === "pied") {
+    html += champ("Contenu", `<div class="rt-edit nl-rich" contenteditable="true" data-f="html">${b.html || ""}</div>`)
+         +  `<div class="nl-rich-outils">
+              <button type="button" class="rt-btn" data-rt="bold"><b>G</b></button>
+              <button type="button" class="rt-btn" id="nl-bloc-link" title="Insérer un lien">🔗</button>
+            </div>`;
   } else {
     html += '<p class="muted">Ce bloc n’a pas de réglage.</p>';
   }
@@ -11367,7 +11569,32 @@ document.addEventListener("click", async (e) => {
   const rt = e.target.closest("[data-rt]");
   if (rt) { e.preventDefault(); document.execCommand(rt.dataset.rt, false, null); return; }
   if (e.target.closest("#nl-img-up")) { $("nl-img-file")?.click(); return; }
+
+  // Modeles prets a l'emploi. On previent : le contenu en cours sera remplace.
+  const gab = e.target.closest("[data-gab]");
+  if (gab) {
+    const g = NL_GABARITS.find((x) => x.id === gab.dataset.gab);
+    if (!g) return;
+    if (nlBlocs.length && !(await uiConfirm(
+      `Charger le modèle « ${g.nom} » ? Le contenu en cours sera remplacé.`))) return;
+    nlBlocs = g.blocs();
+    nlSel = 0; nlRender();
+    $("nl-toile")?.scrollTo({ top: 0 });
+    return;
+  }
+
+  // Chiffres : ajouter ou retirer une colonne.
+  if (e.target.closest("#nl-ch-add")) {
+    const b = nlBlocs[nlSel]; if (!b) return;
+    (b.items = b.items || []).push({ n: "", l: "" }); nlRender(); return;
+  }
+  const chd = e.target.closest("[data-chdel]");
+  if (chd) {
+    const b = nlBlocs[nlSel]; if (!b?.items) return;
+    b.items.splice(+chd.dataset.chdel, 1); nlRender(); return;
+  }
 });
+
 
 // Les reglages s'appliquent a la frappe : le rendu suit sans bouton a presser.
 document.addEventListener("input", (e) => {
@@ -11381,9 +11608,28 @@ document.addEventListener("input", (e) => {
   if (f.isContentEditable) { nlApercuSeul(); return; }
   nlRender();
 });
+
+// Les deux champs d'un chiffre (le nombre et son libelle) ne passent pas par
+// data-f : ils visent une case du tableau items.
+document.addEventListener("input", (e) => {
+  const n = e.target.closest("#nl-insp [data-chn]");
+  const l = e.target.closest("#nl-insp [data-chl]");
+  if (!n && !l) return;
+  const b = nlBlocs[nlSel]; if (!b?.items) return;
+  const el = n || l;
+  const i = +(n ? el.dataset.chn : el.dataset.chl);
+  if (!b.items[i]) return;
+  b.items[i][n ? "n" : "l"] = el.value;
+  // On redessine la seule vue : reconstruire l'inspecteur ferait perdre le focus.
+  nlApercuSeul();
+});
+
 document.addEventListener("change", (e) => {
   const f = e.target.closest("#nl-insp select[data-f]");
-  if (f && nlSel >= 0 && nlBlocs[nlSel]) { nlBlocs[nlSel][f.dataset.f] = f.value; nlRender(); }
+  if (!f || nlSel < 0 || !nlBlocs[nlSel]) return;
+  // Le filet de l'en-tete est un booleen : un <select> rend « oui »/« non ».
+  nlBlocs[nlSel][f.dataset.f] = f.dataset.f === "trait" ? f.value === "oui" : f.value;
+  nlRender();
 });
 
 // Redessine la seule vue du bloc courant, en laissant l'inspecteur intact.
@@ -11403,13 +11649,18 @@ document.addEventListener("change", async (e) => {
   const { error } = await sb.storage.from("newsletter").upload(nom, f, { contentType: f.type, upsert: false });
   if (error) return uiModal("Import impossible : " + error.message);
   const { data } = sb.storage.from("newsletter").getPublicUrl(nom);
-  if (nlSel >= 0 && nlBlocs[nlSel]) { nlBlocs[nlSel].src = data.publicUrl; nlRender(); }
+  const b = nlBlocs[nlSel];
+  if (!b) return;
+  // L'en-tete range son image dans « logo », les autres blocs dans « src ».
+  b[b.t === "entete" ? "logo" : "src"] = data.publicUrl;
+  nlRender();
 });
 
 // --- Chargement / enregistrement ---
 // Une newsletter d'avant l'editeur n'a pas de blocs : son HTML devient un bloc
 // de texte, pour que rien ne soit perdu.
 function nlChargerBlocs(n) {
+  nlRenderGabarits();
   if (Array.isArray(n?.blocks) && n.blocks.length) nlBlocs = n.blocks;
   else if (n?.html?.trim()) nlBlocs = [{ t: "texte", html: n.html, align: "left" }];
   else nlBlocs = [];
