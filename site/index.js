@@ -516,8 +516,10 @@ const DETAILS = {
     ],
   },
   gamezone: {
-    world: "academie", title: "Game Zone", subtitle: "Des tournois juniors presque tous les week-ends",
-    hero: "assets/photos/gamezone-2026.jpg",
+    world: "academie", title: "Game Zone",
+    subtitle: "Des tournois juniors presque tous les week-ends, sur une seule journée et deux matchs garantis. Une médaille à chaque victoire, une coupe dès la cinquième, et la grande coupe à la dixième — de quoi se lancer en compétition sans pression.",
+    hero: "assets/photos/gamezone-2026.jpg", heroPos: "55% 45%",
+    heroLogo: "assets/logo-gamezone-blanc.png",
     sections: [
       { type: "rich", title: "Le concept", body: [
         "Presque tous les week-ends, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant·e.",
@@ -1271,7 +1273,8 @@ function renderDetail(id) {
     : d.cta.scroll ? `<button class="btn-cta" data-scroll="${esc(d.cta.scroll)}">${esc(d.cta.label)}</button>`
     : `<button class="btn-cta" data-contact="${esc(d.cta.contact)}">${esc(d.cta.label)}</button>`;
   const ctaHTML = ctaPage + `<button class="btn-cta ghost" data-back="${d.world}">← Retour ${esc(w.retour)}</button>`;
-  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: d.hero, heroPos: d.heroPos, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML, sloganEntier: true });
+  // Une page peut porter son propre logo : la Game Zone a le sien.
+  paintHero({ logo: w.logo, heroLogo: d.heroLogo || w.heroLogo, hero: d.hero, heroPos: d.heroPos, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML, sloganEntier: true });
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();
   demarrerScrollers();
