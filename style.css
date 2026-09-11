@@ -2702,9 +2702,28 @@ tr.rm-loss td{background:#fde8e8}
   padding:2px 5px;border-radius:5px;font-size:.8rem}
 .nl-bloc-outils button:hover:not(:disabled){background:#eef1f7;color:var(--blue-ink)}
 .nl-bloc-outils button:disabled{opacity:.3;cursor:default}
-/* La vue est un rendu, pas une zone cliquable : le clic doit atteindre le bloc. */
+/* La vue est un rendu, pas une zone cliquable : le clic atteint le bloc —
+   sauf sur les zones de texte, ou l'on ecrit directement. */
 .nl-bloc-vue{pointer-events:none}
 .nl-bloc-vue img{max-width:100%}
+.nl-bloc-vue .nl-edit{pointer-events:auto;cursor:text;outline:0;
+  border-radius:3px;transition:box-shadow .15s,background-color .15s}
+.nl-bloc-vue .nl-edit:hover{box-shadow:0 0 0 2px rgba(7,62,181,.18)}
+.nl-bloc-vue .nl-edit:focus{box-shadow:0 0 0 2px var(--blue);background:rgba(7,62,181,.04)}
+/* Une zone vide doit rester cliquable : sans hauteur, impossible de la viser. */
+.nl-bloc-vue .nl-edit:empty::before{content:"Écrivez ici…";color:#9aa3b8}
+.nl-bloc-a-remplir{pointer-events:none}
+
+/* Reglage de l'espacement, commun a tous les blocs. */
+.nl-esp{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
+.nl-esp-t{display:block;font-size:.72rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
+.nl-esp-l{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.nl-esp-l label{display:flex;flex-direction:column;gap:4px;
+  font-size:.72rem;font-weight:700;color:var(--muted)}
+.nl-esp-l input{width:100%;box-sizing:border-box;font-size:.88rem;padding:7px 9px}
+.nl-esp-raz{width:100%;font-size:.78rem}
+
 
 .nl-insp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;
   overflow-y:auto;min-height:0}

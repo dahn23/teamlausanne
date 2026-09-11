@@ -11246,6 +11246,20 @@ const NL_NOMS = { entete: "En-tête", titre: "Titre", texte: "Texte", image: "Im
                   chiffres: "Chiffres", sep: "Séparateur", espace: "Espace",
                   pied: "Pied de page" };
 
+// Espacement vertical par defaut, en pixels, pour chaque type de bloc.
+// Il ne vit PLUS dans le HTML du bloc mais dans l'enveloppe qui l'entoure :
+// c'est ce qui permet de le regler bloc par bloc. Accessoirement c'est plus sur
+// en e-mail, Outlook ignorant les marges sur les tableaux alors qu'il respecte
+// le padding d'une cellule.
+const NL_ESPACE = {
+  entete: { h: 0, b: 20 }, titre: { h: 0, b: 14 }, texte: { h: 0, b: 14 },
+  image:  { h: 0, b: 14 }, bouton: { h: 4, b: 18 }, duo:   { h: 0, b: 14 },
+  bandeau:{ h: 0, b: 18 }, chiffres:{ h: 0, b: 18 }, sep:  { h: 6, b: 18 },
+  espace: { h: 0, b: 0 },  pied:   { h: 14, b: 0 },
+};
+const nlHaut = (b) => (b.mh == null ? (NL_ESPACE[b.t]?.h ?? 0) : Math.max(0, +b.mh || 0));
+const nlBas  = (b) => (b.mb == null ? (NL_ESPACE[b.t]?.b ?? 0) : Math.max(0, +b.mb || 0));
+
 // --- Compilation d'un bloc en HTML d'e-mail ---
 // Tableaux et styles en ligne uniquement : ni flexbox, ni grille, ni classe, ni
 // balise <style>. Outlook ignore tout le reste et la mise en page s'effondrerait.
@@ -11261,22 +11275,22 @@ function nlBlocHtml(b) {
       // bordures fines sautent d'un client a l'autre.
       const trait = b.trait === false ? ""
         : `<tr><td bgcolor="${NL_C.mint}" style="height:4px;font-size:0;line-height:0">&nbsp;</td></tr>`;
-      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 20px">
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
         <tr><td align="center" bgcolor="${fond}" style="padding:26px 20px">${logo}</td></tr>${trait}</table>`;
     }
     case "titre":
-      return `<h2 style="margin:0 0 14px;font-family:${NL_POLICE_T};font-size:${+b.taille || 24}px;line-height:1.25;color:${b.couleur || NL_C.encre};text-align:${al(b.align)};font-weight:700">${b.texte || ""}</h2>`;
+      return `<h2 style="margin:0;font-family:${NL_POLICE_T};font-size:${+b.taille || 24}px;line-height:1.25;color:${b.couleur || NL_C.encre};text-align:${al(b.align)};font-weight:700">${b.texte || ""}</h2>`;
     case "texte":
-      return `<div style="margin:0 0 14px;font-family:${NL_POLICE};font-size:15px;line-height:1.6;color:${NL_C.texte};text-align:${al(b.align)}">${b.html || ""}</div>`;
+      return `<div style="margin:0;font-family:${NL_POLICE};font-size:15px;line-height:1.6;color:${NL_C.texte};text-align:${al(b.align)}">${b.html || ""}</div>`;
     case "image": {
       if (!b.src) return "";
       const w = Math.round(NL_LARGEUR * Math.min(100, Math.max(10, +b.largeur || 100)) / 100);
       const img = `<img src="${esc(b.src)}" alt="${esc(b.alt || "")}" width="${w}" style="display:block;width:${w}px;max-width:100%;height:auto;border:0;border-radius:8px" />`;
-      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:0 0 14px">${b.href ? `<a href="${esc(b.href)}">${img}</a>` : img}</td></tr></table>`;
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center">${b.href ? `<a href="${esc(b.href)}">${img}</a>` : img}</td></tr></table>`;
     }
     case "bouton":
       // Bouton en tableau : les <a> stylises sont ignores par Outlook.
-      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="${al(b.align)}" style="padding:4px 0 18px">
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="${al(b.align)}">
         <table role="presentation" cellspacing="0" cellpadding="0"><tr><td align="center" bgcolor="${b.bg || NL_C.bleu}" style="border-radius:999px">
         <a href="${esc(b.href || "#")}" style="display:inline-block;padding:12px 26px;font-family:${NL_POLICE};font-size:15px;font-weight:700;color:${b.fg || "#ffffff"};text-decoration:none;border-radius:999px">${esc(b.texte || "")}</a>
         </td></tr></table></td></tr></table>`;
@@ -11289,16 +11303,16 @@ function nlBlocHtml(b) {
       const c = b.sens === "image-droite" ? img : txt;
       // width en pourcentage : les colonnes se serrent sur petit ecran plutot
       // que de deborder, sans dependre des media queries.
-      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 14px"><tr>
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
         <td width="48%" valign="top" style="padding:0 10px 0 0">${a}</td>
         <td width="52%" valign="top">${c}</td></tr></table>`;
     }
     case "bandeau": {
       // Bande de couleur pour un prix, une date, une accroche.
       const sous = b.sous
-        ? `<div style="margin:4px 0 0;font-family:${NL_POLICE};font-size:14px;line-height:1.4;color:${b.fg || NL_C.mintEncre};opacity:.85">${esc(b.sous)}</div>`
+        ? `<div style="margin:4px 0 0;font-family:${NL_POLICE};font-size:14px;line-height:1.4;color:${b.fg || NL_C.mintEncre}">${esc(b.sous)}</div>`
         : "";
-      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 18px">
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
         <tr><td align="center" bgcolor="${b.bg || NL_C.mint}" style="padding:20px 18px;border-radius:10px">
         <div style="font-family:${NL_POLICE_T};font-size:26px;line-height:1.2;font-weight:700;color:${b.fg || NL_C.mintEncre}">${esc(b.texte || "")}</div>${sous}
         </td></tr></table>`;
@@ -11310,21 +11324,32 @@ function nlBlocHtml(b) {
       const cell = (x) => `<td width="${w}%" align="center" valign="top" style="padding:0 6px">
         <div style="font-family:${NL_POLICE_T};font-size:30px;line-height:1.1;font-weight:700;color:${NL_C.bleu}">${esc(x.n || "")}</div>
         <div style="margin:4px 0 0;font-family:${NL_POLICE};font-size:13px;line-height:1.4;color:${NL_C.gris}">${esc(x.l || "")}</div></td>`;
-      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr>${items.map(cell).join("")}</tr></table>`;
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${items.map(cell).join("")}</tr></table>`;
     }
     case "sep":
-      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td style="padding:6px 0 18px"><div style="border-top:1px solid ${NL_C.ligne};font-size:0;line-height:0">&nbsp;</div></td></tr></table>`;
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td><div style="border-top:1px solid ${NL_C.ligne};font-size:0;line-height:0">&nbsp;</div></td></tr></table>`;
     case "espace":
       return `<div style="height:${+b.h || 24}px;font-size:0;line-height:0">&nbsp;</div>`;
     case "pied":
-      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:14px 0 0">
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
         <tr><td style="padding:16px 0 0;border-top:1px solid ${NL_C.ligne}">
         <div style="font-family:${NL_POLICE};font-size:12px;line-height:1.6;color:${NL_C.gris};text-align:center">${b.html || ""}</div>
         </td></tr></table>`;
     default: return "";
   }
 }
-const nlCompiler = (blocs) => (blocs || []).map(nlBlocHtml).join("\n");
+
+// L'enveloppe porte tout l'espacement vertical. Une cellule de tableau plutot
+// qu'une marge : Outlook respecte le padding d'un <td>, pas les marges.
+function nlBlocEnveloppe(b) {
+  const html = nlBlocHtml(b);
+  if (!html) return "";
+  const h = nlHaut(b), bas = nlBas(b);
+  if (!h && !bas) return html;
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td style="padding:${h}px 0 ${bas}px">${html}</td></tr></table>`;
+}
+const nlCompiler = (blocs) => (blocs || []).map(nlBlocEnveloppe).filter(Boolean).join("\n");
+
 
 
 // --- Modeles prets a l'emploi ---
@@ -11449,16 +11474,64 @@ function nlRender() {
           <button type="button" data-dup="${i}" title="Dupliquer">⧉</button>
           <button type="button" data-del="${i}" title="Supprimer">✕</button>
         </div>
-        <div class="nl-bloc-vue">${nlBlocHtml(b) || '<span class="muted">Bloc vide — complétez-le à droite.</span>'}</div>
+        <div class="nl-bloc-vue"></div>
       </div>`).join("")
     : '<p class="muted nl-vide">Ajoutez un bloc pour commencer : titre, texte, image, bouton…</p>';
+  nlBlocs.forEach((b, i) => nlRendreVue(i));
   nlRenderInspecteur();
   nlSync();
+}
+
+// Dessine la vue d'UN bloc et y rend le texte modifiable directement.
+function nlRendreVue(i) {
+  const vue = document.querySelector(`#nl-toile .nl-bloc[data-bloc="${i}"] .nl-bloc-vue`);
+  const b = nlBlocs[i];
+  if (!vue || !b) return;
+  vue.innerHTML = nlBlocHtml(b) || '<span class="muted nl-bloc-a-remplir">Bloc vide — complétez-le à droite.</span>';
+  for (const c of nlChampsEditables(b, vue)) {
+    if (!c.el) continue;
+    c.el.setAttribute("contenteditable", "true");
+    c.el.classList.add("nl-edit");
+    c.el.dataset.edit = c.f;
+    c.el.dataset.editBloc = i;
+    if (c.riche) c.el.dataset.riche = "1";
+    if (c.idx != null) c.el.dataset.editIdx = c.idx;
+  }
+}
+
+// Quels elements du rendu correspondent a quel champ du bloc. C'est ce qui
+// permet d'ecrire dans le titre ou le texte a meme la toile, plutot que de
+// passer par l'inspecteur. « riche » = on garde le HTML (gras, liens, listes) ;
+// sinon on ne garde que le texte brut.
+function nlChampsEditables(b, racine) {
+  const q = (sel) => racine.querySelector(sel);
+  switch (b.t) {
+    case "titre":  return [{ el: q("h2"), f: "texte" }];
+    case "texte":  return [{ el: q("div"), f: "html", riche: true }];
+    case "bouton": return [{ el: q("a"), f: "texte" }];
+    case "duo":    return [{ el: q("td div"), f: "html", riche: true }];
+    case "pied":   return [{ el: q("td > div"), f: "html", riche: true }];
+    case "bandeau": {
+      const d = racine.querySelectorAll("td > div");
+      return [{ el: d[0], f: "texte" }, { el: d[1], f: "sous" }];
+    }
+    case "chiffres": {
+      const out = [];
+      racine.querySelectorAll("td").forEach((td, k) => {
+        const d = td.querySelectorAll("div");
+        if (d[0]) out.push({ el: d[0], f: "n", idx: k });
+        if (d[1]) out.push({ el: d[1], f: "l", idx: k });
+      });
+      return out;
+    }
+    default: return [];
+  }
 }
 
 // Le HTML compile est garde a jour dans le champ cache : l'envoi et
 // l'enregistrement continuent de lire newsletters.html sans rien savoir des blocs.
 function nlSync() { const c = $("nl-body"); if (c) c.innerHTML = nlCompiler(nlBlocs); }
+
 
 function nlRenderInspecteur() {
   const z = $("nl-insp"); if (!z) return;
@@ -11537,9 +11610,18 @@ function nlRenderInspecteur() {
               <button type="button" class="rt-btn" data-rt="bold"><b>G</b></button>
               <button type="button" class="rt-btn" id="nl-bloc-link" title="Insérer un lien">🔗</button>
             </div>`;
-  } else {
-    html += '<p class="muted">Ce bloc n’a pas de réglage.</p>';
   }
+
+  // Espacement au-dessus et en dessous, pour tous les blocs sans exception :
+  // c'est ce qui permet de resserrer une mise en page trop aeree.
+  html += `<div class="nl-esp">
+      <span class="nl-esp-t">Espacement (px)</span>
+      <div class="nl-esp-l">
+        <label><span>Au-dessus</span><input type="number" min="0" max="120" data-esp="mh" value="${nlHaut(b)}" /></label>
+        <label><span>En dessous</span><input type="number" min="0" max="120" data-esp="mb" value="${nlBas(b)}" /></label>
+      </div>
+      <button type="button" class="ghost nl-esp-raz" data-esp-raz="1">Valeurs par défaut</button>
+    </div>`;
   z.innerHTML = html;
   brancherLien("nl-bloc-link", null);
 }
@@ -11555,7 +11637,9 @@ document.addEventListener("click", async (e) => {
     nlBlocs.splice(ou, 0, bloc); nlSel = ou; nlRender(); return;
   }
   const sel = e.target.closest("[data-bloc]");
-  if (sel && !e.target.closest(".nl-bloc-outils")) { nlSel = +sel.dataset.bloc; nlRender(); return; }
+  // On ne redessine PAS la toile pour un simple changement de selection :
+  // cela detruirait la zone de saisie sur laquelle on vient de cliquer.
+  if (sel && !e.target.closest(".nl-bloc-outils")) { nlSelectionner(+sel.dataset.bloc); return; }
 
   const up = e.target.closest("[data-up]");
   if (up) { const i = +up.dataset.up; if (i > 0) { [nlBlocs[i - 1], nlBlocs[i]] = [nlBlocs[i], nlBlocs[i - 1]]; nlSel = i - 1; nlRender(); } return; }
@@ -11603,10 +11687,75 @@ document.addEventListener("input", (e) => {
   const b = nlBlocs[nlSel]; if (!b) return;
   const cle = f.dataset.f;
   b[cle] = f.isContentEditable ? f.innerHTML : f.value;
-  // Le bloc de saisie ne doit pas etre redessine pendant qu'on y ecrit :
-  // le curseur sauterait au debut a chaque touche.
-  if (f.isContentEditable) { nlApercuSeul(); return; }
-  nlRender();
+  // On ne redessine QUE la vue du bloc. Reconstruire l'inspecteur
+  // detruirait le champ en cours de frappe : on perdait le focus a chaque
+  // lettre, et il fallait recliquer pour taper la suivante.
+  nlApercuSeul();
+});
+
+// Espacement : les deux champs ne passent pas par data-f, ils visent mh / mb.
+document.addEventListener("input", (e) => {
+  const f = e.target.closest("#nl-insp [data-esp]");
+  if (!f || nlSel < 0) return;
+  const b = nlBlocs[nlSel]; if (!b) return;
+  // Champ vide = on revient a la valeur par defaut du type de bloc.
+  b[f.dataset.esp] = f.value === "" ? null : Math.max(0, +f.value || 0);
+  nlApercuSeul();
+});
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#nl-insp [data-esp-raz]")) return;
+  const b = nlBlocs[nlSel]; if (!b) return;
+  b.mh = null; b.mb = null;
+  nlApercuSeul();
+  nlRenderInspecteur();   // les champs doivent reafficher les valeurs par defaut
+});
+
+// Selection d'un bloc : on met a jour le lisere et l'inspecteur, sans
+
+// toucher a la toile.
+function nlSelectionner(i) {
+  nlSel = i;
+  document.querySelectorAll("#nl-toile .nl-bloc").forEach((el) =>
+    el.classList.toggle("sel", +el.dataset.bloc === i));
+  nlRenderInspecteur();
+}
+
+// --- Saisie directe sur la toile ---
+// On ecrit dans le titre, le texte ou le bouton la ou ils s'affichent.
+// La vue n'est surtout pas redessinee pendant la frappe : on ne remplace
+// pas sous les doigts l'element qui a le curseur.
+document.addEventListener("input", (e) => {
+  const el = e.target.closest("#nl-toile [data-edit]");
+  if (!el) return;
+  const b = nlBlocs[+el.dataset.editBloc]; if (!b) return;
+  const val = el.dataset.riche === "1" ? el.innerHTML : el.innerText.replace(/\n+$/, "");
+  if (el.dataset.editIdx != null) {
+    const x = (b.items || [])[+el.dataset.editIdx];
+    if (x) x[el.dataset.edit] = val;
+  } else {
+    b[el.dataset.edit] = val;
+  }
+  nlSync();
+});
+
+// En quittant une zone de saisie de la toile, on resynchronise
+// l'inspecteur, dont les champs affichaient encore l'ancienne valeur.
+document.addEventListener("focusout", (e) => {
+  if (e.target.closest("#nl-toile [data-edit]")) nlRenderInspecteur();
+});
+
+// Entree dans un titre ou un bouton : une ligne, pas un paragraphe.
+document.addEventListener("keydown", (e) => {
+  const el = e.target.closest("#nl-toile [data-edit]");
+  if (el && e.key === "Enter" && el.dataset.riche !== "1") { e.preventDefault(); el.blur(); }
+});
+
+// Un lien de la toile ne doit pas naviguer quand on clique dedans pour
+// en modifier le libelle.
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("#nl-toile a");
+  if (a) e.preventDefault();
 });
 
 // Les deux champs d'un chiffre (le nombre et son libelle) ne passent pas par
@@ -11634,8 +11783,7 @@ document.addEventListener("change", (e) => {
 
 // Redessine la seule vue du bloc courant, en laissant l'inspecteur intact.
 function nlApercuSeul() {
-  const vue = document.querySelector(`.nl-bloc[data-bloc="${nlSel}"] .nl-bloc-vue`);
-  if (vue) vue.innerHTML = nlBlocHtml(nlBlocs[nlSel]) || "";
+  nlRendreVue(nlSel);   // redessine la vue ET remet les zones modifiables
   nlSync();
 }
 
