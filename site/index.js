@@ -196,8 +196,8 @@ const DETAILS = {
           ["Préparation mentale", "Un accompagnement mental intégré à la semaine."],
           ["Et après", "Université suisse, institutions américaines (NCAA) ou circuit professionnel."],
         ]},
-      { type: "students", eyebrow: "Ils y sont",
-        title: "Nos sport-études",
+      { type: "students", eyebrow: "On vous présente",
+        title: "Nos athlètes",
         lead: "Derrière le programme, il y a d'abord des joueuses et des joueurs. Touchez une carte pour en savoir plus.", items: [
           { nom: "Talia Dupasquier Picci", age: "18 ans", classement: "R1 (117)",
             photo: "assets/photos/eleve-talia-picci.jpg",
