@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=186" />
+  <link rel="stylesheet" href="style.css?v=187" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -2146,6 +2146,13 @@ Team Lausanne Tennis</textarea></label>
         <div class="pm-modal-main">
           <label class="pm-lab">Description</label>
           <textarea id="pm-desc" rows="6" placeholder="Ce qu'il y a à faire, le contexte, les points d'attention…"></textarea>
+
+          <label class="pm-lab">Liste de contrôle <span id="pm-chk-compte" class="pm-chk-compte"></span></label>
+          <div id="pm-chk" class="pm-chk"></div>
+          <form id="pm-chk-form" class="pm-chk-ajout">
+            <input type="text" id="pm-chk-new" placeholder="Ajouter un point…" autocomplete="off" />
+            <button type="submit" class="ghost">Ajouter</button>
+          </form>
 
           <label class="pm-lab">Pièces jointes</label>
           <div id="pm-files" class="pm-files"></div>

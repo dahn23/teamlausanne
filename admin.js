@@ -10636,7 +10636,7 @@ async function loadPM() {
     sb.from("pm_columns").select("*").order("sort_order"),
     sb.from("pm_members").select("*").eq("active", true).order("sort_order"),
     sb.from("pm_labels").select("*").order("sort_order"),
-    sb.from("pm_cards").select("*, pm_card_members(member_id), pm_card_labels(label_id), pm_attachments(id)").order("sort_order"),
+    sb.from("pm_cards").select("*, pm_card_members(member_id), pm_card_labels(label_id), pm_attachments(id), pm_checklist(id,done)").order("sort_order"),
   ]);
   pmCols = c.data || []; pmMembers = m.data || []; pmLabels = l.data || []; pmCards = k.data || [];
   pmRenderFiltres();
@@ -10691,6 +10691,9 @@ function pmRenderBoard() {
               <span class="pm-card-infos">
                 ${c.due_date ? `<span class="pm-date${retard ? " pm-retard" : ""}">${frDate(c.due_date)}</span>` : ""}
                 ${c.description ? `<span class="pm-ico" title="Description">≡</span>` : ""}
+                ${(() => { const l = c.pm_checklist || []; if (!l.length) return "";
+                  const f = l.filter((x) => x.done).length;
+                  return `<span class="pm-chk-badge${f === l.length ? " pm-chk-ok" : ""}" title="Liste de contrôle">☑ ${f}/${l.length}</span>`; })()}
                 ${nPJ ? `<span class="pm-ico" title="${nPJ} pièce(s) jointe(s)">📎${nPJ}</span>` : ""}
               </span>
               <span class="pm-card-membres">${pmIdsM(c).map((id) => {
@@ -10778,6 +10781,7 @@ function pmOuvrir(carte) {
     `<button type="button" class="pm-pick pm-pick-l${lSel.includes(l.id) ? " on" : ""}" data-l="${l.id}"
        style="--c:${esc(l.color)}"><span class="pm-chip" style="background:${esc(l.color)}"></span>${esc(l.name)}</button>`).join("");
   $("pm-etat").textContent = "";
+  pmRenderCheck();
   pmRenderFichiers();
   $("pm-modal").classList.remove("hidden");
   setTimeout(() => $("pm-title").focus(), 60);
@@ -10841,7 +10845,7 @@ document.addEventListener("click", async (e) => {
     const { data, error } = await sb.from("pm_cards").insert({
       column_id: ajout.dataset.add, title: titre.trim(),
       sort_order: (rangs.length ? Math.max(...rangs) : 0) + 1,
-    }).select("*, pm_card_members(member_id), pm_card_labels(label_id), pm_attachments(id)").single();
+    }).select("*, pm_card_members(member_id), pm_card_labels(label_id), pm_attachments(id), pm_checklist(id,done)").single();
     if (error) return uiModal("Création impossible : " + error.message);
     pmCards.push(data); pmRenderBoard(); pmOuvrir(data);
     return;
@@ -10973,4 +10977,58 @@ document.addEventListener("change", (e) => {
     pmAjouterFichiers([...e.target.files]);
     e.target.value = "";
   }
+});
+
+// ---- Liste de controle d'une carte ----
+async function pmRenderCheck() {
+  const z = $("pm-chk"); if (!z || !pmCarte) return;
+  const { data } = await sb.from("pm_checklist")
+    .select("*").eq("card_id", pmCarte.id).order("sort_order");
+  const l = data || [];
+  const faits = l.filter((x) => x.done).length;
+  $("pm-chk-compte").textContent = l.length ? `${faits}/${l.length}` : "";
+  z.innerHTML = l.length
+    ? `<div class="pm-chk-barre"><span style="width:${l.length ? Math.round(faits / l.length * 100) : 0}%"></span></div>` +
+      l.map((x) => `<label class="pm-chk-item${x.done ? " fait" : ""}">
+        <input type="checkbox" data-chk="${x.id}"${x.done ? " checked" : ""} />
+        <span>${esc(x.text)}</span>
+        <button type="button" class="pm-chk-x" data-rmchk="${x.id}" title="Retirer">✕</button></label>`).join("")
+    : '<p class="muted" style="margin:2px 0 6px;font-size:.85rem">Aucun point pour l’instant.</p>';
+}
+
+document.addEventListener("change", async (e) => {
+  const c = e.target.closest("[data-chk]");
+  if (!c) return;
+  await sb.from("pm_checklist").update({ done: c.checked }).eq("id", c.dataset.chk);
+  await pmRenderCheck();
+  await loadPM();          // l'avancement change sur la carte du tableau
+});
+
+document.addEventListener("click", async (e) => {
+  const rm = e.target.closest("[data-rmchk]");
+  if (!rm) return;
+  e.preventDefault();
+  await sb.from("pm_checklist").delete().eq("id", rm.dataset.rmchk);
+  await pmRenderCheck();
+  await loadPM();
+});
+
+document.addEventListener("submit", async (e) => {
+  if (e.target.id !== "pm-chk-form") return;
+  e.preventDefault();
+  if (!pmCarte) return;
+  const champ = $("pm-chk-new");
+  const texte = champ.value.trim();
+  if (!texte) return;
+  const { data } = await sb.from("pm_checklist").select("sort_order").eq("card_id", pmCarte.id);
+  const rangs = (data || []).map((x) => x.sort_order);
+  const { error } = await sb.from("pm_checklist").insert({
+    card_id: pmCarte.id, text: texte,
+    sort_order: (rangs.length ? Math.max(...rangs) : 0) + 1,
+  });
+  if (error) return uiModal("Ajout impossible : " + error.message);
+  champ.value = "";
+  champ.focus();           // on enchaine les points sans reprendre la souris
+  await pmRenderCheck();
+  await loadPM();
 });

@@ -116,3 +116,21 @@ select * from (values
   ('Événements',              '#1f5fd6', 7.0)
 ) as v(name, color, sort_order)
 where not exists (select 1 from pm_labels);
+
+-- ---- Liste de controle par carte (ajout) ----
+-- Un seul niveau : une carte, une liste de points a cocher. Trello permet
+-- plusieurs listes par carte ; ici une seule suffit et se lit plus vite.
+create table if not exists pm_checklist (
+  id         uuid primary key default gen_random_uuid(),
+  card_id    uuid not null references pm_cards(id) on delete cascade,
+  text       text not null,
+  done       boolean not null default false,
+  sort_order double precision not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists pm_check_card on pm_checklist (card_id, sort_order);
+
+alter table pm_checklist enable row level security;
+drop policy if exists pm_staff_all on pm_checklist;
+create policy pm_staff_all on pm_checklist for all to authenticated
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));

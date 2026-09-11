@@ -2595,3 +2595,27 @@ tr.rm-loss td{background:#fde8e8}
 @media(prefers-reduced-motion:reduce){
   .pm-card,.pm-fm,.pm-fl{transition:none}
 }
+
+/* Liste de controle d'une carte */
+.pm-chk-compte{font-weight:800;color:var(--blue);margin-left:6px;letter-spacing:0}
+.pm-chk{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
+/* Barre d'avancement : on voit d'un coup ou en est la tache. */
+.pm-chk-barre{height:6px;border-radius:999px;background:#e4e8f0;overflow:hidden;margin:2px 0 8px}
+.pm-chk-barre span{display:block;height:100%;background:var(--blue);border-radius:999px;
+  transition:width .3s ease}
+.pm-chk-item{display:flex;align-items:center;gap:9px;padding:5px 6px;border-radius:8px;
+  font-size:.9rem;color:var(--ink);cursor:pointer}
+.pm-chk-item:hover{background:#f2f4f8}
+.pm-chk-item input{width:17px;height:17px;flex-shrink:0;margin:0;cursor:pointer}
+.pm-chk-item span{flex:1}
+.pm-chk-item.fait span{text-decoration:line-through;color:var(--muted)}
+.pm-chk-x{background:none;border:0;color:var(--muted);cursor:pointer;padding:0 4px;
+  opacity:0;transition:opacity .15s}
+.pm-chk-item:hover .pm-chk-x{opacity:1}
+.pm-chk-x:hover{color:#b23838}
+.pm-chk-ajout{display:flex;gap:8px;margin-bottom:4px}
+.pm-chk-ajout input{flex:1;font-size:.9rem;padding:8px 11px}
+/* Pastille d'avancement sur la carte du tableau */
+.pm-chk-badge{background:#eef1f7;color:var(--muted);border-radius:6px;padding:2px 7px;font-weight:700}
+.pm-chk-ok{background:#e3f6e8;color:#1c7d38}
+@media(prefers-reduced-motion:reduce){ .pm-chk-barre span{transition:none} }
