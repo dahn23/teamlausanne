@@ -200,7 +200,7 @@ const DETAILS = {
             photo: "assets/photos/eleve-talia-picci.jpg",
             mot: "Dix-huit ans et déjà joueuse professionnelle : vivre de son tennis, c'est le projet. Un tournoi presque chaque week-end, et les premiers rendez-vous internationaux. Elle encadre stages, Kids Tennis, loisirs et sport-études, avec un coaching au mérite — l'implication se récompense, sinon on travaille plus dur, toujours dans la bonne humeur.",
             tags: ["Meilleur classement : R1 (99)", "Certifiée loisir niveau 1"] },
-          { nom: "Célyan Lorival", age: "", classement: "R2",
+          { nom: "Célyan Lorival", age: "18 ans", classement: "R2",
             photo: "assets/photos/eleve-celyan-lorival.jpg",
             mot: "Cinq ans de sport-études au Lausanne-Sports, et le bac en ligne de mire. Revers à une main, faible avoué pour l'ambiance des interclubs. Il enseigne depuis deux ans, en cours comme en stage : patient, et autant motivé par transmettre que par jouer.",
             tags: ["J+S continue 1", "J+S continue 2", "Official Swiss Tennis"] },
@@ -1007,8 +1007,13 @@ function sectionHTML(sec) {
           <h2>${esc(sec.title)}</h2>
           ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
         </div>
-        <div class="eleve-grid">${sec.items.map((e) =>
-          `<button type="button" class="eleve" data-eleve aria-expanded="false">
+        <div class="eleve-grid">${sec.items.map((e) => {
+          // Un numero de licence suffit ; une adresse complete est acceptee aussi.
+          const lien = !e.mytennis ? ""
+            : /^https?:/.test(e.mytennis) ? e.mytennis
+            : `https://www.mytennis.ch/fr/joueur/${encodeURIComponent(e.mytennis)}`;
+          return `<article class="eleve">
+          <button type="button" class="eleve-face" data-eleve aria-expanded="false">
             <span class="eleve-photo" style="background-image:url('${e.photo}')"></span>
             <span class="eleve-bas">
               <span class="eleve-nom">${esc(e.nom)}</span>
@@ -1022,7 +1027,11 @@ function sectionHTML(sec) {
                 `<span class="eleve-tag">${esc(t)}</span>`).join("")}</span>` : ""}
             </span>
             <span class="eleve-plus" aria-hidden="true"></span>
-          </button>`).join("")}</div>
+          </button>
+          ${lien ? `<a class="eleve-lien" href="${esc(lien)}" target="_blank" rel="noopener"
+             title="Profil myTennis de ${esc(e.nom)}">myTennis<span aria-hidden="true"> ↗</span></a>` : ""}
+        </article>`;
+        }).join("")}</div>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
 
     // ---- Brochure contre une adresse e-mail ----
@@ -1639,10 +1648,12 @@ document.addEventListener("submit", async (e) => {
 // Le survol suffit a la souris, mais pas au doigt ni au clavier : le clic
 // bascule donc l'etat, et aria-expanded le dit aux lecteurs d'ecran.
 document.addEventListener("click", (e) => {
-  const carte = e.target.closest("[data-eleve]");
-  if (!carte) return;
-  const ouvert = carte.classList.toggle("ouvert");
-  carte.setAttribute("aria-expanded", ouvert ? "true" : "false");
+  const bouton = e.target.closest("[data-eleve]");
+  if (!bouton) return;
+  // L'etat vit sur la carte : c'est elle que le CSS interroge, et le lien
+  // myTennis est son frere, hors du bouton.
+  const ouvert = bouton.closest(".eleve").classList.toggle("ouvert");
+  bouton.setAttribute("aria-expanded", ouvert ? "true" : "false");
 });
 
 // ---- Brochure contre une adresse e-mail ----

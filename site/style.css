@@ -2279,11 +2279,23 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 
 /* Portraits d'eleves : la photo d'abord, le texte au survol ou au clic. */
 .eleve-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
-.eleve{position:relative;display:block;padding:0;border:0;cursor:pointer;text-align:left;
+.eleve{position:relative;
   aspect-ratio:3/4;border-radius:var(--radius);overflow:hidden;background:var(--blue-ink);
   box-shadow:var(--shadow);transition:transform .3s ease,box-shadow .3s ease}
 .eleve:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(20,26,46,.22)}
-.eleve:focus-visible{outline:3px solid var(--fluo);outline-offset:3px}
+/* Le bouton occupe toute la carte : c'est lui qui la retourne. */
+.eleve-face{position:absolute;inset:0;display:block;padding:0;border:0;background:transparent;
+  cursor:pointer;text-align:left;width:100%;height:100%}
+.eleve-face:focus-visible{outline:3px solid var(--fluo);outline-offset:-4px}
+/* Bulle myTennis : posee par-dessus le bouton, donc cliquable separement. */
+.eleve-lien{position:absolute;top:14px;left:14px;z-index:2;
+  display:inline-flex;align-items:center;gap:2px;
+  background:#fff;color:var(--blue-ink);text-decoration:none;
+  font-size:.74rem;font-weight:800;letter-spacing:.01em;
+  padding:5px 11px;border-radius:999px;box-shadow:0 2px 10px rgba(0,0,0,.3);
+  transition:background-color .2s,transform .2s}
+.eleve-lien:hover{background:var(--fluo);transform:translateY(-1px)}
+.eleve-lien:focus-visible{outline:3px solid var(--fluo);outline-offset:2px}
 .eleve-photo{position:absolute;inset:0;background-size:cover;background-position:center top;
   transition:transform .5s ease,filter .35s ease}
 .eleve:hover .eleve-photo{transform:scale(1.05)}
@@ -2304,7 +2316,7 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
   letter-spacing:-.02em;font-size:1.2rem;line-height:1.1}
 .eleve-dos-meta{color:var(--fluo);font-weight:700;font-size:.88rem;margin-bottom:4px}
 .eleve-dos-txt{font-size:.95rem;line-height:1.55;color:rgba(255,255,255,.92)}
-.eleve:hover .eleve-dos,.eleve.ouvert .eleve-dos,.eleve:focus-visible .eleve-dos{opacity:1}
+.eleve:hover .eleve-dos,.eleve.ouvert .eleve-dos,.eleve:focus-within .eleve-dos{opacity:1}
 .eleve:hover .eleve-bas,.eleve.ouvert .eleve-bas{opacity:0}
 /* Pastille « + » : elle dit qu'il y a quelque chose dessous. */
 .eleve-plus{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;
