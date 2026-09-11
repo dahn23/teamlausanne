@@ -2573,8 +2573,12 @@ tr.rm-loss td{background:#fde8e8}
 .pm-title-input:focus{outline:none;border-color:var(--blue);background:#fff}
 .pm-modal-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:22px;align-items:start}
 @media(max-width:760px){.pm-modal-grid{grid-template-columns:1fr}}
-.pm-lab{display:block;font-size:.76rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
-  color:var(--muted);margin:12px 0 5px}
+/* Meme piege que pour les points de la liste : ces libelles sont des <label>
+   dans .card, et « .card label{display:flex;flex-direction:column} » passait
+   devant display:block. Le compteur « 4/5 », ecrit pour tenir sur la meme ligne
+   que le titre (d'ou son margin-left), tombait donc a la ligne. */
+.pm-modal-card .pm-lab{display:block;font-size:.76rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 5px}
 .pm-modal-main textarea,.pm-modal-side select,.pm-modal-side input[type=date]{width:100%;box-sizing:border-box}
 .pm-choix{display:flex;flex-direction:column;gap:5px}
 /* Le bouton s'allume dans la couleur de ce qu'il designe quand il est retenu. */
@@ -2603,15 +2607,24 @@ tr.rm-loss td{background:#fde8e8}
 .pm-chk-barre{height:6px;border-radius:999px;background:#e4e8f0;overflow:hidden;margin:2px 0 8px}
 .pm-chk-barre span{display:block;height:100%;background:var(--blue);border-radius:999px;
   transition:width .3s ease}
-.pm-chk-item{display:flex;align-items:center;gap:9px;padding:5px 6px;border-radius:8px;
+/* Un point de la liste est un <label> pose dans .card, or la regle generique
+   « .card label{flex-direction:column} » l'emporte sur une simple classe
+   (0,1,1 contre 0,1,0) : la case se retrouvait empilee au-dessus du texte, le
+   tout centre. D'ou le selecteur a deux classes, qui repasse devant — et
+   flex-direction:row ecrit noir sur blanc plutot que laisse par defaut.
+   Les marges negatives compensent le padding : le texte s'aligne a gauche avec
+   le libelle de section, la barre d'avancement et le champ d'ajout, pendant que
+   le fond de survol garde sa respiration de chaque cote. */
+.pm-chk .pm-chk-item{display:flex;flex-direction:row;align-items:center;gap:9px;
+  padding:5px 6px;margin:0 -6px;border-radius:8px;
   font-size:.9rem;color:var(--ink);cursor:pointer}
-.pm-chk-item:hover{background:#f2f4f8}
-.pm-chk-item input{width:17px;height:17px;flex-shrink:0;margin:0;cursor:pointer}
-.pm-chk-item span{flex:1}
-.pm-chk-item.fait span{text-decoration:line-through;color:var(--muted)}
+.pm-chk .pm-chk-item:hover{background:#f2f4f8}
+.pm-chk .pm-chk-item input{width:17px;height:17px;flex-shrink:0;margin:0;cursor:pointer}
+.pm-chk .pm-chk-item span{flex:1}
+.pm-chk .pm-chk-item.fait span{text-decoration:line-through;color:var(--muted)}
 .pm-chk-x{background:none;border:0;color:var(--muted);cursor:pointer;padding:0 4px;
   opacity:0;transition:opacity .15s}
-.pm-chk-item:hover .pm-chk-x{opacity:1}
+.pm-chk .pm-chk-item:hover .pm-chk-x{opacity:1}
 .pm-chk-x:hover{color:#b23838}
 .pm-chk-ajout{display:flex;gap:8px;margin-bottom:4px}
 .pm-chk-ajout input{flex:1;font-size:.9rem;padding:8px 11px}
