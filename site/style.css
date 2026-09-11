@@ -2498,3 +2498,8 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 @media(prefers-reduced-motion:reduce){
   .formula,.formula::before,.fm-filtre,.stg-pub-card,.stg-pub-img{transition:none}
 }
+
+/* Le chapeau des formules porte une phrase longue, avec la remise en fin de
+   ligne : bride a 760 px elle se cassait en deux, la remise se retrouvant
+   seule. Il prend ici toute la largeur de la section. */
+.formules .perks-head{max-width:none}

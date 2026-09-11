@@ -156,7 +156,7 @@ const DETAILS = {
       ]},
       { type: "formules", eyebrow: "Les formules",
         title: "Une semaine à la mesure de chacun",
-        intro: "Du mini-tennis à l'entraînement de compétiteur, choisis la formule selon ton âge et tes envies. <b>−20 % dès la 2ᵉ semaine</b> ou pour un 2ᵉ membre de la famille.",
+        intro: "Du mini-tennis à l'entraînement de compétiteur, choisis selon ton âge et tes envies. <b>−20 % dès la 2ᵉ semaine</b> ou pour un 2ᵉ membre de la famille.",
         libelles: { "4-9": "4 à 9 ans", "9-18": "9 à 18 ans", adultes: "Adultes" },
         items: [
           { name: "Kids Tennis", groupe: "4-9", age: "4 à 9 ans", rythme: "Découvrir & s'amuser",
