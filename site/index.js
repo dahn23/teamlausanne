@@ -178,9 +178,11 @@ const DETAILS = {
           "Le programme s'étend sur 35 semaines selon le calendrier vaudois et combine tennis, préparation physique et études encadrées.",
         ], link: { label: "Recevoir la brochure", scroll: "brochure", cta: true } },
       { type: "stats", items: [["35", "semaines / an"], ["2h", "tennis / jour"], ["1h", "physique / jour"], ["4h", "études / jour"]] },
-      { type: "filmsec", eyebrow: "En images", title: "Une journée au Sport-études",
-        lead: "Le quotidien du programme, filmé aux Plaines-du-Loup.",
-        video: "", videoFile: "" },
+      // Titre et accroche repris de la video elle-meme, pour ne rien affirmer
+      // sur un contenu que je n'ai pas vu.
+      { type: "filmsec", eyebrow: "En images", title: "Viser haut, préparer son avenir",
+        lead: "Le programme Sport-études en vidéo.",
+        video: "ZBRb8MNP0nI" },
       { type: "perks", eyebrow: "Un encadrement complet",
         title: "Tout est prévu autour du joueur",
         lead: "Les études, le corps et la tête : rien n'est laissé de côté pendant les trois à cinq ans du parcours.", items: [
