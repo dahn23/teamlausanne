@@ -2541,13 +2541,23 @@ tr.rm-loss td{background:#fde8e8}
 .pm-col-x{margin-left:auto;background:transparent;border:0;color:var(--muted);cursor:pointer;
   font-size:.85rem;padding:2px 6px;border-radius:6px}
 .pm-col-x:hover{background:#dde3ef;color:#b23838}
-.pm-col-body{display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-height:24px;padding:2px}
-.pm-col-body.pm-survol{outline:2px dashed var(--blue);outline-offset:2px;border-radius:10px}
+.pm-col-body{display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-height:70px;padding:2px}
+/* C'est la colonne entiere qui s'allume : elle est la cible de depot, y compris
+   son en-tete, le vide sous la derniere carte et le bouton d'ajout. */
+.pm-col.pm-survol{background:#e3e9f5;outline:2px dashed var(--blue);outline-offset:2px}
+/* La carte qui suit le curseur. Legerement inclinee et decollee, pour qu'on
+   voie qu'on la tient plutot qu'elle ne soit posee. */
+.pm-fantome{position:fixed;top:0;left:0;z-index:1200;width:290px;pointer-events:none;
+  box-shadow:0 16px 38px rgba(20,26,46,.32);opacity:.96;cursor:grabbing;
+  transform-origin:12px 12px}
+/* Le trou laisse par la carte : il montre ou elle retombera. */
+.pm-trou{border-radius:10px;background:#dde4f0;border:2px dashed #aab6c9;flex-shrink:0}
 
-.pm-card{background:#fff;border-radius:10px;padding:10px 11px;cursor:pointer;
+
+.pm-card{background:#fff;border-radius:10px;padding:10px 11px;cursor:grab;
   box-shadow:0 1px 3px rgba(20,26,46,.16);transition:transform .12s,box-shadow .12s}
 .pm-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(20,26,46,.18)}
-.pm-card.pm-glisse{opacity:.45}
+.pm-card:active{cursor:grabbing}
 .pm-card-labels{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px}
 .pm-chip{display:inline-block;width:34px;height:8px;border-radius:999px}
 .pm-card-titre{font-size:.9rem;color:var(--ink);line-height:1.35}

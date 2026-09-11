@@ -10677,7 +10677,7 @@ function pmRenderBoard() {
         ${cartes.map((c) => {
           const retard = c.due_date && c.due_date < auj;
           const nPJ = (c.pm_attachments || []).length;
-          return `<article class="pm-card" draggable="true" data-card="${c.id}">
+          return `<article class="pm-card" data-card="${c.id}">
             ${pmIdsL(c).length ? `<div class="pm-card-labels">${pmIdsL(c).map((id) => {
               const l = pmLabel(id); return l ? `<span class="pm-chip" style="background:${esc(l.color)}" title="${esc(l.name)}"></span>` : ""; }).join("")}</div>` : ""}
             <div class="pm-card-titre">${esc(c.title)}</div>
@@ -10703,60 +10703,186 @@ function pmRenderBoard() {
 }
 
 // ---- Glisser-deposer ----
-// Le rang est un nombre a virgule : deposer entre deux cartes revient a prendre
-// le milieu de leurs rangs, sans renumeroter la colonne entiere.
-let pmGlisse = null;
+// Ecrit avec les evenements « pointer » et non avec le glisser-deposer HTML5 :
+// celui-ci n'existe pas sur ecran tactile, le tableau etait donc fige sur
+// tablette et sur telephone. Les evenements pointer couvrent la souris et le
+// doigt avec le meme code.
+//
+// La zone de depot est la COLONNE entiere, et plus seulement la pile de cartes :
+// on peut viser une colonne vide, l'espace sous la derniere carte, l'en-tete ou
+// le bouton d'ajout. Avant, seule la pile elle-meme acceptait le depot, ce qui
+// rendait une colonne vide (24 px de haut) quasiment impossible a atteindre.
+//
+// Le rang reste un nombre a virgule : deposer entre deux cartes revient a
+// prendre le milieu de leurs rangs, sans renumeroter la colonne entiere.
+
+const PM_SEUIL = 6;            // px parcourus avant de parler de glisser
+const PM_APPUI_DOIGT = 180;    // ms d'appui avant d'armer le glisser au doigt
+let pmD = null;                // geste en cours
+let pmFinGlisse = 0;           // horodatage du dernier depot (voir le clic)
+
 function pmBrancherGlisser() {
   document.querySelectorAll(".pm-card").forEach((el) => {
-    el.addEventListener("dragstart", (e) => {
-      pmGlisse = el.dataset.card;
-      el.classList.add("pm-glisse");
-      e.dataTransfer.effectAllowed = "move";
-      // Firefox exige qu'on ecrive quelque chose pour demarrer le glisser.
-      e.dataTransfer.setData("text/plain", pmGlisse);
-    });
-    el.addEventListener("dragend", () => { el.classList.remove("pm-glisse"); pmGlisse = null;
-      document.querySelectorAll(".pm-col-body").forEach((z) => z.classList.remove("pm-survol")); });
-  });
-  document.querySelectorAll(".pm-col-body").forEach((zone) => {
-    zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("pm-survol"); });
-    zone.addEventListener("dragleave", () => zone.classList.remove("pm-survol"));
-    zone.addEventListener("drop", async (e) => {
-      e.preventDefault();
-      zone.classList.remove("pm-survol");
-      const id = pmGlisse || e.dataTransfer.getData("text/plain");
-      if (!id) return;
-      await pmDeposer(id, zone.dataset.drop, e.clientY, zone);
-    });
+    el.addEventListener("pointerdown", pmPrise);
   });
 }
 
-async function pmDeposer(cardId, colId, y, zone) {
-  const carte = pmCards.find((c) => c.id === cardId);
-  if (!carte) return;
-  // Cartes deja presentes dans la colonne, celle qu'on deplace exclue.
-  const voisines = [...zone.querySelectorAll(".pm-card")].filter((el) => el.dataset.card !== cardId);
-  let avant = null;
-  for (const el of voisines) {
-    const r = el.getBoundingClientRect();
-    if (y < r.top + r.height / 2) { avant = el.dataset.card; break; }
+function pmPrise(e) {
+  if (e.button > 0) return;                       // clic droit ou molette
+  if (e.target.closest("button,a,input,select,textarea")) return;
+  const el = e.currentTarget;
+  pmD = {
+    id: el.dataset.card, el, actif: false,
+    x0: e.clientX, y0: e.clientY,
+    // A la souris le glisser est arme tout de suite ; au doigt il faut un appui
+    // franc, sinon on confisquerait le defilement des qu'on effleure une carte.
+    arme: e.pointerType === "mouse",
+    minuteur: null,
+  };
+  if (!pmD.arme) {
+    pmD.minuteur = setTimeout(() => {
+      if (!pmD) return;
+      pmD.arme = true;
+      if (navigator.vibrate) navigator.vibrate(12);  // « c'est bon, tu tiens la carte »
+    }, PM_APPUI_DOIGT);
   }
-  const rangs = voisines.map((el) => pmCards.find((c) => c.id === el.dataset.card)?.sort_order ?? 0);
-  const iAvant = avant ? voisines.findIndex((el) => el.dataset.card === avant) : voisines.length;
-  const precedent = iAvant > 0 ? rangs[iAvant - 1] : null;
-  const suivant = iAvant < rangs.length ? rangs[iAvant] : null;
+  document.addEventListener("pointermove", pmBouge);
+  document.addEventListener("pointerup", pmLache);
+  document.addEventListener("pointercancel", pmLache);
+  // Non passif : c'est la seule facon d'empecher la page de defiler pendant
+  // qu'on deplace une carte au doigt.
+  document.addEventListener("touchmove", pmRetenirPage, { passive: false });
+}
+
+function pmRetenirPage(e) { if (pmD && pmD.actif) e.preventDefault(); }
+
+function pmBouge(e) {
+  if (!pmD) return;
+  const loin = Math.hypot(e.clientX - pmD.x0, e.clientY - pmD.y0);
+  if (!pmD.actif) {
+    // Doigt qui part avant l'appui franc : l'intention etait de faire defiler.
+    if (!pmD.arme) { if (loin > PM_SEUIL) pmRelacher(); return; }
+    if (loin < PM_SEUIL) return;
+    pmDemarrer(e);
+  }
+  pmSuivre(e);
+}
+
+function pmDemarrer(e) {
+  const r = pmD.el.getBoundingClientRect();
+  pmD.actif = true;
+  pmD.dx = r.left - e.clientX;        // ou le curseur mord dans la carte
+  pmD.dy = r.top - e.clientY;
+
+  // La carte qui suit le curseur. C'est une copie : l'originale quitte le flux,
+  // remplacee par un trou de meme taille qui montre ou elle retombera.
+  const f = pmD.el.cloneNode(true);
+  f.classList.add("pm-fantome");
+  f.style.width = r.width + "px";
+  document.body.appendChild(f);
+  pmD.fantome = f;
+
+  const trou = document.createElement("div");
+  trou.className = "pm-trou";
+  trou.style.height = r.height + "px";
+  pmD.trou = trou;
+  pmD.el.replaceWith(trou);
+}
+
+function pmSuivre(e) {
+  pmD.fantome.style.transform =
+    `translate(${e.clientX + pmD.dx}px, ${e.clientY + pmD.dy}px) rotate(2.5deg)`;
+
+  // Le fantome est en pointer-events:none : elementFromPoint voit au travers.
+  const sous = document.elementFromPoint(e.clientX, e.clientY);
+  const col = sous && sous.closest(".pm-col");
+  document.querySelectorAll(".pm-col").forEach((c) => c.classList.toggle("pm-survol", c === col));
+  if (!col) return;
+
+  // Le trou se glisse avant la premiere carte dont on a depasse le milieu.
+  const zone = col.querySelector(".pm-col-body");
+  let avant = null;
+  for (const el of zone.querySelectorAll(".pm-card")) {
+    const r = el.getBoundingClientRect();
+    if (e.clientY < r.top + r.height / 2) { avant = el; break; }
+  }
+  if (avant) zone.insertBefore(pmD.trou, avant); else zone.appendChild(pmD.trou);
+
+  pmDefilerBord(e.clientX);
+}
+
+// Avec beaucoup de colonnes le tableau deborde : on le fait defiler quand le
+// curseur approche d'un bord, sinon les colonnes hors ecran sont hors d'atteinte.
+function pmDefilerBord(x) {
+  const b = $("pm-board"); if (!b) return;
+  const r = b.getBoundingClientRect();
+  const marge = 70;
+  if (x < r.left + marge) b.scrollLeft -= 18;
+  else if (x > r.right - marge) b.scrollLeft += 18;
+}
+
+function pmLache() {
+  if (!pmD) return;
+  if (pmD.actif) pmPoser(); else pmRelacher();
+}
+
+// Fin du geste sans depot (simple clic, ou defilement au doigt).
+function pmRelacher() {
+  if (!pmD) return;
+  clearTimeout(pmD.minuteur);
+  if (pmD.fantome) pmD.fantome.remove();
+  if (pmD.trou) pmD.trou.replaceWith(pmD.el);
+  pmD = null;
+  document.removeEventListener("pointermove", pmBouge);
+  document.removeEventListener("pointerup", pmLache);
+  document.removeEventListener("pointercancel", pmLache);
+  document.removeEventListener("touchmove", pmRetenirPage);
+  document.querySelectorAll(".pm-col").forEach((c) => c.classList.remove("pm-survol"));
+}
+
+async function pmPoser() {
+  const trou = pmD.trou, id = pmD.id;
+  const zone = trou.parentElement;
+  const colId = zone.dataset.drop;
+  const carte = pmCards.find((c) => c.id === id);
+
+  // Position du trou parmi les cartes de la colonne d'arrivee.
+  const enfants = [...zone.children];
+  const avantTrou = enfants.slice(0, enfants.indexOf(trou));
+  const idx = avantTrou.filter((el) => el.classList.contains("pm-card")).length;
+  const rangs = enfants.filter((el) => el.classList.contains("pm-card"))
+    .map((el) => pmCards.find((c) => c.id === el.dataset.card)?.sort_order ?? 0);
+
+  const precedent = idx > 0 ? rangs[idx - 1] : null;
+  const suivant = idx < rangs.length ? rangs[idx] : null;
   const rang = precedent === null && suivant === null ? 1
     : precedent === null ? suivant - 1
     : suivant === null ? precedent + 1
     : (precedent + suivant) / 2;
 
+  pmFinGlisse = Date.now();     // pour que le clic de fin n'ouvre pas la fiche
+  pmRelacher();
+  if (!carte) return;
+
+  const avant = { column_id: carte.column_id, sort_order: carte.sort_order };
   carte.column_id = colId; carte.sort_order = rang;
-  pmRenderBoard();
+  pmRenderBoard();              // on affiche tout de suite, on enregistre ensuite
+
   const { error } = await sb.from("pm_cards")
     .update({ column_id: colId, sort_order: rang, updated_at: new Date().toISOString() })
-    .eq("id", cardId);
-  if (error) { await uiModal("Le déplacement n'a pas été enregistré : " + error.message); loadPM(); }
+    .eq("id", id);
+  if (error) {
+    // L'ecran ne doit pas montrer un deplacement que la base a refuse.
+    Object.assign(carte, avant);
+    pmRenderBoard();
+    uiModal("Le déplacement n'a pas été enregistré : " + error.message);
+  }
 }
+
+// Echap annule le geste en cours et remet la carte a sa place.
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && pmD) pmRelacher();
+});
 
 // ---- Fiche d'une carte ----
 function pmOuvrir(carte) {
@@ -10846,7 +10972,12 @@ document.addEventListener("click", async (e) => {
   }
 
   const carte = e.target.closest(".pm-card");
-  if (carte) { const c = pmCards.find((x) => x.id === carte.dataset.card); if (c) pmOuvrir(c); return; }
+  // Un depot se termine par un clic : sans ce garde-fou, ranger une carte
+  // ouvrirait sa fiche dans la foulee.
+  if (carte && Date.now() - pmFinGlisse > 300) {
+    const c = pmCards.find((x) => x.id === carte.dataset.card); if (c) pmOuvrir(c); return;
+  }
+  if (carte) return;
 
   const ren = e.target.closest("[data-rename]");
   if (ren) {
