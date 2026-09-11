@@ -222,22 +222,42 @@ const DETAILS = {
     ],
   },
   performance: {
-    world: "academie", title: "Performance", subtitle: "La filière élite junior, ~12–15 ans",
+    world: "academie", title: "Performance",
+    subtitle: "La filière qui fait le lien entre la Compétition et le Sport-études : charge d'entraînement renforcée, préparation physique intégrée et exigence du match, pour les jeunes prêts à passer à la vitesse supérieure.",
     hero: "assets/photos/performance-2026.jpg",
+    cta: { label: "Demander des informations", scroll: "enroll-sec" },
     sections: [
-      { type: "rich", title: "Viser le meilleur niveau", body: [
-        "La filière Performance s'adresse aux jeunes d'environ 12 à 15 ans prêts à s'investir davantage. Elle se chevauche avec la Compétition : l'âge n'est pas un frein, c'est une évolution qui s'adapte à 1–2 ans près.",
-        "8 places par sélection. Les autres poursuivent en Club ou en Compétition.",
+      { type: "keywords", label: "Ce qui fait la filière Performance", items: [
+        "Entraînement renforcé", "Préparation physique", "Exigence du match",
+        "Suivi individualisé", "Filière sélective", "Vers le Sport-études",
       ]},
-      { type: "features", title: "Le programme", items: [
-        ["≈ 12–15 ans", "Filière Performance, 8 places."],
-        ["Volume", "Charge d'entraînement renforcée, physique intégré."],
-        ["Suivi", "Encadrement rapproché et planification individualisée."],
-        ["Objectif", "Accès au Sport-études et à la voie Pro U18."],
-      ], link: { label: "Nous écrire", contact: "Cours juniors" } },
+      { type: "split", photos: [
+          "assets/photos/performance-2026-s1.jpg", "assets/photos/performance-2026-s2.jpg",
+          "assets/photos/performance-2026-s3.jpg",
+        ],
+        eyebrow: "Une étape qui compte", title: "Viser le meilleur niveau", body: [
+          "La filière Performance s'adresse aux jeunes d'environ 12 à 15 ans prêts à s'investir davantage. Elle se chevauche avec la Compétition : l'âge n'est pas un frein, c'est une évolution qui s'adapte à 1–2 ans près.",
+          "8 places par sélection. Les autres poursuivent en Club ou en Compétition.",
+        ], link: { label: "Rejoindre la filière", scroll: "enroll-sec", cta: true } },
+      { type: "perks", eyebrow: "Pourquoi on progresse ici",
+        title: "Un cadre plus exigeant pour franchir un palier",
+        lead: "Tout est pensé pour celles et ceux qui sont prêts à s'entraîner davantage et à tenir cette exigence sur une saison.", items: [
+          ["Environ 12 à 15 ans", "Une filière sélective, huit places par sélection."],
+          ["Volume renforcé", "Une charge d'entraînement plus élevée, avec le physique intégré à la semaine."],
+          ["Suivi rapproché", "Un encadrement de proximité et une planification individualisée."],
+          ["La suite du parcours", "L'accès au Sport-études, puis à la voie Pro U18."],
+        ]},
+      { type: "faq", eyebrow: "Questions fréquentes",
+        title: "Tout ce qu'il faut savoir avant de s'engager", items: [
+          ["Quelle différence avec la Compétition ?", "La Compétition installe les habitudes de match. La Performance va plus loin : davantage de volume d'entraînement, la préparation physique intégrée, un suivi individualisé et un lien clair vers le Sport-études."],
+          ["À qui s'adresse la filière ?", "Aux joueuses et joueurs d'environ 12 à 15 ans, déjà réguliers en compétition, prêts à s'investir davantage sur toute une saison."],
+          ["Comment se fait la sélection ?", "Huit places, attribuées selon le niveau, le parcours et l'engagement. L'âge n'est qu'un repère : la filière se chevauche avec la Compétition, à un ou deux ans près."],
+          ["Sur quoi travaille-t-on ?", "Le geste, la lecture tactique, le déplacement et la préparation physique, avec l'exigence du match comme fil conducteur."],
+          ["Et si la sélection ne passe pas ?", "On poursuit en Compétition ou en Club. Rien n'est figé : l'évolution se fait à son rythme, et la porte reste ouverte la saison suivante."],
+          ["Et ensuite ?", "Le Sport-études prend le relais, puis la voie Pro U18 pour celles et ceux qui confirment."],
+        ]},
       { type: "enroll", title: "Demander une inscription", filiere: "performance", ranking: true,
         lead: "Intéressé(e) par la filière Performance ? Remplissez ce formulaire, le secrétariat vous recontacte." },
-      { type: "gallery", items: ["assets/photos/performance-2026-g1.jpg", "assets/photos/performance-2026-g2.jpg"] },
     ],
   },
   "pro-u18": {
