@@ -218,9 +218,6 @@ const DETAILS = {
           ["Et après le Sport-études ?", "L'université en Suisse, une institution américaine (NCAA) ou le circuit professionnel. Le programme développe l'autonomie et la gestion du temps qui servent dans les trois cas."],
           ["Comment postuler ?", "Demandez la brochure ou écrivez-nous : nous convenons d'un échange, puis d'une évaluation sur le court."],
         ]},
-      { type: "contact", title: "Parler du Sport-études",
-        lines: ["Team Lausanne Academy", "Route des Plaines-du-Loup 7", "1018 Lausanne"],
-        phone: "+41 21 647 76 16", contact: "Renseignement Sport-études" },
     ],
   },
   competition: {
