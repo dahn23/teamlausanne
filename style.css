@@ -2511,3 +2511,84 @@ tr.rm-loss td{background:#fde8e8}
 .cours-theme:last-child{border-bottom:none}
 .ct-var{font-size:.76rem}
 .ct-meta{white-space:nowrap;font-size:.84rem;color:#374151}
+
+/* ============================================================
+   Project Manager — tableau facon Trello
+   ============================================================ */
+.pm-filtres{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.pm-f-titre{font-weight:800;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pm-f-groupe{display:inline-flex;flex-wrap:wrap;gap:6px;padding-left:6px}
+.pm-fm{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;
+  color:#fff;font-weight:800;font-size:.74rem;padding:0;opacity:.55;transition:opacity .15s,border-color .15s}
+.pm-fm:hover,.pm-fm.on{opacity:1}
+.pm-fm.on{border-color:var(--blue-ink)}
+.pm-fl{border:2px solid transparent;border-radius:999px;cursor:pointer;color:#fff;
+  font-weight:700;font-size:.74rem;padding:5px 11px;opacity:.55;transition:opacity .15s,border-color .15s;
+  text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.pm-fl:hover,.pm-fl.on{opacity:1}
+.pm-fl.on{border-color:var(--blue-ink)}
+
+/* Le tableau defile horizontalement : on ajoute des colonnes sans casser la mise en page. */
+.pm-board{display:flex;gap:14px;align-items:flex-start;overflow-x:auto;padding-bottom:14px}
+.pm-col{flex:0 0 290px;background:#eef1f7;border-radius:14px;padding:10px;display:flex;flex-direction:column;
+  max-height:calc(100vh - 230px)}
+.pm-col-head{display:flex;align-items:center;gap:8px;padding:4px 6px 10px}
+.pm-col-nom{margin:0;font-size:.95rem;font-weight:800;color:var(--blue-ink);cursor:pointer;
+  font-style:normal;text-transform:none;letter-spacing:0}
+.pm-col-nom:hover{text-decoration:underline}
+.pm-col-nb{background:#fff;color:var(--muted);font-size:.74rem;font-weight:800;
+  padding:2px 8px;border-radius:999px}
+.pm-col-x{margin-left:auto;background:transparent;border:0;color:var(--muted);cursor:pointer;
+  font-size:.85rem;padding:2px 6px;border-radius:6px}
+.pm-col-x:hover{background:#dde3ef;color:#b23838}
+.pm-col-body{display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-height:24px;padding:2px}
+.pm-col-body.pm-survol{outline:2px dashed var(--blue);outline-offset:2px;border-radius:10px}
+
+.pm-card{background:#fff;border-radius:10px;padding:10px 11px;cursor:pointer;
+  box-shadow:0 1px 3px rgba(20,26,46,.16);transition:transform .12s,box-shadow .12s}
+.pm-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(20,26,46,.18)}
+.pm-card.pm-glisse{opacity:.45}
+.pm-card-labels{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px}
+.pm-chip{display:inline-block;width:34px;height:8px;border-radius:999px}
+.pm-card-titre{font-size:.9rem;color:var(--ink);line-height:1.35}
+.pm-card-bas{display:flex;align-items:center;gap:8px;margin-top:9px}
+.pm-card-infos{display:inline-flex;align-items:center;gap:8px;font-size:.76rem;color:var(--muted)}
+.pm-date{background:#eef1f7;border-radius:6px;padding:2px 7px;font-weight:700}
+.pm-retard{background:#fde4e4;color:#b23838}
+.pm-ico{opacity:.8}
+.pm-card-membres{margin-left:auto;display:inline-flex;gap:-4px}
+.pm-ini{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+  border-radius:50%;color:#fff;font-weight:800;font-size:.7rem;border:2px solid #fff;margin-left:-6px}
+.pm-add{margin-top:8px;background:transparent;border:0;color:var(--muted);cursor:pointer;
+  text-align:left;padding:8px 6px;border-radius:8px;font-size:.86rem}
+.pm-add:hover{background:#dde3ef;color:var(--blue-ink)}
+
+/* Fiche d'une carte */
+.pm-modal-card{max-width:min(94vw,880px);width:880px}
+.pm-title-input{width:100%;font-size:1.15rem;font-weight:800;color:var(--blue-ink);
+  border:1px solid transparent;border-radius:8px;padding:8px 10px;margin:0 0 14px;background:#f7f9fc}
+.pm-title-input:focus{outline:none;border-color:var(--blue);background:#fff}
+.pm-modal-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:22px;align-items:start}
+@media(max-width:760px){.pm-modal-grid{grid-template-columns:1fr}}
+.pm-lab{display:block;font-size:.76rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted);margin:12px 0 5px}
+.pm-modal-main textarea,.pm-modal-side select,.pm-modal-side input[type=date]{width:100%;box-sizing:border-box}
+.pm-choix{display:flex;flex-direction:column;gap:5px}
+/* Le bouton s'allume dans la couleur de ce qu'il designe quand il est retenu. */
+.pm-pick{display:flex;align-items:center;gap:9px;background:#f2f4f8;border:2px solid transparent;
+  border-radius:9px;padding:6px 10px;cursor:pointer;font-size:.85rem;color:var(--ink);text-align:left}
+.pm-pick:hover{background:#e8edf6}
+.pm-pick.on{border-color:var(--c);background:#fff;font-weight:700}
+.pm-pick .pm-ini{margin-left:0;border-width:0;width:24px;height:24px}
+.pm-files{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.pm-file{display:inline-flex;align-items:center;gap:7px;background:#f2f4f8;border-radius:8px;padding:5px 9px;font-size:.83rem}
+.pm-file-nom{background:none;border:0;color:var(--blue);font-weight:700;cursor:pointer;padding:0;text-decoration:underline}
+.pm-file-x{background:none;border:0;color:var(--muted);cursor:pointer;padding:0 2px}
+.pm-file-x:hover{color:#b23838}
+.pm-modal-foot{display:flex;align-items:center;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.pm-danger{color:#b23838}
+.pm-danger:hover{background:#fde4e4}
+
+@media(prefers-reduced-motion:reduce){
+  .pm-card,.pm-fm,.pm-fl{transition:none}
+}

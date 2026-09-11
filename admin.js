@@ -209,9 +209,9 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["dashboard", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["membres", "anniv", "inscriptions", "news", "mail", "newsletter", "resa", "winter", "lockers", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
+  superadmin: ["dashboard", "pm", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["dashboard", "pm", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["pm", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "resa", "winter", "lockers", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["dashboard", "anniv", "resa", "cours", "matchs", "lastscores", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "lastscores", "phystests", "heures"],
   coach_physique: ["cours", "phystests", "heures"],
@@ -406,6 +406,7 @@ function showView(view) {
   if (view === "lockers") loadLockers();
   if (view === "lastscores") loadLastScores();
   if (view === "dashboard") loadDashboard();
+  if (view === "pm") loadPM();
   if (view === "newsletter") loadNewsletters();
   if (view === "locks") loadLocks();
   if (view === "irrigation") loadIrrigation();
@@ -10620,3 +10621,356 @@ function trStatsCsv() {
   const a = document.createElement("a"); a.href = url; a.download = `paires_${(trStatData.season || "saison").replace(/[^\w-]+/g, "_")}.csv`;
   document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
+
+// ============================================================
+//  Project Manager — tableau facon Trello
+//  Colonnes, cartes, membres et etiquettes vivent en base : l'equipe ajoute
+//  une colonne ou une personne sans qu'on touche au code.
+// ============================================================
+let pmCols = [], pmMembers = [], pmLabels = [], pmCards = [];
+let pmCarte = null;                 // carte ouverte dans la fiche
+let pmFiltre = { membre: null, etiquette: null };
+
+async function loadPM() {
+  const [c, m, l, k] = await Promise.all([
+    sb.from("pm_columns").select("*").order("sort_order"),
+    sb.from("pm_members").select("*").eq("active", true).order("sort_order"),
+    sb.from("pm_labels").select("*").order("sort_order"),
+    sb.from("pm_cards").select("*, pm_card_members(member_id), pm_card_labels(label_id), pm_attachments(id)").order("sort_order"),
+  ]);
+  pmCols = c.data || []; pmMembers = m.data || []; pmLabels = l.data || []; pmCards = k.data || [];
+  pmRenderFiltres();
+  pmRenderBoard();
+}
+
+const pmMembre = (id) => pmMembers.find((x) => x.id === id);
+const pmLabel  = (id) => pmLabels.find((x) => x.id === id);
+const pmIdsM = (c) => (c.pm_card_members || []).map((x) => x.member_id);
+const pmIdsL = (c) => (c.pm_card_labels || []).map((x) => x.label_id);
+
+function pmRenderFiltres() {
+  const z = $("pm-filtres"); if (!z) return;
+  const pastille = (m) =>
+    `<button type="button" class="pm-fm${pmFiltre.membre === m.id ? " on" : ""}" data-fm="${m.id}"
+       style="background:${esc(m.color)}" title="${esc(m.name)}">${esc(m.initials)}</button>`;
+  const etiq = (l) =>
+    `<button type="button" class="pm-fl${pmFiltre.etiquette === l.id ? " on" : ""}" data-fl="${l.id}"
+       style="background:${esc(l.color)}">${esc(l.name)}</button>`;
+  z.innerHTML = `<span class="pm-f-titre">Filtrer</span>
+    <span class="pm-f-groupe">${pmMembers.map(pastille).join("")}</span>
+    <span class="pm-f-groupe">${pmLabels.map(etiq).join("")}</span>
+    ${(pmFiltre.membre || pmFiltre.etiquette) ? `<button type="button" class="ghost pm-f-raz">Tout afficher</button>` : ""}`;
+}
+
+// Une carte passe le filtre si elle satisfait les deux criteres actifs.
+const pmVisible = (c) =>
+  (!pmFiltre.membre || pmIdsM(c).includes(pmFiltre.membre)) &&
+  (!pmFiltre.etiquette || pmIdsL(c).includes(pmFiltre.etiquette));
+
+function pmRenderBoard() {
+  const b = $("pm-board"); if (!b) return;
+  if (!pmCols.length) { b.innerHTML = '<p class="muted">Aucune colonne. Commence par en créer une.</p>'; return; }
+  const auj = new Date().toISOString().slice(0, 10);
+  b.innerHTML = pmCols.map((col) => {
+    const cartes = pmCards.filter((c) => c.column_id === col.id && pmVisible(c));
+    return `<section class="pm-col" data-col="${col.id}">
+      <header class="pm-col-head">
+        <h2 class="pm-col-nom" data-rename="${col.id}" title="Renommer">${esc(col.name)}</h2>
+        <span class="pm-col-nb">${cartes.length}</span>
+        <button type="button" class="pm-col-x" data-delcol="${col.id}" title="Supprimer la colonne">✕</button>
+      </header>
+      <div class="pm-col-body" data-drop="${col.id}">
+        ${cartes.map((c) => {
+          const retard = c.due_date && c.due_date < auj;
+          const nPJ = (c.pm_attachments || []).length;
+          return `<article class="pm-card" draggable="true" data-card="${c.id}">
+            ${pmIdsL(c).length ? `<div class="pm-card-labels">${pmIdsL(c).map((id) => {
+              const l = pmLabel(id); return l ? `<span class="pm-chip" style="background:${esc(l.color)}" title="${esc(l.name)}"></span>` : ""; }).join("")}</div>` : ""}
+            <div class="pm-card-titre">${esc(c.title)}</div>
+            <div class="pm-card-bas">
+              <span class="pm-card-infos">
+                ${c.due_date ? `<span class="pm-date${retard ? " pm-retard" : ""}">${frDate(c.due_date)}</span>` : ""}
+                ${c.description ? `<span class="pm-ico" title="Description">≡</span>` : ""}
+                ${nPJ ? `<span class="pm-ico" title="${nPJ} pièce(s) jointe(s)">📎${nPJ}</span>` : ""}
+              </span>
+              <span class="pm-card-membres">${pmIdsM(c).map((id) => {
+                const m = pmMembre(id); return m ? `<span class="pm-ini" style="background:${esc(m.color)}" title="${esc(m.name)}">${esc(m.initials)}</span>` : ""; }).join("")}</span>
+            </div>
+          </article>`;
+        }).join("")}
+      </div>
+      <button type="button" class="pm-add" data-add="${col.id}">＋ Ajouter une carte</button>
+    </section>`;
+  }).join("");
+  pmBrancherGlisser();
+}
+
+// ---- Glisser-deposer ----
+// Le rang est un nombre a virgule : deposer entre deux cartes revient a prendre
+// le milieu de leurs rangs, sans renumeroter la colonne entiere.
+let pmGlisse = null;
+function pmBrancherGlisser() {
+  document.querySelectorAll(".pm-card").forEach((el) => {
+    el.addEventListener("dragstart", (e) => {
+      pmGlisse = el.dataset.card;
+      el.classList.add("pm-glisse");
+      e.dataTransfer.effectAllowed = "move";
+      // Firefox exige qu'on ecrive quelque chose pour demarrer le glisser.
+      e.dataTransfer.setData("text/plain", pmGlisse);
+    });
+    el.addEventListener("dragend", () => { el.classList.remove("pm-glisse"); pmGlisse = null;
+      document.querySelectorAll(".pm-col-body").forEach((z) => z.classList.remove("pm-survol")); });
+  });
+  document.querySelectorAll(".pm-col-body").forEach((zone) => {
+    zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("pm-survol"); });
+    zone.addEventListener("dragleave", () => zone.classList.remove("pm-survol"));
+    zone.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      zone.classList.remove("pm-survol");
+      const id = pmGlisse || e.dataTransfer.getData("text/plain");
+      if (!id) return;
+      await pmDeposer(id, zone.dataset.drop, e.clientY, zone);
+    });
+  });
+}
+
+async function pmDeposer(cardId, colId, y, zone) {
+  const carte = pmCards.find((c) => c.id === cardId);
+  if (!carte) return;
+  // Cartes deja presentes dans la colonne, celle qu'on deplace exclue.
+  const voisines = [...zone.querySelectorAll(".pm-card")].filter((el) => el.dataset.card !== cardId);
+  let avant = null;
+  for (const el of voisines) {
+    const r = el.getBoundingClientRect();
+    if (y < r.top + r.height / 2) { avant = el.dataset.card; break; }
+  }
+  const rangs = voisines.map((el) => pmCards.find((c) => c.id === el.dataset.card)?.sort_order ?? 0);
+  const iAvant = avant ? voisines.findIndex((el) => el.dataset.card === avant) : voisines.length;
+  const precedent = iAvant > 0 ? rangs[iAvant - 1] : null;
+  const suivant = iAvant < rangs.length ? rangs[iAvant] : null;
+  const rang = precedent === null && suivant === null ? 1
+    : precedent === null ? suivant - 1
+    : suivant === null ? precedent + 1
+    : (precedent + suivant) / 2;
+
+  carte.column_id = colId; carte.sort_order = rang;
+  pmRenderBoard();
+  const { error } = await sb.from("pm_cards")
+    .update({ column_id: colId, sort_order: rang, updated_at: new Date().toISOString() })
+    .eq("id", cardId);
+  if (error) { await uiModal("Le déplacement n'a pas été enregistré : " + error.message); loadPM(); }
+}
+
+// ---- Fiche d'une carte ----
+function pmOuvrir(carte) {
+  pmCarte = carte;
+  $("pm-title").value = carte.title || "";
+  $("pm-desc").value = carte.description || "";
+  $("pm-start").value = carte.start_date || "";
+  $("pm-due").value = carte.due_date || "";
+  $("pm-col").innerHTML = pmCols.map((c) =>
+    `<option value="${c.id}"${c.id === carte.column_id ? " selected" : ""}>${esc(c.name)}</option>`).join("");
+  const mSel = pmIdsM(carte), lSel = pmIdsL(carte);
+  $("pm-members").innerHTML = pmMembers.map((m) =>
+    `<button type="button" class="pm-pick pm-pick-m${mSel.includes(m.id) ? " on" : ""}" data-m="${m.id}"
+       style="--c:${esc(m.color)}"><span class="pm-ini" style="background:${esc(m.color)}">${esc(m.initials)}</span>${esc(m.name)}</button>`).join("");
+  $("pm-labels").innerHTML = pmLabels.map((l) =>
+    `<button type="button" class="pm-pick pm-pick-l${lSel.includes(l.id) ? " on" : ""}" data-l="${l.id}"
+       style="--c:${esc(l.color)}"><span class="pm-chip" style="background:${esc(l.color)}"></span>${esc(l.name)}</button>`).join("");
+  $("pm-etat").textContent = "";
+  pmRenderFichiers();
+  $("pm-modal").classList.remove("hidden");
+  setTimeout(() => $("pm-title").focus(), 60);
+}
+function pmFermer() { $("pm-modal").classList.add("hidden"); pmCarte = null; }
+
+async function pmRenderFichiers() {
+  const z = $("pm-files"); if (!z || !pmCarte) return;
+  const { data } = await sb.from("pm_attachments")
+    .select("id,filename,content_type,size_bytes").eq("card_id", pmCarte.id).order("created_at");
+  z.innerHTML = (data || []).length
+    ? data.map((f) => `<span class="pm-file"><button type="button" class="pm-file-nom" data-dl="${f.id}">${esc(f.filename)}</button>
+        <span class="muted">${Math.max(1, Math.round((f.size_bytes || 0) / 1024))} Ko</span>
+        <button type="button" class="pm-file-x" data-rmfile="${f.id}" title="Retirer">✕</button></span>`).join("")
+    : '<span class="muted">Aucune pièce jointe.</span>';
+}
+
+// ---- Enregistrement de la fiche ----
+async function pmEnregistrer() {
+  if (!pmCarte) return;
+  const titre = $("pm-title").value.trim();
+  if (!titre) { $("pm-etat").textContent = "Il faut un titre."; return; }
+  $("pm-etat").textContent = "Enregistrement…";
+  const maj = {
+    title: titre,
+    description: $("pm-desc").value.trim() || null,
+    start_date: $("pm-start").value || null,
+    due_date: $("pm-due").value || null,
+    column_id: $("pm-col").value,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await sb.from("pm_cards").update(maj).eq("id", pmCarte.id);
+  if (error) { $("pm-etat").textContent = "Erreur : " + error.message; return; }
+
+  // Membres et etiquettes : on remplace l'ensemble, plus simple et plus sur
+  // que de calculer les differences.
+  const mSel = [...$("pm-members").querySelectorAll(".pm-pick.on")].map((b) => b.dataset.m);
+  const lSel = [...$("pm-labels").querySelectorAll(".pm-pick.on")].map((b) => b.dataset.l);
+  await sb.from("pm_card_members").delete().eq("card_id", pmCarte.id);
+  await sb.from("pm_card_labels").delete().eq("card_id", pmCarte.id);
+  if (mSel.length) await sb.from("pm_card_members").insert(mSel.map((id) => ({ card_id: pmCarte.id, member_id: id })));
+  if (lSel.length) await sb.from("pm_card_labels").insert(lSel.map((id) => ({ card_id: pmCarte.id, label_id: id })));
+
+  $("pm-etat").textContent = "Enregistré.";
+  await loadPM();
+  setTimeout(pmFermer, 350);
+}
+
+// ---- Actions du tableau ----
+document.addEventListener("click", async (e) => {
+  if (!$("view-pm") || $("view-pm").classList.contains("hidden")) {
+    // La fiche est hors de la vue : on la laisse repondre meme masquee.
+    if (!e.target.closest("#pm-modal")) return;
+  }
+
+  const ajout = e.target.closest("[data-add]");
+  if (ajout) {
+    const titre = (await uiPrompt("Titre de la carte")) || "";
+    if (!titre.trim()) return;
+    const rangs = pmCards.filter((c) => c.column_id === ajout.dataset.add).map((c) => c.sort_order);
+    const { data, error } = await sb.from("pm_cards").insert({
+      column_id: ajout.dataset.add, title: titre.trim(),
+      sort_order: (rangs.length ? Math.max(...rangs) : 0) + 1,
+    }).select("*, pm_card_members(member_id), pm_card_labels(label_id), pm_attachments(id)").single();
+    if (error) return uiModal("Création impossible : " + error.message);
+    pmCards.push(data); pmRenderBoard(); pmOuvrir(data);
+    return;
+  }
+
+  const carte = e.target.closest(".pm-card");
+  if (carte) { const c = pmCards.find((x) => x.id === carte.dataset.card); if (c) pmOuvrir(c); return; }
+
+  const ren = e.target.closest("[data-rename]");
+  if (ren) {
+    const col = pmCols.find((c) => c.id === ren.dataset.rename);
+    const nom = await uiPrompt("Nom de la colonne", col?.name || "");
+    if (!nom || !nom.trim()) return;
+    await sb.from("pm_columns").update({ name: nom.trim() }).eq("id", ren.dataset.rename);
+    return loadPM();
+  }
+
+  const del = e.target.closest("[data-delcol]");
+  if (del) {
+    const col = pmCols.find((c) => c.id === del.dataset.delcol);
+    const n = pmCards.filter((c) => c.column_id === del.dataset.delcol).length;
+    const ok = await uiModal(n
+      ? `Supprimer « ${col?.name} » et ses ${n} carte(s) ? Cette action est définitive.`
+      : `Supprimer la colonne « ${col?.name} » ?`, { confirm: true });
+    if (!ok) return;
+    await sb.from("pm_columns").delete().eq("id", del.dataset.delcol);
+    return loadPM();
+  }
+
+  const fm = e.target.closest("[data-fm]");
+  if (fm) { pmFiltre.membre = pmFiltre.membre === fm.dataset.fm ? null : fm.dataset.fm;
+            pmRenderFiltres(); pmRenderBoard(); return; }
+  const fl = e.target.closest("[data-fl]");
+  if (fl) { pmFiltre.etiquette = pmFiltre.etiquette === fl.dataset.fl ? null : fl.dataset.fl;
+            pmRenderFiltres(); pmRenderBoard(); return; }
+  if (e.target.closest(".pm-f-raz")) { pmFiltre = { membre: null, etiquette: null };
+                                       pmRenderFiltres(); pmRenderBoard(); return; }
+
+  // Dans la fiche : les boutons de selection basculent.
+  const pick = e.target.closest("#pm-modal .pm-pick");
+  if (pick) { pick.classList.toggle("on"); return; }
+});
+
+// ---- Pieces jointes ----
+// Stockees en base64 dans la table, comme celles de la messagerie. Le plafond
+// evite qu'une video mette la fiche a genoux.
+const PM_MAX_PJ = 5 * 1024 * 1024;
+async function pmAjouterFichiers(fichiers) {
+  if (!pmCarte) return;
+  for (const f of fichiers) {
+    if (f.size > PM_MAX_PJ) { await uiModal(`« ${f.name} » dépasse 5 Mo et n'a pas été ajouté.`); continue; }
+    const b64 = await new Promise((ok) => {
+      const r = new FileReader();
+      r.onload = () => ok(String(r.result).split(",")[1] || "");
+      r.readAsDataURL(f);
+    });
+    const { error } = await sb.from("pm_attachments").insert({
+      card_id: pmCarte.id, filename: f.name, content_type: f.type || null,
+      size_bytes: f.size, content_b64: b64,
+    });
+    if (error) await uiModal("Ajout impossible : " + error.message);
+  }
+  await pmRenderFichiers();
+  await loadPM();
+}
+
+document.addEventListener("click", async (e) => {
+  if (e.target.closest("#pm-close")) return pmFermer();
+  if (e.target.closest("#pm-save")) return pmEnregistrer();
+  if (e.target.closest("#pm-file-btn")) return $("pm-file-input").click();
+
+  const dl = e.target.closest("[data-dl]");
+  if (dl) {
+    const { data } = await sb.from("pm_attachments").select("*").eq("id", dl.dataset.dl).single();
+    if (!data) return;
+    const a = document.createElement("a");
+    a.href = `data:${data.content_type || "application/octet-stream"};base64,${data.content_b64}`;
+    a.download = data.filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    return;
+  }
+  const rm = e.target.closest("[data-rmfile]");
+  if (rm) {
+    if (!(await uiModal("Retirer cette pièce jointe ?", { confirm: true }))) return;
+    await sb.from("pm_attachments").delete().eq("id", rm.dataset.rmfile);
+    await pmRenderFichiers(); return loadPM();
+  }
+  if (e.target.closest("#pm-delete")) {
+    if (!pmCarte) return;
+    if (!(await uiModal(`Supprimer « ${pmCarte.title} » ? Cette action est définitive.`, { confirm: true }))) return;
+    await sb.from("pm_cards").delete().eq("id", pmCarte.id);
+    pmFermer(); return loadPM();
+  }
+
+  // Ajouts depuis l'entete de la vue.
+  if (e.target.closest("#pm-new-col")) {
+    const nom = await uiPrompt("Nom de la nouvelle colonne");
+    if (!nom || !nom.trim()) return;
+    const rangs = pmCols.map((c) => c.sort_order);
+    await sb.from("pm_columns").insert({ name: nom.trim(), sort_order: (rangs.length ? Math.max(...rangs) : 0) + 1 });
+    return loadPM();
+  }
+  if (e.target.closest("#pm-new-member")) {
+    const nom = await uiPrompt("Nom de la personne");
+    if (!nom || !nom.trim()) return;
+    // Initiales proposees a partir du nom, modifiables.
+    const auto = nom.trim().split(/\s+/).map((x) => x[0] ?? "").join("").slice(0, 2).toUpperCase();
+    const ini = (await uiPrompt("Initiales (2 lettres)", auto)) || auto;
+    const coul = (await uiPrompt("Couleur (code hexadécimal)", "#073eb5")) || "#073eb5";
+    const rangs = pmMembers.map((m) => m.sort_order);
+    await sb.from("pm_members").insert({
+      name: nom.trim(), initials: ini.trim().slice(0, 3).toUpperCase(),
+      color: coul.trim(), sort_order: (rangs.length ? Math.max(...rangs) : 0) + 1 });
+    return loadPM();
+  }
+  if (e.target.closest("#pm-new-label")) {
+    const nom = await uiPrompt("Nom de l'étiquette");
+    if (!nom || !nom.trim()) return;
+    const coul = (await uiPrompt("Couleur (code hexadécimal)", "#4bbf73")) || "#4bbf73";
+    const rangs = pmLabels.map((l) => l.sort_order);
+    await sb.from("pm_labels").insert({ name: nom.trim(), color: coul.trim(),
+      sort_order: (rangs.length ? Math.max(...rangs) : 0) + 1 });
+    return loadPM();
+  }
+});
+
+document.addEventListener("change", (e) => {
+  if (e.target.id === "pm-file-input" && e.target.files?.length) {
+    pmAjouterFichiers([...e.target.files]);
+    e.target.value = "";
+  }
+});
