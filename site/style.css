@@ -2409,3 +2409,88 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 @media(prefers-reduced-motion:reduce){
   .film-affiche,.film-play{transition:none}
 }
+
+/* ============================================================
+   Stages : filtres par age, cartes de formule, cartes de reservation
+   ============================================================ */
+
+/* Filtres : la tranche d'age est la premiere question qu'on se pose. */
+.fm-filtres{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 22px}
+.fm-filtre{background:#eef1f7;color:var(--blue-ink);border:0;cursor:pointer;
+  font-weight:800;font-size:.86rem;padding:9px 18px;border-radius:999px;
+  transition:background-color .2s,color .2s,transform .2s}
+.fm-filtre:hover{background:#dde3ef;transform:translateY(-1px)}
+.fm-filtre.on{background:var(--blue);color:#fff}
+.fm-filtre:focus-visible{outline:3px solid var(--fluo);outline-offset:2px}
+
+/* Cartes de formule : la carte est desormais un article structure, avec sa
+   tranche d'age en tete et son prix detache en pied. */
+.formula-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.formula{position:relative;overflow:hidden;isolation:isolate;
+  display:flex;flex-direction:column;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:24px 22px 20px;box-shadow:var(--shadow);
+  transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}
+/* Sans cette regle, display:flex l'emporterait sur l'attribut hidden pose par
+   le filtre et la carte resterait visible. */
+.formula[hidden]{display:none}
+.formula::before{content:"";position:absolute;inset:auto auto 0 0;z-index:-1;
+  width:100%;height:0;background:var(--fluo);transition:height .32s cubic-bezier(.4,0,.2,1)}
+.formula:hover{transform:translateY(-6px);box-shadow:0 16px 34px rgba(20,26,46,.18);
+  border-color:var(--fluo)}
+.formula:hover::before{height:5px}
+.formula-pro{border-color:var(--fluo-d)}
+.formula-etiq{position:absolute;top:14px;right:14px;background:var(--fluo);color:var(--fluo-ink);
+  font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
+  padding:4px 10px;border-radius:999px}
+.formula-haut{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.formula-age{font-weight:800;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--blue)}
+.formula-rythme{color:var(--muted);font-size:.86rem}
+.formula h3{margin:0 0 6px;font-family:var(--font-accent);font-weight:700;
+  text-transform:uppercase;letter-spacing:-.02em;font-size:1.18rem;color:var(--blue-ink);
+  line-height:1.15}
+.formula-horaire{margin:0 0 14px;font-weight:700;color:var(--ink);font-size:.94rem}
+.formula ul{list-style:none;padding:0;margin:0 0 18px;flex:1}
+.formula li{padding:5px 0 5px 20px;position:relative;font-size:.93rem;color:var(--muted);
+  line-height:1.45}
+.formula li::before{content:"";position:absolute;left:2px;top:13px;width:7px;height:7px;
+  border-radius:50%;background:var(--fluo-d)}
+.formula-foot{display:flex;align-items:baseline;gap:7px;padding-top:14px;
+  border-top:1px solid var(--line)}
+.formula-price{font-family:var(--font-accent);font-weight:700;font-style:normal;
+  letter-spacing:-.03em;font-size:1.7rem;color:var(--blue-ink);line-height:1}
+.formula-sem{color:var(--muted);font-size:.86rem}
+
+/* Cartes de reservation : toute la carte est cliquable, avec sa saison. */
+.stg-pub-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.stg-pub-card{position:relative;cursor:pointer;
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--card);
+  display:flex;flex-direction:column;box-shadow:var(--shadow);
+  transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}
+.stg-pub-card:hover{transform:translateY(-6px);box-shadow:0 16px 34px rgba(20,26,46,.18);
+  border-color:var(--blue)}
+.stg-saison{position:absolute;top:12px;left:12px;z-index:2;
+  background:var(--fluo);color:var(--fluo-ink);font-size:.7rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.08em;padding:5px 12px;border-radius:999px;
+  box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.stg-pub-img{width:100%;height:170px;object-fit:cover;transition:transform .5s ease}
+.stg-pub-card:hover .stg-pub-img{transform:scale(1.05)}
+.stg-pub-body h3{margin:0;font-family:var(--font-accent);font-weight:700;
+  text-transform:uppercase;letter-spacing:-.02em;font-size:1.1rem;color:var(--blue-ink)}
+.stg-pub-dates{color:var(--muted);font-size:.9rem;font-weight:600}
+.stg-pub-badges{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 2px}
+.stg-tag{background:#eef1f7;color:var(--blue-ink);font-size:.72rem;font-weight:700;
+  padding:3px 9px;border-radius:999px}
+.stg-pub-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-top:auto;padding-top:12px}
+.stg-pub-price{font-family:var(--font-accent);font-weight:700;letter-spacing:-.02em;
+  font-size:1.25rem;color:var(--blue-ink)}
+.stg-pub-cta{background:var(--blue);color:#fff;border:0;border-radius:999px;cursor:pointer;
+  font-weight:800;font-size:.88rem;padding:9px 18px;transition:background-color .2s}
+.stg-pub-card:hover .stg-pub-cta{background:var(--fluo);color:var(--fluo-ink)}
+.stg-pub-cta:focus-visible{outline:3px solid var(--fluo);outline-offset:2px}
+
+@media(prefers-reduced-motion:reduce){
+  .formula,.formula::before,.fm-filtre,.stg-pub-card,.stg-pub-img{transition:none}
+}

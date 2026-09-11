@@ -145,19 +145,39 @@ const DETAILS = {
     ],
   },
   stages: {
-    world: "academie", title: "Nos stages", subtitle: "Vacances scolaires — dix semaines de stages à Lausanne",
+    world: "academie", title: "Nos stages",
+    subtitle: "Pendant les vacances scolaires, des stages de tennis pour les 4 à 18 ans et pour les adultes : de la découverte ludique à la semaine intensive, encadrés par nos coachs aux Plaines-du-Loup.",
     hero: "assets/photos/stages-2026.jpg",
+    cta: { label: "Choisir mon stage", scroll: "stagesec" },
     sections: [
-      { type: "formules", title: "Les formules",
-        intro: "Du mini-tennis à l'entraînement de compétiteur, choisis la formule selon ton âge et tes envies, encadré par nos coachs aux Plaines-du-Loup. <b>−20 % dès la 2ᵉ semaine</b> ou pour un 2ᵉ membre de la famille.",
+      { type: "keywords", label: "Ce qui fait nos stages", items: [
+        "Vacances scolaires", "Dix semaines par an", "Tennis et activités",
+        "Des 4 ans aux adultes", "Petits groupes", "Aux Plaines-du-Loup",
+      ]},
+      { type: "formules", eyebrow: "Les formules",
+        title: "Une semaine à la mesure de chacun",
+        intro: "Du mini-tennis à l'entraînement de compétiteur, choisis la formule selon ton âge et tes envies. <b>−20 % dès la 2ᵉ semaine</b> ou pour un 2ᵉ membre de la famille.",
+        libelles: { "4-9": "4 à 9 ans", "9-18": "9 à 18 ans", adultes: "Adultes" },
         items: [
-          { name: "Kids Tennis", age: "4 à 9 ans", lines: ["9h00–12h00", "1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "250 CHF" },
-          { name: "Loisirs", age: "9 à 18 ans", lines: ["9h00–17h00", "3h de tennis + 3h30 d'activité", "Repas inclus"], price: "450 CHF" },
-          { name: "Loisirs ½ journée", age: "9 à 18 ans", lines: ["9h00–12h00 ou 14h00–17h00", "1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "290 CHF" },
-          { name: "Entraîne-toi comme un pro", age: "10 à 19 ans · dès R7", lines: ["9h00–17h00", "4h de tennis + 1h30 physique + 1h d'activité", "Repas inclus · option privé +240 CHF (3h)"], price: "790 CHF", pro: true },
-          { name: "Stage adultes", age: "18 ans et +", lines: ["18h15–19h45 · uniquement certaines semaines en été", "1h30 de tennis par jour"], price: "240 CHF" },
+          { name: "Kids Tennis", groupe: "4-9", age: "4 à 9 ans", rythme: "Découvrir en s'amusant",
+            horaire: "9h00 – 12h00",
+            lines: ["1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "250 CHF" },
+          { name: "Loisirs ½ journée", groupe: "9-18", age: "9 à 18 ans", rythme: "Progresser à son rythme",
+            horaire: "9h00 – 12h00 ou 14h00 – 17h00",
+            lines: ["1h30 de tennis + 1h30 d'activité", "Repas non inclus"], price: "290 CHF" },
+          { name: "Loisirs journée", groupe: "9-18", age: "9 à 18 ans", rythme: "Progresser à son rythme",
+            horaire: "9h00 – 17h00",
+            lines: ["3h de tennis + 3h30 d'activité", "Repas inclus"], price: "450 CHF" },
+          { name: "Entraîne-toi comme un pro", groupe: "9-18", age: "10 à 19 ans · dès R7", rythme: "Viser la performance",
+            horaire: "9h00 – 17h00",
+            lines: ["4h de tennis + 1h30 physique + 1h d'activité", "Repas inclus", "Option cours privé +240 CHF (3h)"],
+            price: "790 CHF", pro: true },
+          { name: "Stage adultes", groupe: "adultes", age: "18 ans et +", rythme: "Jouer en soirée",
+            horaire: "18h15 – 19h45",
+            lines: ["1h30 de tennis par jour", "Certaines semaines d'été uniquement"], price: "240 CHF" },
         ], link: { label: "Une question ? Nous écrire", contact: "Renseignement pour les stages" } },
-      { type: "stageform", title: "Réserve ta place" },
+      { type: "stageform", eyebrow: "Prochaines dates", title: "Réserve ta place",
+        lead: "Choisis ta semaine : le formulaire s'ouvre en un clic, et le secrétariat confirme ton inscription." },
     ],
   },
   "sport-etudes": {
@@ -718,18 +738,44 @@ function sectionHTML(sec) {
         </div></div></section>`;
     }
 
-    case "formules":
-      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
-        ${sec.intro ? `<p class="stg-intro">${sec.intro}</p>` : ""}
+    case "formules": {
+      // Les tranches d'age presentes servent de filtres : on ne les ecrit pas
+      // en dur, elles se deduisent des formules.
+      const groupes = [...new Set(sec.items.map((f) => f.groupe).filter(Boolean))];
+      const nom = (g) => (sec.libelles && sec.libelles[g]) || g;
+      return `<section class="wsec formules">
+        <div class="perks-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.intro ? `<p class="perks-lead">${sec.intro}</p>` : ""}
+        </div>
+        ${groupes.length > 1 ? `<div class="fm-filtres" role="group" aria-label="Filtrer par âge">
+          <button type="button" class="fm-filtre on" data-groupe="tous">Toutes</button>
+          ${groupes.map((g) => `<button type="button" class="fm-filtre" data-groupe="${esc(g)}">${esc(nom(g))}</button>`).join("")}
+        </div>` : ""}
         <div class="formula-grid">${sec.items.map((f) =>
-          `<div class="formula${f.pro ? " formula-pro" : ""}"><h3>${esc(f.name)}</h3>
-            <div class="formula-age">${esc(f.age)}</div>
+          `<article class="formula${f.pro ? " formula-pro" : ""}" data-groupe="${esc(f.groupe || "")}">
+            ${f.pro ? `<span class="formula-etiq">Performance</span>` : ""}
+            <div class="formula-haut">
+              <span class="formula-age">${esc(f.age)}</span>
+              ${f.rythme ? `<span class="formula-rythme">${esc(f.rythme)}</span>` : ""}
+            </div>
+            <h3>${esc(f.name)}</h3>
+            ${f.horaire ? `<p class="formula-horaire">${esc(f.horaire)}</p>` : ""}
             <ul>${f.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>
-            <div class="formula-price">${esc(f.price)}</div></div>`).join("")}</div>
+            <div class="formula-foot"><span class="formula-price">${esc(f.price)}</span>
+              <span class="formula-sem">${esc(f.unite || "la semaine")}</span></div>
+          </article>`).join("")}</div>
         ${linkHTML(sec.link)}</section>`;
+    }
 
     case "stageform":
-      return `<section class="wsec"><h2>${esc(sec.title)}</h2>
+      return `<section class="wsec stagesec">
+        <div class="perks-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
+        </div>
         <div id="stgp-list" class="stg-pub-list"><p class="muted">Chargement…</p></div></section>`;
 
     case "pricing":
@@ -1349,6 +1395,12 @@ function openContact(source) {
 // ---- Inscription à un stage (page détail #stages) ----
 let stgCats = {}, stgSessions = [], stgCurrent = null, stgLinks = {};
 const stgDays = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000) + 1);
+// Saison d'un stage, deduite du mois : c'est ainsi que les familles en parlent
+// (« le stage d'automne »), plus parlant qu'une date seule.
+const stgSaison = (d) => {
+  const m = new Date(d).getMonth() + 1;
+  return m <= 2 || m === 12 ? "Hiver" : m <= 5 ? "Printemps" : m <= 8 ? "Été" : "Automne";
+};
 const stgEff = (p, d) => Math.round(Number(p) * Math.min(d, 5) / 5 * 100) / 100;
 
 async function stgLoad() {
@@ -1380,7 +1432,8 @@ function stgRenderList() {
     const img = s.image_url || oc.find((c) => c.image_url)?.image_url;
     const dates = s.start_date === s.end_date ? frDate(s.start_date) : `${frDate(s.start_date)} → ${frDate(s.end_date)}`;
     const badges = oc.map((c) => `<span class="stg-tag">${esc(c.name)}</span>`).join("");
-    return `<article class="stg-pub-card">
+    return `<article class="stg-pub-card" data-stg="${s.id}">
+      <span class="stg-saison">${esc(stgSaison(s.start_date))}</span>
       ${img ? `<img src="${img}" alt="" class="stg-pub-img" loading="lazy"/>` : '<div class="stg-pub-img stg-pub-noimg"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg></div>'}
       <div class="stg-pub-body"><h3>${esc(s.title || "Stage")}</h3>
         <div class="stg-pub-dates">${dates} · ${jours(d)}</div>
@@ -1388,7 +1441,10 @@ function stgRenderList() {
         <div class="stg-pub-foot"><span class="stg-pub-price">${priceLbl}</span>
           <button class="stg-pub-cta" data-stg="${s.id}">S'inscrire</button></div></div></article>`;
   }).join("");
-  L.querySelectorAll(".stg-pub-cta").forEach((b) => b.addEventListener("click", () => stgOpenForm(b.dataset.stg)));
+  // La carte entiere ouvre le formulaire : viser un petit bouton au doigt est
+  // inutilement penible. Le bouton reste, c'est lui qui porte l'acces clavier.
+  L.querySelectorAll(".stg-pub-card").forEach((c) =>
+    c.addEventListener("click", () => stgOpenForm(c.dataset.stg)));
 }
 // Applique la catégorie choisie : prix + champs conditionnels
 function stgApplyCat() {
@@ -1818,4 +1874,20 @@ document.addEventListener("submit", async (e) => {
     ? "Merci, la brochure part dans votre boîte mail. Nous vous recontactons bientôt."
     : `Merci ! Voici la brochure : <a href="${esc(doc)}" target="_blank" rel="noopener">la télécharger</a>. Nous vous recontactons bientôt.`;
   btn.disabled = false;
+});
+
+// ---- Stages : filtrer les formules par tranche d'age ----
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".fm-filtre");
+  if (!b) return;
+  const sec = b.closest(".formules");
+  const g = b.dataset.groupe;
+  sec.querySelectorAll(".fm-filtre").forEach((x) => {
+    const actif = x === b;
+    x.classList.toggle("on", actif);
+    x.setAttribute("aria-pressed", actif ? "true" : "false");
+  });
+  for (const carte of sec.querySelectorAll(".formula")) {
+    carte.hidden = g !== "tous" && carte.dataset.groupe !== g;
+  }
 });
