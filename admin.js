@@ -5186,15 +5186,7 @@ function initNewsletter() {
   document.querySelectorAll("#nl-modal .nl-rt").forEach((b) => b.addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand(b.dataset.cmd, false, null); }));
   $("nl-color").addEventListener("input", (e) => { document.execCommand("foreColor", false, e.target.value); $("nl-body").focus(); });
   $("nl-h2").addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand("formatBlock", false, "h2"); });
-  $("nl-link").addEventListener("mousedown", async (e) => {
-    e.preventDefault();
-    const sel = window.getSelection(); const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
-    const url = await uiPrompt("Adresse du lien (https://…)", "https://");
-    if (!url) return;
-    if (range) { sel.removeAllRanges(); sel.addRange(range); }
-    if (sel && !sel.isCollapsed) document.execCommand("createLink", false, url);
-    else document.execCommand("insertHTML", false, `<a href="${esc(url)}">${esc(url)}</a>`);
-  });
+  brancherLien("nl-link", "nl-body");
   $("nl-all").addEventListener("change", () => { $("nl-roles").querySelectorAll("input").forEach((c) => { c.disabled = $("nl-all").checked; }); });
   $("nl-roles").innerHTML = NL_ROLE_OPTS.map(([v, l]) => `<label><input type="checkbox" class="nl-role" value="${v}" /> ${l}</label>`).join("");
   $("nl-setup").innerHTML = `<b>Mise en place (une fois)</b> — <a href="#" id="nl-setup-toggle">voir la marche à suivre</a>
@@ -8801,6 +8793,7 @@ async function loadMail() {
     $("mailc-send").addEventListener("click", mailComposeSend);
     document.querySelectorAll("#mailc-modal .rt-btn").forEach((b) => b.addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand(b.dataset.cmd, false, null); }));
     $("mailc-color").addEventListener("input", (e) => { document.execCommand("foreColor", false, e.target.value); $("mailc-body").focus(); });
+    brancherLien("mailc-link", "mailc-body");
     $("mailc-file").addEventListener("change", (e) => { for (const f of e.target.files) { if (f.size > 8 * 1024 * 1024) { alert(`${f.name} dépasse 8 Mo — trop lourd.`); continue; } mailcFiles.push(f); } e.target.value = ""; renderMailcFiles(); });
     attachEmailAC($("mailc-to")); attachEmailAC($("mailc-cc")); attachEmailAC($("mailc-bcc"));  // autocompletion adresses
   }
@@ -9089,6 +9082,7 @@ function mailWireCompose() {
     document.execCommand(b.dataset.cmd, false, null);
   }));
   $("mail-d-color").addEventListener("input", (e) => { document.execCommand("foreColor", false, e.target.value); $("mail-d-replyhtml").focus(); });
+  brancherLien("mail-d-link", "mail-d-replyhtml");
   $("mail-d-file").addEventListener("change", (e) => {
     for (const f of e.target.files) {
       if (f.size > 8 * 1024 * 1024) { alert(`${f.name} dépasse 8 Mo — trop lourd.`); continue; }
@@ -9526,6 +9520,7 @@ async function openMail(id) {
         <button type="button" class="rt-btn" data-cmd="bold" title="Gras"><b>G</b></button>
         <button type="button" class="rt-btn" data-cmd="italic" title="Italique"><i>I</i></button>
         <button type="button" class="rt-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
+        <button type="button" class="rt-btn" id="mail-d-link" title="Insérer un lien (surligner un mot puis cliquer)">🔗</button>
         <label class="rt-color" title="Couleur du texte">A<input type="color" id="mail-d-color" value="#000000" /></label>
         <label class="rt-attach" title="Joindre un fichier">📎 Joindre<input type="file" id="mail-d-file" multiple hidden /></label>
         <button type="button" id="mail-d-suggest" class="rt-suggest" title="Rédiger une réponse automatiquement">✨ Proposer une réponse</button>
@@ -11032,3 +11027,40 @@ document.addEventListener("submit", async (e) => {
   await pmRenderCheck();
   await loadPM();
 });
+
+// ---- Insertion d'un lien dans un editeur de texte riche ----
+// Le meme geste sert dans la messagerie (nouveau message et reponse) et dans la
+// newsletter : on surligne un mot, on donne une adresse, le mot devient le lien.
+// Sans selection, c'est l'adresse elle-meme qui est ecrite.
+function urlPropre(v) {
+  const s = String(v || "").trim();
+  if (!s || s === "https://") return "";
+  if (/^(https?:|mailto:|tel:)/i.test(s)) return s;
+  // Une adresse e-mail saisie telle quelle devient un lien mailto.
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return "mailto:" + s;
+  // Sinon on suppose le web : sans schema, le navigateur ferait un lien
+  // relatif a la console, qui ne menerait nulle part.
+  return "https://" + s.replace(/^\/+/, "");
+}
+
+function brancherLien(boutonId, editeurId) {
+  const b = $(boutonId);
+  if (!b || b.dataset.lienPret) return;
+  b.dataset.lienPret = "1";
+  b.addEventListener("mousedown", async (e) => {
+    e.preventDefault();
+    // La selection disparait des que la fenetre de saisie s'ouvre : on la
+    // memorise avant, et on la retablit apres.
+    const sel = window.getSelection();
+    const range = sel && sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+    const mot = range ? range.toString().trim() : "";
+    const saisie = await uiPrompt(mot ? `Lien pour « ${mot} »` : "Adresse du lien", "https://");
+    const url = urlPropre(saisie);
+    if (!url) return;
+    $(editeurId)?.focus();
+    if (range) { sel.removeAllRanges(); sel.addRange(range); }
+    const s2 = window.getSelection();
+    if (s2 && !s2.isCollapsed) document.execCommand("createLink", false, url);
+    else document.execCommand("insertHTML", false, `<a href="${esc(url)}">${esc(url)}</a>`);
+  });
+}
