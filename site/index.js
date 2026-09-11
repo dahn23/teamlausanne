@@ -629,8 +629,15 @@ function sectionHTML(sec) {
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}${linkHTML(sec.link)}</section>`;
 
     case "stats":
-      return `<section class="wsec"><div class="stat-row">${sec.items.map(([b, s]) =>
-        `<div class="stat"><b>${esc(b)}</b><span>${esc(s)}</span></div>`).join("")}</div></section>`;
+      return `<section class="wsec"><div class="stat-row">${sec.items.map(([b, s]) => {
+        // « 35 » ou « 2h » : on separe le nombre de son unite pour ne compter
+        // que le nombre. Sans separation, l'unite disparaitrait pendant le
+        // comptage puis reviendrait d'un coup.
+        const m = /^(\d+)(.*)$/.exec(String(b));
+        const chiffre = m ? `<span class="stat-val" data-vers="${m[1]}">${m[1]}</span>` : "";
+        return `<div class="stat"><b>${chiffre}${esc(m ? m[2] : String(b))}</b>
+          <span>${esc(s)}</span></div>`;
+      }).join("")}</div></section>`;
 
     case "podium":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
@@ -1082,6 +1089,35 @@ function paintHero({ logo, heroLogo, hero, heroPos, tag, slogan, desc, ctaHTML, 
   $("hero-cta").innerHTML = ctaHTML;
 }
 
+// ---- Chiffres cles : comptage a l'entree dans l'ecran ----
+// Le chiffre grimpe jusqu'a sa valeur quand la tuile apparait. Une seule fois :
+// le compteur se retire de l'observation des qu'il a joue.
+function animerChiffres() {
+  const cibles = [...document.querySelectorAll(".stat-val")];
+  if (!cibles.length) return;
+  const doux = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const obs = new IntersectionObserver((entrees) => {
+    for (const e of entrees) {
+      if (!e.isIntersecting) continue;
+      const el = e.target;
+      obs.unobserve(el);
+      const fin = Number(el.dataset.vers);
+      if (doux || !Number.isFinite(fin) || fin <= 0) { el.textContent = String(fin || 0); continue; }
+      const DUREE = 900;
+      const t0 = performance.now();
+      el.textContent = "0";
+      const pas = (t) => {
+        const p = Math.min((t - t0) / DUREE, 1);
+        // Freinage en fin de course : le chiffre se pose au lieu de s'arreter net.
+        el.textContent = String(Math.round(fin * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) requestAnimationFrame(pas);
+      };
+      requestAnimationFrame(pas);
+    }
+  }, { threshold: 0.4 });
+  cibles.forEach((c) => obs.observe(c));
+}
+
 // ---- Petit defile de photos dans un split ----
 // Un seul minuteur pour toute la page, relance a chaque rendu : les elements
 // sont recrees par innerHTML, donc rien ne s'empile d'un rendu a l'autre.
@@ -1184,6 +1220,7 @@ function renderWorld(key) {
   animate();
   demarrerScrollers();
   lancerCarrousel();
+  animerChiffres();
 }
 
 function renderDetail(id) {
@@ -1202,6 +1239,7 @@ function renderDetail(id) {
   animate();
   demarrerScrollers();
   lancerCarrousel();
+  animerChiffres();
   if ($("stgp-list")) stgLoad();
   if ($("gz-winners") || $("gz-photos-carousel")) loadGamezone();
 }

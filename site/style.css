@@ -1014,12 +1014,36 @@ body[data-world="academie"] .hero-logo{filter:drop-shadow(0 4px 16px rgba(0,0,0,
 
 /* Contenu du monde */
 .world-main{max-width:var(--container);margin:0 auto;padding:var(--sec-sm) 22px}
-.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;
+/* Chiffres cles. Le nombre etait en Acumin italique, faute de font-family : il
+   passe en Circe, la police d'affichage de la marque, comme tous les grands
+   chiffres du site. Les tuiles etaient pleines de vert fluo, ce qui ecrasait
+   tout le reste de la page ; elles deviennent des cartes claires, le fluo ne
+   servant plus que d'accent au survol. */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;
   margin-bottom:26px}
-.stat{background:var(--accent);color:#fff;border-radius:var(--radius);padding:22px;text-align:center}
-body[data-world="academie"] .stat{color:var(--fluo-ink)}
-.stat b{display:block;font-size:1.6rem;font-style:italic}
-.stat span{font-size:.82rem;opacity:.9;text-transform:uppercase;letter-spacing:1px}
+.stat{position:relative;overflow:hidden;isolation:isolate;text-align:center;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:28px 20px 24px;box-shadow:var(--shadow);
+  transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}
+.stat::before{content:"";position:absolute;inset:auto auto 0 0;z-index:-1;
+  width:100%;height:0;background:var(--fluo);transition:height .32s cubic-bezier(.4,0,.2,1)}
+.stat:hover{transform:translateY(-6px);box-shadow:0 14px 30px rgba(20,26,46,.16);
+  border-color:var(--fluo)}
+.stat:hover::before{height:5px}
+.stat b{display:block;font-family:var(--font-accent);font-weight:700;font-style:normal;
+  letter-spacing:-.03em;line-height:1;color:var(--blue);
+  font-size:clamp(2.2rem,5vw,3.1rem);
+  /* Chiffres de meme chasse : sans cela la tuile tressaute pendant le comptage. */
+  font-variant-numeric:tabular-nums;transition:color .28s ease}
+.stat:hover b{color:var(--blue-ink)}
+/* Enfant direct, et non descendant : le compteur est lui aussi un <span>, mais
+   il vit dans le <b>. Un selecteur descendant l'habillait en petites capitales
+   grises, et le grand chiffre se retrouvait a 12 px. */
+.stat > span{display:block;margin-top:10px;font-size:.8rem;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;opacity:1}
+@media(prefers-reduced-motion:reduce){
+  .stat,.stat::before,.stat b{transition:none}
+}
 .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
 .feature{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
   border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
