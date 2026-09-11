@@ -183,22 +183,42 @@ const DETAILS = {
     ],
   },
   competition: {
-    world: "academie", title: "Compétition", subtitle: "L'entrée en compétition, dès ~10 ans",
+    world: "academie", title: "Compétition",
+    subtitle: "Entraînement structuré et matchs, pour les jeunes prêts à passer un cap : gagner en régularité, en confiance et en esprit de compétition, sur un parcours de progression clair.",
     hero: "assets/photos/competition-2026.jpg",
+    cta: { label: "Demander des informations", scroll: "enroll-sec" },
     sections: [
-      { type: "rich", title: "Entrer en compétition", body: [
-        "La filière Compétition accueille les jeunes d'environ 10 à 13 ans qui veulent se mesurer aux autres et progresser dans un cadre encadré.",
-        "16 places par sélection. L'âge reste un simple repère : celles et ceux qui ne rejoignent pas la filière poursuivent en Club.",
+      { type: "keywords", label: "Ce qui fait la filière Compétition", items: [
+        "Filière sélective", "Petits groupes de niveau", "Tournois juniors",
+        "GameZone", "Esprit de compétition", "Vers la Performance",
       ]},
-      { type: "features", title: "Le programme", items: [
-        ["≈ 10–13 ans", "Filière sélective, 16 places."],
-        ["Encadrement", "Entraînements réguliers en petits groupes de niveau."],
-        ["Compétition", "Tournois juniors et GameZone tout au long de la saison."],
-        ["Progression", "Passerelle naturelle vers la filière Performance."],
-      ], link: { label: "Nous écrire", contact: "Cours juniors" } },
+      { type: "split", photos: [
+          "assets/photos/competition-2026-s2.jpg", "assets/photos/competition-2026-s1.jpg",
+          "assets/photos/competition-2026-s3.jpg", "assets/photos/competition-2026-s4.jpg",
+        ],
+        eyebrow: "Un cap à passer", title: "Entrer en compétition", body: [
+          "La filière Compétition accueille les jeunes d'environ 10 à 13 ans qui veulent se mesurer aux autres et progresser dans un cadre encadré.",
+          "16 places par sélection. L'âge reste un simple repère : celles et ceux qui ne rejoignent pas la filière poursuivent en Club.",
+        ], link: { label: "Rejoindre la filière", scroll: "enroll-sec", cta: true } },
+      { type: "perks", eyebrow: "Ce qui distingue la filière",
+        title: "Un cadre pensé pour la compétition",
+        lead: "Pour celles et ceux qui sont prêts à s'entraîner plus régulièrement et à jouer les matchs qui font progresser.", items: [
+          ["Environ 10 à 13 ans", "Une filière sélective, seize places par sélection."],
+          ["Groupes de niveau", "Des entraînements réguliers, encadrés, en tout petits groupes homogènes."],
+          ["Tournois et GameZone", "La compétition tout au long de la saison, préparée avec les coachs."],
+          ["Une passerelle", "La suite naturelle du parcours est la filière Performance."],
+        ]},
+      { type: "faq", eyebrow: "Questions fréquentes",
+        title: "Tout ce qu'il faut savoir avant de se lancer", items: [
+          ["À qui s'adresse la filière ?", "Aux joueuses et joueurs d'environ 10 à 13 ans qui ont déjà des bases solides et veulent s'entraîner plus régulièrement pour entrer en compétition."],
+          ["Est-ce adapté aux débutants ?", "Non. On commence par Kids Tennis ou par la filière Club. La Compétition suppose des bases déjà acquises."],
+          ["Comment se fait la sélection ?", "Selon l'âge, le niveau, le parcours et la motivation. La filière compte seize places, et l'âge n'est qu'un repère, à un ou deux ans près."],
+          ["Sur quoi travaille-t-on ?", "La régularité technique, la lecture tactique, le déplacement et l'attitude en match — ce qui fait la différence une fois le score lancé."],
+          ["Quelles compétitions ?", "Les tournois juniors et les GameZone, tout au long de la saison, avec les coachs pour préparer et débriefer."],
+          ["Et ensuite ?", "La filière Performance prend le relais pour celles et ceux qui confirment."],
+        ]},
       { type: "enroll", title: "Demander une inscription", filiere: "competition", ranking: true,
         lead: "Intéressé(e) par la filière Compétition ? Remplissez ce formulaire, le secrétariat vous recontacte." },
-      { type: "gallery", items: ["assets/photos/competition-2026-g3.jpg", "assets/photos/competition-2026-g2.jpg"] },
     ],
   },
   performance: {
