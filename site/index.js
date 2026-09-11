@@ -199,9 +199,10 @@ const DETAILS = {
           { nom: "Talia Picci", age: "", classement: "",
             photo: "assets/photos/eleve-talia-picci.jpg",
             mot: "Portrait à compléter." },
-          { nom: "Célyan Lorival", age: "", classement: "",
+          { nom: "Célyan Lorival", age: "", classement: "R2",
             photo: "assets/photos/eleve-celyan-lorival.jpg",
-            mot: "Portrait à compléter." },
+            mot: "Cinq ans de sport-études au Lausanne-Sports, et le bac en ligne de mire. Revers à une main, faible avoué pour l'ambiance des interclubs. Il enseigne depuis deux ans, en cours comme en stage : patient, et autant motivé par transmettre que par jouer.",
+            tags: ["J+S continue 1", "J+S continue 2", "Official Swiss Tennis"] },
         ]},
       { type: "brochure", anchor: "brochure",
         eyebrow: "Brochure 2026", title: "Le programme en détail, dans votre boîte mail",
@@ -1016,6 +1017,8 @@ function sectionHTML(sec) {
               <span class="eleve-dos-nom">${esc(e.nom)}</span>
               <span class="eleve-dos-meta">${[e.age, e.classement].filter(Boolean).map(esc).join(" · ")}</span>
               <span class="eleve-dos-txt">${esc(e.mot || "")}</span>
+              ${(e.tags || []).length ? `<span class="eleve-tags">${e.tags.map((t) =>
+                `<span class="eleve-tag">${esc(t)}</span>`).join("")}</span>` : ""}
             </span>
             <span class="eleve-plus" aria-hidden="true"></span>
           </button>`).join("")}</div>
