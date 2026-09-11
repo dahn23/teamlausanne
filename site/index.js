@@ -163,7 +163,11 @@ const DETAILS = {
   "sport-etudes": {
     world: "academie", title: "Sport-études",
     subtitle: "Concilier les études et un entraînement quotidien, de 14 à 19 ans : deux heures de tennis, une heure de physique et quatre heures de cours encadrés par jour, avec un suivi individuel du premier jour au diplôme.",
-    hero: "assets/photos/sport-etudes-2026.jpg", heroPos: "42% 22%",
+    // Cadrage : le joueur est a gauche de l'image. En largeur d'ecran, la photo
+    // deborde en hauteur et seule la valeur verticale compte — 40 % garde la
+    // raquette et la balle. Sur telephone c'est l'inverse, la photo deborde en
+    // largeur : 30 % retient le joueur dans le cadre au lieu de le rogner.
+    hero: "assets/photos/sport-etudes-2026.jpg", heroPos: "30% 40%",
     cta: { label: "Recevoir la brochure", scroll: "brochure" },
     sections: [
       { type: "keywords", label: "Ce qui fait le Sport-études", items: [
@@ -1158,6 +1162,28 @@ function demarrerScrollers() {
   }), 4200);
 }
 
+// ---- Bandeaux de mots-cles : vitesse constante quelle que soit la largeur ----
+// La duree etait fixe (28 s) alors que la distance parcourue, elle, depend de
+// la largeur du texte : 75 px/s sur un grand ecran mais 47 px/s sur un
+// telephone, ou les mots sont plus petits. Sur un ecran trois fois plus etroit,
+// cela donnait l'impression que le bandeau ne bougeait pas. On calcule donc la
+// duree a partir de la largeur mesuree, pour une vitesse identique partout.
+const KW_VITESSE = 75;           // pixels par seconde
+function calerBandeaux() {
+  for (const piste of document.querySelectorAll(".kw-piste")) {
+    const serie = piste.querySelector(".kw-serie");
+    if (!serie) continue;
+    const l = serie.getBoundingClientRect().width;
+    if (l > 0) piste.style.animationDuration = (l / KW_VITESSE).toFixed(2) + "s";
+  }
+}
+// Au changement de largeur, les mots changent de taille : on recalcule.
+let kwMinuteur = null;
+addEventListener("resize", () => {
+  clearTimeout(kwMinuteur);
+  kwMinuteur = setTimeout(calerBandeaux, 200);
+});
+
 // ---- Carrousel des programmes ----
 // L'avancee est pilotee ici, a une vitesse en pixels par seconde, et non par une
 // animation CSS : la duree venait d'un calc() sur une variable personnalisee,
@@ -1231,6 +1257,7 @@ function renderWorld(key) {
   demarrerScrollers();
   lancerCarrousel();
   animerChiffres();
+  calerBandeaux();
 }
 
 function renderDetail(id) {
@@ -1250,6 +1277,7 @@ function renderDetail(id) {
   demarrerScrollers();
   lancerCarrousel();
   animerChiffres();
+  calerBandeaux();
   if ($("stgp-list")) stgLoad();
   if ($("gz-winners") || $("gz-photos-carousel")) loadGamezone();
 }

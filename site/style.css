@@ -2107,7 +2107,9 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 .world-main>.kw-band:first-child{margin-top:calc(-1 * var(--sec-sm))}
 /* Pas de fondu lateral ici : le bandeau est plein, il doit filer bord a bord. */
 .kw-balle{width:1.15em;height:1.15em;flex:none}
-.kw-piste{display:flex;width:max-content;animation:kw-defile 28s linear infinite}
+.kw-piste{display:flex;width:max-content;animation:kw-defile 28s linear infinite;
+  /* La duree est recalculee en JS selon la largeur ; 28s n'est qu'un repli. */
+  will-change:transform}
 .kw-serie{list-style:none;margin:0;padding:0 var(--kw-gap) 0 0;display:flex;gap:var(--kw-gap)}
 .kw{display:inline-flex;align-items:center;gap:var(--kw-gap);white-space:nowrap;
   font-family:var(--font-accent);font-weight:700;text-transform:uppercase;
