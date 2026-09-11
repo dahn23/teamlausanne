@@ -24,7 +24,7 @@ const WORLDS = {
     slogan: "Jouer. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
     hero: "assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
-    cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Nous contacter", type: "contact", source: "Renseignement pour l'Academy" }],
+    cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Notre programme Sport-Études", type: "sport-etudes" }],
     sections: [
       { type: "rich", anchor: "philosophie", title: "Notre philosophie", body: [
         "Team Lausanne propose un encadrement complet du tennis, adapté à chaque âge et à chaque niveau de jeu, au sein d'une véritable pyramide de formation.",
@@ -1506,9 +1506,10 @@ document.addEventListener("click", (e) => {
   if (contact) { openContact(contact.dataset.contact); return; }
   const cta = e.target.closest("[data-cta]");
   if (cta) {
+    // La valeur est la clef de la page visee : toute page existante est
+    // atteignable, sans ajouter un cas ici a chaque nouveau bouton.
     const t = cta.dataset.cta;
-    if (t === "stages") location.hash = "stages";
-    else if (t === "gamezone") location.hash = "gamezone";
+    if (DETAILS[t]) location.hash = t;
     return;
   }
   const plan = e.target.closest("[data-plan]");
