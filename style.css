@@ -2564,7 +2564,10 @@ tr.rm-loss td{background:#fde8e8}
 .pm-add:hover{background:#dde3ef;color:var(--blue-ink)}
 
 /* Fiche d'une carte */
-.pm-modal-card{max-width:min(94vw,880px);width:880px}
+/* La console habille ses fenetres avec .card, qui apporte le fond blanc, la
+   bordure et l'ombre. Il ne reste qu'a elargir : .modal .card plafonne a
+   420 px, et il faut la meme specificite pour passer devant. */
+.modal .pm-modal-card{max-width:min(94vw,880px);gap:0}
 .pm-title-input{width:100%;font-size:1.15rem;font-weight:800;color:var(--blue-ink);
   border:1px solid transparent;border-radius:8px;padding:8px 10px;margin:0 0 14px;background:#f7f9fc}
 .pm-title-input:focus{outline:none;border-color:var(--blue);background:#fff}
