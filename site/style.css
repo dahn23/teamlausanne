@@ -2252,3 +2252,95 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 
 /* Note de bas de bloc « Entrainements et tarif » : la suite du parcours. */
 .slots-note{margin:14px 0 0;color:var(--muted);font-size:.94rem;font-style:italic}
+
+/* ============================================================
+   Sport-etudes : film, portraits d'eleves, brochure
+   ============================================================ */
+
+/* Film de presentation : cadre sombre aux couleurs de la marque, liseré fluo. */
+.filmsec{width:100vw;margin-inline:calc(50% - 50vw);padding:var(--sec-md) 22px;
+  background:var(--blue-ink);color:#fff}
+.film-head{max-width:760px;margin:0 auto 30px;text-align:center}
+.film-head h2{color:#fff}
+.filmsec .eyebrow,body[data-world="academie"] .filmsec .eyebrow{color:#fff}
+.filmsec .eyebrow::before,body[data-world="academie"] .filmsec .eyebrow::before{background:var(--fluo)}
+.film-head .perks-lead{color:rgba(255,255,255,.82)}
+.film-cadre{position:relative;max-width:980px;margin:0 auto;aspect-ratio:16/9;
+  border-radius:var(--radius);overflow:hidden;background:#000;
+  box-shadow:0 24px 60px rgba(0,0,0,.45)}
+/* Le liseré est un ::after pose par-dessus : une bordure sur le cadre lui-meme
+   rognerait la video, qui remplit tout l'element. */
+.film-cadre::after{content:"";position:absolute;inset:0;pointer-events:none;
+  border:5px solid var(--fluo);border-radius:var(--radius)}
+.film-media{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;
+  object-fit:cover;background:#000}
+.film-note{max-width:980px;margin:16px auto 0;text-align:center;
+  color:rgba(255,255,255,.72);font-size:.92rem}
+
+/* Portraits d'eleves : la photo d'abord, le texte au survol ou au clic. */
+.eleve-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+.eleve{position:relative;display:block;padding:0;border:0;cursor:pointer;text-align:left;
+  aspect-ratio:3/4;border-radius:var(--radius);overflow:hidden;background:var(--blue-ink);
+  box-shadow:var(--shadow);transition:transform .3s ease,box-shadow .3s ease}
+.eleve:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(20,26,46,.22)}
+.eleve:focus-visible{outline:3px solid var(--fluo);outline-offset:3px}
+.eleve-photo{position:absolute;inset:0;background-size:cover;background-position:center top;
+  transition:transform .5s ease,filter .35s ease}
+.eleve:hover .eleve-photo{transform:scale(1.05)}
+/* Bandeau du bas : nom et classement, lisibles sans rien survoler. */
+.eleve-bas{position:absolute;left:0;right:0;bottom:0;padding:52px 18px 16px;
+  display:flex;flex-direction:column;gap:2px;
+  background:linear-gradient(180deg,transparent,rgba(4,32,94,.86));
+  transition:opacity .3s ease}
+.eleve-nom{font-family:var(--font-accent);font-weight:700;text-transform:uppercase;
+  letter-spacing:-.02em;font-size:1.15rem;color:#fff;line-height:1.1}
+.eleve-meta{color:var(--fluo);font-weight:700;font-size:.86rem}
+/* Le dos de la carte, revele au survol ou au clic. */
+.eleve-dos{position:absolute;inset:0;padding:22px;display:flex;flex-direction:column;
+  justify-content:flex-end;gap:6px;color:#fff;
+  background:linear-gradient(180deg,rgba(4,32,94,.55),rgba(4,32,94,.95));
+  opacity:0;transition:opacity .35s ease}
+.eleve-dos-nom{font-family:var(--font-accent);font-weight:700;text-transform:uppercase;
+  letter-spacing:-.02em;font-size:1.2rem;line-height:1.1}
+.eleve-dos-meta{color:var(--fluo);font-weight:700;font-size:.88rem;margin-bottom:4px}
+.eleve-dos-txt{font-size:.95rem;line-height:1.55;color:rgba(255,255,255,.92)}
+.eleve:hover .eleve-dos,.eleve.ouvert .eleve-dos,.eleve:focus-visible .eleve-dos{opacity:1}
+.eleve:hover .eleve-bas,.eleve.ouvert .eleve-bas{opacity:0}
+/* Pastille « + » : elle dit qu'il y a quelque chose dessous. */
+.eleve-plus{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;
+  background:var(--fluo);transition:transform .35s ease}
+.eleve-plus::before,.eleve-plus::after{content:"";position:absolute;inset:50% 8px auto 8px;
+  height:2.5px;border-radius:2px;background:var(--fluo-ink);transform:translateY(-50%)}
+.eleve-plus::after{transform:translateY(-50%) rotate(90deg)}
+.eleve:hover .eleve-plus,.eleve.ouvert .eleve-plus{transform:rotate(45deg)}
+
+/* Brochure : deux colonnes, le formulaire et la couverture. */
+.brochure{width:100vw;margin-inline:calc(50% - 50vw);padding:var(--sec-md) 22px;
+  background:var(--fluo);color:var(--fluo-ink)}
+.broch-in{max-width:var(--container);margin:0 auto;
+  display:grid;grid-template-columns:1.25fr .75fr;gap:36px;align-items:center}
+.brochure .eyebrow,body[data-world="academie"] .brochure .eyebrow{color:var(--fluo-ink)}
+.brochure .eyebrow::before,body[data-world="academie"] .brochure .eyebrow::before{background:var(--fluo-ink)}
+.broch-txt h2{color:var(--fluo-ink);font-size:clamp(1.7rem,3.6vw,2.5rem);margin:0 0 12px}
+.broch-lead{font-size:1.05rem;line-height:1.55;margin:0 0 22px;max-width:46ch}
+.broch-form{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.broch-champ{flex:1 1 260px;min-width:0}
+.broch-champ input{width:100%;font:inherit;font-size:1rem;padding:14px 18px;
+  border:2px solid var(--fluo-ink);border-radius:999px;background:#fff;color:var(--ink)}
+.broch-champ input:focus{outline:none;box-shadow:0 0 0 3px rgba(20,48,10,.25)}
+.broch-msg{flex:1 0 100%;margin:0;font-weight:700;font-size:.95rem}
+.broch-msg.ko{color:#7a1c1c}
+.broch-msg a{color:var(--fluo-ink);font-weight:800}
+.broch-rgpd{flex:1 0 100%;margin:0;font-size:.84rem;opacity:.75;line-height:1.45}
+.broch-visuel img{display:block;width:100%;height:auto;border-radius:12px;
+  box-shadow:0 20px 44px rgba(20,48,10,.35)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+@media(max-width:860px){
+  .broch-in{grid-template-columns:1fr;gap:26px}
+  .broch-visuel{max-width:320px}
+}
+@media(prefers-reduced-motion:reduce){
+  .eleve,.eleve-photo,.eleve-dos,.eleve-bas,.eleve-plus{transition:none}
+}

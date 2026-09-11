@@ -2,6 +2,7 @@
 import { sb, getSession, myRoles, hasAny, landingFor, CONSOLE_ROLES, frDate, jours } from "./common.js";
 import "./pretty-select.js";
 import { SEEDS, DRAPEAUX } from "./seeds-data.js";
+import { SUPABASE_URL } from "./config.js";
 import { hit } from "./hit.js";
 import "./pretty-date.js";
 
@@ -160,28 +161,66 @@ const DETAILS = {
     ],
   },
   "sport-etudes": {
-    world: "academie", title: "Sport-études", subtitle: "Concilier études et tennis, au plus haut niveau",
+    world: "academie", title: "Sport-études",
+    subtitle: "Concilier les études et un entraînement quotidien, de 14 à 19 ans : deux heures de tennis, une heure de physique et quatre heures de cours encadrés par jour, avec un suivi individuel du premier jour au diplôme.",
     hero: "assets/photos/sport-etudes-2026.jpg", heroPos: "42% 22%",
+    cta: { label: "Recevoir la brochure", scroll: "brochure" },
     sections: [
-      { type: "rich", title: "Le programme de référence", body: [
-        "Le sport-études permet aux 14–19 ans de concilier études et entraînement intensif, dans un cadre optimal et un suivi individualisé.",
-        "Le programme s'étend sur 35 semaines selon le calendrier vaudois et combine tennis, préparation physique et études encadrées.",
+      { type: "keywords", label: "Ce qui fait le Sport-études", items: [
+        "Études encadrées", "Entraînement quotidien", "Suivi individualisé",
+        "Repas inclus", "Écoles partenaires", "Vers la maturité",
       ]},
+      { type: "split", photos: [
+          "assets/photos/sport-etudes-2026-g1.jpg", "assets/photos/sport-etudes-2026-g2.jpg",
+        ],
+        eyebrow: "Le programme de référence", title: "Étudier et s'entraîner, sans choisir", body: [
+          "Le sport-études permet aux 14–19 ans de concilier études et entraînement intensif, dans un cadre optimal et un suivi individualisé.",
+          "Le programme s'étend sur 35 semaines selon le calendrier vaudois et combine tennis, préparation physique et études encadrées.",
+        ], link: { label: "Recevoir la brochure", scroll: "brochure", cta: true } },
       { type: "stats", items: [["35", "semaines / an"], ["2h", "tennis / jour"], ["1h", "physique / jour"], ["4h", "études / jour"]] },
-      { type: "features", title: "Un encadrement complet", items: [
-        ["Repas de midi", "Repas de midi inclus, pris sur place."],
-        ["Écoles partenaires", "Enseignement à distance avec l'Institut DOMI, l'EPSU et le CNED."],
-        ["Responsable pédagogique", "Un référent dédié : organisation, méthodologie, suivi des échéances."],
-        ["Soutien académique", "Des assistants issus de l'EPFL et de l'UNIL, selon les besoins."],
-        ["Objectif diplôme", "Maturité fédérale suisse ou baccalauréat français."],
-        ["Médical & physio", "Suivi médical, physiothérapie et tests réguliers."],
-        ["Préparation mentale", "Un accompagnement mental intégré."],
-      ]},
-      { type: "rich", title: "Et après ?", body: [
-        "Le programme développe autonomie, discipline et gestion du temps.",
-        "Débouchés : université suisse, institutions américaines (NCAA) ou carrière tennistique professionnelle.",
-      ], link: { label: "Nous écrire", contact: "Renseignement pour l'Academy" } },
-      { type: "gallery", items: ["assets/photos/sport-etudes-2026-g1.jpg", "assets/photos/sport-etudes-2026-g2.jpg"] },
+      { type: "filmsec", eyebrow: "En images", title: "Une journée au Sport-études",
+        lead: "Le quotidien du programme, filmé aux Plaines-du-Loup.",
+        video: "", videoFile: "" },
+      { type: "perks", eyebrow: "Un encadrement complet",
+        title: "Tout est prévu autour du joueur",
+        lead: "Les études, le corps et la tête : rien n'est laissé de côté pendant les trois à cinq ans du parcours.", items: [
+          ["Repas de midi", "Inclus et pris sur place, entre l'entraînement et les cours."],
+          ["Écoles partenaires", "Enseignement à distance avec l'Institut DOMI, l'EPSU et le CNED."],
+          ["Responsable pédagogique", "Un référent dédié : organisation, méthodologie, suivi des échéances."],
+          ["Soutien académique", "Des assistants issus de l'EPFL et de l'UNIL, selon les besoins."],
+          ["Objectif diplôme", "Maturité fédérale suisse ou baccalauréat français."],
+          ["Médical et physio", "Suivi médical, physiothérapie et tests réguliers."],
+          ["Préparation mentale", "Un accompagnement mental intégré à la semaine."],
+          ["Et après", "Université suisse, institutions américaines (NCAA) ou circuit professionnel."],
+        ]},
+      { type: "students", eyebrow: "Ils y sont",
+        title: "Nos sport-études",
+        lead: "Derrière le programme, il y a d'abord des joueuses et des joueurs. Touchez une carte pour en savoir plus.", items: [
+          { nom: "Talia Picci", age: "", classement: "",
+            photo: "assets/photos/eleve-talia-picci.jpg",
+            mot: "Portrait à compléter." },
+          { nom: "Célyan Lorival", age: "", classement: "",
+            photo: "assets/photos/eleve-celyan-lorival.jpg",
+            mot: "Portrait à compléter." },
+        ]},
+      { type: "brochure", anchor: "brochure",
+        eyebrow: "Brochure 2026", title: "Le programme en détail, dans votre boîte mail",
+        lead: "Le déroulé d'une semaine, les écoles partenaires, l'encadrement et les conditions d'admission — onze pages pour tout savoir avant de nous écrire.",
+        doc: "assets/brochures/sport-etudes-2026-fr.pdf",
+        bouton: "Recevoir la brochure",
+        mention: "Votre adresse sert uniquement à vous envoyer la brochure et à vous recontacter. Pas de liste de diffusion." },
+      { type: "faq", eyebrow: "Questions fréquentes",
+        title: "Tout ce qu'il faut savoir avant de postuler", items: [
+          ["À qui s'adresse le programme ?", "Aux joueuses et joueurs de 14 à 19 ans qui veulent s'entraîner tous les jours sans renoncer à leur scolarité."],
+          ["Comment se passent les cours ?", "À distance, avec l'Institut DOMI, l'EPSU ou le CNED, dans nos locaux et sous la conduite d'un responsable pédagogique. Quatre heures par jour, encadrées."],
+          ["Quel diplôme prépare-t-on ?", "La maturité fédérale suisse ou le baccalauréat français, selon le parcours de chacun."],
+          ["À quoi ressemble une journée ?", "Deux heures de tennis, une heure de préparation physique et quatre heures d'études, avec le repas de midi pris sur place."],
+          ["Et après le Sport-études ?", "L'université en Suisse, une institution américaine (NCAA) ou le circuit professionnel. Le programme développe l'autonomie et la gestion du temps qui servent dans les trois cas."],
+          ["Comment postuler ?", "Demandez la brochure ou écrivez-nous : nous convenons d'un échange, puis d'une évaluation sur le court."],
+        ]},
+      { type: "contact", title: "Parler du Sport-études",
+        lines: ["Team Lausanne Academy", "Route des Plaines-du-Loup 7", "1018 Lausanne"],
+        phone: "+41 21 647 76 16", contact: "Renseignement Sport-études" },
     ],
   },
   competition: {
@@ -936,6 +975,77 @@ function sectionHTML(sec) {
             <div class="faq-rep"><p>${esc(r)}</p></div></details>`).join("")}</div>
         ${linkHTML(sec.link)}</section>`;
 
+    // ---- Video de presentation, dans un cadre aux couleurs de la marque ----
+    // Ne s'affiche que si une source existe : mieux vaut pas de bloc qu'un cadre
+    // vide. `video` = identifiant YouTube, `videoFile` = fichier mp4 servi par le site.
+    case "filmsec": {
+      if (!sec.video && !sec.videoFile) return "";
+      const dedans = sec.videoFile
+        ? `<video class="film-media" controls playsinline preload="metadata"${sec.poster ? ` poster="${esc(sec.poster)}"` : ""}>
+             <source src="${esc(sec.videoFile)}" type="video/mp4" />
+             Votre navigateur ne peut pas lire cette video.
+           </video>`
+        : `<iframe class="film-media" src="https://www.youtube-nocookie.com/embed/${esc(sec.video)}?rel=0"
+             title="${esc(sec.title)}" loading="lazy" frameborder="0" allowfullscreen
+             allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>`;
+      return `<section class="wsec filmsec">
+        <div class="perks-head film-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
+        </div>
+        <div class="film-cadre">${dedans}</div>
+        ${sec.note ? `<p class="film-note">${esc(sec.note)}</p>` : ""}</section>`;
+    }
+
+    // ---- Portraits d'eleves ----
+    // La carte se retourne au survol : la photo d'abord, le texte ensuite. Au
+    // clavier et au doigt, un clic bascule — sinon le contenu serait inatteignable.
+    case "students":
+      return `<section class="wsec students">
+        <div class="perks-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
+        </div>
+        <div class="eleve-grid">${sec.items.map((e) =>
+          `<button type="button" class="eleve" data-eleve aria-expanded="false">
+            <span class="eleve-photo" style="background-image:url('${e.photo}')"></span>
+            <span class="eleve-bas">
+              <span class="eleve-nom">${esc(e.nom)}</span>
+              <span class="eleve-meta">${[e.age, e.classement].filter(Boolean).map(esc).join(" · ")}</span>
+            </span>
+            <span class="eleve-dos">
+              <span class="eleve-dos-nom">${esc(e.nom)}</span>
+              <span class="eleve-dos-meta">${[e.age, e.classement].filter(Boolean).map(esc).join(" · ")}</span>
+              <span class="eleve-dos-txt">${esc(e.mot || "")}</span>
+            </span>
+            <span class="eleve-plus" aria-hidden="true"></span>
+          </button>`).join("")}</div>
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
+
+    // ---- Brochure contre une adresse e-mail ----
+    case "brochure":
+      return `<section class="wsec brochure">
+        <div class="broch-in">
+          <div class="broch-txt">
+            ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+            <h2>${esc(sec.title)}</h2>
+            ${sec.lead ? `<p class="broch-lead">${esc(sec.lead)}</p>` : ""}
+            <form id="broch-form" class="broch-form" data-doc="${esc(sec.doc)}">
+              <label class="broch-champ">
+                <span class="sr-only">Votre e-mail</span>
+                <input type="email" id="broch-email" required autocomplete="email"
+                       placeholder="vous@exemple.ch" />
+              </label>
+              <button type="submit" class="btn-cta" id="broch-btn">${esc(sec.bouton || "Recevoir la brochure")}</button>
+              <p class="broch-msg" id="broch-msg" role="status"></p>
+              <p class="broch-rgpd">${esc(sec.mention || "Votre adresse sert uniquement a vous envoyer la brochure et a vous recontacter.")}</p>
+            </form>
+          </div>
+          ${sec.apercu ? `<div class="broch-visuel"><img src="${esc(sec.apercu)}" alt="" loading="lazy" /></div>` : ""}
+        </div></section>`;
+
     default: return "";
   }
 }
@@ -1521,5 +1631,64 @@ document.addEventListener("submit", async (e) => {
   f.reset();
   msg.className = "lo-msg ok";
   msg.textContent = "Merci, votre message est parti. Nous vous répondrons tout bientôt.";
+  btn.disabled = false;
+});
+
+// ---- Portraits d'eleves : bascule au clic ----
+// Le survol suffit a la souris, mais pas au doigt ni au clavier : le clic
+// bascule donc l'etat, et aria-expanded le dit aux lecteurs d'ecran.
+document.addEventListener("click", (e) => {
+  const carte = e.target.closest("[data-eleve]");
+  if (!carte) return;
+  const ouvert = carte.classList.toggle("ouvert");
+  carte.setAttribute("aria-expanded", ouvert ? "true" : "false");
+});
+
+// ---- Brochure contre une adresse e-mail ----
+// La demande est enregistree dans contact_messages : elle arrive ainsi dans la
+// boite de la console (cf. db/59), ce qui permet de rappeler la personne.
+// L'envoi de la brochure est confie a une fonction publique dediee ; s'il
+// echoue, on donne quand meme le lien pour ne pas laisser le visiteur sans rien.
+document.addEventListener("submit", async (e) => {
+  const f = e.target;
+  if (f.id !== "broch-form") return;
+  e.preventDefault();
+  const btn = $("broch-btn"), msg = $("broch-msg");
+  const email = $("broch-email").value.trim();
+  if (!email) return;
+  const doc = f.dataset.doc;
+  btn.disabled = true; msg.className = "broch-msg"; msg.textContent = "Envoi…";
+
+  const { error } = await sb.from("contact_messages").insert({
+    source: "Brochure Sport-études",
+    name: email.split("@")[0].slice(0, 200),
+    email: email.slice(0, 200),
+    message: "Demande de la brochure Sport-études depuis le site.",
+  });
+  if (error) {
+    msg.className = "broch-msg ko";
+    msg.textContent = "L’envoi a échoué. Écrivez-nous à info@teamlausanne.ch.";
+    btn.disabled = false;
+    return;
+  }
+
+  let parti = false;
+  try {
+    // Requete « simple », sans en-tete personnalise : la passerelle Supabase
+    // repond au pre-vol sans renvoyer access-control-allow-headers, donc tout
+    // en-tete ajoute ici ferait echouer l'appel. La fonction lit le corps en
+    // JSON quel que soit le content-type, et n'exige pas de cle.
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/brochure-send`, {
+      method: "POST",
+      body: JSON.stringify({ email, doc }),
+    });
+    parti = r.ok;
+  } catch (_) { /* le repli ci-dessous prend le relais */ }
+
+  f.reset();
+  msg.className = "broch-msg ok";
+  msg.innerHTML = parti
+    ? "Merci, la brochure part dans votre boîte mail. Nous vous recontactons bientôt."
+    : `Merci ! Voici la brochure : <a href="${esc(doc)}" target="_blank" rel="noopener">la télécharger</a>. Nous vous recontactons bientôt.`;
   btn.disabled = false;
 });
