@@ -208,6 +208,16 @@ const DETAILS = {
           ["Tournois et GameZone", "La compétition tout au long de la saison, préparée avec les coachs."],
           ["Une passerelle", "La suite naturelle du parcours est la filière Performance."],
         ]},
+      { type: "slots", eyebrow: "La semaine type",
+        title: "Entraînements et tarif",
+        lead: "Deux rendez-vous par semaine : deux heures de tennis et une heure de préparation physique.", items: [
+          { titre: "Séance 1", heures: ["1 h de tennis"] },
+          { titre: "Séance 2", heures: ["1 h de tennis", "1 h de physique"] },
+        ],
+        prix: { label: "Saison complète · 35 semaines", montant: "CHF 1'990.–",
+                detail: "2 h de tennis et 1 h de physique par semaine",
+                cta: { label: "Rejoindre la filière", scroll: "enroll-sec" } },
+        note: "La filière ouvre ensuite sur la Performance." },
       { type: "faq", eyebrow: "Questions fréquentes",
         title: "Tout ce qu'il faut savoir avant de se lancer", items: [
           ["À qui s'adresse la filière ?", "Aux joueuses et joueurs d'environ 10 à 13 ans qui ont déjà des bases solides et veulent s'entraîner plus régulièrement pour entrer en compétition."],
@@ -247,6 +257,18 @@ const DETAILS = {
           ["Suivi rapproché", "Un encadrement de proximité et une planification individualisée."],
           ["La suite du parcours", "L'accès au Sport-études, puis à la voie Pro U18."],
         ]},
+      { type: "slots", eyebrow: "La semaine type",
+        title: "Entraînements et tarif",
+        lead: "Quatre rendez-vous par semaine : cinq heures de tennis et une heure de préparation physique.", items: [
+          { titre: "Séance 1", heures: ["2 h de tennis"] },
+          { titre: "Séance 2", heures: ["1 h de tennis"] },
+          { titre: "Séance 3", heures: ["1 h de tennis", "1 h de physique"] },
+          { titre: "Séance 4", heures: ["1 h de tennis"] },
+        ],
+        prix: { label: "Saison complète · 35 semaines", montant: "CHF 4'490.–",
+                detail: "5 h de tennis et 1 h de physique par semaine",
+                cta: { label: "Rejoindre la filière", scroll: "enroll-sec" } },
+        note: "La filière ouvre ensuite sur le Sport-études." },
       { type: "faq", eyebrow: "Questions fréquentes",
         title: "Tout ce qu'il faut savoir avant de s'engager", items: [
           ["Quelle différence avec la Compétition ?", "La Compétition installe les habitudes de match. La Performance va plus loin : davantage de volume d'entraînement, la préparation physique intégrée, un suivi individualisé et un lien clair vers le Sport-études."],
@@ -339,9 +361,9 @@ const DETAILS = {
       { type: "slots", eyebrow: "Trouver le bon moment",
         title: "Horaires et tarif",
         lead: "Choisissez le créneau qui s'accorde avec la semaine de votre enfant.", items: [
-          { jour: "Mercredi", heures: ["13h30 – 14h15", "14h15 – 15h00"] },
-          { jour: "Mardi ou jeudi", heures: ["16h30 – 17h15"] },
-          { jour: "Sur mesure", heures: ["Fin d'après-midi"], note: "Des cours supplémentaires sont possibles : écrivez-nous." },
+          { titre: "Mercredi", heures: ["13h30 – 14h15", "14h15 – 15h00"] },
+          { titre: "Mardi ou jeudi", heures: ["16h30 – 17h15"] },
+          { titre: "Sur mesure", heures: ["Fin d'après-midi"], note: "Des cours supplémentaires sont possibles : écrivez-nous." },
         ],
         prix: { label: "Saison complète", montant: "CHF 490.–", detail: "45 minutes par semaine, matériel et t-shirt compris",
                 cta: { label: "Inscrire mon enfant", scroll: "enroll-sec" } } },
@@ -386,11 +408,11 @@ const DETAILS = {
       { type: "slots", eyebrow: "Trouver le bon moment",
         title: "Horaires et tarifs",
         lead: "Le tarif dépend du jour choisi ; le t-shirt Team Lausanne est compris dans tous les cas.", items: [
-          { jour: "Lundi", heures: ["17h15 – 19h15"], prix: "770.–" },
-          { jour: "Mardi", heures: ["17h15 – 19h15"], prix: "815.–" },
-          { jour: "Mercredi", heures: ["13h15 – 19h15"], prix: "815.–" },
-          { jour: "Jeudi", heures: ["17h15 – 19h15"], prix: "790.–" },
-          { jour: "Vendredi", heures: ["17h15 – 19h15"], prix: "770.–" },
+          { titre: "Lundi", heures: ["17h15 – 19h15"], prix: "770.–" },
+          { titre: "Mardi", heures: ["17h15 – 19h15"], prix: "815.–" },
+          { titre: "Mercredi", heures: ["13h15 – 19h15"], prix: "815.–" },
+          { titre: "Jeudi", heures: ["17h15 – 19h15"], prix: "790.–" },
+          { titre: "Vendredi", heures: ["17h15 – 19h15"], prix: "770.–" },
         ],
         prix: { label: "Saison complète", montant: "dès CHF 770.–",
                 detail: "selon le jour choisi · t-shirt Team Lausanne compris",
@@ -885,7 +907,7 @@ function sectionHTML(sec) {
           ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
         </div>
         <div class="slot-grid">${sec.items.map((o) =>
-          `<article class="slot"><span class="slot-jour">${esc(o.jour)}</span>
+          `<article class="slot"><span class="slot-titre">${esc(o.titre)}</span>
             <ul class="slot-heures">${o.heures.map((h) => `<li>${esc(h)}</li>`).join("")}</ul>
             ${o.note ? `<p class="slot-note">${esc(o.note)}</p>` : ""}
             ${o.prix ? `<span class="slot-tarif">${esc(o.prix)}</span>` : ""}</article>`).join("")}</div>
@@ -895,6 +917,7 @@ function sectionHTML(sec) {
           ${sec.prix.detail ? `<span class="slot-prix-detail">${esc(sec.prix.detail)}</span>` : ""}
           ${sec.prix.cta ? `<button class="btn-cta slot-prix-cta" data-scroll="${esc(sec.prix.cta.scroll)}">${esc(sec.prix.cta.label)}</button>` : ""}
         </div>` : ""}
+        ${sec.note ? `<p class="slots-note">${esc(sec.note)}</p>` : ""}
         ${linkHTML(sec.link)}</section>`;
 
     // ---- Questions frequentes ----
