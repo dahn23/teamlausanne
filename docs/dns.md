@@ -92,3 +92,20 @@ Zone actuelle chez Cloudflare (ns desiree/reese), A proxifiés → origine incon
 3. Attendre la fin du transfert (.ch : quelques heures à 5 jours ; .com : jusqu'à 5 jours, ou immédiat si l'ancien registrar accepte tout de suite). Le site et le mail ne coupent pas si la zone est prête avant.
 4. Après transfert : vérifier `nslookup -type=MX`, `-type=TXT`, `-type=A` ; pour teamlausanne.ch cliquer « Verify » chez Resend ; refaire « Test → moi » dans Console › Newsletter.
 5. Quand teamlausanne.ch est parti : résilier les **deux** plans Premium Wix (Team Lausanne, Lausanne Open) — les sites vivent sur Netlify.
+
+## katapultapp.com (le vrai domaine Katapult — katapultapp.net n'est pas à Dan)
+
+Registrar **Infomaniak** (payé jusqu'au 04.04.2028). DNS **Wix** (ns4/ns5.wixdns.net). **Site hébergé sur Wix** (A 185.230.63.x, www → cdn3.wixdns.net) → à rebâtir sur Netlify avant de quitter Wix, ou garder Wix pour ce seul site. Mail Google.
+
+| Type | Nom | Valeur | Prio | Rôle |
+|---|---|---|---|---|
+| A | @ | *(Wix aujourd'hui)* → 75.2.60.5 une fois le site sur Netlify | | Site |
+| CNAME | www | *(cdn3.wixdns.net aujourd'hui)* → `<site>.netlify.app` | | Site |
+| MX | @ | aspmx.l.google.com / alt1…alt4 | 10…50 | Boîte mail Google |
+| TXT | @ | `v=spf1 include:_spf.google.com include:amazonses.com ~all` | | SPF Google + Amazon SES |
+| TXT | @ | `google-gws-recovery-domain-verification=38296711` | | Google Workspace (domaine de récupération) |
+| TXT | @ | `Sendinblue-code:dccffcbf0dd7948a7788527aa9e5adea` | | Brevo/Sendinblue (à garder si encore utilisé) |
+| TXT | @ | `FSwMe9rAjnmIX3c1judnBlDPcnFwa673lvyBc4uA4f8=` | | Vérification inconnue (garder) |
+| TXT | @ | `1\|www.katapultapp.net` | | Résidu, à ne pas recréer |
+
+**swisssportadvisors.com : mis de côté par Dan le 12.09.2026 (ne pas y toucher pour le moment).**
