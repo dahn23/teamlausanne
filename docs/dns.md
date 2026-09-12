@@ -109,3 +109,12 @@ Registrar **Infomaniak** (payé jusqu'au 04.04.2028). DNS **Wix** (ns4/ns5.wixdn
 | TXT | @ | `1\|www.katapultapp.net` | | Résidu, à ne pas recréer |
 
 **swisssportadvisors.com : mis de côté par Dan le 12.09.2026 (ne pas y toucher pour le moment).**
+
+## pandafit.ch (à enregistrer chez Hostpoint — libre le 13.09.2026)
+
+Site PandaFit = dépôt `dahn23/pandafit-site` (dossier local `Claude/pandafit-site`), Netlify `pandafit-site`. Pas de mail sur ce domaine pour l'instant.
+
+| Type | Nom | Valeur | Rôle |
+|---|---|---|---|
+| A | @ | 75.2.60.5 | Site (Netlify `pandafit-site`) |
+| CNAME | www | pandafit-site.netlify.app | Site |
