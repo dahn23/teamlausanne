@@ -8907,20 +8907,31 @@ async function mailImportAll() {
   if (!acc || acc.is_hub) return;
   if (!await uiConfirm(`Importer TOUT l'historique de ${address} (reçus et envoyés) ? Ça peut prendre plusieurs minutes.`)) return;
   const btn = $("mail-importall-btn"); btn.disabled = true;
-  let total = 0, offset = 0, pass = 0, err = null;
+  let total = 0, offset = 0, pass = 0, err = null, skipped = 0, limit = 5;
   try {
-    for (; pass < 3000; pass++) {
+    for (; pass < 5000; pass++) {
       btn.textContent = `Import… ${total}`;
       // Paquets de 5 : au-delà, la fonction dépasse la mémoire allouée (pièces jointes en base64).
-      const { data, error } = await sb.functions.invoke("mail-import-box", { body: { address, limit: 5, offset, all: true } });
-      if (error) { let m = error.message; try { const t = await error.context.text(); try { m = JSON.parse(t).error || t; } catch (_) { m = t || m; } } catch (_) {} err = m; break; }
-      if (data?.error) { err = data.error; break; }
+      const { data, error } = await sb.functions.invoke("mail-import-box", { body: { address, limit, offset, all: true } });
+      let m = null;
+      if (error) { m = error.message; try { const t = await error.context.text(); try { m = JSON.parse(t).error || t; } catch (_) { m = t || m; } } catch (_) {} }
+      else if (data?.error) m = data.error;
+      if (m) {
+        // Un mail trop lourd fait dépasser la limite de la fonction : on le réessaie seul, puis on le saute.
+        if (/RESOURCE_LIMIT|compute resources/i.test(String(m))) {
+          if (limit > 1) { limit = 1; continue; }
+          skipped++; offset += 1; limit = 5; continue;
+        }
+        err = m; break;
+      }
+      limit = 5;
       total += data?.inserted || 0;
       offset += data?.scanned || 0;
       if (!data || (data.remaining || 0) <= 0 || !(data.scanned || 0)) break;
     }
     await loadMail();
-    alert(err ? `Import interrompu après ${total} message(s) : ${err}` : `Import terminé — ${total} message(s) ajouté(s) pour ${address}.`);
+    const sk = skipped ? ` ${skipped} mail(s) trop volumineux sauté(s).` : "";
+    alert(err ? `Import interrompu après ${total} message(s) : ${err}${sk}` : `Import terminé — ${total} message(s) ajouté(s) pour ${address}.${sk}`);
   } catch (e) { alert("Import impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = "Tout importer";
 }

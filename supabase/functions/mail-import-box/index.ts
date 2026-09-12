@@ -25,7 +25,7 @@ const PASS_ENV: Record<string, string> = {
   "raphael@teamlausanne.ch": "GMAIL_PASSE_RAPHAEL",
 };
 const MAXB = 10 * 1024 * 1024;
-const MAX_FETCH = 4 * 1024 * 1024;
+const MAX_FETCH = 2 * 1024 * 1024;
 
 function b64(u8: Uint8Array): string {
   let s = ""; const ch = 0x8000;
