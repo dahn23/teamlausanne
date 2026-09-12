@@ -8872,8 +8872,10 @@ async function refreshMailView() {
   renderMailList();
 }
 async function mailImportBoxes() {
-  const boxes = ["tournoi@teamlausanne.ch", "info@lausanneopen.ch"];
-  if (!await uiConfirm("Importer les 100 derniers mails de tournoi@teamlausanne.ch et info@lausanneopen.ch ? (IMAP doit être activé sur ces boîtes)")) return;
+  // Toutes les boîtes non-hub que l'utilisateur a le droit de voir (une boîte privée n'apparaît qu'à son propriétaire et aux superadmins).
+  const boxes = mailAccounts.filter((a) => !a.is_hub && a.active !== false).map((a) => a.address);
+  if (!boxes.length) { alert("Aucune autre boîte à importer."); return; }
+  if (!await uiConfirm(`Importer les 100 derniers mails de ${boxes.join(", ")} ? (IMAP doit être activé sur ces boîtes)`)) return;
   const btn = $("mail-importboxes-btn"); btn.disabled = true;
   const results = [];
   try {
@@ -9426,7 +9428,7 @@ function renderMailAccts() {
   const totA = Object.values(active).reduce((a, b) => a + b, 0);
   const chip = (addr, label, nA, nU) => `<button type="button" class="mail-acct${mailFilterAddr === addr ? " sel" : ""}" data-addr="${esc(addr)}">${esc(label)}${nA ? ` <span class="mail-badge mail-badge-blue" title="À traiter + attribué">${nA}</span>` : ""}${nU ? ` <span class="mail-badge" title="Non lus">${nU}</span>` : ""}</button>`;
   const accts = mailTournoiOnly ? mailAccounts.filter((a) => a.address === MAIL_TOURNOI) : mailAccounts;
-  $("mail-accts").innerHTML = accts.map((a) => chip(a.address, a.label, active[a.address] || 0, unread[a.address] || 0)).join("") + (mailTournoiOnly ? "" : chip("", "Toutes", totA, totU));
+  $("mail-accts").innerHTML = accts.map((a) => chip(a.address, a.private_user_id ? a.label + " 🔒" : a.label, active[a.address] || 0, unread[a.address] || 0)).join("") + (mailTournoiOnly ? "" : chip("", "Toutes", totA, totU));
   $("mail-accts").querySelectorAll(".mail-acct").forEach((b) => b.addEventListener("click", () => { mailFilterAddr = b.dataset.addr; mailMineF = false; renderMailAccts(); renderMailToolbar(); refreshMailView(); }));
 }
 function mailStatTag(m) {
