@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=195" />
+  <link rel="stylesheet" href="style.css?v=196" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -658,7 +658,7 @@
         <div id="view-newsletter" class="view hidden">
           <div class="crm-head"><h1>Newsletter</h1>
             <span class="spacer"></span><button type="button" id="nl-new">✉ Nouvelle newsletter</button></div>
-          <div class="table-wrap"><table class="crm-table nl-table"><thead><tr><th>Date</th><th>Objet</th><th>Ciblage</th><th>Destinataires</th><th>Envoyés</th><th>Délivrés</th><th>Ouvertures</th><th>Clics</th><th>Rebonds</th><th>Spam</th><th>Désinscrits</th><th>Statut</th><th></th></tr></thead><tbody id="nl-rows"></tbody></table></div>
+          <div id="nl-rows" class="nl-list"></div>
           <p id="nl-empty" class="muted" hidden>Aucune newsletter pour l'instant.</p>
           <div id="nl-detail" class="hidden" style="margin-top:18px"></div>
         </div>

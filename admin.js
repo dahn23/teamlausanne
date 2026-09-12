@@ -5215,18 +5215,23 @@ function renderNewsletters() {
     const acts = n.status === "brouillon"
       ? `<button class="ghost nl-edit" data-id="${n.id}">Modifier</button><button class="ghost nl-del" data-id="${n.id}" title="Supprimer">✕</button>`
       : `<button class="ghost nl-view" data-id="${n.id}">Voir</button><button class="ghost nl-dup" data-id="${n.id}" title="Réutiliser comme brouillon">Dupliquer</button>`;
-    return `<tr>
-      <td>${frDateTime(n.sent_at || n.created_at)}</td>
-      <td class="nl-subj"><b>${esc(n.subject || "(sans objet)")}</b></td>
-      <td class="muted" style="font-size:.8rem;white-space:normal;max-width:220px">${esc(nlAudLabel(n.audience))}</td>
-      <td>${m.n_total || 0}</td><td>${m.n_sent || 0}</td><td>${m.n_delivered || 0}</td>
-      <td><b>${m.n_opened || 0}</b> <span class="muted">${nlPct(m.n_opened, m.n_sent)}</span></td>
-      <td>${m.n_clicked || 0} <span class="muted">${nlPct(m.n_clicked, m.n_sent)}</span></td>
-      <td class="${m.n_bounced ? "dash-red" : ""}">${m.n_bounced || 0}</td>
-      <td class="${m.n_spam ? "dash-red" : ""}">${m.n_spam || 0}</td>
-      <td>${m.n_unsub || 0}</td>
-      <td><span class="nl-st ${n.status}">${NL_ST[n.status] || n.status}</span>${n.last_error ? `<div class="muted" style="font-size:.7rem;white-space:normal;max-width:180px" title="${esc(n.last_error)}">⚠ ${esc(n.last_error.slice(0, 60))}…</div>` : ""}</td>
-      <td class="he-acts">${acts}</td></tr>`;
+    // Carte par newsletter : titre + contexte à gauche, chiffres au milieu, actions à droite.
+    // Les compteurs d'incidents (rebonds, spam, désinscrits) ne s'affichent que s'ils sont non nuls.
+    const stat = (l, v, sub, cls) => `<div class="nl-stat ${cls || ""}"><b>${v}</b><span>${esc(l)}${sub ? ` · ${sub}` : ""}</span></div>`;
+    const draft = n.status === "brouillon";
+    const stats = draft ? `<div class="nl-stat nl-stat-muted"><b>—</b><span>pas encore envoyée</span></div>` :
+      stat("destinataires", m.n_total || 0) + stat("délivrés", m.n_delivered || 0, nlPct(m.n_delivered, m.n_sent)) +
+      stat("ouvertures", m.n_opened || 0, nlPct(m.n_opened, m.n_sent), "nl-stat-hi") + stat("clics", m.n_clicked || 0, nlPct(m.n_clicked, m.n_sent)) +
+      (m.n_bounced ? stat("rebonds", m.n_bounced, "", "nl-stat-bad") : "") + (m.n_spam ? stat("spam", m.n_spam, "", "nl-stat-bad") : "") + (m.n_unsub ? stat("désinscrits", m.n_unsub) : "");
+    return `<article class="nl-card">
+      <div class="nl-card-main">
+        <div class="nl-card-title"><b>${esc(n.subject || "(sans objet)")}</b><span class="nl-st ${n.status}">${NL_ST[n.status] || n.status}</span></div>
+        <div class="nl-card-meta">${draft ? "Créée le " : "Envoyée le "}${frDateTime(n.sent_at || n.created_at)} · ${esc(nlAudLabel(n.audience) || "ciblage non défini")}</div>
+        ${n.last_error ? `<div class="nl-card-err" title="${esc(n.last_error)}">⚠ ${esc(n.last_error.slice(0, 90))}${n.last_error.length > 90 ? "…" : ""}</div>` : ""}
+      </div>
+      <div class="nl-card-stats">${stats}</div>
+      <div class="nl-card-acts">${acts}</div>
+    </article>`;
   }).join("");
   const R = $("nl-rows");
   R.querySelectorAll(".nl-edit").forEach((b) => b.addEventListener("click", () => nlOpen(nlList.find((x) => x.id === b.dataset.id))));

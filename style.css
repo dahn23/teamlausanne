@@ -2466,9 +2466,21 @@ tr.rm-perf td{background:#fff1b8}
 tr.rm-win td{background:#e3f6ea}
 tr.rm-loss td{background:#fde8e8}
 /* ---- Newsletter ---- */
-.nl-table{min-width:1180px}
-.nl-table td,.nl-table th{white-space:nowrap}
-.nl-table td.nl-subj{white-space:normal;min-width:220px}
+/* Liste des newsletters en cartes (plus de tableau à défilement horizontal) */
+.nl-list{display:flex;flex-direction:column;gap:10px}
+.nl-card{display:grid;grid-template-columns:minmax(220px,1.2fr) auto auto;gap:18px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+.nl-card-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:1rem}
+.nl-card-meta{color:#6b7280;font-size:.82rem;margin-top:3px}
+.nl-card-err{color:#b91c1c;font-size:.76rem;margin-top:4px}
+.nl-card-stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.nl-stat{background:#f6f7fb;border-radius:10px;padding:6px 12px;min-width:84px;text-align:center}
+.nl-stat b{display:block;font-size:1.05rem;color:var(--blue-ink);line-height:1.2}
+.nl-stat span{display:block;font-size:.68rem;color:#6b7280;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.nl-stat-hi{background:#e8f0ff}.nl-stat-hi b{color:var(--blue)}
+.nl-stat-bad{background:#fde8e8}.nl-stat-bad b{color:#b91c1c}
+.nl-stat-muted b{color:#9ca3af}
+.nl-card-acts{display:flex;gap:6px;justify-content:flex-end}
+@media(max-width:900px){.nl-card{grid-template-columns:1fr}.nl-card-stats,.nl-card-acts{justify-content:flex-start}}
 .nl-roles{display:flex;flex-wrap:wrap;gap:6px}
 .nl-roles label{font-size:.82rem;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
 .nl-preview{margin-top:8px;max-height:180px;overflow:auto;font-size:.8rem;color:#555}
