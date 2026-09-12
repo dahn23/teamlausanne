@@ -5188,15 +5188,6 @@ function initNewsletter() {
   // la mise en forme se fait desormais bloc par bloc, dans l'inspecteur.
   $("nl-all").addEventListener("change", () => { $("nl-roles").querySelectorAll("input").forEach((c) => { c.disabled = $("nl-all").checked; }); });
   $("nl-roles").innerHTML = NL_ROLE_OPTS.map(([v, l]) => `<label><input type="checkbox" class="nl-role" value="${v}" /> ${l}</label>`).join("");
-  $("nl-setup").innerHTML = `<b>Mise en place (une fois)</b> — <a href="#" id="nl-setup-toggle">voir la marche à suivre</a>
-    <div id="nl-setup-body" class="hidden" style="margin-top:8px;font-size:.86rem;line-height:1.5">
-      1. Crée un compte sur <b>resend.com</b> (gratuit jusqu'à 3 000 e-mails / mois) et ajoute le domaine <b>teamlausanne.ch</b> : Resend te donne 3 enregistrements DNS (DKIM, SPF, DMARC) à créer chez Wix, comme pour le site. Active <b>Open &amp; click tracking</b> sur le domaine.<br>
-      2. Crée une <b>API key</b> (Sending access) et colle-la dans Supabase › Edge Functions › Secrets sous le nom <b>RESEND_API_KEY</b>.<br>
-      3. Resend › Webhooks › Add : URL <code>https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/newsletter-webhook</code>, événements delivered / opened / clicked / bounced / complained ; colle le <b>Signing secret</b> dans Supabase sous <b>RESEND_WEBHOOK_SECRET</b>.<br>
-      Tant que l'étape 2 n'est pas faite, « Test → moi » et « Envoyer » répondent « clé absente ».
-    </div>`;
-  $("nl-setup").classList.remove("hidden");
-  $("nl-setup-toggle").addEventListener("click", (e) => { e.preventDefault(); $("nl-setup-body").classList.toggle("hidden"); });
 }
 async function loadNewsletters() {
   initNewsletter();
