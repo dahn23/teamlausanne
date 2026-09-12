@@ -1,6 +1,11 @@
-// mail-import-box — importe les N derniers mails de la boîte de réception d'une boîte
-// (IMAP Gmail) dans la console. Une boîte PRIVÉE (mail_accounts.private_user_id) ne peut
-// être importée que par son propriétaire ou un superadmin (v4, migration 60).
+// mail-import-box — importe les mails d'une boîte Gmail (IMAP) dans la console.
+// Corps : { address, limit ≤ 100, offset = 0, all = false }.
+//   all = false → INBOX, réception seulement (comportement historique, bouton « Importer autres boîtes »).
+//   all = true  → dossier « Tous les messages » de Gmail : reçus ET envoyés (direction selon l'expéditeur),
+//                 corps HTML et pièces jointes conservés ; pagination par offset du plus récent au plus ancien
+//                 (bouton « Tout importer »). Retourne { inserted, scanned, total, remaining }.
+// Une boîte PRIVÉE (mail_accounts.private_user_id) ne peut être importée que par son propriétaire
+// ou un superadmin (v5, migration 60).
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -19,6 +24,33 @@ const PASS_ENV: Record<string, string> = {
   "admin@lstennis.ch": "GMAIL_PASS_LSTENNIS",
   "raphael@teamlausanne.ch": "GMAIL_PASS_RAPHAEL",
 };
+const MAXB = 10 * 1024 * 1024;
+
+function b64(u8: Uint8Array): string {
+  let s = ""; const ch = 0x8000;
+  for (let i = 0; i < u8.length; i += ch) s += String.fromCharCode(...u8.subarray(i, i + ch));
+  return btoa(s);
+}
+// Pièces jointes : les images inline sont réinjectées dans le HTML, le reste devient une ligne mail_attachments.
+// deno-lint-ignore no-explicit-any
+function processAtt(p: any, htmlIn: string | null) {
+  let html = htmlIn;
+  const rows: Record<string, unknown>[] = [];
+  for (const a of (p.attachments || [])) {
+    try {
+      const u8: Uint8Array = a.content instanceof Uint8Array ? a.content : new Uint8Array(a.content || []);
+      const cid = String(a.cid || a.contentId || "").replace(/[<>]/g, "");
+      const tooBig = u8.length > MAXB;
+      const isInline = (a.contentDisposition === "inline") || (!!cid && !!html && html.includes("cid:" + cid));
+      if (isInline && cid && html && !tooBig) {
+        html = html.split("cid:" + cid).join(`data:${a.contentType || "image/png"};base64,${b64(u8)}`);
+        continue;
+      }
+      rows.push({ filename: a.filename || "fichier", content_type: a.contentType || null, size_bytes: u8.length, content_id: cid || null, is_inline: false, content_b64: tooBig ? null : b64(u8) });
+    } catch (_) {}
+  }
+  return { html, rows };
+}
 
 // deno-lint-ignore no-explicit-any
 async function isDup(supa: any, messageId: string | null, fromAddr: string | null, subj: string | null, dateIso: string) {
@@ -48,7 +80,9 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const address = String(body.address || "").toLowerCase().trim();
-    const limit = Math.min(300, Math.max(1, Number(body.limit) || 100));
+    const limit = Math.min(100, Math.max(1, Number(body.limit) || 100));
+    const offset = Math.max(0, Number(body.offset) || 0);
+    const all = body.all === true;
     if (!address) return json({ error: "adresse manquante" }, 400);
     // Boîte privée : seul son propriétaire (ou un superadmin) peut l'importer.
     const { data: accRow } = await supa.from("mail_accounts").select("private_user_id").eq("address", address).maybeSingle();
@@ -60,11 +94,17 @@ Deno.serve(async (req) => {
 
     const client = new ImapFlow({ host: "imap.gmail.com", port: 993, secure: true, auth: { user, pass }, logger: false });
     await client.connect();
-    const lock = await client.getMailboxLock("INBOX");
-    let inserted = 0, scanned = 0;
+    // Dossier : INBOX, ou « Tous les messages » (special-use \All) en mode intégral.
+    let box = "INBOX";
+    if (all) {
+      try { for (const b of await client.list()) { if ((b as { specialUse?: string }).specialUse === "\\All") { box = (b as { path: string }).path; break; } } } catch (_) {}
+    }
+    const lock = await client.getMailboxLock(box);
+    let inserted = 0, scanned = 0, total = 0;
     try {
-      let uids = (await client.search({ all: true }, { uid: true })) || [];
-      uids = uids.sort((a: number, b: number) => b - a).slice(0, limit);
+      const uidsAll = ((await client.search({ all: true }, { uid: true })) || []).sort((a: number, b: number) => b - a);
+      total = uidsAll.length;
+      const uids = uidsAll.slice(offset, offset + limit);
       for (const u of uids) {
         scanned++;
         const msg = await client.fetchOne(u, { source: true }, { uid: true });
@@ -76,20 +116,24 @@ Deno.serve(async (req) => {
         const subj = p.subject || null;
         const dateIso = (p.date || new Date()).toISOString();
         if (await isDup(supa, messageId, fromAddr, subj, dateIso)) continue;
+        const isOut = all && !!fromAddr && fromAddr.toLowerCase() === address;
         const body2 = (p.text || "").trim();
-        const { error: insErr } = await supa.from("mail_messages").insert({
-          account_address: address, direction: "in", message_id: messageId,
+        const { html, rows } = all ? processAtt(p, p.html || null) : { html: null, rows: [] as Record<string, unknown>[] };
+        const { data: ins, error: insErr } = await supa.from("mail_messages").insert({
+          account_address: address, direction: isOut ? "out" : "in", message_id: messageId,
           from_name: fromV?.name || null, from_address: fromAddr, to_address: p.to?.value?.[0]?.address || address,
-          subject: subj, snippet: body2.slice(0, 140), body_text: body2,
-          received_at: dateIso, imap_uid: "box:" + address + ":" + u, is_read: true, status: "traite",
-        });
-        if (!insErr) inserted++;
+          subject: subj, snippet: body2.slice(0, 140), body_text: body2, body_html: html,
+          received_at: dateIso, imap_uid: "box:" + address + ":" + (all ? "all:" : "") + u, is_read: true, status: "traite", pushed: true,
+        }).select("id").single();
+        if (insErr || !ins) continue;
+        inserted++;
+        if (rows.length) await supa.from("mail_attachments").insert(rows.map((r) => ({ ...r, mail_id: ins.id })));
       }
     } finally {
       lock.release();
       await client.logout();
     }
-    return json({ ok: true, address, inserted, scanned });
+    return json({ ok: true, address, box, inserted, scanned, total, remaining: Math.max(0, total - (offset + scanned)) });
   } catch (e) {
     return json({ error: String((e as Error)?.message || e) }, 500);
   }

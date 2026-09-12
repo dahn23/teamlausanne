@@ -8747,6 +8747,7 @@ async function loadMail() {
     $("mail-sync").addEventListener("click", mailSync);
     $("mail-history-btn").addEventListener("click", mailHistory);
     $("mail-importboxes-btn").addEventListener("click", mailImportBoxes);
+    $("mail-importall-btn").addEventListener("click", mailImportAll);
     $("mail-new").addEventListener("click", openMailCompose);
     // (1) Barre de filtres repliable (mobile).
     $("mail-filters-toggle").addEventListener("click", () => {
@@ -8812,6 +8813,9 @@ async function loadMail() {
 }
 // Barre de filtres : Reçus/Envoyés/Tous, puis statuts (reçus/tous), puis personnes attribuées (en cours).
 function renderMailToolbar() {
+  // « Tout importer » : seulement quand une boîte non-hub est sélectionnée (la RLS ne montre une boîte privée qu'à son propriétaire et aux superadmins).
+  const selAcc = mailAccounts.find((a) => a.address === mailFilterAddr);
+  $("mail-importall-btn").classList.toggle("hidden", !selAcc || !!selAcc.is_hub);
   $("mail-dir-btns").innerHTML = MAIL_DIRS.map(([v, l]) => `<button type="button" class="mail-fbtn${(!mailMineF && mailDir === v) ? " sel" : ""}" data-dir="${v}">${l}</button>`).join("");
   $("mail-dir-btns").querySelectorAll(".mail-fbtn").forEach((b) => b.addEventListener("click", () => { mailDir = b.dataset.dir; mailMineF = false; renderMailToolbar(); refreshMailView(); }));
   const showStatus = mailDir !== "out" || mailMineF;
@@ -8894,6 +8898,30 @@ async function mailImportBoxes() {
     alert("Import terminé.\n" + results.join("\n"));
   } catch (e) { alert("Import impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = "Importer autres boîtes";
+}
+// Import intégral d'une boîte (dossier « Tous les messages » de Gmail : reçus ET envoyés, pièces jointes comprises),
+// par passes de 100 du plus récent au plus ancien. Sans doublon : relancer reprend là où ça s'est arrêté.
+async function mailImportAll() {
+  const address = mailFilterAddr;
+  const acc = mailAccounts.find((a) => a.address === address);
+  if (!acc || acc.is_hub) return;
+  if (!await uiConfirm(`Importer TOUT l'historique de ${address} (reçus et envoyés) ? Ça peut prendre plusieurs minutes.`)) return;
+  const btn = $("mail-importall-btn"); btn.disabled = true;
+  let total = 0, offset = 0, pass = 0, err = null;
+  try {
+    for (; pass < 400; pass++) {
+      btn.textContent = `Import… ${total}`;
+      const { data, error } = await sb.functions.invoke("mail-import-box", { body: { address, limit: 100, offset, all: true } });
+      if (error) { let m = error.message; try { const t = await error.context.text(); try { m = JSON.parse(t).error || t; } catch (_) { m = t || m; } } catch (_) {} err = m; break; }
+      if (data?.error) { err = data.error; break; }
+      total += data?.inserted || 0;
+      offset += data?.scanned || 0;
+      if (!data || (data.remaining || 0) <= 0 || !(data.scanned || 0)) break;
+    }
+    await loadMail();
+    alert(err ? `Import interrompu après ${total} message(s) : ${err}` : `Import terminé — ${total} message(s) ajouté(s) pour ${address}.`);
+  } catch (e) { alert("Import impossible : " + (e?.message || e)); }
+  btn.disabled = false; btn.textContent = "Tout importer";
 }
 async function mailHistory() {
   const btn = $("mail-history-btn");
