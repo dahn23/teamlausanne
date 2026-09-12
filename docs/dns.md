@@ -1,8 +1,17 @@
-# DNS — teamlausanne.ch et lausanneopen.ch
+# DNS — domaines de Dan (regroupement chez Hostpoint)
 
-Relevé public du **09.09.2026** (serveurs de noms Wix : ns12/ns13.wixdns.net).
-Sert de liste de contrôle pour recréer les zones chez **Infomaniak** lors du transfert (Wix → Infomaniak).
-Messagerie = **Google Workspace** (pas facturée par Wix). Sites = Netlify. Newsletter = Resend.
+Relevé public du **09–12.09.2026**. Sert de liste de contrôle pour recréer chaque zone chez **Hostpoint** (registrar + DNS uniques, décidé le 12.09.2026 ; Infomaniak et Cloudflare exclus).
+Messagerie = **Google Workspace** sur teamlausanne.ch, lausanneopen.ch, swisssportadvisors.com (on ne touche pas aux comptes, on recopie MX/SPF). Sites = **Netlify** partout. Newsletter = Resend.
+
+## État de départ
+
+| Domaine | Registrar | DNS | Site (Netlify) | Mail | Échéance |
+|---|---|---|---|---|---|
+| teamlausanne.ch | Wix (via EPAG) | Wix | zesty-clafoutis-a95fbc (site), teamlausanne (app) | Google Workspace | 18.06.2027 |
+| lausanneopen.ch | **Hostpoint** (domaine « connecté » dans Wix, jamais acheté chez Wix) | Wix | lausanne-open-site, lausanne-open-2026 (players), lausanne-open-welcome (welcome) | Google | ? |
+| swisssportadvisors.com | GoDaddy | Netlify DNS (NS1) | swiss-sport-advisors | Google | **24.10.2026** |
+| nmind.ch | Infomaniak | Infomaniak | nmind-ch | Infomaniak (mta-gw) | ? |
+| katapultapp.net | Namecheap (enregistré le 10.11.2025) | Cloudflare | **inconnu : sert un site de paris turc « Ligobet »** → probablement perdu/racheté par un tiers, à vérifier dans le compte Namecheap | aucun | 10.11.2026 |
 
 ## teamlausanne.ch
 
@@ -20,7 +29,7 @@ Messagerie = **Google Workspace** (pas facturée par Wix). Sites = Netlify. News
 | TXT | @ | `google-site-verification=pdFNVcQkCcytMO094mQcxDXwis_6pHYb3OqADWwMMFA` | | Vérification Google |
 | TXT | resend._domainkey | `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCmoM3OZgs5CEqqUjMhnpsBX157d/DLbVmdTDj9Vx2nOVZP28tScP+IxdtiJ905vmcjFABTuhIPJaUGLrJ30p9qrLj2ZJvUnhJjOVwV/UzAgF0piJtgylxRqCrSsiRt+i1Ygn3LfMUOUwTHoC3xar/DW1n73vjgjzjs8ep5czwKKQIDAQAB` | | DKIM Resend |
 | TXT | send | `v=spf1 include:amazonses.com ~all` | | SPF Resend |
-| MX | send | feedback-smtp.eu-west-1.amazonses.com | 10 | Retours Resend — **impossible chez Wix**, à poser chez Infomaniak |
+| MX | send | feedback-smtp.eu-west-1.amazonses.com | 10 | Retours Resend — **impossible chez Wix**, à poser chez Hostpoint |
 | TXT | _dmarc | `v=DMARC1; p=none; rua=mailto:info@teamlausanne.ch` | | DMARC (remplace le CNAME Wix `_dmarc.wixemails.com`) |
 
 À **ne pas** recréer (propres à Wix Ascend, obsolètes une fois parti) : CNAME `s1._domainkey`, `s2._domainkey`, `sel1._domainkey` → `*.s014.ascendbywix.com`.
@@ -33,6 +42,8 @@ Optionnel plus tard : DKIM Google Workspace (Admin Google › Gmail › Authenti
 |---|---|---|---|---|
 | A | @ | 75.2.60.5 | | Redirection vers teamlausanne.ch/#tournoi (Netlify `lausanne-open-site`) |
 | CNAME | www | lausanne-open-site.netlify.app | | idem |
+| CNAME | players | lausanne-open-2026.netlify.app | | Player Hub (dossier `open/`) |
+| CNAME | welcome | lausanne-open-welcome.netlify.app | | Page d'accueil joueurs (dossier `welcome/`) |
 | MX | @ | aspmx.l.google.com | 10 | Boîte mail Google |
 | MX | @ | alt1.aspmx.l.google.com | 20 | |
 | MX | @ | alt2.aspmx.l.google.com | 30 | |
@@ -41,9 +52,43 @@ Optionnel plus tard : DKIM Google Workspace (Admin Google › Gmail › Authenti
 | TXT | @ | `v=spf1 include:_spf.google.com ~all` | | SPF Google |
 | TXT | @ | `google-site-verification=HSjLFcIPD6D2zTRQhPDFfOfioHMbTedL1Dxzpce_e8A` | | Vérification Google |
 
+Pas de transfert nécessaire : déjà chez Hostpoint. Il suffit de remettre les serveurs de noms Hostpoint (à la place de ns12/ns13.wixdns.net) après avoir recréé la zone ci-dessus.
+
+## swisssportadvisors.com
+
+| Type | Nom | Valeur | Prio | Rôle |
+|---|---|---|---|---|
+| A | @ | 75.2.60.5 | | Site (Netlify `swiss-sport-advisors`) — chez Netlify DNS l'apex résolvait vers des IP AWS ; hors Netlify DNS, utiliser l'IP du load balancer |
+| CNAME | www | swiss-sport-advisors.netlify.app | | Site (domaine principal = www) |
+| MX | @ | aspmx.l.google.com | 10 | Boîte mail Google |
+| MX | @ | alt1.aspmx.l.google.com | 20 | |
+| MX | @ | alt2.aspmx.l.google.com | 30 | |
+| MX | @ | alt3.aspmx.l.google.com | 40 | |
+| MX | @ | alt4.aspmx.l.google.com | 50 | |
+| TXT | @ | `v=spf1 include:_spf.google.com ~all` | | SPF Google |
+| TXT | @ | `google-site-verification=TQYxd3zXtcwE7Z0YY1jTseFKVSVZYAgJWCkjepZfZYE` | | Vérification Google |
+
+**Urgent** : expire le 24.10.2026 → transfert GoDaddy → Hostpoint à lancer en premier (au moins 15 jours avant l'échéance).
+
+## nmind.ch
+
+| Type | Nom | Valeur | Prio | Rôle |
+|---|---|---|---|---|
+| A | @ | 75.2.60.5 | | Site (Netlify `nmind-ch`) |
+| CNAME | www | nmind-ch.netlify.app | | Site |
+| MX | @ | mta-gw.infomaniak.ch | 5 | Boîte mail Infomaniak — **à décider** : garder (alors le mail reste chez Infomaniak) ou migrer vers Google |
+| TXT | @ | `v=spf1 include:spf.infomaniak.ch -all` | | SPF Infomaniak (à adapter si le mail change) |
+| TXT | _dmarc | `v=DMARC1; p=reject;` | | DMARC |
+| CNAME | autoconfig | infomaniak.com | | Config auto des clients mail Infomaniak |
+
+## katapultapp.net
+
+Zone actuelle chez Cloudflare (ns desiree/reese), A proxifiés → origine inconnue, contenu = spam de paris turc. Enregistré le 10.11.2025 chez Namecheap, « client transfer prohibited ». À vérifier : le domaine est-il encore dans le compte Namecheap de Dan ? Sinon il a été récupéré par un tiers après expiration et n'est plus à lui.
+
 ## Procédure de transfert (par domaine)
 
-1. **Infomaniak** (manager.infomaniak.com › Domaines › Transférer) : saisir le domaine, choisir « importer la zone DNS actuelle », vérifier chaque ligne contre le tableau ci-dessus, ajouter ce qui manque (MX `send`, `_dmarc`), payer.
-2. **Wix** (Domaines › le domaine › ⋯ › Transférer hors de Wix) : déverrouiller, récupérer le code d'autorisation (EPP), le saisir chez Infomaniak.
-3. Attendre la fin du transfert (quelques heures à 5 jours pour un .ch). Le site et le mail ne coupent pas si la zone est prête avant.
-4. Après transfert : vérifier `nslookup -type=MX`, `-type=TXT`, `-type=A` ; cliquer « Verify » chez Resend ; refaire « Test → moi » dans Console › Newsletter.
+1. **Ancien registrar** : déverrouiller le domaine, obtenir le code d'autorisation (EPP). Wix : ⋯ › « Transférer en dehors de Wix ». GoDaddy : Paramètres du domaine › verrou off › code. Infomaniak : Domaines › Transférer le domaine.
+2. **Hostpoint** (Control Panel › Domaines › Transférer un domaine) : saisir le domaine + code, choisir « DNS Hostpoint », créer la zone d'après les tableaux ci-dessus **avant** la fin du transfert.
+3. Attendre la fin du transfert (.ch : quelques heures à 5 jours ; .com : jusqu'à 5 jours, ou immédiat si l'ancien registrar accepte tout de suite). Le site et le mail ne coupent pas si la zone est prête avant.
+4. Après transfert : vérifier `nslookup -type=MX`, `-type=TXT`, `-type=A` ; pour teamlausanne.ch cliquer « Verify » chez Resend ; refaire « Test → moi » dans Console › Newsletter.
+5. Quand teamlausanne.ch est parti : résilier les **deux** plans Premium Wix (Team Lausanne, Lausanne Open) — les sites vivent sur Netlify.
