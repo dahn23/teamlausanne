@@ -8907,7 +8907,7 @@ async function mailImportAll() {
   if (!acc || acc.is_hub) return;
   if (!await uiConfirm(`Importer TOUT l'historique de ${address} (reçus et envoyés) ? Ça peut prendre plusieurs minutes.`)) return;
   const btn = $("mail-importall-btn"); btn.disabled = true;
-  let total = 0, offset = 0, pass = 0, err = null, skipped = 0, limit = 5;
+  let total = 0, offset = 0, pass = 0, err = null, skipped = 0, limit = 5, idleRetries = 0;
   try {
     for (; pass < 5000; pass++) {
       btn.textContent = `Import… ${total}`;
@@ -8921,6 +8921,12 @@ async function mailImportAll() {
         if (/RESOURCE_LIMIT|compute resources/i.test(String(m))) {
           if (limit > 1) { limit = 1; continue; }
           skipped++; offset += 1; limit = 5; continue;
+        }
+        // Gmail qui ne répond plus (IDLE_TIMEOUT) : on souffle 30 s et on reprend au même endroit, 3 fois max.
+        if (/IDLE_TIMEOUT|idle timeout|timed out/i.test(String(m)) && idleRetries < 3) {
+          idleRetries++; btn.textContent = `Pause… ${total}`;
+          await new Promise((r) => setTimeout(r, 30000));
+          continue;
         }
         err = m; break;
       }
