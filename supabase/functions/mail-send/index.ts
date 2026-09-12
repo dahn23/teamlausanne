@@ -18,7 +18,7 @@ const PASS_ENV: Record<string, string> = {
   "tournoi@teamlausanne.ch": "GMAIL_PASS_TOURNOI",
   "info@lausanneopen.ch": "GMAIL_PASS_LAUSANNEOPEN",
   "admin@lstennis.ch": "GMAIL_PASS_LSTENNIS",
-  "raphael@teamlausanne.ch": "GMAIL_PASS_RAPHAEL",
+  "raphael@teamlausanne.ch": "GMAIL_PASSE_RAPHAEL",
 };
 const SEND_NAME: Record<string, string> = {
   "info@teamlausanne.ch": "Team Lausanne Academy",
