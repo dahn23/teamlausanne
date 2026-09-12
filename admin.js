@@ -8909,9 +8909,10 @@ async function mailImportAll() {
   const btn = $("mail-importall-btn"); btn.disabled = true;
   let total = 0, offset = 0, pass = 0, err = null;
   try {
-    for (; pass < 400; pass++) {
+    for (; pass < 3000; pass++) {
       btn.textContent = `Import… ${total}`;
-      const { data, error } = await sb.functions.invoke("mail-import-box", { body: { address, limit: 100, offset, all: true } });
+      // Paquets de 12 : au-delà, la fonction dépasse la mémoire allouée (pièces jointes en base64).
+      const { data, error } = await sb.functions.invoke("mail-import-box", { body: { address, limit: 12, offset, all: true } });
       if (error) { let m = error.message; try { const t = await error.context.text(); try { m = JSON.parse(t).error || t; } catch (_) { m = t || m; } } catch (_) {} err = m; break; }
       if (data?.error) { err = data.error; break; }
       total += data?.inserted || 0;

@@ -25,6 +25,7 @@ const PASS_ENV: Record<string, string> = {
   "raphael@teamlausanne.ch": "GMAIL_PASSE_RAPHAEL",
 };
 const MAXB = 10 * 1024 * 1024;
+const MAX_FETCH = 8 * 1024 * 1024;
 
 function b64(u8: Uint8Array): string {
   let s = ""; const ch = 0x8000;
@@ -83,6 +84,8 @@ Deno.serve(async (req) => {
     const limit = Math.min(100, Math.max(1, Number(body.limit) || 100));
     const offset = Math.max(0, Number(body.offset) || 0);
     const all = body.all === true;
+    // Mode intégral : petits paquets, sinon la fonction dépasse la mémoire (WORKER_RESOURCE_LIMIT).
+    const step = all ? Math.min(limit, 12) : limit;
     if (!address) return json({ error: "adresse manquante" }, 400);
     // Boîte privée : seul son propriétaire (ou un superadmin) peut l'importer.
     const { data: accRow } = await supa.from("mail_accounts").select("private_user_id").eq("address", address).maybeSingle();
@@ -104,9 +107,28 @@ Deno.serve(async (req) => {
     try {
       const uidsAll = ((await client.search({ all: true }, { uid: true })) || []).sort((a: number, b: number) => b - a);
       total = uidsAll.length;
-      const uids = uidsAll.slice(offset, offset + limit);
+      const uids = uidsAll.slice(offset, offset + step);
       for (const u of uids) {
         scanned++;
+        // Mails géants : on ne charge pas le contenu (mémoire), on garde une trace allégée.
+        const meta = await client.fetchOne(u, { envelope: true, size: true }, { uid: true });
+        // deno-lint-ignore no-explicit-any
+        const mm = meta as any;
+        if ((mm?.size || 0) > MAX_FETCH) {
+          const env = mm?.envelope || {};
+          const fromE = (env.from && env.from[0]) || null;
+          const dateE = (env.date ? new Date(env.date) : new Date()).toISOString();
+          if (await isDup(supa, env.messageId || null, fromE?.address || null, env.subject || null, dateE)) continue;
+          const { error: bigErr } = await supa.from("mail_messages").insert({
+            account_address: address, direction: (all && fromE?.address && String(fromE.address).toLowerCase() === address) ? "out" : "in", message_id: env.messageId || null,
+            from_name: fromE?.name || null, from_address: fromE?.address || null, to_address: address,
+            subject: env.subject || null, snippet: `⚠ Mail volumineux (~${Math.round((mm.size || 0) / 1024 / 1024 * 10) / 10} Mo) — ouvrir dans Gmail`,
+            body_text: "Ce message est trop volumineux pour etre affiche ici. Ouvre-le directement dans Gmail.", body_html: null,
+            received_at: dateE, imap_uid: "box:" + address + ":" + (all ? "all:" : "") + u, is_read: true, status: "traite", pushed: true,
+          });
+          if (!bigErr) inserted++;
+          continue;
+        }
         const msg = await client.fetchOne(u, { source: true }, { uid: true });
         if (!msg || !msg.source) continue;
         const p = await simpleParser(msg.source as Uint8Array);
