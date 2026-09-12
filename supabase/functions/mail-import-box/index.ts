@@ -25,7 +25,7 @@ const PASS_ENV: Record<string, string> = {
   "raphael@teamlausanne.ch": "GMAIL_PASSE_RAPHAEL",
 };
 const MAXB = 10 * 1024 * 1024;
-const MAX_FETCH = 8 * 1024 * 1024;
+const MAX_FETCH = 4 * 1024 * 1024;
 
 function b64(u8: Uint8Array): string {
   let s = ""; const ch = 0x8000;
@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     const offset = Math.max(0, Number(body.offset) || 0);
     const all = body.all === true;
     // Mode intégral : petits paquets, sinon la fonction dépasse la mémoire (WORKER_RESOURCE_LIMIT).
-    const step = all ? Math.min(limit, 12) : limit;
+    const step = all ? Math.min(limit, 5) : limit;
     if (!address) return json({ error: "adresse manquante" }, 400);
     // Boîte privée : seul son propriétaire (ou un superadmin) peut l'importer.
     const { data: accRow } = await supa.from("mail_accounts").select("private_user_id").eq("address", address).maybeSingle();
@@ -105,15 +105,20 @@ Deno.serve(async (req) => {
     const lock = await client.getMailboxLock(box);
     let inserted = 0, scanned = 0, total = 0;
     try {
-      const uidsAll = ((await client.search({ all: true }, { uid: true })) || []).sort((a: number, b: number) => b - a);
-      total = uidsAll.length;
-      const uids = uidsAll.slice(offset, offset + step);
-      for (const u of uids) {
+      // Pas de SEARCH sur toute la boîte (lourd sur « Tous les messages ») : on parcourt par numéros de séquence,
+      // du plus récent (exists) vers le plus ancien, `step` messages par appel.
+      total = Number((client.mailbox as { exists?: number })?.exists || 0);
+      const seqs: number[] = [];
+      for (let s = total - offset; s >= 1 && seqs.length < step; s--) seqs.push(s);
+      console.log(`import-box ${address} box=${box} total=${total} offset=${offset} step=${step}`);
+      for (const seq of seqs) {
         scanned++;
+        const u = seq;
         // Mails géants : on ne charge pas le contenu (mémoire), on garde une trace allégée.
-        const meta = await client.fetchOne(u, { envelope: true, size: true }, { uid: true });
+        const meta = await client.fetchOne(String(u), { envelope: true, size: true, uid: true });
         // deno-lint-ignore no-explicit-any
         const mm = meta as any;
+        const realUid = mm?.uid || u;
         if ((mm?.size || 0) > MAX_FETCH) {
           const env = mm?.envelope || {};
           const fromE = (env.from && env.from[0]) || null;
@@ -124,12 +129,12 @@ Deno.serve(async (req) => {
             from_name: fromE?.name || null, from_address: fromE?.address || null, to_address: address,
             subject: env.subject || null, snippet: `⚠ Mail volumineux (~${Math.round((mm.size || 0) / 1024 / 1024 * 10) / 10} Mo) — ouvrir dans Gmail`,
             body_text: "Ce message est trop volumineux pour etre affiche ici. Ouvre-le directement dans Gmail.", body_html: null,
-            received_at: dateE, imap_uid: "box:" + address + ":" + (all ? "all:" : "") + u, is_read: true, status: "traite", pushed: true,
+            received_at: dateE, imap_uid: "box:" + address + ":" + (all ? "all:" : "") + realUid, is_read: true, status: "traite", pushed: true,
           });
           if (!bigErr) inserted++;
           continue;
         }
-        const msg = await client.fetchOne(u, { source: true }, { uid: true });
+        const msg = await client.fetchOne(String(u), { source: true });
         if (!msg || !msg.source) continue;
         const p = await simpleParser(msg.source as Uint8Array);
         const messageId = p.messageId || null;
@@ -145,7 +150,7 @@ Deno.serve(async (req) => {
           account_address: address, direction: isOut ? "out" : "in", message_id: messageId,
           from_name: fromV?.name || null, from_address: fromAddr, to_address: p.to?.value?.[0]?.address || address,
           subject: subj, snippet: body2.slice(0, 140), body_text: body2, body_html: html,
-          received_at: dateIso, imap_uid: "box:" + address + ":" + (all ? "all:" : "") + u, is_read: true, status: "traite", pushed: true,
+          received_at: dateIso, imap_uid: "box:" + address + ":" + (all ? "all:" : "") + realUid, is_read: true, status: "traite", pushed: true,
         }).select("id").single();
         if (insErr || !ins) continue;
         inserted++;
