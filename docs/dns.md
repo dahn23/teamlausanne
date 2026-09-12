@@ -112,7 +112,7 @@ Registrar **Infomaniak** (payé jusqu'au 04.04.2028). DNS **Wix** (ns4/ns5.wixdn
 
 ## pandafit.ch (à enregistrer chez Hostpoint — libre le 13.09.2026)
 
-Site PandaFit = dépôt `dahn23/pandafit-site` (dossier local `Claude/pandafit-site`), Netlify `pandafit-site`. Pas de mail sur ce domaine pour l'instant.
+Site PandaFit = dossier `site/` du dépôt `dahn23/pandafit` (Pandafit-code), Netlify `pandafit-site` (base directory `site`). Pas de mail sur ce domaine pour l'instant.
 
 | Type | Nom | Valeur | Rôle |
 |---|---|---|---|
