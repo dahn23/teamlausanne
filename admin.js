@@ -8738,6 +8738,19 @@ const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() ==
 // base64) → chargement rapide. Le contenu est chargé à l'ouverture d'un mail (openMail).
 const MAIL_COLS = "id,account_address,direction,from_name,from_address,to_address,subject,snippet,received_at,is_read,status,assigned_user,tags,imap_uid,created_at,message_id,comment,treated_by,treated_at,att_fetched,pushed,has_invoice";
 let mailSearchT = null;
+// Messages chargés = les 300 plus récents toutes boîtes (pour les pastilles) + les 300 plus récents
+// de la boîte sélectionnée (sinon une boîte peu active, ou fraîchement importée, paraît vide).
+async function mailFetchMsgs() {
+  const base = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(300);
+  const qs = [base];
+  if (mailFilterAddr) qs.push(sb.from("mail_messages").select(MAIL_COLS).eq("account_address", mailFilterAddr).order("received_at", { ascending: false }).limit(300));
+  const res = await Promise.all(qs);
+  if (res.some((r) => r.error)) return null;
+  const seen = new Set(), out = [];
+  for (const r of res) for (const m of (r.data || [])) { if (!seen.has(m.id)) { seen.add(m.id); out.push(m); } }
+  out.sort((a, b) => String(b.received_at).localeCompare(String(a.received_at)));
+  return out;
+}
 async function loadMail() {
   $("view-mail").classList.remove("mail-showdetail");  // (re)entree dans la messagerie : mobile = liste d'abord
   if (!$("mail-search").dataset.wired) {
@@ -8764,7 +8777,7 @@ async function loadMail() {
     // chaque minute) — ne touche pas au message ouvert ni à un brouillon en cours.
     setInterval(async () => {
       if ($("view-mail").classList.contains("hidden")) return;
-      const { data: msgs } = await sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(300);
+      const msgs = await mailFetchMsgs();
       if (msgs) { mailMsgs = msgs; renderMailAccts(); refreshMailView(); }
     }, 60000);
     // Fermer (✕) : on enregistre avant de jeter la fenêtre, sinon le message est perdu
@@ -8793,9 +8806,9 @@ async function loadMail() {
     $("mailc-file").addEventListener("change", (e) => { for (const f of e.target.files) { if (f.size > 8 * 1024 * 1024) { alert(`${f.name} dépasse 8 Mo — trop lourd.`); continue; } mailcFiles.push(f); } e.target.value = ""; renderMailcFiles(); });
     attachEmailAC($("mailc-to")); attachEmailAC($("mailc-cc")); attachEmailAC($("mailc-bcc"));  // autocompletion adresses
   }
-  const [{ data: accts }, { data: msgs }] = await Promise.all([
+  const [{ data: accts }, msgs] = await Promise.all([
     sb.from("mail_accounts").select("*").order("sort_order"),
-    sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(300),
+    mailFetchMsgs(),
   ]);
   mailAccounts = accts || [];
   mailMsgs = msgs || [];
@@ -8829,7 +8842,8 @@ function renderMailToolbar() {
       if (stCount[m.status] != null) stCount[m.status]++;
     }
     $("mail-status-btns").innerHTML = MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${(!mailMineF && mailStatusF === k) ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}${(stCount[k] && k !== "traite") ? ` <span class="mail-badge mail-badge-blue">${stCount[k]}</span>` : ""}</button>`).join("");
-    $("mail-status-btns").querySelectorAll(".mail-fbtn").forEach((b) => b.addEventListener("click", () => { mailStatusF = b.dataset.st; mailMineF = false; if (mailStatusF !== "en_cours") mailAssigneeF = ""; renderMailToolbar(); refreshMailView(); }));
+    // Re-cliquer le statut actif le désélectionne → tous les statuts.
+    $("mail-status-btns").querySelectorAll(".mail-fbtn").forEach((b) => b.addEventListener("click", () => { mailStatusF = (mailStatusF === b.dataset.st) ? "" : b.dataset.st; mailMineF = false; if (mailStatusF !== "en_cours") mailAssigneeF = ""; renderMailToolbar(); refreshMailView(); }));
   }
   // Bouton « Attribué à moi » (sa propre ligne) : compteur bleu, TOUTES boîtes confondues
   if (myPersonId) {
@@ -9475,7 +9489,15 @@ function renderMailAccts() {
   const chip = (addr, label, nA, nU) => `<button type="button" class="mail-acct${mailFilterAddr === addr ? " sel" : ""}" data-addr="${esc(addr)}">${esc(label)}${nA ? ` <span class="mail-badge mail-badge-blue" title="À traiter + attribué">${nA}</span>` : ""}${nU ? ` <span class="mail-badge" title="Non lus">${nU}</span>` : ""}</button>`;
   const accts = mailTournoiOnly ? mailAccounts.filter((a) => a.address === MAIL_TOURNOI) : mailAccounts;
   $("mail-accts").innerHTML = accts.map((a) => chip(a.address, a.private_user_id ? a.label + " 🔒" : a.label, active[a.address] || 0, unread[a.address] || 0)).join("") + (mailTournoiOnly ? "" : chip("", "Toutes", totA, totU));
-  $("mail-accts").querySelectorAll(".mail-acct").forEach((b) => b.addEventListener("click", () => { mailFilterAddr = b.dataset.addr; mailMineF = false; renderMailAccts(); renderMailToolbar(); refreshMailView(); }));
+  $("mail-accts").querySelectorAll(".mail-acct").forEach((b) => b.addEventListener("click", async () => {
+    mailFilterAddr = b.dataset.addr; mailMineF = false;
+    // Boîte privée (archive personnelle) : on montre tout, pas seulement « à traiter ».
+    const acc = mailAccounts.find((a) => a.address === mailFilterAddr);
+    if (acc?.private_user_id) mailStatusF = "";
+    renderMailAccts(); renderMailToolbar(); refreshMailView();
+    const msgs = await mailFetchMsgs();   // recharge avec les 300 derniers de cette boîte
+    if (msgs) { mailMsgs = msgs; renderMailAccts(); renderMailToolbar(); refreshMailView(); }
+  }));
 }
 function mailStatTag(m) {
   const isOut = (m.direction || "in") === "out";
