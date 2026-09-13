@@ -8739,11 +8739,11 @@ const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() ==
 const MAIL_COLS = "id,account_address,direction,from_name,from_address,to_address,subject,snippet,received_at,is_read,status,assigned_user,tags,imap_uid,created_at,message_id,comment,treated_by,treated_at,att_fetched,pushed,has_invoice";
 let mailSearchT = null;
 // Messages chargés = les 300 plus récents toutes boîtes (pour les pastilles) + les 300 plus récents
-// de la boîte sélectionnée (sinon une boîte peu active, ou fraîchement importée, paraît vide).
+// (jusqu à 1000, plafond PostgREST) de la boîte sélectionnée (sinon une boîte peu active, ou fraîchement importée, paraît vide).
 async function mailFetchMsgs() {
   const base = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(300);
   const qs = [base];
-  if (mailFilterAddr) qs.push(sb.from("mail_messages").select(MAIL_COLS).eq("account_address", mailFilterAddr).order("received_at", { ascending: false }).limit(300));
+  if (mailFilterAddr) qs.push(sb.from("mail_messages").select(MAIL_COLS).eq("account_address", mailFilterAddr).order("received_at", { ascending: false }).limit(1000));
   const res = await Promise.all(qs);
   if (res.some((r) => r.error)) return null;
   const seen = new Set(), out = [];
@@ -9495,7 +9495,7 @@ function renderMailAccts() {
     const acc = mailAccounts.find((a) => a.address === mailFilterAddr);
     if (acc?.private_user_id) mailStatusF = "";
     renderMailAccts(); renderMailToolbar(); refreshMailView();
-    const msgs = await mailFetchMsgs();   // recharge avec les 300 derniers de cette boîte
+    const msgs = await mailFetchMsgs();   // recharge avec les 1000 derniers de cette boîte
     if (msgs) { mailMsgs = msgs; renderMailAccts(); renderMailToolbar(); refreshMailView(); }
   }));
 }
