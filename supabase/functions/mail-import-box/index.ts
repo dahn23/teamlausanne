@@ -5,7 +5,7 @@
 //                 corps HTML et pièces jointes conservés ; pagination par offset du plus récent au plus ancien
 //                 (bouton « Tout importer »). Retourne { inserted, scanned, total, remaining }.
 // Une boîte PRIVÉE (mail_accounts.private_user_id) ne peut être importée que par son propriétaire
-// ou un superadmin (v5, migration 60).
+// ou un superadmin (v5, migration 60). Appel technique possible avec ?key=CRON_SECRET (droits superadmin).
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -69,15 +69,24 @@ Deno.serve(async (req) => {
     const hub = (Deno.env.get("GMAIL_HUB") || "").trim();
     const hubPass = (Deno.env.get("GMAIL_APP_PASSWORD") || "").replace(/\s+/g, "");
 
-    const authHeader = req.headers.get("Authorization") || "";
-    const asUser = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
-    const { data: ures } = await asUser.auth.getUser();
-    const uid = ures?.user?.id;
-    if (!uid) return json({ error: "non authentifie" }, 401);
     const supa = createClient(url, service);
-    const { data: roles } = await supa.from("user_roles").select("role").eq("user_id", uid);
-    if (!(roles || []).some((r: { role: string }) => STAFF.includes(r.role))) return json({ error: "reserve au secretariat/admin" }, 403);
-    const isSuper = (roles || []).some((r: { role: string }) => r.role === "superadmin");
+    // Mode technique : la clé CRON_SECRET (comme mail-cron) donne les droits superadmin, sans session utilisateur.
+    const cronSecret = Deno.env.get("CRON_SECRET") || "";
+    const cronKey = new URL(req.url).searchParams.get("key") || req.headers.get("x-cron-secret") || "";
+    let uid: string | undefined;
+    let isSuper = false;
+    if (cronSecret && cronKey && cronKey === cronSecret) {
+      isSuper = true;
+    } else {
+      const authHeader = req.headers.get("Authorization") || "";
+      const asUser = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
+      const { data: ures } = await asUser.auth.getUser();
+      uid = ures?.user?.id;
+      if (!uid) return json({ error: "non authentifie" }, 401);
+      const { data: roles } = await supa.from("user_roles").select("role").eq("user_id", uid);
+      if (!(roles || []).some((r: { role: string }) => STAFF.includes(r.role))) return json({ error: "reserve au secretariat/admin" }, 403);
+      isSuper = (roles || []).some((r: { role: string }) => r.role === "superadmin");
+    }
 
     const body = await req.json().catch(() => ({}));
     const address = String(body.address || "").toLowerCase().trim();
@@ -119,6 +128,10 @@ Deno.serve(async (req) => {
         // deno-lint-ignore no-explicit-any
         const mm = meta as any;
         const realUid = mm?.uid || u;
+        // Déjà importé (même UID Gmail) : on ne retélécharge pas le contenu.
+        const uidKey = "box:" + address + ":" + (all ? "all:" : "") + realUid;
+        const { data: already } = await supa.from("mail_messages").select("id").eq("imap_uid", uidKey).limit(1);
+        if (already && already.length) continue;
         if ((mm?.size || 0) > MAX_FETCH) {
           const env = mm?.envelope || {};
           const fromE = (env.from && env.from[0]) || null;
