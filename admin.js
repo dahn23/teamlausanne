@@ -1836,7 +1836,7 @@ async function loadCourses(personId, showByRole) {
   const box = $("cours-content");
   const [{ data: parts0 }, { data: spar0 }] = await Promise.all([
     sb.from("course_participants").select("course_id,courses(course_date)").eq("child_person_id", personId),
-    sb.from("course_segments").select("id").eq("sparring_person_id", personId).limit(1),   // sparring du répertoire → onglet visible aussi
+    sb.from("course_segment_sparrings").select("id").eq("person_id", personId).limit(1),   // sparring du répertoire → onglet visible aussi
   ]);
   const anyCourse = (parts0 || []).some((p) => p.courses) || (spar0 || []).length > 0;
   showPersonTab("cours", showByRole || anyCourse);
@@ -1867,9 +1867,12 @@ async function renderCoursSeason(personId, seasonId) {
   const courseIds = mine.map((p) => p.course_id);
   const [att, segs, books] = await Promise.all([
     fetchInChunks("attendance", "course_id,person_id,status", "course_id", courseIds, (q) => q.eq("is_coach", false)),
-    fetchInChunks("course_segments", "id,course_id,minutes,note,status,sparring_person_id,sparring_name", "course_id", courseIds),
+    fetchInChunks("course_segments", "id,course_id,minutes,note,status", "course_id", courseIds),
     fetchInChunks("court_bookings", "court_id,course_id", "course_id", courseIds),
   ]);
+  // Sparrings de chaque bloc (personne du répertoire ou nom libre) : comptent comme des gens sur le court.
+  const sparRows = segs.length ? await fetchInChunks("course_segment_sparrings", "segment_id,person_id,name", "segment_id", segs.map((x) => x.id)) : [];
+  const sparBySeg = {}; sparRows.forEach((r) => (sparBySeg[r.segment_id] || (sparBySeg[r.segment_id] = [])).push(r));
   // Un cours réservé sur le court « Fitness » compte comme physique (même si son type ne dit pas « physique »).
   const fitnessCourtIds = new Set(resaCourtsAll.filter(isFitnessCourt).map((c) => c.id));
   const physByCourt = new Set((books || []).filter((b) => fitnessCourtIds.has(b.court_id)).map((b) => b.course_id));
@@ -1901,15 +1904,14 @@ async function renderCoursSeason(personId, seasonId) {
     if (segList && segList.length) {                          // pro/SE détaillé → selon le détail (blocs)
       segList.forEach((sg) => {
         const pls = playersBySeg[sg.id] || []; if (!pls.includes(personId)) return;
-        const hasSpar = !!(sg.sparring_person_id || sg.sparring_name);   // le sparring compte comme une personne sur le court
-        const m = sg.minutes || 0, gs = Math.min(pls.length + (hasSpar ? 1 : 0), 4) || 1;
+        const spars = sparBySeg[sg.id] || [];   // chaque sparring compte comme une personne sur le court
+        const m = sg.minutes || 0, gs = Math.min(pls.length + spars.length, 4) || 1;
         // Bloc « blessé » / « au repos » : compté à part (heures + nombre de fois), pas de temps de jeu.
         if (sg.status === "blesse" || sg.status === "repos") { d[sg.status].min += m; d[sg.status].n++; return; }
         d.g[gs] += m; d.total += m;
         addTheme(d, sg.note, m, c.course_date);
         pls.forEach((o) => { if (o !== personId) d.withMin[o] = (d.withMin[o] || 0) + m; });
-        const spar = sg.sparring_person_id ? trFull(sg.sparring_person_id) : (sg.sparring_name || "");
-        if (spar) d.sparMin[spar] = (d.sparMin[spar] || 0) + m;
+        spars.forEach((r) => { const n = r.person_id ? trFull(r.person_id) : (r.name || ""); if (n) d.sparMin[n] = (d.sparMin[n] || 0) + m; });
       });
     } else {                                                  // cours normal → durée pleine, groupe = présents
       const dur = trMinBetween(c.start_time, c.end_time);
@@ -1926,22 +1928,28 @@ async function renderCoursSeason(personId, seasonId) {
 // Heures faites COMME SPARRING par une personne du répertoire (blocs où elle est notée en sparring) :
 // total, à combien (taille du groupe), avec qui. Boîte séparée des cours suivis.
 async function coursSparringHtml(personId, s) {
-  const { data: segs } = await sb.from("course_segments")
-    .select("id,minutes,status,course_id,courses(course_date,course_types(name))").eq("sparring_person_id", personId);
-  const mine = (segs || []).filter((sg) => sg.courses && sg.courses.course_date >= s.start_date && sg.courses.course_date <= s.end_date && (sg.status || "jeu") === "jeu");
+  const { data: rows } = await sb.from("course_segment_sparrings")
+    .select("segment_id,course_segments(id,minutes,status,course_id,courses(course_date))").eq("person_id", personId);
+  const mine = (rows || []).map((r) => r.course_segments).filter((sg) => sg && sg.courses && sg.courses.course_date >= s.start_date && sg.courses.course_date <= s.end_date && (sg.status || "jeu") === "jeu");
   if (!mine.length) return "";
-  const sp = await fetchInChunks("course_segment_players", "segment_id,person_id", "segment_id", mine.map((x) => x.id));
+  const segIds = mine.map((x) => x.id);
+  const [sp, others] = await Promise.all([
+    fetchInChunks("course_segment_players", "segment_id,person_id", "segment_id", segIds),
+    fetchInChunks("course_segment_sparrings", "segment_id,person_id,name", "segment_id", segIds),   // les autres sparrings du même bloc
+  ]);
   const bySeg = {}; sp.forEach((r) => (bySeg[r.segment_id] || (bySeg[r.segment_id] = [])).push(r.person_id));
+  const sparBySeg = {}; others.forEach((r) => { if (r.person_id !== personId) (sparBySeg[r.segment_id] || (sparBySeg[r.segment_id] = [])).push(r); });
   const fmt = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}h${String(r).padStart(2, "0")}` : h ? `${h}h` : `${r}min`; };
   const g = { 1: 0, 2: 0, 3: 0, 4: 0 }, withMin = {}, days = new Set(), courseSet = new Set(); let total = 0;
   mine.forEach((sg) => {
-    const pls = (bySeg[sg.id] || []).filter((o) => o !== personId), m = sg.minutes || 0;
-    total += m; g[Math.min(pls.length + 1, 4) || 1] += m; days.add(sg.courses.course_date); courseSet.add(sg.course_id);   // lui compris
+    const pls = (bySeg[sg.id] || []).filter((o) => o !== personId), m = sg.minutes || 0, sp2 = sparBySeg[sg.id] || [];
+    total += m; g[Math.min(pls.length + sp2.length + 1, 4) || 1] += m; days.add(sg.courses.course_date); courseSet.add(sg.course_id);   // lui compris
     pls.forEach((o) => { withMin[o] = (withMin[o] || 0) + m; });
+    sp2.forEach((r) => { const k = r.person_id || ("free:" + r.name); withMin[k] = (withMin[k] || 0) + m; });
   });
   const partners = Object.entries(withMin).map(([id, m]) => ({ id, m })).sort((a, b) => b.m - a.m);
   const chip = (n, l) => `<span class="ck-chip"><b>${n}</b> ${l}</span>`;
-  const row = (p) => `<div class="att-row"><span class="att-d">${esc(trFull(p.id))}</span><span class="att-badge">${fmt(p.m)}</span></div>`;
+  const row = (p) => `<div class="att-row"><span class="att-d">${esc(p.id.startsWith("free:") ? p.id.slice(5) + " (sparring)" : trFull(p.id))}</span><span class="att-badge">${fmt(p.m)}</span></div>`;
   return `<div class="cours-box cours-box-spar">
     <div class="cours-box-h"><span class="cours-ico">${COURS_ICONS.tn}</span>Sparring <span class="muted" style="font-weight:400;font-size:.85rem">— heures faites comme sparring</span></div>
     <div class="cours-kpis">
@@ -10669,14 +10677,14 @@ let trStatWired = false;
 const TR_PRIV_RE = /priv/i;                          // cours privés : une note sur le cours (un seul bloc)
 const TR_STATES = { blesse: "Blessé", repos: "Au repos" };   // état d'un bloc ('jeu' = par défaut)
 let trEditing = null;   // { id, date, start, end, dur, label, roster:[], coachOpts:[], courtIds:[] }
-let trBlocs = [];       // [{ minutes, coach, court, note, players:[], status, sparring, sparringName }]
+let trBlocs = [];       // [{ minutes, coach, court, note, players:[], status, sparrings:[{id,name}] }]
 let trSparringNames = null;   // noms libres de sparring déjà saisis (suggestions)
 
 // Suggestions de sparring : tout le répertoire + les noms libres déjà saisis dans d'autres blocs.
 async function trLoadSparringNames() {
   if (trSparringNames) return trSparringNames;
-  const { data } = await sb.from("course_segments").select("sparring_name").not("sparring_name", "is", null).limit(1000);
-  trSparringNames = [...new Set((data || []).map((r) => String(r.sparring_name || "").trim()).filter(Boolean))].sort();
+  const { data } = await sb.from("course_segment_sparrings").select("name").is("person_id", null).limit(1000);
+  trSparringNames = [...new Set((data || []).map((r) => String(r.name || "").trim()).filter(Boolean))].sort();
   return trSparringNames;
 }
 function attachSparringAC(input, onPick) {
@@ -10754,7 +10762,7 @@ async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
     roster: [...new Set(childIds || [])], coachOpts: [...coachSet], courtIds: (courtIds || []).map(Number),
     children: [...new Set(childIds || [])], courseCoaches: [...new Set(coachIds || [])],
   };
-  const { data: segs } = await sb.from("course_segments").select("id,seq,minutes,coach_person_id,court_id,note,status,sparring_person_id,sparring_name").eq("course_id", course.id).order("seq");
+  const { data: segs } = await sb.from("course_segments").select("id,seq,minutes,coach_person_id,court_id,note,status,course_segment_sparrings(person_id,name,seq)").eq("course_id", course.id).order("seq");
   let ex = {};
   if ((segs || []).length) {
     const { data: sp } = await sb.from("course_segment_players").select("segment_id,person_id").in("segment_id", segs.map((s) => s.id));
@@ -10763,8 +10771,9 @@ async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
   (segs || []).forEach((s) => (ex[s.id] || []).forEach((pid) => { if (!trEditing.roster.includes(pid)) trEditing.roster.push(pid); }));
   trBlocs = (segs || []).length
     ? segs.map((s) => ({ minutes: s.minutes, coach: s.coach_person_id || "", court: s.court_id || "", note: s.note || "", players: ex[s.id] || [],
-        status: s.status || "jeu", sparring: s.sparring_person_id || "", sparringName: s.sparring_name || (s.sparring_person_id ? trFull(s.sparring_person_id) : "") }))
-    : [{ minutes: Math.min(trEditing.dur || 60, 60), coach: trEditing.coachOpts[0] || "", court: (courtIds || [])[0] || "", note: "", players: [], status: "jeu", sparring: "", sparringName: "" }];
+        status: s.status || "jeu",
+        sparrings: (s.course_segment_sparrings || []).sort((a, b) => (a.seq || 0) - (b.seq || 0)).map((r) => ({ id: r.person_id || "", name: r.person_id ? trFull(r.person_id) : (r.name || "") })) }))
+    : [{ minutes: Math.min(trEditing.dur || 60, 60), coach: trEditing.coachOpts[0] || "", court: (courtIds || [])[0] || "", note: "", players: [], status: "jeu", sparrings: [] }];
   renderTrEditor();
 }
 
@@ -10847,7 +10856,7 @@ function renderTrEditor() {
         <label class="tr-lbl2">Court <select class="tr-court" data-i="${i}">${courtOptions(b.court)}</select></label>
       </div>` : `<p class="muted" style="font-size:.8rem;margin:2px 0 4px">Temps compté comme « ${TR_STATES[b.status]} » sur la fiche du joueur : pas de temps de jeu, pas de coach.</p>`}
       <div class="tr-row"><span class="tr-lbl">Joueurs</span><div class="tr-pchips">${chips || '<span class="muted">Aucun joueur</span>'}</div></div>
-      ${playing ? `<div class="tr-row"><span class="tr-lbl">Sparring</span><input type="text" class="tr-spar" data-i="${i}" value="${esc(b.sparringName || "")}" placeholder="nom (répertoire ou libre)" />${b.sparring ? '<span class="tr-spar-ok" title="Personne du répertoire">✓</span>' : ""}</div>` : ""}
+      ${playing ? `<div class="tr-row"><span class="tr-lbl">Sparring</span><div class="tr-spars">${(b.sparrings || []).map((sp, j) => `<div class="tr-spar-line"><input type="text" class="tr-spar" data-i="${i}" data-j="${j}" value="${esc(sp.name || "")}" placeholder="nom (répertoire ou libre)" /><span class="tr-spar-ok" title="Personne du répertoire"${sp.id ? "" : " hidden"}>✓</span><button type="button" class="tr-spar-del" data-i="${i}" data-j="${j}" title="Retirer ce sparring">✕</button></div>`).join("")}<button type="button" class="tr-spar-add" data-i="${i}">+ ${(b.sparrings || []).length ? "Ajouter un sparring" : "Sparring"}</button></div></div>` : ""}
       <div class="tr-row"><span class="tr-lbl">Note</span><input type="text" class="tr-note" data-i="${i}" value="${esc(b.note || "")}" placeholder="ex. travail service / points" /></div>
     </div>`;
   }).join("");
@@ -10862,15 +10871,25 @@ function renderTrEditor() {
     <p class="muted" style="font-size:.8rem;margin:2px 0 8px">🟢 complet · 🟠 incomplet · 🔴 absent (0) · 🔵 dépassé · 🩹 blessé · 💤 au repos. Un <b>joueur</b> peut faire moins ; un <b>coach</b> devrait couvrir toute la séance (sinon avertissement).</p>
     <div class="tr-blocs">${blocsHtml}</div>
     <div class="tr-ed-actions"><button type="button" class="tr-add">+ Ajouter un bloc</button><button type="button" class="tr-save">Enregistrer le détail</button><span class="tr-save-st muted"></span></div>`;
-  const newBloc = () => ({ minutes: 60, coach: e.coachOpts[0] || "", court: (e.courtIds || [])[0] || "", note: "", players: [], status: "jeu", sparring: "", sparringName: "" });
+  const newBloc = () => ({ minutes: 60, coach: e.coachOpts[0] || "", court: (e.courtIds || [])[0] || "", note: "", players: [], status: "jeu", sparrings: [] });
   host.querySelectorAll(".tr-st").forEach((c) => c.addEventListener("change", () => {
     const b = trBlocs[+c.dataset.i];
     b.status = c.checked ? c.dataset.st : "jeu";
-    if (b.status !== "jeu") { b.coach = ""; b.court = ""; b.sparring = ""; b.sparringName = ""; }
+    if (b.status !== "jeu") { b.coach = ""; b.court = ""; b.sparrings = []; }
     else { b.coach = e.coachOpts[0] || ""; b.court = (e.courtIds || [])[0] || ""; }
     renderTrEditor();
   }));
-  host.querySelectorAll(".tr-spar").forEach((inp) => attachSparringAC(inp, (id, name) => { const b = trBlocs[+inp.dataset.i]; b.sparring = id || ""; b.sparringName = name || ""; if (!name) b.sparring = ""; const ok = inp.parentElement.querySelector(".tr-spar-ok"); if (ok) ok.hidden = !b.sparring; }));
+  // Sparrings : plusieurs par bloc (« + » ajoute une ligne, « ✕ » la retire), suggestions en tapant.
+  host.querySelectorAll(".tr-spar").forEach((inp) => attachSparringAC(inp, (id, name) => {
+    const sp = (trBlocs[+inp.dataset.i].sparrings || [])[+inp.dataset.j]; if (!sp) return;
+    sp.id = name ? (id || "") : ""; sp.name = name || "";
+    const ok = inp.parentElement.querySelector(".tr-spar-ok"); if (ok) ok.hidden = !sp.id;
+  }));
+  host.querySelectorAll(".tr-spar-add").forEach((btn) => btn.addEventListener("click", () => {
+    const b = trBlocs[+btn.dataset.i]; (b.sparrings || (b.sparrings = [])).push({ id: "", name: "" }); renderTrEditor();
+    const last = host.querySelectorAll(`.tr-spar[data-i="${btn.dataset.i}"]`); if (last.length) last[last.length - 1].focus();
+  }));
+  host.querySelectorAll(".tr-spar-del").forEach((btn) => btn.addEventListener("click", () => { trBlocs[+btn.dataset.i].sparrings.splice(+btn.dataset.j, 1); renderTrEditor(); }));
   host.querySelector(".tr-add").addEventListener("click", () => { trBlocs.push(newBloc()); renderTrEditor(); });
   host.querySelector(".tr-save").addEventListener("click", trSave);
   host.querySelectorAll(".tr-dur").forEach((b) => b.addEventListener("click", () => { trBlocs[+b.dataset.i].minutes = +b.dataset.d; renderTrEditor(); }));
@@ -10891,15 +10910,18 @@ async function trSave() {
   const rows = valid.map((b, i) => ({
     course_id: id, seq: i, minutes: b.minutes, coach_person_id: b.coach || null, court_id: b.court || null, note: b.note || null,
     status: b.status || "jeu",
-    sparring_person_id: (b.status && b.status !== "jeu") ? null : (b.sparring || null),
-    sparring_name: (b.status && b.status !== "jeu") || b.sparring ? null : ((b.sparringName || "").trim() || null),
   }));
-  if (rows.some((r) => r.sparring_name)) trSparringNames = null;   // nouvelles suggestions au prochain chargement
   const { data: ins, error } = await sb.from("course_segments").insert(rows).select("id,seq");
   if (error) { st.textContent = "Erreur : " + error.message; return; }
-  const pr = [];
-  (ins || []).forEach((r) => (valid[r.seq].players || []).forEach((pid) => pr.push({ segment_id: r.id, person_id: pid })));
+  const pr = [], sr = [];
+  (ins || []).forEach((r) => {
+    const b = valid[r.seq];
+    (b.players || []).forEach((pid) => pr.push({ segment_id: r.id, person_id: pid }));
+    if (!b.status || b.status === "jeu") (b.sparrings || []).filter((sp) => (sp.name || "").trim()).forEach((sp, j) => sr.push({ segment_id: r.id, person_id: sp.id || null, name: sp.name.trim(), seq: j }));
+  });
   if (pr.length) { const { error: e2 } = await sb.from("course_segment_players").insert(pr); if (e2) { st.textContent = "Erreur joueurs : " + e2.message; return; } }
+  if (sr.length) { const { error: e3 } = await sb.from("course_segment_sparrings").insert(sr); if (e3) { st.textContent = "Erreur sparrings : " + e3.message; return; } }
+  if (sr.some((r) => !r.person_id)) trSparringNames = null;   // nouveaux noms libres → suggestions rechargées
   // Le détail REMPLACE les présences : on les dérive (présent = joue dans ≥1 bloc).
   const present = new Set(); valid.forEach((b) => (b.players || []).forEach((pid) => present.add(pid)));
   const coachPresent = new Set(); valid.forEach((b) => { if (b.coach) coachPresent.add(b.coach); });
@@ -10941,8 +10963,13 @@ async function loadTrStats() {
   const { data: segs0 } = await sb.from("course_segments").select("id,course_id,minutes,coach_person_id,status").in("course_id", proIds);
   const segs = (segs0 || []).filter((sg) => (sg.status || "jeu") === "jeu");   // blessé / au repos = pas des paires de jeu
   if (!segs.length) { body.innerHTML = '<p class="muted">Aucun détail saisi sur cette saison.</p>'; return; }
-  const { data: sp } = await sb.from("course_segment_players").select("segment_id,person_id").in("segment_id", segs.map((x) => x.id));
+  const [{ data: sp }, { data: spar }] = await Promise.all([
+    sb.from("course_segment_players").select("segment_id,person_id").in("segment_id", segs.map((x) => x.id)),
+    sb.from("course_segment_sparrings").select("segment_id,person_id").not("person_id", "is", null).in("segment_id", segs.map((x) => x.id)),
+  ]);
   const bySeg = {}; (sp || []).forEach((r) => (bySeg[r.segment_id] || (bySeg[r.segment_id] = [])).push(r.person_id));
+  // Un sparring du répertoire compte comme partenaire de jeu dans les paires (pas les noms libres, sans fiche).
+  (spar || []).forEach((r) => { const a = bySeg[r.segment_id] || (bySeg[r.segment_id] = []); if (!a.includes(r.person_id)) a.push(r.person_id); });
   const pairMin = {}, pairCnt = {}, pcMin = {}, totMin = {}, sessOf = {};
   segs.forEach((seg) => {
     const pls = bySeg[seg.id] || [], m = seg.minutes || 0;

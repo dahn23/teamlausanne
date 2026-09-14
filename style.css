@@ -2798,6 +2798,13 @@ tr.rm-loss td{background:#fde8e8}
 .tr-bloc-tag{font-size:.74rem;font-weight:700;padding:2px 8px;border-radius:999px;background:#fbe4e4;color:#b3261e;margin-left:6px;vertical-align:middle}
 .tr-bloc-repos .tr-bloc-tag{background:#e4ecfb;color:#2a3a8c}
 .tr-spar{flex:1;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:.86rem}
-.tr-spar-ok{color:#1c7a45;font-weight:800;padding-top:6px}
+.tr-spar-ok{color:#1c7a45;font-weight:800}
 .cours-states{margin-top:8px}
 .cours-box-spar{border-color:#f0b968;background:#fffaf2}
+.tr-spars{flex:1;display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.tr-spar-line{display:flex;align-items:center;gap:6px;width:100%}
+.tr-spar-line .tr-spar{flex:1}
+.tr-spar-del{background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:2px 6px;border-radius:7px}
+.tr-spar-del:hover{background:#fdeaea;color:#b3261e}
+.tr-spar-add{padding:5px 10px;border:1px dashed var(--line);background:#fff;border-radius:8px;font-size:.8rem;font-weight:600;color:#555;cursor:pointer}
+.tr-spar-add:hover{border-color:var(--blue);color:var(--blue)}
