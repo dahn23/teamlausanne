@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=197" />
+  <link rel="stylesheet" href="style.css?v=198" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1231,6 +1231,10 @@
               <button id="oi-send-all" type="button" class="ghost" title="Envoie par mail toutes les factures « à envoyer »">✉ Envoyer toutes les « à envoyer »</button>
             </div>
             <p class="muted" style="margin-top:0;font-size:.88rem"><b>Sport-études / pro</b> : les factures se génèrent depuis <b>Fiche › Contrat</b> (montant annuel découpé en n échéances). <b>Autres filières</b> : « Lot par filière » (grille Tarifs). <b>Facture personnelle ou blanche</b> : « Nouvelle facture » (choisir une personne ou écrire un nom, ajouter des articles). Chaque facture est éditable (dates, articles, destinataire) tant qu'elle n'est pas payée ; le PDF QR-facture est régénéré à chaque modification.</p>
+            <!-- Contrats trop incomplets pour être facturés. Rempli par
+                 out_invoices_en_attente() : dès qu'une fiche est complétée, la
+                 facturation part toute seule et la ligne disparaît d'ici. -->
+            <div id="oi-attente" class="oi-attente hidden"></div>
             <div class="fac-barre">
               <div id="oi-filters" class="fac-filters"></div>
               <label class="fac-rech">

@@ -1114,7 +1114,18 @@ html{-webkit-tap-highlight-color:transparent}
 .mail-ac-it span{color:var(--muted);font-size:.82rem}
 .mail-ac-it.on,.mail-ac-it:hover{background:var(--bg)}
 /* Factures */
-/* Barre de la liste des factures : pastilles de statut à gauche, recherche à
+/* Fiches en attente de facturation : un rappel, pas une alerte — rien n'est
+   cassé, il manque seulement des informations. */
+.oi-attente{background:#fff8e6;border:1px solid #f0d89a;border-radius:12px;
+  padding:12px 16px;margin-bottom:12px}
+.oi-att-t{font-weight:800;color:#8a6116;font-size:.92rem}
+.oi-att-lead{margin:4px 0 8px;font-size:.84rem;color:#8a6116;opacity:.9}
+.oi-att-l{margin:0;padding-left:18px;font-size:.88rem;color:var(--ink)}
+.oi-att-l li{margin:3px 0}
+.oi-att-m{color:#b45309;font-weight:700}
+
+/* Barre de la liste des factures
+ : pastilles de statut à gauche, recherche à
    droite. Les deux se combinent. */
 .fac-barre{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .fac-barre .fac-filters{margin-bottom:0}

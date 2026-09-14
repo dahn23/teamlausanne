@@ -5901,6 +5901,7 @@ async function loadOutInvoices() {
     for (const x of oiList) x.player_name = nm[x.person_id] || "";
   }
   oiBrancherRecherche();
+  oiRenderAttente();
   renderOiFilters(); renderOutInvoices();
   // PDF manquant (facture modifiée en base, échec précédent…) → régénéré automatiquement, en arrière-plan.
   const missing = oiList.filter((x) => !x.pdf_path && (x.status === "a_envoyer" || x.status === "envoyee"));
@@ -5915,6 +5916,22 @@ let oiRegen = false;
 // Recherche libre dans la liste des factures. Elle se combine avec le filtre de
 // statut : on cherche « Picci » puis on restreint aux impayées, ou l'inverse.
 let oiRech = "";
+// Fiches dont le contrat n'est pas assez complet pour facturer. La règle vit en
+// base (out_invoice_manque), pas ici : le déclencheur et cette liste ne peuvent
+// donc pas diverger.
+async function oiRenderAttente() {
+  const z = $("oi-attente"); if (!z) return;
+  const { data, error } = await sb.rpc("out_invoices_en_attente");
+  const l = error ? [] : (data || []);
+  z.classList.toggle("hidden", !l.length);
+  if (!l.length) return;
+  z.innerHTML = `<div class="oi-att-t">${l.length} fiche(s) en attente de facturation</div>`
+    + `<p class="oi-att-lead">Le contrat est incomplet. Dès qu'il ne manquera plus rien, les factures partiront automatiquement — rien à relancer.</p>`
+    + `<ul class="oi-att-l">${l.map((r) =>
+        `<li><b>${esc(r.joueur)}</b> <span class="muted">${esc(r.programme || "")}</span>`
+        + ` — il manque : <span class="oi-att-m">${esc(r.manque)}</span></li>`).join("")}</ul>`;
+}
+
 function oiBrancherRecherche() {
   const ch = $("oi-search");
   if (!ch || ch.dataset.pret) return;      // la vue se recharge, le champ non
