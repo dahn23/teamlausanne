@@ -359,7 +359,7 @@ const DETAILS = {
     world: "academie", title: "Pro U18",
     subtitle: "Après la scolarité obligatoire, l'entraînement devient le métier : deux sessions de tennis par jour, le physique tous les matins et le circuit ITF junior en ligne de mire, pour celles et ceux qui veulent voir jusqu'où ça peut aller.",
     hero: "assets/photos/pro-u18-2026.jpg", heroPos: "55% 12%",
-    cta: { label: "Demander des informations", scroll: "enroll-sec" },
+    cta: { label: "Recevoir le dossier", scroll: "brochure" },
     sections: [
       { type: "keywords", label: "Ce qui fait le Pro U18", items: [
         "Entraînement à plein temps", "Circuit ITF junior", "Deux sessions par jour",
@@ -372,7 +372,7 @@ const DETAILS = {
         eyebrow: "Le tennis comme métier", title: "S'entraîner à plein temps, viser le monde", body: [
           "La scolarité obligatoire terminée, les journées se libèrent : deux sessions de tennis, une heure de préparation physique chaque matin, et le reste du temps pour récupérer et se soigner.",
           "Le classement mondial junior se construit en tournoi. Le programme est bâti autour du calendrier ITF, avec des déplacements en groupe et une planification pensée sur l'année entière.",
-        ], link: { label: "Rejoindre la filière", scroll: "enroll-sec", cta: true } },
+        ], link: { label: "Recevoir le dossier", scroll: "brochure", cta: true } },
       { type: "stats", items: [
         ["46", "semaines d'entraînement"],
         ["15", "tournois internationaux"],
@@ -407,15 +407,20 @@ const DETAILS = {
           ["Qui paie les déplacements ?", "Les frais de voyage — vols, logement, repas et inscriptions aux tournois — restent à la charge du joueur. Le reste de l'encadrement est compris dans le programme."],
           ["Et après le Pro U18 ?", "La filière Pro prend le relais pour celles et ceux qui passent sur le circuit professionnel, avec un programme entièrement sur mesure."],
         ]},
-      { type: "enroll", title: "Demander une inscription", filiere: "pro-u18", ranking: true,
-        lead: "Intéressé(e) par la filière Pro U18 ? Remplissez ce formulaire, le secrétariat vous recontacte pour organiser un entretien." },
+      // Pas de tarif affiché : le programme se discute. Le dossier sert de point
+      // d'entrée, et la conversation s'engage à partir de là.
+      { type: "brochure", anchor: "brochure", sujet: "Pro U18",
+        eyebrow: "Dossier Pro U18", title: "Le programme en détail, puis on en parle",
+        lead: "Le déroulé d'une semaine, le calendrier de tournois, l'encadrement et les conditions d'admission : nous vous envoyons le dossier complet, puis nous reprenons contact pour en discuter de vive voix.",
+        bouton: "Recevoir le dossier",
+        mention: "Votre adresse sert uniquement à vous envoyer le dossier et à vous recontacter. Pas de liste de diffusion." },
     ],
   },
   pro: {
     world: "academie", title: "Pro",
     subtitle: "À ce niveau, il n'y a pas d'offre standard : chaque joueuse et joueur a son calendrier, ses objectifs de classement et son encadrement. Nous construisons le programme autour de vous — jeu, corps, tête, logistique et financement.",
     hero: "assets/photos/pro-2026.jpg", heroPos: "center 42%",
-    cta: { label: "Parler de mon projet", scroll: "enroll-sec" },
+    cta: { label: "Recevoir le dossier", scroll: "brochure" },
     sections: [
       { type: "keywords", label: "Ce qui fait la filière Pro", items: [
         "Programme sur mesure", "Circuit ATP / WTA", "Encadrement complet",
@@ -428,7 +433,7 @@ const DETAILS = {
         eyebrow: "Du sur-mesure, pas un forfait", title: "Un programme construit autour de vous", body: [
           "Au niveau professionnel, deux joueurs n'ont jamais le même calendrier. L'encadrement s'adapte aux tournois, aux déplacements, aux blessures et aux objectifs de points — pas l'inverse.",
           "Coach référent, préparation physique et mentale, physiothérapie, logistique de voyage : on assemble ce dont vous avez besoin, et rien de plus.",
-        ], link: { label: "Parler de mon projet", scroll: "enroll-sec", cta: true } },
+        ], link: { label: "Recevoir le dossier", scroll: "brochure", cta: true } },
       { type: "stats", items: [
         ["15", "semaines de tournois / an"],
         ["46", "semaines d'entraînement"],
@@ -466,8 +471,13 @@ const DETAILS = {
           ["Et si je me blesse ?", "Le suivi physio et médical fait partie de l'encadrement, et le programme est réajusté pendant la reprise plutôt que suspendu."],
           ["Comment commence-t-on ?", "Par un entretien. On y parle jeu, calendrier, objectifs et budget — puis on construit le programme."],
         ]},
-      { type: "enroll", title: "Parler de mon projet", filiere: "pro", ranking: true,
-        lead: "Décrivez votre situation en quelques lignes : niveau, classement, calendrier et objectifs. Nous vous recontactons pour en discuter." },
+      // Aucun tarif ici : le programme est sur mesure et se construit en
+      // entretien. Le dossier ouvre la conversation.
+      { type: "brochure", anchor: "brochure", sujet: "Pro",
+        eyebrow: "Dossier Pro", title: "Parlons de votre saison",
+        lead: "Encadrement, calendrier, logistique et solutions de financement : nous vous envoyons le dossier, puis nous prenons le temps d'en discuter et de construire le programme avec vous.",
+        bouton: "Recevoir le dossier",
+        mention: "Votre adresse sert uniquement à vous envoyer le dossier et à vous recontacter. Pas de liste de diffusion." },
     ],
   },
   kids: {
@@ -1179,7 +1189,7 @@ function sectionHTML(sec) {
             ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
             <h2>${esc(sec.title)}</h2>
             ${sec.lead ? `<p class="broch-lead">${esc(sec.lead)}</p>` : ""}
-            <form id="broch-form" class="broch-form" data-doc="${esc(sec.doc)}">
+            <form id="broch-form" class="broch-form" data-doc="${esc(sec.doc || "")}" data-sujet="${esc(sec.sujet || "Sport-études")}">
               <label class="broch-champ">
                 <span class="sr-only">Votre e-mail</span>
                 <input type="email" id="broch-email" required autocomplete="email"
@@ -1965,13 +1975,20 @@ document.addEventListener("submit", async (e) => {
   const email = $("broch-email").value.trim();
   if (!email) return;
   const doc = f.dataset.doc;
+  const sujet = f.dataset.sujet || "Sport-études";
+  // Sans document, rien ne part automatiquement : la demande arrive au
+  // secretariat, qui repond en personne. C'est le cas des filieres Pro, ou le
+  // tarif se discute plutot qu'il ne s'affiche.
+  const auto = !!doc;
   btn.disabled = true; msg.className = "broch-msg"; msg.textContent = "Envoi…";
 
   const { error } = await sb.from("contact_messages").insert({
-    source: "Brochure Sport-études",
+    source: `Brochure ${sujet}`,
     name: email.split("@")[0].slice(0, 200),
     email: email.slice(0, 200),
-    message: "Demande de la brochure Sport-études depuis le site.",
+    message: auto
+      ? `Demande de la brochure ${sujet} depuis le site.`
+      : `Demande d'informations ${sujet} depuis le site. Aucune brochure n'est envoyée automatiquement : à recontacter pour transmettre le dossier et discuter des conditions.`,
   });
   if (error) {
     msg.className = "broch-msg ko";
@@ -1981,7 +1998,7 @@ document.addEventListener("submit", async (e) => {
   }
 
   let parti = false;
-  try {
+  if (auto) try {
     // Requete « simple », sans en-tete personnalise : la passerelle Supabase
     // repond au pre-vol sans renvoyer access-control-allow-headers, donc tout
     // en-tete ajoute ici ferait echouer l'appel. La fonction lit le corps en
@@ -1995,7 +2012,9 @@ document.addEventListener("submit", async (e) => {
 
   f.reset();
   msg.className = "broch-msg ok";
-  msg.innerHTML = parti
+  msg.innerHTML = !auto
+    ? "Merci ! Nous vous envoyons le dossier et reprenons contact avec vous rapidement pour en parler de vive voix."
+    : parti
     ? "Merci, la brochure part dans votre boîte mail. Nous vous recontactons bientôt."
     : `Merci ! Voici la brochure : <a href="${esc(doc)}" target="_blank" rel="noopener">la télécharger</a>. Nous vous recontactons bientôt.`;
   btn.disabled = false;
