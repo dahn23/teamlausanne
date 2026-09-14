@@ -468,14 +468,14 @@ const DETAILS = {
         ],
         eyebrow: "Un lieu pour jouer et progresser", title: "Jouer et progresser, sans pression", body: [
           "L'offre Club s'adresse à celles et ceux qui veulent jouer 1 ou plusieurs heures par semaine toute l'année — débutants comme plus avancés.",
-          "Un entraînement régulier pour progresser à son rythme, avec la possibilité d'ajouter une deuxième séance par semaine.",
+          "Un entraînement régulier pour progresser à son rythme, avec la possibilité d'ajouter autant de séances hebdomadaires qu'on le souhaite.",
         ], link: { label: "Rejoindre le Club", scroll: "enroll-sec", cta: true } },
       { type: "perks", eyebrow: "Pourquoi rejoindre le Club",
         title: "Le bon équilibre entre encadrement et liberté",
         lead: "Tout est prévu pour que chacun trouve son rythme, quel que soit son niveau de départ.", items: [
           ["Quatre jeunes par coach", "Un encadrement de proximité, avec des retours immédiats sur le court."],
           ["Toute la saison", "Une heure par semaine, du 31 août 2026 au 2 juillet 2027."],
-          ["Jusqu'à deux séances", "Possibilité d'ajouter un deuxième entraînement hebdomadaire."],
+          ["Autant de séances qu'on veut", "Un deuxième, un troisième entraînement hebdomadaire : le rythme se choisit librement."],
           ["T-shirt offert", "Le t-shirt Team Lausanne est offert à chaque joueuse et joueur."],
         ]},
       { type: "slots", eyebrow: "Trouver le bon moment",
@@ -493,7 +493,7 @@ const DETAILS = {
         title: "Tout ce qu'il faut savoir avant de commencer", items: [
           ["Faut-il déjà savoir jouer ?", "Un peu d'expérience aide, mais chacun est orienté vers le bon groupe selon son niveau, son âge et son parcours."],
           ["Comment les groupes sont-ils formés ?", "Selon l'âge, le niveau, les horaires et les besoins de chacun, pour que tout le monde s'entraîne dans le bon environnement."],
-          ["À quelle fréquence s'entraîne-t-on ?", "Une heure par semaine sur le créneau choisi, avec la possibilité d'ajouter un deuxième entraînement."],
+          ["À quelle fréquence s'entraîne-t-on ?", "Une heure par semaine sur le créneau choisi, et autant d'entraînements supplémentaires que souhaité."],
           ["Et la compétition ?", "Quelques compétitions au fil de la saison, selon l'envie et sans obligation. Les membres du club peuvent aussi disputer les interclubs, selon les disponibilités."],
           ["Qu'est-ce qui est compris ?", "L'entraînement encadré en groupe, le suivi de la progression tout au long de la saison, et le t-shirt Team Lausanne."],
         ]},
