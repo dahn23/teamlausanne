@@ -1901,7 +1901,8 @@ async function renderCoursSeason(personId, seasonId) {
     if (segList && segList.length) {                          // pro/SE détaillé → selon le détail (blocs)
       segList.forEach((sg) => {
         const pls = playersBySeg[sg.id] || []; if (!pls.includes(personId)) return;
-        const m = sg.minutes || 0, gs = Math.min(pls.length, 4) || 1;
+        const hasSpar = !!(sg.sparring_person_id || sg.sparring_name);   // le sparring compte comme une personne sur le court
+        const m = sg.minutes || 0, gs = Math.min(pls.length + (hasSpar ? 1 : 0), 4) || 1;
         // Bloc « blessé » / « au repos » : compté à part (heures + nombre de fois), pas de temps de jeu.
         if (sg.status === "blesse" || sg.status === "repos") { d[sg.status].min += m; d[sg.status].n++; return; }
         d.g[gs] += m; d.total += m;
@@ -1935,7 +1936,7 @@ async function coursSparringHtml(personId, s) {
   const g = { 1: 0, 2: 0, 3: 0, 4: 0 }, withMin = {}, days = new Set(), courseSet = new Set(); let total = 0;
   mine.forEach((sg) => {
     const pls = (bySeg[sg.id] || []).filter((o) => o !== personId), m = sg.minutes || 0;
-    total += m; g[Math.min(pls.length, 4) || 1] += m; days.add(sg.courses.course_date); courseSet.add(sg.course_id);
+    total += m; g[Math.min(pls.length + 1, 4) || 1] += m; days.add(sg.courses.course_date); courseSet.add(sg.course_id);   // lui compris
     pls.forEach((o) => { withMin[o] = (withMin[o] || 0) + m; });
   });
   const partners = Object.entries(withMin).map(([id, m]) => ({ id, m })).sort((a, b) => b.m - a.m);
@@ -1951,7 +1952,7 @@ async function coursSparringHtml(personId, s) {
       </div>
       <div class="cours-kpi">
         <div class="ck-lbl">À combien</div>
-        <div class="ck-chips" style="margin-top:8px">${chip(fmt(g[1]), "avec 1 joueur")}${chip(fmt(g[2]), "avec 2")}${chip(fmt(g[3]), "avec 3")}${chip(fmt(g[4]), "avec 4+")}</div>
+        <div class="ck-chips" style="margin-top:8px">${chip(fmt(g[2]), "à 2")}${chip(fmt(g[3]), "à 3")}${chip(fmt(g[4]), "à 4+")}</div>
       </div>
     </div>
     <div class="cours-line" style="margin-top:10px"><b>Avec</b></div>
