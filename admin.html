@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=196" />
+  <link rel="stylesheet" href="style.css?v=197" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1231,7 +1231,13 @@
               <button id="oi-send-all" type="button" class="ghost" title="Envoie par mail toutes les factures « à envoyer »">✉ Envoyer toutes les « à envoyer »</button>
             </div>
             <p class="muted" style="margin-top:0;font-size:.88rem"><b>Sport-études / pro</b> : les factures se génèrent depuis <b>Fiche › Contrat</b> (montant annuel découpé en n échéances). <b>Autres filières</b> : « Lot par filière » (grille Tarifs). <b>Facture personnelle ou blanche</b> : « Nouvelle facture » (choisir une personne ou écrire un nom, ajouter des articles). Chaque facture est éditable (dates, articles, destinataire) tant qu'elle n'est pas payée ; le PDF QR-facture est régénéré à chaque modification.</p>
-            <div id="oi-filters" class="fac-filters"></div>
+            <div class="fac-barre">
+              <div id="oi-filters" class="fac-filters"></div>
+              <label class="fac-rech">
+                <span class="sr-only">Rechercher une facture</span>
+                <input type="search" id="oi-search" placeholder="Rechercher : joueur, destinataire, n°, e-mail…" autocomplete="off" />
+              </label>
+            </div>
             <div class="table-wrap">
               <table class="crm-table fac-table oi-table"><thead><tr>
                 <th><input type="checkbox" id="oi-sel-all" title="Tout cocher" /></th><th>N°</th><th>Destinataire</th><th>E-mail</th><th>Joueur</th><th>Articles</th><th>Montant</th><th>Émise le</th><th>Échéance</th><th>PDF</th><th>Statut</th><th></th>

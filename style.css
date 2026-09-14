@@ -1114,7 +1114,14 @@ html{-webkit-tap-highlight-color:transparent}
 .mail-ac-it span{color:var(--muted);font-size:.82rem}
 .mail-ac-it.on,.mail-ac-it:hover{background:var(--bg)}
 /* Factures */
-.fac-filters{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+/* Barre de la liste des factures : pastilles de statut à gauche, recherche à
+   droite. Les deux se combinent. */
+.fac-barre{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.fac-barre .fac-filters{margin-bottom:0}
+.fac-rech{margin-left:auto;display:block;min-width:min(320px,100%)}
+.fac-rech input{width:100%;box-sizing:border-box;font-size:.9rem;padding:8px 12px}
+.fac-filters
+{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
 .fac-tarif-grid{display:flex;flex-direction:column;gap:2px;max-width:480px}
 .fac-tarif-row{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #f0f2f5;padding:7px 0}
 .fac-tarif-in{white-space:nowrap;color:var(--muted);font-size:.9rem}

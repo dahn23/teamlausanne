@@ -5900,6 +5900,7 @@ async function loadOutInvoices() {
     const nm = {}; for (const p of pl || []) nm[p.id] = `${p.first_name} ${p.last_name}`;
     for (const x of oiList) x.player_name = nm[x.person_id] || "";
   }
+  oiBrancherRecherche();
   renderOiFilters(); renderOutInvoices();
   // PDF manquant (facture modifiée en base, échec précédent…) → régénéré automatiquement, en arrière-plan.
   const missing = oiList.filter((x) => !x.pdf_path && (x.status === "a_envoyer" || x.status === "envoyee"));
@@ -5911,9 +5912,37 @@ async function loadOutInvoices() {
   }
 }
 let oiRegen = false;
+// Recherche libre dans la liste des factures. Elle se combine avec le filtre de
+// statut : on cherche « Picci » puis on restreint aux impayées, ou l'inverse.
+let oiRech = "";
+function oiBrancherRecherche() {
+  const ch = $("oi-search");
+  if (!ch || ch.dataset.pret) return;      // la vue se recharge, le champ non
+  ch.dataset.pret = "1";
+  ch.addEventListener("input", () => {
+    oiRech = ch.value.trim();
+    renderOiFilters(); renderOutInvoices();
+  });
+}
+
+// Comparaison sans accents ni casse : « devaud » doit trouver « Dévaud ».
+const oiNorm = (v) => String(v || "").normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+
+function oiCorrespond(f) {
+  if (!oiRech) return true;
+  const mots = oiNorm(oiRech).split(/\s+/).filter(Boolean);
+  const foin = oiNorm([f.number, f.player_name, f.debtor_name, f.debtor_email, f.label, f.filiere,
+                       Array.isArray(f.items) ? f.items.map((i) => i.label).join(" ") : ""].join(" "));
+  // Tous les mots doivent être présents : « picci 3/10 » ne rend que cette échéance.
+  return mots.every((m) => foin.includes(m));
+}
+
 function renderOiFilters() {
-  const counts = { "": oiList.length };
-  for (const f of oiList) counts[f.status] = (counts[f.status] || 0) + 1;
+  // Les compteurs suivent la recherche : chercher « Picci » doit montrer combien
+  // de SES factures sont à envoyer, pas le total du club.
+  const vus = oiList.filter(oiCorrespond);
+  const counts = { "": vus.length };
+  for (const f of vus) counts[f.status] = (counts[f.status] || 0) + 1;
   const chip = (v, l) => `<button type="button" class="chip filt${oiFilter === v ? " sel" : ""}" data-st="${v}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
   $("oi-filters").innerHTML = chip("", "Toutes") + OI_ORDER.map((s) => chip(s, OI_ST[s][0])).join("");
   $("oi-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { oiFilter = b.dataset.st; renderOiFilters(); renderOutInvoices(); }));
@@ -5922,8 +5951,9 @@ function renderOiFilters() {
   $("oi-send-all").disabled = !n;
 }
 function renderOutInvoices() {
-  const rows = oiList.filter((f) => !oiFilter || f.status === oiFilter);
+  const rows = oiList.filter((f) => (!oiFilter || f.status === oiFilter) && oiCorrespond(f));
   $("oi-empty").hidden = rows.length > 0;
+  if (!rows.length && oiRech) $("oi-empty").textContent = `Aucune facture ne correspond à « ${oiRech} ».`;
   for (const id of [...oiSel]) if (!oiList.find((x) => x.id === id && x.status !== "payee" && x.status !== "annulee")) oiSel.delete(id);
   $("oi-rows").innerHTML = rows.map((f) => {
     const [lbl, cls] = OI_ST[f.status] || [f.status, ""];
