@@ -1834,8 +1834,11 @@ async function fetchInChunks(table, cols, col, ids, tweak) {
 
 async function loadCourses(personId, showByRole) {
   const box = $("cours-content");
-  const { data: parts0 } = await sb.from("course_participants").select("course_id,courses(course_date)").eq("child_person_id", personId);
-  const anyCourse = (parts0 || []).some((p) => p.courses);
+  const [{ data: parts0 }, { data: spar0 }] = await Promise.all([
+    sb.from("course_participants").select("course_id,courses(course_date)").eq("child_person_id", personId),
+    sb.from("course_segments").select("id").eq("sparring_person_id", personId).limit(1),   // sparring du répertoire → onglet visible aussi
+  ]);
+  const anyCourse = (parts0 || []).some((p) => p.courses) || (spar0 || []).length > 0;
   showPersonTab("cours", showByRole || anyCourse);
   const juns = (typeof seasonsOf === "function" ? seasonsOf("juniors") : []) || [];
   if (!juns.length) { box.innerHTML = '<p class="obj-empty">Aucune saison définie.</p>'; return; }
@@ -1859,11 +1862,12 @@ async function renderCoursSeason(personId, seasonId) {
   const { data: parts } = await sb.from("course_participants")
     .select("course_id,courses(course_date,start_time,end_time,course_type_id,course_types(name))").eq("child_person_id", personId);
   const mine = (parts || []).filter((p) => p.courses && p.courses.course_date >= s.start_date && p.courses.course_date <= s.end_date);
-  if (!mine.length) { body.innerHTML = '<p class="obj-empty">Aucun cours cette saison.</p>'; return; }
+  const sparHtml = await coursSparringHtml(personId, s);   // heures faites comme sparring (bien séparées)
+  if (!mine.length) { body.innerHTML = (sparHtml || "") + '<p class="obj-empty">Aucun cours cette saison.</p>'; return; }
   const courseIds = mine.map((p) => p.course_id);
   const [att, segs, books] = await Promise.all([
     fetchInChunks("attendance", "course_id,person_id,status", "course_id", courseIds, (q) => q.eq("is_coach", false)),
-    fetchInChunks("course_segments", "id,course_id,minutes,note", "course_id", courseIds),
+    fetchInChunks("course_segments", "id,course_id,minutes,note,status,sparring_person_id,sparring_name", "course_id", courseIds),
     fetchInChunks("court_bookings", "court_id,course_id", "course_id", courseIds),
   ]);
   // Un cours réservé sur le court « Fitness » compte comme physique (même si son type ne dit pas « physique »).
@@ -1874,7 +1878,7 @@ async function renderCoursSeason(personId, seasonId) {
   const segByCourse = {}; segs.forEach((sg) => (segByCourse[sg.course_id] || (segByCourse[sg.course_id] = [])).push(sg));
   const playersBySeg = {}; sp.forEach((r) => (playersBySeg[r.segment_id] || (playersBySeg[r.segment_id] = [])).push(r.person_id));
   const isPhys = (name) => /physique|fitness/i.test(name || "");
-  const mk = () => ({ present: 0, absent: 0, late: 0, annonce: 0, g: { 1: 0, 2: 0, 3: 0, 4: 0 }, withMin: {}, total: 0, themes: {} });
+  const mk = () => ({ present: 0, absent: 0, late: 0, annonce: 0, g: { 1: 0, 2: 0, 3: 0, 4: 0 }, withMin: {}, total: 0, themes: {}, blesse: { min: 0, n: 0 }, repos: { min: 0, n: 0 }, sparMin: {} });
   // Notes des blocs (« Coup droit », « Service + volée »…) regroupées par thème : même texte à l'accent, la casse,
   // la ponctuation et le pluriel près → une seule ligne, avec le total d'heures et les dates.
   const themeKey = (t) => String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(Boolean).map((w) => (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w)).join(" ");
@@ -1898,9 +1902,13 @@ async function renderCoursSeason(personId, seasonId) {
       segList.forEach((sg) => {
         const pls = playersBySeg[sg.id] || []; if (!pls.includes(personId)) return;
         const m = sg.minutes || 0, gs = Math.min(pls.length, 4) || 1;
+        // Bloc « blessé » / « au repos » : compté à part (heures + nombre de fois), pas de temps de jeu.
+        if (sg.status === "blesse" || sg.status === "repos") { d[sg.status].min += m; d[sg.status].n++; return; }
         d.g[gs] += m; d.total += m;
         addTheme(d, sg.note, m, c.course_date);
         pls.forEach((o) => { if (o !== personId) d.withMin[o] = (d.withMin[o] || 0) + m; });
+        const spar = sg.sparring_person_id ? trFull(sg.sparring_person_id) : (sg.sparring_name || "");
+        if (spar) d.sparMin[spar] = (d.sparMin[spar] || 0) + m;
       });
     } else {                                                  // cours normal → durée pleine, groupe = présents
       const dur = trMinBetween(c.start_time, c.end_time);
@@ -1910,8 +1918,45 @@ async function renderCoursSeason(personId, seasonId) {
       pres.forEach((o) => { if (o !== personId) d.withMin[o] = (d.withMin[o] || 0) + dur; });
     }
   });
-  body.innerHTML = coursBoxHtml("Tennis", D.tennis, "tn") + coursBoxHtml("Physique", D.phys, "ph");
+  body.innerHTML = coursBoxHtml("Tennis", D.tennis, "tn") + coursBoxHtml("Physique", D.phys, "ph") + (sparHtml || "");
   body.querySelectorAll(".cours-more").forEach((b) => b.addEventListener("click", () => { const r = $(b.dataset.t + "-rest"); if (r) r.classList.remove("hidden"); b.remove(); }));
+}
+
+// Heures faites COMME SPARRING par une personne du répertoire (blocs où elle est notée en sparring) :
+// total, à combien (taille du groupe), avec qui. Boîte séparée des cours suivis.
+async function coursSparringHtml(personId, s) {
+  const { data: segs } = await sb.from("course_segments")
+    .select("id,minutes,status,course_id,courses(course_date,course_types(name))").eq("sparring_person_id", personId);
+  const mine = (segs || []).filter((sg) => sg.courses && sg.courses.course_date >= s.start_date && sg.courses.course_date <= s.end_date && (sg.status || "jeu") === "jeu");
+  if (!mine.length) return "";
+  const sp = await fetchInChunks("course_segment_players", "segment_id,person_id", "segment_id", mine.map((x) => x.id));
+  const bySeg = {}; sp.forEach((r) => (bySeg[r.segment_id] || (bySeg[r.segment_id] = [])).push(r.person_id));
+  const fmt = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}h${String(r).padStart(2, "0")}` : h ? `${h}h` : `${r}min`; };
+  const g = { 1: 0, 2: 0, 3: 0, 4: 0 }, withMin = {}, days = new Set(), courseSet = new Set(); let total = 0;
+  mine.forEach((sg) => {
+    const pls = (bySeg[sg.id] || []).filter((o) => o !== personId), m = sg.minutes || 0;
+    total += m; g[Math.min(pls.length, 4) || 1] += m; days.add(sg.courses.course_date); courseSet.add(sg.course_id);
+    pls.forEach((o) => { withMin[o] = (withMin[o] || 0) + m; });
+  });
+  const partners = Object.entries(withMin).map(([id, m]) => ({ id, m })).sort((a, b) => b.m - a.m);
+  const chip = (n, l) => `<span class="ck-chip"><b>${n}</b> ${l}</span>`;
+  const row = (p) => `<div class="att-row"><span class="att-d">${esc(trFull(p.id))}</span><span class="att-badge">${fmt(p.m)}</span></div>`;
+  return `<div class="cours-box cours-box-spar">
+    <div class="cours-box-h"><span class="cours-ico">${COURS_ICONS.tn}</span>Sparring <span class="muted" style="font-weight:400;font-size:.85rem">— heures faites comme sparring</span></div>
+    <div class="cours-kpis">
+      <div class="cours-kpi">
+        <div class="ck-lbl">Temps comme sparring</div>
+        <div class="ck-val">${fmt(total)}<span class="ck-unit"> au total</span></div>
+        <div class="ck-chips">${chip(mine.length, "bloc" + (mine.length > 1 ? "s" : ""))}${chip(courseSet.size, "séance" + (courseSet.size > 1 ? "s" : ""))}${chip(days.size, "jour" + (days.size > 1 ? "s" : ""))}</div>
+      </div>
+      <div class="cours-kpi">
+        <div class="ck-lbl">À combien</div>
+        <div class="ck-chips" style="margin-top:8px">${chip(fmt(g[1]), "avec 1 joueur")}${chip(fmt(g[2]), "avec 2")}${chip(fmt(g[3]), "avec 3")}${chip(fmt(g[4]), "avec 4+")}</div>
+      </div>
+    </div>
+    <div class="cours-line" style="margin-top:10px"><b>Avec</b></div>
+    <div class="att-list">${partners.length ? partners.map(row).join("") : '<span class="muted" style="font-size:.85rem">— personne —</span>'}</div>
+  </div>`;
 }
 
 // Icônes « Team Lausanne » (trait bleu, comme le menu) : raquette pour Tennis, haltère pour Physique.
@@ -1958,6 +2003,9 @@ function coursBoxHtml(title, d, key) {
         <div class="ck-chips">${chip("", fmt(d.g[1]), "seul")}${chip("", fmt(d.g[2]), "à 2")}${chip("", fmt(d.g[3]), "à 3")}${chip("", fmt(d.g[4]), "à 4+")}</div>
       </div>
     </div>
+    ${(d.blesse.n || d.repos.n) ? `<div class="ck-chips cours-states">${d.blesse.n ? `<span class="ck-chip ko">🩹 Blessé : <b>${fmt(d.blesse.min)}</b> · ${d.blesse.n} fois</span>` : ""}${d.repos.n ? `<span class="ck-chip"><b>💤 Au repos : ${fmt(d.repos.min)}</b> · ${d.repos.n} fois</span>` : ""}</div>` : ""}
+    ${Object.keys(d.sparMin || {}).length ? `<div class="cours-line" style="margin-top:10px"><b>Sparring</b> <span class="muted" style="font-weight:400;font-size:.82rem">— avec qui il a joué comme sparring</span></div>
+    <div class="att-list">${Object.entries(d.sparMin).sort((a, b) => b[1] - a[1]).map(([n, m]) => `<div class="att-row"><span class="att-d">${esc(n)}</span><span class="att-badge">${fmt(m)}</span></div>`).join("")}</div>` : ""}
     ${themesHtml}
     <div class="cours-line" style="margin-top:10px"><b>Joué avec</b></div>
     <div class="att-list">${partHtml}</div>
@@ -10602,8 +10650,53 @@ async function delEtRemark(id) {
 const TR_TYPE_RE = /pro|étud|etud/i;                 // familles pro / sport-études
 const TR_DURS = [15, 30, 45, 60, 75, 90, 105, 120];
 let trStatWired = false;
+const TR_PRIV_RE = /priv/i;                          // cours privés : une note sur le cours (un seul bloc)
+const TR_STATES = { blesse: "Blessé", repos: "Au repos" };   // état d'un bloc ('jeu' = par défaut)
 let trEditing = null;   // { id, date, start, end, dur, label, roster:[], coachOpts:[], courtIds:[] }
-let trBlocs = [];       // [{ minutes, coach, court, note, players:[] }]
+let trBlocs = [];       // [{ minutes, coach, court, note, players:[], status, sparring, sparringName }]
+let trSparringNames = null;   // noms libres de sparring déjà saisis (suggestions)
+
+// Suggestions de sparring : tout le répertoire + les noms libres déjà saisis dans d'autres blocs.
+async function trLoadSparringNames() {
+  if (trSparringNames) return trSparringNames;
+  const { data } = await sb.from("course_segments").select("sparring_name").not("sparring_name", "is", null).limit(1000);
+  trSparringNames = [...new Set((data || []).map((r) => String(r.sparring_name || "").trim()).filter(Boolean))].sort();
+  return trSparringNames;
+}
+function attachSparringAC(input, onPick) {
+  if (!input) return;
+  input.setAttribute("autocomplete", "off");
+  const dd = document.createElement("div"); dd.className = "mail-ac"; dd.hidden = true;
+  document.body.appendChild(dd);
+  let items = [], active = -1;
+  const close = () => { dd.hidden = true; active = -1; };
+  const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const render = () => {
+    const q = norm(input.value.trim());
+    if (q.length < 2) { close(); return; }
+    const fromRep = people.filter((p) => norm(`${p.first_name} ${p.last_name} ${p.last_name} ${p.first_name}`).includes(q))
+      .slice(0, 8).map((p) => ({ id: p.id, name: `${p.first_name || ""} ${p.last_name || ""}`.trim(), sub: "répertoire" }));
+    const fromFree = (trSparringNames || []).filter((n) => norm(n).includes(q) && !fromRep.some((r) => r.name === n))
+      .slice(0, 5).map((n) => ({ id: "", name: n, sub: "déjà saisi" }));
+    items = [...fromRep, ...fromFree];
+    if (!items.length) { close(); return; }
+    dd.innerHTML = items.map((c, i) => `<div class="mail-ac-it${i === active ? " on" : ""}" data-i="${i}"><b>${esc(c.name)}</b><span>${c.sub}</span></div>`).join("");
+    const r = input.getBoundingClientRect();
+    dd.style.left = r.left + "px"; dd.style.top = (r.bottom + 2) + "px"; dd.style.width = Math.max(r.width, 220) + "px";
+    dd.hidden = false;
+    dd.querySelectorAll(".mail-ac-it").forEach((el) => el.addEventListener("mousedown", (e) => { e.preventDefault(); const it = items[+el.dataset.i]; input.value = it.name; onPick(it.id, it.name); close(); }));
+  };
+  input.addEventListener("input", () => { onPick("", input.value.trim()); render(); });
+  input.addEventListener("focus", render);
+  input.addEventListener("blur", () => setTimeout(close, 150));
+  input.addEventListener("keydown", (e) => {
+    if (dd.hidden) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); active = Math.min(active + 1, items.length - 1); render(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); active = Math.max(active - 1, 0); render(); }
+    else if (e.key === "Enter" && active >= 0) { e.preventDefault(); const it = items[active]; input.value = it.name; onPick(it.id, it.name); close(); }
+    else if (e.key === "Escape") close();
+  });
+}
 
 const trFull = (id) => { const p = people.find((x) => x.id === id); return p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() : "?"; };
 const trShort = (id) => { const p = people.find((x) => x.id === id); return p ? `${p.first_name || ""} ${(p.last_name || "").slice(0, 1)}.`.trim() : "?"; };
@@ -10629,8 +10722,14 @@ function courseNeedsDetail(course, courtIds, coachIds) {
 async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
   const block = $("c-detail-block"); if (!block) return;
   const typeName = (courseTypes.find((t) => t.id === course.course_type_id) || {}).name || "";
-  if (!courseNeedsDetail(course, courtIds, coachIds)) { block.classList.add("hidden"); $("c-detail").innerHTML = ""; return; }
+  if (!courseNeedsDetail(course, courtIds, coachIds)) {
+    // Cours privé (head coach/admin) : pas de blocs, mais une note sur le cours, reprise sur la fiche du joueur.
+    const canNote = hasAny(myAppRoles, ["superadmin", "admin", "head_coach"]);
+    if (canNote && TR_PRIV_RE.test(typeName)) { block.classList.remove("hidden"); await renderPrivNote(course, courtIds, coachIds, childIds, typeName); return; }
+    block.classList.add("hidden"); $("c-detail").innerHTML = ""; return;
+  }
   block.classList.remove("hidden");
+  trLoadSparringNames();
   const coachLike = (id) => (peopleRoles[id] || []).some((r) => ["coach", "head-coach", "coach-prive"].includes(r));
   const coachSet = new Set(coachIds || []); people.forEach((p) => { if (coachLike(p.id)) coachSet.add(p.id); });
   trEditing = {
@@ -10639,7 +10738,7 @@ async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
     roster: [...new Set(childIds || [])], coachOpts: [...coachSet], courtIds: (courtIds || []).map(Number),
     children: [...new Set(childIds || [])], courseCoaches: [...new Set(coachIds || [])],
   };
-  const { data: segs } = await sb.from("course_segments").select("id,seq,minutes,coach_person_id,court_id,note").eq("course_id", course.id).order("seq");
+  const { data: segs } = await sb.from("course_segments").select("id,seq,minutes,coach_person_id,court_id,note,status,sparring_person_id,sparring_name").eq("course_id", course.id).order("seq");
   let ex = {};
   if ((segs || []).length) {
     const { data: sp } = await sb.from("course_segment_players").select("segment_id,person_id").in("segment_id", segs.map((s) => s.id));
@@ -10647,9 +10746,37 @@ async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
   }
   (segs || []).forEach((s) => (ex[s.id] || []).forEach((pid) => { if (!trEditing.roster.includes(pid)) trEditing.roster.push(pid); }));
   trBlocs = (segs || []).length
-    ? segs.map((s) => ({ minutes: s.minutes, coach: s.coach_person_id || "", court: s.court_id || "", note: s.note || "", players: ex[s.id] || [] }))
-    : [{ minutes: Math.min(trEditing.dur || 60, 60), coach: trEditing.coachOpts[0] || "", court: (courtIds || [])[0] || "", note: "", players: [] }];
+    ? segs.map((s) => ({ minutes: s.minutes, coach: s.coach_person_id || "", court: s.court_id || "", note: s.note || "", players: ex[s.id] || [],
+        status: s.status || "jeu", sparring: s.sparring_person_id || "", sparringName: s.sparring_name || (s.sparring_person_id ? trFull(s.sparring_person_id) : "") }))
+    : [{ minutes: Math.min(trEditing.dur || 60, 60), coach: trEditing.coachOpts[0] || "", court: (courtIds || [])[0] || "", note: "", players: [], status: "jeu", sparring: "", sparringName: "" }];
   renderTrEditor();
+}
+
+// Cours privé : une note du head coach sur le cours, stockée comme UN bloc couvrant toute la séance
+// (même table que le détail → reprise telle quelle dans « Thèmes travaillés » de la fiche du joueur,
+// et lisible seulement par head coach/admin). Ne touche pas aux présences.
+async function renderPrivNote(course, courtIds, coachIds, childIds, typeName) {
+  const host = $("c-detail"); if (!host) return;
+  const { data: segs } = await sb.from("course_segments").select("id,note").eq("course_id", course.id).order("seq");
+  const cur = (segs || []).map((s) => s.note || "").filter(Boolean).join(" · ");
+  host.innerHTML = `
+    <label class="cs-lbl">Note du cours <span class="muted" style="font-weight:400">— ${esc(typeName)} : ce qui a été travaillé, reprise sur la fiche du joueur</span></label>
+    <div class="tr-row"><input type="text" class="tr-note" id="tr-priv-note" value="${esc(cur)}" placeholder="ex. service + retour, gestion des points importants" /></div>
+    <div class="tr-ed-actions"><button type="button" class="tr-save" id="tr-priv-save">Enregistrer la note</button><span class="tr-save-st muted" id="tr-priv-st"></span></div>`;
+  $("tr-priv-save").addEventListener("click", async () => {
+    const st = $("tr-priv-st"); st.textContent = "Enregistrement…";
+    const note = $("tr-priv-note").value.trim();
+    await sb.from("course_segments").delete().eq("course_id", course.id);
+    if (!note) { st.textContent = "✓ Note effacée"; return; }
+    const minutes = trMinBetween(course.start_time, course.end_time) || 60;
+    const { data: ins, error } = await sb.from("course_segments").insert({
+      course_id: course.id, seq: 0, minutes, coach_person_id: (coachIds || [])[0] || null, court_id: (courtIds || [])[0] || null, note, status: "jeu",
+    }).select("id").single();
+    if (error || !ins) { st.textContent = "Erreur : " + (error?.message || "?"); return; }
+    const pl = [...new Set(childIds || [])].map((pid) => ({ segment_id: ins.id, person_id: pid }));
+    if (pl.length) { const { error: e2 } = await sb.from("course_segment_players").insert(pl); if (e2) { st.textContent = "Erreur : " + e2.message; return; } }
+    st.textContent = "✓ Note enregistrée";
+  });
 }
 
 function trCourtList() {
@@ -10666,9 +10793,10 @@ function trTally() {
 function renderTrEditor() {
   const host = $("c-detail"); if (!host || !trEditing) return;
   const e = trEditing, tgt = e.dur || 0, tally = trTally();
+  const stateOf = (pid) => { const st = new Set(trBlocs.filter((b) => (b.players || []).includes(pid) && b.status && b.status !== "jeu").map((b) => b.status)); return st.has("blesse") ? " 🩹" : st.has("repos") ? " 💤" : ""; };
   const tallyHtml = e.roster.map((pid) => {
     const m = tally[pid] || 0, cls = m === 0 ? "absent" : m === tgt ? "ok" : m > tgt ? "over" : "under";
-    return `<span class="tr-tchip ${cls}">${esc(trShort(pid))} <b>${m}′</b>${tgt ? `/${tgt}` : ""}</span>`;
+    return `<span class="tr-tchip ${cls}">${esc(trShort(pid))} <b>${m}′</b>${tgt ? `/${tgt}` : ""}${stateOf(pid)}</span>`;
   }).join("");
   // Tally COACHS = temps réellement encadré (→ paie). Chaque coach de la séance devrait totaliser la durée.
   const coachMin = {}; (e.courseCoaches || []).forEach((id) => (coachMin[id] = 0));
@@ -10692,14 +10820,18 @@ function renderTrEditor() {
       const on = (b.players || []).includes(pid);
       return `<button type="button" class="tr-pchip${on ? " on" : ""}" data-i="${i}" data-p="${pid}">${esc(trShort(pid))}</button>`;
     }).join("");
-    return `<div class="tr-bloc">
-      <div class="tr-bloc-head"><b>Bloc ${i + 1}</b><button type="button" class="tr-del" data-i="${i}" title="Supprimer ce bloc">✕</button></div>
-      <div class="tr-row"><span class="tr-lbl">Durée</span><div class="tr-durs">${durs}</div></div>
-      <div class="tr-row tr-sels">
+    // État du bloc : Blessé / Au repos (cases exclusives ; aucune = jeu). Pas de coach ni de court dans ce cas.
+    const states = Object.entries(TR_STATES).map(([k, l]) => `<label class="tr-state${b.status === k ? " sel" : ""}"><input type="checkbox" class="tr-st" data-i="${i}" data-st="${k}"${b.status === k ? " checked" : ""}/> ${l}</label>`).join("");
+    const playing = !b.status || b.status === "jeu";
+    return `<div class="tr-bloc${playing ? "" : " tr-bloc-" + b.status}">
+      <div class="tr-bloc-head"><b>Bloc ${i + 1}${playing ? "" : ` <span class="tr-bloc-tag">${TR_STATES[b.status]}</span>`}</b><button type="button" class="tr-del" data-i="${i}" title="Supprimer ce bloc">✕</button></div>
+      <div class="tr-row"><span class="tr-lbl">Durée</span><div class="tr-durs">${durs}<span class="tr-states">${states}</span></div></div>
+      ${playing ? `<div class="tr-row tr-sels">
         <label class="tr-lbl2">Coach <select class="tr-coach" data-i="${i}">${coachOptions(b.coach)}</select></label>
         <label class="tr-lbl2">Court <select class="tr-court" data-i="${i}">${courtOptions(b.court)}</select></label>
-      </div>
+      </div>` : `<p class="muted" style="font-size:.8rem;margin:2px 0 4px">Temps compté comme « ${TR_STATES[b.status]} » sur la fiche du joueur : pas de temps de jeu, pas de coach.</p>`}
       <div class="tr-row"><span class="tr-lbl">Joueurs</span><div class="tr-pchips">${chips || '<span class="muted">Aucun joueur</span>'}</div></div>
+      ${playing ? `<div class="tr-row"><span class="tr-lbl">Sparring</span><input type="text" class="tr-spar" data-i="${i}" value="${esc(b.sparringName || "")}" placeholder="nom (répertoire ou libre)" />${b.sparring ? '<span class="tr-spar-ok" title="Personne du répertoire">✓</span>' : ""}</div>` : ""}
       <div class="tr-row"><span class="tr-lbl">Note</span><input type="text" class="tr-note" data-i="${i}" value="${esc(b.note || "")}" placeholder="ex. travail service / points" /></div>
     </div>`;
   }).join("");
@@ -10711,10 +10843,18 @@ function renderTrEditor() {
     <div class="tr-tally-lbl">Coachs <span class="muted" style="font-weight:400">— temps encadré (paie)</span></div>
     <div class="tr-tally">${coachTallyHtml || '<span class="muted">Aucun coach.</span>'}</div>
     ${warnHtml}
-    <p class="muted" style="font-size:.8rem;margin:2px 0 8px">🟢 complet · 🟠 incomplet · 🔴 absent (0) · 🔵 dépassé. Un <b>joueur</b> peut faire moins ; un <b>coach</b> devrait couvrir toute la séance (sinon avertissement).</p>
+    <p class="muted" style="font-size:.8rem;margin:2px 0 8px">🟢 complet · 🟠 incomplet · 🔴 absent (0) · 🔵 dépassé · 🩹 blessé · 💤 au repos. Un <b>joueur</b> peut faire moins ; un <b>coach</b> devrait couvrir toute la séance (sinon avertissement).</p>
     <div class="tr-blocs">${blocsHtml}</div>
     <div class="tr-ed-actions"><button type="button" class="tr-add">+ Ajouter un bloc</button><button type="button" class="tr-save">Enregistrer le détail</button><span class="tr-save-st muted"></span></div>`;
-  const newBloc = () => ({ minutes: 60, coach: e.coachOpts[0] || "", court: (e.courtIds || [])[0] || "", note: "", players: [] });
+  const newBloc = () => ({ minutes: 60, coach: e.coachOpts[0] || "", court: (e.courtIds || [])[0] || "", note: "", players: [], status: "jeu", sparring: "", sparringName: "" });
+  host.querySelectorAll(".tr-st").forEach((c) => c.addEventListener("change", () => {
+    const b = trBlocs[+c.dataset.i];
+    b.status = c.checked ? c.dataset.st : "jeu";
+    if (b.status !== "jeu") { b.coach = ""; b.court = ""; b.sparring = ""; b.sparringName = ""; }
+    else { b.coach = e.coachOpts[0] || ""; b.court = (e.courtIds || [])[0] || ""; }
+    renderTrEditor();
+  }));
+  host.querySelectorAll(".tr-spar").forEach((inp) => attachSparringAC(inp, (id, name) => { const b = trBlocs[+inp.dataset.i]; b.sparring = id || ""; b.sparringName = name || ""; if (!name) b.sparring = ""; const ok = inp.parentElement.querySelector(".tr-spar-ok"); if (ok) ok.hidden = !b.sparring; }));
   host.querySelector(".tr-add").addEventListener("click", () => { trBlocs.push(newBloc()); renderTrEditor(); });
   host.querySelector(".tr-save").addEventListener("click", trSave);
   host.querySelectorAll(".tr-dur").forEach((b) => b.addEventListener("click", () => { trBlocs[+b.dataset.i].minutes = +b.dataset.d; renderTrEditor(); }));
@@ -10732,7 +10872,13 @@ async function trSave() {
   st.textContent = "Enregistrement…";
   const id = trEditing.id;
   await sb.from("course_segments").delete().eq("course_id", id);           // remplace tout (cascade joueurs)
-  const rows = valid.map((b, i) => ({ course_id: id, seq: i, minutes: b.minutes, coach_person_id: b.coach || null, court_id: b.court || null, note: b.note || null }));
+  const rows = valid.map((b, i) => ({
+    course_id: id, seq: i, minutes: b.minutes, coach_person_id: b.coach || null, court_id: b.court || null, note: b.note || null,
+    status: b.status || "jeu",
+    sparring_person_id: (b.status && b.status !== "jeu") ? null : (b.sparring || null),
+    sparring_name: (b.status && b.status !== "jeu") || b.sparring ? null : ((b.sparringName || "").trim() || null),
+  }));
+  if (rows.some((r) => r.sparring_name)) trSparringNames = null;   // nouvelles suggestions au prochain chargement
   const { data: ins, error } = await sb.from("course_segments").insert(rows).select("id,seq");
   if (error) { st.textContent = "Erreur : " + error.message; return; }
   const pr = [];
@@ -10776,8 +10922,9 @@ async function loadTrStats() {
   const { data: cs } = await sb.from("courses").select("id,course_date,course_types(name)").gte("course_date", s.start_date).lte("course_date", s.end_date);
   const proIds = (cs || []).filter((c) => TR_TYPE_RE.test(c.course_types?.name || "")).map((c) => c.id);
   if (!proIds.length) { body.innerHTML = '<p class="muted">Aucune séance sur cette saison.</p>'; return; }
-  const { data: segs } = await sb.from("course_segments").select("id,course_id,minutes,coach_person_id").in("course_id", proIds);
-  if (!(segs || []).length) { body.innerHTML = '<p class="muted">Aucun détail saisi sur cette saison.</p>'; return; }
+  const { data: segs0 } = await sb.from("course_segments").select("id,course_id,minutes,coach_person_id,status").in("course_id", proIds);
+  const segs = (segs0 || []).filter((sg) => (sg.status || "jeu") === "jeu");   // blessé / au repos = pas des paires de jeu
+  if (!segs.length) { body.innerHTML = '<p class="muted">Aucun détail saisi sur cette saison.</p>'; return; }
   const { data: sp } = await sb.from("course_segment_players").select("segment_id,person_id").in("segment_id", segs.map((x) => x.id));
   const bySeg = {}; (sp || []).forEach((r) => (bySeg[r.segment_id] || (bySeg[r.segment_id] = [])).push(r.person_id));
   const pairMin = {}, pairCnt = {}, pcMin = {}, totMin = {}, sessOf = {};
