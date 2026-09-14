@@ -5328,6 +5328,41 @@ async function nlSendAll() {
   if (!aud.length) { uiAlert("Aucun destinataire : ajuste le ciblage."); return; }
   if (!(await uiConfirm(`Envoyer « ${$("nl-subject").value.trim()} » à ${aud.length} destinataire(s) ? Cette action est définitive.`))) return;
   const btn = $("nl-send"); btn.disabled = true; $("nl-status").textContent = "Préparation des destinataires…";
+
+  // Le verrou d'abord, AVANT de toucher aux destinataires : les lignes qu'on
+  // s'apprête à effacer et reconstruire pourraient être celles d'un envoi déjà
+  // en cours. On demande donc la main, et on ne la rend qu'au bout.
+  const { data: verrou, error: eVerrou } = await sb.rpc("newsletter_claim_send", { p_id: id, p_reprendre: false });
+  if (eVerrou) { $("nl-status").textContent = "Erreur : " + eVerrou.message; btn.disabled = false; return; }
+  if (!verrou?.ok) {
+    btn.disabled = false;
+    $("nl-status").textContent = "";
+    if (verrou?.raison === "deja_envoyee") {
+      uiAlert("Cette newsletter a déjà été envoyée. Duplique-la pour en envoyer une nouvelle.");
+      return;
+    }
+    if (verrou?.raison === "envoi_en_cours") {
+      // Un envoi mort laisse le verrou pris. On propose de reprendre plutôt que
+      // d'attendre le délai — mais on demande confirmation : reprendre un envoi
+      // bien vivant ferait partir le message deux fois.
+      const depuis = verrou?.depuis
+        ? new Date(verrou.depuis).toLocaleTimeString("fr-CH", { hour: "2-digit", minute: "2-digit" }) : null;
+      const reprendre = await uiConfirm(
+        `Un envoi est déjà en cours pour cette newsletter${depuis ? ` (démarré à ${depuis})` : ""}. `
+        + "Si l'onglet qui l'a lancé est encore ouvert, attends qu'il se termine. "
+        + "S'il a été fermé ou a planté, tu peux reprendre là où il s'est arrêté : "
+        + "les destinataires déjà servis ne seront pas resollicités. Reprendre l'envoi ?");
+      if (!reprendre) return;
+      const { data: v2 } = await sb.rpc("newsletter_claim_send", { p_id: id, p_reprendre: true });
+      if (!v2?.ok) { uiAlert("Reprise impossible : " + (v2?.raison || "inconnu")); return; }
+      btn.disabled = true;
+      // On reprend l'existant : surtout ne pas reconstruire la liste.
+      return nlLancerEnvoi(id, null, btn);
+    }
+    uiAlert("Envoi impossible : " + (verrou?.raison || "inconnu"));
+    return;
+  }
+
   // (Re)construit la liste des destinataires en attente, puis envoie.
   await sb.from("newsletter_recipients").delete().eq("newsletter_id", id).eq("status", "en_attente");
   const rows = aud.map((r) => ({ newsletter_id: id, person_id: r.person_id, gz_participant_id: r.gz_participant_id, email: r.email, name: r.name, source: r.source }));
@@ -5336,14 +5371,36 @@ async function nlSendAll() {
     if (error) { $("nl-status").textContent = "Erreur : " + error.message; btn.disabled = false; return; }
   }
   await sb.from("newsletters").update({ n_recipients: rows.length }).eq("id", id);
-  $("nl-status").textContent = `Envoi à ${rows.length} destinataire(s)… (ne ferme pas la fenêtre)`;
-  const { data, error } = await sb.functions.invoke("newsletter-send", { body: { id } });
-  btn.disabled = false;
-  if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} $("nl-status").textContent = "Échec : " + m; loadNewsletters(); return; }
-  if (data?.error) { $("nl-status").textContent = "Échec : " + data.error; loadNewsletters(); return; }
+  return nlLancerEnvoi(id, rows.length, btn);
+}
+
+// Appel de la fonction d'envoi, commun au premier départ et à la reprise.
+// « reprendre: true » parce que le verrou est déjà pris par l'appelant : sans
+// cela, la fonction se refuserait la main à elle-même.
+async function nlLancerEnvoi(id, nb, btn) {
+  $("nl-status").textContent = nb == null
+    ? "Reprise de l'envoi… (ne ferme pas la fenêtre)"
+    : `Envoi à ${nb} destinataire(s)… (ne ferme pas la fenêtre)`;
+  const { data, error } = await sb.functions.invoke("newsletter-send", { body: { id, reprendre: true } });
+  if (btn) btn.disabled = false;
+  if (error) {
+    let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {}
+    $("nl-status").textContent = "Échec : " + m;
+    // Le verrou doit retomber, sinon il faudrait attendre le délai avant de réessayer.
+    await sb.rpc("newsletter_release_send", { p_id: id, p_erreur: String(m).slice(0, 400) });
+    loadNewsletters(); return;
+  }
+  if (data?.error) {
+    $("nl-status").textContent = "Échec : " + data.error;
+    await sb.rpc("newsletter_release_send", { p_id: id, p_erreur: String(data.error).slice(0, 400) });
+    loadNewsletters(); return;
+  }
   $("nl-modal").classList.add("hidden");
   await loadNewsletters();
-  uiAlert(`✓ Newsletter envoyée à ${data.sent} destinataire(s)${data.errors ? ` (${data.errors} lot(s) en erreur, voir le détail)` : ""}. Les ouvertures et clics apparaîtront au fil des heures.`);
+  const ecartes = data.desinscrits
+    ? ` ${data.desinscrits} personne(s) désinscrite(s) entre-temps ont été écartées.`
+    : "";
+  uiAlert(`✓ Newsletter envoyée à ${data.sent} destinataire(s)${data.errors ? ` (${data.errors} lot(s) en erreur, voir le détail)` : ""}.${ecartes} Les ouvertures et clics apparaîtront au fil des heures.`);
 }
 
 // ===================================================================
