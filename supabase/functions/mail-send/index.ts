@@ -7,7 +7,12 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = {
   "access-control-allow-origin": "*",
-  "access-control-allow-headers": "authorization, content-type, apikey, x-client-info",
+  // « authorization » doit être listé nommément : le joker « * » ne le couvre pas.
+  // Le joker prend en charge les en-têtes que supabase-js ajoute au fil de ses
+  // versions (x-supabase-api-version…). Sans cela, le navigateur laisse passer
+  // le prévol puis bloque le POST : la fonction n'est jamais appelée, et rien
+  // n'apparaît dans les journaux à part un OPTIONS orphelin.
+  "access-control-allow-headers": "authorization, apikey, content-type, x-client-info, x-supabase-api-version, *",
   "access-control-allow-methods": "POST, OPTIONS",
 };
 const json = (o: unknown, s = 200) =>

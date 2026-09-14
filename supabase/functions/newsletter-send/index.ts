@@ -14,7 +14,16 @@
 //   { id, reprendre: true } → reprend un envoi reste bloque (fonction morte en route).
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type, apikey, x-client-info", "access-control-allow-methods": "POST, OPTIONS" };
+const CORS = {
+  "access-control-allow-origin": "*",
+  // « authorization » doit être listé nommément : le joker « * » ne le couvre pas.
+  // Le joker prend en charge les en-têtes que supabase-js ajoute au fil de ses
+  // versions (x-supabase-api-version…). Sans cela, le navigateur laisse passer
+  // le prévol puis bloque le POST : la fonction n'est jamais appelée, et rien
+  // n'apparaît dans les journaux à part un OPTIONS orphelin.
+  "access-control-allow-headers": "authorization, apikey, content-type, x-client-info, x-supabase-api-version, *",
+  "access-control-allow-methods": "POST, OPTIONS",
+};
 const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, "content-type": "application/json" } });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const stripHtml = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|h\d|li|tr)>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\n{3,}/g, "\n\n").trim();
