@@ -5876,6 +5876,7 @@ function initOutInvoices() {
   $("oi-sel-all").addEventListener("change", () => { const on = $("oi-sel-all").checked; $("oi-rows").querySelectorAll(".oi-chk").forEach((c) => { c.checked = on; if (on) oiSel.add(c.dataset.id); else oiSel.delete(c.dataset.id); }); oiUpdateSelBtn(); });
   $("oi-send-close").addEventListener("click", () => $("oi-send-modal").classList.add("hidden"));
   $("oi-send-go").addEventListener("click", oiSendGo);
+  $("oi-send-test").addEventListener("click", oiSendTest);
   ["oi-send-subject", "oi-send-text"].forEach((id) => $(id).addEventListener("input", oiSendPreview));
   ["oi-filiere", "oi-season", "oi-inst-total"].forEach((id) => $(id).addEventListener("change", oiLoadPlayers));   // liste chargée automatiquement
   // Éditeur (nouvelle / personnelle / blanche / modification)
@@ -6286,6 +6287,40 @@ function oiSendPreview() {
   const f = oiList.find((x) => x.id === oiSendIds[0]); if (!f) return;
   $("oi-send-preview").innerHTML = `<b>Aperçu (${esc(f.number)}, à ${esc(f.debtor_email || "?")})</b><br><b>${esc(oiVars($("oi-send-subject").value, f))}</b><br><span style="white-space:pre-wrap">${esc(oiVars($("oi-send-text").value, f))}</span>`;
 }
+// Envoi d'essai à SA PROPRE adresse. Indispensable avant un envoi réel : sans
+// cela, le seul moyen de voir le mail serait de l'envoyer à la famille — et la
+// facture serait marquée « envoyée » au passage, donc retirée de la liste à
+// envoyer. Ici rien n'est modifié en base.
+async function oiSendTest() {
+  const f = oiList.find((x) => x.id === oiSendIds[0]);
+  if (!f) { uiAlert("Aucune facture à tester."); return; }
+  if (!f.pdf_path) { uiAlert("Le PDF de cette facture n'est pas encore généré. Rouvre l'onglet Factures et réessaie."); return; }
+  const { data: sess } = await sb.auth.getSession();
+  const moi = sess?.session?.user?.email;
+  if (!moi) { uiAlert("Adresse de connexion introuvable."); return; }
+
+  const btn = $("oi-send-test"); btn.disabled = true;
+  const st = $("oi-send-status"); st.textContent = `Envoi du test à ${moi}…`;
+  try {
+    const { data: blob, error: e1 } = await sb.storage.from("out_invoices").download(f.pdf_path);
+    if (e1) throw new Error(e1.message);
+    const b64 = await fileToB64(blob);
+    const { data, error } = await sb.functions.invoke("mail-send", { body: {
+      account: OI_FROM, to: moi,
+      // Objet préfixé : impossible de confondre un test avec un vrai envoi.
+      subject: "[TEST] " + oiVars($("oi-send-subject").value, f),
+      text: oiVars($("oi-send-text").value, f),
+      attachments: [{ filename: `facture-${f.number}.pdf`, contentType: "application/pdf", content: b64 }] } });
+    if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} throw new Error(m); }
+    if (data?.error) throw new Error(data.error);
+    st.textContent = "";
+    uiAlert(`✓ Test envoyé à ${moi} (facture ${f.number}, PDF joint).\n\nLa facture n'a PAS été marquée comme envoyée : elle reste dans « à envoyer ».`);
+  } catch (e) {
+    st.textContent = "";
+    uiAlert("Échec du test : " + (e?.message || e));
+  } finally { btn.disabled = false; }
+}
+
 async function oiSendGo() {
   const btn = $("oi-send-go"); btn.disabled = true; const st = $("oi-send-status");
   let ok = 0; const errs = [];
