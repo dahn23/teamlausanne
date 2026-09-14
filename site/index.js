@@ -488,7 +488,6 @@ const DETAILS = {
           { titre: "Vendredi", heures: ["17h15 – 19h15"], prix: "770.–" },
         ],
         prix: { label: "Saison complète", montant: "dès CHF 770.–",
-                detail: "selon le jour choisi · t-shirt Team Lausanne compris",
                 cta: { label: "Rejoindre le Club", scroll: "enroll-sec" } } },
       { type: "faq", eyebrow: "Questions fréquentes",
         title: "Tout ce qu'il faut savoir avant de commencer", items: [
