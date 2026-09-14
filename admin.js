@@ -5919,7 +5919,7 @@ function initOutInvoices() {
   $("oi-load").addEventListener("click", oiLoadPlayers);
   $("oi-generate").addEventListener("click", oiGenerate);
   $("oi-all").addEventListener("change", () => { $("oi-prep-rows").querySelectorAll(".oi-inc").forEach((c) => { c.checked = $("oi-all").checked; oiPrep[c.dataset.i].include = c.checked; }); oiUpdateGenBtn(); });
-  $("oi-send-all").addEventListener("click", () => oiOpenSend(oiList.filter((x) => x.status === "a_envoyer" && x.pdf_path).map((x) => x.id)));
+  $("oi-send-all").addEventListener("click", () => oiOpenSend(oiList.filter((x) => x.status === "a_envoyer").map((x) => x.id)));
   $("oi-send-sel").addEventListener("click", () => { if (!oiSel.size) { uiAlert("Coche d'abord les factures à envoyer."); return; } oiOpenSend([...oiSel]); });
   $("oi-sel-all").addEventListener("change", () => { const on = $("oi-sel-all").checked; $("oi-rows").querySelectorAll(".oi-chk").forEach((c) => { c.checked = on; if (on) oiSel.add(c.dataset.id); else oiSel.delete(c.dataset.id); }); oiUpdateSelBtn(); });
   $("oi-send-close").addEventListener("click", () => $("oi-send-modal").classList.add("hidden"));
@@ -6012,7 +6012,7 @@ function renderOiFilters() {
   const chip = (v, l) => `<button type="button" class="chip filt${oiFilter === v ? " sel" : ""}" data-st="${v}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
   $("oi-filters").innerHTML = chip("", "Toutes") + OI_ORDER.map((s) => chip(s, OI_ST[s][0])).join("");
   $("oi-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { oiFilter = b.dataset.st; renderOiFilters(); renderOutInvoices(); }));
-  const n = oiList.filter((x) => x.status === "a_envoyer" && x.pdf_path).length;
+  const n = oiList.filter((x) => x.status === "a_envoyer").length;
   $("oi-send-all").textContent = `✉ Envoyer les factures à envoyer${n ? ` (${n})` : ""}`;
   $("oi-send-all").disabled = !n;
 }
@@ -6026,12 +6026,12 @@ function renderOutInvoices() {
     const editable = f.status !== "payee" && f.status !== "annulee";
     const items = Array.isArray(f.items) && f.items.length ? f.items : (f.label ? [{ label: f.label, amount: f.amount }] : []);
     const acts = (editable ? `<button class="ghost oi-edit" data-id="${f.id}" title="Modifier (dates, articles, destinataire)">✎</button>` : "")
-      + (f.status === "a_envoyer" && f.pdf_path ? `<button class="ghost oi-send" data-id="${f.id}">Envoyer</button>` : "")
+      + (f.status === "a_envoyer" ? `<button class="ghost oi-send" data-id="${f.id}">Envoyer</button>` : "")
       + (f.status === "envoyee" ? `<button class="ghost oi-send" data-id="${f.id}" title="Renvoyer">↻</button><button class="ghost oi-paid" data-id="${f.id}">Payée</button>` : "")
       + (editable ? `<button class="ghost oi-cancel" data-id="${f.id}" title="Annuler">✕</button>` : "");
     const dateIn = (k) => editable ? `<input type="date" class="oi-date" data-id="${f.id}" data-k="${k}" value="${f[k] || ""}" style="width:118px" />` : (f[k] ? frDate(f[k]) : "—");
     return `<tr class="${f.status === "annulee" ? "muted" : ""}">
-      <td>${editable && f.pdf_path ? `<input type="checkbox" class="oi-chk" data-id="${f.id}" ${oiSel.has(f.id) ? "checked" : ""} />` : ""}</td>
+      <td>${editable ? `<input type="checkbox" class="oi-chk" data-id="${f.id}" ${oiSel.has(f.id) ? "checked" : ""} />` : ""}</td>
       <td style="white-space:nowrap"><b>${esc(f.number)}</b>${f.reference ? `<div class="muted" style="font-size:.7rem">${esc(oiFmt4(f.reference))}</div>` : ""}</td>
       <td>${esc(f.debtor_name || "—")}</td>
       <td style="font-size:.8rem">${f.debtor_email ? esc(f.debtor_email) : '<span style="color:#b45309">—</span>'}</td>
@@ -6323,8 +6323,8 @@ async function oiMakePdf(inv) {
 const oiVars = (tpl, f) => tpl.replace(/\{destinataire\}/g, f.debtor_name || "").replace(/\{joueur\}/g, f.player_name || "").replace(/\{numero\}/g, f.number || "")
   .replace(/\{montant\}/g, oiChf(f.amount)).replace(/\{echeance\}/g, f.due_date ? frDate(f.due_date) : "réception").replace(/\{libelle\}/g, f.label || "").replace(/\{reference\}/g, oiFmt4(f.reference));
 function oiOpenSend(ids) {
-  oiSendIds = ids.filter((id) => { const f = oiList.find((x) => x.id === id); return f && f.pdf_path; });
-  if (!oiSendIds.length) { uiAlert("Aucune facture avec PDF à envoyer."); return; }
+  oiSendIds = ids.filter((id) => oiList.some((x) => x.id === id));
+  if (!oiSendIds.length) { uiAlert("Aucune facture à envoyer."); return; }
   const noMail = oiSendIds.map((id) => oiList.find((x) => x.id === id)).filter((f) => !f.debtor_email);
   $("oi-send-count").textContent = oiSendIds.length;
   $("oi-send-status").textContent = noMail.length ? `⚠ ${noMail.length} sans e-mail (${noMail.map((f) => f.debtor_name).join(", ")}) : elles seront ignorées.` : "";
@@ -6339,18 +6339,32 @@ function oiSendPreview() {
 // cela, le seul moyen de voir le mail serait de l'envoyer à la famille — et la
 // facture serait marquée « envoyée » au passage, donc retirée de la liste à
 // envoyer. Ici rien n'est modifié en base.
+// Le PDF est fabriqué à la demande s'il manque. Il peut manquer légitimement :
+// une facture dont l'adresse vient d'être corrigée voit son PDF effacé exprès,
+// pour être refait avec la bonne adresse.
+async function oiAssurerPdf(f) {
+  if (f.pdf_path) return f.pdf_path;
+  await oiMakePdf(f);
+  const { data } = await sb.from("out_invoices").select("pdf_path").eq("id", f.id).single();
+  f.pdf_path = data?.pdf_path || null;
+  if (!f.pdf_path) throw new Error("PDF impossible à générer.");
+  return f.pdf_path;
+}
+
 async function oiSendTest() {
   const f = oiList.find((x) => x.id === oiSendIds[0]);
   if (!f) { uiAlert("Aucune facture à tester."); return; }
-  if (!f.pdf_path) { uiAlert("Le PDF de cette facture n'est pas encore généré. Rouvre l'onglet Factures et réessaie."); return; }
   const { data: sess } = await sb.auth.getSession();
-  const moi = sess?.session?.user?.email;
-  if (!moi) { uiAlert("Adresse de connexion introuvable."); return; }
+  // Adresse modifiable : on teste souvent vers une boîte personnelle, pas vers
+  // l'adresse de connexion.
+  const moi = await uiPrompt("Envoyer l'essai à quelle adresse ?", sess?.session?.user?.email || "");
+  if (!moi || !/@/.test(moi)) return;
 
   const btn = $("oi-send-test"); btn.disabled = true;
   const st = $("oi-send-status"); st.textContent = `Envoi du test à ${moi}…`;
   try {
-    const { data: blob, error: e1 } = await sb.storage.from("out_invoices").download(f.pdf_path);
+    const chemin = await oiAssurerPdf(f);
+    const { data: blob, error: e1 } = await sb.storage.from("out_invoices").download(chemin);
     if (e1) throw new Error(e1.message);
     const b64 = await fileToB64(blob);
     const { data, error } = await sb.functions.invoke("mail-send", { body: {
@@ -6376,7 +6390,8 @@ async function oiSendGo() {
     const f = oiList.find((x) => x.id === id); if (!f || !f.debtor_email) continue;
     st.textContent = `Envoi ${ok + 1}/${oiSendIds.length} — ${f.number}…`;
     try {
-      const { data: blob, error: e1 } = await sb.storage.from("out_invoices").download(f.pdf_path); if (e1) throw new Error(e1.message);
+      const chemin = await oiAssurerPdf(f);
+      const { data: blob, error: e1 } = await sb.storage.from("out_invoices").download(chemin); if (e1) throw new Error(e1.message);
       const b64 = await fileToB64(blob);
       const { data, error } = await sb.functions.invoke("mail-send", { body: { account: OI_FROM, to: f.debtor_email, subject: oiVars($("oi-send-subject").value, f), text: oiVars($("oi-send-text").value, f),
         attachments: [{ filename: `facture-${f.number}.pdf`, contentType: "application/pdf", content: b64 }] } });
