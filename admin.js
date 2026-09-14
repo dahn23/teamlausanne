@@ -268,6 +268,14 @@ const activeFilters = new Set(); // filtres rôle actifs
 
 const tabAccessMap = () => settings.tab_access || DEFAULT_TAB_ACCESS;
 
+// Onglets retirés à UNE personne, par-dessus ses rôles.
+// Les accès sont sinon purement par rôle, or un même rôle peut être porté par
+// des gens dont on ne veut pas qu'ils voient la même chose : une monitrice qui
+// travaille aussi au secrétariat garde son rôle de monitrice — donc l'onglet
+// Heures — alors qu'on ne veut pas qu'elle y accède.
+// Forme : { "<user_id>": ["heures", …] }.
+const tabDenyFor = (uid) => (settings.tab_deny || {})[uid] || [];
+
 function applyTabAccess(roles) {
   const access = tabAccessMap();
   // Onglets déjà configurés dans le réglage stocké (toutes rôles confondus).
@@ -277,11 +285,13 @@ function applyTabAccess(roles) {
   const allowedFor = (v) => roles.some((r) =>
     (known.has(v) ? (access[r] || []) : (DEFAULT_TAB_ACCESS[r] || [])).includes(v));
   const finTag = !!(myPersonId && (peopleRoles[myPersonId] || []).includes("finance"));  // tag CRM "finance" → onglet Factures
+  const refuses = tabDenyFor(meId);   // retraits nominatifs, prioritaires sur les rôles
   let first = null; const allowedSet = new Set();
   document.querySelectorAll(".side-item[data-view]").forEach((b) => {
     const v = b.dataset.view;
     if (v === "bientot") return;
-    const allowed = allowedFor(v) || (v === "gamezone" && isGzManager) || (v === "factures" && finTag);
+    const allowed = (allowedFor(v) || (v === "gamezone" && isGzManager) || (v === "factures" && finTag))
+                    && !refuses.includes(v);
     b.classList.toggle("hidden", !allowed);
     if (allowed) { allowedSet.add(v); if (!first) first = v; }
   });
