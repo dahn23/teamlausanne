@@ -276,6 +276,13 @@ const tabAccessMap = () => settings.tab_access || DEFAULT_TAB_ACCESS;
 // Forme : { "<user_id>": ["heures", …] }.
 const tabDenyFor = (uid) => (settings.tab_deny || {})[uid] || [];
 
+// Onglets AJOUTÉS à une personne, par-dessus ses rôles. Le symétrique du retrait
+// ci-dessus, et pour la même raison : certains outils s'adressent à des
+// personnes plutôt qu'à des fonctions. Le Project Manager en est l'exemple —
+// c'est un tableau d'équipe, pas un droit attaché au métier de head coach.
+// Forme : { "<user_id>": ["pm", …] }.
+const tabAllowFor = (uid) => (settings.tab_allow || {})[uid] || [];
+
 function applyTabAccess(roles) {
   const access = tabAccessMap();
   // Onglets déjà configurés dans le réglage stocké (toutes rôles confondus).
@@ -286,11 +293,15 @@ function applyTabAccess(roles) {
     (known.has(v) ? (access[r] || []) : (DEFAULT_TAB_ACCESS[r] || [])).includes(v));
   const finTag = !!(myPersonId && (peopleRoles[myPersonId] || []).includes("finance"));  // tag CRM "finance" → onglet Factures
   const refuses = tabDenyFor(meId);   // retraits nominatifs, prioritaires sur les rôles
+  const ajoutes = tabAllowFor(meId);  // ajouts nominatifs, par-dessus les rôles
   let first = null; const allowedSet = new Set();
   document.querySelectorAll(".side-item[data-view]").forEach((b) => {
     const v = b.dataset.view;
     if (v === "bientot") return;
-    const allowed = (allowedFor(v) || (v === "gamezone" && isGzManager) || (v === "factures" && finTag))
+    // Le retrait reste prioritaire : si un onglet figure dans les deux listes,
+    // c'est qu'on a voulu l'enlever à quelqu'un — on ne le lui redonne pas.
+    const allowed = (allowedFor(v) || ajoutes.includes(v)
+                     || (v === "gamezone" && isGzManager) || (v === "factures" && finTag))
                     && !refuses.includes(v);
     b.classList.toggle("hidden", !allowed);
     if (allowed) { allowedSet.add(v); if (!first) first = v; }
