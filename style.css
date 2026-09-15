@@ -2844,3 +2844,13 @@ tr.rm-loss td{background:#fde8e8}
 .tr-spar-del:hover{background:#fdeaea;color:#b3261e}
 .tr-spar-add{padding:5px 10px;border:1px dashed var(--line);background:#fff;border-radius:8px;font-size:.8rem;font-weight:600;color:#555;cursor:pointer}
 .tr-spar-add:hover{border-color:var(--blue);color:var(--blue)}
+/* Dashboard : derniers messages (v202) */
+.dash-note{padding:7px 0}
+.dn-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.78rem;margin-bottom:2px}
+.dn-kind{font-weight:700;padding:1px 8px;border-radius:999px;background:#eef1f6;color:#334}
+.dn-kind.dn-cours{background:#e4ecfb;color:#2a3a8c}
+.dn-kind.dn-suivi{background:#e7f3ec;color:#1c7a45}
+.dn-kind.dn-tennis{background:#fff3e0;color:#b45309}
+.dn-kind.dn-phys{background:#f3e8ff;color:#6d28d9}
+.dn-kind.dn-mental{background:#fbe4e4;color:#b3261e}
+.dn-body{color:#333;margin-top:2px;white-space:pre-wrap}

@@ -1697,18 +1697,20 @@ async function loadDashboard() {
   // Les trois appels partent ensemble : le tableau de bord ne doit pas s'afficher
   // en trois temps. Une alerte qui échoue ne doit pas emporter le reste, d'où
   // les listes vides par défaut.
-  const [{ data, error }, abs, rel] = await Promise.all([
+  const [{ data, error }, abs, rel, nts] = await Promise.all([
     sb.rpc("dashboard_data"),
     sb.rpc("absences_a_signaler"),
     sb.rpc("contacts_a_relancer"),
+    sb.rpc("dash_notes", { p_days: 7 }),
   ]);
   if (error) { body.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
   const D = data || {};
   const absences = abs.error ? [] : (abs.data || []);
   const relances = rel.error ? [] : (rel.data || []);
+  const notes = nts.error ? [] : (nts.data || []);
   $("dash-gen").textContent = D.generated_at ? "— " + frDateTime(D.generated_at) : "";
   body.innerHTML = `<div class="dash-grid">`
-    + dashGeneral(D.general || {}, absences) + dashRelances(relances) + dashMail(D.mail || {})
+    + dashGeneral(D.general || {}, absences) + dashNotes(notes) + dashRelances(relances) + dashMail(D.mail || {})
     + dashGroup("Pro · Pro U18 · Sport-études", D.se || {})
     + dashGroup("Compétition & Performance", D.comp || {})
     + dashClub(D.club || {}) + dashProspects(D.prospects || {}, (D.general || {}).lastup || {}) + `</div>`;
@@ -1718,6 +1720,24 @@ async function loadDashboard() {
     while (el && el.classList.contains("dash-li")) { el.classList.remove("hidden"); el = el.previousElementSibling; }
     b.remove();
   }));
+}
+// Derniers messages écrits (7 jours), toutes sources : notes de cours (blocs), fil « Suivi »
+// transverse, notes Tennis / Physique, canal Mental avec le jeune. 5 visibles, « Voir plus » au-delà.
+const DASH_NOTE_KIND = { cours: ["Cours", "dn-cours"], suivi: ["Suivi", "dn-suivi"], tennis: ["Tennis", "dn-tennis"], physique: ["Physique", "dn-phys"], mental: ["Mental", "dn-mental"] };
+function dashNotes(list) {
+  const rows = (list || []).map((n, i) => {
+    const [lbl, cls] = DASH_NOTE_KIND[n.kind] || [n.kind, ""];
+    const d = n.date ? new Date(n.date) : null;
+    const when = d ? `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : "";
+    return `<div class="dash-li dash-note${i >= 5 ? " dash-more hidden" : ""}">
+      <div class="dn-head"><span class="dn-kind ${cls}">${esc(lbl)}${n.extra ? ` · ${esc(n.extra)}` : ""}</span><span class="muted">${when}</span></div>
+      <div><b>${esc(n.youth || "—")}</b> <span class="muted">— ${esc(n.author || "—")}${n.role ? ` (${esc(n.role)})` : ""}</span></div>
+      <div class="dn-body">${esc(n.body || "")}</div>
+    </div>`;
+  }).join("");
+  return dashCard("Derniers messages (7 jours)", rows
+    ? rows + ((list || []).length > 5 ? `<button type="button" class="dash-showmore ghost">Voir plus (${list.length - 5})</button>` : "")
+    : '<div class="muted">Aucun message ces 7 derniers jours.</div>');
 }
 // Absences cumulées au-delà du seuil (réglage « absences_seuil_heures », 3 h par
 // défaut). On compte des HEURES et non des séances : rater trois cours d'une
