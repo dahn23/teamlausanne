@@ -10866,20 +10866,14 @@ function courseNeedsDetail(course, courtIds, coachIds) {
   if (!course) return false;
   const canEdit = hasAny(myAppRoles, ["superadmin", "admin", "head_coach"]);
   const typeName = (courseTypes.find((t) => t.id === course.course_type_id) || {}).name || "";
-  // Aligné sur le serveur course_is_detailed : plusieurs COURTS OU plusieurs COACHS.
-  const multi = (courtIds || []).length > 1 || (coachIds || []).length > 1;
-  return canEdit && TR_TYPE_RE.test(typeName) && multi;
+  // Tous les cours pro / sport-études / privés, même avec un seul coach et un seul court (blocs, sparring, note).
+  return canEdit && (TR_TYPE_RE.test(typeName) || TR_PRIV_RE.test(typeName));
 }
 // Appelée par openCourse : affiche (ou non) le bloc détail.
 async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
   const block = $("c-detail-block"); if (!block) return;
   const typeName = (courseTypes.find((t) => t.id === course.course_type_id) || {}).name || "";
-  if (!courseNeedsDetail(course, courtIds, coachIds)) {
-    // Cours privé (head coach/admin) : pas de blocs, mais une note sur le cours, reprise sur la fiche du joueur.
-    const canNote = hasAny(myAppRoles, ["superadmin", "admin", "head_coach"]);
-    if (canNote && TR_PRIV_RE.test(typeName)) { block.classList.remove("hidden"); await renderPrivNote(course, courtIds, coachIds, childIds, typeName); return; }
-    block.classList.add("hidden"); $("c-detail").innerHTML = ""; return;
-  }
+  if (!courseNeedsDetail(course, courtIds, coachIds)) { block.classList.add("hidden"); $("c-detail").innerHTML = ""; return; }
   block.classList.remove("hidden");
   trLoadSparringNames();
   const coachLike = (id) => (peopleRoles[id] || []).some((r) => ["coach", "head-coach", "coach-prive"].includes(r));
@@ -10905,32 +10899,6 @@ async function courseDetailMaybe(course, courtIds, coachIds, childIds) {
   renderTrEditor();
 }
 
-// Cours privé : une note du head coach sur le cours, stockée comme UN bloc couvrant toute la séance
-// (même table que le détail → reprise telle quelle dans « Thèmes travaillés » de la fiche du joueur,
-// et lisible seulement par head coach/admin). Ne touche pas aux présences.
-async function renderPrivNote(course, courtIds, coachIds, childIds, typeName) {
-  const host = $("c-detail"); if (!host) return;
-  const { data: segs } = await sb.from("course_segments").select("id,note").eq("course_id", course.id).order("seq");
-  const cur = (segs || []).map((s) => s.note || "").filter(Boolean).join(" · ");
-  host.innerHTML = `
-    <label class="cs-lbl">Note du cours <span class="muted" style="font-weight:400">— ${esc(typeName)} : ce qui a été travaillé, reprise sur la fiche du joueur</span></label>
-    <div class="tr-row"><input type="text" class="tr-note" id="tr-priv-note" value="${esc(cur)}" placeholder="ex. service + retour, gestion des points importants" /></div>
-    <div class="tr-ed-actions"><button type="button" class="tr-save" id="tr-priv-save">Enregistrer la note</button><span class="tr-save-st muted" id="tr-priv-st"></span></div>`;
-  $("tr-priv-save").addEventListener("click", async () => {
-    const st = $("tr-priv-st"); st.textContent = "Enregistrement…";
-    const note = $("tr-priv-note").value.trim();
-    await sb.from("course_segments").delete().eq("course_id", course.id);
-    if (!note) { st.textContent = "✓ Note effacée"; return; }
-    const minutes = trMinBetween(course.start_time, course.end_time) || 60;
-    const { data: ins, error } = await sb.from("course_segments").insert({
-      course_id: course.id, seq: 0, minutes, coach_person_id: (coachIds || [])[0] || null, court_id: (courtIds || [])[0] || null, note, status: "jeu",
-    }).select("id").single();
-    if (error || !ins) { st.textContent = "Erreur : " + (error?.message || "?"); return; }
-    const pl = [...new Set(childIds || [])].map((pid) => ({ segment_id: ins.id, person_id: pid }));
-    if (pl.length) { const { error: e2 } = await sb.from("course_segment_players").insert(pl); if (e2) { st.textContent = "Erreur : " + e2.message; return; } }
-    st.textContent = "✓ Note enregistrée";
-  });
-}
 
 function trCourtList() {
   const all = (typeof resaCourtsAll !== "undefined" && resaCourtsAll.length) ? resaCourtsAll : [];
@@ -10952,16 +10920,18 @@ function renderTrEditor() {
     return `<span class="tr-tchip ${cls}">${esc(trShort(pid))} <b>${m}′</b>${tgt ? `/${tgt}` : ""}${stateOf(pid)}</span>`;
   }).join("");
   // Tally COACHS = temps réellement encadré (→ paie). Chaque coach de la séance devrait totaliser la durée.
+  // Un coach dans deux blocs en parallèle gère deux groupes en même temps : son temps est plafonné à la durée de la séance (pas payé double).
   const coachMin = {}; (e.courseCoaches || []).forEach((id) => (coachMin[id] = 0));
   trBlocs.forEach((b) => { if (b.coach) coachMin[b.coach] = (coachMin[b.coach] || 0) + (b.minutes || 0); });
   const coachIdsShown = Object.keys(coachMin);
+  const coachPaid = (id) => tgt ? Math.min(coachMin[id] || 0, tgt) : (coachMin[id] || 0);
   const coachTallyHtml = coachIdsShown.map((id) => {
-    const m = coachMin[id] || 0, cls = m === 0 ? "absent" : m === tgt ? "ok" : m > tgt ? "over" : "under";
-    return `<span class="tr-tchip ${cls}">${esc(trShort(id))} <b>${trFmtH(m)}</b>${tgt ? `/${trFmtH(tgt)}` : ""}</span>`;
+    const raw = coachMin[id] || 0, m = coachPaid(id), cls = m === 0 ? "absent" : m >= tgt ? "ok" : "under";
+    return `<span class="tr-tchip ${cls}" title="${raw > tgt ? `${trFmtH(raw)} saisies sur plusieurs blocs en parallèle → plafonné à la séance` : ""}">${esc(trShort(id))} <b>${trFmtH(m)}</b>${tgt ? `/${trFmtH(tgt)}` : ""}${raw > tgt ? " ⫽" : ""}</span>`;
   }).join("");
-  const mism = coachIdsShown.filter((id) => (coachMin[id] || 0) !== tgt);
+  const mism = coachIdsShown.filter((id) => coachPaid(id) < tgt);
   const warnHtml = mism.length
-    ? `<div class="tr-warn">⚠️ Le temps encadré ne correspond pas à la durée de la séance (${trFmtH(tgt)}) pour&nbsp;: ${mism.map((id) => `<b>${esc(trShort(id))}</b> (${trFmtH(coachMin[id] || 0)})`).join(", ")}. Ils seront payés au temps saisi — vérifie que c'est voulu.</div>`
+    ? `<div class="tr-warn">⚠️ Le temps encadré est inférieur à la durée de la séance (${trFmtH(tgt)}) pour&nbsp;: ${mism.map((id) => `<b>${esc(trShort(id))}</b> (${trFmtH(coachPaid(id))})`).join(", ")}. Ils seront payés au temps saisi — vérifie que c'est voulu.</div>`
     : "";
   const coachOptions = (sel) => `<option value="">— coach —</option>` +
     e.coachOpts.map((id) => `<option value="${id}"${String(sel) === String(id) ? " selected" : ""}>${esc(trFull(id))}</option>`).join("");
@@ -10990,7 +10960,7 @@ function renderTrEditor() {
   }).join("");
   host.innerHTML = `
     <label class="cs-lbl">Détail de la séance <span class="muted" style="font-weight:400">— qui a joué avec qui, quel coach, combien de temps</span></label>
-    <p class="muted" style="font-size:.8rem;margin:0 0 8px"><b>Ce détail remplace l'appel ET le calcul des heures</b> pour ce cours : un joueur dans ≥1 bloc = présent ; chaque coach est payé au temps saisi.</p>
+    <p class="muted" style="font-size:.8rem;margin:0 0 8px"><b>Ce détail remplace l'appel</b> pour ce cours : un joueur dans ≥1 bloc = présent. Un coach est payé au temps saisi, plafonné à la durée de la séance (deux blocs en parallèle = deux groupes, pas le double d'heures).</p>
     <div class="tr-tally-lbl">Joueurs</div>
     <div class="tr-tally">${tallyHtml || '<span class="muted">Aucun joueur.</span>'}</div>
     <div class="tr-tally-lbl">Coachs <span class="muted" style="font-weight:400">— temps encadré (paie)</span></div>
