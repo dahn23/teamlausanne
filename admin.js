@@ -1367,6 +1367,10 @@ function openPerson(p) {
   showPersonTab("tennis", tennisByRole);
   const isPlayer = ["sport-etudes", "pro", "pro-u18"].some((r) => roles.includes(r)); // contrat = sport-études / pro
   showPersonTab("contrat", isPlayer);
+  // Échanges : mêmes filières que le contrat, et réservé à l'encadrement
+  // (ces notes touchent aux familles et parfois au privé).
+  showPersonTab("contacts", isPlayer && canContactLog());
+  if (p && isPlayer && canContactLog()) loadContactLog(p.id); else $("ech-liste").innerHTML = "";
   showPersonTab("stages", false);
   const staffPayRole = [...COACH_ROLES, "prof", "coach-mental", "concierge", "secretaire", "admin"].some((r) => roles.includes(r));  // onglet Rémunération
   showPersonTab("coach", staffPayRole);
@@ -1679,12 +1683,21 @@ async function loadDashboard() {
   const body = $("dash-body");
   if (!$("dash-refresh").dataset.w) { $("dash-refresh").dataset.w = "1"; $("dash-refresh").addEventListener("click", loadDashboard); }
   body.innerHTML = '<p class="muted">Chargement…</p>';
-  const { data, error } = await sb.rpc("dashboard_data");
+  // Les trois appels partent ensemble : le tableau de bord ne doit pas s'afficher
+  // en trois temps. Une alerte qui échoue ne doit pas emporter le reste, d'où
+  // les listes vides par défaut.
+  const [{ data, error }, abs, rel] = await Promise.all([
+    sb.rpc("dashboard_data"),
+    sb.rpc("absences_a_signaler"),
+    sb.rpc("contacts_a_relancer"),
+  ]);
   if (error) { body.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
   const D = data || {};
+  const absences = abs.error ? [] : (abs.data || []);
+  const relances = rel.error ? [] : (rel.data || []);
   $("dash-gen").textContent = D.generated_at ? "— " + frDateTime(D.generated_at) : "";
   body.innerHTML = `<div class="dash-grid">`
-    + dashGeneral(D.general || {}) + dashMail(D.mail || {})
+    + dashGeneral(D.general || {}, absences) + dashRelances(relances) + dashMail(D.mail || {})
     + dashGroup("Pro · Pro U18 · Sport-études", D.se || {})
     + dashGroup("Compétition & Performance", D.comp || {})
     + dashClub(D.club || {}) + dashProspects(D.prospects || {}, (D.general || {}).lastup || {}) + `</div>`;
@@ -1695,7 +1708,44 @@ async function loadDashboard() {
     b.remove();
   }));
 }
-function dashGeneral(g) {
+// Absences cumulées au-delà du seuil (réglage « absences_seuil_heures », 3 h par
+// défaut). On compte des HEURES et non des séances : rater trois cours d'une
+// heure n'a pas le même poids que trois séances de deux heures.
+function dashAbsences(l) {
+  if (!l.length) return '<div class="dash-ok">✓ Personne au-dessus du seuil d\'absences.</div>';
+  return l.map((a) => {
+    // Le contact du parent est dans un champ texte « Nom · tél · e-mail » : on
+    // en tire le téléphone pour pouvoir appeler directement.
+    const tel = (a.parent || "").split("·").map((x) => x.trim()).find((x) => /\d{3}/.test(x) && !/@/.test(x));
+    return `<div class="dash-li dash-abs">
+      <b>${esc(a.eleve)}</b> <span class="muted">${esc(a.filiere || "")}</span>
+      <span class="dash-abs-h">${esc(String(a.heures))} h</span>
+      <span class="muted">· ${a.seances} séance(s) · dernière ${dFD(a.derniere)}</span>
+      ${a.parent ? `<div class="dash-abs-p">${esc(a.parent)}${tel ? ` <a href="tel:${esc(tel.replace(/\s+/g, ""))}">appeler</a>` : ""}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+// Joueurs des filières sport-études / pro / pro-u18 qu'on n'a pas contactés
+// depuis la cadence convenue (réglage « contact_cadence_jours », 30 j).
+function dashRelances(l) {
+  const retard = l.filter((r) => r.en_retard);
+  const inner = !l.length
+    ? '<div class="muted">Aucun joueur dans ces filières cette saison.</div>'
+    : !retard.length
+    ? '<div class="dash-ok">✓ Tout le monde a été contacté récemment.</div>'
+    : retard.map((r) => `<div class="dash-li">
+        <b>${esc(r.joueur)}</b> <span class="muted">${esc(r.filiere || "")}</span> —
+        <span class="dash-red">${r.dernier_contact ? `il y a ${r.jours} jours` : "jamais contacté"}</span>
+      </div>`).join("");
+  const ok = l.length - retard.length;
+  return dashCard("À recontacter",
+    `<p class="muted" style="margin:0 0 8px;font-size:.85rem">Sport-études, Pro et Pro U18 — un point par mois.</p>
+     ${inner}
+     ${ok ? `<div class="dash-row" style="margin-top:8px"><span class="muted">À jour</span><span>${ok}</span></div>` : ""}`);
+}
+
+function dashGeneral(g, absences) {
   const lu = g.lastup || {};
   const line = (label, at, by) => { const red = dDaysAgo(at) > 10; return `<div class="dash-row"><span>${esc(label)}</span><span class="${red ? "dash-red" : ""}">${at ? dFD(at) : "jamais"}${by ? " · " + esc(by) : ""}${red ? " ⚠️" : ""}</span></div>`; };
   const cov = ((g.nocoach || []).length || (g.coachabs || []).length)
@@ -1720,6 +1770,7 @@ function dashGeneral(g) {
      ${line("Tournois GameZone", lu.gz_at, lu.gz_by)}${line("Importer les matchs TeamLausanne", lu.matchs_at, lu.matchs_by)}
      <h3 class="dash-sub">Couverture coachs (cours à venir)</h3>${cov}
      <h3 class="dash-sub">Cours / études passés non validés (21 j)</h3>${unval}
+     <h3 class="dash-sub">Absences cumulées (&gt; seuil, saison en cours)</h3>${dashAbsences(absences || [])}
      <h3 class="dash-sub">Anniversaires (J−3 → J+3)</h3>${bday}`);
 }
 function dashMail(m) {
@@ -10515,7 +10566,73 @@ async function openEtudesYouth(yid) {
   window.scrollTo(0, 0);
 }
 // ---- Fil « Suivi du jeune » unifié (interne, partagé par tout l'encadrement) ----
+// ===================================================================
+//  Échanges avec la famille (fiche › Échanges)
+// ===================================================================
+// Distinct de youth_notes, qui suit le développement du jeune. Ici on journalise
+// la relation : appels, visios, rencontres. Le tableau de bord s'en sert pour
+// signaler ceux qu'on n'a pas contactés depuis un mois.
+const canContactLog = () => hasAny(myAppRoles, ["superadmin", "admin", "head_coach", "secretaire"]);
+const ECH_CANAL = { appel: "Appel", visio: "Visio", rencontre: "Rencontre", message: "Message", autre: "Autre" };
+let echPersonId = null;
+
+async function loadContactLog(personId) {
+  echPersonId = personId;
+  const z = $("ech-liste"); if (!z) return;
+  $("ech-date").value = new Date().toISOString().slice(0, 10);
+  const { data, error } = await sb.from("player_contact_log")
+    .select("*").eq("person_id", personId).order("contacted_at", { ascending: false });
+  if (error) { z.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  const l = data || [];
+  // Depuis combien de temps n'a-t-on pas parlé à cette famille ?
+  const dernier = l[0]?.contacted_at;
+  const jours = dernier ? Math.floor((Date.now() - new Date(dernier + "T00:00:00")) / 86400000) : null;
+  $("ech-dernier").innerHTML = dernier
+    ? `Dernier échange il y a <b>${jours} jour(s)</b> — ${frDate(dernier)}.`
+      + (jours >= 30 ? ' <span class="dash-red">À recontacter.</span>' : "")
+    : '<span class="dash-red">Aucun échange enregistré.</span>';
+  z.innerHTML = l.length
+    ? l.map((x) => `<article class="ech-item" data-id="${x.id}">
+        <div class="ech-head">
+          <span class="ech-moyen">${esc(ECH_CANAL[x.channel] || x.channel)}</span>
+          <b>${frDate(x.contacted_at)}</b>
+          ${x.author_name ? `<span class="muted">· ${esc(x.author_name)}</span>` : ""}
+          <span class="spacer"></span>
+          <button type="button" class="ghost ech-del" data-id="${x.id}" title="Supprimer">✕</button>
+        </div>
+        <div class="ech-corps">${esc(x.summary)}</div>
+      </article>`).join("")
+    : '<p class="muted" style="font-size:.88rem">Aucun échange pour l\'instant.</p>';
+  z.querySelectorAll(".ech-del").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await uiConfirm("Supprimer cet échange ?"))) return;
+    await sb.from("player_contact_log").delete().eq("id", b.dataset.id);
+    loadContactLog(echPersonId);
+  }));
+}
+
+document.addEventListener("submit", async (e) => {
+  if (e.target.id !== "ech-form") return;
+  e.preventDefault();
+  if (!echPersonId) return;
+  const resume = $("ech-resume").value.trim();
+  if (!resume) return;
+  const btn = $("ech-save"); btn.disabled = true;
+  const { error } = await sb.from("player_contact_log").insert({
+    person_id: echPersonId,
+    contacted_at: $("ech-date").value || new Date().toISOString().slice(0, 10),
+    channel: $("ech-moyen").value,
+    summary: resume,
+    author_person_id: myPersonId, author_name: meName, created_by: meId,
+  });
+  btn.disabled = false;
+  if (error) { $("ech-msg").textContent = "Erreur : " + error.message; return; }
+  $("ech-resume").value = ""; $("ech-msg").textContent = "✓ Enregistré.";
+  setTimeout(() => { $("ech-msg").textContent = ""; }, 2500);
+  loadContactLog(echPersonId);
+});
+
 // Table youth_notes. Utilisé partout : Études (par jeune), Mental (par jeune), fiche › Suivi.
+
 const NOTE_ROLE_META = {
   coach_mental: ["Mental", "mental"], prof: ["Prof", "prof"], head_coach: ["Head coach", "head"],
   coach: ["Coach", "coach"], secretaire: ["Secrétariat", "secr"], admin: ["Admin", "admin"], superadmin: ["Admin", "admin"],
