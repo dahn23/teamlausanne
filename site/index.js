@@ -366,8 +366,8 @@ const DETAILS = {
         "Suivi médical et physio", "Préparation mentale", "Classement mondial",
       ]},
       { type: "split", photos: [
-          "assets/photos/pro-u18-2026-g1.jpg", "assets/webflow/physical-training.jpg",
-          "assets/webflow/coaching-technique.jpg",
+          "assets/photos/pro-u18-2026-s1.jpg", "assets/photos/pro-u18-2026-s2.jpg",
+          "assets/photos/pro-u18-2026-s3.jpg",
         ],
         eyebrow: "Le tennis comme métier", title: "S'entraîner à plein temps, viser le monde", body: [
           "La scolarité obligatoire terminée, les journées se libèrent : deux sessions de tennis, une heure de préparation physique chaque matin, et le reste du temps pour récupérer et se soigner.",
