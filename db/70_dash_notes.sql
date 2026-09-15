@@ -4,7 +4,8 @@
 --   tennis   = tennis_notes (onglet Tennis de la fiche)
 --   physique = phys_notes
 --   mental   = mental_thread (canal mental avec le jeune) + mental_comments (ancien canal)
---   cours    = notes des blocs de séance (course_segments.note), avec les joueurs du bloc
+--   cours    = notes des blocs de séance (course_segments.note), avec les joueurs du bloc ; auteur = qui a
+--              enregistré le détail (created_by), le coach du bloc est indiqué dans « extra »
 -- Accès : mêmes rôles que dashboard_data (head_coach / admin / superadmin).
 
 create or replace function public.dash_notes(p_days int default 7)
@@ -49,9 +50,9 @@ begin
     union all
     select 'cours', greatest(s.created_at, (c.course_date + c.start_time)::timestamptz),
            (select string_agg(nm.n, ', ' order by nm.n) from course_segment_players sp join nm on nm.id = sp.person_id where sp.segment_id = s.id),
-           coalesce((select n from nm where id = s.coach_person_id), (select n from who where user_id = s.created_by)), 'coach',
+           coalesce((select n from who where user_id = s.created_by), (select n from nm where id = s.coach_person_id)), 'head coach',
            s.note,
-           coalesce(nullif(c.title,''), ct.name, 'Cours') || ' · ' || to_char(c.course_date, 'DD.MM')
+           coalesce(nullif(c.title,''), ct.name, 'Cours') || ' · ' || to_char(c.course_date, 'DD.MM') || coalesce(' · coach ' || (select n from nm where id = s.coach_person_id), '')
       from course_segments s join courses c on c.id = s.course_id left join course_types ct on ct.id = c.course_type_id
      where nullif(trim(s.note), '') is not null and s.created_at >= now() - make_interval(days => p_days)
   )
