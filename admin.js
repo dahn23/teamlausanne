@@ -2422,11 +2422,11 @@ function canMarkBox(course, coachIds, pid, isCoach) {
   if (isHeadUser) return true;                     // head/admin/superadmin : tout, tout le temps
   if (!myPersonId || !coachIds.includes(myPersonId)) return false; // doit être coach du cours
   if (isCoach && pid !== myPersonId) return false; // un coach ne marque que sa propre présence
-  // Fenêtre : 10 min avant → 2 semaines après. Le coach peut agir sur SA présence à l'avance (absence anticipée).
+  // Fenêtre : 25 min avant → 2 semaines après. Le coach peut agir sur SA présence à l'avance (absence anticipée).
   const start = new Date(`${course.course_date}T${course.start_time}`).getTime();
   const now = Date.now(), upper = start + 14 * 24 * 3600000;
   const ownCoach = isCoach && pid === myPersonId;
-  return ownCoach ? now <= upper : (now >= start - 10 * 60000 && now <= upper);
+  return ownCoach ? now <= upper : (now >= start - 25 * 60000 && now <= upper);
 }
 // Tous les jeunes d'un cours ont-ils un statut ? (pré-requis pour que le coach se déclare présent)
 function allKidsMarked(courseId) {
@@ -2661,7 +2661,7 @@ async function cycleAtt(chip) {
     const cstart = chip.dataset.cstart ? new Date(chip.dataset.cstart).getTime() : 0, now = Date.now();
     if (chip.dataset.detail === "1") uiAlert("Sur ce cours (pro / sport-études), les présences des jeunes sont gérées par le head coach via le détail de la séance.");
     else if (chip.dataset.coach === "1") uiAlert("Vous ne pouvez marquer que votre propre présence.");
-    else if (cstart && now < cstart - 10 * 60000) uiAlert("L'appel des jeunes ouvre 10 minutes avant le début du cours — pas avant.");
+    else if (cstart && now < cstart - 25 * 60000) uiAlert("L'appel des jeunes ouvre 25 minutes avant le début du cours — pas avant.");
     else if (cstart && now > cstart + 14 * 24 * 3600000) uiAlert("Appel clos (2 semaines écoulées). Demande à un head coach / admin.");
     else uiAlert("Cette présence n'est pas modifiable pour le moment.");
     return;
@@ -2671,11 +2671,11 @@ async function cycleAtt(chip) {
   let next;
   if (isCoach) {
     // Coach : présent / absent uniquement (jamais « en retard »). Règle pour TOUT LE MONDE (coach comme manager) :
-    //  - avant l'ouverture (10 min avant) → clic = absence anticipée ;
+    //  - avant l'ouverture (25 min avant) → clic = absence anticipée ;
     //  - en fenêtre, appel des élèves incomplet → refus (on ne peut pas marquer le coach présent) ;
     //  - appel complet → présent.
     const cstart = chip.dataset.cstart ? new Date(chip.dataset.cstart).getTime() : 0;
-    const inWindow = !chip.dataset.cstart || Date.now() >= cstart - 10 * 60000;
+    const inWindow = !chip.dataset.cstart || Date.now() >= cstart - 25 * 60000;
     const kidsPending = !allKidsMarked(course);
     if (cur === "") {
       if (!inWindow) { next = "absent"; uiAlert("Le cours n'a pas encore commencé : le coach est noté ABSENT (absence anticipée). Reclique pour effacer."); }
@@ -2718,7 +2718,7 @@ async function openAttendance(courseId) {
   const allKids = parts.length ? parts.every((pid) => statusOf(pid)) : true;
   $("att-note").textContent = isHeadUser
     ? "Cliquez pour marquer présent / absent / en retard."
-    : "Appel ouvert de 10 min avant le début à 2 semaines après. Déclare-toi présent une fois tous les jeunes appelés.";
+    : "Appel ouvert de 25 min avant le début à 2 semaines après. Déclare-toi présent une fois tous les jeunes appelés.";
 
   $("att-children").innerHTML = parts.length ? parts.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), false)).join("") : '<p class="muted" style="font-size:.85rem">Aucun enfant.</p>';
   // Le coach ne peut se déclarer présent / en retard que si tous les jeunes ont un statut (il peut toujours se mettre absent).
