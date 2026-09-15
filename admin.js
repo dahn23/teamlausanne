@@ -11153,7 +11153,7 @@ async function loadPM() {
     sb.from("pm_columns").select("*").order("sort_order"),
     sb.from("pm_members").select("*").eq("active", true).order("sort_order"),
     sb.from("pm_labels").select("*").order("sort_order"),
-    sb.from("pm_cards").select("*, pm_card_members(member_id), pm_card_labels(label_id), pm_attachments(id), pm_checklist(id,done)").order("sort_order"),
+    sb.from("pm_cards").select("*, pm_card_members(member_id), pm_card_labels(label_id), pm_attachments(id,filename), pm_checklist(id,done,text)").order("sort_order"),
   ]);
   pmCols = c.data || []; pmMembers = m.data || []; pmLabels = l.data || []; pmCards = k.data || [];
   pmRenderFiltres();
@@ -11183,6 +11183,57 @@ function pmRenderFiltres() {
 const pmVisible = (c) =>
   (!pmFiltre.membre || pmIdsM(c).includes(pmFiltre.membre)) &&
   (!pmFiltre.etiquette || pmIdsL(c).includes(pmFiltre.etiquette));
+
+// --- Recherche dans le tableau ---
+// Les cartes trouvées sont MISES EN AVANT, pas filtrées : on veut voir où
+// elles se situent dans le flux des colonnes, pas un tableau amputé.
+let pmRech = "";
+const pmNorm = (v) => String(v || "").normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+
+// Tout ce qui est cherchable dans une carte : son titre, sa description, les
+// points de sa liste, ses pièces jointes, ses étiquettes et ses membres.
+function pmFoin(c) {
+  return pmNorm([
+    c.title, c.description,
+    (c.pm_checklist || []).map((x) => x.text).join(" "),
+    (c.pm_attachments || []).map((x) => x.filename).join(" "),
+    pmIdsL(c).map((id) => pmLabel(id)?.name).join(" "),
+    pmIdsM(c).map((id) => pmMembre(id)?.name).join(" "),
+  ].join(" "));
+}
+
+const pmTrouve = (c) => {
+  if (!pmRech) return false;
+  const foin = pmFoin(c);
+  // Tous les mots doivent être présents : « site talia » ne rend que les
+  // cartes qui parlent des deux.
+  return pmNorm(pmRech).split(/\s+/).filter(Boolean).every((m) => foin.includes(m));
+};
+
+function pmBrancherRecherche() {
+  const ch = $("pm-search");
+  if (!ch || ch.dataset.pret) return;      // la vue se recharge, le champ non
+  ch.dataset.pret = "1";
+  ch.addEventListener("input", () => { pmRech = ch.value.trim(); pmAppliquerRecherche(); });
+}
+
+// Applique la mise en avant sans redessiner le tableau : redessiner couperait
+// un glisser-déposer en cours et ferait sauter la position de défilement.
+function pmAppliquerRecherche() {
+  const board = $("pm-board"); if (!board) return;
+  const actif = !!pmRech;
+  board.classList.toggle("pm-en-recherche", actif);
+  let n = 0;
+  board.querySelectorAll(".pm-card").forEach((el) => {
+    const c = pmCards.find((x) => x.id === el.dataset.card);
+    const ok = !!c && pmTrouve(c);
+    if (ok) n++;
+    el.classList.toggle("pm-trouve", actif && ok);
+  });
+  const cpt = $("pm-rech-n");
+  if (cpt) cpt.textContent = !actif ? "" : n ? `${n} carte(s)` : "aucune carte";
+  if (cpt) cpt.classList.toggle("vide", actif && !n);
+}
 
 function pmRenderBoard() {
   const b = $("pm-board"); if (!b) return;
@@ -11223,6 +11274,8 @@ function pmRenderBoard() {
     </section>`;
   }).join("");
   pmBrancherGlisser();
+  pmBrancherRecherche();
+  pmAppliquerRecherche();   // les cartes viennent d'être recréées
 }
 
 // ---- Glisser-deposer ----

@@ -2578,6 +2578,17 @@ tr.rm-loss td{background:#fde8e8}
 .pm-fl.on{border-color:var(--blue-ink)}
 
 /* Le tableau defile horizontalement : on ajoute des colonnes sans casser la mise en page. */
+/* Recherche du tableau : les cartes trouvées ressortent, les autres
+   s'effacent sans disparaître — on garde le contexte des colonnes. */
+.pm-rech{display:block;margin-bottom:10px;position:relative;max-width:520px}
+.pm-rech input{width:100%;box-sizing:border-box;font-size:.9rem;padding:9px 96px 9px 12px}
+.pm-rech-n{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  font-size:.78rem;font-weight:700;color:var(--muted);pointer-events:none}
+.pm-rech-n.vide{color:#b23838}
+.pm-board.pm-en-recherche .pm-card{opacity:.32;filter:saturate(.35)}
+.pm-board.pm-en-recherche .pm-card.pm-trouve{opacity:1;filter:none;
+  box-shadow:0 0 0 2px var(--blue),0 6px 16px rgba(7,62,181,.22)}
+@media(prefers-reduced-motion:reduce){.pm-board.pm-en-recherche .pm-card{transition:none}}
 .pm-board{display:flex;gap:14px;align-items:flex-start;overflow-x:auto;padding-bottom:14px}
 .pm-col{flex:0 0 290px;background:#eef1f7;border-radius:14px;padding:10px;display:flex;flex-direction:column;
   max-height:calc(100vh - 230px)}
