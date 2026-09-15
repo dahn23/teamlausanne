@@ -1694,8 +1694,8 @@ async function loadDashboard() {
   const body = $("dash-body");
   if (!$("dash-refresh").dataset.w) { $("dash-refresh").dataset.w = "1"; $("dash-refresh").addEventListener("click", loadDashboard); }
   body.innerHTML = '<p class="muted">Chargement…</p>';
-  // Les trois appels partent ensemble : le tableau de bord ne doit pas s'afficher
-  // en trois temps. Une alerte qui échoue ne doit pas emporter le reste, d'où
+  // Les appels partent ensemble : le tableau de bord ne doit pas s'afficher en
+  // plusieurs temps. Une alerte qui échoue ne doit pas emporter le reste, d'où
   // les listes vides par défaut.
   const [{ data, error }, abs, rel, nts] = await Promise.all([
     sb.rpc("dashboard_data"),
