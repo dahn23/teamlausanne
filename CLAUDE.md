@@ -48,7 +48,7 @@ Décision revue : on **construit notre propre facturation** (QR-facture suisse +
 ## Modules construits (carte pour une nouvelle session)
 Tout est dans la **console** (`admin.html`) sauf mention, menu latéral groupé. Les migrations SQL sont dans `db/`.
 - **Membres / CRM** : fiche `people`, rôles/tags **cumulables**. ⚠️ **3 tables de rôles** : `person_roles` (chips de la fiche) · `user_roles` (accès réel, lu par RLS/`myRoles`) · `role_periods` (rôle de filière **par saison** : kidstennis/club/competition/performance/sport-etudes/pro/pro-u18/adultes). La fiche **synchronise** l'accès (`syncAccessRoles` : person_roles → user_roles).
-- **Réservation** + **Cours** (Planning + Types de cours) : leçons au ¼h qui **bloquent les courts**, présences, copier-semaine, sélecteur de joueurs par filière (+ adultes).
+- **Réservation** + **Cours** (Planning + Types de cours) : leçons au ¼h qui **bloquent les courts**, présences (appel ouvert 25 min avant), copier-semaine, sélecteur de joueurs par filière (+ adultes).
 - **Stages** (camps) · **GameZone** (tournois juniors + caisse + site public classement) · **Tests physiques** · **Feuille de match** (coach côté console / joueur côté portail).
 - **Suivi du jeune unifié** : un seul fil `youth_notes` avec badges de rôle (remplace les canaux Mental/Études séparés). Calendriers **Mental** et **Études** par saison.
 - **Prospects** (scouting) · **Inscriptions** (formulaire public → onglet console) · **Finances** (voir section dédiée).
