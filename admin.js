@@ -11521,7 +11521,8 @@ async function pmRenderCheck() {
     ? `<div class="pm-chk-barre"><span style="width:${l.length ? Math.round(faits / l.length * 100) : 0}%"></span></div>` +
       l.map((x) => `<label class="pm-chk-item${x.done ? " fait" : ""}">
         <input type="checkbox" data-chk="${x.id}"${x.done ? " checked" : ""} />
-        <span>${esc(x.text)}</span>
+        <span class="pm-chk-txt" contenteditable="true" spellcheck="true"
+              data-edchk="${x.id}" data-avant="${esc(x.text)}">${esc(x.text)}</span>
         <button type="button" class="pm-chk-x" data-rmchk="${x.id}" title="Retirer">✕</button></label>`).join("")
     : '<p class="muted" style="margin:2px 0 6px;font-size:.85rem">Aucun point pour l’instant.</p>';
 }
@@ -11541,6 +11542,51 @@ document.addEventListener("click", async (e) => {
   await sb.from("pm_checklist").delete().eq("id", rm.dataset.rmchk);
   await pmRenderCheck();
   await loadPM();
+});
+
+// --- Correction d'un point de la liste ---
+// Le point est un <label> : cliquer son texte cocherait la case. On coupe donc
+// ce comportement sur le texte seul, la case restant cliquable.
+document.addEventListener("mousedown", (e) => {
+  if (e.target.closest("[data-edchk]")) e.preventDefault();
+});
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-edchk]");
+  if (!t) return;
+  e.preventDefault();
+  if (document.activeElement !== t) {
+    t.focus();
+    // Curseur là où l'on a cliqué plutôt qu'au début : on vient corriger une
+    // faute, pas réécrire la ligne.
+    const sel = getSelection();
+    if (sel && sel.rangeCount === 0) {
+      const r = document.createRange(); r.selectNodeContents(t); r.collapse(false);
+      sel.addRange(r);
+    }
+  }
+});
+
+async function pmEnregistrerPoint(t) {
+  const texte = t.innerText.replace(/\s+/g, " ").trim();
+  const avant = t.dataset.avant || "";
+  if (texte === avant) { t.textContent = avant; return; }      // rien n'a changé
+  if (!texte) { t.textContent = avant; return; }               // vidé : on refuse
+  const { error } = await sb.from("pm_checklist").update({ text: texte }).eq("id", t.dataset.edchk);
+  if (error) { t.textContent = avant; uiAlert("Modification impossible : " + error.message); return; }
+  t.dataset.avant = texte;
+  t.textContent = texte;
+}
+
+document.addEventListener("focusout", (e) => {
+  const t = e.target.closest?.("[data-edchk]");
+  if (t) pmEnregistrerPoint(t);
+});
+
+document.addEventListener("keydown", (e) => {
+  const t = e.target.closest?.("[data-edchk]");
+  if (!t) return;
+  if (e.key === "Enter") { e.preventDefault(); t.blur(); }           // valide
+  if (e.key === "Escape") { e.preventDefault(); t.textContent = t.dataset.avant || ""; t.blur(); }
 });
 
 document.addEventListener("submit", async (e) => {

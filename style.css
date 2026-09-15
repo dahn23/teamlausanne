@@ -2654,6 +2654,16 @@ tr.rm-loss td{background:#fde8e8}
 .pm-chk .pm-chk-item:hover{background:#f2f4f8}
 .pm-chk .pm-chk-item input{width:17px;height:17px;flex-shrink:0;margin:0;cursor:pointer}
 .pm-chk .pm-chk-item span{flex:1}
+/* Le texte se corrige sur place : on clique dedans, on tape, on valide par
+   Entrée ou en cliquant ailleurs. Échap annule. */
+.pm-chk .pm-chk-txt{cursor:text;border-radius:4px;padding:1px 3px;margin:-1px -3px;
+  outline:0;transition:box-shadow .15s,background-color .15s}
+.pm-chk .pm-chk-txt:hover{background:#e8edf6}
+.pm-chk .pm-chk-txt:focus{background:#fff;box-shadow:0 0 0 2px var(--blue)}
+/* Un point coché reste barré, mais le trait gêne la correction : il s'efface le
+   temps de la modification. */
+.pm-chk .pm-chk-item.fait .pm-chk-txt:focus{text-decoration:none;color:var(--ink)}
+
 .pm-chk .pm-chk-item.fait span{text-decoration:line-through;color:var(--muted)}
 .pm-chk-x{background:none;border:0;color:var(--muted);cursor:pointer;padding:0 4px;
   opacity:0;transition:opacity .15s}
