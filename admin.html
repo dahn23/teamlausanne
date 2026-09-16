@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=202" />
+  <link rel="stylesheet" href="style.css?v=203" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -2240,6 +2240,12 @@ Team Lausanne Tennis</textarea></label>
           <div id="pm-files" class="pm-files"></div>
           <input type="file" id="pm-file-input" multiple hidden />
           <button type="button" id="pm-file-btn" class="ghost">📎 Ajouter un fichier</button>
+
+          <!-- Où en est la personne en charge. Distinct de la description, qui
+               dit ce qu'il faut faire : ici on dit ce qui avance et ce qui bloque. -->
+          <label class="pm-lab">Point de situation <span id="pm-statut-qui" class="pm-statut-qui"></span></label>
+          <textarea id="pm-statut" rows="3" class="pm-statut"
+                    placeholder="Où en est-on ? Ce qui avance, ce qui bloque, ce qu'on attend…"></textarea>
         </div>
         <div class="pm-modal-side">
           <label class="pm-lab">Colonne</label>

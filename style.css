@@ -2671,6 +2671,17 @@ tr.rm-loss td{background:#fde8e8}
 }
 
 /* Liste de controle d'une carte */
+/* Point de situation : visuellement distinct de la description, pour qu'on
+   ne confonde pas « ce qu'il faut faire » et « où on en est ». */
+/* Deux classes, pas une : « .card textarea » (0,1,1) l'emporterait sinon sur
+   « .pm-statut » (0,1,0) et reprendrait la bordure. Même piège que pour les
+   points de la liste de contrôle et la fenêtre de la newsletter. */
+.pm-modal-main .pm-statut{width:100%;box-sizing:border-box;background:#fffdf5;
+  border:1px solid #ecdfae;border-radius:10px;padding:10px 12px;font:inherit;
+  font-size:.9rem;color:var(--ink);line-height:1.5;resize:vertical}
+.pm-modal-main .pm-statut:focus{outline:2px solid var(--blue);border-color:var(--blue);background:#fff}
+.pm-statut-qui{font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;
+  font-size:.72rem;margin-left:6px}
 .pm-chk-compte{font-weight:800;color:var(--blue);margin-left:6px;letter-spacing:0}
 .pm-chk{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
 /* Barre d'avancement : on voit d'un coup ou en est la tache. */

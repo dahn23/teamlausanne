@@ -11465,6 +11465,13 @@ function pmOuvrir(carte) {
   pmCarte = carte;
   $("pm-title").value = carte.title || "";
   $("pm-desc").value = carte.description || "";
+  $("pm-statut").value = carte.status_note || "";
+  // Un point de situation sans date ni auteur ne vaut pas grand-chose :
+  // « en attente du devis » a un sens très différent selon qu'il date d'hier
+  // ou d'il y a deux mois.
+  $("pm-statut-qui").textContent = carte.status_note && carte.status_at
+    ? `— ${carte.status_by ? esc(carte.status_by) + ", " : ""}${frDate(String(carte.status_at).slice(0, 10))}`
+    : "";
   $("pm-start").value = carte.start_date || "";
   $("pm-due").value = carte.due_date || "";
   $("pm-col").innerHTML = pmCols.map((c) =>
@@ -11501,9 +11508,15 @@ async function pmEnregistrer() {
   const titre = $("pm-title").value.trim();
   if (!titre) { $("pm-etat").textContent = "Il faut un titre."; return; }
   $("pm-etat").textContent = "Enregistrement…";
+  const statut = $("pm-statut").value.trim() || null;
+  // On ne redate le point de situation que s'il a VRAIMENT changé : sinon,
+  // enregistrer la carte pour une autre raison le ferait paraître frais.
+  const statutChange = statut !== (pmCarte.status_note || null);
   const maj = {
     title: titre,
     description: $("pm-desc").value.trim() || null,
+    status_note: statut,
+    ...(statutChange ? { status_at: new Date().toISOString(), status_by: meName } : {}),
     start_date: $("pm-start").value || null,
     due_date: $("pm-due").value || null,
     column_id: $("pm-col").value,
