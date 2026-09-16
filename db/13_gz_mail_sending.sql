@@ -26,7 +26,8 @@ create policy gz_mail_sent_official on public.gz_mail_sent for all
 --   mail-send v10 (autorise l'official depuis tournoi@).
 -- Cron : gz-mails-lundi = '0 9 * * 1' (lundi ~11h Zurich) -> gz-notify?key=CRON_SECRET
 --   -> remerciement + vainqueur pour les tournois des 7 derniers jours.
--- Destinataires : welcome=confirmed ; non_selection=!confirmed ; annulation=tous ;
+-- Destinataires : welcome=confirmed ; non_selection=!confirmed dans un tableau qui a des confirmés
+--   ET confirmé dans AUCUN tableau du tournoi (gz-notify v12, 16.09.2026) ; annulation=tous ;
 --   remerciement=presents (gz_player_status.absent<>true) ; vainqueur=is_winner+photo_url.
 -- Variables : {prenom} {tournoi} {url_tournoi=registration_url} {code_vestiaire=2848#}
 --   {responsables} {lien_tournois} {lien_sondage=sondage.html?s=<survey actif>}.

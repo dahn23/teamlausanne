@@ -3103,7 +3103,12 @@ async function renderGzMailActions(tid) {
   const idsFor = (key) => {
     let ids;
     if (key.startsWith("welcome")) ids = (entries || []).filter((e) => e.confirmed).map((e) => e.participant_id);
-    else if (key === "non_selection") ids = (entries || []).filter((e) => !e.confirmed && epConfirmed[e.epreuve || "—"]).map((e) => e.participant_id);
+    // Non-sélectionné = pas confirmé dans un tableau qui a des confirmés, ET confirmé dans AUCUN autre
+    // tableau du tournoi (un joueur refusé dans un tableau mais pris ailleurs n'est pas un non-sélectionné).
+    else if (key === "non_selection") {
+      const confAny = new Set((entries || []).filter((e) => e.confirmed).map((e) => e.participant_id));
+      ids = (entries || []).filter((e) => !e.confirmed && epConfirmed[e.epreuve || "—"] && !confAny.has(e.participant_id)).map((e) => e.participant_id);
+    }
     else if (key === "remerciement") ids = (entries || []).filter((e) => e.confirmed).map((e) => e.participant_id).filter((pid) => !absent.has(pid));
     else if (key === "vainqueur") ids = (status || []).filter((s) => s.is_winner && s.photo_url).map((s) => s.participant_id);
     else ids = [];
