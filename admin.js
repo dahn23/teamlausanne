@@ -209,10 +209,10 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "pm", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["dashboard", "pm", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["pm", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "resa", "winter", "lockers", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
-  head_coach: ["dashboard", "anniv", "resa", "cours", "matchs", "lastscores", "phystests", "mental", "stages", "prospects", "heures"],
+  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "resa", "winter", "lockers", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
+  head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "lastscores", "phystests", "heures"],
   coach_physique: ["cours", "phystests", "heures"],
   moniteur:   ["cours", "heures"],
@@ -222,7 +222,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["dashboard", "Dashboard"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -428,6 +428,7 @@ function showView(view) {
   if (view === "lastscores") loadLastScores();
   if (view === "dashboard") loadDashboard();
   if (view === "pm") loadPM();
+  if (view === "calendrier") loadCalendrier();
   if (view === "newsletter") loadNewsletters();
   if (view === "locks") loadLocks();
   if (view === "irrigation") loadIrrigation();
@@ -1682,6 +1683,186 @@ function renderLastScores() {
         <td class="ls-score">${res}${esc(r.score || "")}${r.is_perf ? ' <span class="ls-badge">PERF</span>' : ""}</td>
       </tr>`;
     }).join("") + "</tbody></table></div>";
+}
+
+// ===================================================================
+//  Calendrier d'équipe
+// ===================================================================
+// Une ligne par semaine, sur toute la saison. Deux sources y sont réunies sans
+// être mélangées : les vacances scolaires viennent de school_holidays (canton
+// VD), le reste de cal_events. Rien n'est recopié — le jour où le canton change
+// une date, le calendrier suit tout seul.
+//
+// Seules les VACANCES d'un membre demandent une validation. Fermetures, camps
+// et événements sont des faits d'organisation : ils s'ajoutent directement.
+const CAL_KIND = { vacances: "Vacances", fermeture: "Fermeture", camp: "Camp", evenement: "Événement" };
+const canCalValider = () => hasAny(myAppRoles, ["superadmin", "admin"]);
+let calSem = [], calInit = false;
+
+function initCalendrier() {
+  if (calInit) return; calInit = true;
+  // Par défaut la saison en cours, du premier lundi de septembre au 2 juillet.
+  $("cal-du").value = "2026-08-31";
+  $("cal-au").value = "2027-06-28";
+  ["cal-du", "cal-au"].forEach((id) => $(id).addEventListener("change", loadCalendrier));
+  $("cal-new-ev").addEventListener("click", () => calOuvrir(null, "evenement"));
+  $("cal-new-vac").addEventListener("click", () => calOuvrir(null, "vacances"));
+  $("cal-close").addEventListener("click", () => $("cal-modal").classList.add("hidden"));
+  $("cal-form").addEventListener("submit", calEnregistrer);
+  $("cal-del").addEventListener("click", calSupprimer);
+  // Le choix « qui » n'a de sens que pour des vacances.
+  $("cal-kind").addEventListener("change", () => {
+    $("cal-membre-wrap").classList.toggle("hidden", $("cal-kind").value !== "vacances");
+  });
+}
+
+async function loadCalendrier() {
+  initCalendrier();
+  // Les membres viennent du Project Manager. Quelqu'un qui ouvre le
+  // calendrier sans être passé par le tableau aurait sinon une liste vide au
+  // moment de demander ses vacances.
+  if (!pmMembers.length) {
+    const { data } = await sb.from("pm_members").select("*").eq("active", true).order("sort_order");
+    pmMembers = data || [];
+  }
+  const z = $("cal-semaines");
+  const [{ data, error }, att] = await Promise.all([
+    sb.rpc("cal_semaines", { p_debut: $("cal-du").value, p_fin: $("cal-au").value }),
+    sb.from("cal_events").select("*, pm_members(name,initials,color)").eq("status", "demande").order("start_date"),
+  ]);
+  if (error) { z.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  calSem = data || [];
+  calRenderAttente(att.error ? [] : (att.data || []));
+  calRenderSemaines();
+}
+
+// Demandes en attente. Visible pour tout le monde — chacun voit où en est sa
+// demande — mais seuls ceux qui valident ont les boutons.
+function calRenderAttente(l) {
+  const z = $("cal-attente");
+  z.classList.toggle("hidden", !l.length);
+  if (!l.length) return;
+  z.innerHTML = `<div class="cal-att-t">${l.length} demande(s) de vacances en attente</div>`
+    + l.map((e) => `<div class="cal-att-l">
+        <span class="pm-ini" style="background:${esc(e.pm_members?.color || "#69708a")}">${esc(e.pm_members?.initials || "?")}</span>
+        <b>${esc(e.pm_members?.name || "—")}</b>
+        <span>${frDate(e.start_date)} → ${frDate(e.end_date)}</span>
+        <span class="muted">${esc(e.title || "")}</span>
+        <span class="spacer"></span>
+        ${canCalValider()
+          ? `<button type="button" class="ghost cal-ok" data-id="${e.id}">✓ Valider</button>
+             <button type="button" class="ghost cal-no" data-id="${e.id}">✕ Refuser</button>`
+          : `<span class="muted" style="font-size:.82rem">en attente de validation</span>`}
+      </div>`).join("");
+  z.querySelectorAll(".cal-ok").forEach((b) => b.addEventListener("click", () => calDecider(b.dataset.id, true)));
+  z.querySelectorAll(".cal-no").forEach((b) => b.addEventListener("click", () => calDecider(b.dataset.id, false)));
+}
+
+async function calDecider(id, ok) {
+  const { data, error } = await sb.rpc("cal_decider", { p_id: id, p_valide: ok });
+  if (error || !data?.ok) { uiAlert("Décision impossible : " + (error?.message || data?.raison || "")); return; }
+  loadCalendrier();
+}
+
+function calRenderSemaines() {
+  const z = $("cal-semaines");
+  if (!calSem.length) { z.innerHTML = '<p class="muted">Aucune semaine sur cette période.</p>'; return; }
+  z.innerHTML = calSem.map((s) => {
+    const scol = s.jours_vacances_scolaires || 0;
+    // Une semaine sans école se lit d'un coup d'œil : c'est l'information la
+    // plus utile pour planifier.
+    const classe = scol === 5 ? " cal-sem-vac" : scol > 0 ? " cal-sem-part" : "";
+    const chips = (s.evenements || []).map((e) => {
+      const vac = e.kind === "vacances";
+      const style = vac && e.couleur ? ` style="--c:${esc(e.couleur)}"` : "";
+      const qui = vac ? `${esc(e.initiales || "?")} · ` : "";
+      const att = e.status === "demande" ? " cal-chip-att" : e.status === "refuse" ? " cal-chip-ref" : "";
+      return `<button type="button" class="cal-chip cal-k-${esc(e.kind)}${att}" data-ev="${e.id}"${style}
+                title="${esc(e.title)} — ${frDate(e.start)} → ${frDate(e.end)}">${qui}${esc(e.title)}${
+                e.status === "demande" ? " (à valider)" : e.status === "refuse" ? " (refusé)" : ""}</button>`;
+    }).join("");
+    return `<div class="cal-sem${classe}">
+      <span class="cal-n">S${s.n}</span>
+      <span class="cal-dates">${frDate(s.lundi).slice(0, 5)} → ${frDate(s.dimanche)}</span>
+      <span class="cal-corps">
+        ${scol ? `<span class="cal-chip cal-k-ecole" title="${esc(s.vacances_scolaires || "")}">${esc(s.vacances_scolaires || "Vacances scolaires")}${scol < 5 ? ` (${scol} j)` : ""}</span>` : ""}
+        ${chips}
+      </span>
+      <button type="button" class="cal-add" data-sem="${s.lundi}" title="Ajouter sur cette semaine">＋</button>
+    </div>`;
+  }).join("");
+  z.querySelectorAll(".cal-chip[data-ev]").forEach((b) =>
+    b.addEventListener("click", () => calOuvrirId(b.dataset.ev)));
+  z.querySelectorAll(".cal-add").forEach((b) =>
+    b.addEventListener("click", () => calOuvrir(null, "evenement", b.dataset.sem)));
+}
+
+function calOuvrir(ev, kind, lundi) {
+  initCalendrier();
+  $("cal-err").hidden = true;
+  $("cal-id").value = ev?.id || "";
+  $("cal-modal-titre").textContent = ev ? "Modifier" : kind === "vacances" ? "Demander des vacances" : "Nouvel événement";
+  $("cal-kind").value = ev?.kind || kind || "evenement";
+  $("cal-titre").value = ev?.title || (kind === "vacances" ? "Vacances" : "");
+  $("cal-start").value = ev?.start_date || lundi || "";
+  $("cal-end").value = ev?.end_date || (lundi ? calPlus(lundi, 4) : "");
+  $("cal-note").value = ev?.note || "";
+  $("cal-membre").innerHTML = pmMembers.map((m) =>
+    `<option value="${m.id}"${ev?.member_id === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("");
+  // Par défaut, on demande des vacances POUR SOI.
+  if (!ev && kind === "vacances" && myPersonId) {
+    const moi = pmMembers.find((m) => m.person_id === myPersonId);
+    if (moi) $("cal-membre").value = moi.id;
+  }
+  $("cal-membre-wrap").classList.toggle("hidden", $("cal-kind").value !== "vacances");
+  // Une demande déjà validée ne se modifie plus, sauf par ceux qui valident.
+  const fige = ev && ev.status === "valide" && !canCalValider();
+  $("cal-save").disabled = !!fige;
+  $("cal-del").classList.toggle("hidden", !ev || !!fige);
+  $("cal-modal").classList.remove("hidden");
+}
+
+const calPlus = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
+
+async function calOuvrirId(id) {
+  const { data } = await sb.from("cal_events").select("*").eq("id", id).single();
+  if (data) calOuvrir(data, data.kind);
+}
+
+async function calEnregistrer(e) {
+  e.preventDefault();
+  const err = $("cal-err"); err.hidden = true;
+  const kind = $("cal-kind").value;
+  const debut = $("cal-start").value, fin = $("cal-end").value;
+  if (!debut || !fin) { err.textContent = "Il faut une date de début et de fin."; err.hidden = false; return; }
+  if (fin < debut) { err.textContent = "La fin ne peut pas précéder le début."; err.hidden = false; return; }
+  const { data: sess } = await sb.auth.getSession();
+  const row = {
+    kind, title: $("cal-titre").value.trim() || CAL_KIND[kind],
+    start_date: debut, end_date: fin,
+    member_id: kind === "vacances" ? ($("cal-membre").value || null) : null,
+    note: $("cal-note").value.trim() || null,
+    created_by: sess?.session?.user?.id || null,
+  };
+  // Une demande de vacances naît « à valider » — sauf posée par un valideur,
+  // qui n'a personne à qui demander.
+  if (kind === "vacances") row.status = canCalValider() ? "valide" : "demande";
+  const id = $("cal-id").value;
+  const { error } = id
+    ? await sb.from("cal_events").update(row).eq("id", id)
+    : await sb.from("cal_events").insert(row);
+  if (error) { err.textContent = error.message; err.hidden = false; return; }
+  $("cal-modal").classList.add("hidden");
+  loadCalendrier();
+}
+
+async function calSupprimer() {
+  const id = $("cal-id").value; if (!id) return;
+  if (!(await uiConfirm("Supprimer cet élément du calendrier ?"))) return;
+  const { error } = await sb.from("cal_events").delete().eq("id", id);
+  if (error) { uiAlert("Suppression impossible : " + error.message); return; }
+  $("cal-modal").classList.add("hidden");
+  loadCalendrier();
 }
 
 // ===================================================================

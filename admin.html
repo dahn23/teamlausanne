@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=203" />
+  <link rel="stylesheet" href="style.css?v=204" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -38,6 +38,7 @@
           <button class="side-item" data-view="newsletter"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H4z"/><path d="M4 8l8 5 8-5"/><path d="M8 20h8"/></svg><span class="side-label">Newsletter</span></button>
           <button class="side-item" data-view="dashboard"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="10" rx="1"/><rect x="13" y="3" width="8" height="6" rx="1"/><rect x="13" y="11" width="8" height="10" rx="1"/><rect x="3" y="15" width="8" height="6" rx="1"/></svg><span class="side-label">Dashboard</span></button>
           <button class="side-item" data-view="pm"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="9.5" y="4" width="5" height="11" rx="1"/><rect x="16" y="4" width="5" height="7" rx="1"/></svg><span class="side-label">Project Manager</span></button>
+          <button class="side-item" data-view="calendrier"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v4M16 3v4"/><path d="M7 13h3v3H7z"/></svg><span class="side-label">Calendrier</span></button>
           <button class="side-item active" data-view="membres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="9" cy="7.5" r="3.2"/><path d="M22 19v-1a4 4 0 0 0-3-3.87"/><path d="M16 3.7a4 4 0 0 1 0 7.6"/></svg><span class="side-label">Répertoire</span></button>
           <button class="side-item" data-view="anniv"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16v-7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2z"/><path d="M4 15c1.5 0 1.5 1.2 3 1.2S8.5 15 10 15s1.5 1.2 3 1.2S14.5 15 16 15s1.5 1.2 3 1.2"/><path d="M12 8V5"/><path d="M9 8V6"/><path d="M15 8V6"/></svg><span class="side-label">Anniversaires</span></button>
           <button class="side-item" data-view="resa"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg><span class="side-label">Réservations</span></button>
@@ -637,6 +638,63 @@
 
         <!-- ---- Vue Dashboard (head coach / admin / superadmin) ---- -->
         <!-- ---- Project Manager : tableau facon Trello ---- -->
+        <!-- ---- Calendrier d'équipe ---- -->
+        <div id="view-calendrier" class="view hidden">
+          <div class="crm-head"><h1>Calendrier</h1>
+            <span class="spacer"></span>
+            <button type="button" id="cal-new-vac" class="ghost">🏖 Demander des vacances</button>
+            <button type="button" id="cal-new-ev">＋ Ajouter un événement</button>
+          </div>
+
+          <!-- Demandes en attente : visible seulement pour ceux qui valident. -->
+          <div id="cal-attente" class="cal-attente hidden"></div>
+
+          <div class="cal-barre">
+            <label class="cal-per"><span>Du</span><input type="date" id="cal-du" /></label>
+            <label class="cal-per"><span>Au</span><input type="date" id="cal-au" /></label>
+            <span class="spacer"></span>
+            <div class="cal-legende">
+              <span class="cal-lg"><i class="cal-pastille cal-k-ecole"></i>Vacances scolaires</span>
+              <span class="cal-lg"><i class="cal-pastille cal-k-fermeture"></i>Fermeture</span>
+              <span class="cal-lg"><i class="cal-pastille cal-k-camp"></i>Camp</span>
+              <span class="cal-lg"><i class="cal-pastille cal-k-evenement"></i>Événement</span>
+              <span class="cal-lg"><i class="cal-pastille cal-k-vacances"></i>Vacances équipe</span>
+            </div>
+          </div>
+
+          <div id="cal-semaines" class="cal-semaines"><p class="muted">Chargement…</p></div>
+        </div>
+
+        <!-- Fenêtre : ajout / modification d'un événement -->
+        <div id="cal-modal" class="modal hidden">
+          <form class="card" id="cal-form">
+            <button type="button" id="cal-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0" id="cal-modal-titre">Nouvel événement</h2>
+            <input type="hidden" id="cal-id" />
+            <label class="mailc-f">Type<select id="cal-kind">
+              <option value="evenement">Événement</option>
+              <option value="camp">Camp</option>
+              <option value="fermeture">Fermeture Team Lausanne</option>
+              <option value="vacances">Vacances (demande)</option>
+            </select></label>
+            <label class="mailc-f cal-membre-f hidden" id="cal-membre-wrap">Qui
+              <select id="cal-membre"></select></label>
+            <label class="mailc-f">Intitulé<input type="text" id="cal-titre" required placeholder="ex. Camp de Pâques — semaine 1" /></label>
+            <div class="cal-dates">
+              <label class="mailc-f">Du<input type="date" id="cal-start" required /></label>
+              <label class="mailc-f">Au<input type="date" id="cal-end" required /></label>
+            </div>
+            <label class="mailc-f">Remarque <span class="muted" style="font-weight:400">(facultatif)</span>
+              <textarea id="cal-note" rows="2"></textarea></label>
+            <p id="cal-err" class="error" hidden></p>
+            <div class="form-foot">
+              <button type="button" id="cal-del" class="danger hidden">Supprimer</button>
+              <span class="spacer"></span>
+              <button type="submit" id="cal-save">Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
         <div id="view-pm" class="view hidden">
           <div class="crm-head"><h1>Project Manager</h1>
             <span class="spacer"></span>

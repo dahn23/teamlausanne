@@ -2578,6 +2578,56 @@ tr.rm-loss td{background:#fde8e8}
 .pm-fl.on{border-color:var(--blue-ink)}
 
 /* Le tableau defile horizontalement : on ajoute des colonnes sans casser la mise en page. */
+/* ---- Calendrier d'équipe ----
+   Une ligne par semaine. Le code couleur porte le sens : sable = vacances
+   scolaires, rouge = club fermé, mint = camp, bleu = événement, et la couleur
+   propre du membre pour ses vacances. */
+.cal-barre{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+.cal-per{display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;color:var(--muted)}
+.cal-per input{font:inherit;font-weight:400;color:var(--ink);padding:7px 10px;
+  border:1px solid var(--line);border-radius:9px;background:#fff}
+.cal-legende{display:flex;gap:12px;flex-wrap:wrap;font-size:.78rem;color:var(--muted)}
+.cal-lg{display:inline-flex;align-items:center;gap:5px}
+.cal-pastille{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+.cal-semaines{display:flex;flex-direction:column;gap:3px}
+.cal-sem{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);
+  border-radius:9px;padding:7px 10px;min-height:40px}
+/* Semaine sans école : la teinte de fond suffit à la repérer en parcourant. */
+.cal-sem-vac{background:#fdf6e6;border-color:#ecdfae}
+.cal-sem-part{background:#fffdf5}
+.cal-n{flex:0 0 42px;font-weight:800;color:var(--blue-ink);font-size:.82rem}
+.cal-sem .cal-dates{flex:0 0 132px;font-size:.82rem;color:var(--muted);white-space:nowrap}
+.cal-corps{flex:1;display:flex;flex-wrap:wrap;gap:5px;min-width:0}
+.cal-add{flex:0 0 auto;background:transparent;border:0;color:var(--muted);cursor:pointer;
+  font-size:1rem;padding:2px 7px;border-radius:7px;opacity:0;transition:opacity .15s}
+.cal-sem:hover .cal-add{opacity:1}
+.cal-add:hover{background:#eef1f7;color:var(--blue-ink)}
+
+.cal-chip{border:0;border-radius:999px;padding:3px 11px;font-size:.78rem;font-weight:700;
+  cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-k-ecole    {background:#f0e3bd;color:#6b551a}
+.cal-k-fermeture{background:#fadcdc;color:#9e2b2b}
+.cal-k-camp     {background:#dcf6e4;color:#1c6b38}
+.cal-k-evenement{background:#dce7fb;color:#1b3f8f}
+/* Vacances d'un membre : sa propre couleur, reprise du Project Manager, pour
+   qu'on reconnaisse la personne sans lire le nom. */
+.cal-k-vacances {background:var(--c,#e6e0f5);color:#fff}
+.cal-chip.cal-k-vacances{box-shadow:inset 0 0 0 99px rgba(0,0,0,.08)}
+/* Une demande non tranchée se distingue d'un fait acquis. */
+.cal-chip-att{outline:2px dashed #b45309;outline-offset:1px;opacity:.85}
+.cal-chip-ref{text-decoration:line-through;opacity:.5}
+.cal-chip[data-ev]:hover{filter:brightness(.94)}
+
+/* Demandes en attente, en tête de page. */
+.cal-attente{background:#fff8e6;border:1px solid #f0d89a;border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.cal-att-t{font-weight:800;color:#8a6116;font-size:.9rem;margin-bottom:8px}
+.cal-att-l{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.86rem;
+  padding:5px 0;border-top:1px solid #f0d89a}
+.cal-att-l .pm-ini{margin-left:0}
+.cal-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:620px){.cal-sem{flex-wrap:wrap}.cal-sem .cal-dates{flex-basis:auto}}
+
 /* Recherche du tableau : les cartes trouvées ressortent, les autres
    s'effacent sans disparaître — on garde le contexte des colonnes. */
 .pm-rech{display:block;margin-bottom:10px;position:relative;max-width:520px}
