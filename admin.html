@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=204" />
+  <link rel="stylesheet" href="style.css?v=205" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -650,8 +650,20 @@
           <div id="cal-attente" class="cal-attente hidden"></div>
 
           <div class="cal-barre">
-            <label class="cal-per"><span>Du</span><input type="date" id="cal-du" /></label>
-            <label class="cal-per"><span>Au</span><input type="date" id="cal-au" /></label>
+            <!-- Deux lectures du même calendrier : la liste pour embrasser la
+                 saison entière, le mois pour situer les jours. -->
+            <div class="cal-vues">
+              <button type="button" class="cal-vue on" data-vue="mois">Mois</button>
+              <button type="button" class="cal-vue" data-vue="liste">Liste des semaines</button>
+            </div>
+            <div class="cal-nav" id="cal-nav">
+              <button type="button" id="cal-prec" class="ghost" aria-label="Mois précédent">‹</button>
+              <b id="cal-mois-nom"></b>
+              <button type="button" id="cal-suiv" class="ghost" aria-label="Mois suivant">›</button>
+              <button type="button" id="cal-auj" class="ghost">Aujourd'hui</button>
+            </div>
+            <label class="cal-per cal-periode"><span>Du</span><input type="date" id="cal-du" /></label>
+            <label class="cal-per cal-periode"><span>Au</span><input type="date" id="cal-au" /></label>
             <span class="spacer"></span>
             <div class="cal-legende">
               <span class="cal-lg"><i class="cal-pastille cal-k-ecole"></i>Vacances scolaires</span>
@@ -662,7 +674,8 @@
             </div>
           </div>
 
-          <div id="cal-semaines" class="cal-semaines"><p class="muted">Chargement…</p></div>
+          <div id="cal-mois" class="cal-mois"></div>
+          <div id="cal-semaines" class="cal-semaines hidden"><p class="muted">Chargement…</p></div>
         </div>
 
         <!-- Fenêtre : ajout / modification d'un événement -->

@@ -2578,6 +2578,47 @@ tr.rm-loss td{background:#fde8e8}
 .pm-fl.on{border-color:var(--blue-ink)}
 
 /* Le tableau defile horizontalement : on ajoute des colonnes sans casser la mise en page. */
+/* Bascule liste / mois */
+.cal-vues{display:inline-flex;background:#eef1f7;border-radius:999px;padding:3px}
+.cal-vue{border:0;background:transparent;border-radius:999px;cursor:pointer;
+  font-size:.82rem;font-weight:700;color:var(--muted);padding:6px 14px}
+.cal-vue.on{background:#fff;color:var(--blue-ink);box-shadow:0 1px 4px rgba(20,26,46,.14)}
+.cal-nav{display:inline-flex;align-items:center;gap:8px}
+.cal-nav b{min-width:150px;text-align:center;color:var(--blue-ink);font-size:.95rem}
+.cal-nav .ghost{padding:5px 11px}
+
+/* Grille du mois. Sept colonnes fixes : les jours doivent s'aligner d'une
+   semaine à l'autre, sinon l'œil ne suit plus les colonnes. */
+.cal-mois{margin-bottom:6px}
+.cal-grille{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-entete{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);text-align:center;padding:4px 0}
+.cal-jour{background:#fff;border:1px solid var(--line);border-radius:8px;min-height:92px;
+  padding:5px 5px 6px;display:flex;flex-direction:column;gap:3px;cursor:pointer;
+  transition:border-color .12s,background-color .12s}
+.cal-jour:hover{border-color:var(--blue)}
+.cal-num{font-size:.76rem;font-weight:700;color:var(--muted)}
+/* Jours des mois voisins : présents pour ne pas couper les semaines, mais
+   visuellement en retrait. */
+.cal-hors{background:#fafbfd}
+.cal-hors .cal-num{opacity:.4}
+/* Jour de vacances scolaires : même sable que la pastille correspondante. */
+.cal-jour-scol{background:#fdf6e6;border-color:#ecdfae}
+.cal-hors.cal-jour-scol{background:#fdfaf1}
+.cal-auj{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+.cal-auj .cal-num{color:var(--blue);font-weight:800}
+
+/* Un événement dans une case : court, lisible, cliquable. */
+.cal-ev{border:0;border-radius:5px;padding:2px 6px;font-size:.7rem;font-weight:700;
+  text-align:left;cursor:pointer;width:100%;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;line-height:1.35}
+.cal-ev.cal-k-vacances{background:var(--c,#e6e0f5);color:#fff}
+.cal-ev:hover{filter:brightness(.93)}
+@media(max-width:820px){
+  .cal-jour{min-height:70px}
+  .cal-ev{font-size:.62rem;padding:1px 4px}
+}
+
 /* ---- Calendrier d'équipe ----
    Une ligne par semaine. Le code couleur porte le sens : sable = vacances
    scolaires, rouge = club fermé, mint = camp, bleu = événement, et la couleur

@@ -1706,6 +1706,14 @@ function initCalendrier() {
   $("cal-au").value = "2027-06-28";
   ["cal-du", "cal-au"].forEach((id) => $(id).addEventListener("change", loadCalendrier));
   $("cal-new-ev").addEventListener("click", () => calOuvrir(null, "evenement"));
+  document.querySelectorAll("[data-vue]").forEach((b) => b.addEventListener("click", () => {
+    calVue = b.dataset.vue;
+    document.querySelectorAll("[data-vue]").forEach((x) => x.classList.toggle("on", x === b));
+    calBasculer();
+  }));
+  $("cal-prec").addEventListener("click", () => calMoisDecaler(-1));
+  $("cal-suiv").addEventListener("click", () => calMoisDecaler(1));
+  $("cal-auj").addEventListener("click", () => { const n = new Date(); calMois = new Date(n.getFullYear(), n.getMonth(), 1); loadCalendrier(); });
   $("cal-new-vac").addEventListener("click", () => calOuvrir(null, "vacances"));
   $("cal-close").addEventListener("click", () => $("cal-modal").classList.add("hidden"));
   $("cal-form").addEventListener("submit", calEnregistrer);
@@ -1725,6 +1733,13 @@ async function loadCalendrier() {
     const { data } = await sb.from("pm_members").select("*").eq("active", true).order("sort_order");
     pmMembers = data || [];
   }
+  // Les demandes en attente s'affichent dans les deux vues : c'est ce qui
+  // appelle une décision, on ne doit pas pouvoir le rater.
+  const att0 = await sb.from("cal_events").select("*, pm_members(name,initials,color)")
+    .eq("status", "demande").order("start_date");
+  calRenderAttente(att0.error ? [] : (att0.data || []));
+  if (calVue === "mois") return calRenderMois();
+
   const z = $("cal-semaines");
   const [{ data, error }, att] = await Promise.all([
     sb.rpc("cal_semaines", { p_debut: $("cal-du").value, p_fin: $("cal-au").value }),
@@ -1764,6 +1779,91 @@ async function calDecider(id, ok) {
   loadCalendrier();
 }
 
+// --- Vue mois ---
+// La liste embrasse la saison entière ; le mois sert à situer les jours et à
+// voir les chevauchements. Les deux lisent les mêmes données.
+let calVue = "mois";
+let calMois = new Date(2026, 8, 1);          // septembre 2026, début de saison
+const CAL_JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+const CAL_MOIS_NOMS = ["janvier", "février", "mars", "avril", "mai", "juin",
+                       "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+const calISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+function calMoisDecaler(n) {
+  calMois = new Date(calMois.getFullYear(), calMois.getMonth() + n, 1);
+  loadCalendrier();
+}
+
+// Ce qui est visible dépend de la vue : la liste suit les dates choisies, le
+// mois suit la navigation. Inutile de charger l'un quand on regarde l'autre.
+function calBasculer() {
+  const mois = calVue === "mois";
+  $("cal-mois").classList.toggle("hidden", !mois);
+  $("cal-semaines").classList.toggle("hidden", mois);
+  $("cal-nav").classList.toggle("hidden", !mois);
+  document.querySelectorAll(".cal-periode").forEach((e) => e.classList.toggle("hidden", mois));
+  loadCalendrier();
+}
+
+// La grille commence toujours un lundi et se termine un dimanche, quitte à
+// déborder sur les mois voisins : une semaine coupée en deux serait illisible.
+function calGrille(ref) {
+  const premier = new Date(ref.getFullYear(), ref.getMonth(), 1);
+  const debut = new Date(premier);
+  debut.setDate(premier.getDate() - ((premier.getDay() + 6) % 7));
+  const dernier = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+  const fin = new Date(dernier);
+  fin.setDate(dernier.getDate() + (7 - ((dernier.getDay() + 6) % 7) - 1));
+  const jours = [];
+  for (let d = new Date(debut); d <= fin; d.setDate(d.getDate() + 1)) jours.push(new Date(d));
+  return jours;
+}
+
+async function calRenderMois() {
+  const z = $("cal-mois");
+  const jours = calGrille(calMois);
+  const d0 = calISO(jours[0]), d1 = calISO(jours[jours.length - 1]);
+  $("cal-mois-nom").textContent = `${CAL_MOIS_NOMS[calMois.getMonth()]} ${calMois.getFullYear()}`;
+
+  const [ev, sc] = await Promise.all([
+    sb.from("cal_events").select("*, pm_members(name,initials,color)")
+      .lte("start_date", d1).gte("end_date", d0),
+    sb.from("school_holidays").select("label,start_date,end_date")
+      .eq("canton", "VD").lte("start_date", d1).gte("end_date", d0),
+  ]);
+  const evs = ev.error ? [] : (ev.data || []);
+  const scs = sc.error ? [] : (sc.data || []);
+  const dans = (x, j) => j >= x.start_date && j <= x.end_date;
+
+  const auj = calISO(new Date());
+  z.innerHTML = `<div class="cal-grille">`
+    + CAL_JOURS.map((j) => `<div class="cal-entete">${j}</div>`).join("")
+    + jours.map((d) => {
+        const j = calISO(d);
+        const horsMois = d.getMonth() !== calMois.getMonth();
+        const vac = scs.find((x) => dans(x, j));
+        const duJour = evs.filter((x) => dans(x, j));
+        return `<div class="cal-jour${horsMois ? " cal-hors" : ""}${vac ? " cal-jour-scol" : ""}${j === auj ? " cal-auj" : ""}"
+                     data-jour="${j}" title="${vac ? esc(vac.label) : ""}">
+          <span class="cal-num">${d.getDate()}</span>
+          ${duJour.map((e) => {
+            const v = e.kind === "vacances";
+            const style = v && e.pm_members?.color ? ` style="--c:${esc(e.pm_members.color)}"` : "";
+            const att = e.status === "demande" ? " cal-chip-att" : e.status === "refuse" ? " cal-chip-ref" : "";
+            const txt = v ? `${esc(e.pm_members?.initials || "?")} ${esc(e.title)}` : esc(e.title);
+            return `<button type="button" class="cal-ev cal-k-${esc(e.kind)}${att}" data-ev="${e.id}"${style}
+                      title="${esc(e.title)} — ${frDate(e.start_date)} → ${frDate(e.end_date)}">${txt}</button>`;
+          }).join("")}
+        </div>`;
+      }).join("")
+    + `</div>`;
+  z.querySelectorAll(".cal-ev[data-ev]").forEach((b) =>
+    b.addEventListener("click", (e) => { e.stopPropagation(); calOuvrirId(b.dataset.ev); }));
+  // Cliquer un jour vide ouvre la création sur ce jour.
+  z.querySelectorAll(".cal-jour").forEach((c) =>
+    c.addEventListener("click", () => calOuvrir(null, "evenement", c.dataset.jour, c.dataset.jour)));
+}
+
 function calRenderSemaines() {
   const z = $("cal-semaines");
   if (!calSem.length) { z.innerHTML = '<p class="muted">Aucune semaine sur cette période.</p>'; return; }
@@ -1797,7 +1897,7 @@ function calRenderSemaines() {
     b.addEventListener("click", () => calOuvrir(null, "evenement", b.dataset.sem)));
 }
 
-function calOuvrir(ev, kind, lundi) {
+function calOuvrir(ev, kind, lundi, fin) {
   initCalendrier();
   $("cal-err").hidden = true;
   $("cal-id").value = ev?.id || "";
@@ -1805,7 +1905,9 @@ function calOuvrir(ev, kind, lundi) {
   $("cal-kind").value = ev?.kind || kind || "evenement";
   $("cal-titre").value = ev?.title || (kind === "vacances" ? "Vacances" : "");
   $("cal-start").value = ev?.start_date || lundi || "";
-  $("cal-end").value = ev?.end_date || (lundi ? calPlus(lundi, 4) : "");
+  // Depuis la vue mois on clique UN jour : début et fin se valent. Depuis la
+  // liste on vise une semaine : on propose lundi → vendredi.
+  $("cal-end").value = ev?.end_date || fin || (lundi ? calPlus(lundi, 4) : "");
   $("cal-note").value = ev?.note || "";
   $("cal-membre").innerHTML = pmMembers.map((m) =>
     `<option value="${m.id}"${ev?.member_id === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("");
