@@ -10929,12 +10929,16 @@ async function loadContactLog(personId) {
   }));
 }
 
-document.addEventListener("submit", async (e) => {
-  if (e.target.id !== "ech-form") return;
+// Pas de <form> ici : le bloc vit à l'intérieur du formulaire de la fiche,
+// et un formulaire imbriqué ferme celui de la fiche dès l'analyse HTML.
+document.addEventListener("click", async (e) => {
+  if (e.target.id !== "ech-save") return;
   e.preventDefault();
   if (!echPersonId) return;
   const resume = $("ech-resume").value.trim();
-  if (!resume) return;
+  // Plus de contrainte HTML « required » (le bloc n'est plus un <form>) :
+  // on dit pourquoi rien ne se passe au lieu de rester muet.
+  if (!resume) { $("ech-msg").textContent = "Écris d'abord ce qui s'est dit."; $("ech-resume").focus(); return; }
   const btn = $("ech-save"); btn.disabled = true;
   const { error } = await sb.from("player_contact_log").insert({
     person_id: echPersonId,

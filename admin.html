@@ -1775,9 +1775,9 @@ Team Lausanne Tennis</textarea></label>
       <div id="ptab-contacts" class="ptab-panel hidden">
         <h3 style="margin:0 0 4px">Échanges avec la famille</h3>
         <p id="ech-dernier" class="muted" style="margin:0 0 12px;font-size:.88rem"></p>
-        <form id="ech-form" class="ech-form">
+        <div id="ech-form" class="ech-form">
           <div class="ech-ligne">
-            <label class="ech-f"><span>Date</span><input type="date" id="ech-date" required /></label>
+            <label class="ech-f"><span>Date</span><input type="date" id="ech-date" /></label>
             <label class="ech-f"><span>Moyen</span><select id="ech-moyen">
               <option value="appel">Appel</option>
               <option value="visio">Visioconférence</option>
@@ -1787,12 +1787,12 @@ Team Lausanne Tennis</textarea></label>
             </select></label>
           </div>
           <label class="ech-f"><span>Ce qui s'est dit</span>
-            <textarea id="ech-resume" rows="3" placeholder="Points abordés, décisions, ce qu'il faut suivre…" required></textarea></label>
+            <textarea id="ech-resume" rows="3" placeholder="Points abordés, décisions, ce qu'il faut suivre…"></textarea></label>
           <div style="display:flex;gap:8px;align-items:center">
-            <button type="submit" id="ech-save">Enregistrer l'échange</button>
+            <button type="button" id="ech-save">Enregistrer l'échange</button>
             <span id="ech-msg" class="muted" style="font-size:.85rem"></span>
           </div>
-        </form>
+        </div>
         <div id="ech-liste" style="margin-top:16px"></div>
       </div>
 
