@@ -1482,28 +1482,6 @@ function visioGlisser() {
   });
 }
 
-// ---- Lueur du tableau d'affichage ----
-// Une tache verte suit le pointeur sur le bandeau des chiffres cles. Les
-// coordonnees passent par deux variables CSS : c'est le compositeur qui redessine
-// le degrade, on ne touche a aucune propriete de mise en page.
-function poserLueur() {
-  for (const b of document.querySelectorAll(".stat-board")) {
-    if (b.dataset.lueur) continue;
-    b.dataset.lueur = "1";
-    b.addEventListener("pointermove", (e) => {
-      const r = b.getBoundingClientRect();
-      b.style.setProperty("--mx", `${((e.clientX - r.left) / r.width * 100).toFixed(1)}%`);
-      b.style.setProperty("--my", `${((e.clientY - r.top) / r.height * 100).toFixed(1)}%`);
-    });
-    // Au depart du pointeur la tache revient au centre, sinon elle reste figee
-    // la ou la souris a quitte le bandeau.
-    b.addEventListener("pointerleave", () => {
-      b.style.setProperty("--mx", "50%");
-      b.style.setProperty("--my", "0%");
-    });
-  }
-}
-
 // ---- Chiffres cles : comptage a l'entree dans l'ecran ----
 // Le chiffre grimpe jusqu'a sa valeur quand la tuile apparait. Une seule fois :
 // le compteur se retire de l'observation des qu'il a joue.
@@ -1723,7 +1701,6 @@ function renderWorld(key) {
   lancerCarrousel();
   animerChiffres();
   poserPartenaires();
-  poserLueur();
   visioGlisser();
   calerBandeaux();
 }
@@ -1747,7 +1724,6 @@ function renderDetail(id) {
   lancerCarrousel();
   animerChiffres();
   poserPartenaires();
-  poserLueur();
   visioGlisser();
   calerBandeaux();
   if ($("stgp-list")) stgLoad();
