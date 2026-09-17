@@ -9284,6 +9284,8 @@ async function loadPersonMental(personId, show) {
 // ===================================================================
 const ET_ORDER = ["", "present", "late", "absent", "not_planned"];
 const etNext = (s) => ET_ORDER[(ET_ORDER.indexOf(s || "") + 1) % ET_ORDER.length];
+// Balle de tennis : marque les leçons privées dans le calendrier des études.
+const ICO_BALLE = '<svg class="et-balle" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M4.2 6.6A9 9 0 0 0 9 15M19.8 6.6A9 9 0 0 1 15 15"/></svg>';
 const ET_CLS = { present: "st-present", late: "st-late", absent: "st-absent", not_planned: "st-locked", "": "st-none" };
 const ET_LBL = { present: "P", late: "R", absent: "A", not_planned: "—", "": "" };
 // Jour de la semaine (abréviation FR) à partir d'une date ISO 'YYYY-MM-DD'
@@ -10633,6 +10635,55 @@ async function fetchAllEtudesAtt(dayIds, cols = "*") {
   }
   return all;
 }
+// ---- Leçons privées de tennis pendant les études ----
+// Les leçons privées tombent en plein créneau d'études (13:15–14:15 pour tout
+// le monde aujourd'hui). Un prof qui ne les voit pas croit l'élève absent et
+// s'inquiète : c'est exactement ce qu'on veut éviter.
+//
+// On les LIT à la source — le planning des cours — au lieu de les recopier dans
+// les études. Recopier garantirait qu'un jour les deux ne disent plus la même
+// chose : il suffirait de déplacer une leçon dans le planning pour que l'onglet
+// Études continue d'afficher l'ancienne heure.
+//
+// Le repérage se fait sur le TYPE de cours, pas sur une liste d'élèves : tout
+// type dont le nom contient « priv » compte (Privé, Pro Privé, Sport-Études
+// Privé). Un nouvel élève avec une leçon privée apparaît donc tout seul.
+async function etPrivees(jours) {
+  const vide = { parJour: {}, parCellule: {} };
+  if (!jours.length) return vide;
+  const { data: types } = await sb.from("course_types").select("id,name").ilike("name", "%priv%");
+  const ids = (types || []).map((t) => t.id);
+  if (!ids.length) return vide;
+
+  const { data: cours } = await sb.from("courses")
+    .select("id,course_date,start_time,end_time")
+    .in("course_type_id", ids)
+    .gte("course_date", jours[0].day)
+    .lte("course_date", jours[jours.length - 1].day);
+  if (!cours || !cours.length) return vide;
+
+  const { data: parts } = await sb.from("course_participants")
+    .select("course_id,child_person_id").in("course_id", cours.map((c) => c.id));
+  if (!parts || !parts.length) return vide;
+
+  const parId = {};
+  for (const c of cours) parId[c.id] = c;
+  const hm = (t) => (t ? String(t).slice(0, 5) : "");
+  const parJour = {}, parCellule = {};
+  for (const x of parts) {
+    const c = parId[x.course_id];
+    if (!c) continue;
+    const h1 = hm(c.start_time), h2 = hm(c.end_time);
+    parCellule[`${c.course_date}|${x.child_person_id}`] = { h1, h2 };
+    // Regroupé par horaire : deux élèves sur le même créneau tiennent sur une
+    // ligne au lieu d'en occuper deux.
+    const jour = (parJour[c.course_date] ||= {});
+    const creneau = (jour[`${h1}|${h2}`] ||= { h1, h2, eleves: [] });
+    if (!creneau.eleves.includes(x.child_person_id)) creneau.eleves.push(x.child_person_id);
+  }
+  return { parJour, parCellule };
+}
+
 async function loadEtudesCalendar() {
   await loadSeasonsList();
   etPopulateSeasons();
@@ -10650,6 +10701,7 @@ async function loadEtudesCalendar() {
       sb.from("etudes_day_validation").select("*").in("day_id", dayIds).then((r) => r.data || []),
     ]);
   }
+  const priv = await etPrivees(days || []);
   const attOf = (dayId, yid) => att.find((a) => a.day_id === dayId && a.youth_person_id === yid)?.status || "";
   // Colonnes triées : jeunes qui viennent le plus souvent d'abord (moins de « pas prévu »), puis prénom.
   const npCount = {};
@@ -10684,8 +10736,26 @@ async function loadEtudesCalendar() {
       : `<span class="et-dprof">${esc(nmF(pp.prof_person_id))}</span>`).join(" ") || '<span class="et-dprof muted">— prof —</span>';
     // admin / superadmin : ✎ ouvre le popup de choix des profs (plusieurs possibles)
     const editBtn = canEditProfs ? `<button type="button" class="et-prof-edit" data-day="${d.id}" data-date="${d.day}" title="Choisir le(s) prof(s) de cette journée">✎</button>` : "";
-    html += `<tr class="${notMine ? "et-notmine" : ""}"><td class="et-datecell"><div><b>${etDow(d.day)}</b> ${frDate(d.day)}</div><div class="et-dprofs">${dprofs}${editBtn}</div></td>`
-      + youths.map((y) => { const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned"; const lockTitle = notMine ? "Vous ne pouvez pas valider les présences d'un jour qui ne vous est pas attribué" : "Vous ne pouvez pas valider les présences avant 12h50"; return `<td><button type="button" class="att-chip et-cell ${due ? (mine ? "et-due " : "et-due-lock ") : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? `data-locked="1" data-lockmsg="${esc(lockTitle)}"` : ""} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`; }).join("")
+    // Qui est sur le court ce jour-là, et à quelle heure. Écrit en toutes
+    // lettres plutôt que laissé à une infobulle : au doigt, une infobulle ne
+    // s'ouvre pas, et c'est justement l'information qui évite l'inquiétude.
+    const creneaux = Object.values(priv.parJour[d.day] || {})
+      .filter((c) => c.eleves.some((id) => youths.some((y) => y.id === id)))
+      .sort((a, b) => a.h1.localeCompare(b.h1));
+    const ligneP = creneaux.length ? `<div class="et-priv" title="Leçon privée de tennis — ces élèves ne sont pas en étude sur ce créneau">
+        ${creneaux.map((c) => `<div class="et-priv-l">${ICO_BALLE}<b>${esc(c.h1)}${c.h2 ? `\u2013${esc(c.h2)}` : ""}</b>
+          <span>${esc(c.eleves.filter((id) => youths.some((y) => y.id === id)).map(nmF).join(", "))}</span></div>`).join("")}
+      </div>` : "";
+    html += `<tr class="${notMine ? "et-notmine" : ""}"><td class="et-datecell"><div><b>${etDow(d.day)}</b> ${frDate(d.day)}</div><div class="et-dprofs">${dprofs}${editBtn}</div>${ligneP}</td>`
+      + youths.map((y) => {
+          const s = attOf(d.id, y.id); const lk = !dayOpen; const due = s !== "not_planned";
+          const lockTitle = notMine ? "Vous ne pouvez pas valider les présences d'un jour qui ne vous est pas attribué" : "Vous ne pouvez pas valider les présences avant 12h50";
+          // Pastille sur la case de l'élève concerné : elle fait le lien entre
+          // la ligne « sur le court » et la colonne, sans avoir à compter.
+          const pv = priv.parCellule[`${d.day}|${y.id}`];
+          const tPv = pv ? ` title="${esc(y.first_name)} a une leçon privée de tennis ${esc(pv.h1)}${pv.h2 ? `\u2013${esc(pv.h2)}` : ""}"` : "";
+          return `<td><button type="button" class="att-chip et-cell ${pv ? "et-cell-priv " : ""}${due ? (mine ? "et-due " : "et-due-lock ") : ""}${lk ? "st-locked" : ET_CLS[s]}" ${lk ? `data-locked="1" data-lockmsg="${esc(lockTitle)}"` : ""}${tPv} data-day="${d.id}" data-youth="${y.id}" data-status="${s}">${ET_LBL[s]}</button></td>`;
+        }).join("")
       + "</tr>";
   }
   cont.innerHTML = html + "</tbody></table>";

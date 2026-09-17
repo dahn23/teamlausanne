@@ -619,6 +619,33 @@ input.pd-native{display:none}
 .et-presence{box-shadow:inset 0 0 0 2px var(--blue)}
 /* Jour qui n'est pas attribué à ce prof : toute la ligne grisée */
 .et-cal tr.et-notmine td,.et-cal tr.et-notmine th{background:#eceef2;color:var(--muted)}
+/* ---- Leçons privées de tennis dans le calendrier des études ----
+   Elles tombent en plein créneau d'études : sans elles affichées, un prof croit
+   l'élève absent. Bleu d'information, jamais une des couleurs de présence
+   (vert / rouge / orange) : ce n'est pas un statut, c'est un fait de planning. */
+.et-priv{margin-top:6px;padding:5px 7px;border-radius:8px;
+  background:#e8eefc;border:1px solid #cfdcfa}
+.et-priv-l{display:flex;align-items:baseline;gap:5px;font-size:.74rem;color:var(--blue-ink);
+  /* La colonne des dates interdit le retour à la ligne : ici il le faut, sinon
+     deux prénoms élargissent toute la colonne figée. */
+  white-space:normal;line-height:1.35}
+.et-priv-l + .et-priv-l{margin-top:3px}
+.et-priv-l b{font-weight:800;font-variant-numeric:tabular-nums;flex:0 0 auto}
+.et-priv-l span{font-weight:600;opacity:.85}
+.et-balle{flex:0 0 auto;align-self:center;opacity:.75}
+.et-datecell{max-width:230px}
+
+/* Le repère sur la case de l'élève : il fait le lien entre la ligne du jour et
+   la colonne, sans avoir à compter les cases. Coin plein dessiné DANS le bouton
+   plutôt qu'une pastille posée sur la cellule : la cellule s'étire à la hauteur
+   de la ligne (que la liste des leçons rend haute) et la pastille se retrouvait
+   à flotter loin au-dessus du bouton. Le coin, lui, reste collé à la case.
+   Trois classes : « .att-chip.st-none » repose le fond (background, pas
+   background-color) et vit PLUS BAS dans le fichier ; à specificite egale il
+   gagnerait et effacerait le coin. */
+.et-cal .att-chip.et-cell-priv{
+  background-image:linear-gradient(225deg,var(--blue) 0 9px,transparent 9px)}
+
 .att-chip.et-cell{width:34px;height:30px;padding:0;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
 .et-profwrap{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .et-profwrap .ps-wrap{flex:0 0 auto;width:auto;min-width:92px}
