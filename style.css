@@ -757,6 +757,12 @@ html{-webkit-tap-highlight-color:transparent}
 .cs-main{flex:1;display:flex;flex-direction:column}
 .cs-main .muted{font-size:.85rem}
 .cs-badges{display:flex;gap:12px;font-size:.9rem;color:var(--muted)}
+/* Nombre d'inscrits, à droite de la tuile : on lit le remplissage d'un cours
+   sans avoir à compter les pastilles de la ligne du dessous. */
+.cs-nb{background:#eef7f1;color:#0b6b3a;border:1px solid #cfe7d9;border-radius:999px;
+  padding:4px 11px;font-size:.8rem;font-weight:700;white-space:nowrap}
+/* Aucun inscrit : ça doit sauter aux yeux, pas se confondre avec un cours plein. */
+.cs-nb-0{background:#fdf0f0;color:#9e2b2b;border-color:#f0d0d0}
 .cs-more{background:#eef1f7;color:var(--blue-ink);font-weight:700;padding:7px 12px;font-size:.82rem;white-space:nowrap}
 .cs-more:hover{background:#dde3ef}
 .cs-att{display:flex;gap:24px;flex-wrap:wrap}

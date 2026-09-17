@@ -2913,6 +2913,7 @@ async function loadCoursesDay() {
         <div class="cs-time">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
         <div class="cs-main"><b>${esc(c.title || type?.name || "Cours")}</b>
           <span class="muted">${type ? esc(type.name) + " · " : ""}Courts ${cts || "—"}</span></div>
+        <span class="cs-nb${childIds.length ? "" : " cs-nb-0"}" title="${childIds.length} élève${childIds.length > 1 ? "s" : ""} inscrit${childIds.length > 1 ? "s" : ""} à ce cours">${childIds.length} élève${childIds.length > 1 ? "s" : ""}</span>
         ${needMore ? '<button type="button" class="cs-more">Plus</button>' : ""}
       </div>
       <div class="cs-att">${col(c, coachIds, coachIds, true, "Coachs")}${elevesCol}</div>
