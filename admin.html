@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=206" />
+  <link rel="stylesheet" href="style.css?v=207" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -670,6 +670,7 @@
               <span class="cal-lg"><i class="cal-pastille cal-k-fermeture"></i>Fermeture</span>
               <span class="cal-lg"><i class="cal-pastille cal-k-camp"></i>Camp</span>
               <span class="cal-lg"><i class="cal-pastille cal-k-evenement"></i>Événement</span>
+              <span class="cal-lg"><i class="cal-pastille cal-k-test"></i>Session de test</span>
               <span class="cal-lg"><i class="cal-pastille cal-k-vacances"></i>Vacances équipe</span>
             </div>
           </div>
@@ -686,6 +687,7 @@
             <input type="hidden" id="cal-id" />
             <label class="mailc-f">Type<select id="cal-kind">
               <option value="evenement">Événement</option>
+              <option value="test">Session de test tennis</option>
               <option value="camp">Camp</option>
               <option value="fermeture">Fermeture Team Lausanne</option>
               <option value="vacances">Vacances (demande)</option>
@@ -697,6 +699,16 @@
               <label class="mailc-f">Du<input type="date" id="cal-start" required /></label>
               <label class="mailc-f">Au<input type="date" id="cal-end" required /></label>
             </div>
+            <!-- Horaires facultatifs : une fermeture ou des vacances occupent la
+                 journée entière, leur imposer une heure serait faux. Une session
+                 de test, elle, n'a pas de sens sans heure. -->
+            <div class="cal-dates">
+              <label class="mailc-f">Heure de début <span class="muted" style="font-weight:400">(facultatif)</span>
+                <input type="time" id="cal-h1" /></label>
+              <label class="mailc-f">Heure de fin <span class="muted" style="font-weight:400">(facultatif)</span>
+                <input type="time" id="cal-h2" /></label>
+            </div>
+            <p class="muted cal-aide">Sans heure, l'élément couvre toute la journée.</p>
             <label class="mailc-f">Remarque <span class="muted" style="font-weight:400">(facultatif)</span>
               <textarea id="cal-note" rows="2"></textarea></label>
             <p id="cal-err" class="error" hidden></p>

@@ -1695,7 +1695,16 @@ function renderLastScores() {
 //
 // Seules les VACANCES d'un membre demandent une validation. Fermetures, camps
 // et événements sont des faits d'organisation : ils s'ajoutent directement.
-const CAL_KIND = { vacances: "Vacances", fermeture: "Fermeture", camp: "Camp", evenement: "Événement" };
+const CAL_KIND = { vacances: "Vacances", fermeture: "Fermeture", camp: "Camp",
+                   evenement: "Événement", test: "Session de test" };
+// Postgres rend « 14:00:00 » : on garde les heures et les minutes. Une plage se
+// lit « 14:00–16:00 », une heure seule « 14:00 ». Rien quand il n'y en a pas :
+// la plupart des lignes du calendrier occupent la journée entière.
+const calHm = (t) => (t ? String(t).slice(0, 5) : "");
+function calHeure(debut, fin) {
+  const a = calHm(debut), b = calHm(fin);
+  return !a ? "" : b ? `${a}\u2013${b}` : a;
+}
 const canCalValider = () => hasAny(myAppRoles, ["superadmin", "admin"]);
 let calSem = [], calInit = false;
 
@@ -1850,9 +1859,13 @@ async function calRenderMois() {
             const v = e.kind === "vacances";
             const style = v && e.pm_members?.color ? ` style="--c:${esc(e.pm_members.color)}"` : "";
             const att = e.status === "demande" ? " cal-chip-att" : e.status === "refuse" ? " cal-chip-ref" : "";
-            const txt = v ? `${esc(e.pm_members?.initials || "?")} ${esc(e.title)}` : esc(e.title);
+            const h = calHeure(e.start_time, e.end_time);
+            const base = v ? `${esc(e.pm_members?.initials || "?")} ${esc(e.title)}` : esc(e.title);
+            // Dans une case de mois la place est comptée : on n'affiche que
+            // l'heure de début, la plage complète reste dans l'infobulle.
+            const txt = h ? `<b class="cal-h">${esc(calHm(e.start_time))}</b> ${base}` : base;
             return `<button type="button" class="cal-ev cal-k-${esc(e.kind)}${att}" data-ev="${e.id}"${style}
-                      title="${esc(e.title)} — ${frDate(e.start_date)} → ${frDate(e.end_date)}">${txt}</button>`;
+                      title="${esc(e.title)} — ${frDate(e.start_date)} → ${frDate(e.end_date)}${h ? ` · ${esc(h)}` : ""}">${txt}</button>`;
           }).join("")}
         </div>`;
       }).join("")
@@ -1877,8 +1890,12 @@ function calRenderSemaines() {
       const style = vac && e.couleur ? ` style="--c:${esc(e.couleur)}"` : "";
       const qui = vac ? `${esc(e.initiales || "?")} · ` : "";
       const att = e.status === "demande" ? " cal-chip-att" : e.status === "refuse" ? " cal-chip-ref" : "";
+      const h = calHeure(e.heure_debut, e.heure_fin);
+      // L'heure passe devant l'intitulé : c'est elle qu'on cherche quand on
+      // parcourt une journée.
+      const hh = h ? `<b class="cal-h">${esc(h)}</b> ` : "";
       return `<button type="button" class="cal-chip cal-k-${esc(e.kind)}${att}" data-ev="${e.id}"${style}
-                title="${esc(e.title)} — ${frDate(e.start)} → ${frDate(e.end)}">${qui}${esc(e.title)}${
+                title="${esc(e.title)} — ${frDate(e.start)} → ${frDate(e.end)}${h ? ` · ${esc(h)}` : ""}">${hh}${qui}${esc(e.title)}${
                 e.status === "demande" ? " (à valider)" : e.status === "refuse" ? " (refusé)" : ""}</button>`;
     }).join("");
     return `<div class="cal-sem${classe}">
@@ -1908,6 +1925,8 @@ function calOuvrir(ev, kind, lundi, fin) {
   // Depuis la vue mois on clique UN jour : début et fin se valent. Depuis la
   // liste on vise une semaine : on propose lundi → vendredi.
   $("cal-end").value = ev?.end_date || fin || (lundi ? calPlus(lundi, 4) : "");
+  $("cal-h1").value = ev?.start_time ? String(ev.start_time).slice(0, 5) : "";
+  $("cal-h2").value = ev?.end_time ? String(ev.end_time).slice(0, 5) : "";
   $("cal-note").value = ev?.note || "";
   $("cal-membre").innerHTML = pmMembers.map((m) =>
     `<option value="${m.id}"${ev?.member_id === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("");
@@ -1938,11 +1957,22 @@ async function calEnregistrer(e) {
   const debut = $("cal-start").value, fin = $("cal-end").value;
   if (!debut || !fin) { err.textContent = "Il faut une date de début et de fin."; err.hidden = false; return; }
   if (fin < debut) { err.textContent = "La fin ne peut pas précéder le début."; err.hidden = false; return; }
+  // Sur une seule journée, une fin avant le début est une faute de frappe. Sur
+  // plusieurs jours, « du 12 à 08:00 au 16 à 17:00 » est parfaitement normal.
+  const h1 = $("cal-h1").value, h2 = $("cal-h2").value;
+  if (debut === fin && h1 && h2 && h2 <= h1) {
+    err.textContent = "Sur une même journée, l'heure de fin doit suivre l'heure de début.";
+    err.hidden = false; return;
+  }
   const { data: sess } = await sb.auth.getSession();
   const row = {
     kind, title: $("cal-titre").value.trim() || CAL_KIND[kind],
     start_date: debut, end_date: fin,
     member_id: kind === "vacances" ? ($("cal-membre").value || null) : null,
+    start_time: $("cal-h1").value || null,
+    // Une heure de fin sans heure de début ne veut rien dire : la base la
+    // refuse, autant ne pas l'envoyer.
+    end_time: ($("cal-h1").value && $("cal-h2").value) || null,
     note: $("cal-note").value.trim() || null,
     created_by: sess?.session?.user?.id || null,
   };
