@@ -14,6 +14,52 @@ const FLAG_FR = '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" ar
 const ITF_URL = "https://www.itftennis.com/en/tournament/m25-lausanne/sui/2026/m-itf-sui-2026-004/";
 const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 
+// Partenaires : une seule liste, lue a la fois par la section du tournoi et par
+// le bandeau « Nos partenaires officiels » du bas de page. Les logos sont noirs
+// sur fond transparent ; « svg » designe les deux qu'on possede en vectoriel.
+const PARTENAIRES = [
+  { n: "Ville de Lausanne",              l: "ville-lausanne", w: 470, h: 69,      u: "https://www.lausanne.ch/" },
+  { n: "Canton de Vaud",                 l: "canton-vaud", w: 470, h: 111,         u: "https://www.vd.ch/" },
+  { n: "Swiss Tennis",                   l: "swiss-tennis", w: 471, h: 95,        u: "https://www.swisstennis.ch/" },
+  { n: "Fonds du Sport Vaudois",         l: "fonds-sport-vaudois", w: 470, h: 112, u: "https://ffsv.ch/" },
+  { n: "Association Vaudoise de Tennis", l: "vaud-tennis", w: 470, h: 198,         u: "https://www.vaud-tennis.ch/" },
+  { n: "SVR Vins",                       l: "svr-vins", w: 469, h: 195,            u: "https://svrvins.ch/" },
+  { n: "ibis Lausanne",                  l: "ibis", w: 268, h: 267,                u: "https://all.accor.com/hotel/6772/index.fr.shtml" },
+  { n: "Garage de la Plaine",            l: "garage-plaine", w: 495, h: 62,       u: "https://www.garageplaine.ch/", svg: true },
+  { n: "BS Architectes",                 l: "bs-architectes", w: 367, h: 74,      u: "https://bs-ac.ch/", svg: true },
+  { n: "Cafés Cuendet",                  l: "cafes-cuendet", w: 471, h: 131,       u: "https://cafes-cuendet.ch/" },
+  { n: "Boissons Gros de Vaud",          l: "boissons-gros-vaud", w: 470, h: 161,  u: "https://www.boissons-gros-de-vaud.ch/" },
+  { n: "Nestlé Community",               l: "nestle", w: 470, h: 87,              u: "https://www.nestle.ch/fr/nestle-en-suisse/nestle-community" },
+  { n: "Santé Prilly",                   l: "sante-prilly", w: 255, h: 265,        u: "https://www.santeprilly.ch/" },
+  { n: "Sport et Solidarité",            l: "sport-solidarite", w: 471, h: 257,    u: "https://www.sportetsolidarite.ch/" },
+];
+
+// Icones du tableau des chiffres cles. Dessinees plutot qu'en police d'icones :
+// une police de plus a charger pour quatre traits ne se justifie pas.
+const ICO_STAT = {
+  date: '<path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>',
+  coupe: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a4 4 0 0 1-4 4M7 5H4v2a4 4 0 0 0 4 4"/>',
+  billet: '<path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4z"/><path d="M13 7v2M13 13v2"/>',
+  ecusson: '<path d="M12 2l8 3v6c0 5-3.4 9-8 11-4.6-2-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/>',
+};
+// Un vainqueur : drapeau et nom dans un meme bloc insecable, sinon le retour a
+// la ligne peut tomber entre les deux.
+const palmJoueurs = (liste) => [].concat(liste)
+  .map((j) => `<span class="palm-j">${j.f}${esc(j.n)}</span>`).join("");
+
+// Coupe en filigrane des fiches du palmares. Purement decorative, donc retiree
+// de l'arbre d'accessibilite.
+const ICO_COUPE = `<svg class="palm-coupe" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a4 4 0 0 1-4 4M7 5H4v2a4 4 0 0 0 4 4"/></svg>`;
+const icoStat = (k) => ICO_STAT[k]
+  ? `<svg class="stat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO_STAT[k]}</svg>`
+  : "";
+
+const partLogo = (p) => `assets/partenaires/${p.l}.${p.svg ? "svg" : "png"}`;
+
+
 // ===================================================================
 //  MONDES
 // ===================================================================
@@ -69,7 +115,12 @@ const WORLDS = {
     hero: "assets/photos/open-2026-6.jpg", heroPos: "center 30%",
     cta: [],
     sections: [
-      { type: "stats", anchor: "tournoi", items: [["Août 2027", "prochaine édition"], ["30 000 $", "dotation"], ["Gratuit", "entrée libre"], ["ITF M25", "catégorie"]] },
+      { type: "stats", anchor: "tournoi", variant: "board", items: [
+        { v: "Août 2027", l: "prochaine édition", ico: "date",     scroll: "infos" },
+        { v: "30 000 $",  l: "dotation",          ico: "coupe" },
+        { v: "Gratuit",   l: "entrée libre",      ico: "billet",   scroll: "infos" },
+        { v: "ITF M25",   l: "catégorie",         ico: "ecusson",  href: ITF_URL },
+      ] },
       { type: "split", anchor: "presentation", title: "Le grand rendez-vous du tennis vaudois masculin", videoFile: "assets/video/lausanne-open-2026.mp4", poster: "assets/video/lausanne-open-2026.jpg", vertical: true, body: [
         "Le Lausanne Open réunit chaque année plusieurs dizaines de joueurs de toutes nationalités, pour la plupart classés à l'ATP, sur les courts de la Pontaise.",
         "L'accès est entièrement gratuit, toute la semaine.",
@@ -83,10 +134,14 @@ const WORLDS = {
         ]},
       { type: "seeds", anchor: "tetes-de-serie", title: "Voici les 8 têtes de série de l'édition 2026",
         sub: "Le tenant du titre, ancien numéro 1 mondial junior, et sept autres joueurs classés parmi les 650 meilleurs du monde. Classement ATP au moment du tirage." },
-      { type: "ranking", anchor: "palmares", title: "Palmarès",
-        head: ["Année", "Simple", "Double"],
-        rows: [["2026", `${FLAG_CH} Henry Bernet`, `${FLAG_CH} Johan Niklès · ${FLAG_CH} Adrien Burdet`],
-               ["2025", `${FLAG_CH} Henry Bernet`, `${FLAG_IE} Charles Barry · ${FLAG_FR} Max Westphal`]] },
+      { type: "palmares", anchor: "palmares", title: "Palmarès",
+        sub: "Les vainqueurs du Lausanne Open, édition après édition.",
+        editions: [
+          { an: "2026", simple: { f: FLAG_CH, n: "Henry Bernet" },
+            double: [{ f: FLAG_CH, n: "Johan Niklès" }, { f: FLAG_CH, n: "Adrien Burdet" }] },
+          { an: "2025", simple: { f: FLAG_CH, n: "Henry Bernet" },
+            double: [{ f: FLAG_IE, n: "Charles Barry" }, { f: FLAG_FR, n: "Max Westphal" }] },
+        ] },
       { type: "gallery", anchor: "photos", items: [
         "assets/photos/open-2026-1.jpg",
         "assets/photos/open-2026-2.jpg",
@@ -102,22 +157,7 @@ const WORLDS = {
         ["Une question ?", "Écrivez-nous, nous répondons rapidement."],
       ], link: { label: "Nous écrire", scroll: "contact-lo" } },
       { type: "sponsors", anchor: "partenaires", title: "Partenaires du tournoi 2026",
-        sub: "Le Lausanne Open n’existerait pas sans eux.", items: [
-        { n: "Ville de Lausanne",              l: "ville-lausanne",      u: "https://www.lausanne.ch/" },
-        { n: "Canton de Vaud",                 l: "canton-vaud",         u: "https://www.vd.ch/" },
-        { n: "Swiss Tennis",                   l: "swiss-tennis",        u: "https://www.swisstennis.ch/" },
-        { n: "Fonds du Sport Vaudois",         l: "fonds-sport-vaudois", u: "https://ffsv.ch/" },
-        { n: "Association Vaudoise de Tennis", l: "vaud-tennis",         u: "https://www.vaud-tennis.ch/" },
-        { n: "SVR Vins",                       l: "svr-vins",            u: "https://svrvins.ch/" },
-        { n: "ibis Lausanne",                  l: "ibis",                u: "https://all.accor.com/hotel/6772/index.fr.shtml" },
-        { n: "Garage de la Plaine",            l: "garage-plaine",       u: "https://www.garageplaine.ch/" },
-        { n: "BS Architectes",                 l: "bs-architectes",      u: "https://bs-ac.ch/" },
-        { n: "Cafés Cuendet",                  l: "cafes-cuendet",       u: "https://cafes-cuendet.ch/" },
-        { n: "Boissons Gros de Vaud",          l: "boissons-gros-vaud",  u: "https://www.boissons-gros-de-vaud.ch/" },
-        { n: "Nestlé Community",              l: "nestle",              u: "https://www.nestle.ch/fr/nestle-en-suisse/nestle-community" },
-        { n: "Santé Prilly",                  l: "sante-prilly",        u: "https://www.santeprilly.ch/" },
-        { n: "Sport et Solidarité",           l: "sport-solidarite",    u: "https://www.sportetsolidarite.ch/" },
-      ]},
+        sub: "Le Lausanne Open n’existerait pas sans eux." },
     ],
   },
 
@@ -631,6 +671,24 @@ const DETAILS = {
 // ===================================================================
 //  RENDU
 // ===================================================================
+// Bandeau defilant de logos. Les images ne sont PAS en chargement differe :
+// elles defilent horizontalement, donc une image encore absente laisse un trou
+// au milieu du bandeau. Elles annoncent leurs dimensions (la place est reservee
+// avant l'arrivee du fichier, sinon la serie est mesuree trop courte et le
+// bandeau file trop vite) et passent en priorite basse.
+// La serie est rendue deux fois et la piste se
+// translate d'exactement une serie : la copie arrive pile ou etait l'originale,
+// donc la boucle ne se voit pas. Meme mecanique que les bandeaux de mots-cles,
+// duree calee en JS pour garder la meme vitesse a toutes les largeurs.
+function reelHTML(items) {
+  const serie = (copie) => `<ul class="reel-serie"${copie ? ' aria-hidden="true"' : ""}>${items.map((p) =>
+    `<li><a class="reel-logo" href="${esc(p.u)}" target="_blank" rel="noopener"
+        title="${esc(p.n)}"${copie ? ' tabindex="-1"' : ""}><img src="${partLogo(p)}"
+        alt="${esc(p.n)}" width="${p.w}" height="${p.h}"
+        decoding="async" fetchpriority="low" /></a></li>`).join("")}</ul>`;
+  return `<div class="reel"><div class="reel-piste">${serie(false)}${serie(true)}</div></div>`;
+}
+
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -732,16 +790,42 @@ function sectionHTML(sec) {
         <div class="rich">${sec.body.map((p) => `<p>${esc(p)}</p>`).join("")}</div>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}${linkHTML(sec.link)}</section>`;
 
-    case "stats":
-      return `<section class="wsec"><div class="stat-row">${sec.items.map(([b, s]) => {
-        // « 35 » ou « 2h » : on separe le nombre de son unite pour ne compter
-        // que le nombre. Sans separation, l'unite disparaitrait pendant le
-        // comptage puis reviendrait d'un coup.
-        const m = /^(\d+)(.*)$/.exec(String(b));
-        const chiffre = m ? `<span class="stat-val" data-vers="${m[1]}">${m[1]}</span>` : "";
-        return `<div class="stat"><b>${chiffre}${esc(m ? m[2] : String(b))}</b>
-          <span>${esc(s)}</span></div>`;
-      }).join("")}</div></section>`;
+    // Deux presentations pour les memes donnees. Par defaut, des cartes claires
+    // dans le fil de la page. Avec « board », un bandeau sombre pleine largeur :
+    // sur la page du tournoi, ces quatre chiffres SONT l'accroche, ils ne
+    // peuvent pas ressembler au reste du contenu.
+    case "stats": {
+      // « 35 » ou « 2h » : on separe le nombre de son unite pour ne compter
+      // que le nombre. Sans separation, l'unite disparaitrait pendant le
+      // comptage puis reviendrait d'un coup.
+      const C = sec.variant === "board" ? "sbc" : "stat";
+      const cellule = (it) => {
+        const [b, s, opts] = Array.isArray(it) ? it : [it.v, it.l, it];
+        const m = /^(\d[\d\u00a0 ]*)(.*)$/.exec(String(b));
+        // Le compteur ne tourne que sur un vrai nombre : « 30 000 » porte une
+        // espace insecable, qu'il faut retirer avant de le compter.
+        const brut = m ? m[1].replace(/[^\d]/g, "") : "";
+        const chiffre = m ? `<span class="stat-val" data-vers="${brut}" data-groupe="${m[1].trim() !== brut ? "1" : ""}">${esc(m[1])}</span>` : "";
+        const corps = `${opts && opts.ico ? icoStat(opts.ico) : ""}
+          <b>${chiffre}${esc(m ? m[2] : String(b))}</b><span>${esc(s)}</span>`;
+        // Une tuile qui mene quelque part le dit : elle devient un vrai lien ou
+        // un bouton, pas un bloc decore d'un curseur en main.
+        if (opts && opts.href) {
+          const ext = opts.href.startsWith("http");
+          return `<a class="${C} ${C}-lien" href="${esc(opts.href)}"${ext ? ' target="_blank" rel="noopener"' : ""}>${corps}
+            <span class="stat-fleche" aria-hidden="true">↗</span></a>`;
+        }
+        if (opts && opts.scroll)
+          return `<button type="button" class="${C} ${C}-lien" data-scroll="${esc(opts.scroll)}">${corps}
+            <span class="stat-fleche" aria-hidden="true">↓</span></button>`;
+        return `<div class="${C}">${corps}</div>`;
+      };
+      const cells = sec.items.map(cellule).join("");
+      if (sec.variant !== "board")
+        return `<section class="wsec"><div class="stat-row">${cells}</div></section>`;
+      return `<section class="wsec stat-board" data-anchor="${esc(sec.anchor || "")}">
+        <div class="stat-board-in"><div class="sb-row">${cells}</div></div></section>`;
+    }
 
     case "podium":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
@@ -750,37 +834,74 @@ function sectionHTML(sec) {
             <b>${esc(n)}</b><span>victoires</span></div>`).join("")}</div>
         ${linkHTML(sec.link)}</section>`;
 
+    // Palmares : un tableau a deux lignes se lisait comme un releve de compte.
+    // Une fiche par edition, avec le millesime grave, le vainqueur en simple mis
+    // en avant (c'est LE titre) et la paire du double en dessous.
+    case "palmares":
+      return `<section class="wsec" data-anchor="${esc(sec.anchor || "")}">
+        <div class="palm-tete"><h2>${esc(sec.title)}</h2>
+          ${sec.sub ? `<p class="wsec-sub">${esc(sec.sub)}</p>` : ""}</div>
+        <ol class="palm">${sec.editions.map((e, i) => `
+          <li class="palm-an${i === 0 ? " palm-dernier" : ""}">
+            <div class="palm-millesime"><span>${esc(e.an)}</span>
+              ${i === 0 ? '<em class="palm-tag">Tenant du titre</em>' : ""}</div>
+            <div class="palm-titres">
+              <div class="palm-t palm-simple">
+                <span class="palm-lab">Simple</span>
+                <span class="palm-qui">${palmJoueurs(e.simple)}</span>
+              </div>
+              <div class="palm-t palm-double">
+                <span class="palm-lab">Double</span>
+                <span class="palm-qui">${palmJoueurs(e.double)}</span>
+              </div>
+            </div>
+            ${ICO_COUPE}
+          </li>`).join("")}</ol>
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
+
     case "ranking":
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <table class="ranking"><thead><tr>${sec.head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
         <tbody>${sec.rows.map((row) => `<tr>${row.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
 
+    // Cartes de joueur facon carte a collectionner : la photo occupe toute la
+    // carte, le numero de tete de serie est grave en fond, et la biographie ne
+    // sort qu'a la demande. Huit pavés de texte alignes se lisaient comme un
+    // tableau ; ici on parcourt des visages et on ouvre celui qui intrigue.
+    // Le bouton porte l'ouverture : au doigt il n'y a pas de survol, un simple
+    // effet :hover aurait rendu les biographies inaccessibles sur telephone.
     case "seeds":
       return `<section class="wsec" data-anchor="${esc(sec.anchor || "")}"><h2>${esc(sec.title)}</h2>
         ${sec.sub ? `<p class="wsec-sub">${esc(sec.sub)}</p>` : ""}
-        <div class="seed-grid">${SEEDS.map((s) => {
+        <div class="pcard-grille">${SEEDS.map((s) => {
           const sommet = s.atp === s.best;
-          return `<article class="seed-card">
-            <div class="seed-img">
+          const rang = sommet ? "au meilleur de sa carrière" : `meilleur : ${s.best}ᵉ`;
+          return `<button type="button" class="pcard" aria-expanded="false">
+            <span class="pcard-photo">
               <img src="assets/players/${esc(s.photo)}" alt="${esc(s.nom)}" loading="lazy" />
-              <span class="seed-num">${s.n}</span>
-            </div>
-            <div class="seed-txt">
-              <h3><span class="seed-flag">${DRAPEAUX[s.drapeau] || DRAPEAUX.neutre}</span>${esc(s.nom)}</h3>
-              <p class="seed-rank">ATP ${s.atp} · ${sommet ? "au meilleur de sa carrière" : `meilleur : ${s.best}ᵉ`}</p>
-              <p class="seed-bio">${esc(s.bio)}</p>
-            </div>
-          </article>`;
+            </span>
+            <span class="pcard-n" aria-hidden="true">${s.n}</span>
+            <span class="pcard-bas">
+              <span class="pcard-tete">
+                <span class="seed-flag">${DRAPEAUX[s.drapeau] || DRAPEAUX.neutre}</span>
+                <span class="pcard-nom">${esc(s.nom)}</span>
+              </span>
+              <span class="pcard-atp">ATP <b>${s.atp}</b><span class="pcard-best"> · ${esc(rang)}</span></span>
+              <span class="pcard-bio"><span>${esc(s.bio)}</span></span>
+            </span>
+            <span class="pcard-plus" aria-hidden="true">+</span>
+          </button>`;
         }).join("")}</div></section>`;
 
+    // Les logos ne sont plus des tuiles bleues alignees mais un bandeau qui
+    // file : un mur de quatorze pave etait une fin de page pesante, et chaque
+    // logo y valait la meme chose qu'un bloc de texte.
     case "sponsors":
-      return `<section class="wsec" data-anchor="${esc(sec.anchor || "")}"><h2>${esc(sec.title)}</h2>
-        ${sec.sub ? `<p class="wsec-sub">${esc(sec.sub)}</p>` : ""}
-        <div class="sponsor-wall">${sec.items.map((s) =>
-          `<a class="sponsor" href="${esc(s.u)}" target="_blank" rel="noopener" title="${esc(s.n)}">
-             <img src="assets/lo/sponsors/${esc(s.l)}.png" alt="${esc(s.n)}" loading="lazy" />
-             <span>${esc(s.n)}</span></a>`).join("")}</div></section>`;
+      return `<section class="wsec sponsors-sec" data-anchor="${esc(sec.anchor || "")}">
+        <div class="sponsors-head"><h2>${esc(sec.title)}</h2>
+          ${sec.sub ? `<p class="wsec-sub">${esc(sec.sub)}</p>` : ""}</div>
+        ${reelHTML(sec.items || PARTENAIRES)}</section>`;
 
     // Une serie de cartes. Rendue deux fois : l'originale et une copie inerte,
     // pour que le defilement puisse boucler sans saut visible.
@@ -806,7 +927,7 @@ function sectionHTML(sec) {
           <h2>${esc(sec.title)}</h2>
           ${sec.sub ? `<p class="carousel-sub">${esc(sec.sub)}</p>` : ""}
         </div>
-        <div class="carousel"><div class="carousel-track" style="--n:${sec.items.length}">
+        <div class="carousel"><div class="carousel-track" data-n="${sec.items.length}" style="--n:${sec.items.length}">
           ${carte(sec.items, pill)}
           <!-- Copie de la serie : c'est elle qui rend la boucle continue. Retiree
                de l'arbre d'accessibilite, et ses pastilles sont inertes pour ne
@@ -966,12 +1087,26 @@ function sectionHTML(sec) {
             </figcaption></figure>`).join("")}</div>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
 
-    case "gallery":
-      return `<section class="wsec"><div class="gallery">${sec.items.map((it) => {
-        const src = typeof it === "string" ? it : it.src;
-        const pos = (typeof it === "object" && it.pos) ? `;background-position:${it.pos}` : "";
-        return `<div class="gphoto" style="background-image:url('${src}')${pos}"></div>`;
-      }).join("")}</div></section>`;
+    // Galerie en mosaique : toutes les photos a la meme taille se regardaient
+    // comme une planche de contact. Ici la premiere et la quatrieme prennent
+    // deux fois plus de place, le rythme se casse et l'oeil circule. Chaque
+    // vignette s'ouvre en grand (visionneuse), d'ou le <button>.
+    case "gallery": {
+      const photos = sec.items.map((it) => (typeof it === "string" ? { src: it } : it));
+      // Les sources partent dans la visionneuse : elle navigue de l'une a
+      // l'autre sans avoir a relire le DOM.
+      const srcs = photos.map((p) => p.src);
+      return `<section class="wsec" data-anchor="${esc(sec.anchor || "")}">
+        <div class="gal" data-srcs="${esc(JSON.stringify(srcs))}">${photos.map((p, i) => `
+          <button type="button" class="gphoto" data-i="${i}"
+            style="background-image:url('${p.src}')${p.pos ? `;background-position:${p.pos}` : ""}"
+            aria-label="Agrandir la photo ${i + 1} sur ${photos.length}">
+            <span class="gphoto-loupe" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M11 8v6M8 11h6"/></svg>
+            </span>
+          </button>`).join("")}</div></section>`;
+    }
 
     case "contactform":
       return `<section class="wsec biz-contact" data-anchor="${esc(sec.anchor || "contact")}">
@@ -1286,6 +1421,89 @@ function lancer(v) {
 }
 
 
+// ---- Visionneuse des galeries ----
+// Une seule pour tout le site. Une galerie lui passe la liste de ses photos et
+// l'index de celle qu'on a cliquee ; ensuite on circule aux fleches, au clavier
+// ou au doigt. Le fond de page est bloque pendant l'ouverture, sinon la page
+// defile derriere la photo des qu'on fait glisser.
+let visioSrcs = [];
+let visioI = 0;
+let visioRendu = null;
+
+function visioMontrer(i) {
+  if (!visioSrcs.length) return;
+  visioI = (i + visioSrcs.length) % visioSrcs.length;
+  $("visio-img").src = visioSrcs[visioI];
+  $("visio-compte").textContent = `${visioI + 1} / ${visioSrcs.length}`;
+  // Une seule photo : les fleches n'ont rien a faire la.
+  const seule = visioSrcs.length < 2;
+  document.querySelectorAll(".visio-nav").forEach((b) => b.classList.toggle("hidden", seule));
+}
+
+function visioOuvrir(srcs, i) {
+  visioSrcs = srcs;
+  // On se souvient d'ou on vient : a la fermeture, le focus doit revenir sur la
+  // vignette cliquee, pas se perdre en haut de page.
+  visioRendu = document.activeElement;
+  visioMontrer(i);
+  $("visio").classList.remove("hidden");
+  document.body.classList.add("visio-ouverte");
+  $("visio").focus();
+}
+
+function visioFermer() {
+  $("visio").classList.add("hidden");
+  document.body.classList.remove("visio-ouverte");
+  $("visio-img").removeAttribute("src");
+  if (visioRendu && visioRendu.isConnected) visioRendu.focus();
+  visioRendu = null;
+}
+
+addEventListener("keydown", (e) => {
+  if ($("visio")?.classList.contains("hidden")) return;
+  if (e.key === "Escape") return visioFermer();
+  if (e.key === "ArrowLeft") return visioMontrer(visioI - 1);
+  if (e.key === "ArrowRight") return visioMontrer(visioI + 1);
+});
+
+// Glisser d'un doigt pour passer a la photo suivante. Seuil a 45 px : en
+// dessous, c'est un tremblement de main, pas une intention.
+function visioGlisser() {
+  const z = $("visio");
+  if (!z || z.dataset.glisse) return;
+  z.dataset.glisse = "1";
+  let x0 = null;
+  z.addEventListener("pointerdown", (e) => (x0 = e.clientX));
+  z.addEventListener("pointerup", (e) => {
+    if (x0 === null) return;
+    const d = e.clientX - x0;
+    x0 = null;
+    if (Math.abs(d) > 45) visioMontrer(visioI + (d < 0 ? 1 : -1));
+  });
+}
+
+// ---- Lueur du tableau d'affichage ----
+// Une tache verte suit le pointeur sur le bandeau des chiffres cles. Les
+// coordonnees passent par deux variables CSS : c'est le compositeur qui redessine
+// le degrade, on ne touche a aucune propriete de mise en page.
+function poserLueur() {
+  for (const b of document.querySelectorAll(".stat-board")) {
+    if (b.dataset.lueur) continue;
+    b.dataset.lueur = "1";
+    b.addEventListener("pointermove", (e) => {
+      const r = b.getBoundingClientRect();
+      b.style.setProperty("--mx", `${((e.clientX - r.left) / r.width * 100).toFixed(1)}%`);
+      b.style.setProperty("--my", `${((e.clientY - r.top) / r.height * 100).toFixed(1)}%`);
+    });
+    // Au depart du pointeur la tache revient au centre, sinon elle reste figee
+    // la ou la souris a quitte le bandeau.
+    b.addEventListener("pointerleave", () => {
+      b.style.setProperty("--mx", "50%");
+      b.style.setProperty("--my", "0%");
+    });
+  }
+}
+
 // ---- Chiffres cles : comptage a l'entree dans l'ecran ----
 // Le chiffre grimpe jusqu'a sa valeur quand la tuile apparait. Une seule fois :
 // le compteur se retire de l'observation des qu'il a joue.
@@ -1299,14 +1517,23 @@ function animerChiffres() {
       const el = e.target;
       obs.unobserve(el);
       const fin = Number(el.dataset.vers);
-      if (doux || !Number.isFinite(fin) || fin <= 0) { el.textContent = String(fin || 0); continue; }
+      if (doux || !Number.isFinite(fin) || fin <= 0) {
+        el.textContent = el.dataset.groupe
+          ? String(fin || 0).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0") : String(fin || 0);
+        continue;
+      }
       const DUREE = 900;
       const t0 = performance.now();
-      el.textContent = "0";
+      // « 30 000 » doit garder son espace tout le long du comptage, sinon le
+      // chiffre se lit « 30000 » pendant une seconde puis change de forme.
+      const ecrire = el.dataset.groupe
+        ? (v) => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0")
+        : (v) => String(v);
+      el.textContent = ecrire(0);
       const pas = (t) => {
         const p = Math.min((t - t0) / DUREE, 1);
         // Freinage en fin de course : le chiffre se pose au lieu de s'arreter net.
-        el.textContent = String(Math.round(fin * (1 - Math.pow(1 - p, 3))));
+        el.textContent = ecrire(Math.round(fin * (1 - Math.pow(1 - p, 3))));
         if (p < 1) requestAnimationFrame(pas);
       };
       requestAnimationFrame(pas);
@@ -1352,6 +1579,7 @@ function demarrerScrollers() {
 // cela donnait l'impression que le bandeau ne bougeait pas. On calcule donc la
 // duree a partir de la largeur mesuree, pour une vitesse identique partout.
 const KW_VITESSE = 75;           // pixels par seconde
+const REEL_VITESSE = 55;         // les logos defilent plus posement que les mots
 function calerBandeaux() {
   for (const piste of document.querySelectorAll(".kw-piste")) {
     const serie = piste.querySelector(".kw-serie");
@@ -1359,12 +1587,37 @@ function calerBandeaux() {
     const l = serie.getBoundingClientRect().width;
     if (l > 0) piste.style.animationDuration = (l / KW_VITESSE).toFixed(2) + "s";
   }
+  for (const piste of document.querySelectorAll(".reel-piste")) {
+    const serie = piste.querySelector(".reel-serie");
+    if (!serie) continue;
+    // Ce sont les logos qui donnent sa largeur a la serie : tant qu'une image
+    // n'est pas arrivee, la mesure est fausse. On recalcule a chaque arrivee.
+    for (const img of serie.querySelectorAll("img")) {
+      if (img.complete || img.dataset.cale) continue;
+      img.dataset.cale = "1";
+      img.addEventListener("load", calerBandeaux, { once: true });
+      img.addEventListener("error", calerBandeaux, { once: true });
+    }
+    const l = serie.getBoundingClientRect().width;
+    if (l > 0) piste.style.animationDuration = (l / REEL_VITESSE).toFixed(2) + "s";
+  }
+}
+
+// Le bandeau du bas de page est le meme pour tous les mondes : on le remplit
+// une seule fois, au premier rendu.
+function poserPartenaires() {
+  const z = $("partners-reel");
+  if (!z || z.dataset.pret) return;
+  z.dataset.pret = "1";
+  z.innerHTML = reelHTML(PARTENAIRES);
 }
 // Au changement de largeur, les mots changent de taille : on recalcule.
 let kwMinuteur = null;
 addEventListener("resize", () => {
   clearTimeout(kwMinuteur);
-  kwMinuteur = setTimeout(calerBandeaux, 200);
+  // En s'elargissant, la fenetre peut avaler le debordement du carrousel : on
+  // le regarnit, sinon il se fige sans prevenir.
+  kwMinuteur = setTimeout(() => { calerBandeaux(); lancerCarrousel(); }, 200);
 });
 
 // ---- Carrousel des programmes ----
@@ -1376,6 +1629,33 @@ addEventListener("resize", () => {
 // Secondes par carte : c'est la formule d'origine (duree = nombre de cartes x
 // 3.4 s pour parcourir une serie), reprise telle quelle pour garder exactement
 // l'allure qu'avait Chrome, a toutes les largeurs d'ecran.
+// Le carrousel ne peut avancer que s'il deborde de son cadre : l'avancee se
+// fait par scrollLeft, et scrollLeft reste a zero quand tout tient a l'ecran.
+// Avec trois cartes doublees, la piste faisait environ 2100 px : sur un ecran
+// large, elle tenait entierement dans le cadre et le carrousel restait fige,
+// immobile, sans que rien ne le signale. On recopie donc la serie autant de
+// fois qu'il faut pour qu'elle deborde toujours d'au moins une serie.
+const CAR_SERIES_MAX = 12;            // garde-fou : jamais plus de 12 series
+function garnirCarrousel(vue) {
+  const piste = vue.querySelector(".carousel-track");
+  const n = Number(piste?.dataset.n) || 0;
+  if (!n) return;
+  const cartes = vue.querySelectorAll(".ccard");
+  if (cartes.length <= n) return;
+  const serie = cartes[n].offsetLeft - cartes[0].offsetLeft;
+  if (serie <= 0) return;
+  // Il faut de quoi remplir le cadre PLUS une serie entiere, celle dont on
+  // revient en arriere a chaque tour.
+  const voulu = Math.min(Math.ceil(vue.clientWidth / serie) + 1, CAR_SERIES_MAX);
+  const modele = vue.querySelector(".carousel-clone");
+  if (!modele) return;
+  let series = Math.round(cartes.length / n);
+  while (series < voulu) {
+    piste.appendChild(modele.cloneNode(true));
+    series++;
+  }
+}
+
 const CAR_SEC_PAR_CARTE = 3.4;
 let carBoucle = null;
 function lancerCarrousel() {
@@ -1384,9 +1664,11 @@ function lancerCarrousel() {
   const vues = [...document.querySelectorAll(".carousel")];
   if (!vues.length || doux) return;
 
+  vues.forEach(garnirCarrousel);
   const etats = vues.map((vue) => {
     const cartes = [...vue.querySelectorAll(".ccard")];
-    const etat = { vue, cartes, moitie: cartes.length / 2, survol: false, jusqua: 0, reste: 0 };
+    const parSerie = Number(vue.querySelector(".carousel-track")?.dataset.n) || cartes.length / 2;
+    const etat = { vue, cartes, parSerie, survol: false, jusqua: 0, reste: 0 };
     // Le visiteur reprend la main : on se tait un moment.
     const main = () => { etat.jusqua = performance.now() + 2500; };
     vue.addEventListener("pointerenter", () => (etat.survol = true));
@@ -1406,14 +1688,14 @@ function lancerCarrousel() {
     const dt = precedent ? Math.min((t - precedent) / 1000, 0.05) : 0;
     precedent = t;
     for (const e of etats) {
-      if (e.moitie < 1 || e.survol || t < e.jusqua) continue;
+      if (e.parSerie < 1 || e.survol || t < e.jusqua) continue;
       // Largeur d'une serie, mesuree : la carte n et la carte 0 portent la meme
       // image, donc revenir de cette distance ne se voit pas.
-      const serie = e.cartes[e.moitie].offsetLeft - e.cartes[0].offsetLeft;
+      const serie = e.cartes[e.parSerie].offsetLeft - e.cartes[0].offsetLeft;
       if (serie <= 0) continue;
       // On accumule les fractions : un pas peut faire moins d'un pixel par
       // image, et scrollLeft pourrait les perdre.
-      e.reste += (serie / (e.moitie * CAR_SEC_PAR_CARTE)) * dt;
+      e.reste += (serie / (e.parSerie * CAR_SEC_PAR_CARTE)) * dt;
       const entier = Math.floor(e.reste);
       if (entier) {
         e.reste -= entier;
@@ -1440,6 +1722,9 @@ function renderWorld(key) {
   demarrerScrollers();
   lancerCarrousel();
   animerChiffres();
+  poserPartenaires();
+  poserLueur();
+  visioGlisser();
   calerBandeaux();
 }
 
@@ -1461,6 +1746,9 @@ function renderDetail(id) {
   demarrerScrollers();
   lancerCarrousel();
   animerChiffres();
+  poserPartenaires();
+  poserLueur();
+  visioGlisser();
   calerBandeaux();
   if ($("stgp-list")) stgLoad();
   if ($("gz-winners") || $("gz-photos-carousel")) loadGamezone();
@@ -1708,11 +1996,45 @@ document.addEventListener("click", (e) => {
   }
   const plan = e.target.closest("[data-plan]");
   if (plan) { $("plan-img").src = plan.dataset.plan; $("plan-modal").classList.remove("hidden"); return; }
+  // Boutons de la visionneuse.
+  const vb = e.target.closest("[data-visio]");
+  if (vb) {
+    const q = vb.dataset.visio;
+    if (q === "fermer") visioFermer();
+    else visioMontrer(visioI + (q === "suiv" ? 1 : -1));
+    return;
+  }
+  // Clic sur le fond (et non sur la photo ni sur un bouton) : on ferme.
+  if (e.target.id === "visio") { visioFermer(); return; }
+  // Vignette d'une galerie : on ouvre la visionneuse sur cette photo.
+  const vign = e.target.closest(".gphoto");
+  if (vign) {
+    const gal = vign.closest(".gal");
+    try { visioOuvrir(JSON.parse(gal.dataset.srcs), Number(vign.dataset.i) || 0); }
+    catch { /* donnees illisibles : mieux vaut ne rien ouvrir que casser la page */ }
+    return;
+  }
+  // Carte de tete de serie : le clic ouvre la biographie. Au doigt il n'y a
+  // pas de survol, c'est donc le seul moyen de la lire. Une seule ouverte a la
+  // fois : deux cartes deployees cote a cote se marchent dessus.
+  const pcard = e.target.closest(".pcard");
+  if (pcard) {
+    const ouvre = !pcard.classList.contains("on");
+    for (const c of document.querySelectorAll(".pcard.on")) {
+      c.classList.remove("on");
+      c.setAttribute("aria-expanded", "false");
+    }
+    pcard.classList.toggle("on", ouvre);
+    pcard.setAttribute("aria-expanded", String(ouvre));
+    return;
+  }
   const scroll = e.target.closest("[data-scroll]");
   if (scroll) {
-    // la cible peut etre designee par sa classe ou par son identifiant
+    // la cible peut etre designee par sa classe, son identifiant ou l'ancre
+    // d'une section (data-anchor), la seule que portent les sections generees
     const t = scroll.dataset.scroll;
-    (document.querySelector("." + t) || document.getElementById(t))
+    (document.querySelector("." + t) || document.getElementById(t)
+      || document.querySelector(`[data-anchor="${t}"]`))
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }

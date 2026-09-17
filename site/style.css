@@ -1055,15 +1055,150 @@ body[data-world="academie"] .hero-logo{filter:drop-shadow(0 4px 16px rgba(0,0,0,
 @media(prefers-reduced-motion:reduce){
   .stat,.stat::before,.stat b{transition:none}
 }
+
+/* ---- Chiffres cles, version « tableau d'affichage » ----
+   Sur la page du tournoi, ces quatre chiffres sont l'accroche : ils ne peuvent
+   pas ressembler au reste du contenu. Bandeau sombre pleine largeur, chiffres
+   en vert de marque, cellules separees par un filet. Le fond porte des lignes
+   obliques tres discretes, clin d'oeil au grillage d'un court, et une lueur
+   verte qui suit le pointeur (--mx/--my, poses en JS).
+   Les cellules portent .sbc et non .stat : les regles de la carte claire
+   (relief au survol, liseré vert qui pousse) n'ont pas a etre annulees une par
+   une ici. */
+.stat-board{position:relative;width:100vw;margin-inline:calc(50% - 50vw);
+  margin-bottom:var(--sec-sm);padding:clamp(26px,4vw,46px) 0;
+  background:
+    radial-gradient(760px 320px at var(--mx,50%) var(--my,0%),rgba(178,253,19,.18),transparent 70%),
+    linear-gradient(140deg,var(--blue-ink) 0%,#062a70 45%,var(--prussian) 100%);
+  overflow:hidden;isolation:isolate}
+.stat-board::before{content:"";position:absolute;inset:0;z-index:0;opacity:.07;pointer-events:none;
+  background-image:repeating-linear-gradient(115deg,#fff 0 1px,transparent 1px 22px)}
+.stat-board-in{position:relative;z-index:1;max-width:var(--container);margin:0 auto;padding:0 22px}
+/* Le bandeau est en haut de page : il doit etre la tout de suite, sans attendre
+   la revelation au defilement. */
+.stat-board.reveal{opacity:1;transform:none}
+
+.sb-row{display:grid;grid-template-columns:repeat(2,1fr);gap:0}
+@media(min-width:860px){ .sb-row{grid-template-columns:repeat(4,1fr)} }
+
+.sbc{position:relative;text-align:center;padding:clamp(18px,2.6vw,26px) 14px;
+  display:flex;flex-direction:column;align-items:center;
+  background:transparent;border:0;border-radius:14px;font:inherit;color:inherit;
+  transition:background-color .3s ease}
+/* Filets entre les cellules, jamais sur le bord exterieur. */
+.sbc::before{content:"";position:absolute;left:0;top:14%;height:72%;width:1px;
+  background:rgba(255,255,255,.16)}
+.sbc:nth-child(odd)::before{display:none}
+@media(min-width:860px){
+  .sbc:nth-child(odd)::before{display:block}
+  .sbc:first-child::before{display:none}
+}
+/* Un trait vert pousse sous la cellule visee : c'est le seul mouvement, le
+   chiffre lui-meme ne bouge pas, il doit rester lisible. */
+.sbc::after{content:"";position:absolute;left:50%;bottom:8px;width:0;height:3px;
+  border-radius:2px;background:var(--fluo);transform:translateX(-50%);
+  transition:width .32s cubic-bezier(.4,0,.2,1)}
+.sbc-lien{cursor:pointer}
+.sbc-lien:hover,.sbc-lien:focus-visible{background:rgba(255,255,255,.07)}
+.sbc-lien:hover::after,.sbc-lien:focus-visible::after{width:54px}
+.sbc-lien:focus-visible{outline:2px solid var(--fluo);outline-offset:-4px}
+
+.stat-ico{width:24px;height:24px;color:#7da2ff;margin-bottom:12px;
+  transition:color .28s ease,transform .28s ease}
+.sbc-lien:hover .stat-ico{color:var(--fluo);transform:translateY(-2px)}
+.sbc b{display:block;font-family:var(--font-accent);font-weight:700;
+  letter-spacing:-.03em;line-height:1;color:#fff;font-variant-numeric:tabular-nums;
+  font-size:clamp(1.7rem,4.2vw,2.9rem);transition:color .28s ease}
+.sbc-lien:hover b{color:var(--fluo)}
+.sbc > span{display:block;margin-top:11px;font-size:.74rem;font-weight:800;
+  color:rgba(255,255,255,.66);text-transform:uppercase;letter-spacing:.1em;line-height:1.3}
+/* La fleche n'apparait qu'au survol : au repos, quatre petits signes
+   parasiteraient la lecture des chiffres. */
+.stat-fleche{position:absolute;top:10px;right:12px;font-size:.85rem;color:var(--fluo);
+  opacity:0;transform:translateY(3px);transition:opacity .25s ease,transform .25s ease}
+.sbc-lien:hover .stat-fleche,.sbc-lien:focus-visible .stat-fleche{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){
+  .sbc,.sbc::after,.stat-ico,.stat-fleche,.sbc b{transition:none}
+}
+
 .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
 .feature{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
   border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
 .feature h3{margin:0 0 6px;font-size:1.05rem;color:var(--blue-ink);
   font-style:normal;text-transform:none;letter-spacing:0}
 .feature p{margin:0;color:var(--muted);font-size:.93rem}
-.gallery{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.gphoto{aspect-ratio:16/10;background-size:cover;background-position:center;
-  border-radius:var(--radius);box-shadow:var(--shadow)}
+/* ---- Galerie en mosaique ----
+   Toutes les photos a la meme taille se regardaient comme une planche de
+   contact. La premiere et la quatrieme occupent deux colonnes : le rythme se
+   casse et l'oeil circule. Chaque vignette est un bouton qui ouvre la
+   visionneuse — d'ou la loupe, qui annonce que ca s'agrandit. */
+.gal{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:760px){ .gal{grid-template-columns:repeat(4,1fr);gap:14px} }
+.gphoto{position:relative;display:block;width:100%;padding:0;border:0;overflow:hidden;
+  aspect-ratio:4/3;background-size:cover;background-position:center;background-color:#e9edf6;
+  border-radius:var(--radius);box-shadow:var(--shadow);cursor:zoom-in;
+  transition:transform .32s cubic-bezier(.22,.61,.36,1),box-shadow .32s ease}
+@media(min-width:760px){
+  /* Deux grandes vignettes par serie de six : assez pour rompre la grille,
+     assez rare pour que ca reste une respiration et non un motif.
+     Seulement a partir de quatre photos : en dessous, la mosaique laisserait un
+     trou au bout de la ligne. Une petite galerie garde des vignettes egales. */
+  .gal:has(> :nth-child(4)) > .gphoto:nth-child(6n+1),
+  .gal:has(> :nth-child(4)) > .gphoto:nth-child(6n+4){grid-column:span 2;aspect-ratio:16/10}
+  .gal:not(:has(> :nth-child(4))){grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+}
+.gphoto:hover{transform:translateY(-4px) scale(1.012);box-shadow:0 16px 38px rgba(20,26,46,.2)}
+.gphoto:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+/* Voile + loupe : ils n'apparaissent qu'au survol, une photo n'a pas a porter
+   un bouton en permanence. */
+.gphoto::after{content:"";position:absolute;inset:0;background:rgba(4,32,94,.32);
+  opacity:0;transition:opacity .3s ease}
+.gphoto:hover::after,.gphoto:focus-visible::after{opacity:1}
+.gphoto-loupe{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;
+  opacity:0;transform:scale(.82);transition:opacity .3s ease,transform .3s ease;pointer-events:none}
+.gphoto-loupe svg{width:38px;height:38px;color:#fff;
+  filter:drop-shadow(0 2px 10px rgba(0,0,0,.4))}
+.gphoto:hover .gphoto-loupe,.gphoto:focus-visible .gphoto-loupe{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){
+  .gphoto,.gphoto::after,.gphoto-loupe{transition:none}
+}
+
+/* ---- Visionneuse ----
+   Plein ecran, fond sombre, la photo au centre. Les fleches restent en dehors
+   de la photo sur grand ecran et passent en bas sur telephone, ou elles
+   masqueraient l'image. */
+.visio{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
+  gap:clamp(6px,2vw,26px);padding:clamp(10px,3vw,34px);
+  background:rgba(4,16,44,.94);backdrop-filter:blur(6px)}
+.visio.hidden{display:none}
+/* La page ne doit plus defiler derriere la photo pendant qu'on fait glisser. */
+body.visio-ouverte{overflow:hidden}
+.visio-scene{margin:0;flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;height:100%}
+.visio-scene img{max-width:100%;max-height:calc(100% - 34px);object-fit:contain;
+  border-radius:var(--radius-md);box-shadow:0 24px 70px rgba(0,0,0,.55);
+  background:#0b1836;display:block}
+.visio-compte{font-size:.8rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:rgba(255,255,255,.7);font-variant-numeric:tabular-nums}
+.visio-nav,.visio-x{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;
+  transition:background-color .2s ease,transform .2s ease}
+.visio-nav{width:clamp(42px,6vw,54px);height:clamp(42px,6vw,54px);font-size:1.9rem;line-height:1;padding-bottom:4px}
+.visio-nav:hover,.visio-x:hover{background:var(--fluo);color:var(--fluo-ink)}
+.visio-nav:active{transform:scale(.94)}
+.visio-nav.hidden{display:none}
+.visio-x{position:absolute;top:clamp(10px,2.4vw,22px);right:clamp(10px,2.4vw,22px);
+  width:42px;height:42px;font-size:1.1rem;z-index:2}
+.visio-nav:focus-visible,.visio-x:focus-visible{outline:2px solid var(--fluo);outline-offset:3px}
+@media(max-width:620px){
+  /* Sur telephone les fleches passent sous la photo : de part et d'autre, elles
+     mordraient sur l'image. */
+  .visio{flex-wrap:wrap;align-content:center}
+  .visio-scene{order:-1;flex:1 0 100%;max-height:calc(100% - 66px)}
+  .visio-nav{width:46px;height:46px}
+}
+@media(prefers-reduced-motion:reduce){ .visio-nav,.visio-x{transition:none} }
+
 
 /* Sections riches par monde */
 .wsec{margin:0 0 var(--sec-sm)}
@@ -1109,13 +1244,6 @@ button.wsec-link{color:#fff;border-bottom:0}
 .contact-card p{margin:0 0 8px}
 .contact-card a{color:var(--accent-ink);font-weight:700;text-decoration:none}
 
-/* Mur de sponsors */
-.sponsor-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.sponsor{background:#fff;border:1px solid var(--line);border-radius:12px;min-height:76px;
-  display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;
-  font-weight:800;font-style:italic;color:var(--blue-ink);font-size:.92rem;box-shadow:var(--shadow);
-  transition:transform .15s,border-color .15s}
-.sponsor:hover{transform:translateY(-3px);border-color:var(--accent)}
 /* Formulaire de contact business (bas de page) */
 .biz-contact-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:26px;align-items:start}
 .biz-raph{background:var(--blue-ink);color:#fff;border-radius:16px;padding:22px}
@@ -1312,11 +1440,6 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 .foot-copy{text-align:center;margin:28px 0 0;opacity:.6;font-size:.82rem}
 .brand.blue{color:var(--blue)}
 /* Footer : sponsors communs + sélecteur 3 mondes */
-.foot-sponsors{max-width:var(--container);margin:0 auto 34px;text-align:center}
-.foot-sponsors-label{display:block;text-transform:uppercase;letter-spacing:.09em;font-size:.72rem;opacity:.7;margin-bottom:14px}
-.foot-sponsors .sponsor-wall{display:flex;flex-wrap:wrap;gap:30px;align-items:center;justify-content:center;background:#fff;border-radius:16px;padding:22px 28px}
-.foot-sponsors .sponsor-wall img{height:40px;width:auto;max-width:140px;object-fit:contain;filter:grayscale(1);opacity:.72;transition:filter .2s,opacity .2s}
-.foot-sponsors .sponsor-wall img:hover{filter:none;opacity:1}
 .foot-worlds{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
 .foot-switcher{display:flex;gap:8px;flex-wrap:wrap}
 .foot-switcher .sw{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.22);padding:7px 15px;border-radius:22px;font-weight:600;font-size:.85rem}
@@ -1412,12 +1535,79 @@ a.ccard-pill:hover::before,button.ccard-pill:hover::before,
 a.ccard-pill:focus-visible::before,button.ccard-pill:focus-visible::before{transform:scale(22)}
 a.ccard-pill:hover .ccard-arrow,button.ccard-pill:hover .ccard-arrow{
   background-color:#fff;color:var(--fluo-ink);transform:translate(2px,-2px)}
-/* ---- Partenaires officiels (bas de page, avant le pied) ----
-   Bandeau sobre : les logos ne doivent pas concurrencer le contenu. Ils sont
-   legerement estompes au repos et reviennent au noir plein au survol, traitement
-   habituel d'un mur de partenaires. Les SVG portent fill="currentColor", donc
-   la couleur reste pilotable si un jour on veut autre chose que du noir. */
-.partners{max-width:var(--container);margin:0 auto;padding:0 22px var(--sec-sm);text-align:center}
+/* ---- Palmares ----
+   Un tableau a deux lignes se lisait comme un releve de compte. Une fiche par
+   edition : le millesime grave a gauche, le titre en simple en avant (c'est LE
+   titre du tournoi), la paire du double en dessous, et une coupe en filigrane.
+   Au survol, la fiche s'eclaire et la coupe monte legerement — juste assez pour
+   qu'on sente que la liste est vivante. */
+.palm-tete{margin:0 0 22px}
+.palm-tete h2{font-size:1.7rem;color:var(--blue-ink);margin:0 0 8px}
+.palm{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+@media(min-width:780px){ .palm{grid-template-columns:repeat(2,1fr);gap:16px} }
+
+.palm-an{position:relative;overflow:hidden;isolation:isolate;
+  display:flex;align-items:stretch;gap:clamp(14px,2.4vw,24px);
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px clamp(18px,2.6vw,26px);box-shadow:var(--shadow);
+  transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}
+.palm-an:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(20,26,46,.15);
+  border-color:var(--fluo)}
+/* L'edition la plus recente porte la couleur : c'est celle qu'on cherche. */
+.palm-dernier{background:linear-gradient(135deg,#f3f7ff,var(--card) 58%);border-color:#cfdcfa}
+
+.palm-millesime{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;
+  gap:7px;padding-right:clamp(14px,2.4vw,24px);border-right:1px solid var(--line)}
+.palm-millesime > span{font-family:var(--font-accent);font-weight:700;line-height:1;
+  font-size:clamp(1.8rem,4.4vw,2.5rem);color:var(--blue);letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums}
+.palm-dernier .palm-millesime > span{color:var(--blue-ink)}
+.palm-tag{display:inline-block;font-style:normal;font-size:.62rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;
+  background:var(--fluo);color:var(--fluo-ink);padding:3px 8px;border-radius:999px}
+
+.palm-titres{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:11px}
+.palm-t{display:flex;flex-direction:column;gap:3px;min-width:0}
+.palm-lab{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--muted)}
+/* Les deux joueurs d'un double sont separes par l'espacement, pas par un
+   point median : des que la paire passait sur deux lignes, le point restait
+   seul en fin de ligne. */
+.palm-qui{display:flex;flex-wrap:wrap;gap:2px 16px;
+  font-weight:800;color:var(--blue-ink);line-height:1.4}
+/* Drapeau et nom ne se separent jamais. */
+.palm-j{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+/* Le simple est le titre du tournoi : il doit peser plus que le double. */
+.palm-simple .palm-qui{font-size:1.12rem}
+.palm-double .palm-qui{font-size:.9rem;font-weight:700;color:#2c3240}
+.palm-qui .flag{border-radius:2px;flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+
+/* La coupe, en filigrane dans le coin. z-index negatif dans un contexte
+   d'empilement : elle se peint apres le fond de la fiche mais avant son texte. */
+.palm-coupe{position:absolute;right:-18px;bottom:-20px;z-index:-1;
+  width:104px;height:104px;color:var(--blue);opacity:.05;
+  transition:transform .35s ease,opacity .35s ease}
+.palm-an:hover .palm-coupe{transform:translateY(-6px) rotate(-6deg);opacity:.11}
+
+@media(max-width:480px){
+  .palm-an{flex-direction:column;gap:14px}
+  .palm-millesime{flex-direction:row;align-items:center;gap:12px;
+    padding:0 0 12px;border-right:0;border-bottom:1px solid var(--line)}
+}
+@media(prefers-reduced-motion:reduce){
+  .palm-an,.palm-coupe{transition:none}
+}
+
+
+/* ---- Partenaires : bandeau defilant ----
+   Quatorze logos alignes en mur faisaient une fin de page pesante, et chaque
+   logo y pesait autant qu'un bloc de texte. Ils defilent maintenant en continu,
+   noirs sur fond clair. La serie est rendue deux fois et la piste se translate
+   d'exactement une serie : la copie arrive pile ou etait l'originale, donc la
+   boucle ne se voit pas. Le survol arrete tout — on doit pouvoir viser un logo.
+   Les SVG portent fill="currentColor" ; charges en <img> ils se peignent en
+   noir, comme les PNG detoures. */
+.partners{max-width:none;margin:0 auto;padding:0 0 var(--sec-sm);text-align:center}
 .partners-title{font-family:var(--font-accent);font-size:1.05rem;font-weight:700;
   text-transform:uppercase;letter-spacing:.02em;color:var(--muted);
   margin:0 0 26px;position:relative}
@@ -1426,20 +1616,55 @@ a.ccard-pill:hover .ccard-arrow,button.ccard-pill:hover .ccard-arrow{
   width:clamp(24px,12%,110px);height:1px;background:var(--line)}
 .partners-title::before{right:calc(50% + 1em + 8.5em)}
 .partners-title::after{left:calc(50% + 1em + 8.5em)}
-.partners-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;
-  align-items:center;justify-content:center;gap:clamp(28px,6vw,72px)}
-.partner{display:flex;align-items:center;justify-content:center}
-.partner img{display:block;height:clamp(28px,4.2vw,42px);width:auto;object-fit:contain;
-  max-width:44vw;
-  opacity:.72;transition:opacity .22s,transform .22s}
-/* Version cliquable, des que les adresses seront connues. */
-a.partner{text-decoration:none;border-radius:var(--radius-md);padding:6px 10px}
-a.partner:hover img,a.partner:focus-visible img{opacity:1;transform:translateY(-2px)}
-a.partner:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-@media(prefers-reduced-motion:reduce){.partner img{transition:none}}
 @media(max-width:560px){
   .partners-title::before,.partners-title::after{display:none}
 }
+
+.reel{--reel-gap:clamp(34px,5vw,72px);
+  width:100vw;margin-inline:calc(50% - 50vw);overflow:hidden;
+  /* Les logos naissent et meurent dans le fondu au lieu d'etre coupes net. */
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+.reel-piste{display:flex;width:max-content;animation:reel-defile 48s linear infinite;
+  /* Repli : la duree vraie est calculee en JS d'apres la largeur mesuree. */
+  will-change:transform}
+.reel:hover .reel-piste,.reel:focus-within .reel-piste{animation-play-state:paused}
+/* L'espacement final de chaque serie lui appartient, donc -50 % tombe pile sur
+   le debut de la copie. */
+.reel-serie{list-style:none;margin:0;padding:0 var(--reel-gap) 0 0;
+  display:flex;align-items:center;gap:var(--reel-gap)}
+@keyframes reel-defile{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+.reel-logo{display:flex;align-items:center;justify-content:center;
+  text-decoration:none;border-radius:var(--radius-md);padding:8px 4px}
+/* Hauteur commune, largeur bridee : un logo en bandeau (« Ville de Lausanne »)
+   et un logo carre (« ibis ») n'occupent pas la meme surface a hauteur egale.
+   La bride de largeur remet les deux familles a une taille comparable. */
+.reel-logo img{display:block;height:clamp(38px,5vw,56px);width:auto;
+  max-width:clamp(128px,17vw,192px);object-fit:contain;
+  transition:opacity .25s ease,transform .25s ease;opacity:.78}
+.reel-logo:hover img,.reel-logo:focus-visible img{opacity:1;transform:translateY(-3px) scale(1.05)}
+.reel-logo:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* Animations reduites : plus de defilement, le bandeau se tire a la main et la
+   copie disparait pour ne pas doubler chaque logo. */
+@media(prefers-reduced-motion:reduce){
+  .reel{overflow-x:auto;-webkit-mask-image:none;mask-image:none;
+    scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  .reel-piste{animation:none}
+  .reel-serie+.reel-serie{display:none}
+  .reel-logo img{transition:none}
+}
+
+/* Le meme bandeau, dans la page du tournoi : titre centre puis logos pleine
+   largeur, sur un fond legerement teinte qui detache la fin de page. */
+.sponsors-sec{width:100vw;margin-inline:calc(50% - 50vw);
+  background:linear-gradient(180deg,#fff,var(--bg));
+  padding:var(--sec-sm) 0;border-top:1px solid var(--line)}
+.sponsors-head{max-width:var(--container);margin:0 auto 34px;padding:0 22px;text-align:center}
+.sponsors-head h2{font-size:1.7rem;color:var(--blue-ink);margin:0 0 10px}
+.sponsors-head .wsec-sub{margin:0 auto;max-width:520px}
+
 /* ---- Bandeau reseaux sociaux (apres les partenaires, avant le pied) ----
    Photo de fond + voile bleu pour garder le texte lisible. Les vignettes
    defilent en continu et passent derriere un cadre Instagram decoratif dont la
@@ -1546,7 +1771,6 @@ a.partner:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
   .switcher{order:3;width:100%}
   .sw{padding:8px 12px;font-size:.85rem}
   .hero-logo{height:96px}
-  .gallery{grid-template-columns:1fr}
   /* Les 3 mondes restent côte-à-côte en mobile (pas empilés) */
   .flow{flex-wrap:nowrap;gap:5px;align-items:stretch}
   .flow-step{min-width:0;flex:1 1 0;max-width:none;padding:14px 6px}
@@ -2015,18 +2239,6 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 .irr-on{background:#e0f2fe;color:#0369a1}
 .irr-off{background:#eef1f7;color:var(--muted)}
 
-/* ---- Site du Lausanne Open : mur des partenaires avec logos ---- */
-.sponsor-wall{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(min-width:560px){ .sponsor-wall{grid-template-columns:repeat(3,1fr)} }
-@media(min-width:900px){ .sponsor-wall{grid-template-columns:repeat(5,1fr)} }
-a.sponsor{
-  background:#fff;border-radius:14px;padding:16px 12px 11px;text-decoration:none;
-  display:flex;flex-direction:column;align-items:center;gap:9px;transition:.15s;
-  border:1px solid rgba(0,0,0,.06);
-}
-a.sponsor:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(20,26,46,.16)}
-a.sponsor img{width:100%;height:54px;object-fit:contain;display:block}
-a.sponsor span{font-size:.7rem;font-weight:700;color:#1b2340;text-align:center;line-height:1.25}
 .wsec-sub{margin:-6px 0 18px;color:var(--muted);font-size:.95rem}
 
 
@@ -2059,27 +2271,88 @@ a.sponsor span{font-size:.7rem;font-weight:700;color:#1b2340;text-align:center;l
 .lo-map{width:100%;height:428px;border:0;border-radius:var(--radius);display:block;
   box-shadow:var(--shadow)}
 
-/* ---- Les 8 têtes de série sur la page d'accueil ---- */
-.seed-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-@media(min-width:620px){ .seed-grid{grid-template-columns:repeat(3,1fr)} }
-@media(min-width:920px){ .seed-grid{grid-template-columns:repeat(4,1fr);gap:20px} }
-.seed-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);
-  overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow);transition:.16s}
-.seed-card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(20,26,46,.14)}
-.seed-img{position:relative;aspect-ratio:1/1;overflow:hidden;background:#e9edf6}
-.seed-img img{width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block}
-.seed-num{position:absolute;top:9px;left:9px;width:28px;height:28px;border-radius:50%;
-  background:var(--blue);color:#fff;font-weight:900;font-size:.85rem;
-  display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-.seed-txt{padding:12px 13px 14px;display:flex;flex-direction:column;gap:5px}
-.seed-txt h3{margin:0;font-size:.94rem;font-weight:800;color:var(--blue-ink);
-  display:flex;align-items:center;gap:7px;line-height:1.2}
+/* ---- Les 8 têtes de série : cartes a collectionner ----
+   La photo occupe toute la carte, le numero de tete de serie est grave en fond
+   et la biographie ne sort qu'a la demande. Huit pavés de texte alignes se
+   lisaient comme un tableau ; ici on parcourt des visages.
+   La carte est un <button> : au doigt il n'y a pas de survol, un simple :hover
+   aurait rendu les biographies inaccessibles sur telephone. */
+.pcard-grille{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(min-width:680px){ .pcard-grille{grid-template-columns:repeat(3,1fr);gap:18px} }
+@media(min-width:1000px){ .pcard-grille{grid-template-columns:repeat(4,1fr)} }
+
+.pcard{position:relative;display:block;width:100%;padding:0;border:0;overflow:hidden;
+  border-radius:var(--radius);aspect-ratio:3/4;cursor:pointer;text-align:left;
+  background:var(--blue-ink);box-shadow:var(--shadow);
+  transition:transform .3s cubic-bezier(.22,.61,.36,1),box-shadow .3s ease}
+.pcard:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(4,32,94,.28)}
+.pcard:focus-visible{outline:3px solid var(--fluo);outline-offset:3px}
+
+.pcard-photo{position:absolute;inset:0;display:block;overflow:hidden}
+.pcard-photo img{width:100%;height:100%;object-fit:cover;object-position:center 18%;
+  display:block;transition:transform .55s cubic-bezier(.22,.61,.36,1)}
+.pcard:hover .pcard-photo img,.pcard.on .pcard-photo img{transform:scale(1.07)}
+/* Deux voiles superposes. Le premier tient toujours le nom lisible sur une
+   photo claire ; le second ne monte qu'a l'ouverture, pour la biographie. On
+   fait varier une opacite et non un degrade : les degrades ne se
+   transitionnent pas. */
+.pcard-photo::before,.pcard-photo::after{content:"";position:absolute;inset:0;pointer-events:none}
+.pcard-photo::before{
+  background:linear-gradient(to top,rgba(4,32,94,.94) 0%,rgba(4,32,94,.58) 22%,rgba(4,32,94,.02) 52%,transparent 100%)}
+.pcard-photo::after{opacity:0;transition:opacity .38s ease;
+  background:linear-gradient(to top,rgba(4,32,94,.97) 0%,rgba(4,32,94,.88) 45%,rgba(4,32,94,.45) 78%,rgba(4,32,94,.1) 100%)}
+.pcard:hover .pcard-photo::after,.pcard.on .pcard-photo::after{opacity:1}
+
+/* Le numero de tete de serie, grave dans le coin. Assez grand pour se lire de
+   loin, assez discret pour ne pas manger le visage. */
+.pcard-n{position:absolute;top:2px;right:14px;z-index:1;
+  font-family:var(--font-accent);font-weight:700;font-size:clamp(3.2rem,7vw,4.6rem);
+  line-height:1;color:rgba(255,255,255,.44);pointer-events:none;
+  /* Sur un fond clair (un ciel, un mur blanc) un blanc translucide disparait :
+     l'ombre porte lui redonne un bord. */
+  text-shadow:0 2px 16px rgba(4,32,94,.7);
+  transition:color .3s ease,transform .3s ease,text-shadow .3s ease}
+.pcard:hover .pcard-n,.pcard.on .pcard-n{color:var(--fluo);transform:translateY(-2px)}
+
+.pcard-bas{position:absolute;left:0;right:0;bottom:0;z-index:1;display:block;
+  padding:14px 14px 15px;color:#fff}
+.pcard-tete{display:flex;align-items:center;gap:8px;margin-bottom:5px}
 .seed-flag{width:20px;height:14px;border-radius:2px;overflow:hidden;flex-shrink:0;
-  box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+  box-shadow:0 0 0 1px rgba(255,255,255,.35)}
 .seed-flag svg{width:100%;height:100%;display:block}
-.seed-rank{margin:0!important;font-size:.7rem;font-weight:800;letter-spacing:.3px;
-  text-transform:uppercase;color:var(--accent-ink,#073eb5)}
-.seed-bio{margin:0!important;font-size:.82rem;line-height:1.45;color:var(--muted)}
+.pcard-nom{font-weight:800;font-size:.95rem;line-height:1.2}
+.pcard-atp{display:block;font-size:.72rem;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--fluo)}
+.pcard-atp b{font-weight:800}
+/* Le meilleur classement ne sort qu'a l'ouverture : au repos, la carte doit
+   tenir en une ligne de chiffre. */
+.pcard-best{color:rgba(255,255,255,.72);font-weight:700;letter-spacing:.03em;
+  text-transform:none;display:none}
+.pcard:hover .pcard-best,.pcard.on .pcard-best{display:inline}
+
+/* La biographie glisse depuis le bas. On anime une grille a 0fr -> 1fr plutot
+   qu'une hauteur : la hauteur du texte n'est pas connue d'avance et
+   max-height oblige a deviner une valeur, toujours trop grande ou trop petite. */
+.pcard-bio{display:grid;grid-template-rows:0fr;
+  font-size:.8rem;line-height:1.45;color:rgba(255,255,255,.88);
+  transition:grid-template-rows .38s cubic-bezier(.22,.61,.36,1),
+             margin-top .38s cubic-bezier(.22,.61,.36,1)}
+/* L'enfant porte le rognage : c'est lui qui est ecrase a 0. */
+.pcard-bio > span{overflow:hidden;min-height:0}
+.pcard:hover .pcard-bio,.pcard.on .pcard-bio{grid-template-rows:1fr;margin-top:9px}
+
+/* Le « + » dit que la carte s'ouvre. Il devient « − » une fois ouverte. */
+.pcard-plus{position:absolute;left:14px;top:14px;z-index:1;
+  width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.18);
+  color:#fff;font-weight:800;font-size:1rem;line-height:26px;text-align:center;
+  backdrop-filter:blur(3px);transition:background-color .25s ease,transform .25s ease}
+.pcard:hover .pcard-plus{background:var(--fluo);color:var(--fluo-ink)}
+.pcard.on .pcard-plus{background:var(--fluo);color:var(--fluo-ink);transform:rotate(45deg)}
+
+@media(prefers-reduced-motion:reduce){
+  .pcard,.pcard-photo img,.pcard-n,.pcard-bio,.pcard-plus{transition:none}
+}
+
 /* ---- Site public teamlausanne.ch : deux mondes ---- */
 /* Onglet Club = lien externe (www.lstennis.ch), même look que les autres onglets */
 a.sw{text-decoration:none;display:inline-flex;align-items:center}
