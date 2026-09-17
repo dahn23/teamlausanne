@@ -2036,7 +2036,7 @@ async function loadDashboard() {
 }
 // Derniers messages écrits (7 jours), toutes sources : notes de cours (blocs), fil « Suivi »
 // transverse, notes Tennis / Physique, canal Mental avec le jeune. 5 visibles, « Voir plus » au-delà.
-const DASH_NOTE_KIND = { cours: ["Cours", "dn-cours"], suivi: ["Suivi", "dn-suivi"], tennis: ["Tennis", "dn-tennis"], physique: ["Physique", "dn-phys"], mental: ["Mental", "dn-mental"] };
+const DASH_NOTE_KIND = { cours: ["Cours", "dn-cours"], suivi: ["Suivi", "dn-suivi"], tennis: ["Tennis", "dn-tennis"], physique: ["Physique", "dn-phys"], mental: ["Mental", "dn-mental"], echange: ["Échange", "dn-echange"] };
 function dashNotes(list) {
   const rows = (list || []).map((n, i) => {
     const [lbl, cls] = DASH_NOTE_KIND[n.kind] || [n.kind, ""];

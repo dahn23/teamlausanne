@@ -6,6 +6,7 @@
 --   mental   = mental_thread (canal mental avec le jeune) + mental_comments (ancien canal)
 --   cours    = notes des blocs de séance (course_segments.note), avec les joueurs du bloc ; auteur = qui a
 --              enregistré le détail (created_by), le coach du bloc est indiqué dans « extra »
+--   echange  = player_contact_log (onglet Échanges : appels / rencontres avec les familles ; ajouté le 17.09.2026)
 -- Accès : mêmes rôles que dashboard_data (head_coach / admin / superadmin).
 
 create or replace function public.dash_notes(p_days int default 7)
@@ -55,6 +56,11 @@ begin
            coalesce(nullif(c.title,''), ct.name, 'Cours') || ' · ' || to_char(c.course_date, 'DD.MM') || coalesce(' · coach ' || (select n from nm where id = s.coach_person_id), '')
       from course_segments s join courses c on c.id = s.course_id left join course_types ct on ct.id = c.course_type_id
      where nullif(trim(s.note), '') is not null and s.created_at >= now() - make_interval(days => p_days)
+    union all
+    select 'echange', greatest(cl.created_at, cl.contacted_at::timestamptz), (select n from nm where id = cl.person_id),
+           coalesce(cl.author_name, (select n from who where user_id = cl.created_by)), cl.channel,
+           cl.summary, null
+      from player_contact_log cl where cl.created_at >= now() - make_interval(days => p_days)
   )
   select coalesce(jsonb_agg(jsonb_build_object(
            'kind', kind, 'date', at, 'youth', youth, 'author', author, 'role', role,
