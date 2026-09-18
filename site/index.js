@@ -805,9 +805,13 @@ function sectionHTML(sec) {
         // Le compteur ne tourne que sur un vrai nombre : « 30 000 » porte une
         // espace insecable, qu'il faut retirer avant de le compter.
         const brut = m ? m[1].replace(/[^\d]/g, "") : "";
-        const chiffre = m ? `<span class="stat-val" data-vers="${brut}" data-groupe="${m[1].trim() !== brut ? "1" : ""}">${esc(m[1])}</span>` : "";
+        const chiffre = m ? `<span class="stat-val" data-vers="${brut}" data-groupe="${m[1].trim() !== brut ? "1" : ""}">${esc(m[1].trim())}</span>` : "";
+        // « 30 000 $ » : l'espace qui sépare le nombre de son unité est en fin
+        // de <span>, donc le navigateur la supprime et on lisait « 30 000$ ».
+        // On la remet, insécable, entre les deux éléments.
+        const unite = m ? (/\s$/.test(m[1]) ? "\u00a0" : "") + m[2] : String(b);
         const corps = `${opts && opts.ico ? icoStat(opts.ico) : ""}
-          <b>${chiffre}${esc(m ? m[2] : String(b))}</b><span>${esc(s)}</span>`;
+          <b>${chiffre}${esc(unite)}</b><span>${esc(s)}</span>`;
         // Une tuile qui mene quelque part le dit : elle devient un vrai lien ou
         // un bouton, pas un bloc decore d'un curseur en main.
         if (opts && opts.href) {
