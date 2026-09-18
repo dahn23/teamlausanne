@@ -194,6 +194,12 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .chip.filt{flex:0 0 auto;white-space:nowrap;font-size:.8rem;padding:6px 12px}
 .chip.filt.reset{background:#fff}
 .chip.filt.reset.sel{background:var(--blue);color:#fff}
+/* Les filtres du répertoire se cumulent : la coche dit que la catégorie
+   s'ajoute et se retire, là où un simple fond plein se lit comme un choix
+   unique. Pas de coche sur « Tout », qui n'est pas une catégorie mais la
+   remise à zéro. */
+.people-filters .chip.filt.sel::before{content:"\2713\a0";font-weight:800}
+.people-filters .chip.filt.reset.sel::before{content:none}
 .role-cell{max-width:280px}
 .role-badge{display:inline-block;background:#eef1f7;color:var(--blue-ink);font-size:.72rem;font-weight:700;
   padding:2px 8px;border-radius:999px;margin:1px 2px;white-space:nowrap}

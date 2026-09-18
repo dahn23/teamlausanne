@@ -1130,9 +1130,12 @@ function renderFilters() {
     `<button type="button" class="chip filt${activeFilters.has(v) ? " sel" : ""}" data-role="${v}">${esc(l)}</button>`).join("");
   box.querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => {
     const r = b.dataset.role;
-    // Filtre unique : un clic remplace le filtre courant (re-cliquer le filtre actif = revient à « Tout »).
-    if (!r || (activeFilters.has(r) && activeFilters.size === 1)) activeFilters.clear();
-    else { activeFilters.clear(); activeFilters.add(r); }
+    // Filtres cumulables : chaque clic allume ou éteint une catégorie, et les
+    // listes s'additionnent. « Tout » remet à zéro. Éteindre la dernière
+    // catégorie allumée revient de soi-même à « Tout » (l'ensemble est vide).
+    if (!r) activeFilters.clear();
+    else if (activeFilters.has(r)) activeFilters.delete(r);
+    else activeFilters.add(r);
     renderFilters(); renderRows();
   }));
 }
@@ -1292,14 +1295,19 @@ function renderRows() {
   const q = $("search").value.trim().toLowerCase();
   const rows = people.filter((p) => {
     const roles = peopleRoles[p.id] || [];
-    if (activeFilters.size && ![...activeFilters].every((f) => roles.includes(f))) return false;
+    // « some » et non « every » : cocher Kids Tennis et Club doit donner les
+    // deux listes réunies. Avec « every » on n'aurait gardé que les personnes
+    // appartenant aux DEUX à la fois — presque toujours personne.
+    if (activeFilters.size && !roles.some((r) => activeFilters.has(r))) return false;
     if (!q) return true;
     const emails = [p.email, ...(p.emails || [])].join(" ");
     const phones = [p.phone, ...(p.phones || [])].join(" ");
     return (`${p.first_name} ${p.last_name} ${emails} ${phones}`).toLowerCase().includes(q);
   });
   const n = rows.length;
-  const flt = activeFilters.size ? " · " + [...activeFilters].map(roleLabel).join(", ") : "";
+  // « ou » et non une virgule : avec plusieurs catégories, une virgule se lit
+  // comme un cumul de conditions alors que c'est une réunion.
+  const flt = activeFilters.size ? " · " + [...activeFilters].map(roleLabel).join(" ou ") : "";
   $("people-count").textContent = `${n} personne${n > 1 ? "s" : ""}${flt}`;
   const tbody = $("people-rows");
   tbody.innerHTML = "";
