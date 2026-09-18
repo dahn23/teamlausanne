@@ -1,8 +1,8 @@
-// mail-cron — relève la boîte hub Gmail (IMAP), range chaque mail dans la bonne boîte
-// (en-têtes Delivered-To / X-Forwarded-For contenant une adresse de mail_accounts),
-// détecte les factures PDF, relit les Envoyés, puis pousse les notifications.
-// v23 (migration 60) : une boîte PRIVÉE (mail_accounts.private_user_id) n'est notifiée
-// qu'à son propriétaire et aux superadmins.
+// mail-cron — relève les boîtes de la console (IMAP) : le hub info@ (avec les redirections qui y arrivent,
+// rangées selon Delivered-To / X-Forwarded-For), puis les autres boîtes Hostpoint, chacune directement.
+// Détecte les factures PDF, relit les Envoyés, puis pousse les notifications.
+// v23 (migration 60) : une boîte PRIVÉE n'est notifiée qu'à son propriétaire et aux superadmins.
+// v24 (18.09.2026) : @teamlausanne.ch chez Hostpoint, serveur IMAP par boîte (voir pollBox).
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -119,33 +119,48 @@ async function sendPush(supa: any) {
   return { found: mails.length, sent, targets, error };
 }
 
-Deno.serve(async (req) => {
+// ---- Serveurs par boîte (v24, 18.09.2026) ----
+// Les adresses @teamlausanne.ch sont hébergées chez Hostpoint (Cloud Office) ; les autres
+// boîtes (info@lausanneopen.ch, admin@lstennis.ch) restent chez Gmail et REDIRIGENT vers le hub.
+// Chez Hostpoint, chaque boîte est relevée directement (pas de redirection à configurer),
+// et les mails restent dans la boîte de réception : on ne les déplace pas et on ne les marque pas lus.
+const HOSTPOINT_DOMAINS = ["teamlausanne.ch"];
+const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
+const imapHost = (addr: string) => (isHostpoint(addr) ? "imap.mail.hostpoint.ch" : "imap.gmail.com");
+// Un mot de passe d'application Gmail s'écrit avec des espaces ; un mot de passe Hostpoint se prend tel quel.
+const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
+// Boîtes Hostpoint relevées en plus du hub (secret = mot de passe de la boîte).
+const EXTRA_BOXES: Record<string, string> = {
+  "tournoi@teamlausanne.ch": "GMAIL_PASS_TOURNOI",
+  "raphael@teamlausanne.ch": "GMAIL_PASSE_RAPHAEL",
+};
+
+// deno-lint-ignore no-explicit-any
+async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ourAddrs: string[], st: Record<string, number>) {
+  const box = addr.toLowerCase();
+  const hp = isHostpoint(box);
+  const client = new ImapFlow({ host: imapHost(box), port: 993, secure: true, auth: { user: addr, pass }, logger: false });
+  await client.connect();
   try {
-    const secret = Deno.env.get("CRON_SECRET") || "";
-    const key = new URL(req.url).searchParams.get("key") || req.headers.get("x-cron-secret") || "";
-    if (!secret || key !== secret) return json({ error: "forbidden" }, 403);
-
-    const url = Deno.env.get("SUPABASE_URL")!;
-    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const hub = (Deno.env.get("GMAIL_HUB") || "").trim();
-    const pass = (Deno.env.get("GMAIL_APP_PASSWORD") || "").replace(/\s+/g, "");
-    if (!hub || !pass) return json({ error: "secrets manquants" }, 400);
-    const supa = createClient(url, service);
-    const { data: accts } = await supa.from("mail_accounts").select("address");
-    const hubLower = hub.toLowerCase();
-    const ourAddrs = (accts || []).map((a: { address: string }) => a.address.toLowerCase());
-
-    const client = new ImapFlow({ host: "imap.gmail.com", port: 993, secure: true, auth: { user: hub, pass }, logger: false });
-    await client.connect();
     let archiveBox: string | null = null, sentBox: string | null = null;
     try { for (const b of await client.list()) { const su = (b as { specialUse?: string }).specialUse; if (su === "\\All") archiveBox = (b as { path: string }).path; if (su === "\\Sent") sentBox = (b as { path: string }).path; } } catch (_) {}
+    if (hp) archiveBox = null;                       // Hostpoint : on laisse les mails dans la boîte de réception
+    const inMax = hp ? 25 : IN_MAX;                  // sans archivage, on regarde plus large (les doublons sont écartés)
+    const uidTag = (u: number) => (hp ? `hp:${box}:${u}` : String(u));
+    const sentTag = (u: number) => (hp ? `sent:${box}:${u}` : "sent:" + u);
 
-    let inserted = 0, archived = 0, sent = 0, skippedBig = 0, backfilled = 0;
     const lock = await client.getMailboxLock("INBOX");
     try {
       let uids = (await client.search({ all: true }, { uid: true })) || [];
-      uids = uids.sort((a: number, b: number) => b - a).slice(0, IN_MAX);
+      uids = uids.sort((a: number, b: number) => b - a).slice(0, inMax);
+      // Hostpoint : les mails déjà relevés restent dans INBOX → on écarte d'un coup ceux qu'on a déjà.
+      let known = new Set<string>();
+      if (hp && uids.length) {
+        const { data: ex } = await supa.from("mail_messages").select("imap_uid").in("imap_uid", uids.map(uidTag));
+        known = new Set((ex || []).map((r: { imap_uid: string }) => r.imap_uid));
+      }
       for (const u of uids) {
+        if (known.has(uidTag(u))) continue;
         const meta = await client.fetchOne(u, { envelope: true, size: true }, { uid: true });
         // deno-lint-ignore no-explicit-any
         const mm = meta as any;
@@ -158,8 +173,8 @@ Deno.serve(async (req) => {
         const dateIso = (env.date ? new Date(env.date) : new Date()).toISOString();
         if (!(await isDupMsg(supa, messageId, fromAddr, subj, dateIso))) {
           if (size > MAX_FETCH) {
-            await supa.from("mail_messages").insert({ account_address: hubLower, direction: "in", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: hubLower, subject: subj, snippet: `⚠ Mail volumineux (~${mb(size)} Mo) — ouvrir dans Gmail`, body_text: `Ce message est trop volumineux (~${mb(size)} Mo) pour etre affiche ici. Ouvre-le directement dans Gmail.`, body_html: null, received_at: dateIso, imap_uid: String(u), is_read: false, status: "a_traiter", pushed: false });
-            inserted++; skippedBig++;
+            await supa.from("mail_messages").insert({ account_address: box, direction: "in", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: box, subject: subj, snippet: `⚠ Mail volumineux (~${mb(size)} Mo) — ouvrir dans le webmail`, body_text: `Ce message est trop volumineux (~${mb(size)} Mo) pour etre affiche ici. Ouvre-le directement dans le webmail de la boite.`, body_html: null, received_at: dateIso, imap_uid: uidTag(u), is_read: false, status: "a_traiter", pushed: false });
+            st.inserted++; st.skippedBig++;
           } else {
             const msg = await client.fetchOne(u, { source: true }, { uid: true });
             if (msg && (msg as { source?: Uint8Array }).source) {
@@ -169,41 +184,43 @@ Deno.serve(async (req) => {
               const fA = fV?.address || fromAddr;
               const sj = p.subject || subj;
               const dI = (p.date || new Date()).toISOString();
-              const pathAddrs = new Set<string>();
-              for (const h of (p.headerLines || [])) { if (h.key === "delivered-to" || h.key === "x-forwarded-to" || h.key === "x-forwarded-for") { for (const a of (h.line.match(/[\w.+-]+@[\w.-]+\.[\w-]+/g) || [])) pathAddrs.add(a.toLowerCase()); } }
-              let brand: string | null = null;
-              for (const a of ourAddrs) if (a !== hubLower && pathAddrs.has(a)) { brand = a; break; }
-              if (!brand) brand = hubLower;
+              // Le hub reçoit aussi les redirections des autres boîtes : l'en-tête dit à qui le mail était destiné.
+              let brand: string = box;
+              if (isHub) {
+                const pathAddrs = new Set<string>();
+                for (const h of (p.headerLines || [])) { if (h.key === "delivered-to" || h.key === "x-forwarded-to" || h.key === "x-forwarded-for") { for (const a of (h.line.match(/[\w.+-]+@[\w.-]+\.[\w-]+/g) || [])) pathAddrs.add(a.toLowerCase()); } }
+                for (const a of ourAddrs) if (a !== box && pathAddrs.has(a)) { brand = a; break; }
+              }
               const body = (p.text || "").trim();
               const { html, rows } = processAtt(p, p.html || null);
-              const { data: ins, error: e } = await supa.from("mail_messages").insert({ account_address: brand, direction: "in", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || brand, subject: sj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dI, imap_uid: String(u), is_read: false, status: "a_traiter", pushed: false }).select("id").single();
+              const { data: ins, error: e } = await supa.from("mail_messages").insert({ account_address: brand, direction: "in", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || brand, subject: sj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dI, imap_uid: uidTag(u), is_read: false, status: "a_traiter", pushed: false }).select("id").single();
               if (!e && ins) {
-                inserted++;
+                st.inserted++;
                 if (rows.length) await supa.from("mail_attachments").insert(rows.map((r) => ({ ...r, mail_id: ins.id })));
                 try { await maybeInvoice(supa, ins.id, sj || "", body, fV?.name || fA || "?", rows); } catch (_) {}
               }
             }
           }
+        } else if (hp && messageId) {
+          // Déjà en base (reçu par une autre voie) : on pose le repère pour ne plus le réexaminer.
+          await supa.from("mail_messages").update({ imap_uid: uidTag(u) }).eq("message_id", messageId).eq("direction", "in").is("imap_uid", null);
         }
-        try { await client.messageFlagsAdd(u, ["\\Seen"], { uid: true }); if (archiveBox) { await client.messageMove(u, archiveBox, { uid: true }); archived++; } } catch (_) {}
+        if (!hp) { try { await client.messageFlagsAdd(u, ["\\Seen"], { uid: true }); if (archiveBox) { await client.messageMove(u, archiveBox, { uid: true }); st.archived++; } } catch (_) {} }
       }
     } finally { lock.release(); }
-
-    let push: unknown = { found: 0, sent: 0 };
-    try { push = await sendPush(supa); } catch (e) { push = { error: String((e as Error)?.message || e) }; }
 
     if (sentBox) {
       const lock2 = await client.getMailboxLock(sentBox);
       try {
         let suids = (await client.search({ all: true }, { uid: true })) || [];
         suids = suids.sort((a: number, b: number) => b - a).slice(0, SENT_WINDOW);
-        const tags = suids.map((su: number) => "sent:" + su);
+        const tags = suids.map(sentTag);
         const { data: existing } = tags.length ? await supa.from("mail_messages").select("imap_uid").in("imap_uid", tags) : { data: [] };
         const have = new Set((existing || []).map((r: { imap_uid: string }) => r.imap_uid));
         let work = 0;
         for (const su of suids) {
           if (work >= SENT_MAX) break;
-          const tag = "sent:" + su;
+          const tag = sentTag(su);
           if (have.has(tag)) continue;
           work++;
           const metaS = await client.fetchOne(su, { envelope: true, size: true }, { uid: true });
@@ -226,22 +243,52 @@ Deno.serve(async (req) => {
               const { rows } = processAtt(p, p.html || null);
               if (rows.length) {
                 const { count } = await supa.from("mail_attachments").select("id", { count: "exact", head: true }).eq("mail_id", existId);
-                if (!count) { await supa.from("mail_attachments").insert(rows.map((r) => ({ ...r, mail_id: existId }))); backfilled++; }
+                if (!count) { await supa.from("mail_attachments").insert(rows.map((r) => ({ ...r, mail_id: existId }))); st.backfilled++; }
               }
             }
             continue;
           }
-          const brand = (fromAddr && ourAddrs.includes(fromAddr.toLowerCase())) ? fromAddr.toLowerCase() : hubLower;
+          const brand = isHub ? ((fromAddr && ourAddrs.includes(fromAddr.toLowerCase())) ? fromAddr.toLowerCase() : box) : box;
           const body = (p.text || "").trim();
           const { html, rows } = processAtt(p, p.html || null);
           const { data: ins, error: e } = await supa.from("mail_messages").insert({ account_address: brand, direction: "out", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: toAddr, subject: subj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dateIso, imap_uid: tag, is_read: true, status: "traite", pushed: true }).select("id").single();
-          if (!e && ins) { sent++; if (rows.length) await supa.from("mail_attachments").insert(rows.map((r) => ({ ...r, mail_id: ins.id }))); }
+          if (!e && ins) { st.sent++; if (rows.length) await supa.from("mail_attachments").insert(rows.map((r) => ({ ...r, mail_id: ins.id }))); }
         }
       } finally { lock2.release(); }
     }
+  } finally { try { await client.logout(); } catch (_) {} }
+}
 
-    await client.logout();
-    return json({ ok: true, inserted, archived, sent, skippedBig, backfilled, push });
+Deno.serve(async (req) => {
+  try {
+    const secret = Deno.env.get("CRON_SECRET") || "";
+    const key = new URL(req.url).searchParams.get("key") || req.headers.get("x-cron-secret") || "";
+    if (!secret || key !== secret) return json({ error: "forbidden" }, 403);
+
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const hub = (Deno.env.get("GMAIL_HUB") || "").trim();
+    const pass = cleanPass(hub, Deno.env.get("GMAIL_APP_PASSWORD") || "");
+    if (!hub || !pass) return json({ error: "secrets manquants" }, 400);
+    const supa = createClient(url, service);
+    const { data: accts } = await supa.from("mail_accounts").select("address");
+    const ourAddrs = (accts || []).map((a: { address: string }) => a.address.toLowerCase());
+
+    const st: Record<string, number> = { inserted: 0, archived: 0, sent: 0, skippedBig: 0, backfilled: 0 };
+    const errors: Record<string, string> = {};
+    // Une boîte en panne (mot de passe faux, serveur muet) ne doit pas empêcher de relever les autres.
+    try { await pollBox(supa, hub, pass, true, ourAddrs, st); } catch (e) { errors[hub.toLowerCase()] = String((e as Error)?.message || e).slice(0, 200); }
+    for (const [addr, envName] of Object.entries(EXTRA_BOXES)) {
+      if (!isHostpoint(addr) || addr === hub.toLowerCase()) continue;
+      const bp = cleanPass(addr, Deno.env.get(envName) || "");
+      if (!bp) continue;
+      try { await pollBox(supa, addr, bp, false, ourAddrs, st); } catch (e) { errors[addr] = String((e as Error)?.message || e).slice(0, 200); }
+    }
+
+    let push: unknown = { found: 0, sent: 0 };
+    try { push = await sendPush(supa); } catch (e) { push = { error: String((e as Error)?.message || e) }; }
+
+    return json({ ok: !Object.keys(errors).length, ...st, push, errors });
   } catch (e) {
     return json({ error: String((e as Error)?.message || e) }, 500);
   }

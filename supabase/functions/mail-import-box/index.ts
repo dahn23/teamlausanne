@@ -26,6 +26,14 @@ const PASS_ENV: Record<string, string> = {
 };
 const MAXB = 10 * 1024 * 1024;
 const MAX_FETCH = 2 * 1024 * 1024;
+// Serveurs par boîte (18.09.2026) : les adresses @teamlausanne.ch sont chez Hostpoint (Cloud Office),
+// les autres boîtes restent chez Gmail. Un mot de passe d'application Gmail s'écrit avec des espaces ;
+// un mot de passe Hostpoint se prend tel quel.
+const HOSTPOINT_DOMAINS = ["teamlausanne.ch"];
+const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
+const imapHost = (addr: string) => (isHostpoint(addr) ? "imap.mail.hostpoint.ch" : "imap.gmail.com");
+const smtpHost = (addr: string) => (isHostpoint(addr) ? "asmtp.mail.hostpoint.ch" : "smtp.gmail.com");
+const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
 
 function b64(u8: Uint8Array): string {
   let s = ""; const ch = 0x8000;
@@ -67,7 +75,7 @@ Deno.serve(async (req) => {
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const hub = (Deno.env.get("GMAIL_HUB") || "").trim();
-    const hubPass = (Deno.env.get("GMAIL_APP_PASSWORD") || "").replace(/\s+/g, "");
+    const hubPass = cleanPass(hub, Deno.env.get("GMAIL_APP_PASSWORD") || "");
 
     const supa = createClient(url, service);
     // Mode technique : la clé CRON_SECRET (comme mail-cron) donne les droits superadmin, sans session utilisateur.
@@ -101,10 +109,10 @@ Deno.serve(async (req) => {
     if (accRow?.private_user_id && accRow.private_user_id !== uid && !isSuper) return json({ error: "boite privee : reservee a son proprietaire" }, 403);
     const passName = address === hub.toLowerCase() ? null : PASS_ENV[address];
     const user = address;
-    const pass = address === hub.toLowerCase() ? hubPass : (Deno.env.get(passName || "") || "").replace(/\s+/g, "");
+    const pass = address === hub.toLowerCase() ? hubPass : cleanPass(address, Deno.env.get(passName || "") || "");
     if (!pass) return json({ error: `Mot de passe d'app manquant pour ${address} (secret ${passName || "GMAIL_APP_PASSWORD"}).` }, 400);
 
-    const client = new ImapFlow({ host: "imap.gmail.com", port: 993, secure: true, auth: { user, pass }, logger: false });
+    const client = new ImapFlow({ host: imapHost(address), port: 993, secure: true, auth: { user, pass }, logger: false });
     await client.connect();
     // Dossier : INBOX, ou « Tous les messages » (special-use \All) en mode intégral.
     let box = "INBOX";

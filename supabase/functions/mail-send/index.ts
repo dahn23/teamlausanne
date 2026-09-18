@@ -1,4 +1,4 @@
-// mail-send — envoi d'un mail depuis une des boîtes de la console (Gmail SMTP).
+// mail-send — envoi d'un mail depuis une des boîtes de la console (SMTP Hostpoint ou Gmail selon la boîte).
 // Secrets : GMAIL_HUB + GMAIL_APP_PASSWORD (boîte hub), puis un mot de passe d'application
 // par boîte dans PASS_ENV. Une boîte PRIVÉE (mail_accounts.private_user_id) ne peut être
 // utilisée que par son propriétaire ou un superadmin (v16, migration 60).
@@ -33,6 +33,14 @@ const SEND_NAME: Record<string, string> = {
   "raphael@teamlausanne.ch": "Raphael Vergnaud - Team Lausanne",
 };
 const MAXB = 10 * 1024 * 1024;
+// Serveurs par boîte (18.09.2026) : les adresses @teamlausanne.ch sont chez Hostpoint (Cloud Office),
+// les autres boîtes restent chez Gmail. Un mot de passe d'application Gmail s'écrit avec des espaces ;
+// un mot de passe Hostpoint se prend tel quel.
+const HOSTPOINT_DOMAINS = ["teamlausanne.ch"];
+const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
+const imapHost = (addr: string) => (isHostpoint(addr) ? "imap.mail.hostpoint.ch" : "imap.gmail.com");
+const smtpHost = (addr: string) => (isHostpoint(addr) ? "asmtp.mail.hostpoint.ch" : "smtp.gmail.com");
+const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
 const parseList = (v: unknown) => String(v || "").split(/[,;]/).map((x) => x.trim()).filter((x) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x));
 
 Deno.serve(async (req) => {
@@ -42,7 +50,7 @@ Deno.serve(async (req) => {
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const hub = (Deno.env.get("GMAIL_HUB") || "").trim();
-    const hubPass = (Deno.env.get("GMAIL_APP_PASSWORD") || "").replace(/\s+/g, "");
+    const hubPass = cleanPass(hub, Deno.env.get("GMAIL_APP_PASSWORD") || "");
     if (!hub || !hubPass) return json({ error: "Secrets GMAIL_HUB / GMAIL_APP_PASSWORD manquants." }, 400);
 
     const authHeader = req.headers.get("Authorization") || "";
@@ -90,13 +98,13 @@ Deno.serve(async (req) => {
 
     let smtpUser = hub, smtpPass = hubPass;
     if (account && account !== hub.toLowerCase() && PASS_ENV[account]) {
-      const bp = (Deno.env.get(PASS_ENV[account]) || "").replace(/\s+/g, "");
+      const bp = cleanPass(account, Deno.env.get(PASS_ENV[account]) || "");
       if (bp) { smtpUser = account; smtpPass = bp; }
     }
     const displayName = SEND_NAME[smtpUser.toLowerCase()] || "";
     const fromHeader = displayName ? `"${displayName.replace(/"/g, "")}" <${smtpUser}>` : smtpUser;
 
-    const transporter = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: smtpUser, pass: smtpPass } });
+    const transporter = nodemailer.createTransport({ host: smtpHost(smtpUser), port: 465, secure: true, auth: { user: smtpUser, pass: smtpPass } });
     // deno-lint-ignore no-explicit-any
     const nmAtts = atts.filter((a) => a && a.filename && a.content).map((a: any) => ({ filename: String(a.filename), content: String(a.content), encoding: "base64", contentType: a.contentType || undefined }));
     const info = await transporter.sendMail({

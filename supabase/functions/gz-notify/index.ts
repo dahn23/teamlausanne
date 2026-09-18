@@ -17,6 +17,14 @@ const tournoiUrl = (t: { registration_url?: string | null; swiss_id?: string | n
   (t.registration_url && t.registration_url.trim()) ||
   (t.swiss_id ? `https://www.mytennis.ch/fr/tournois/${String(t.swiss_id).replace(/\D/g, "")}` : GZ_LIST);
 const BATCH = 30;
+// Serveurs par boîte (18.09.2026) : les adresses @teamlausanne.ch sont chez Hostpoint (Cloud Office),
+// les autres boîtes restent chez Gmail. Un mot de passe d'application Gmail s'écrit avec des espaces ;
+// un mot de passe Hostpoint se prend tel quel.
+const HOSTPOINT_DOMAINS = ["teamlausanne.ch"];
+const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
+const imapHost = (addr: string) => (isHostpoint(addr) ? "imap.mail.hostpoint.ch" : "imap.gmail.com");
+const smtpHost = (addr: string) => (isHostpoint(addr) ? "asmtp.mail.hostpoint.ch" : "smtp.gmail.com");
+const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
 const fillVars = (s: string, m: Record<string, string>) => String(s || "").replace(/\{(\w+)\}/g, (mm, k) => (m[k] != null ? m[k] : mm));
 const toHtml = (t: string) => "<p>" + String(t || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>") + "</p>";
 
@@ -110,8 +118,8 @@ Deno.serve(async (req) => {
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const hub = (Deno.env.get("GMAIL_HUB") || "").trim();
-    const hubPass = (Deno.env.get("GMAIL_APP_PASSWORD") || "").replace(/\s+/g, "");
-    const tPass = (Deno.env.get("GMAIL_PASS_TOURNOI") || "").replace(/\s+/g, "");
+    const hubPass = cleanPass(hub, Deno.env.get("GMAIL_APP_PASSWORD") || "");
+    const tPass = cleanPass(TOURNOI, Deno.env.get("GMAIL_PASS_TOURNOI") || "");
     const cronSecret = Deno.env.get("CRON_SECRET") || "";
     const origin = (Deno.env.get("PUBLIC_ORIGIN") || "https://teamlausanne.netlify.app").replace(/\/$/, "");
     if (!hub || !hubPass) return json({ error: "secrets mail manquants" }, 400);
@@ -135,7 +143,7 @@ Deno.serve(async (req) => {
 
     const smtpUser = tPass ? TOURNOI : hub;
     const smtpPass = tPass || hubPass;
-    const tx = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: smtpUser, pass: smtpPass } });
+    const tx = nodemailer.createTransport({ host: smtpHost(smtpUser), port: 465, secure: true, auth: { user: smtpUser, pass: smtpPass } });
     const surveyId = await activeGzSurvey(supa);
 
     if (isCron || payload.cron) {
