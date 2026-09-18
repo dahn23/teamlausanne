@@ -9451,18 +9451,33 @@ const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() ==
 // base64) → chargement rapide. Le contenu est chargé à l'ouverture d'un mail (openMail).
 const MAIL_COLS = "id,account_address,direction,from_name,from_address,to_address,subject,snippet,received_at,is_read,status,assigned_user,tags,imap_uid,created_at,message_id,comment,treated_by,treated_at,att_fetched,pushed,has_invoice";
 let mailSearchT = null;
-// Messages chargés = les 300 plus récents toutes boîtes (pour les pastilles) + les 300 plus récents
-// (jusqu à 1000, plafond PostgREST) de la boîte sélectionnée (sinon une boîte peu active, ou fraîchement importée, paraît vide).
+// Messages chargés = les 300 plus récents toutes boîtes + jusqu'à 1000 (plafond PostgREST) de la boîte
+// sélectionnée (sinon une boîte peu active, ou fraîchement importée, paraît vide).
+// Les PASTILLES (à traiter / attribué / non lus) ne doivent pas dépendre de ce qui est chargé, sinon leur
+// nombre change selon la boîte ouverte : elles viennent d'une requête à part, qui ne ramène que les mails
+// reçus encore « actifs » ou non lus, toutes boîtes confondues.
+let mailBadgeRows = [];
 async function mailFetchMsgs() {
   const base = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(300);
   const qs = [base];
   if (mailFilterAddr) qs.push(sb.from("mail_messages").select(MAIL_COLS).eq("account_address", mailFilterAddr).order("received_at", { ascending: false }).limit(1000));
-  const res = await Promise.all(qs);
+  const badgeQ = sb.from("mail_messages").select("id,account_address,direction,status,is_read,assigned_user")
+    .or("direction.is.null,direction.eq.in").or("status.in.(a_traiter,en_cours),is_read.eq.false").limit(1000);
+  const [badges, ...res] = await Promise.all([badgeQ, ...qs]);
   if (res.some((r) => r.error)) return null;
+  if (!badges.error) mailBadgeRows = badges.data || [];
   const seen = new Set(), out = [];
   for (const r of res) for (const m of (r.data || [])) { if (!seen.has(m.id)) { seen.add(m.id); out.push(m); } }
   out.sort((a, b) => String(b.received_at).localeCompare(String(a.received_at)));
   return out;
+}
+// Source des pastilles : la requête dédiée, corrigée par les messages chargés (qui portent les changements
+// faits à l'instant dans la console : marqué lu, traité, attribué…).
+function mailBadgeSource() {
+  const byId = new Map();
+  for (const r of mailBadgeRows) byId.set(r.id, r);
+  for (const m of mailMsgs) byId.set(m.id, m);
+  return [...byId.values()];
 }
 async function loadMail() {
   $("view-mail").classList.remove("mail-showdetail");  // (re)entree dans la messagerie : mobile = liste d'abord
@@ -9552,7 +9567,7 @@ function renderMailToolbar() {
   if (showStatus) {
     // Compteurs bleus par statut, pour la boîte sélectionnée
     const stCount = { a_traiter: 0, en_cours: 0, traite: 0 };
-    for (const m of mailMsgs) {
+    for (const m of mailBadgeSource()) {
       if ((m.direction || "in") !== "in") continue;
       if (mailFilterAddr && m.account_address !== mailFilterAddr) continue;
       if (stCount[m.status] != null) stCount[m.status]++;
@@ -9566,7 +9581,7 @@ function renderMailToolbar() {
   }
   // Bouton « Attribué à moi » (sa propre ligne) : compteur bleu, TOUTES boîtes confondues
   if (myPersonId) {
-    const nMine = mailMsgs.filter((m) => m.status === "en_cours" && m.assigned_user === myPersonId).length;
+    const nMine = mailBadgeSource().filter((m) => m.status === "en_cours" && m.assigned_user === myPersonId).length;
     $("mail-mine-wrap").innerHTML = `<button type="button" class="mail-fbtn mail-mine${mailMineF ? " sel" : ""}" id="mail-mine-btn">Attribué à moi${nMine ? ` <span class="mail-badge mail-badge-blue">${nMine}</span>` : ""}</button>`;
     $("mail-mine-btn").addEventListener("click", () => { mailMineF = !mailMineF; renderMailToolbar(); refreshMailView(); });
   } else { $("mail-mine-wrap").innerHTML = ""; }
@@ -10197,7 +10212,7 @@ async function mailSendReply(id) {
 function renderMailAccts() {
   // Rond BLEU = à traiter + attribué ; rond ROUGE = non lus (par boîte).
   const unread = {}, active = {};
-  for (const m of mailMsgs) {
+  for (const m of mailBadgeSource()) {
     if ((m.direction || "in") !== "in") continue;
     const a = m.account_address;
     if (!m.is_read) unread[a] = (unread[a] || 0) + 1;
