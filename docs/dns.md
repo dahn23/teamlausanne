@@ -1,7 +1,7 @@
 # DNS — domaines de Dan (regroupement chez Hostpoint)
 
 Relevé public du **09–12.09.2026**. Sert de liste de contrôle pour recréer chaque zone chez **Hostpoint** (registrar + DNS uniques, décidé le 12.09.2026 ; Infomaniak et Cloudflare exclus).
-Messagerie = **Google Workspace** sur teamlausanne.ch, lausanneopen.ch, swisssportadvisors.com (on ne touche pas aux comptes, on recopie MX/SPF). Sites = **Netlify** partout. Newsletter = Resend.
+Messagerie = **Hostpoint Cloud Office** sur teamlausanne.ch (depuis le 18.09.2026), **Google Workspace** sur lausanneopen.ch et swisssportadvisors.com (on ne touche pas aux comptes, on recopie MX/SPF). Sites = **Netlify** partout. Newsletter = Resend.
 
 ## État de départ
 
@@ -20,12 +20,11 @@ Messagerie = **Google Workspace** sur teamlausanne.ch, lausanneopen.ch, swissspo
 | A | @ | 75.2.60.5 | | Site public (Netlify `zesty-clafoutis-a95fbc`) |
 | CNAME | www | zesty-clafoutis-a95fbc.netlify.app | | Site public |
 | CNAME | app | teamlausanne.netlify.app | | Console + portail |
-| MX | @ | aspmx.l.google.com | 10 | Boîte mail Google |
-| MX | @ | alt1.aspmx.l.google.com | 20 | Boîte mail Google |
-| MX | @ | alt2.aspmx.l.google.com | 30 | Boîte mail Google |
-| MX | @ | alt3.aspmx.l.google.com | 40 | Boîte mail Google |
-| MX | @ | alt4.aspmx.l.google.com | 50 | Boîte mail Google |
-| TXT | @ | `v=spf1 include:_spf.google.com ~all` | | SPF Google |
+| MX | @ | mx1.mail.hostpoint.ch | 10 | Boîtes mail **Hostpoint Cloud Office** (depuis le 18.09.2026) |
+| MX | @ | mx2.mail.hostpoint.ch | 10 | idem |
+| TXT | @ | `v=spf1 include:spf.mail.hostpoint.ch include:_spf.google.com ~all` | | SPF Hostpoint (+ Google gardé pendant la transition) |
+| CNAME | autoconfig | autoconfig.mail.hostpoint.ch | | Configuration automatique des clients mail |
+| CNAME | autodiscover | autoconfig-nonssl.mail.hostpoint.ch | | idem |
 | TXT | @ | `google-site-verification=pdFNVcQkCcytMO094mQcxDXwis_6pHYb3OqADWwMMFA` | | Vérification Google |
 | TXT | resend._domainkey | `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCmoM3OZgs5CEqqUjMhnpsBX157d/DLbVmdTDj9Vx2nOVZP28tScP+IxdtiJ905vmcjFABTuhIPJaUGLrJ30p9qrLj2ZJvUnhJjOVwV/UzAgF0piJtgylxRqCrSsiRt+i1Ygn3LfMUOUwTHoC3xar/DW1n73vjgjzjs8ep5czwKKQIDAQAB` | | DKIM Resend |
 | TXT | send | `v=spf1 include:amazonses.com ~all` | | SPF Resend |
@@ -118,3 +117,19 @@ Site PandaFit = dossier `site/` du dépôt `dahn23/pandafit` (Pandafit-code), se
 |---|---|---|---|
 | A | @ | 75.2.60.5 | Site (Netlify `pandafit2026`) |
 | CNAME | www | pandafit2026.netlify.app | Site |
+
+## Bascule mail teamlausanne.ch → Hostpoint (18.09.2026)
+
+Le compte Google Workspace info@teamlausanne.ch (seul super-administrateur, Workspace revendu par Wix) est bloqué
+depuis le 12.09.2026. Les mails ont été basculés chez **Hostpoint Cloud Office Basic** : trois boîtes, info@, raphael@
+et tournoi@ (groupe Cloud Office « teamlausanne.ch »). Webmail : office.hostpoint.ch. Serveurs : `imap.mail.hostpoint.ch:993`,
+`asmtp.mail.hostpoint.ch:465`, identifiant = adresse complète.
+
+- **Retour arrière** (5 min, TTL 300) : remettre les cinq MX Google, `aspmx.l.google.com` prio 10 puis `alt1`…`alt4.aspmx.l.google.com`
+  prio 20/30/40/50, et le SPF `v=spf1 include:_spf.google.com ~all`.
+- **Rien n'est supprimé chez Google** : le compte, les anciens mails et la demande de récupération restent en place.
+  Le login Google reste info@teamlausanne.ch (mot de passe Google ≠ mot de passe Hostpoint).
+- **Console** : les secrets `GMAIL_APP_PASSWORD`, `GMAIL_PASS_TOURNOI`, `GMAIL_PASSE_RAPHAEL` contiennent désormais les mots de
+  passe Hostpoint (les noms n'ont pas été changés). Le choix du serveur se fait par domaine dans chaque fonction (`HOSTPOINT_DOMAINS`).
+- **À faire plus tard** : activer DKIM chez Hostpoint ; importer les anciens mails Gmail quand le compte Google sera récupéré
+  (secrets Google dédiés à créer) ; ne résilier le Workspace chez Wix qu'après cet import.

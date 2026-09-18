@@ -9445,8 +9445,11 @@ async function loadMail() {
   mailAccounts = accts || [];
   mailMsgs = msgs || [];
   const isSuper = myAppRoles.includes("superadmin");
-  $("mail-importboxes-btn").classList.toggle("hidden", !isSuper);
-  $("mail-history-btn").classList.toggle("hidden", !isSuper);
+  // Imports IMAP suspendus depuis le passage de teamlausanne.ch chez Hostpoint (18.09.2026) : ces fonctions visent encore
+  // les anciennes boîtes Gmail. À rebrancher (avec des secrets Google dédiés) quand le compte Google sera récupéré.
+  const MAIL_IMPORTS_ON = false;
+  $("mail-importboxes-btn").classList.toggle("hidden", !isSuper || !MAIL_IMPORTS_ON);
+  $("mail-history-btn").classList.toggle("hidden", !isSuper || !MAIL_IMPORTS_ON);
   // Official (organisateur non-staff) : messagerie verrouillée sur tournoi@
   mailTournoiOnly = myAppRoles.includes("organisateur") && !hasAny(myAppRoles, MAIL_STAFF_ROLES);
   if (mailTournoiOnly) mailFilterAddr = MAIL_TOURNOI;
@@ -9460,7 +9463,7 @@ async function loadMail() {
 function renderMailToolbar() {
   // « Tout importer » : seulement quand une boîte non-hub est sélectionnée (la RLS ne montre une boîte privée qu'à son propriétaire et aux superadmins).
   const selAcc = mailAccounts.find((a) => a.address === mailFilterAddr);
-  $("mail-importall-btn").classList.toggle("hidden", !selAcc || !!selAcc.is_hub);
+  $("mail-importall-btn").classList.add("hidden");   // import suspendu (voir MAIL_IMPORTS_ON dans loadMail)
   $("mail-dir-btns").innerHTML = MAIL_DIRS.map(([v, l]) => `<button type="button" class="mail-fbtn${(!mailMineF && mailDir === v) ? " sel" : ""}" data-dir="${v}">${l}</button>`).join("");
   $("mail-dir-btns").querySelectorAll(".mail-fbtn").forEach((b) => b.addEventListener("click", () => { mailDir = b.dataset.dir; mailMineF = false; renderMailToolbar(); refreshMailView(); }));
   const showStatus = mailDir !== "out" || mailMineF;
