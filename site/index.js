@@ -1593,6 +1593,18 @@ function poserPartenaires() {
   z.dataset.pret = "1";
   z.innerHTML = reelHTML(PARTENAIRES);
 }
+
+// La page du tournoi porte deja sa propre section « Partenaires », alimentee par
+// la meme liste : le bandeau du bas de page y faisait donc doublon, deux fois
+// les quatorze memes logos a quelques centimetres d'ecart.
+// On teste la presence de la section plutot que le nom du monde : une page qui
+// n'a pas de section partenaires (une page de detail, par exemple) garde le
+// bandeau du bas, sans qu'on ait a tenir une liste d'exceptions a jour.
+function majPartenairesBas() {
+  const bas = document.querySelector(".partners");
+  if (!bas) return;
+  bas.hidden = !!$("world-main")?.querySelector(".sponsors-sec");
+}
 // Au changement de largeur, les mots changent de taille : on recalcule.
 let kwMinuteur = null;
 addEventListener("resize", () => {
@@ -1705,6 +1717,7 @@ function renderWorld(key) {
   lancerCarrousel();
   animerChiffres();
   poserPartenaires();
+  majPartenairesBas();
   visioGlisser();
   calerBandeaux();
 }
@@ -1728,6 +1741,7 @@ function renderDetail(id) {
   lancerCarrousel();
   animerChiffres();
   poserPartenaires();
+  majPartenairesBas();
   visioGlisser();
   calerBandeaux();
   if ($("stgp-list")) stgLoad();
