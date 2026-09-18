@@ -2721,6 +2721,42 @@ tr.rm-loss td{background:#fde8e8}
 
 /* Recherche du tableau : les cartes trouvées ressortent, les autres
    s'effacent sans disparaître — on garde le contexte des colonnes. */
+/* Libellé réservé aux lecteurs d'écran. La règle n'existait que dans la
+   feuille du site public : dans la console, les trois libellés « Rechercher… »
+   s'affichaient en clair à côté de leur champ. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+/* ---- Saison hiver : recherche d'un nom ----
+   La grille ne montre qu'un jour ; le résultat, lui, porte la semaine entière.
+   Reprend l'habillage de la recherche du Project Manager pour que les deux
+   champs se ressemblent. */
+.wp-rech{display:block;margin:0 0 12px;position:relative;max-width:520px}
+.wp-rech input{width:100%;box-sizing:border-box;font-size:.9rem;padding:9px 96px 9px 12px}
+.wp-rech-n{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  font-size:.78rem;font-weight:700;color:var(--muted);pointer-events:none}
+.wp-rech-n.vide{color:#b23838}
+
+.wp-resultat{margin-bottom:18px}
+.wp-r-bloc{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:14px 16px 6px;margin-bottom:12px;box-shadow:var(--shadow)}
+.wp-r-tete{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.wp-r-tete b{font-size:1.05rem;color:var(--blue-ink)}
+.wp-r-tete .muted{font-size:.85rem}
+/* Le total de la semaine : c'est pour facturer que ce planning existe. */
+.wp-r-somme{font-weight:800;color:var(--blue-ink);background:#eef1f7;
+  padding:3px 11px;border-radius:999px;font-size:.85rem;font-variant-numeric:tabular-nums}
+.wp-r-table{margin:0}
+.wp-r-table th,.wp-r-table td{padding:7px 10px;font-size:.88rem}
+.wp-r-jour{font-weight:800;color:var(--blue-ink);white-space:nowrap}
+.wp-r-h{white-space:nowrap;font-variant-numeric:tabular-nums}
+.wp-r-pleine{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;
+  color:#a9721a;background:#fdf2dc;padding:1px 6px;border-radius:999px;vertical-align:1px}
+.wp-r-prix{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700}
+/* La pastille de statut reprend les couleurs de la grille : on reconnaît le
+   code couleur sans avoir à relire la légende. */
+.wp-r-st{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.78rem;
+  font-weight:700;border:1px solid rgba(20,26,46,.08);white-space:nowrap}
+
 .pm-rech{display:block;margin-bottom:10px;position:relative;max-width:520px}
 .pm-rech input{width:100%;box-sizing:border-box;font-size:.9rem;padding:9px 96px 9px 12px}
 .pm-rech-n{position:absolute;right:12px;top:50%;transform:translateY(-50%);

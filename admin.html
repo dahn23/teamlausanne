@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=209" />
+  <link rel="stylesheet" href="style.css?v=210" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -422,7 +422,18 @@
             <span><i style="background:#c9dcfb"></i> Tarif normal (non-membre)</span>
             <span class="muted">· prix dans la case = selon heure pleine/creuse (« ~ » = pré-réservé)</span>
           </div>
+          <!-- Recherche par nom. La grille ne montre qu'un jour à la fois ;
+               pour savoir quand quelqu'un joue, il fallait ouvrir les cinq
+               onglets l'un après l'autre. Ici le résultat est la semaine
+               entière, d'un seul coup. -->
+          <label class="wp-rech">
+            <span class="sr-only">Rechercher un nom dans le planning d'hiver</span>
+            <input type="search" id="wp-search" autocomplete="off"
+                   placeholder="Rechercher un nom — affiche sa semaine entière…" />
+            <span id="wp-rech-n" class="wp-rech-n"></span>
+          </label>
           <div id="wp-totals" class="wp-totals"></div>
+          <div id="wp-resultat" class="wp-resultat hidden"></div>
           <div id="wp-days" class="wp-days"></div>
           <div id="wp-grid" class="wp-grid-wrap"></div>
         </div>

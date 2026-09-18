@@ -1500,6 +1500,81 @@ function winterSeasonLabel() {
   const startY = d.getMonth() >= 4 ? y : y - 1;   // mai→déc = hiver y/y+1 ; janv→avril = (y-1)/y
   return `${startY}-${startY + 1}`;
 }
+// ---- Recherche par nom dans le planning d'hiver ----
+// La grille ne montre qu'un jour à la fois : pour savoir quand quelqu'un joue,
+// il fallait ouvrir les cinq onglets l'un après l'autre. La recherche répond en
+// une fois, sur la semaine entière.
+//
+// Tout se fait en mémoire : loadWinter charge déjà les cinq jours de la saison
+// (la requête ne filtre pas par jour), il n'y a donc rien à redemander.
+//
+// Les cases sont du texte libre : on y trouve des personnes (« Ivan »,
+// « Xavier Schumacher ») comme des groupes (« Club », « TC Lutry »). On
+// regroupe par libellé EXACT, ce qui fait apparaître les variantes
+// d'orthographe au lieu de les fondre silencieusement.
+let wpRech = "";
+const wpNorm = (t) => (t || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+function wpChercher(q) {
+  const n = wpNorm(q).trim();
+  if (!n) return [];
+  const par = new Map();
+  for (const [k, nom] of Object.entries(wpName)) {
+    if (!nom || !wpNorm(nom).includes(n)) continue;
+    const [day, court, slot] = k.split("_");
+    if (!par.has(nom)) par.set(nom, []);
+    par.get(nom).push({ day: Number(day), court, slot: Number(slot), st: wpStatus[k] || "libre" });
+  }
+  for (const liste of par.values())
+    liste.sort((a, b) => a.day - b.day || a.slot - b.slot || a.court.localeCompare(b.court));
+  // Le plus gros bloc d'abord : c'est presque toujours celui qu'on cherchait.
+  return [...par.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+}
+
+function renderWinterRecherche() {
+  const zone = $("wp-resultat"), compteur = $("wp-rech-n");
+  const enRecherche = !!wpRech.trim();
+  // Grille et onglets de jour disparaissent pendant la recherche : le résultat
+  // porte déjà les cinq jours, les garder inviterait à croire qu'il faut encore
+  // cliquer quelque part.
+  $("wp-days").classList.toggle("hidden", enRecherche);
+  $("wp-grid").classList.toggle("hidden", enRecherche);
+  zone.classList.toggle("hidden", !enRecherche);
+  if (!enRecherche) { compteur.textContent = ""; compteur.classList.remove("vide"); return; }
+
+  const trouves = wpChercher(wpRech);
+  const total = trouves.reduce((n, [, l]) => n + l.length, 0);
+  compteur.textContent = total ? `${total} créneau${total > 1 ? "x" : ""}` : "aucun";
+  compteur.classList.toggle("vide", !total);
+  if (!total) {
+    zone.innerHTML = `<p class="muted">Aucun nom ne correspond à « ${esc(wpRech.trim())} » dans le planning ${esc(wpSeason)}.</p>`;
+    return;
+  }
+  const jour = (d) => (WP_DAYS.find(([, n]) => n === d) || ["?"])[0];
+  zone.innerHTML = trouves.map(([nom, liste]) => {
+    const somme = liste.reduce((n, c) => n + wpPriceOf(c.st, c.day, c.slot), 0);
+    const lignes = liste.map((c) => {
+      const pr = wpPriceOf(c.st, c.day, c.slot);
+      return `<tr>
+        <td class="wp-r-jour">${esc(jour(c.day))}</td>
+        <td class="wp-r-h">${8 + c.slot}h15 – ${9 + c.slot}h15${wpPeakAt(c.day, c.slot) ? ' <span class="wp-r-pleine">pleine</span>' : ""}</td>
+        <td>${c.court === "Fitness" ? "Fitness" : "Court " + esc(c.court)}</td>
+        <td><span class="wp-r-st wp-st-${esc(c.st)}">${esc(WP_ST_LABEL[c.st] || c.st)}</span></td>
+        <td class="wp-r-prix">${pr > 0 ? esc(wpPriceTxt(c.st, pr).replace(String(pr), pr.toLocaleString("fr-CH"))) : "—"}</td>
+      </tr>`;
+    }).join("");
+    return `<div class="wp-r-bloc">
+      <div class="wp-r-tete"><b>${esc(nom)}</b>
+        <span class="muted">${liste.length} créneau${liste.length > 1 ? "x" : ""} / semaine</span>
+        <span class="spacer"></span>
+        ${somme > 0 ? `<span class="wp-r-somme">Total saison : ${somme.toLocaleString("fr-CH")} CHF</span>` : ""}</div>
+      <table class="crm-table wp-r-table"><thead><tr>
+        <th>Jour</th><th>Heure</th><th>Court</th><th>Statut</th><th class="wp-r-prix">Prix saison</th>
+      </tr></thead><tbody>${lignes}</tbody></table>
+    </div>`;
+  }).join("");
+}
+
 let wpSeason = null, wpName = {}, wpStatus = {}, wpDay = 1;
 async function loadWinter() {
   wpSeason = winterSeasonLabel();
@@ -1520,7 +1595,13 @@ async function loadWinter() {
     `<button type="button" class="wp-day${d === wpDay ? " active" : ""}" data-day="${d}">${lbl}</button>`).join("");
   $("wp-days").querySelectorAll(".wp-day").forEach((b) =>
     b.addEventListener("click", () => { wpDay = Number(b.dataset.day); renderWinterGrid(); }));
+  if (!$("wp-search").dataset.w) {
+    $("wp-search").dataset.w = "1";
+    $("wp-search").addEventListener("input", (e) => { wpRech = e.target.value; renderWinterRecherche(); });
+  }
   renderWinterGrid();
+  // Une saisie en cours survit au rechargement des données.
+  renderWinterRecherche();
 }
 function renderWinterGrid() {
   $("wp-days").querySelectorAll(".wp-day").forEach((b) => b.classList.toggle("active", Number(b.dataset.day) === wpDay));
