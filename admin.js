@@ -9557,7 +9557,10 @@ function renderMailToolbar() {
       if (mailFilterAddr && m.account_address !== mailFilterAddr) continue;
       if (stCount[m.status] != null) stCount[m.status]++;
     }
-    $("mail-status-btns").innerHTML = MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${(!mailMineF && mailStatusF === k) ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}${(stCount[k] && k !== "traite") ? ` <span class="mail-badge mail-badge-blue">${stCount[k]}</span>` : ""}</button>`).join("");
+    // Le compteur du « Traité » reste discret (gris) : c'est une archive, pas
+    // une charge de travail. Mais il est affiché, sinon rien ne dit qu'il y a
+    // quelque chose derrière le bouton.
+    $("mail-status-btns").innerHTML = MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${(!mailMineF && mailStatusF === k) ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}${stCount[k] ? ` <span class="mail-badge${k === "traite" ? " mail-badge-gris" : " mail-badge-blue"}">${stCount[k]}</span>` : ""}</button>`).join("");
     // Re-cliquer le statut actif le désélectionne → tous les statuts.
     $("mail-status-btns").querySelectorAll(".mail-fbtn").forEach((b) => b.addEventListener("click", () => { mailStatusF = (mailStatusF === b.dataset.st) ? "" : b.dataset.st; mailMineF = false; if (mailStatusF !== "en_cours") mailAssigneeF = ""; renderMailToolbar(); refreshMailView(); }));
   }
@@ -10207,9 +10210,11 @@ function renderMailAccts() {
   $("mail-accts").innerHTML = accts.map((a) => chip(a.address, a.private_user_id ? a.label + " 🔒" : a.label, active[a.address] || 0, unread[a.address] || 0)).join("") + (mailTournoiOnly ? "" : chip("", "Toutes", totA, totU));
   $("mail-accts").querySelectorAll(".mail-acct").forEach((b) => b.addEventListener("click", async () => {
     mailFilterAddr = b.dataset.addr; mailMineF = false;
-    // Boîte privée (archive personnelle) : on montre tout, pas seulement « à traiter ».
-    const acc = mailAccounts.find((a) => a.address === mailFilterAddr);
-    if (acc?.private_user_id) mailStatusF = "";
+    // Une boîte privée se comporte comme les autres : on ouvre sur « à traiter »,
+    // et « ✓ Traité » range le message hors de la vue. Elle faisait exception
+    // (tous statuts affichés), si bien que marquer un message traité ne le
+    // retirait jamais de la liste. Le classé reste à un clic, sous « Traité ».
+    if (!mailStatusF) mailStatusF = "a_traiter";
     renderMailAccts(); renderMailToolbar(); refreshMailView();
     const msgs = await mailFetchMsgs();   // recharge avec les 1000 derniers de cette boîte
     if (msgs) { mailMsgs = msgs; renderMailAccts(); renderMailToolbar(); refreshMailView(); }
@@ -10222,6 +10227,15 @@ function mailStatTag(m) {
   if (m.status === "en_cours") return `<span class="mail-stat ms-doing">Attribué${m.assigned_user ? " · " + esc(pShort(m.assigned_user)) : ""}</span>`;
   const [slbl, scls] = MAIL_STATUS[m.status] || [m.status, "ms-todo"];
   return `<span class="mail-stat ${scls}">${slbl}</span>`;
+}
+// Une boîte à zéro n'est pas une anomalie : c'est une boîte à jour. Le dire, et
+// rappeler où sont passés les messages classés.
+function mailVide() {
+  const recherche = ($("mail-search").value || "").trim().length >= 2;
+  if (mailStatusF === "a_traiter" && !mailMineF && !recherche)
+    return `<p class="muted" style="padding:16px">Rien à traiter ici — tout est classé.<br>
+      <span style="font-size:.85rem">Les messages déjà traités sont sous « Traité ».</span></p>`;
+  return `<p class="muted" style="padding:16px">Aucun message.</p>`;
 }
 function renderMailList() {
   const list = mailView;
@@ -10241,7 +10255,7 @@ function renderMailList() {
         <button type="button" class="mail-quick mail-q-assign" data-id="${m.id}">Attribuer</button>
       </div>`}
     </div>`;
-  }).join("") : '<p class="muted" style="padding:16px">Aucun message.</p>';
+  }).join("") : mailVide();
   $("mail-list").querySelectorAll(".mail-item").forEach((el) => el.addEventListener("click", () => openMail(el.dataset.id)));
   $("mail-list").querySelectorAll(".mail-rdtoggle").forEach((b) => b.addEventListener("click", async (e) => {
     e.stopPropagation();

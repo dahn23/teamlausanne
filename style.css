@@ -2496,6 +2496,11 @@ label.fld select{min-width:180px}
 .mail-treatedby{color:#1c7a45;font-weight:700;font-size:.84rem;align-self:center;margin-left:4px}
 /* Messagerie : double notif (bleu = a traiter+attribue ; rouge = non lus) */
 .mail-badge-blue{background:var(--blue);color:#fff}
+/* Compteur de l'archive « Traité ». Le badge de base est rouge — c'est la
+   couleur des non-lus : la garder ferait passer une pile rangée pour une
+   urgence. Gris : c'est une information, pas une charge de travail. */
+.mail-badge-gris{background:#c8cede;color:#39415c}
+.mail-fbtn.sel .mail-badge-gris{background:#fff;color:#39415c}
 .mail-acct.sel .mail-badge{background:#fff;color:#e23b3b}
 .mail-acct.sel .mail-badge-blue{background:#fff;color:var(--blue)}
 .mail-fbtn.sel .mail-badge-blue{background:#fff;color:var(--blue)}
