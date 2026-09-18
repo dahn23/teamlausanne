@@ -1,9 +1,12 @@
-// mail-import-box — importe les mails d'une boîte Gmail (IMAP) dans la console.
+// mail-import-box — importe les mails d'une boîte (IMAP) dans la console.
 // Corps : { address, limit ≤ 100, offset = 0, all = false }.
 //   all = false → INBOX, réception seulement (comportement historique, bouton « Importer autres boîtes »).
 //   all = true  → dossier « Tous les messages » de Gmail : reçus ET envoyés (direction selon l'expéditeur),
 //                 corps HTML et pièces jointes conservés ; pagination par offset du plus récent au plus ancien
 //                 (bouton « Tout importer »). Retourne { inserted, scanned, total, remaining }.
+//   source = "google" → lit l'ANCIENNE boîte Google d'une adresse passée chez Hostpoint (18.09.2026), avec un
+//                 mot de passe d'application Google rangé dans un secret DÉDIÉ (GOOGLE_OLD_PASS_*).
+//   since = "AAAA-MM-JJ" → s'arrête dès qu'un message est plus ancien que cette date.
 // Une boîte PRIVÉE (mail_accounts.private_user_id) ne peut être importée que par son propriétaire
 // ou un superadmin (v5, migration 60). Appel technique possible avec ?key=CRON_SECRET (droits superadmin).
 import { ImapFlow } from "npm:imapflow@1.0.164";
@@ -32,7 +35,13 @@ const MAX_FETCH = 2 * 1024 * 1024;
 const HOSTPOINT_DOMAINS = ["teamlausanne.ch"];
 const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
 const imapHost = (addr: string) => (isHostpoint(addr) ? "imap.mail.hostpoint.ch" : "imap.gmail.com");
-const smtpHost = (addr: string) => (isHostpoint(addr) ? "asmtp.mail.hostpoint.ch" : "smtp.gmail.com");
+// Anciennes boîtes Google des adresses passées chez Hostpoint. Secrets DÉDIÉS : les secrets GMAIL_* de ces
+// adresses contiennent désormais les mots de passe Hostpoint et ne doivent JAMAIS être envoyés à Google.
+const GOOGLE_OLD_ENV: Record<string, string> = {
+  "info@teamlausanne.ch": "GOOGLE_OLD_PASS_INFO",
+  "tournoi@teamlausanne.ch": "GOOGLE_OLD_PASS_TOURNOI",
+  "raphael@teamlausanne.ch": "GOOGLE_OLD_PASS_RAPHAEL",
+};
 const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
 
 function b64(u8: Uint8Array): string {
@@ -107,12 +116,27 @@ Deno.serve(async (req) => {
     // Boîte privée : seul son propriétaire (ou un superadmin) peut l'importer.
     const { data: accRow } = await supa.from("mail_accounts").select("private_user_id").eq("address", address).maybeSingle();
     if (accRow?.private_user_id && accRow.private_user_id !== uid && !isSuper) return json({ error: "boite privee : reservee a son proprietaire" }, 403);
-    const passName = address === hub.toLowerCase() ? null : PASS_ENV[address];
+    const fromGoogle = body.source === "google";
+    const since = body.since ? new Date(String(body.since)) : null;
     const user = address;
-    const pass = address === hub.toLowerCase() ? hubPass : cleanPass(address, Deno.env.get(passName || "") || "");
-    if (!pass) return json({ error: `Mot de passe d'app manquant pour ${address} (secret ${passName || "GMAIL_APP_PASSWORD"}).` }, 400);
+    let passName: string | null, pass: string, host: string;
+    if (fromGoogle) {
+      // Ancienne boîte Google : secret dédié, serveur Gmail, quel que soit le domaine.
+      passName = GOOGLE_OLD_ENV[address] || null;
+      if (!passName) return json({ error: `Pas d'ancienne boite Google prevue pour ${address}.` }, 400);
+      pass = (Deno.env.get(passName) || "").replace(/\s+/g, "");
+      host = "imap.gmail.com";
+    } else {
+      passName = address === hub.toLowerCase() ? null : PASS_ENV[address];
+      pass = address === hub.toLowerCase() ? hubPass : cleanPass(address, Deno.env.get(passName || "") || "");
+      host = imapHost(address);
+    }
+    if (!pass) return json({ error: `Mot de passe manquant pour ${address} (secret ${passName || "GMAIL_APP_PASSWORD"}).` }, 400);
+    // Repère anti-doublon : les imports Google gardent l'ancien format (déjà utilisé le 13.09) ; Hostpoint a le sien.
+    const keyBase = "box:" + address + ":" + (host === "imap.gmail.com" ? "" : "hp:") + (all ? "all:" : "");
+    let reachedSince = false;
 
-    const client = new ImapFlow({ host: imapHost(address), port: 993, secure: true, auth: { user, pass }, logger: false });
+    const client = new ImapFlow({ host, port: 993, secure: true, auth: { user, pass }, logger: false });
     await client.connect();
     // Dossier : INBOX, ou « Tous les messages » (special-use \All) en mode intégral.
     let box = "INBOX";
@@ -127,7 +151,7 @@ Deno.serve(async (req) => {
       total = Number((client.mailbox as { exists?: number })?.exists || 0);
       const seqs: number[] = [];
       for (let s = total - offset; s >= 1 && seqs.length < step; s--) seqs.push(s);
-      console.log(`import-box ${address} box=${box} total=${total} offset=${offset} step=${step}`);
+      console.log(`import-box ${address} host=${host} box=${box} total=${total} offset=${offset} step=${step}`);
       for (const seq of seqs) {
         scanned++;
         const u = seq;
@@ -136,8 +160,10 @@ Deno.serve(async (req) => {
         // deno-lint-ignore no-explicit-any
         const mm = meta as any;
         const realUid = mm?.uid || u;
-        // Déjà importé (même UID Gmail) : on ne retélécharge pas le contenu.
-        const uidKey = "box:" + address + ":" + (all ? "all:" : "") + realUid;
+        // Borne basse : on parcourt du plus récent au plus ancien, donc on s'arrête au premier message trop vieux.
+        if (since && mm?.envelope?.date && new Date(mm.envelope.date) < since) { reachedSince = true; break; }
+        // Déjà importé (même UID) : on ne retélécharge pas le contenu.
+        const uidKey = keyBase + realUid;
         const { data: already } = await supa.from("mail_messages").select("id").eq("imap_uid", uidKey).limit(1);
         if (already && already.length) continue;
         if ((mm?.size || 0) > MAX_FETCH) {
@@ -148,9 +174,9 @@ Deno.serve(async (req) => {
           const { error: bigErr } = await supa.from("mail_messages").insert({
             account_address: address, direction: (all && fromE?.address && String(fromE.address).toLowerCase() === address) ? "out" : "in", message_id: env.messageId || null,
             from_name: fromE?.name || null, from_address: fromE?.address || null, to_address: address,
-            subject: env.subject || null, snippet: `⚠ Mail volumineux (~${Math.round((mm.size || 0) / 1024 / 1024 * 10) / 10} Mo) — ouvrir dans Gmail`,
-            body_text: "Ce message est trop volumineux pour etre affiche ici. Ouvre-le directement dans Gmail.", body_html: null,
-            received_at: dateE, imap_uid: "box:" + address + ":" + (all ? "all:" : "") + realUid, is_read: true, status: "traite", pushed: true,
+            subject: env.subject || null, snippet: `⚠ Mail volumineux (~${Math.round((mm.size || 0) / 1024 / 1024 * 10) / 10} Mo) — ouvrir dans le webmail`,
+            body_text: "Ce message est trop volumineux pour etre affiche ici. Ouvre-le directement dans le webmail de la boite.", body_html: null,
+            received_at: dateE, imap_uid: uidKey, is_read: true, status: "traite", pushed: true,
           });
           if (!bigErr) inserted++;
           continue;
@@ -171,7 +197,7 @@ Deno.serve(async (req) => {
           account_address: address, direction: isOut ? "out" : "in", message_id: messageId,
           from_name: fromV?.name || null, from_address: fromAddr, to_address: p.to?.value?.[0]?.address || address,
           subject: subj, snippet: body2.slice(0, 140), body_text: body2, body_html: html,
-          received_at: dateIso, imap_uid: "box:" + address + ":" + (all ? "all:" : "") + realUid, is_read: true, status: "traite", pushed: true,
+          received_at: dateIso, imap_uid: uidKey, is_read: true, status: "traite", pushed: true,
         }).select("id").single();
         if (insErr || !ins) continue;
         inserted++;
@@ -181,7 +207,7 @@ Deno.serve(async (req) => {
       lock.release();
       await client.logout();
     }
-    return json({ ok: true, address, box, inserted, scanned, total, remaining: Math.max(0, total - (offset + scanned)) });
+    return json({ ok: true, address, box, inserted, scanned, total, remaining: reachedSince ? 0 : Math.max(0, total - (offset + scanned)) });
   } catch (e) {
     return json({ error: String((e as Error)?.message || e) }, 500);
   }
