@@ -3066,10 +3066,10 @@ tr.rm-loss td{background:#fde8e8}
 .ui-choice:hover,.ui-choice.sel{background:var(--blue);border-color:var(--blue);color:#fff}
 .gz-col-pay{white-space:nowrap}
 .gz-pay-chip{display:inline-block;padding:4px 11px;border-radius:999px;font-size:.76rem;font-weight:700;border:1px solid transparent;background:#eef1f7;color:#334;cursor:pointer}
-.gz-pay-twint{background:#e4ecfb;color:#1d3f8f}
-.gz-pay-cash{background:#e7f3ec;color:#1c7a45}
-.gz-pay-carte{background:#f3e8ff;color:#6d28d9}
-.gz-pay-none{background:#fff3e0;color:#b45309;border-color:#f0b968}
+.gz-pay-twint{background:#1d4ed8;color:#fff}
+.gz-pay-cash{background:#15803d;color:#fff}
+.gz-pay-carte{background:#c2410c;color:#fff}
+.gz-pay-none{background:#fff;color:#b3261e;border:1.5px dashed #b3261e}
 .gz-pay-free{cursor:default}
 .gz-pay-calc{font-size:.72rem;color:#555;margin-top:3px}
 .gz-col-credit{white-space:normal;min-width:170px}
