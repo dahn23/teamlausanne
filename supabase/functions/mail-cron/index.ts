@@ -3,6 +3,7 @@
 // Détecte les factures PDF, relit les Envoyés, puis pousse les notifications.
 // v23 (migration 60) : une boîte PRIVÉE n'est notifiée qu'à son propriétaire et aux superadmins.
 // v24 (18.09.2026) : @teamlausanne.ch chez Hostpoint, serveur IMAP par boîte (voir pollBox).
+// v25 (19.09.2026) : les rapports DMARC quotidiens sont rangés d'office en « Traité », sans notification.
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -129,6 +130,13 @@ const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).t
 const imapHost = (addr: string) => (isHostpoint(addr) ? "imap.mail.hostpoint.ch" : "imap.gmail.com");
 // Un mot de passe d'application Gmail s'écrit avec des espaces ; un mot de passe Hostpoint se prend tel quel.
 const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
+// Rapports DMARC quotidiens (Google, Microsoft, Yahoo…) : des robots qui écrivent à l'adresse « rua » du domaine.
+// Ils sont utiles à consulter mais ne demandent aucune réponse : rangés d'office en « Traité », lus, sans notification.
+// Le sujet suit le format de la RFC 7489 : « Report domain: <domaine> Submitter: <qui> Report-ID: <id> ».
+const isDmarcReport = (subject: string | null, from: string | null) =>
+  /^\s*(\[[^\]]*\]\s*)?report domain:/i.test(subject || "") || /(^|[._-])dmarc[^@]*@/i.test(from || "");
+const dmarcState = (subject: string | null, from: string | null) =>
+  isDmarcReport(subject, from) ? { is_read: true, status: "traite", pushed: true } : { is_read: false, status: "a_traiter", pushed: false };
 // Boîtes Hostpoint relevées en plus du hub (secret = mot de passe de la boîte).
 const EXTRA_BOXES: Record<string, string> = {
   "tournoi@teamlausanne.ch": "GMAIL_PASS_TOURNOI",
@@ -173,7 +181,7 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
         const dateIso = (env.date ? new Date(env.date) : new Date()).toISOString();
         if (!(await isDupMsg(supa, messageId, fromAddr, subj, dateIso))) {
           if (size > MAX_FETCH) {
-            await supa.from("mail_messages").insert({ account_address: box, direction: "in", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: box, subject: subj, snippet: `⚠ Mail volumineux (~${mb(size)} Mo) — ouvrir dans le webmail`, body_text: `Ce message est trop volumineux (~${mb(size)} Mo) pour etre affiche ici. Ouvre-le directement dans le webmail de la boite.`, body_html: null, received_at: dateIso, imap_uid: uidTag(u), is_read: false, status: "a_traiter", pushed: false });
+            await supa.from("mail_messages").insert({ account_address: box, direction: "in", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: box, subject: subj, snippet: `⚠ Mail volumineux (~${mb(size)} Mo) — ouvrir dans le webmail`, body_text: `Ce message est trop volumineux (~${mb(size)} Mo) pour etre affiche ici. Ouvre-le directement dans le webmail de la boite.`, body_html: null, received_at: dateIso, imap_uid: uidTag(u), ...dmarcState(subj, fromAddr) });
             st.inserted++; st.skippedBig++;
           } else {
             const msg = await client.fetchOne(u, { source: true }, { uid: true });
@@ -193,7 +201,7 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
               }
               const body = (p.text || "").trim();
               const { html, rows } = processAtt(p, p.html || null);
-              const { data: ins, error: e } = await supa.from("mail_messages").insert({ account_address: brand, direction: "in", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || brand, subject: sj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dI, imap_uid: uidTag(u), is_read: false, status: "a_traiter", pushed: false }).select("id").single();
+              const { data: ins, error: e } = await supa.from("mail_messages").insert({ account_address: brand, direction: "in", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || brand, subject: sj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dI, imap_uid: uidTag(u), ...dmarcState(sj, fA || null) }).select("id").single();
               if (!e && ins) {
                 st.inserted++;
                 if (rows.length) await supa.from("mail_attachments").insert(rows.map((r) => ({ ...r, mail_id: ins.id })));
