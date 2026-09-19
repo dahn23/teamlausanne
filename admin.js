@@ -3646,7 +3646,7 @@ function renderMgr() {
       <td><select class="gz-amount" ${st.absent ? "disabled" : ""}>${amtOpts}</select></td>
       <td><select class="gz-method" ${st.absent ? "disabled" : ""}><option value="">méthode</option>${method("cash")}${method("twint")}${method("carte")}</select></td>
       <td class="gz-col-credit">
-        ${credit > 0 ? `<b class="gz-credit">${credit} CHF</b> <button type="button" class="gz-credit-use gz-mini">utiliser</button>` : `<span class="muted">—</span>`}
+        ${credit > 0 ? `<b class="gz-credit">${credit} CHF</b> <button type="button" class="gz-credit-use gz-mini">utiliser</button> <button type="button" class="gz-credit-edit gz-mini" title="Corriger le montant du crédit (0 pour le supprimer)">✎</button>` : `<span class="muted">—</span>`}
         <button type="button" class="gz-credit-add gz-mini">+ crédit</button>
       </td>
       <td style="text-align:center"><input type="checkbox" class="gz-absent" ${st.absent ? "checked" : ""} /></td>
@@ -3666,6 +3666,7 @@ function renderMgr() {
       btn.addEventListener("click", () => file.click());
       file.addEventListener("change", () => uploadPhoto(tr, file));
     }
+    tr.querySelector(".gz-credit-edit")?.addEventListener("click", () => editCredit(tr.dataset.pid));
     tr.querySelector(".gz-credit-add")?.addEventListener("click", () => grantCredit(tr.dataset.pid));
     tr.querySelector(".gz-credit-use")?.addEventListener("click", () => spendCredit(tr.dataset.pid));
     tr.querySelector(".gz-note-btn")?.addEventListener("click", () => openNoteEditor(tr.dataset.pid));
@@ -3684,6 +3685,21 @@ async function grantCredit(pid) {
   const nc = Number(mp.p.credit_chf || 0) + amt;
   await sb.from("gz_participants").update({ credit_chf: nc }).eq("id", pid);
   mp.p.credit_chf = nc;
+  renderMgr();
+}
+
+// Corriger un crédit saisi par erreur (ex. le prix du tournoi tapé à la place) : on fixe le montant exact, 0 le supprime.
+async function editCredit(pid) {
+  const mp = mgrPlayer(pid); if (!mp) return;
+  const cur = Number(mp.p.credit_chf || 0);
+  const v = await uiPrompt(`Crédit de ${mp.p.first_name} en CHF (0 pour le supprimer) :`, String(cur));
+  if (v === null || v === undefined || String(v).trim() === "") return;
+  const amt = Number(String(v).replace(",", "."));
+  if (!isFinite(amt) || amt < 0) { uiAlert("Montant invalide."); return; }
+  if (amt === cur) return;
+  const { error } = await sb.from("gz_participants").update({ credit_chf: amt }).eq("id", pid);
+  if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
+  mp.p.credit_chf = amt;
   renderMgr();
 }
 
