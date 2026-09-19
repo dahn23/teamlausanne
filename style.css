@@ -3100,3 +3100,12 @@ tr.rm-loss td{background:#fde8e8}
 .side-item.active .side-badge{background:#fff;color:var(--blue-ink,#123cc4)}
 .side.collapsed .side-item{position:relative}
 .side.collapsed .side-badge{position:absolute;top:4px;right:4px;margin:0;min-width:16px;padding:0 4px;font-size:.62rem}
+
+/* Leçons privées dans la colonne des dates : l'heure sur une ligne, les prénoms dessous.
+   Côte à côte, l'heure (insécable) + les prénoms dépassaient de la colonne figée, surtout sur mobile. */
+.et-priv{box-sizing:border-box;max-width:100%;overflow:hidden}
+.et-priv-l{display:grid;grid-template-columns:auto 1fr;column-gap:5px;align-items:center;min-width:0}
+.et-priv-l b{grid-column:2;white-space:nowrap}
+.et-priv-l .et-balle{grid-column:1;grid-row:1}
+.et-priv-l span{grid-column:2;min-width:0;overflow-wrap:anywhere;line-height:1.3}
+.et-priv-l + .et-priv-l{margin-top:5px;padding-top:5px;border-top:1px dashed #cfdcfa}
