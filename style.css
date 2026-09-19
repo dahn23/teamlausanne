@@ -3126,3 +3126,7 @@ tr.rm-loss td{background:#fde8e8}
 .att-chip .tl-ico-bday{margin-right:2px}
 .cw-ev .tl-ico-bday{width:16px;height:16px}
 .cw-ev .tl-ico-bday svg{width:10px;height:10px}
+.mr-all-bar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.mr-role{display:inline-block;margin-left:4px;padding:1px 8px;border-radius:999px;font-size:.68rem;font-weight:700}
+.mr-role-coach{background:#e6ecfb;color:var(--blue)}
+.mr-role-joueur{background:#eef7d6;color:var(--fluo-ink)}

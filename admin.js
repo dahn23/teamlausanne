@@ -8705,15 +8705,48 @@ function initMatchs(roles) {
   const canFill = hasAny(roles || [], ["coach", "head_coach", "admin", "superadmin"]);
   const canValidate = hasAny(roles || [], ["admin", "superadmin", "secretaire"]);
   const showSub = (sub, ok) => document.querySelector(`#view-matchs .mr-subtab[data-sub="${sub}"]`)?.classList.toggle("hidden", !ok);
-  showSub("new", canFill); showSub("list", canFill); showSub("links", canValidate);
+  // Vue d'ensemble de TOUTES les feuilles (coachs et joueurs) : head coach, admin, superadmin seulement.
+  const canSeeAll = hasAny(roles || [], ["head_coach", "admin", "superadmin"]);
+  showSub("new", canFill); showSub("list", canFill); showSub("all", canSeeAll); showSub("links", canValidate);
   document.querySelectorAll("#view-matchs .mr-subtab").forEach((b) =>
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-matchs .mr-subtab").forEach((x) => x.classList.toggle("active", x === b));
       document.querySelectorAll("#view-matchs .mr-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "mr-sub-" + b.dataset.sub));
       if (b.dataset.sub === "new") mrRenderForm();
       if (b.dataset.sub === "list") loadMatchList();
+      if (b.dataset.sub === "all") loadMatchListAll();
       if (b.dataset.sub === "links") loadMatchLinks();
     }));
+}
+// Toutes les feuilles de match, quel que soit l'auteur (head coach / admin / superadmin).
+let mrAllRows = [], mrAllFilter = "";
+async function loadMatchListAll() {
+  const cont = $("mr-all"); if (!cont) return;
+  if (!hasAny(myAppRoles, ["head_coach", "admin", "superadmin"])) { cont.innerHTML = ""; return; }
+  cont.innerHTML = '<p class="muted" style="font-size:.85rem">Chargement…</p>';
+  const { data, error } = await sb.from("match_reports").select("*").order("created_at", { ascending: false }).limit(1000);
+  if (error) { cont.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  mrAllRows = data || [];
+  renderMatchListAll();
+}
+function renderMatchListAll() {
+  const cont = $("mr-all"); if (!cont) return;
+  const nCoach = mrAllRows.filter((r) => r.author_role === "coach").length, nJoueur = mrAllRows.length - nCoach;
+  const rows = mrAllRows.filter((r) => !mrAllFilter || (mrAllFilter === "coach" ? r.author_role === "coach" : r.author_role !== "coach"));
+  const fbtn = (v, l) => `<button type="button" class="chip filt${mrAllFilter === v ? " sel" : ""}" data-f="${v}">${l}</button>`;
+  const author = (r) => esc(r.author_person_id ? mrName(r.author_person_id) : (r.author_name || "—"));
+  cont.innerHTML = `<div class="mr-all-bar">${fbtn("", `Toutes (${mrAllRows.length})`)}${fbtn("coach", `Coachs (${nCoach})`)}${fbtn("joueur", `Joueurs (${nJoueur})`)}</div>`
+    + (rows.length
+      ? '<div class="table-wrap"><table class="crm-table"><thead><tr><th>Saisie le</th><th>Match du</th><th>Jeune</th><th>Rempli par</th><th>Adversaire</th><th>Résultat</th></tr></thead><tbody>'
+        + rows.map((r) => `<tr class="mr-row" data-id="${r.id}"><td>${frDateTime(r.created_at)}</td><td>${r.match_date ? frDate(r.match_date) : "—"}</td>
+          <td><b>${esc(mrName(r.youth_person_id))}</b></td>
+          <td>${author(r)} <span class="mr-role ${r.author_role === "coach" ? "mr-role-coach" : "mr-role-joueur"}">${r.author_role === "coach" ? "coach" : "joueur"}</span></td>
+          <td>${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td>
+          <td>${r.result === "gagne" ? '<span class="mr-win">Gagné</span>' : '<span class="mr-loss">Perdu</span>'} ${esc(r.score || "")}</td></tr>`).join("")
+        + "</tbody></table></div>"
+      : '<p class="muted" style="font-size:.85rem">Aucune feuille de match pour le moment.</p>');
+  cont.querySelectorAll(".mr-all-bar .filt").forEach((b) => b.addEventListener("click", () => { mrAllFilter = b.dataset.f; renderMatchListAll(); }));
+  cont.querySelectorAll(".mr-row").forEach((tr) => tr.addEventListener("click", () => openMatchReport(tr.dataset.id, "mr-all", loadMatchListAll)));
 }
 // Active le premier sous-onglet visible (selon le rôle)
 function mrActivateFirst() {
@@ -8854,11 +8887,12 @@ async function loadMatchList() {
 }
 
 const mrStars = (v) => v ? "★".repeat(v) + "☆".repeat(5 - v) : "—";
-async function openMatchReport(id) {
+// contId / back : la même fiche s'ouvre depuis « mes feuilles » (mr-list) ou depuis « toutes les feuilles » (mr-all).
+async function openMatchReport(id, contId = "mr-list", back = loadMatchList) {
   const { data: r } = await sb.from("match_reports").select("*").eq("id", id).single();
   if (!r) return;
   const labels = mrTextLabels(r.author_role, mrGenderOf(r.youth_person_id));
-  const cont = $("mr-list");
+  const cont = $(contId);
   cont.innerHTML = `<button type="button" class="ghost stg-back" id="mr-back">← Retour à la liste</button>
     <div class="rg-card" style="margin-top:10px">
       <h2 style="margin-top:0">${esc(mrName(r.youth_person_id))} <span class="mr-badge ${r.author_role}">${r.author_role}</span></h2>
@@ -8868,8 +8902,8 @@ async function openMatchReport(id) {
       ${r.comment ? `<div class="mr-field"><b>Commentaire</b><p>${esc(r.comment)}</p></div>` : ""}
       <button type="button" class="fam-del" id="mr-del" style="margin-top:14px">Supprimer cette feuille</button>
     </div>`;
-  $("mr-back").addEventListener("click", loadMatchList);
-  $("mr-del").addEventListener("click", async () => { if (!await uiConfirm("Supprimer cette feuille ?")) return; await sb.from("match_reports").delete().eq("id", id); loadMatchList(); });
+  $("mr-back").addEventListener("click", () => back());
+  $("mr-del").addEventListener("click", async () => { if (!await uiConfirm("Supprimer cette feuille ?")) return; await sb.from("match_reports").delete().eq("id", id); back(); });
 }
 
 async function loadPersonMatchs(personId, byRole) {
