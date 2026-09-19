@@ -8733,7 +8733,8 @@ function renderMatchListAll() {
   const cont = $("mr-all"); if (!cont) return;
   const nCoach = mrAllRows.filter((r) => r.author_role === "coach").length, nJoueur = mrAllRows.length - nCoach;
   const rows = mrAllRows.filter((r) => !mrAllFilter || (mrAllFilter === "coach" ? r.author_role === "coach" : r.author_role !== "coach"));
-  const fbtn = (v, l) => `<button type="button" class="chip filt${mrAllFilter === v ? " sel" : ""}" data-f="${v}">${l}</button>`;
+  // « mail-fbtn » et non « chip » : la classe .chip est d'abord le petit carré de légende (14 × 14 px), ce qui écrasait les boutons.
+  const fbtn = (v, l) => `<button type="button" class="mail-fbtn mr-all-f${mrAllFilter === v ? " sel" : ""}" data-f="${v}">${l}</button>`;
   const author = (r) => esc(r.author_person_id ? mrName(r.author_person_id) : (r.author_name || "—"));
   cont.innerHTML = `<div class="mr-all-bar">${fbtn("", `Toutes (${mrAllRows.length})`)}${fbtn("coach", `Coachs (${nCoach})`)}${fbtn("joueur", `Joueurs (${nJoueur})`)}</div>`
     + (rows.length
@@ -8745,7 +8746,7 @@ function renderMatchListAll() {
           <td>${r.result === "gagne" ? '<span class="mr-win">Gagné</span>' : '<span class="mr-loss">Perdu</span>'} ${esc(r.score || "")}</td></tr>`).join("")
         + "</tbody></table></div>"
       : '<p class="muted" style="font-size:.85rem">Aucune feuille de match pour le moment.</p>');
-  cont.querySelectorAll(".mr-all-bar .filt").forEach((b) => b.addEventListener("click", () => { mrAllFilter = b.dataset.f; renderMatchListAll(); }));
+  cont.querySelectorAll(".mr-all-bar .mr-all-f").forEach((b) => b.addEventListener("click", () => { mrAllFilter = b.dataset.f; renderMatchListAll(); }));
   cont.querySelectorAll(".mr-row").forEach((tr) => tr.addEventListener("click", () => openMatchReport(tr.dataset.id, "mr-all", loadMatchListAll)));
 }
 // Active le premier sous-onglet visible (selon le rôle)
