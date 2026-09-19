@@ -9558,7 +9558,7 @@ const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() ==
 
 // Colonnes légères pour la LISTE (sans body_text/body_html, parfois énormes avec images
 // base64) → chargement rapide. Le contenu est chargé à l'ouverture d'un mail (openMail).
-const MAIL_COLS = "id,account_address,direction,from_name,from_address,to_address,subject,snippet,received_at,is_read,status,assigned_user,tags,imap_uid,created_at,message_id,comment,treated_by,treated_at,att_fetched,pushed,has_invoice";
+const MAIL_COLS = "id,account_address,direction,from_name,from_address,to_address,subject,snippet,received_at,is_read,status,assigned_user,tags,imap_uid,created_at,message_id,comment,treated_by,treated_at,att_fetched,pushed,has_invoice,is_spam";
 let mailSearchT = null;
 // Messages chargés = les 300 plus récents toutes boîtes + jusqu'à 1000 (plafond PostgREST) de la boîte
 // sélectionnée (sinon une boîte peu active, ou fraîchement importée, paraît vide).
@@ -9675,16 +9675,19 @@ function renderMailToolbar() {
   $("mail-status-btns").classList.toggle("hidden", !showStatus);
   if (showStatus) {
     // Compteurs bleus par statut, pour la boîte sélectionnée
-    const stCount = { a_traiter: 0, en_cours: 0, traite: 0 };
+    const stCount = { a_traiter: 0, en_cours: 0, traite: 0 }; let nSpam = 0;
     for (const m of mailBadgeSource()) {
       if ((m.direction || "in") !== "in") continue;
       if (mailFilterAddr && m.account_address !== mailFilterAddr) continue;
+      if (m.is_spam) { nSpam++; continue; }   // classé Spam par Hostpoint : compté à part, jamais dans « Traité »
       if (stCount[m.status] != null) stCount[m.status]++;
     }
     // Le compteur du « Traité » reste discret (gris) : c'est une archive, pas
     // une charge de travail. Mais il est affiché, sinon rien ne dit qu'il y a
     // quelque chose derrière le bouton.
     $("mail-status-btns").innerHTML = MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${(!mailMineF && mailStatusF === k) ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}${stCount[k] ? ` <span class="mail-badge${k === "traite" ? " mail-badge-gris" : " mail-badge-blue"}">${stCount[k]}</span>` : ""}</button>`).join("");
+    // Filtre « Spam » : les mails que Hostpoint a rangés dans son dossier Spam (relevés par mail-cron, migration 73).
+    $("mail-status-btns").insertAdjacentHTML("beforeend", `<button type="button" class="mail-fbtn ms-spam${(!mailMineF && mailStatusF === "spam") ? " sel" : ""}" data-st="spam" title="Mails classés Spam par Hostpoint — à vérifier de temps en temps">Spam${nSpam ? ` <span class="mail-badge mail-badge-gris">${nSpam}</span>` : ""}</button>`);
     // Re-cliquer le statut actif le désélectionne → tous les statuts.
     $("mail-status-btns").querySelectorAll(".mail-fbtn").forEach((b) => b.addEventListener("click", () => { mailStatusF = (mailStatusF === b.dataset.st) ? "" : b.dataset.st; mailMineF = false; if (mailStatusF !== "en_cours") mailAssigneeF = ""; renderMailToolbar(); refreshMailView(); }));
   }
@@ -9725,7 +9728,8 @@ async function refreshMailView() {
     mailView = mailMsgs.filter((m) => {
       if (useAddr && m.account_address !== mailFilterAddr) return false;
       if (dir && (m.direction || "in") !== dir) return false;
-      if (status && m.status !== status) return false;
+      if (status === "spam") { if (!m.is_spam) return false; }
+      else { if (m.is_spam) return false; if (status && m.status !== status) return false; }
       if (assignee && m.assigned_user !== assignee) return false;
       return true;
     });
@@ -10347,6 +10351,7 @@ function renderMailAccts() {
 function mailStatTag(m) {
   const isOut = (m.direction || "in") === "out";
   if (isOut) return '<span class="mail-stat mail-sent">Envoyé</span>';
+  if (m.is_spam) return '<span class="mail-stat ms-spamtag">Spam</span>';
   if (m.status === "traite") return `<span class="mail-stat ms-done">Traité${m.treated_by ? " · " + esc(pShort(m.treated_by)) : ""}</span>`;
   if (m.status === "en_cours") return `<span class="mail-stat ms-doing">Attribué${m.assigned_user ? " · " + esc(pShort(m.assigned_user)) : ""}</span>`;
   const [slbl, scls] = MAIL_STATUS[m.status] || [m.status, "ms-todo"];
@@ -10407,7 +10412,7 @@ async function mailQuickTreat(m) {
 async function mailQuickAssign(m) {
   const res = await mailAssignPrompt(m);
   if (!res) return;
-  const upd = { status: "en_cours", assigned_user: res.personId, comment: res.comment || null };
+  const upd = { status: "en_cours", assigned_user: res.personId, comment: res.comment || null, is_spam: false };
   Object.assign(m, upd); mailSyncCache(m);
   await sb.from("mail_messages").update(upd).eq("id", m.id);
   renderMailAccts(); renderMailToolbar(); refreshMailView();
@@ -10428,7 +10433,9 @@ async function openMail(id) {
   let statusInfo = "";
   if (m.status === "en_cours") statusInfo = `Attribué${m.assigned_user ? " à <b>" + esc(pName(m.assigned_user)) + "</b>" : " · <span class=\"mail-warn\">à attribuer</span>"}${m.comment ? " · " + esc(m.comment) : ""}`;
   else if (m.status === "traite") statusInfo = m.treated_at ? `Traité le ${mailDT(m.treated_at)}` : "";
-  const controls = isOut ? "" : `
+  // Mail relevé dans le dossier Spam de Hostpoint : bandeau + bouton pour le remettre dans le circuit normal.
+  const spamBanner = m.is_spam ? `<div class="mail-spam-banner"><span>Classé <b>Spam</b> par Hostpoint. Si c'est un vrai message :</span> <button type="button" id="mail-d-notspam" class="ghost">Pas un spam → À traiter</button></div>` : "";
+  const controls = isOut ? "" : spamBanner + `
     <div class="mail-d-controls">
       <button type="button" id="mail-d-unread" class="ghost mail-d-unread">Marquer non lu</button>
       <div class="mail-stbtns">${MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${m.status === k ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}</button>`).join("")}${m.status === "traite" && m.treated_by ? `<span class="mail-treatedby">✓ par ${esc(pName(m.treated_by))}</span>` : ""}</div>
@@ -10481,6 +10488,12 @@ async function openMail(id) {
   if (!isOut) {
     mailWireCompose();
     $("mail-detail").querySelectorAll(".mail-stbtns .mail-fbtn").forEach((b) => b.addEventListener("click", () => mailSetStatus(m, b.dataset.st)));
+    $("mail-d-notspam")?.addEventListener("click", async () => {
+      const upd = { is_spam: false, status: "a_traiter", is_read: false };
+      Object.assign(m, upd); mailSyncCache(m);
+      await sb.from("mail_messages").update(upd).eq("id", id);
+      mailStatusF = "a_traiter"; renderMailAccts(); renderMailToolbar(); refreshMailView(); openMail(id);
+    });
     $("mail-d-unread").addEventListener("click", async () => { m.is_read = false; mailSyncCache(m); await sb.from("mail_messages").update({ is_read: false }).eq("id", id); renderMailAccts(); refreshMailView(); });
     attachEmailAC($("mail-d-cc")); attachEmailAC($("mail-d-bcc"));  // autocompletion Cc/Cci de la réponse
     loadMailDraft(id);
@@ -10525,13 +10538,14 @@ async function mailSetStatus(m, st) {
   if (st === "en_cours") {                       // « Attribué » = popup, personne obligatoire
     const res = await mailAssignPrompt(m);
     if (!res) return;                            // annulé / personne non choisie → on ne change rien
-    const upd = { status: "en_cours", assigned_user: res.personId, comment: res.comment || null };
+    const upd = { status: "en_cours", assigned_user: res.personId, comment: res.comment || null, is_spam: false };
     Object.assign(m, upd); mailSyncCache(m);
     await sb.from("mail_messages").update(upd).eq("id", m.id);
     openMail(m.id); renderMailToolbar(); refreshMailView();
     return;
   }
   const upd = { status: st };
+  if (m.is_spam) { upd.is_spam = false; m.is_spam = false; }   // changer le statut d'un mail « Spam » le sort du spam
   m.status = st;
   if (st === "traite") { upd.treated_by = myPersonId; upd.treated_at = new Date().toISOString(); upd.is_read = true; m.treated_by = myPersonId; m.treated_at = upd.treated_at; m.is_read = true; }
   mailSyncCache(m);

@@ -4,6 +4,7 @@
 // v23 (migration 60) : une boîte PRIVÉE n'est notifiée qu'à son propriétaire et aux superadmins.
 // v24 (18.09.2026) : @teamlausanne.ch chez Hostpoint, serveur IMAP par boîte (voir pollBox).
 // v25 (19.09.2026) : les rapports DMARC quotidiens sont rangés d'office en « Traité », sans notification.
+// v26 (19.09.2026) : le dossier « Spam » des boîtes Hostpoint est relevé aussi (is_spam, migration 73).
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -15,6 +16,9 @@ const SENT_WINDOW = 25;
 const SENT_MAX = 6;
 const MAXB = 10 * 1024 * 1024;
 const MAX_FETCH = 8 * 1024 * 1024;
+const SPAM_WINDOW = 30;               // dossier Spam : on regarde les 30 plus récents
+const SPAM_MAX = 8;                   // … et on en importe 8 au plus par passage
+const SPAM_FETCH = 1024 * 1024;       // contenu du spam limité à 1 Mo
 const ORIGIN = "https://app.teamlausanne.ch";
 const PUSH_ICON = ORIGIN + "/assets/pwa/admin-icon-192.png";
 const PUSH_BADGE = ORIGIN + "/assets/pwa/admin-badge.png?v=5";
@@ -150,8 +154,8 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
   const client = new ImapFlow({ host: imapHost(box), port: 993, secure: true, auth: { user: addr, pass }, logger: false });
   await client.connect();
   try {
-    let archiveBox: string | null = null, sentBox: string | null = null;
-    try { for (const b of await client.list()) { const su = (b as { specialUse?: string }).specialUse; if (su === "\\All") archiveBox = (b as { path: string }).path; if (su === "\\Sent") sentBox = (b as { path: string }).path; } } catch (_) {}
+    let archiveBox: string | null = null, sentBox: string | null = null, junkBox: string | null = null;
+    try { for (const b of await client.list()) { const su = (b as { specialUse?: string }).specialUse; if (su === "\\All") archiveBox = (b as { path: string }).path; if (su === "\\Sent") sentBox = (b as { path: string }).path; if (su === "\\Junk") junkBox = (b as { path: string }).path; } } catch (_) {}
     if (hp) archiveBox = null;                       // Hostpoint : on laisse les mails dans la boîte de réception
     const inMax = hp ? 25 : IN_MAX;                  // sans archivage, on regarde plus large (les doublons sont écartés)
     const uidTag = (u: number) => (hp ? `hp:${box}:${u}` : String(u));
@@ -216,6 +220,48 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
         if (!hp) { try { await client.messageFlagsAdd(u, ["\\Seen"], { uid: true }); if (archiveBox) { await client.messageMove(u, archiveBox, { uid: true }); st.archived++; } } catch (_) {} }
       }
     } finally { lock.release(); }
+
+    // Dossier « Spam » de Hostpoint (migration 73) : un vrai mail mal classé ne doit pas rester invisible.
+    // Ces mails entrent marqués is_spam, rangés « traite », lus et sans notification : ils ne comptent dans
+    // aucune pastille. La console les montre sous le filtre « Spam », avec un bouton « Pas un spam ».
+    // Pas de pièces jointes ni de détection de facture pour du spam ; contenu limité à 1 Mo.
+    if (hp && junkBox) {
+      const lock3 = await client.getMailboxLock(junkBox);
+      try {
+        let juids = (await client.search({ all: true }, { uid: true })) || [];
+        juids = juids.sort((a: number, b: number) => b - a).slice(0, SPAM_WINDOW);
+        const jtag = (u: number) => `hpspam:${box}:${u}`;
+        const { data: exj } = juids.length ? await supa.from("mail_messages").select("imap_uid").in("imap_uid", juids.map(jtag)) : { data: [] };
+        const havej = new Set((exj || []).map((r: { imap_uid: string }) => r.imap_uid));
+        let workj = 0;
+        for (const u of juids) {
+          if (havej.has(jtag(u))) continue;
+          if (workj >= SPAM_MAX) break;
+          workj++;
+          const meta = await client.fetchOne(u, { envelope: true, size: true }, { uid: true });
+          // deno-lint-ignore no-explicit-any
+          const mm = meta as any;
+          const env = mm?.envelope || {};
+          const fromV = (env.from && env.from[0]) || null;
+          const fromAddr = fromV?.address || null;
+          const subj = env.subject || null;
+          const messageId = env.messageId || null;
+          const dateIso = (env.date ? new Date(env.date) : new Date()).toISOString();
+          if (await isDupMsg(supa, messageId, fromAddr, subj, dateIso)) continue;
+          let body = "", html: string | null = null;
+          if ((mm?.size || 0) <= SPAM_FETCH) {
+            const msg = await client.fetchOne(u, { source: true }, { uid: true });
+            if (msg && (msg as { source?: Uint8Array }).source) {
+              const p = await simpleParser((msg as { source: Uint8Array }).source);
+              body = (p.text || "").trim();
+              html = p.html ? String(p.html) : null;
+            }
+          }
+          const { error: e } = await supa.from("mail_messages").insert({ account_address: box, direction: "in", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: box, subject: subj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dateIso, imap_uid: jtag(u), is_read: true, status: "traite", pushed: true, is_spam: true });
+          if (!e) st.spam++;
+        }
+      } finally { lock3.release(); }
+    }
 
     if (sentBox) {
       const lock2 = await client.getMailboxLock(sentBox);
@@ -282,7 +328,7 @@ Deno.serve(async (req) => {
     const { data: accts } = await supa.from("mail_accounts").select("address");
     const ourAddrs = (accts || []).map((a: { address: string }) => a.address.toLowerCase());
 
-    const st: Record<string, number> = { inserted: 0, archived: 0, sent: 0, skippedBig: 0, backfilled: 0 };
+    const st: Record<string, number> = { inserted: 0, archived: 0, sent: 0, skippedBig: 0, backfilled: 0, spam: 0 };
     const errors: Record<string, string> = {};
     // Une boîte en panne (mot de passe faux, serveur muet) ne doit pas empêcher de relever les autres.
     try { await pollBox(supa, hub, pass, true, ourAddrs, st); } catch (e) { errors[hub.toLowerCase()] = String((e as Error)?.message || e).slice(0, 200); }

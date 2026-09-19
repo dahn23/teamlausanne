@@ -3089,3 +3089,8 @@ tr.rm-loss td{background:#fde8e8}
 .wp-focus-h{margin:18px 0 8px;font-size:1rem;color:var(--blue-ink)}
 .wp-focus-h .muted{font-weight:400;font-size:.85rem}
 .wp-focus-note{font-size:.8rem;margin:6px 0 0}
+.mail-fbtn.ms-spam{color:#6b7280}
+.mail-fbtn.ms-spam.sel{background:#4b5563;border-color:#4b5563;color:#fff}
+.ms-spamtag{background:#eceff3;color:#4b5563}
+.mail-spam-banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#f3f4f6;border:1px solid #d5d9e0;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:.86rem;color:#374151}
+.mail-spam-banner button{padding:5px 12px;font-size:.82rem}
