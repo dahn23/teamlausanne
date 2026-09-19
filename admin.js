@@ -1121,6 +1121,30 @@ async function loadPeople() {
   for (const r of rp || []) add(r.person_id, r.role); // rôles saisonniers de la saison EN COURS
   renderFilters();
   renderRows();
+  refreshBirthdayBadge(); refreshInscriptionBadge();   // pastilles du menu latéral
+}
+
+// ---- Pastilles du menu latéral : demandes d'inscription visibles, anniversaires du jour ----
+function setSideBadge(view, n, cls) {
+  const btn = document.querySelector(`.side-item[data-view="${view}"]`); if (!btn) return;
+  let b = btn.querySelector(".side-badge");
+  if (!n) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement("span"); btn.appendChild(b); }
+  b.className = "side-badge" + (cls ? " " + cls : "");
+  b.textContent = String(n);
+}
+// Anniversaires DU JOUR, mêmes personnes que l'onglet (au moins un rôle autre que membre / client).
+function refreshBirthdayBadge() {
+  const d = new Date(), md = `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const n = people.filter((p) => p.birthdate && p.birthdate.slice(5, 10) === md
+    && (peopleRoles[p.id] || []).some((r) => !BDAY_EXCLUDE.includes(r))).length;
+  setSideBadge("anniv", n, "side-badge-gold");
+}
+// Demandes d'inscription visibles dans l'onglet (toutes celles qui n'ont pas été supprimées).
+async function refreshInscriptionBadge() {
+  if (!document.querySelector('.side-item[data-view="inscriptions"]')) return;
+  const { data, error } = await sb.rpc("list_enrollment_requests");
+  if (!error) setSideBadge("inscriptions", (data || []).length);
 }
 
 function renderFilters() {
@@ -5164,6 +5188,7 @@ let inscList = [];
 async function loadInscriptions() {
   const { data, error } = await sb.rpc("list_enrollment_requests");
   inscList = error ? [] : (data || []);
+  if (!error) setSideBadge("inscriptions", inscList.length);
   const box = $("insc-list");
   if (!inscList.length) { box.innerHTML = `<p class="muted">Aucune demande d'inscription pour le moment.</p>`; return; }
   box.innerHTML = inscList.map((r) => {
@@ -10366,6 +10391,8 @@ function mailVide() {
       <span style="font-size:.85rem">Les messages déjà traités sont sous « Traité ».</span></p>`;
   return `<p class="muted" style="padding:16px">Aucun message.</p>`;
 }
+// Message venu d'un formulaire du site (db/59 : copié dans la messagerie avec le sujet « Site — <formulaire> », sans passer par une boîte mail).
+const isSiteForm = (m) => (m.direction || "in") === "in" && /^Site\s+[—-]\s/.test(m.subject || "");
 function renderMailList() {
   const list = mailView;
   const acctLabel = (addr) => mailAccounts.find((a) => a.address === addr)?.label || addr;
@@ -10376,7 +10403,7 @@ function renderMailList() {
       <div class="mail-item-top"><span class="mail-from">${isOut ? '<span class="mail-outico">↗</span> ' : ""}${who}</span><span class="mail-date">${mailShort(m.received_at)}</span></div>
       <div class="mail-subj">${esc(m.subject || "(sans objet)")}</div>
       <div class="mail-snip muted">${esc(m.snippet || "")}</div>
-      <div class="mail-item-foot"><span class="mail-acctbadge">${esc(acctLabel(m.account_address))}</span>${m.has_invoice ? '<span class="mail-inv-badge" title="Une facture de ce mail a été ajoutée à l\'onglet Factures">📄 Facture</span>' : ""}
+      <div class="mail-item-foot"><span class="mail-acctbadge">${esc(acctLabel(m.account_address))}</span>${isSiteForm(m) ? '<span class="mail-form-badge" title="Message envoyé depuis un formulaire du site, pas depuis une boîte mail">Formulaire</span>' : ""}${m.has_invoice ? '<span class="mail-inv-badge" title="Une facture de ce mail a été ajoutée à l\'onglet Factures">📄 Facture</span>' : ""}
         <span class="mail-foot-right">${mailStatTag(m)}
         <button type="button" class="mail-rdtoggle" data-id="${m.id}" title="${m.is_read ? "Marquer non lu" : "Marquer lu"}">${m.is_read ? "✉" : "✓"}</button></span></div>
       ${isOut ? "" : `<div class="mail-item-actions">

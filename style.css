@@ -3094,3 +3094,9 @@ tr.rm-loss td{background:#fde8e8}
 .ms-spamtag{background:#eceff3;color:#4b5563}
 .mail-spam-banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#f3f4f6;border:1px solid #d5d9e0;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:.86rem;color:#374151}
 .mail-spam-banner button{padding:5px 12px;font-size:.82rem}
+.mail-form-badge{display:inline-block;margin-left:5px;padding:1px 8px;border-radius:999px;font-size:.68rem;font-weight:700;background:#fff3e0;color:#b45309;border:1px solid #f0c98a}
+.side-badge{margin-left:auto;min-width:20px;padding:1px 7px;border-radius:999px;font-size:.7rem;font-weight:700;line-height:1.5;text-align:center;background:var(--blue,#123cc4);color:#fff}
+.side-badge-gold{background:#f5b301;color:#3b2a00}
+.side-item.active .side-badge{background:#fff;color:var(--blue-ink,#123cc4)}
+.side.collapsed .side-item{position:relative}
+.side.collapsed .side-badge{position:absolute;top:4px;right:4px;margin:0;min-width:16px;padding:0 4px;font-size:.62rem}
