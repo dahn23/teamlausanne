@@ -131,5 +131,6 @@ et tournoi@ (groupe Cloud Office « teamlausanne.ch »). Webmail : office.hostpo
   Le login Google reste info@teamlausanne.ch (mot de passe Google ≠ mot de passe Hostpoint).
 - **Console** : les secrets `GMAIL_APP_PASSWORD`, `GMAIL_PASS_TOURNOI`, `GMAIL_PASSE_RAPHAEL` contiennent désormais les mots de
   passe Hostpoint (les noms n'ont pas été changés). Le choix du serveur se fait par domaine dans chaque fonction (`HOSTPOINT_DOMAINS`).
-- **À faire plus tard** : activer DKIM chez Hostpoint ; importer les anciens mails Gmail quand le compte Google sera récupéré
+- **DKIM Hostpoint activé le 19.09.2026** (Domaines › teamlausanne.ch › Protection étendue). Sélecteurs publiés par Hostpoint dans la zone : `20260919-rsa1024-781adeae`, `20260919-rsa2048-781adeae`, `20260919-ed25519-781adeae` (`._domainkey`). Test Gmail du 19.09 : SPF PASS, DKIM PASS (teamlausanne.ch), DMARC PASS. Ne pas supprimer notre ligne `_dmarc` malgré l'avertissement de cette page : c'est elle qui envoie les rapports quotidiens.
+- **À faire plus tard** : importer les anciens mails Gmail quand le compte Google sera récupéré
   (secrets Google dédiés à créer) ; ne résilier le Workspace chez Wix qu'après cet import.
