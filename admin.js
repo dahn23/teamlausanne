@@ -3632,8 +3632,15 @@ function renderMgr() {
   $("gz-mgr-players").innerHTML = mgrPlayers.map(({ p, st, remark }) => {
     const amtOpts = ['<option value="">—</option>', '<option value="0">Gratuit</option>']
       .concat(opts.map((o) => `<option value="${o.amount}" ${Number(st.amount_paid) === Number(o.amount) ? "selected" : ""}>${esc(o.label)} — ${o.amount}</option>`)).join("");
-    const method = (m) => `<option value="${m}" ${st.pay_method === m ? "selected" : ""}>${m}</option>`;
     const credit = Number(p.credit_chf || 0);
+    const price = st.amount_paid == null ? null : Number(st.amount_paid);
+    const used = Number(st.credit_used || 0);
+    const due = price == null ? null : Math.max(0, price - used);
+    // Paiement : le moyen se choisit dans une fenêtre à la sélection du prix (plus de menu laissé sur « méthode »).
+    const payCell = (price == null || st.absent) ? '<span class="muted">—</span>'
+      : price === 0 ? '<span class="gz-pay-chip gz-pay-free">gratuit</span>'
+      : `<button type="button" class="gz-pay-chip gz-pay-${esc(st.pay_method || "none")}" title="Changer le moyen de paiement">${esc(GZ_PAY_LABEL[st.pay_method] || "à préciser")}</button>`
+        + (used > 0 ? `<div class="gz-pay-calc">${price} − ${used} crédit = <b>${due} CHF</b></div>` : "");
     return `<tr data-pid="${p.id}" class="${gzRowClass(st)}">
       <td class="gz-col-player">
         <div class="gz-name"><b>${esc(p.last_name)} ${esc(p.first_name)}</b>${st.is_winner ? " " + ICO_CUP : ""}</div>
@@ -3644,14 +3651,18 @@ function renderMgr() {
       </td>
       <td class="gz-col-note"><button type="button" class="gz-note-btn">${p.note ? gzShort(p.note, 24) : '<span class="muted">+ note</span>'}</button></td>
       <td><select class="gz-amount" ${st.absent ? "disabled" : ""}>${amtOpts}</select></td>
-      <td><select class="gz-method" ${st.absent ? "disabled" : ""}><option value="">méthode</option>${method("cash")}${method("twint")}${method("carte")}</select></td>
+      <td class="gz-col-pay"><input type="hidden" class="gz-method" value="${esc(st.pay_method || "")}" />${payCell}</td>
       <td class="gz-col-credit">
-        ${credit > 0 ? `<b class="gz-credit">${credit} CHF</b> <button type="button" class="gz-credit-use gz-mini">utiliser</button> <button type="button" class="gz-credit-edit gz-mini" title="Corriger le montant du crédit (0 pour le supprimer)">✎</button>` : `<span class="muted">—</span>`}
-        <button type="button" class="gz-credit-add gz-mini">+ crédit</button>
+        <div class="gz-credit-line">
+          ${credit > 0 ? `<b class="gz-credit">${credit} CHF</b>` : '<span class="muted">—</span>'}
+          <button type="button" class="gz-credit-add gz-mini" title="Un crédit sert à reporter un remboursement : le joueur le récupère sur une prochaine inscription.">+ crédit</button>
+          ${credit > 0 ? '<button type="button" class="gz-credit-cancel gz-mini" title="Remet le crédit à zéro (saisi par erreur, ou remboursé autrement)">annuler le crédit</button>' : ""}
+        </div>
+        <button type="button" class="gz-credit-pay gz-mini" ${credit > 0 && !st.absent ? "" : "disabled"}>${credit > 0 ? "utiliser le crédit pour payer" : "pas de crédit à utiliser"}</button>
       </td>
-      <td style="text-align:center"><input type="checkbox" class="gz-absent" ${st.absent ? "checked" : ""} /></td>
+      <td style="text-align:center"><label class="gz-tog gz-tog-abs"><input type="checkbox" class="gz-absent" ${st.absent ? "checked" : ""} /><span>Absent</span></label></td>
       <td class="gz-winner-cell" style="text-align:center">${mgrIsGz ? `
-        <label title="Vainqueur"><input type="checkbox" class="gz-winner" ${st.is_winner ? "checked" : ""} /> ${ICO_CUP}</label>
+        <label class="gz-tog gz-tog-win" title="Vainqueur"><input type="checkbox" class="gz-winner" ${st.is_winner ? "checked" : ""} /><span>${ICO_CUP} Victoire</span></label>
         <div class="gz-photo-wrap" style="${st.is_winner ? "" : "display:none"}">
           ${st.photo_url ? `<img src="${st.photo_url}" class="gz-photo-thumb" />` : ""}
           <button type="button" class="gz-photo-btn">${st.photo_url ? "Refaire" : "Photo"}</button>
@@ -3660,15 +3671,17 @@ function renderMgr() {
     </tr>`;
   }).join("");
   $("gz-mgr-players").querySelectorAll("tr[data-pid]").forEach((tr) => {
-    tr.querySelectorAll(".gz-absent,.gz-amount,.gz-method,.gz-winner").forEach((el) => el.addEventListener("change", () => saveStatus(tr)));
+    tr.querySelectorAll(".gz-absent,.gz-winner").forEach((el) => el.addEventListener("change", () => saveStatus(tr)));
+    tr.querySelector(".gz-amount").addEventListener("change", () => onAmountChange(tr));
+    tr.querySelector("button.gz-pay-chip")?.addEventListener("click", () => changePayMethod(tr));
     const btn = tr.querySelector(".gz-photo-btn"), file = tr.querySelector(".gz-photo-file");
     if (btn && file) {
       btn.addEventListener("click", () => file.click());
       file.addEventListener("change", () => uploadPhoto(tr, file));
     }
-    tr.querySelector(".gz-credit-edit")?.addEventListener("click", () => editCredit(tr.dataset.pid));
     tr.querySelector(".gz-credit-add")?.addEventListener("click", () => grantCredit(tr.dataset.pid));
-    tr.querySelector(".gz-credit-use")?.addEventListener("click", () => spendCredit(tr.dataset.pid));
+    tr.querySelector(".gz-credit-cancel")?.addEventListener("click", () => cancelCredit(tr.dataset.pid));
+    tr.querySelector(".gz-credit-pay")?.addEventListener("click", () => payWithCredit(tr.dataset.pid));
     tr.querySelector(".gz-note-btn")?.addEventListener("click", () => openNoteEditor(tr.dataset.pid));
     tr.querySelector(".gz-remark")?.addEventListener("click", () => openRemarkView(tr.dataset.pid));
   });
@@ -3676,49 +3689,6 @@ function renderMgr() {
 }
 
 function mgrPlayer(pid) { return mgrPlayers.find((x) => x.p.id === pid); }
-
-async function grantCredit(pid) {
-  const mp = mgrPlayer(pid); if (!mp) return;
-  const v = await uiPrompt(`Ajouter un crédit à ${mp.p.first_name} (CHF) :`, "");
-  const amt = Number(v);
-  if (!amt) return;
-  const nc = Number(mp.p.credit_chf || 0) + amt;
-  await sb.from("gz_participants").update({ credit_chf: nc }).eq("id", pid);
-  mp.p.credit_chf = nc;
-  renderMgr();
-}
-
-// Corriger un crédit saisi par erreur (ex. le prix du tournoi tapé à la place) : on fixe le montant exact, 0 le supprime.
-async function editCredit(pid) {
-  const mp = mgrPlayer(pid); if (!mp) return;
-  const cur = Number(mp.p.credit_chf || 0);
-  const v = await uiPrompt(`Crédit de ${mp.p.first_name} en CHF (0 pour le supprimer) :`, String(cur));
-  if (v === null || v === undefined || String(v).trim() === "") return;
-  const amt = Number(String(v).replace(",", "."));
-  if (!isFinite(amt) || amt < 0) { uiAlert("Montant invalide."); return; }
-  if (amt === cur) return;
-  const { error } = await sb.from("gz_participants").update({ credit_chf: amt }).eq("id", pid);
-  if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
-  mp.p.credit_chf = amt;
-  renderMgr();
-}
-
-async function spendCredit(pid) {
-  const mp = mgrPlayer(pid); if (!mp) return;
-  const credit = Number(mp.p.credit_chf || 0);
-  if (credit <= 0) return;
-  const v = await uiPrompt(`Montant du crédit à utiliser (max ${credit} CHF) :`, String(credit));
-  const amt = Math.min(Number(v) || 0, credit);
-  if (!amt) return;
-  await sb.from("gz_participants").update({ credit_chf: credit - amt }).eq("id", pid);
-  await sb.from("gz_player_status").upsert({
-    tournament_id: mgrTid, participant_id: pid, absent: false,
-    amount_paid: amt, pay_method: null, updated_at: new Date().toISOString(),
-  }, { onConflict: "tournament_id,participant_id" });
-  mp.p.credit_chf = credit - amt;
-  mp.st = { ...mp.st, absent: false, amount_paid: amt, pay_method: null };
-  renderMgr();
-}
 
 // Note interne (éditable) : popup avec textarea
 let gzTextPid = null;
@@ -3765,51 +3735,145 @@ async function uploadPhoto(tr, file) {
   if (error) { alert("Photo : " + error.message); return; }
   const url = sb.storage.from("gz-photos").getPublicUrl(path).data.publicUrl;
   await sb.from("gz_player_status").upsert({ tournament_id: mgrTid, participant_id: pid, photo_url: url, is_winner: true, updated_at: new Date().toISOString() }, { onConflict: "tournament_id,participant_id" });
+  { const mp = mgrPlayer(pid); if (mp) mp.st = { ...mp.st, photo_url: url, is_winner: true }; }   // sinon un re-rendu de la liste perd la photo
   const wrap = tr.querySelector(".gz-photo-wrap");
   wrap.querySelector("img")?.remove();
   wrap.insertAdjacentHTML("afterbegin", `<img src="${url}" class="gz-photo-thumb" />`);
   tr.querySelector(".gz-photo-btn").textContent = "Refaire";
 }
 
-async function saveStatus(tr) {
-  const pid = tr.dataset.pid;
-  const absent = tr.querySelector(".gz-absent").checked;
-  const amount = tr.querySelector(".gz-amount").value;
-  const method = tr.querySelector(".gz-method").value;
-  const winner = tr.querySelector(".gz-winner") ? tr.querySelector(".gz-winner").checked : false;
-  tr.querySelector(".gz-amount").disabled = absent;
-  tr.querySelector(".gz-method").disabled = absent;
-  const wrap = tr.querySelector(".gz-photo-wrap");
-  if (wrap) wrap.style.display = winner ? "" : "none";
-  await sb.from("gz_player_status").upsert({
-    tournament_id: mgrTid, participant_id: pid,
-    absent, amount_paid: absent || amount === "" ? null : Number(amount),
-    pay_method: absent || !method ? null : method, is_winner: winner, updated_at: new Date().toISOString(),
+// ---- Paiement d'un joueur : prix, moyen de paiement, crédit ----
+// amount_paid = PRIX de l'inscription ; credit_used = part réglée par le crédit du joueur ;
+// encaissé réel (selon pay_method) = amount_paid − credit_used. Migration db/71.
+const GZ_PAY_LABEL = { cash: "Cash", twint: "Twint", carte: "Carte" };
+
+// Fenêtre de choix (boutons) : renvoie la valeur choisie, ou null si annulé.
+function uiChoice(message, choices, current) {
+  return new Promise((resolve) => {
+    const ov = document.createElement("div");
+    ov.className = "ui-modal";
+    ov.innerHTML = `<div class="ui-box"><p class="ui-msg">${esc(message).replace(/\n/g, "<br>")}</p>
+      <div class="ui-choices">${choices.map(([v, l]) => `<button type="button" class="ui-choice${v === current ? " sel" : ""}" data-v="${esc(v)}">${esc(l)}</button>`).join("")}</div>
+      <div class="ui-actions"><button type="button" class="ghost ui-no">Annuler</button></div></div>`;
+    document.body.appendChild(ov);
+    const done = (v) => { ov.remove(); resolve(v); };
+    ov.querySelectorAll(".ui-choice").forEach((b) => b.addEventListener("click", () => done(b.dataset.v)));
+    ov.querySelector(".ui-no").addEventListener("click", () => done(null));
+    ov.addEventListener("click", (e) => { if (e.target === ov) done(null); });
+  });
+}
+const askPayMethod = (mp, amount) => uiChoice(`${mp.p.first_name} ${mp.p.last_name} — ${amount} CHF\nMoyen de paiement ?`, [["twint", "Twint"], ["cash", "Cash"], ["carte", "Carte"]], mp.st.pay_method || "");
+
+// Écrit l'état complet du joueur (source = mp.st, plus les cases de la ligne) et rafraîchit la liste.
+// Si le prix change ou si le joueur devient absent alors qu'un crédit avait servi à payer, ce crédit lui est rendu.
+async function persistStatus(mp, patch) {
+  const prev = mp.st || {};
+  const next = { ...prev, ...patch };
+  if (next.absent) { next.amount_paid = null; next.pay_method = null; }
+  if (next.amount_paid == null || Number(next.amount_paid) === 0) next.pay_method = null;
+  const prevUsed = Number(prev.credit_used || 0);
+  let used = Number(next.credit_used || 0);
+  const priceChanged = Number(prev.amount_paid ?? -1) !== Number(next.amount_paid ?? -1);
+  if (prevUsed > 0 && (next.absent || priceChanged) && !("credit_used" in patch)) used = 0;   // on rend le crédit
+  next.credit_used = used;
+  const giveBack = prevUsed - used;   // > 0 : on rend du crédit ; < 0 : on en consomme
+  if (giveBack !== 0) {
+    const nc = Math.max(0, Number(mp.p.credit_chf || 0) + giveBack);
+    const { error: e1 } = await sb.from("gz_participants").update({ credit_chf: nc }).eq("id", mp.p.id);
+    if (e1) { uiAlert("Crédit non enregistré : " + e1.message); return false; }
+    mp.p.credit_chf = nc;
+  }
+  const { error } = await sb.from("gz_player_status").upsert({
+    tournament_id: mgrTid, participant_id: mp.p.id,
+    absent: !!next.absent, amount_paid: next.amount_paid == null ? null : Number(next.amount_paid),
+    pay_method: next.pay_method || null, credit_used: used, is_winner: !!next.is_winner, updated_at: new Date().toISOString(),
   }, { onConflict: "tournament_id,participant_id" });
-  // couleur de ligne : vert si payé, rouge si absent
-  tr.classList.remove("gz-paid", "gz-abs");
-  if (absent) tr.classList.add("gz-abs");
-  else if (amount !== "") tr.classList.add("gz-paid");
-  updateMgrTotals();
+  if (error) { uiAlert("Enregistrement impossible : " + error.message); return false; }
+  mp.st = next;
+  renderMgr();
+  return true;
+}
+
+// Cases « Absent » / « Victoire ».
+async function saveStatus(tr) {
+  const mp = mgrPlayer(tr.dataset.pid); if (!mp) return;
+  const absent = tr.querySelector(".gz-absent").checked;
+  const winner = tr.querySelector(".gz-winner") ? tr.querySelector(".gz-winner").checked : false;
+  await persistStatus(mp, { absent, is_winner: winner });
+}
+
+// Choix d'un prix : un montant > 0 ouvre tout de suite la fenêtre du moyen de paiement.
+async function onAmountChange(tr) {
+  const mp = mgrPlayer(tr.dataset.pid); if (!mp) return;
+  const raw = tr.querySelector(".gz-amount").value;
+  if (raw === "") { await persistStatus(mp, { amount_paid: null, pay_method: null }); return; }
+  const amount = Number(raw);
+  if (amount === 0) { await persistStatus(mp, { amount_paid: 0, pay_method: null }); return; }
+  const m = await askPayMethod(mp, amount);
+  if (!m) { renderMgr(); return; }   // annulé : le menu revient à l'ancienne valeur
+  await persistStatus(mp, { amount_paid: amount, pay_method: m });
+}
+async function changePayMethod(tr) {
+  const mp = mgrPlayer(tr.dataset.pid); if (!mp || mp.st.amount_paid == null) return;
+  const m = await askPayMethod(mp, Math.max(0, Number(mp.st.amount_paid) - Number(mp.st.credit_used || 0)));
+  if (m) await persistStatus(mp, { pay_method: m });
+}
+
+// Crédit : sert à reporter un remboursement sur une prochaine inscription.
+async function grantCredit(pid) {
+  const mp = mgrPlayer(pid); if (!mp) return;
+  const v = await uiPrompt(`Ajouter un crédit à ${mp.p.first_name} (CHF).\nUn crédit sert à reporter un remboursement : le joueur le récupérera sur une prochaine inscription. Ce n'est PAS le prix du tournoi.`, "");
+  if (v === null) return;
+  const amt = Number(String(v).replace(",", "."));
+  if (!isFinite(amt) || amt <= 0) return;
+  const nc = Number(mp.p.credit_chf || 0) + amt;
+  const { error } = await sb.from("gz_participants").update({ credit_chf: nc }).eq("id", pid);
+  if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
+  mp.p.credit_chf = nc;
+  renderMgr();
+}
+async function cancelCredit(pid) {
+  const mp = mgrPlayer(pid); if (!mp) return;
+  const credit = Number(mp.p.credit_chf || 0);
+  if (credit <= 0) return;
+  if (!(await uiConfirm(`Annuler le crédit de ${credit} CHF de ${mp.p.first_name} ${mp.p.last_name} ?`))) return;
+  const { error } = await sb.from("gz_participants").update({ credit_chf: 0 }).eq("id", pid);
+  if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
+  mp.p.credit_chf = 0;
+  renderMgr();
+}
+// Déduit le crédit du prix à payer. Si le crédit dépasse le prix, on s'arrête à 0 et le solde reste au joueur.
+async function payWithCredit(pid) {
+  const mp = mgrPlayer(pid); if (!mp) return;
+  const credit = Number(mp.p.credit_chf || 0);
+  if (credit <= 0) return;
+  const price = mp.st.amount_paid == null ? 0 : Number(mp.st.amount_paid);
+  if (!price) { uiAlert("Choisis d'abord le prix de l'inscription, puis utilise le crédit."); return; }
+  const already = Number(mp.st.credit_used || 0);
+  const use = Math.min(credit, price - already);
+  if (use <= 0) { uiAlert("Cette inscription est déjà entièrement couverte par le crédit."); return; }
+  await persistStatus(mp, { credit_used: already + use, pay_method: mp.st.pay_method || "cash" });
 }
 
 function updateMgrTotals() {
-  const t = { cash: 0, twint: 0, carte: 0 };
-  $("gz-mgr-players").querySelectorAll("tr[data-pid]").forEach((tr) => {
-    if (tr.querySelector(".gz-absent").checked) return;
-    const m = tr.querySelector(".gz-method").value;
-    const a = Number(tr.querySelector(".gz-amount").value) || 0;
-    if (m && t[m] !== undefined) t[m] += a;
-  });
+  const t = { cash: 0, twint: 0, carte: 0 }; let credits = 0;
+  for (const { st } of mgrPlayers) {
+    if (st.absent || st.amount_paid == null) continue;
+    const used = Number(st.credit_used || 0);
+    credits += used;
+    const due = Math.max(0, Number(st.amount_paid) - used);
+    if (st.pay_method && t[st.pay_method] !== undefined) t[st.pay_method] += due;
+  }
   const tot = t.cash + t.twint + t.carte;
   $("gz-mgr-totals").innerHTML =
-    `<span>Cash : <b>${t.cash} CHF</b></span><span>Twint : <b>${t.twint} CHF</b></span><span>Carte : <b>${t.carte} CHF</b></span><span>Total : <b>${tot} CHF</b></span>`;
+    `<span>Cash : <b>${t.cash} CHF</b></span><span>Twint : <b>${t.twint} CHF</b></span><span>Carte : <b>${t.carte} CHF</b></span><span>Total encaissé : <b>${tot} CHF</b></span>` +
+    (credits ? `<span>Payé par crédit : <b>${credits} CHF</b></span>` : "");
   mgrCashPlayers = t.cash;
   computeCaisse();
 }
 
 // ---- Finances du tournoi : paiements, salaires, caisse, clôture ----
-let mgrPayments = [], mgrSalaries = [], mgrManagers = [], mgrCashPlayers = 0, mgrTillBalance = 0, mgrTournamentName = "";
+let mgrPayments = [],mgrSalaries = [], mgrManagers = [], mgrCashPlayers = 0, mgrTillBalance = 0, mgrTournamentName = "";
 
 async function loadFinances(tid) {
   const [{ data: pays }, { data: sals }, { data: caisse }, { data: mgrs }] = await Promise.all([

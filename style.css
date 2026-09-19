@@ -3059,3 +3059,30 @@ tr.rm-loss td{background:#fde8e8}
 .dn-kind.dn-mental{background:#fbe4e4;color:#b3261e}
 .dn-body{color:#333;margin-top:2px;white-space:pre-wrap}
 .dn-kind.dn-echange{background:#e0f2fe;color:#075985}
+
+/* ---- GameZone : paiement, crédit, boutons Absent / Victoire ---- */
+.ui-choices{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0 6px}
+.ui-choice{min-width:96px;padding:14px 18px;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--blue-ink);font-weight:700;font-size:1rem;cursor:pointer}
+.ui-choice:hover,.ui-choice.sel{background:var(--blue);border-color:var(--blue);color:#fff}
+.gz-col-pay{white-space:nowrap}
+.gz-pay-chip{display:inline-block;padding:4px 11px;border-radius:999px;font-size:.76rem;font-weight:700;border:1px solid transparent;background:#eef1f7;color:#334;cursor:pointer}
+.gz-pay-twint{background:#e4ecfb;color:#1d3f8f}
+.gz-pay-cash{background:#e7f3ec;color:#1c7a45}
+.gz-pay-carte{background:#f3e8ff;color:#6d28d9}
+.gz-pay-none{background:#fff3e0;color:#b45309;border-color:#f0b968}
+.gz-pay-free{cursor:default}
+.gz-pay-calc{font-size:.72rem;color:#555;margin-top:3px}
+.gz-col-credit{white-space:normal;min-width:170px}
+.gz-credit-cancel{background:#fdeaea;color:#b3261e}
+.gz-credit-cancel:hover{background:#f9d4d4}
+.gz-credit-pay{display:block;margin-top:5px;background:#fde8c8;color:#a15c00}
+.gz-credit-pay:hover{background:#fbd9a5}
+.gz-credit-pay:disabled{background:#f0f1f4;color:#9aa1ad;cursor:not-allowed;font-weight:600}
+.gz-tog{display:inline-flex;cursor:pointer;user-select:none}
+.gz-tog input{position:absolute;opacity:0;width:0;height:0}
+.gz-tog span{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:#6b7280;font-size:.78rem;font-weight:700;transition:background .12s,color .12s,border-color .12s}
+.gz-tog span svg{width:14px;height:14px}
+.gz-tog:hover span{border-color:#b8c0cf}
+.gz-tog input:focus-visible + span{outline:2px solid var(--blue);outline-offset:2px}
+.gz-tog-abs input:checked + span{background:#b3261e;border-color:#b3261e;color:#fff}
+.gz-tog-win input:checked + span{background:#f5b301;border-color:#f5b301;color:#3b2a00}
