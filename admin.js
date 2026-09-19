@@ -9701,6 +9701,7 @@ async function loadMail() {
     $("mailc-restore").addEventListener("click", () => { $("mailc-restore").classList.add("hidden"); $("mailc-modal").classList.remove("hidden"); });
     $("mailc-draft").addEventListener("click", mailComposeSaveDraft);
     $("mail-drafts-btn").addEventListener("click", openMailDrafts);
+    $("mail-ai-btn")?.addEventListener("click", openMailAiKnowledge);   // fiche de connaissances de l'IA
     $("maildrafts-close").addEventListener("click", () => $("maildrafts-modal").classList.add("hidden"));
     $("maildrafts-modal").addEventListener("click", (e) => { if (e.target === $("maildrafts-modal")) $("maildrafts-modal").classList.add("hidden"); });
     $("mailc-send").addEventListener("click", mailComposeSend);
@@ -9725,6 +9726,7 @@ async function loadMail() {
   // Official (organisateur non-staff) : messagerie verrouillée sur tournoi@
   mailTournoiOnly = myAppRoles.includes("organisateur") && !hasAny(myAppRoles, MAIL_STAFF_ROLES);
   if (mailTournoiOnly) mailFilterAddr = MAIL_TOURNOI;
+  $("mail-ai-btn")?.classList.toggle("hidden", mailTournoiOnly);   // la fiche IA est tenue par le secrétariat et les admins
   renderMailAccts();
   renderMailToolbar();
   refreshMailView();
@@ -10066,6 +10068,35 @@ function mailWireCompose() {
   $("mail-d-send").dataset.mid = mailSelId;
   $("mail-d-suggest").addEventListener("click", mailSuggest);
 }
+
+// ---- Fiche de connaissances de l'IA (« Proposer une réponse ») ----
+// Texte libre tenu par le secrétariat : tarifs, qui fait quoi, règles, ton. L'IA le reçoit à chaque brouillon
+// (edge function mail-suggest, table mail_ai_knowledge). Mieux elle est remplie, plus les réponses sont concrètes.
+async function openMailAiKnowledge() {
+  const { data, error } = await sb.from("mail_ai_knowledge").select("body,updated_at,updated_by").eq("id", 1).maybeSingle();
+  if (error) { uiAlert("Fiche IA : " + error.message); return; }
+  const ov = document.createElement("div");
+  ov.className = "ui-modal";
+  const when = data?.updated_at ? `Dernière modification : ${frDateTime(data.updated_at)}` : "";
+  ov.innerHTML = `<div class="ui-box mailai-box">
+      <h2 style="margin:0 0 4px">Fiche de connaissances de l'IA</h2>
+      <p class="muted" style="font-size:.84rem;margin:0 0 10px">L'IA lit ce texte à chaque « ✨ Proposer une réponse ». Écris-le comme tu l'expliquerais à une nouvelle secrétaire : tarifs, horaires, qui contacter pour quoi, règles, ton. Ce qui n'y figure pas, elle ne l'invente pas : elle répond « nous vérifions ». Les passages [À COMPLÉTER] sont ignorés.</p>
+      <textarea class="mailai-text" spellcheck="false"></textarea>
+      <div class="ui-actions" style="align-items:center"><span class="muted mailai-when" style="font-size:.78rem;margin-right:auto">${esc(when)}</span>
+        <button type="button" class="ghost ui-no">Fermer</button><button type="button" class="ui-yes">Enregistrer</button></div></div>`;
+  document.body.appendChild(ov);
+  const ta = ov.querySelector(".mailai-text"); ta.value = data?.body || "";
+  let saved = ta.value;
+  const close = async () => { if (ta.value !== saved && !(await uiConfirm("Fermer sans enregistrer les modifications ?"))) return; ov.remove(); };
+  ov.querySelector(".ui-no").addEventListener("click", close);
+  ov.querySelector(".ui-yes").addEventListener("click", async () => {
+    const btn = ov.querySelector(".ui-yes"); btn.disabled = true; btn.textContent = "Enregistrement…";
+    const { error: e2 } = await sb.from("mail_ai_knowledge").upsert({ id: 1, body: ta.value, updated_at: new Date().toISOString(), updated_by: meId }, { onConflict: "id" });
+    btn.disabled = false; btn.textContent = "Enregistrer";
+    if (e2) { uiAlert("Enregistrement impossible : " + e2.message); return; }
+    saved = ta.value; ov.querySelector(".mailai-when").textContent = "✓ Enregistré à l'instant";
+  });
+}
 const draftToHtml = (t) => "<p>" + esc(t).replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>") + "</p>";
 async function mailSuggest() {
   const id = $("mail-d-send").dataset.mid, st = $("mail-d-sendstatus");
@@ -10075,10 +10106,25 @@ async function mailSuggest() {
     const { data, error } = await sb.functions.invoke("mail-suggest", { body: { id } });
     if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} st.textContent = "Suggestion : " + m; }
     else if (data?.error) { st.textContent = "Suggestion : " + data.error; }
-    else if (data?.draft) { $("mail-d-replyhtml").innerHTML = draftToHtml(data.draft); $("mail-d-replyhtml").focus(); st.textContent = "Brouillon proposé — modifie-le ou envoie-le tel quel."; }
+    else if (data?.draft) {
+      $("mail-d-replyhtml").innerHTML = draftToHtml(data.draft); $("mail-d-replyhtml").focus();
+      st.textContent = "Brouillon proposé — relis-le avant d'envoyer.";
+      mailShowAiNotes(data.notes || "", data.context || null);
+    }
     else { st.textContent = "Pas de suggestion."; }
   } catch (e) { st.textContent = "Suggestion : " + (e?.message || e); }
   btn.disabled = false; btn.textContent = old;
+}
+// Notes de l'IA pour le staff (ce qu'elle n'a pas pu confirmer) : affichées SOUS l'éditeur, jamais dans le mail.
+function mailShowAiNotes(notes, ctx) {
+  const ed = $("mail-d-replyhtml"); if (!ed) return;
+  let nb = $("mail-d-ainotes");
+  if (!nb) { nb = document.createElement("div"); nb.id = "mail-d-ainotes"; nb.className = "mail-ainotes"; ed.insertAdjacentElement("afterend", nb); }
+  const used = ctx ? [ctx.fiche ? "fiche de connaissances" : "", ctx.echanges ? `${ctx.echanges} échange${ctx.echanges > 1 ? "s" : ""} précédent${ctx.echanges > 1 ? "s" : ""}` : "", ctx.exemples ? `${ctx.exemples} réponse${ctx.exemples > 1 ? "s" : ""} déjà envoyée${ctx.exemples > 1 ? "s" : ""}` : ""].filter(Boolean).join(" · ") : "";
+  nb.innerHTML = (notes
+      ? `<b>À vérifier avant d'envoyer</b> <span class="muted">— note de l'IA, non envoyée</span><div class="mail-ainotes-t">${esc(notes).replace(/\n/g, "<br>")}</div>`
+      : `<b>Rien à signaler</b> <span class="muted">— l'IA a trouvé toutes les informations</span>`)
+    + (used ? `<div class="mail-ainotes-src muted">Sources utilisées : ${esc(used)}</div>` : "");
 }
 function renderMailFiles() {
   const box = $("mail-d-files");

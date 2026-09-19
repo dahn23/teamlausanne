@@ -3130,3 +3130,14 @@ tr.rm-loss td{background:#fde8e8}
 .mr-role{display:inline-block;margin-left:4px;padding:1px 8px;border-radius:999px;font-size:.68rem;font-weight:700}
 .mr-role-coach{background:#e6ecfb;color:var(--blue)}
 .mr-role-joueur{background:#eef7d6;color:var(--fluo-ink)}
+
+/* ---- Messagerie : fiche de connaissances de l'IA et notes « à vérifier » ---- */
+.mailai-box{box-sizing:border-box;width:100%;max-width:860px;text-align:left;max-height:calc(100vh - 40px);overflow:auto}
+.mailai-box .ui-actions{flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:600px){.ui-modal:has(.mailai-box){padding:10px}.mailai-box{padding:16px 14px 14px}.mailai-box h2{font-size:1.15rem}.mailai-text{height:56vh;font-size:.8rem}}
+.mailai-text{width:100%;box-sizing:border-box;height:min(62vh,640px);padding:12px 14px;border:1px solid var(--line);border-radius:12px;
+  font:500 .86rem/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;resize:vertical;background:#fbfcfe;color:var(--ink)}
+.mailai-text:focus{outline:2px solid var(--blue);outline-offset:1px}
+.mail-ainotes{margin:8px 0 4px;padding:9px 12px;border-radius:10px;background:#fff8e6;border:1px solid #f0d48a;font-size:.84rem;color:#5b4300}
+.mail-ainotes-t{margin-top:4px;line-height:1.45}
+.mail-ainotes-src{margin-top:5px;font-size:.76rem}

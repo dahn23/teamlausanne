@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=219" />
+  <link rel="stylesheet" href="style.css?v=220" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -774,6 +774,7 @@
             <div class="mail-row">
               <button id="mail-new">✉ Nouveau message</button>
               <button type="button" id="mail-drafts-btn" class="ghost" title="Mes brouillons">Brouillons</button>
+              <button type="button" id="mail-ai-btn" class="ghost" title="Ce que l'IA sait de l'académie quand elle propose une réponse : tarifs, horaires, qui contacter…">✨ Fiche IA</button>
               <button type="button" id="mail-filters-toggle" class="ghost mail-filters-toggle" aria-expanded="false">Filtres ▾</button>
               <button type="button" id="mail-notif-btn" class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ic-bell" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="mail-notif-lbl">Activer les notifs</span></button>
               <span class="spacer"></span>
