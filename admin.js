@@ -10920,6 +10920,7 @@ async function fetchAllEtudesAtt(dayIds, cols = "*") {
 // Le repérage se fait sur le TYPE de cours, pas sur une liste d'élèves : tout
 // type dont le nom contient « priv » compte (Privé, Pro Privé, Sport-Études
 // Privé). Un nouvel élève avec une leçon privée apparaît donc tout seul.
+const ET_DEBUT = "12:45", ET_FIN = "17:15";   // créneau d'études : sert à écarter les leçons privées qui tombent en dehors
 async function etPrivees(jours) {
   const vide = { parJour: {}, parCellule: {} };
   if (!jours.length) return vide;
@@ -10927,12 +10928,15 @@ async function etPrivees(jours) {
   const ids = (types || []).map((t) => t.id);
   if (!ids.length) return vide;
 
-  const { data: cours } = await sb.from("courses")
+  const { data: tous } = await sb.from("courses")
     .select("id,course_date,start_time,end_time")
     .in("course_type_id", ids)
     .gte("course_date", jours[0].day)
     .lte("course_date", jours[jours.length - 1].day);
-  if (!cours || !cours.length) return vide;
+  // Seules comptent les leçons qui MORDENT sur le créneau d'études (12:45–17:15) : une leçon finie avant
+  // 12:45 ou commencée à partir de 17:15 ne retire personne de l'étude, elle n'a rien à faire ici.
+  const cours = (tous || []).filter((c) => String(c.end_time).slice(0, 5) > ET_DEBUT && String(c.start_time).slice(0, 5) < ET_FIN);
+  if (!cours.length) return vide;
 
   const { data: parts } = await sb.from("course_participants")
     .select("course_id,child_person_id").in("course_id", cours.map((c) => c.id));
