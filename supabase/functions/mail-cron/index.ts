@@ -142,6 +142,8 @@ const isDmarcReport = (subject: string | null, from: string | null) =>
 const dmarcState = (subject: string | null, from: string | null) =>
   isDmarcReport(subject, from) ? { is_read: true, status: "traite", pushed: true } : { is_read: false, status: "a_traiter", pushed: false };
 // Boîtes Hostpoint relevées en plus du hub (secret = mot de passe de la boîte).
+// Diagnostic renvoyé par la fonction : quels dossiers ont été reconnus dans chaque boîte.
+const DIAG: Record<string, unknown> = {};
 const EXTRA_BOXES: Record<string, string> = {
   "tournoi@teamlausanne.ch": "GMAIL_PASS_TOURNOI",
   "raphael@teamlausanne.ch": "GMAIL_PASSE_RAPHAEL",
@@ -155,7 +157,15 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
   await client.connect();
   try {
     let archiveBox: string | null = null, sentBox: string | null = null, junkBox: string | null = null;
-    try { for (const b of await client.list()) { const su = (b as { specialUse?: string }).specialUse; if (su === "\\All") archiveBox = (b as { path: string }).path; if (su === "\\Sent") sentBox = (b as { path: string }).path; if (su === "\\Junk") junkBox = (b as { path: string }).path; } } catch (_) {}
+    let folderNames: string[] = [];
+    try {
+      const boxes = await client.list();
+      folderNames = boxes.map((b: unknown) => (b as { path: string }).path);
+      for (const b of boxes) { const su = (b as { specialUse?: string }).specialUse; if (su === "\\All") archiveBox = (b as { path: string }).path; if (su === "\\Sent") sentBox = (b as { path: string }).path; if (su === "\\Junk") junkBox = (b as { path: string }).path; }
+      // Serveur qui n'annonce pas le rôle du dossier : on le reconnaît à son nom.
+      if (!junkBox) junkBox = folderNames.find((p) => /^(INBOX[./])?(spam|junk|pourriel|courrier ind)/i.test(p)) || null;
+    } catch (_) {}
+    DIAG[box] = { junk: junkBox, sent: sentBox, dossiers: folderNames };
     if (hp) archiveBox = null;                       // Hostpoint : on laisse les mails dans la boîte de réception
     const inMax = hp ? 25 : IN_MAX;                  // sans archivage, on regarde plus large (les doublons sont écartés)
     const uidTag = (u: number) => (hp ? `hp:${box}:${u}` : String(u));
@@ -342,7 +352,7 @@ Deno.serve(async (req) => {
     let push: unknown = { found: 0, sent: 0 };
     try { push = await sendPush(supa); } catch (e) { push = { error: String((e as Error)?.message || e) }; }
 
-    return json({ ok: !Object.keys(errors).length, ...st, push, errors });
+    return json({ ok: !Object.keys(errors).length, ...st, push, errors, dossiers: DIAG });
   } catch (e) {
     return json({ error: String((e as Error)?.message || e) }, 500);
   }
