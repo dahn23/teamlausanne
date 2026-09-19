@@ -3109,3 +3109,20 @@ tr.rm-loss td{background:#fde8e8}
 .et-priv-l .et-balle{grid-column:1;grid-row:1}
 .et-priv-l span{grid-column:2;min-width:0;overflow-wrap:anywhere;line-height:1.3}
 .et-priv-l + .et-priv-l{margin-top:5px;padding-top:5px;border-top:1px dashed #cfdcfa}
+
+/* ---- Pastilles « Team Lausanne » : matchs récents (raquette) et anniversaire (cadeau) ----
+   Trait fin comme les icônes du menu, couleurs de la charte : bleu pour l'info, vert fluo pour la perf. */
+.tl-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
+  vertical-align:middle;flex:0 0 auto;border:0;padding:0;line-height:1;box-sizing:border-box}
+.tl-ico svg{width:14px;height:14px;display:block}
+.tl-ico-match{background:#e6ecfb;color:var(--blue)}
+.tl-ico-perf{background:var(--fluo);color:var(--fluo-ink);box-shadow:0 0 0 1.5px var(--fluo-d) inset}
+.tl-ico-bday{background:var(--blue);color:var(--fluo);width:20px;height:20px}
+.tl-ico-bday svg{width:12px;height:12px}
+.att-rm.tl-ico{filter:none;font-size:0;cursor:pointer;transition:transform .12s}
+.att-rm.tl-ico:hover{transform:scale(1.15)}
+.att-rm.tl-ico.tl-ico-match:hover{background:#d3defa}
+.att-rm.tl-ico.tl-ico-perf:hover{background:var(--fluo-d)}
+.att-chip .tl-ico-bday{margin-right:2px}
+.cw-ev .tl-ico-bday{width:16px;height:16px}
+.cw-ev .tl-ico-bday svg{width:10px;height:10px}
