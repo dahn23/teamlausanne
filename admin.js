@@ -1690,6 +1690,7 @@ async function saveWinterCell(court, slot, name, td) {
   const { error } = await winterUpsert(court, slot);
   if (error) { inp.classList.add("wp-err"); return; }
   inp.classList.add("wp-saved"); setTimeout(() => inp.classList.remove("wp-saved"), 800);
+  renderWinterTotals();   // un nom ajouté ou retiré change l'encadré par personne
 }
 async function cycleWinterStatus(court, slot, td) {
   const k = `${wpDay}_${court}_${slot}`;
@@ -1724,7 +1725,35 @@ function renderWinterTotals() {
     <div class="wp-tiles wp-tiles-main">
       ${tile("big", "Semaine — confirmé", chf(conf), "membre + non-membre")}${tile("pot", "+ pré-réservé", chf(pre), "potentiel")}
       ${WP_DAYS.map(([lbl, d]) => tile("day", lbl, chf(perDay[d] || 0), "confirmé")).join("")}
-    </div>`;
+    </div>` + winterFocusBox("renato", "Renato", chf, tile);
+}
+// Encadré d'une personne dans le planning d'hiver : toutes les cases dont le nom CONTIENT le mot cherché
+// (« RENATO », « RENATO (Della Piana) »…), sur la semaine entière, avec le prix estimé (pré-réservé) et confirmé.
+function winterFocusBox(needle, label, chf, tile) {
+  const n = wpNorm(needle);
+  let cases = 0, est = 0, conf = 0, nEst = 0, nConf = 0, nFree = 0, nLibre = 0; const variants = {};
+  for (const k of Object.keys(wpName)) {
+    const name = wpName[k]; if (!name || !wpNorm(name).includes(n)) continue;
+    const p = k.split("_"), day = Number(p[0]), slot = Number(p[2]), st = wpStatus[k] || "libre";
+    cases++; variants[name.trim()] = (variants[name.trim()] || 0) + 1;
+    const pr = wpPriceOf(st, day, slot);
+    if (st === "membre" || st === "normal") { conf += pr; nConf++; }
+    else if (st === "pre_m" || st === "pre_nm") { est += pr; nEst++; }
+    else if (st === "gratuit") nFree++;
+    else nLibre++;
+  }
+  if (!cases) return "";
+  const pl = (x) => x + " case" + (x > 1 ? "s" : "");
+  const vtxt = Object.entries(variants).sort((a, b) => b[1] - a[1]).map(([v, c]) => `${esc(v)} (${c})`).join(" · ");
+  const rest = [nFree ? pl(nFree) + " gratuite" + (nFree > 1 ? "s" : "") : "", nLibre ? pl(nLibre) + " sans tarif" : ""].filter(Boolean).join(" · ");
+  return `<h3 class="wp-focus-h">${esc(label)} <span class="muted">— abonnements d'hiver, prix pour la saison</span></h3>
+    <div class="wp-tiles wp-tiles-main">
+      ${tile("gratuit", "Cases", String(cases), "1 case = 1 h fixe par semaine")}
+      ${tile("pot", "Estimé (pré-réservé)", chf(est), pl(nEst))}
+      ${tile("big", "Confirmé", chf(conf), pl(nConf))}
+      ${tile("day", "Total estimé + confirmé", chf(est + conf))}
+    </div>
+    <p class="muted wp-focus-note">Noms comptés : ${vtxt}${rest ? " — " + rest : ""}</p>`;
 }
 
 // ===================================================================

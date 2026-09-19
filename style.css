@@ -3086,3 +3086,6 @@ tr.rm-loss td{background:#fde8e8}
 .gz-tog input:focus-visible + span{outline:2px solid var(--blue);outline-offset:2px}
 .gz-tog-abs input:checked + span{background:#b3261e;border-color:#b3261e;color:#fff}
 .gz-tog-win input:checked + span{background:#f5b301;border-color:#f5b301;color:#3b2a00}
+.wp-focus-h{margin:18px 0 8px;font-size:1rem;color:var(--blue-ink)}
+.wp-focus-h .muted{font-weight:400;font-size:.85rem}
+.wp-focus-note{font-size:.8rem;margin:6px 0 0}
