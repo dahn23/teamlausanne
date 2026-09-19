@@ -10398,7 +10398,8 @@ function renderMailList() {
 }
 // Actions rapides depuis la liste (sans ouvrir le message).
 async function mailQuickTreat(m) {
-  const upd = { status: "traite", treated_by: myPersonId, treated_at: new Date().toISOString() };
+  // Traiter un mail, c'est forcément l'avoir vu : on le marque lu du même coup (sinon la pastille « non lu » restait sur mobile).
+  const upd = { status: "traite", is_read: true, treated_by: myPersonId, treated_at: new Date().toISOString() };
   Object.assign(m, upd); mailSyncCache(m);
   await sb.from("mail_messages").update(upd).eq("id", m.id);
   renderMailAccts(); renderMailToolbar(); refreshMailView();
@@ -10532,7 +10533,7 @@ async function mailSetStatus(m, st) {
   }
   const upd = { status: st };
   m.status = st;
-  if (st === "traite") { upd.treated_by = myPersonId; upd.treated_at = new Date().toISOString(); m.treated_by = myPersonId; m.treated_at = upd.treated_at; }
+  if (st === "traite") { upd.treated_by = myPersonId; upd.treated_at = new Date().toISOString(); upd.is_read = true; m.treated_by = myPersonId; m.treated_at = upd.treated_at; m.is_read = true; }
   mailSyncCache(m);
   await sb.from("mail_messages").update(upd).eq("id", m.id);
   openMail(m.id);
