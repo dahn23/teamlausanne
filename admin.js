@@ -3973,7 +3973,13 @@ async function loadFinances(tid) {
     '<option value="autre">Autre (saisir)…</option>';
   const { data: bal } = await sb.rpc("gz_till_balance");
   mgrTillBalance = Number(bal) || 0;
-  $("gz-caisse-start").value = mgrTillBalance;
+  // Tournoi déjà clôturé : on montre le fond FIGÉ à la clôture. Le solde actuel de la Caisse contient déjà
+  // la ligne de ce tournoi (et des suivants) : l'afficher ici ferait croire que le fond a bougé.
+  const closed = !!caisse?.closed;
+  $("gz-caisse-start").value = closed && caisse.start_amount != null ? caisse.start_amount : mgrTillBalance;
+  $("gz-caisse-counted").disabled = closed;
+  $("gz-close-tournament").disabled = closed;
+  $("gz-close-status").textContent = closed ? `✓ Clôturé le ${frDate(caisse.closed_at)} — la caisse de ce tournoi est figée.` : "";
   $("gz-caisse-counted").value = caisse?.counted_amount ?? "";
   renderPayments(); renderSalaries(); computeCaisse();
 }
