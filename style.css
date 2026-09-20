@@ -390,7 +390,15 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .gz-photo-wrap{display:inline-flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:4px}
 .gz-photo-btn{white-space:nowrap}
 .gz-photo-thumb{width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
-.gz-photo-btn{background:#eef1f7;color:var(--blue-ink);font-size:.75rem;padding:5px 8px;font-weight:700}
+.gz-photo-btn{display:inline-flex;align-items:center;gap:6px;border-radius:999px;font-size:.76rem;padding:4px 11px 4px 4px;font-weight:700;
+  background:#e6ecfb;color:var(--blue);transition:background .12s,transform .12s}
+.gz-photo-btn svg{width:22px;height:22px;padding:4px;box-sizing:border-box;border-radius:50%;background:#fff;color:var(--blue);flex:0 0 auto}
+.gz-photo-btn:hover{background:#d3defa}
+.gz-photo-btn:active{transform:scale(.97)}
+/* « Photo » = action principale : bleu Team Lausanne + pastille fluo */
+.gz-photo-cam{background:var(--blue);color:#fff}
+.gz-photo-cam svg{background:var(--fluo);color:var(--fluo-ink)}
+.gz-photo-cam:hover{background:var(--blue-ink)}
 .gz-mail-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#fff}
 .gz-mail-head{display:flex;justify-content:space-between;align-items:center}
 .gz-mail-en{font-size:.85rem;display:inline-flex;align-items:center;gap:6px}

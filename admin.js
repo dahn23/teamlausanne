@@ -2994,7 +2994,9 @@ async function loadRecentMatches() {
 }
 // Icônes « Team Lausanne » (trait fin, couleurs de la charte) à la place des émojis 🎾 🔥 🎁.
 const ICO_TL_RAQUETTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="14.5" cy="8.5" rx="5.5" ry="6.5" transform="rotate(35 14.5 8.5)"/><path d="M11 13.5 4.5 20"/><path d="M12.2 6.2l4.6 4.6M10.4 8.6l4.6 4.6M14.3 4.4l4.6 4.6"/></svg>';
-const ICO_TL_CADEAU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8" width="17" height="4.5" rx="1.2"/><path d="M5.2 12.5V19a1.5 1.5 0 0 0 1.5 1.5h10.6a1.5 1.5 0 0 0 1.5-1.5v-6.5"/><path d="M12 8v12.5"/><path d="M12 8C10.6 4.3 6.4 4 6.4 6.3 6.4 8 9.6 8 12 8zM12 8c1.4-3.7 5.6-4 5.6-1.7C17.6 8 14.4 8 12 8z"/></svg>';
+const ICO_TL_PHOTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 8h3l1.4-2.2h6.2L16.5 8h3A1.5 1.5 0 0 1 21 9.500V18a1.500 1.500 0 0 1-1.500 1.500h-15A1.500 1.500 0 0 1 3 18V9.500A1.500 1.500 0 0 1 4.500 8z"/><circle cx="12" cy="13.4" r="3.4"/></svg>';
+const ICO_TL_GALERIE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6.500" width="14.500" height="13" rx="2"/><path d="M6.500 3.500h12A2.500 2.500 0 0 1 21 6v10"/><circle cx="7.600" cy="10.800" r="1.300"/><path d="M3.500 17.500l4-3.800 3 2.800 2.600-2.300 4.200 3.800"/></svg>';
+const ICO_TL_CADEAU ='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8" width="17" height="4.5" rx="1.2"/><path d="M5.2 12.5V19a1.5 1.5 0 0 0 1.5 1.5h10.6a1.5 1.5 0 0 0 1.5-1.5v-6.5"/><path d="M12 8v12.5"/><path d="M12 8C10.6 4.3 6.4 4 6.4 6.3 6.4 8 9.6 8 12 8zM12 8c1.4-3.7 5.6-4 5.6-1.7C17.6 8 14.4 8 12 8z"/></svg>';
 // Pastille anniversaire (non cliquable) : même gabarit que la pastille « matchs ».
 const bdayBadge = () => `<span class="tl-ico tl-ico-bday" title="C'est son anniversaire">${ICO_TL_CADEAU}</span>`;
 function rmBadge(pid) {
@@ -3725,8 +3727,8 @@ function renderMgr() {
         <label class="gz-tog gz-tog-win" title="Vainqueur"><input type="checkbox" class="gz-winner" ${st.is_winner ? "checked" : ""} /><span>${ICO_CUP} Victoire</span></label>
         <div class="gz-photo-wrap" style="${st.is_winner ? "" : "display:none"}">
           ${st.photo_url ? `<img src="${st.photo_url}" class="gz-photo-thumb" />` : ""}
-          <button type="button" class="gz-photo-btn" title="Prendre la photo maintenant">📷 ${st.photo_url ? "Refaire" : "Photo"}</button>
-          <button type="button" class="gz-photo-btn gz-photo-gal" title="Choisir une photo déjà prise">🖼 Galerie</button>
+          <button type="button" class="gz-photo-btn gz-photo-cam" title="Prendre la photo maintenant">${ICO_TL_PHOTO}<span class="gz-photo-lbl">${st.photo_url ? "Refaire" : "Photo"}</span></button>
+          <button type="button" class="gz-photo-btn gz-photo-gal" title="Choisir une photo déjà prise">${ICO_TL_GALERIE}<span>Galerie</span></button>
           <input type="file" accept="image/*" capture="environment" class="gz-photo-file" style="display:none" />
           <input type="file" accept="image/*" class="gz-photo-file-gal" style="display:none" />
         </div>` : ""}</td>
@@ -3804,7 +3806,7 @@ async function uploadPhoto(tr, file) {
   const wrap = tr.querySelector(".gz-photo-wrap");
   wrap.querySelector("img")?.remove();
   wrap.insertAdjacentHTML("afterbegin", `<img src="${url}" class="gz-photo-thumb" />`);
-  tr.querySelector(".gz-photo-btn").textContent = "📷 Refaire";
+  tr.querySelector(".gz-photo-lbl").textContent = "Refaire";
 }
 
 // ---- Paiement d'un joueur : prix, moyen de paiement, crédit ----
