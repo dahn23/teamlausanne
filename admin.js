@@ -3725,8 +3725,10 @@ function renderMgr() {
         <label class="gz-tog gz-tog-win" title="Vainqueur"><input type="checkbox" class="gz-winner" ${st.is_winner ? "checked" : ""} /><span>${ICO_CUP} Victoire</span></label>
         <div class="gz-photo-wrap" style="${st.is_winner ? "" : "display:none"}">
           ${st.photo_url ? `<img src="${st.photo_url}" class="gz-photo-thumb" />` : ""}
-          <button type="button" class="gz-photo-btn">${st.photo_url ? "Refaire" : "Photo"}</button>
-          <input type="file" accept="image/*" class="gz-photo-file" style="display:none" />
+          <button type="button" class="gz-photo-btn" title="Prendre la photo maintenant">📷 ${st.photo_url ? "Refaire" : "Photo"}</button>
+          <button type="button" class="gz-photo-btn gz-photo-gal" title="Choisir une photo déjà prise">🖼 Galerie</button>
+          <input type="file" accept="image/*" capture="environment" class="gz-photo-file" style="display:none" />
+          <input type="file" accept="image/*" class="gz-photo-file-gal" style="display:none" />
         </div>` : ""}</td>
     </tr>`;
   }).join("");
@@ -3738,6 +3740,9 @@ function renderMgr() {
     if (btn && file) {
       btn.addEventListener("click", () => file.click());
       file.addEventListener("change", () => uploadPhoto(tr, file));
+      // Android n'offre pas le choix appareil photo / galerie tout seul : deux boutons distincts
+      const gal = tr.querySelector(".gz-photo-gal"), fileGal = tr.querySelector(".gz-photo-file-gal");
+      if (gal && fileGal) { gal.addEventListener("click", () => fileGal.click()); fileGal.addEventListener("change", () => uploadPhoto(tr, fileGal)); }
     }
     tr.querySelector(".gz-credit-add")?.addEventListener("click", () => grantCredit(tr.dataset.pid));
     tr.querySelector(".gz-credit-cancel")?.addEventListener("click", () => cancelCredit(tr.dataset.pid));
@@ -3799,7 +3804,7 @@ async function uploadPhoto(tr, file) {
   const wrap = tr.querySelector(".gz-photo-wrap");
   wrap.querySelector("img")?.remove();
   wrap.insertAdjacentHTML("afterbegin", `<img src="${url}" class="gz-photo-thumb" />`);
-  tr.querySelector(".gz-photo-btn").textContent = "Refaire";
+  tr.querySelector(".gz-photo-btn").textContent = "📷 Refaire";
 }
 
 // ---- Paiement d'un joueur : prix, moyen de paiement, crédit ----
