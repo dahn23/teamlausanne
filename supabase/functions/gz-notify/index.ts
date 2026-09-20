@@ -24,7 +24,17 @@ const HOSTPOINT_DOMAINS = ["teamlausanne.ch"];
 const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
 const smtpHost = (addr: string) => (isHostpoint(addr) ? "asmtp.mail.hostpoint.ch" : "smtp.gmail.com");
 const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
-const fillVars = (s: string, m: Record<string, string>) => String(s || "").replace(/\{(\w+)\}/g, (mm, k) => (m[k] != null ? m[k] : mm));
+// Accord garçon / fille dans les modèles : {champion|championne}, {venu|venue} → 1re forme pour un garçon, 2e pour une fille.
+// Le sexe vient du n° de licence Swiss Tennis (3e bloc : 1er chiffre 1-4 = garçon, 5-8 = fille) ; à défaut, du tableau
+// (WS… = filles). Vérifié le 20.09.2026 : les deux concordent sur toutes les inscriptions en base.
+const isGirl = (lic: string | null | undefined, epreuves: string[]): boolean => {
+  const m = String(lic || "").trim().match(/^\d+\.\d{2}\.(\d)\d{2}\.\d+$/);
+  if (m) return Number(m[1]) >= 5;
+  return epreuves.some((e) => /^W/i.test(String(e || "").trim()));
+};
+const fillVars = (s: string, m: Record<string, string>, girl = false) => String(s || "")
+  .replace(/\{([^{}|]*)\|([^{}|]*)\}/g, (_mm, a, b) => (girl ? b : a))
+  .replace(/\{(\w+)\}/g, (mm, k) => (m[k] != null ? m[k] : mm));
 const toHtml = (t: string) => "<p>" + String(t || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>") + "</p>";
 
 // deno-lint-ignore no-explicit-any
@@ -67,8 +77,8 @@ async function sendForTournament(supa: any, tx: any, tId: string, key: string, o
   ids = ids.slice(0, limit);
   if (!ids.length) return { sent: 0, remaining: 0 };
 
-  const { data: parts } = await supa.from("gz_participants").select("id,first_name,email").in("id", ids);
-  const pById: Record<string, { first_name: string; email: string }> = {};
+  const { data: parts } = await supa.from("gz_participants").select("id,first_name,email,license_no").in("id", ids);
+  const pById: Record<string, { first_name: string; email: string; license_no?: string | null }> = {};
   for (const p of (parts || [])) pById[p.id] = p;
   const photoById: Record<string, string> = {};
   for (const s of (status || [])) if (s.photo_url) photoById[s.participant_id] = s.photo_url;
@@ -90,8 +100,9 @@ async function sendForTournament(supa: any, tx: any, tId: string, key: string, o
     const p = pById[id];
     if (!p || !p.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email)) { await supa.from("gz_mail_sent").upsert({ tournament_id: tId, participant_id: id, template_key: key, email: p?.email || null }); continue; }
     const vars = { ...base, prenom: p.first_name || "" };
-    const subject = fillVars(tpl.subject || "", vars);
-    const bodyTxt = fillVars(tpl.body || "", vars);
+    const girl = isGirl(p.license_no, (entries || []).filter((e: { participant_id: string }) => e.participant_id === id).map((e: { epreuve: string }) => e.epreuve));
+    const subject = fillVars(tpl.subject || "", vars, girl);
+    const bodyTxt = fillVars(tpl.body || "", vars, girl);
     const imgUrl = key === "vainqueur" ? (photoById[id] || tpl.image_url) : tpl.image_url;
     const img = imgUrl ? `<div style="margin-top:14px"><img src="${imgUrl}" style="max-width:100%"/></div>` : "";
     const html = `<div style="font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111">${toHtml(bodyTxt)}${img}</div>`;
@@ -120,7 +131,7 @@ Deno.serve(async (req) => {
     const hubPass = cleanPass(hub, Deno.env.get("GMAIL_APP_PASSWORD") || "");
     const tPass = cleanPass(TOURNOI, Deno.env.get("GMAIL_PASS_TOURNOI") || "");
     const cronSecret = Deno.env.get("CRON_SECRET") || "";
-    const origin = (Deno.env.get("PUBLIC_ORIGIN") || "https://teamlausanne.netlify.app").replace(/\/$/, "");
+    const origin = (Deno.env.get("PUBLIC_ORIGIN") || "https://app.teamlausanne.ch").replace(/\/$/, "");
     if (!hub || !hubPass) return json({ error: "secrets mail manquants" }, 400);
     const supa = createClient(url, service);
 

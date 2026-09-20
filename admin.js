@@ -4266,7 +4266,9 @@ const GZ_MYTENNIS_LIST = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 // Un lien saisi a la main (registration_url) reste prioritaire ; sinon repli sur la liste.
 const gzTournoiUrl = (t) => (t?.registration_url && t.registration_url.trim())
   || (t?.swiss_id ? "https://www.mytennis.ch/fr/tournois/" + String(t.swiss_id).replace(/\D/g, "") : GZ_MYTENNIS_LIST);
-const gzFillVars = (s, map) => String(s || "").replace(/\{(\w+)\}/g, (mm, k) => (map[k] != null ? map[k] : mm));
+// {champion|championne} : accord garçon / fille (fait par gz-notify à l'envoi réel) ; le test prend la 1re forme.
+const gzFillVars = (s, map) => String(s || "").replace(/\{([^{}|]*)\|([^{}|]*)\}/g, (mm, a) => a)
+  .replace(/\{(\w+)\}/g, (mm, k) => (map[k] != null ? map[k] : mm));
 async function gzMailTest(key, card) {
   const to = card.querySelector(".gz-mail-testmail").value.trim();
   const st = card.querySelector(".gz-mail-teststatus");
