@@ -4281,6 +4281,9 @@ async function gzMailTest(key, card) {
     if (t) { const { data: mgrs } = await sb.from("gz_managers").select("person_id").eq("tournament_id", t.id); const names = (mgrs || []).map((x) => pName(x.person_id)).filter((n) => n && n !== "?"); if (names.length) respNames = names; }
     const respo = respNames.join(", ") || pName(myPersonId);
     const meFirst = (people.find((p) => p.id === myPersonId) || {}).first_name || "Prénom";
+    // Même règle que l'envoi réel (gz-notify) : le sondage actif sans étiquette ; sinon la liste des tournois.
+    const { data: sv } = await sb.from("gz_surveys").select("id").eq("active", true).is("tag", null).limit(1);
+    const gzSurveyLink = sv?.[0] ? `https://app.teamlausanne.ch/sondage.html?s=${sv[0].id}` : GZ_MYTENNIS_LIST;
     const fill = {
       prenom: meFirst,
       tournoi: t?.name || "Tournoi test",
@@ -4289,7 +4292,7 @@ async function gzMailTest(key, card) {
       responsables: respo,
       resp_mot: respNames.length > 1 ? "Responsables" : "Responsable",
       lien_tournois: GZ_MYTENNIS_LIST,
-      lien_sondage: "https://teamlausanne.ch",
+      lien_sondage: gzSurveyLink,
     };
     const subject = "[TEST] " + gzFillVars(card.querySelector(".gz-mail-subject").value.trim(), fill);
     const body = gzFillVars(card.querySelector(".gz-mail-body").value, fill);
