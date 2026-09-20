@@ -3501,6 +3501,9 @@ async function openTournamentMgr(tid) {
   const { data: t } = await sb.from("gz_tournaments").select("*").eq("id", tid).single();
   mgrIsGz = !!t.is_gamezone;
   mgrTournamentName = t.name || "Tournoi";
+  // Libellé des lignes de caisse : les GameZone portent tous le même nom, c'est la date qui les distingue.
+  mgrCaisseLabel = mgrIsGz ? `GameZone du ${frDate(t.tournament_date) || "?"}`
+    : `${mgrTournamentName}${t.tournament_date ? " (" + frDate(t.tournament_date) + ")" : ""}`;
   $("gz-mgr-title").textContent = `Gérer — ${t.name || "tournoi"}${t.tournament_date ? " (" + frDate(t.tournament_date) + ")" : ""}`;
   $("gz-mgr-gz").checked = mgrIsGz;
   $("gz-mgr-url").value = t.registration_url || "";
@@ -3940,7 +3943,7 @@ function updateMgrTotals() {
 }
 
 // ---- Finances du tournoi : paiements, salaires, caisse, clôture ----
-let mgrPayments = [],mgrSalaries = [], mgrManagers = [], mgrCashPlayers = 0, mgrTillBalance = 0, mgrTournamentName = "";
+let mgrPayments = [],mgrSalaries = [], mgrManagers = [], mgrCashPlayers = 0, mgrTillBalance = 0, mgrTournamentName = "", mgrCaisseLabel = "";
 
 async function loadFinances(tid) {
   const [{ data: pays }, { data: sals }, { data: caisse }, { data: mgrs }] = await Promise.all([
@@ -4020,8 +4023,8 @@ function caisseNumbers() {
   const counted = $("gz-caisse-counted").value === "" ? null : Number($("gz-caisse-counted").value);
   const cashPay = mgrPayments.filter((p) => p.method === "cash").reduce((a, p) => a + Number(p.amount || 0), 0);
   const cashOut = mgrSalaries.reduce((a, s) => a + Number(s.amount || 0), 0);
-  const expected = start + mgrCashPlayers + cashPay - cashOut;
-  return { start, counted, cashIn: mgrCashPlayers + cashPay, cashOut, expected, diff: counted === null ? null : counted - expected };
+  const expected = round2(start + mgrCashPlayers + cashPay - cashOut);   // arrondi : le fond peut avoir des centimes (484.95)
+  return { start, counted, cashIn: round2(mgrCashPlayers + cashPay), cashOut, expected, diff: counted === null ? null : round2(counted - expected) };
 }
 function computeCaisse() {
   if (!$("gz-caisse-calc")) return;
@@ -4046,8 +4049,15 @@ async function closeTournament() {
   if (!cz?.closed) {
     // Passe par une fonction SECURITY DEFINER : le responsable du tournoi peut
     // poster ce mouvement de clôture sans avoir un accès général à la caisse.
-    const { error: ce } = await sb.rpc("gz_add_tournament_caisse", { p_tournament: mgrTid, p_amount: c.cashIn - c.cashOut, p_label: mgrTournamentName });
+    const { error: ce } = await sb.rpc("gz_add_tournament_caisse", { p_tournament: mgrTid, p_amount: round2(c.cashIn - c.cashOut), p_label: `Rentrées/dépenses — ${mgrCaisseLabel}` });
     if (ce) { alert("Caisse : " + ce.message); return; }
+    // Si l'argent compté diffère du théorique, une 2e ligne ramène le solde de la Caisse à l'argent réel :
+    // sinon le fond de caisse du tournoi suivant part faux.
+    const ecart = c.counted === null ? 0 : round2(c.diff);
+    if (ecart !== 0) {
+      const { error: ee } = await sb.rpc("gz_add_tournament_caisse", { p_tournament: mgrTid, p_amount: ecart, p_label: `Écart de caisse — ${mgrCaisseLabel}` });
+      if (ee) { alert("Caisse (écart) : " + ee.message); return; }
+    }
   }
   await sb.from("gz_caisse").update({ closed: true, closed_at: new Date().toISOString() }).eq("tournament_id", mgrTid);
   // Clôture via fonction SECURITY DEFINER : après passage à « Clôturé », le
@@ -4063,7 +4073,7 @@ async function loadCaisseTab() {
   const { data: led } = await sb.from("gz_caisse_ledger").select("*").order("created_at", { ascending: true });
   const rows = led || [];
   let run = 0;
-  const withRun = rows.map((r) => { run += Number(r.amount); return { ...r, run }; });
+  const withRun = rows.map((r) => { run = round2(run + Number(r.amount)); return { ...r, run }; });
   $("gz-till-balance").textContent = run + " CHF";
   $("gz-ledger-rows").innerHTML = withRun.length ? withRun.slice().reverse().map((r) =>
     `<tr><td>${frDate(r.created_at)}</td><td>${esc(r.label || "—")}</td>
