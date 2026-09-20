@@ -3493,6 +3493,18 @@ async function loadTournaments() {
     r.addEventListener("click", () => openTournamentMgr(r.dataset.tid)));
 }
 
+// Téléphone(s) d'un joueur : le champ importé est du texte libre (« 078… ou 076… », « … (Parents : …) »).
+// On en sort chaque numéro, cliquable pour appeler ; si rien n'est reconnu, on montre le texte tel quel.
+const GZ_PHONE_RE = /(?:\+|00)\d(?:[ .]?\d){9,12}|0\d{2}(?:[ .]?\d){7}|\d(?:[ .]?\d){8,12}/g;
+function gzPhonesHtml(raw) {
+  const txt = String(raw || "").trim();
+  if (!txt) return "";
+  const nums = [...new Set(txt.match(GZ_PHONE_RE) || [])];
+  if (!nums.length) return `<span class="gz-tel">${esc(txt)}</span>`;
+  return `<span class="gz-tel" title="${esc(txt)}">` + nums.map((n) =>
+    `<a href="tel:${n.replace(/[^\d+]/g, "")}">${esc(n.trim())}</a>`).join(" · ") + "</span>";
+}
+
 // ---- Gestion d'un tournoi (responsable) ----
 let mgrTid = null, mgrCats = [], mgrPlayers = [], mgrIsGz = false;
 
@@ -3711,7 +3723,8 @@ function renderMgr() {
         <div class="gz-name"><b>${esc(p.last_name)} ${esc(p.first_name)}</b>${st.is_winner ? " " + ICO_CUP : ""}</div>
         <div class="gz-sub">
           ${p.club ? `<span class="gz-club">${esc(p.club)}</span>` : ""}
-          ${remark ? `<button type="button" class="gz-remark" title="Remarque importée (mytennis)">💬 ${gzShort(remark, 28)}</button>` : ""}
+          ${gzPhonesHtml(p.phone)}
+          ${remark ?`<button type="button" class="gz-remark" title="Remarque importée (mytennis)">💬 ${gzShort(remark, 28)}</button>` : ""}
         </div>
       </td>
       <td class="gz-col-note"><button type="button" class="gz-note-btn">${p.note ? gzShort(p.note, 24) : '<span class="muted">+ note</span>'}</button></td>
