@@ -3726,7 +3726,7 @@ function renderMgr() {
         <div class="gz-photo-wrap" style="${st.is_winner ? "" : "display:none"}">
           ${st.photo_url ? `<img src="${st.photo_url}" class="gz-photo-thumb" />` : ""}
           <button type="button" class="gz-photo-btn">${st.photo_url ? "Refaire" : "Photo"}</button>
-          <input type="file" accept="image/*" capture="environment" class="gz-photo-file" style="display:none" />
+          <input type="file" accept="image/*" class="gz-photo-file" style="display:none" />
         </div>` : ""}</td>
     </tr>`;
   }).join("");
