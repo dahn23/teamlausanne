@@ -4375,7 +4375,7 @@ function renderSurveys(scope) {
     return `<div class="gz-survey-card" data-id="${s.id}">
       <div class="gz-mail-head">
         <input type="text" class="gz-survey-title" value="${esc(s.title)}" style="font-weight:800;flex:1;margin-right:10px"/>
-        <label class="gz-mail-en"><input type="checkbox" class="gz-survey-active" ${s.active ? "checked" : ""}/> Actif</label>
+        <label class="gz-mail-en" title="Un seul questionnaire actif à la fois : en activer un désactive l'autre. C'est l'actif qui part dans les mails."><input type="checkbox" class="gz-survey-active" ${s.active ? "checked" : ""}/> ${s.active ? "Actif — envoyé dans les mails" : "Inactif"}</label>
       </div>
       <label class="gz-mail-lbl">Intro (optionnel)</label>
       <input type="text" class="gz-survey-intro" value="${esc(s.intro || "")}"/>
@@ -4403,7 +4403,9 @@ function renderSurveys(scope) {
 async function createSurvey(scope) {
   const title = await uiPrompt("Titre du questionnaire :", "Questionnaire de satisfaction");
   if (!title) return;
-  const { error } = await sb.from("gz_surveys").insert({ title, tag: SURVEY_CFG[scope].newTag });
+  // Créé INACTIF : la base ne garde qu'un sondage actif par famille (trigger gz_survey_single_active),
+  // donc un brouillon vide créé actif remplacerait aussitôt celui qui part dans les mails.
+  const { error } = await sb.from("gz_surveys").insert({ title, tag: SURVEY_CFG[scope].newTag, active: false });
   if (error) return alert(error.message);
   loadSurveyTab(scope);
 }
@@ -4421,7 +4423,7 @@ async function saveSurvey(scope, id) {
   btn.textContent = error ? "Erreur" : "Enregistré ✓";
   if (!error) Object.assign(surveyState[scope].list.find((x) => x.id === id), patch);
   setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
-  if (!error && patch.active) loadSurveyTab(scope);   // un seul actif à la fois → refléter la désactivation des autres
+  if (!error) setTimeout(() => loadSurveyTab(scope), 700);   // un seul actif à la fois → refléter la désactivation des autres (et le libellé Actif/Inactif)
 }
 
 async function delSurvey(scope, id) {
