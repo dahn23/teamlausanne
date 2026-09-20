@@ -37,11 +37,51 @@ async function loadRanking(season) {
   if (btn) btn.addEventListener("click", () => { $("gzp-more").classList.remove("hidden"); btn.remove(); });
 }
 
+
+// Photos des vainqueurs : clic → agrandissement plein écran (flèches, clavier ← → Échap, glisser au doigt).
+function gzBindLightbox(wrap, urls) {
+  wrap.onclick = (e) => {   // onclick (et pas addEventListener) : la liste est re-rendue à chaque changement de saison
+    const img = e.target.closest("img"); if (!img) return;
+    gzOpenLightbox(urls, Math.max(0, urls.indexOf(img.getAttribute("src"))));
+  };
+}
+function gzOpenLightbox(urls, start) {
+  let i = start;
+  const ov = document.createElement("div");
+  ov.className = "gz-lb";
+  ov.innerHTML = `<button type="button" class="gz-lb-x" aria-label="Fermer">✕</button>
+    <button type="button" class="gz-lb-nav gz-lb-prev" aria-label="Photo précédente">‹</button>
+    <img class="gz-lb-img" alt="Vainqueur GameZone" />
+    <button type="button" class="gz-lb-nav gz-lb-next" aria-label="Photo suivante">›</button>
+    <div class="gz-lb-count"></div>`;
+  const img = ov.querySelector(".gz-lb-img"), count = ov.querySelector(".gz-lb-count");
+  const show = (n) => { i = (n + urls.length) % urls.length; img.src = urls[i]; count.textContent = `${i + 1} / ${urls.length}`; };
+  const close = () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; ov.remove(); };
+  const onKey = (e) => { if (e.key === "Escape") close(); else if (e.key === "ArrowLeft") show(i - 1); else if (e.key === "ArrowRight") show(i + 1); };
+  if (urls.length < 2) ov.classList.add("gz-lb-single");
+  ov.addEventListener("click", (e) => {
+    if (e.target.closest(".gz-lb-prev")) show(i - 1);
+    else if (e.target.closest(".gz-lb-next")) show(i + 1);
+    else if (e.target !== img) close();
+  });
+  let x0 = null;
+  ov.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  ov.addEventListener("touchend", (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 50) show(i + (dx < 0 ? 1 : -1));
+  });
+  document.addEventListener("keydown", onKey);
+  document.body.style.overflow = "hidden";
+  document.body.appendChild(ov);
+  show(i);
+}
 async function loadPhotos(season) {
   const { data, error } = await sb.rpc("gz_public_winner_photos", { p_season: season || null });
   const rows = error ? [] : (data || []);
   if (!rows.length) { $("gzp-photos").innerHTML = `<p class="muted">Les photos des vainqueurs apparaîtront ici.</p>`; return; }
   $("gzp-photos").innerHTML = rows.map((p) => `<div class="gz-photo-card"><img src="${esc(p.photo_url)}" loading="lazy" alt="Vainqueur GameZone" /></div>`).join("");
+  gzBindLightbox($("gzp-photos"), rows.map((p) => p.photo_url));
 }
 
 async function init() {

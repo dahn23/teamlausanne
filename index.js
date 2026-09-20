@@ -433,7 +433,7 @@ const DETAILS = {
     hero: "assets/photos/kids2.jpg",
     sections: [
       { type: "rich", title: "Le concept", body: [
-        "Presque tous les week-ends, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant·e.",
+        "Presque tous les week-ends, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant.",
         "Le format idéal pour se lancer en compétition et cumuler de l'expérience — et aller décrocher la grande coupe à la 10ᵉ victoire ! Une petite coupe est déjà remise dès 5 victoires, et une médaille à chaque victoire.",
       ], link: { label: "Consulter les prochains tournois ↗", href: GAMEZONE_URL } },
       { type: "gzphotos" },
@@ -974,6 +974,45 @@ async function loadGamezone() {
   loadGzWinners(seasonId);
 }
 
+
+// Photos des vainqueurs : clic → agrandissement plein écran (flèches, clavier ← → Échap, glisser au doigt).
+function gzBindLightbox(wrap, urls) {
+  wrap.onclick = (e) => {   // onclick (et pas addEventListener) : la liste est re-rendue à chaque changement de saison
+    const img = e.target.closest("img"); if (!img) return;
+    gzOpenLightbox(urls, Math.max(0, urls.indexOf(img.getAttribute("src"))));
+  };
+}
+function gzOpenLightbox(urls, start) {
+  let i = start;
+  const ov = document.createElement("div");
+  ov.className = "gz-lb";
+  ov.innerHTML = `<button type="button" class="gz-lb-x" aria-label="Fermer">✕</button>
+    <button type="button" class="gz-lb-nav gz-lb-prev" aria-label="Photo précédente">‹</button>
+    <img class="gz-lb-img" alt="Vainqueur GameZone" />
+    <button type="button" class="gz-lb-nav gz-lb-next" aria-label="Photo suivante">›</button>
+    <div class="gz-lb-count"></div>`;
+  const img = ov.querySelector(".gz-lb-img"), count = ov.querySelector(".gz-lb-count");
+  const show = (n) => { i = (n + urls.length) % urls.length; img.src = urls[i]; count.textContent = `${i + 1} / ${urls.length}`; };
+  const close = () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; ov.remove(); };
+  const onKey = (e) => { if (e.key === "Escape") close(); else if (e.key === "ArrowLeft") show(i - 1); else if (e.key === "ArrowRight") show(i + 1); };
+  if (urls.length < 2) ov.classList.add("gz-lb-single");
+  ov.addEventListener("click", (e) => {
+    if (e.target.closest(".gz-lb-prev")) show(i - 1);
+    else if (e.target.closest(".gz-lb-next")) show(i + 1);
+    else if (e.target !== img) close();
+  });
+  let x0 = null;
+  ov.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  ov.addEventListener("touchend", (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 50) show(i + (dx < 0 ? 1 : -1));
+  });
+  document.addEventListener("keydown", onKey);
+  document.body.style.overflow = "hidden";
+  document.body.appendChild(ov);
+  show(i);
+}
 async function loadGzPhotos(seasonId) {
   const wrap = $("gz-photos-carousel"); if (!wrap) return;
   const { data } = await sb.rpc("gz_public_winner_photos", { p_season: seasonId });
@@ -983,6 +1022,7 @@ async function loadGzPhotos(seasonId) {
   // Peu de photos → statique (pas de duplication ni d'animation) ; sinon défilement animé.
   if (rows.length < 5) wrap.innerHTML = `<div class="gzc-track gzc-static">${imgs}</div>`;
   else wrap.innerHTML = `<div class="gzc-track">${imgs}${imgs}</div>`;
+  gzBindLightbox(wrap, rows.map((p) => p.photo_url));
 }
 
 async function loadGzWinners(seasonId) {
@@ -994,7 +1034,7 @@ async function loadGzWinners(seasonId) {
   const tr = (r, hidden) => `<tr${hidden ? ' class="gzw-hidden hidden"' : ""}><td>${esc(r.first_name)} ${esc(r.last_name)}</td><td>${gzCups(Number(r.wins))} ${r.wins}</td></tr>`;
   const body = rows.map((r, i) => tr(r, i >= PREVIEW)).join("");
   const hasMore = rows.length > PREVIEW;
-  box.innerHTML = `<table class="ranking"><thead><tr><th>Joueur·euse</th><th>Victoires</th></tr></thead><tbody>${body}</tbody></table>
+  box.innerHTML = `<table class="ranking"><thead><tr><th>Vainqueur</th><th>Victoires</th></tr></thead><tbody>${body}</tbody></table>
     ${hasMore ? `<button type="button" id="gzw-more-btn" class="gz-showall">+ Afficher tous les vainqueurs (${rows.length})</button>` : ""}`;
   const btn = $("gzw-more-btn");
   if (btn) btn.addEventListener("click", () => { box.querySelectorAll(".gzw-hidden").forEach((el) => el.classList.remove("hidden")); btn.remove(); });
