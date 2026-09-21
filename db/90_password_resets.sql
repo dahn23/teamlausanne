@@ -1,0 +1,5 @@
+-- 90 — « Mot de passe oublié » (22.09.2026). Définition complète en base (migration Supabase « password_resets »).
+--   password_resets : jeton maison (UUID, usage unique, 1 heure). RLS activée SANS policy (clé service uniquement).
+-- Fonction serveur publique password-reset : request (réponse identique que le compte existe ou non ; 3 demandes /
+-- adresse / heure, 40 / heure au total ; mail envoyé depuis info@ via Hostpoint), info, reset (pose le mot de passe,
+-- confirme l'e-mail, invalide les autres liens du compte). Page : reset.html. Liens sur connexion.html et espace.html.

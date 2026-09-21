@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#123cc4" />
+  <meta name="robots" content="noindex" />
+  <title>Mot de passe oublié — Team Lausanne</title>
+  <link rel="preconnect" href="https://use.typekit.net" crossorigin />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Polices de marque : Acumin Pro + Circe (kit Adobe uxl8yzy).
+       Noto Sans = repli officiel prevu par les guidelines de marque. -->
+  <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="style.css?v=231" />
+</head>
+<body class="public" data-world="club">
+  <section class="screen center">
+    <div class="card" style="max-width:400px">
+      <h2 class="brand blue"><svg class="hi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg>Mot de passe oublié</h2>
+
+      <!-- Étape 1 : demander le lien -->
+      <form id="rs-ask" class="hidden" style="display:flex;flex-direction:column;gap:12px">
+        <p class="muted" style="margin:0">Indique l'adresse e-mail de ton compte : on t'envoie un lien pour choisir un nouveau mot de passe.</p>
+        <label>Email<input type="email" id="rs-email" autocomplete="email" required /></label>
+        <button type="submit" id="rs-ask-btn">Recevoir le lien</button>
+        <p id="rs-ask-error" class="error" hidden></p>
+      </form>
+      <p id="rs-sent" class="hidden" style="margin:0"></p>
+
+      <!-- Étape 2 : choisir le nouveau mot de passe (arrivée par le lien du mail) -->
+      <p id="rs-wait" class="muted hidden">Vérification du lien…</p>
+      <form id="rs-new" class="hidden" style="display:flex;flex-direction:column;gap:12px">
+        <p class="muted" style="margin:0;font-size:.9rem">Compte : <b id="rs-who"></b><br>Choisis un nouveau mot de passe (8 caractères minimum).</p>
+        <label>Nouveau mot de passe<input type="password" id="rs-pass" autocomplete="new-password" minlength="8" required /></label>
+        <label>Confirmer<input type="password" id="rs-pass2" autocomplete="new-password" minlength="8" required /></label>
+        <button type="submit" id="rs-new-btn">Enregistrer et me connecter</button>
+        <p id="rs-new-error" class="error" hidden></p>
+      </form>
+
+      <p style="margin-top:14px;font-size:.9rem"><a href="/">← Retour à la connexion</a></p>
+    </div>
+  </section>
+  <script type="module" src="reset.js"></script>
+</body>
+</html>
