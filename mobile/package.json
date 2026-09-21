@@ -1,6 +1,6 @@
 {
   "name": "teamlausanne-app",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Coquille native (Android / iOS) de app.teamlausanne.ch — fabriquée par GitHub Actions, jamais sur un poste.",
   "dependencies": {
