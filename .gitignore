@@ -5,3 +5,10 @@ mobile/node_modules/
 mobile/android/
 mobile/ios/
 mobile/package-lock.json
+
+# JAMAIS de clé ni de mot de passe dans le dépôt (il est public)
+TeamLausanne-cle-app/
+*.p12
+*.jks
+*.keystore
+mot-de-passe*.txt
