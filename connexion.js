@@ -5,7 +5,13 @@ import { sb, myRoles, landingFor, getSession } from "./common.js";
 const $ = (id) => document.getElementById(id);
 
 // Déjà connecté → on va directement à son espace.
-getSession().then(async (s) => { if (s) location.href = landingFor(await myRoles()); });
+// Tant que la redirection n'est pas faite, le formulaire reste masqué (classe cnx-resuming posée dans le <head> si une
+// session est mémorisée) ; s'il n'y a finalement pas de session valable, on le ré-affiche.
+const showForm = () => document.documentElement.classList.remove("cnx-resuming");
+getSession()
+  .then(async (s) => { if (s) location.replace(landingFor(await myRoles())); else showForm(); })
+  .catch(showForm);
+setTimeout(showForm, 8000);   // filet : réseau très lent ou erreur silencieuse → on ne laisse jamais un écran vide
 
 $("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();

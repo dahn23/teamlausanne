@@ -12,6 +12,23 @@
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="style.css?v=231" />
+  <!-- Déjà connecté (session mémorisée) : on n'affiche PAS le formulaire le temps de la redirection — sinon, à chaque
+       ouverture de l'app, l'écran de login apparaît une seconde. Décidé avant le premier affichage, d'où le script ici.
+       Si la session s'avère expirée, connexion.js ré-affiche le formulaire. -->
+  <script>
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (/^sb-.+-auth-token$/.test(k) && localStorage.getItem(k)) { document.documentElement.classList.add("cnx-resuming"); break; }
+      }
+    } catch (e) {}
+  </script>
+  <style>
+    .cnx-resuming .cnx-card { visibility: hidden; }
+    .cnx-resuming .cnx-wrap::before { content: ""; position: fixed; top: 50%; left: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px;
+      border: 3px solid rgba(18,60,196,.18); border-top-color: #123cc4; border-radius: 50%; animation: cnxspin .8s linear infinite; }
+    @keyframes cnxspin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body class="cnx-body">
   <main class="cnx-wrap">
