@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=226" />
+  <link rel="stylesheet" href="style.css?v=227" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1020,14 +1020,16 @@
                   </div>
                 </div>
                 <div class="gz-mgr-sec">
-                  <h3>Salaires (pris en cash)</h3>
+                  <h3>Salaires</h3>
                   <div id="gz-sal-list"></div>
                   <div class="gz-add-row">
                     <select id="gz-sal-person"></select>
                     <input id="gz-sal-name" placeholder="Nom (autre)" class="hidden" />
                     <input id="gz-sal-amount" type="number" placeholder="Montant" style="width:100px" />
-                    <button type="button" id="gz-sal-add">Ajouter</button>
+                    <button type="button" id="gz-sal-add" title="Le salaire sort de la caisse du tournoi">J'ai pris</button>
+                    <button type="button" id="gz-sal-later" class="ghost" title="Le salaire est dû mais reste à verser : la caisse ne bouge pas">Pas encore pris</button>
                   </div>
+                  <p class="muted" style="font-size:.78rem;margin:6px 0 0">« J'ai pris » : le cash sort de la caisse. « Pas encore pris » : compté dans les salaires du tournoi, à solder plus tard dans l'onglet Financier.</p>
                 </div>
                 <div class="gz-mgr-sec">
                   <h3>Caisse (cash au secrétariat)</h3>
@@ -1162,6 +1164,12 @@
                 </thead>
                 <tbody id="gz-fin-rows"></tbody>
               </table>
+            </div>
+
+            <div class="gz-due-box">
+              <h3 style="margin:0 0 4px">Salaires pas encore pris</h3>
+              <p class="muted" style="margin:0 0 10px;font-size:.84rem">Salaires dus mais pas sortis de la caisse le jour du tournoi (tous tournois confondus). « Solder » : en <b>versement</b>, la Caisse ne bouge pas ; en <b>cash</b>, le montant sort de la Caisse au moment du clic.</p>
+              <div id="gz-fin-due"></div>
             </div>
           </div>
 

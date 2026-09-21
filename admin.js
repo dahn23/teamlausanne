@@ -3371,7 +3371,8 @@ async function initGameZone(roles) {
     await sb.from("gz_tournaments").update({ registration_url: v || null }).eq("id", mgrTid);
   });
   $("gz-pay-add").addEventListener("click", addPayment);
-  $("gz-sal-add").addEventListener("click", addSalary);
+  $("gz-sal-add").addEventListener("click", () => addSalary(true));      // « J'ai pris » : sort de la caisse du tournoi
+  $("gz-sal-later").addEventListener("click", () => addSalary(false));  // « Pas encore pris » : dû, à solder plus tard (Financier)
   $("gz-sal-person").addEventListener("change", () => {
     const other = $("gz-sal-person").value === "autre";
     $("gz-sal-name").classList.toggle("hidden", !other);
@@ -4006,10 +4007,17 @@ function renderPayments() {
     `<div class="gz-fin-item"><span>${esc(p.label || "—")} — <b>${p.amount} CHF</b> · ${esc(p.method || "?")}</span><button type="button" class="gz-del-pay" data-id="${p.id}">✕</button></div>`).join("") : '<p class="muted" style="font-size:.85rem;margin:0">Aucun.</p>';
   $("gz-pay-list").querySelectorAll(".gz-del-pay").forEach((b) => b.onclick = () => delFin("gz_payments", b.dataset.id));
 }
+// État d'un salaire : pris en caisse le jour même / pas encore pris (dû) / soldé plus tard (db/80).
+function gzSalTag(s) {
+  if (s.taken !== false) return '<span class="gz-cl gz-cl-ok">pris en caisse</span>';
+  const rest = round2(Number(s.amount) - Number(s.paid_amount || 0));
+  if (rest <= 0) return `<span class="gz-cl gz-cl-ok">soldé (${esc(s.settled_method || "")})</span>`;
+  return `<span class="gz-cl gz-cl-todo">pas encore pris${Number(s.paid_amount) > 0 ? ` — reste ${rest}` : ""}</span>`;
+}
 function renderSalaries() {
   const nameOf = (s) => s.name || mgrManagers.find((m) => m.id === s.person_id)?.last_name + " " + (mgrManagers.find((m) => m.id === s.person_id)?.first_name || "") || "—";
   $("gz-sal-list").innerHTML = mgrSalaries.length ? mgrSalaries.map((s) =>
-    `<div class="gz-fin-item"><span>${esc(nameOf(s))} — <b>${s.amount} CHF</b></span><button type="button" class="gz-del-sal" data-id="${s.id}">✕</button></div>`).join("") : '<p class="muted" style="font-size:.85rem;margin:0">Aucun.</p>';
+    `<div class="gz-fin-item"><span>${esc(nameOf(s))} — <b>${s.amount} CHF</b> ${gzSalTag(s)}</span><button type="button" class="gz-del-sal" data-id="${s.id}">✕</button></div>`).join("") : '<p class="muted" style="font-size:.85rem;margin:0">Aucun.</p>';
   $("gz-sal-list").querySelectorAll(".gz-del-sal").forEach((b) => b.onclick = () => delFin("gz_salaries", b.dataset.id));
 }
 async function addPayment() {
@@ -4020,11 +4028,11 @@ async function addPayment() {
   mgrPayments = (await sb.from("gz_payments").select("*").eq("tournament_id", mgrTid).order("created_at")).data || [];
   renderPayments(); computeCaisse();
 }
-async function addSalary() {
+async function addSalary(taken = true) {
   const amount = Number($("gz-sal-amount").value);
   if (!amount) return;
   const sel = $("gz-sal-person").value;
-  let row = { tournament_id: mgrTid, amount };
+  let row = { tournament_id: mgrTid, amount, taken };
   if (sel === "autre") {
     const n = $("gz-sal-name").value.trim();
     if (!n) { alert("Saisissez un nom."); $("gz-sal-name").focus(); return; }
@@ -4058,7 +4066,8 @@ function caisseNumbers() {
   const start = Number($("gz-caisse-start").value) || 0;
   const counted = $("gz-caisse-counted").value === "" ? null : Number($("gz-caisse-counted").value);
   const cashPay = mgrPayments.filter((p) => p.method === "cash").reduce((a, p) => a + Number(p.amount || 0), 0);
-  const cashOut = mgrSalaries.reduce((a, s) => a + Number(s.amount || 0), 0);
+  // Seuls les salaires « pris » sortent de la caisse du tournoi ; un « pas encore pris » ne la touche pas.
+  const cashOut = mgrSalaries.filter((s) => s.taken !== false).reduce((a, s) => a + Number(s.amount || 0), 0);
   const expected = round2(start + mgrCashPlayers + cashPay - cashOut);   // arrondi : le fond peut avoir des centimes (484.95)
   return { start, counted, cashIn: round2(mgrCashPlayers + cashPay), cashOut, expected, diff: counted === null ? null : round2(counted - expected) };
 }
@@ -4204,15 +4213,48 @@ function renderParts() {
 }
 
 // ---- Résumé financier ----
-let gzFin = [], gzFinMgrs = {}, gzFinSeasonsLoaded = false;
+let gzFin = [], gzFinMgrs = {}, gzFinSeasonsLoaded = false, gzFinDue = [];
+
+// Box « Salaires pas encore pris » : ce qui reste à verser, tous tournois confondus (pas de filtre de saison :
+// une dette ne disparaît pas parce qu'on regarde une autre saison).
+function renderFinanceDue() {
+  const box = $("gz-fin-due"); if (!box) return;
+  const tOf = (id) => gzFin.find((r) => r.tournament_id === id);
+  const rows = gzFinDue.map((s) => ({ ...s, rest: round2(Number(s.amount) - Number(s.paid_amount || 0)), t: tOf(s.tournament_id) }))
+    .sort((a, b) => String(a.t?.tournament_date || "").localeCompare(String(b.t?.tournament_date || "")));
+  if (!rows.length) { box.innerHTML = '<p class="muted" style="margin:0;font-size:.88rem">Rien à verser : tous les salaires ont été pris ou soldés.</p>'; return; }
+  const total = round2(rows.reduce((a, r) => a + r.rest, 0));
+  box.innerHTML = `<div class="table-wrap"><table class="crm-table"><thead><tr><th>Nom</th><th>Tournoi</th><th>Salaire</th><th>Déjà versé</th><th>Reste dû</th><th></th></tr></thead><tbody>${
+    rows.map((r) => `<tr><td><b>${esc(r.who)}</b></td><td>${r.t?.tournament_date ? frDate(r.t.tournament_date) : "—"}</td><td>${Number(r.amount)}</td><td>${Number(r.paid_amount || 0) || "—"}</td><td><b>${r.rest}</b></td>
+      <td style="text-align:right"><button type="button" class="gz-due-settle" data-id="${r.id}">Solder</button></td></tr>`).join("")
+  }<tr class="gz-total"><td colspan="4">Total à verser — ${rows.length} salaire(s)</td><td>${total}</td><td></td></tr></tbody></table></div>`;
+  box.querySelectorAll(".gz-due-settle").forEach((b) => b.addEventListener("click", () => settleSalary(rows.find((r) => r.id === b.dataset.id))));
+}
+
+async function settleSalary(r) {
+  if (!r) return;
+  const raw = await uiPrompt(`Solder le salaire de ${r.who} (GameZone du ${r.t?.tournament_date ? frDate(r.t.tournament_date) : "?"})\nReste dû : ${r.rest} CHF — montant versé maintenant :`, String(r.rest));
+  if (raw == null) return;
+  const amount = round2(Number(String(raw).replace(",", ".")));
+  if (!(amount > 0)) { uiAlert("Montant invalide."); return; }
+  if (amount > r.rest) { uiAlert(`Le montant dépasse le reste dû (${r.rest} CHF).`); return; }
+  const method = await uiChoice(`${r.who} — ${amount} CHF\nComment est-il versé ?`, [["versement", "Versement (banque)"], ["cash", "Cash — sort de la caisse"]]);
+  if (!method) return;
+  const { error } = await sb.rpc("gz_settle_salary", { p_salary: r.id, p_amount: amount, p_method: method });
+  if (error) { uiAlert("Solde : " + error.message); return; }
+  await loadFinanceTab();
+  uiAlert(method === "cash" ? `✓ ${amount} CHF soldés en cash : la Caisse a été diminuée d'autant.` : `✓ ${amount} CHF soldés par versement : la Caisse ne bouge pas.`);
+}
 
 async function loadFinanceTab() {
   await gzLoadSeasons();
-  const [{ data: fin }, { data: mgrs }] = await Promise.all([
+  const [{ data: fin }, { data: mgrs }, { data: due }] = await Promise.all([
     sb.from("gz_tournament_finance").select("*"),
     sb.from("gz_managers").select("tournament_id,person_id"),
+    sb.from("gz_salaries").select("*").eq("taken", false).is("settled_at", null).order("created_at"),
   ]);
   const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : ""; };
+  gzFinDue = (due || []).map((s) => ({ ...s, who: s.name || nameOf(s.person_id) || "—" }));
   gzFinMgrs = {};
   for (const m of mgrs || []) { (gzFinMgrs[m.tournament_id] || (gzFinMgrs[m.tournament_id] = [])).push(nameOf(m.person_id)); }
   gzFin = fin || [];
@@ -4222,6 +4264,7 @@ async function loadFinanceTab() {
     gzFinSeasonsLoaded = true;
   }
   renderFinance();
+  renderFinanceDue();
 }
 
 function renderFinance() {
