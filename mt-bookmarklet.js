@@ -29,7 +29,7 @@
       });
       return r.json();
     };
-    const Q_PERSON = "query($l:String!){person(where:{lizenz_nehmer:{licenceNumber:{_eq:$l}}}){id firstname lastname gender lizenz_nehmer{classification ranking}}}";
+    const Q_PERSON = "query($l:String!){person(where:{lizenz_nehmer:{licenceNumber:{_eq:$l}}}){id firstname lastname gender lizenz_nehmer{classification ranking classificationValue}}}";
     const Q_SINGLES = "query($id:Int!){results:AllSingleResults(where:{playerPersonId:{_eq:$id}},order_by:{date:desc},limit:500){date tournamentName adversaryPersonId adversaryFirstname adversaryLastname playerSet1WonGames adversarySet1WonGames playerSet2WonGames adversarySet2WonGames playerSet3WonGames adversarySet3WonGames playerSet4WonGames adversarySet4WonGames playerSet5WonGames adversarySet5WonGames playerWinnerCode round:Asr_Round_i encounterId:Asr_Id_Item_l source adversary{classification ranking}}}";
 
     // trouve un jeton qui a accès à la table person ; sinon null
@@ -90,13 +90,13 @@
           post({ type: "mt-progress", text: `Joueur ${i + 1}/${players.length} : ${pl.name}…` });
           const dg = (i === 0) ? { name: pl.name, license: pl.license } : null;
           try {
-            let mtId = null, classification = null, via = null;
+            let mtId = null, classification = null, via = null, ranking = null, classificationValue = null;   // ranking = rang national (« N4 (148) » -> 148)
             if (!tokenTried) { token = await findToken(pl.license); tokenTried = true; diag.tokenOk = !!token; }
             if (token) {
               const pj = await gql(Q_PERSON, { l: pl.license }, token);
               if (dg) dg.personErr = pj.errors && pj.errors[0] && pj.errors[0].message;
               const person = pj.data && pj.data.person && pj.data.person[0];
-              if (person) { mtId = person.id; via = "token"; const ln = person.lizenz_nehmer; classification = (Array.isArray(ln) ? ln[0] : ln)?.classification || null; }
+              if (person) { mtId = person.id; via = "token"; const ln = person.lizenz_nehmer; const l0 = Array.isArray(ln) ? ln[0] : ln; classification = l0?.classification || null; ranking = l0?.ranking ?? null; classificationValue = l0?.classificationValue ?? null; }
             }
             if (!mtId) { const s = await searchByName(pl.name, pl.license); if (s) { mtId = s.id; classification = s.classification; via = "search"; } }
             if (dg) { dg.via = via; dg.mtId = mtId; }
@@ -117,7 +117,7 @@
               }));
             } else if (dg) { dg.singlesErr = "pas de jeton -> resultats non interrogeables"; }
             if (dg) diag.first = dg;
-            out.push({ license: pl.license, mt_person_id: mtId, classification, matches });
+            out.push({ license: pl.license, mt_person_id: mtId, classification, ranking, classificationValue, matches });
           } catch (err) { if (dg) { dg.exception = String(err); diag.first = dg; } out.push({ license: pl.license, error: String(err), matches: [] }); }
         }
         post({ type: "mt-data", key: KEY, who: WHO, players: out, diag });

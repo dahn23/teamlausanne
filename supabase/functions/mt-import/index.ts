@@ -52,7 +52,13 @@ Deno.serve(async (req) => {
       // Independant des matchs : mis a jour meme si aucun match n'est recu pour cette licence.
       const cl = typeof pl.classification === "string" ? pl.classification.trim() : "";
       if (pid && /^[NR]\d$/.test(cl)) {
-        await svc.from("people").update({ classification: cl, classification_at: new Date().toISOString() }).eq("id", pid);
+        // v10 : + rang national (« N4 (148) » -> 148) et valeur de classement, lus par le favori en session mytennis
+        // connectee (ces deux-la ne sont pas publics). Absents (favori ancien, repli par recherche) : on ne les efface pas.
+        const patch: Record<string, unknown> = { classification: cl, classification_at: new Date().toISOString() };
+        const pos = Number(pl.ranking), val = Number(pl.classificationValue);
+        if (pl.ranking != null && Number.isFinite(pos) && pos > 0) patch.ranking_position = Math.round(pos);
+        if (pl.classificationValue != null && Number.isFinite(val)) patch.ranking_value = val;
+        await svc.from("people").update(patch).eq("id", pid);
       }
       const rows = (Array.isArray(pl.matches) ? pl.matches : []).map((m: Record<string, unknown>) => ({
         person_id: pid, license_no: pl.license, mt_person_id: pl.mt_person_id ?? null,
