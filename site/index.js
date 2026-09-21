@@ -637,18 +637,14 @@ const DETAILS = {
         ["Cours de groupe — 4 personnes", "Le format le plus convivial, échanges et points joués."],
         ["Formule flexible", "Rejoindre n'importe quel cours de groupe (3 ou 4 personnes) selon votre niveau et vos disponibilités."],
       ]},
-      { type: "rich", title: "Cours d'essai en septembre", body: [
-        "Durant le mois de septembre 2026, des cours d'essai à tarif réduit vous permettent de tester avant de vous engager sur la saison complète.",
-      ], link: { label: "Demander un cours d'essai", scroll: "enroll-form" } },
       { type: "features", title: "Conditions", items: [
         ["Engagement", "Inscription pour l'ensemble de la saison, créneau réservé."],
         ["Absences", "Cours non remboursés, sauf blessure ou maladie de longue durée avec certificat médical : remboursement possible après 4 semaines d'absence continue."],
-        ["Cours privé", "Replanifiable selon les disponibilités du club et des coachs."],
-        ["Semi-privé et groupe", "Cours non rattrapables."],
+        ["Rattrapage", "Tous les cours — privés, semi-privés et de groupe — sont non rattrapables."],
         ["Paiement", "En 1 ou 3 fois."],
         ["Places", "Limitées, attribuées par ordre d'inscription, confirmées à réception du paiement ou du premier acompte."],
       ]},
-      { type: "enroll", filiere: "adultes", adultes: true, title: "Ça m'intéresse — cours d'essai ou informations",
+      { type: "enroll", filiere: "adultes", adultes: true, title: "Ça m'intéresse",
         lead: "Sans engagement : indiquez la formule qui vous intéresse et vos disponibilités, le responsable des cours adultes et privés, Renato Lombardi, vous recontactera pour vous proposer un créneau, un coach et les tarifs." },
     ],
   },
@@ -1171,7 +1167,6 @@ function sectionHTML(sec) {
           ${sec.adultes ? `<div class="cf-row">
             <label class="cf-field"><span>Formule souhaitée</span><select id="en-formule" required>
               <option value="">— choisir —</option>
-              <option>Cours d'essai (septembre)</option>
               <option>Cours privé — 1 personne</option>
               <option>Cours semi-privé — 2 personnes</option>
               <option>Cours de groupe — 3 personnes</option>
@@ -1182,7 +1177,7 @@ function sectionHTML(sec) {
               <option>1× par semaine</option><option>2× par semaine</option><option>3× par semaine</option>
             </select></label>
           </div>
-          <label class="cf-field"><span>Vos disponibilités</span><textarea id="en-dispo" rows="3" placeholder="ex. lundi et mercredi soir dès 18h, samedi matin…" required></textarea></label>
+          <label class="cf-field"><span>Vos disponibilités</span><textarea id="en-dispo" rows="3" placeholder="ex. lundi et mercredi soir dès 18h, vendredi à midi…" required></textarea></label>
           <label class="cf-field"><span>Niveau / remarques</span><textarea id="en-comment" rows="2" placeholder="Niveau actuel, classement éventuel, langue souhaitée…"></textarea></label>` : `<label class="cf-field"><span>Commentaire</span><textarea id="en-comment" rows="3"></textarea></label>`}
           <button type="submit" id="en-btn">${sec.adultes ? "Envoyer ma demande" : "Envoyer ma demande d'inscription"}</button>
           <p id="en-error" class="error" hidden></p>
