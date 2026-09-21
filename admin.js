@@ -3380,6 +3380,7 @@ async function initGameZone(roles) {
   $("gz-caisse-start").addEventListener("change", saveCaisse);
   $("gz-caisse-counted").addEventListener("change", saveCaisse);
   $("gz-close-tournament").addEventListener("click", closeTournament);
+  $("gz-reopen-tournament").addEventListener("click", reopenTournament);
   $("gz-text-form").addEventListener("submit", saveGzNote);
   document.querySelector("[data-close-gztext]").addEventListener("click", () => $("gz-text-modal").classList.add("hidden"));
   $("gz-text-modal").addEventListener("click", (e) => { if (e.target === $("gz-text-modal")) $("gz-text-modal").classList.add("hidden"); });
@@ -3980,15 +3981,22 @@ async function loadFinances(tid) {
   $("gz-sal-person").innerHTML = '<option value="">— responsable —</option>' +
     mgrManagers.map((p) => `<option value="${p.id}">${esc(p.last_name)} ${esc(p.first_name)}</option>`).join("") +
     '<option value="autre">Autre (saisir)…</option>';
-  const { data: bal } = await sb.rpc("gz_till_balance");
-  mgrTillBalance = Number(bal) || 0;
+  const [{ data: bal }, { data: posted }, { data: tRow }] = await Promise.all([
+    sb.rpc("gz_till_balance"), sb.rpc("gz_tournament_posted", { p_tournament: tid }),
+    sb.from("gz_tournaments").select("closed_at").eq("id", tid).maybeSingle(),
+  ]);
+  // Fond de départ d'un tournoi ouvert = solde de la Caisse SANS ce que ce tournoi y a déjà écrit
+  // (cas d'un tournoi rouvert : ses lignes sont déjà dans le solde, on ne les compte pas deux fois).
+  mgrTillBalance = round2((Number(bal) || 0) - (Number(posted) || 0));
   // Tournoi déjà clôturé : on montre le fond FIGÉ à la clôture. Le solde actuel de la Caisse contient déjà
   // la ligne de ce tournoi (et des suivants) : l'afficher ici ferait croire que le fond a bougé.
-  const closed = !!caisse?.closed;
-  $("gz-caisse-start").value = closed && caisse.start_amount != null ? caisse.start_amount : mgrTillBalance;
+  const closedAt = tRow?.closed_at || (caisse?.closed ? caisse.closed_at : null);
+  const closed = !!closedAt;
+  $("gz-caisse-start").value = closed && caisse?.start_amount != null ? caisse.start_amount : mgrTillBalance;
   $("gz-caisse-counted").disabled = closed;
   $("gz-close-tournament").disabled = closed;
-  $("gz-close-status").textContent = closed ? `✓ Clôturé le ${frDate(caisse.closed_at)} — la caisse de ce tournoi est figée.` : "";
+  $("gz-close-status").textContent = closed ? `✓ Clôturé le ${frDate(closedAt)} — la caisse de ce tournoi est figée.` : "";
+  $("gz-reopen-tournament").classList.toggle("hidden", !(closed && gzRoles.some((r) => ["superadmin", "admin"].includes(r))));
   $("gz-caisse-counted").value = caisse?.counted_amount ?? "";
   renderPayments(); renderSalaries(); computeCaisse();
 }
@@ -4077,15 +4085,12 @@ async function closeTournament() {
   if (!cz?.closed) {
     // Passe par une fonction SECURITY DEFINER : le responsable du tournoi peut
     // poster ce mouvement de clôture sans avoir un accès général à la caisse.
-    const { error: ce } = await sb.rpc("gz_add_tournament_caisse", { p_tournament: mgrTid, p_amount: round2(c.cashIn - c.cashOut), p_label: `Rentrées/dépenses — ${mgrCaisseLabel}` });
-    if (ce) { alert("Caisse : " + ce.message); return; }
-    // Si l'argent compté diffère du théorique, une 2e ligne ramène le solde de la Caisse à l'argent réel :
-    // sinon le fond de caisse du tournoi suivant part faux.
+    // 1re clôture : ligne « Rentrées/dépenses » + ligne « Écart de caisse » si le compté diffère du théorique
+    // (sinon le fond du tournoi suivant part faux). Re-clôture après réouverture : la base n'écrit que la
+    // DIFFÉRENCE avec ce que ce tournoi a déjà posté (« Correction après réouverture ») — jamais de doublon.
     const ecart = c.counted === null ? 0 : round2(c.diff);
-    if (ecart !== 0) {
-      const { error: ee } = await sb.rpc("gz_add_tournament_caisse", { p_tournament: mgrTid, p_amount: ecart, p_label: `Écart de caisse — ${mgrCaisseLabel}` });
-      if (ee) { alert("Caisse (écart) : " + ee.message); return; }
-    }
+    const { error: ce } = await sb.rpc("gz_post_tournament_close", { p_tournament: mgrTid, p_net: round2(c.cashIn - c.cashOut), p_ecart: ecart, p_label: mgrCaisseLabel });
+    if (ce) { alert("Caisse : " + ce.message); return; }
   }
   await sb.from("gz_caisse").update({ closed: true, closed_at: new Date().toISOString() }).eq("tournament_id", mgrTid);
   // Clôture via fonction SECURITY DEFINER : après passage à « Clôturé », le
@@ -4094,6 +4099,16 @@ async function closeTournament() {
   if (se) { alert("Clôture : " + se.message); return; }
   $("gz-close-status").textContent = "✓ Tournoi clôturé.";
   setTimeout(closeDetail, 1400);
+}
+
+// Rouvrir un tournoi clôturé (admin / superadmin — vérifié aussi en base par gz_reopen_tournament).
+async function reopenTournament() {
+  if (!await uiConfirm("Rouvrir ce tournoi ?\n\n• Le responsable y retrouve l'accès.\n• Ses vainqueurs et photos disparaissent du site jusqu'à la prochaine clôture.\n• Les lignes déjà écrites dans la Caisse restent : à la re-clôture, seule la différence éventuelle sera ajoutée.")) return;
+  const { error } = await sb.rpc("gz_reopen_tournament", { p_tournament: mgrTid });
+  if (error) { alert("Réouverture : " + error.message); return; }
+  await loadFinances(mgrTid);
+  $("gz-close-status").textContent = "Tournoi rouvert.";
+  loadTournaments();
 }
 
 // ---- Caisse transverse (grand livre) ----
