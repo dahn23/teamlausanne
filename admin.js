@@ -209,8 +209,8 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
   secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "resa", "winter", "lockers", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "lastscores", "phystests", "heures"],
@@ -222,7 +222,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["acces", "Accès Mon espace"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -421,6 +421,7 @@ function showView(view) {
   if (view === "etudes") loadEtudesCalendar();
   if (view === "csel") loadCsel();
   if (view === "anniv") loadBirthdays();
+  if (view === "acces") loadPortalAccess();
   if (view === "mail") loadMail();
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
@@ -4175,6 +4176,139 @@ async function addMovement() {
   loadCaisseTab();
 }
 
+
+// ===================================================================
+//  Accès Mon espace — invitations des familles (pilote sport-études + pro, puis ouverture générale)
+//  Un compte = l'e-mail principal de la fiche. RPC portal_access_list ; envoi par la fonction portal-invite,
+//  VERROUILLÉE côté serveur tant que portal_invite_config.sending_enabled est éteint (superadmin seul).
+// ===================================================================
+const PA_FILIERES = [["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"], ["performance", "Performance"],
+  ["competition", "Compétition"], ["club", "Club"], ["kidstennis", "KidsTennis"]];
+let paSel = new Set(["sport-etudes", "pro", "pro-u18"]), paRows = [], paCfg = null, paBound = false;
+const paIsSuper = () => hasAny(myAppRoles, ["superadmin"]);
+
+async function loadPortalAccess() {
+  if (!paBound) {
+    paBound = true;
+    $("pa-save").addEventListener("click", paSaveTemplate);
+    $("pa-test").addEventListener("click", () => paSendTest(""));
+    $("pa-send-all").addEventListener("click", () => paInvite(paRows.filter((r) => paState(r).key !== "ok").map((r) => r.email)));
+  }
+  const { data: cfg } = await sb.from("portal_invite_config").select("*").eq("id", 1).maybeSingle();
+  paCfg = cfg || { sending_enabled: false, subject: "", body: "" };
+  $("pa-subject").value = paCfg.subject || ""; $("pa-body").value = paCfg.body || "";
+  const canEdit = paIsSuper();
+  $("pa-subject").disabled = !canEdit; $("pa-body").disabled = !canEdit; $("pa-save").classList.toggle("hidden", !canEdit);
+  paRenderLock();
+  $("pa-filieres").innerHTML = PA_FILIERES.map(([v, l]) =>
+    `<label class="pa-fil"><input type="checkbox" value="${v}" ${paSel.has(v) ? "checked" : ""}/> ${esc(l)}</label>`).join("");
+  $("pa-filieres").querySelectorAll("input").forEach((c) => c.addEventListener("change", () => {
+    if (c.checked) paSel.add(c.value); else paSel.delete(c.value);
+    paLoadList();
+  }));
+  await paLoadList();
+}
+
+function paRenderLock() {
+  const on = !!paCfg.sending_enabled;
+  const btn = (label) => (paIsSuper() ? `<button type="button" id="pa-lock-btn" class="ghost">${label}</button>` : "");
+  $("pa-lock").className = "pa-lock " + (on ? "pa-lock-on" : "pa-lock-off");
+  $("pa-lock").innerHTML = on
+    ? `<span><b>Envois ACTIVÉS.</b> Un clic sur « Inviter » envoie de vrais mails aux familles.</span>${btn("Désactiver les envois")}`
+    : `<span><b>Envois désactivés.</b> Rien ne peut partir vers les familles : le serveur refuse tout envoi. « M'envoyer un test » reste possible, uniquement vers ta propre adresse.${paIsSuper() ? "" : " Seul le superadmin peut les activer."}</span>${btn("Activer les envois…")}`;
+  $("pa-lock-btn")?.addEventListener("click", async () => {
+    const next = !paCfg.sending_enabled;
+    if (next && !(await uiConfirm("Activer les envois ?\n\nÀ partir de là, « Inviter » envoie de VRAIS mails aux familles depuis info@teamlausanne.ch.\nAs-tu relu le texte avec « M'envoyer un test » ?"))) return;
+    const { error } = await sb.from("portal_invite_config").update({ sending_enabled: next, updated_at: new Date().toISOString(), updated_by: meId }).eq("id", 1);
+    if (error) { uiAlert("Réglage impossible : " + error.message); return; }
+    paCfg.sending_enabled = next; paRenderLock(); paRenderList();
+  });
+}
+
+// État d'une famille : accès actif / invitée (en attente) / compte sans connexion / jamais invitée.
+function paState(r) {
+  if (r.last_sign_in) return { key: "ok", html: `<span class="gz-cl gz-cl-ok">✓ connectée le ${frDate(r.last_sign_in)}</span>` };
+  if (r.invited_at) return { key: "wait", html: `<span class="gz-cl gz-cl-todo">invitée le ${frDate(r.invited_at)} — pas encore activée</span>` };
+  if (r.has_account) return { key: "acct", html: `<span class="gz-cl gz-cl-todo">compte créé, jamais connectée</span>` };
+  return { key: "none", html: `<span class="muted">pas d'accès</span>` };
+}
+
+async function paLoadList() {
+  if (!paSel.size) { paRows = []; paRenderList(); return; }
+  $("pa-list").innerHTML = `<p class="muted">Chargement…</p>`;
+  const { data, error } = await sb.rpc("portal_access_list", { p_roles: [...paSel] });
+  if (error) { $("pa-list").innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  paRows = data || [];
+  paRenderList();
+}
+
+function paRenderList() {
+  const todo = paRows.filter((r) => paState(r).key !== "ok");
+  const kids = paRows.reduce((a, r) => a + (r.person_ids || []).length, 0);
+  $("pa-count").textContent = paRows.length ? `${paRows.length} famille(s) · ${kids} jeune(s) · ${paRows.length - todo.length} déjà connectée(s)` : "";
+  const on = !!(paCfg && paCfg.sending_enabled);
+  $("pa-send-all").disabled = !on || !todo.length;
+  $("pa-send-all").textContent = todo.length ? `Inviter les ${todo.length} famille(s) sans accès` : "Toutes les familles ont un accès";
+  $("pa-send-all").title = on ? "" : "Envois désactivés";
+  if (!paRows.length) { $("pa-list").innerHTML = `<p class="muted">Aucune famille (coche au moins une filière).</p>`; return; }
+  const rowHtml = (r, i) => {
+    const st = paState(r);
+    const fil = (r.filieres || "").split(", ").map(roleLabel).join(", ");
+    const invite = st.key === "ok" ? "" : `<button type="button" class="ghost pa-one" data-i="${i}" ${on ? "" : "disabled"}>${st.key === "wait" ? "Réinviter" : "Inviter"}</button>`;
+    return `<tr><td><b>${esc(r.children)}</b></td><td>${esc(r.email)}</td><td class="muted">${esc(fil)}</td><td>${st.html}</td>
+      <td style="text-align:right;white-space:nowrap">${invite}
+      <button type="button" class="ghost pa-sample" data-i="${i}" title="M'envoyer le mail tel que cette famille le recevrait (à MON adresse)">Aperçu</button></td></tr>`;
+  };
+  $("pa-list").innerHTML = `<table class="crm-table"><thead><tr><th>Jeune(s)</th><th>E-mail de la famille</th><th>Filière</th><th>Accès</th><th></th></tr></thead><tbody>${paRows.map(rowHtml).join("")}</tbody></table>`;
+  $("pa-list").querySelectorAll(".pa-one").forEach((b) => b.addEventListener("click", () => paInvite([paRows[+b.dataset.i].email])));
+  $("pa-list").querySelectorAll(".pa-sample").forEach((b) => b.addEventListener("click", () => paSendTest(paRows[+b.dataset.i].email)));
+}
+
+async function paFn(body) {
+  const { data, error } = await sb.functions.invoke("portal-invite", { body });
+  if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_e) { /* pas de détail */ } return { error: m }; }
+  return data || {};
+}
+
+async function paSaveTemplate() {
+  const st = $("pa-tpl-status");
+  const body = $("pa-body").value, subject = $("pa-subject").value.trim();
+  if (!body.includes("{lien}")) { uiAlert("Le message doit contenir {lien} : c'est le bouton d'activation."); return false; }
+  const { error } = await sb.from("portal_invite_config").update({ subject, body, updated_at: new Date().toISOString(), updated_by: meId }).eq("id", 1);
+  if (error) { uiAlert("Enregistrement impossible : " + error.message); return false; }
+  paCfg.subject = subject; paCfg.body = body;
+  st.textContent = "✓ Texte enregistré."; setTimeout(() => (st.textContent = ""), 2500);
+  return true;
+}
+
+// Test : part UNIQUEMENT vers l'adresse de la personne connectée (le serveur n'utilise aucune autre adresse).
+async function paSendTest(sampleEmail) {
+  const st = $("pa-tpl-status");
+  const dirty = $("pa-body").value !== (paCfg.body || "") || $("pa-subject").value.trim() !== (paCfg.subject || "");
+  if (dirty && paIsSuper() && !(await paSaveTemplate())) return;
+  st.textContent = "Envoi du test…";
+  const r = await paFn({ action: "test", email: sampleEmail || "" });
+  st.textContent = "";
+  uiAlert(r.error ? "Test : " + r.error : `✓ Mail de test envoyé à ${r.to} (et à personne d'autre). Le lien qu'il contient est un lien d'exemple.`);
+}
+
+async function paInvite(emails) {
+  if (!emails.length) return;
+  if (!paCfg.sending_enabled) { uiAlert("Envois désactivés : rien n'est parti."); return; }
+  const list = emails.slice(0, 8).join("\n") + (emails.length > 8 ? "\n…" : "");
+  if (!(await uiConfirm(`Envoyer l'invitation à ${emails.length} famille(s) ?\n\n${list}\n\nCe sont de VRAIS mails, envoyés depuis info@teamlausanne.ch.`))) return;
+  const st = $("pa-status"); st.textContent = "Envoi en cours…";
+  let sent = 0; const problems = [];
+  for (let i = 0; i < emails.length; i += 20) {
+    const r = await paFn({ action: "send", confirm: "ENVOYER", emails: emails.slice(i, i + 20) });
+    if (r.error) { problems.push(r.error); break; }
+    sent += r.sent || 0;
+    for (const x of r.report || []) if (x.status !== "invitation envoyée") problems.push(`${x.email} : ${x.status}`);
+  }
+  st.textContent = "";
+  uiAlert(`✓ ${sent} invitation(s) envoyée(s).` + (problems.length ? "\n\nÀ regarder :\n" + problems.join("\n") : ""));
+  paLoadList();
+}
 // ---- Tous les participants ----
 let gzParts = [], gzPartSort = "last";
 

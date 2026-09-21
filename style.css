@@ -375,6 +375,15 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .mn-vd{font-size:.82rem;margin-left:4px}
 .mn-v{color:#0b6b3a;font-weight:700}
 .mn-d{color:#b3261e;font-weight:700}
+/* ---- Accès Mon espace (invitations des familles) ---- */
+.pa-lock{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-radius:14px;margin-bottom:16px;font-size:.9rem}
+.pa-lock-off{background:#eef2fc;border:1px solid #cdd8f5;color:var(--blue-ink)}
+.pa-lock-on{background:#fff1d6;border:1px solid #f0c774;color:#6b4300}
+.pa-lock button{background:#fff;border:1.5px solid currentColor;white-space:nowrap}
+.pa-filieres{display:flex;flex-wrap:wrap;gap:8px}
+.pa-fil{display:inline-flex;flex-direction:row;align-items:center;gap:6px;background:#f4f6fb;border-radius:999px;padding:6px 12px;font-size:.85rem;font-weight:600;cursor:pointer}
+.pa-fil input{width:auto;margin:0}
+.pa-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}
 .gz-sal-rule{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.8rem}
 .gz-sal-rule-lbl{font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-size:.68rem;margin-right:2px}
 .gz-sal-step{background:#eef2fc;color:var(--blue-ink);border-radius:999px;padding:4px 10px;white-space:nowrap}
@@ -3196,3 +3205,5 @@ tr.rm-loss td{background:#fde8e8}
 .gz-lb-count{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#fff;font-size:.85rem;font-weight:700;background:rgba(255,255,255,.14);padding:4px 12px;border-radius:999px}
 .gz-lb-single .gz-lb-nav,.gz-lb-single .gz-lb-count{display:none}
 @media(max-width:640px){.gz-lb{padding:8px}.gz-lb-img{max-width:100%;max-height:80vh}.gz-lb-prev{left:6px}.gz-lb-next{right:6px}.gz-lb button{width:40px;height:40px}}
+#view-acces .rg-card{max-width:none}
+#view-acces button:disabled{opacity:.45;cursor:not-allowed}

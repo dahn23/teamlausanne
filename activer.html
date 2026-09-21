@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#123cc4" />
+  <meta name="robots" content="noindex" />
+  <title>Activer Mon espace — Team Lausanne</title>
+  <link rel="preconnect" href="https://use.typekit.net" crossorigin />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Polices de marque : Acumin Pro + Circe (kit Adobe uxl8yzy).
+       Noto Sans = repli officiel prevu par les guidelines de marque. -->
+  <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="style.css?v=231" />
+</head>
+<body class="public" data-world="club">
+  <section class="screen center">
+    <div class="card" style="max-width:400px">
+      <h2 class="brand blue"><svg class="hi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg>Mon espace</h2>
+      <p id="ac-wait" class="muted">Vérification du lien…</p>
+      <form id="ac-form" class="hidden" style="display:flex;flex-direction:column;gap:12px">
+        <p id="ac-hello" style="margin:0"></p>
+        <p class="muted" style="margin:0;font-size:.9rem">Identifiant : <b id="ac-email"></b><br>Choisis un mot de passe (8 caractères minimum).</p>
+        <label>Mot de passe<input type="password" id="ac-pass" autocomplete="new-password" minlength="8" required /></label>
+        <label>Confirmer<input type="password" id="ac-pass2" autocomplete="new-password" minlength="8" required /></label>
+        <button type="submit" id="ac-btn">Activer Mon espace</button>
+        <p id="ac-error" class="error" hidden></p>
+      </form>
+      <p id="ac-login" class="hidden" style="margin-top:12px"><a href="espace.html">Aller à la connexion →</a></p>
+    </div>
+  </section>
+  <script type="module" src="activer.js"></script>
+</body>
+</html>

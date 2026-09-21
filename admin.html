@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=230" />
+  <link rel="stylesheet" href="style.css?v=231" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -56,6 +56,7 @@
         <div class="side-block">
           <button class="side-item" data-view="cours"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg><span class="side-label">Cours</span></button>
           <button class="side-item" data-view="inscriptions"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2.5" width="8" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg><span class="side-label">Inscriptions</span></button>
+          <button class="side-item" data-view="acces"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.5 18h3"/><path d="M10 8.5l1.5 1.5 3-3"/></svg><span class="side-label">Accès Mon espace</span></button>
           <button class="side-item" data-view="prospects"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><circle cx="11" cy="11" r="3"/><path d="M11 1v3M11 18v3M1 11h3M18 11h3"/></svg><span class="side-label">Prospects</span></button>
           <button class="side-item" data-view="phystests"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9.5 4V2.8h5V4"/><path d="M9 12l2 2 4-4"/></svg><span class="side-label">Tests physiques</span></button>
           <button class="side-item" data-view="mental"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 20.5h5"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.8.7 1.3 1.4 1.3 2.4h5c0-1 .5-1.7 1.3-2.4A6 6 0 0 0 12 3z"/></svg><span class="side-label">Mental</span></button>
@@ -124,6 +125,38 @@
               <button type="button" id="tn-next" class="ghost">Élève suiv. ›</button>
             </div>
             <button type="button" id="close-person" class="ghost stg-back">← Retour au répertoire</button>
+          </div>
+        </div>
+
+        <!-- ---------- Accès Mon espace : invitations des familles (pilote puis ouverture générale) ---------- -->
+        <div id="view-acces" class="view hidden">
+          <h1>Accès Mon espace <span class="sub">— invitations des familles</span></h1>
+          <p class="muted" style="margin:-6px 0 14px;max-width:760px">Un compte = l'e-mail principal de la fiche du jeune. Une famille qui a le même e-mail sur plusieurs enfants reçoit <b>une seule</b> invitation et les voit tous dans Mon espace.</p>
+
+          <div id="pa-lock" class="pa-lock"></div>
+
+          <div class="rg-card" style="margin-bottom:16px">
+            <div class="crm-head" style="margin-bottom:8px"><h2 style="margin:0">Filières</h2><span id="pa-count" class="muted"></span></div>
+            <div id="pa-filieres" class="pa-filieres"></div>
+            <div class="pa-actions">
+              <button type="button" id="pa-send-all" class="btn-prod" disabled>Inviter les familles sans accès</button>
+              <span id="pa-status" class="muted"></span>
+            </div>
+            <div id="pa-list" class="table-wrap" style="margin-top:12px"></div>
+          </div>
+
+          <div class="rg-card">
+            <h2 style="margin-top:0">Le mail d'invitation</h2>
+            <p class="muted" style="margin-top:0;font-size:.85rem">Variables : <code>{prenoms}</code> (« Léa et Tom ») · <code>{lien}</code> (le bouton d'activation, valable 30 jours) · <code>{email}</code> (l'identifiant de la famille).</p>
+            <label class="gz-mail-lbl">Objet</label>
+            <input type="text" id="pa-subject" />
+            <label class="gz-mail-lbl">Message</label>
+            <textarea id="pa-body" rows="13" style="width:100%;box-sizing:border-box"></textarea>
+            <div class="pa-actions">
+              <button type="button" id="pa-save">Enregistrer le texte</button>
+              <button type="button" id="pa-test" class="ghost">M'envoyer un test</button>
+              <span id="pa-tpl-status" class="muted"></span>
+            </div>
           </div>
         </div>
 

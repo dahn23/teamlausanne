@@ -1,0 +1,9 @@
+-- 88 — Invitations des familles à Mon espace (21.09.2026). Définitions complètes en base
+-- (migrations Supabase « portal_invites » et « portal_invite_helpers »).
+--   portal_invite_config  : 1 ligne — sending_enabled (ÉTEINT par défaut ; écriture SUPERADMIN seul), objet + texte du mail.
+--   portal_invites        : journal + jeton d'activation maison (UUID, usage unique, 30 jours). RLS sans policy.
+--   portal_access_list(p_roles)     : familles d'une ou plusieurs filières + état de l'accès (admin / secrétariat).
+--   portal_user_by_email / portal_family_of_email : aides réservées à la clé service.
+-- Fonctions serveur : portal-invite (actions « test » -> uniquement vers l'appelant ; « send » -> refusé si
+-- sending_enabled = false) et portal-activate (publique, par jeton). Page famille : activer.html.
+-- Pourquoi un jeton maison : les liens d'invitation Supabase expirent en 1 à 24 h.
