@@ -1,0 +1,50 @@
+# Fabrique l'app Android de TEST (APK) dans le cloud : aucune installation sur les postes de l'équipe.
+# L'app est une coquille qui ouvre https://app.teamlausanne.ch — le site se met à jour par git push, comme avant ;
+# ce flux ne sert que lorsque la coquille elle-même change (icône, nom, autorisations).
+# Résultat : onglet « Actions » du dépôt -> dernier « App Android (test) » -> en bas, « Artifacts » -> teamlausanne-android-test.
+name: App Android (test)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Dépendances
+        run: npm install --no-audit --no-fund
+      - name: Projet Android (généré à chaque fois, pas stocké dans le dépôt)
+        run: npx cap add android
+      - name: Icônes et écran de démarrage
+        continue-on-error: true   # sans icône générée, l'app se fabrique quand même (icône par défaut)
+        run: npx capacitor-assets generate --android --iconBackgroundColor '#1e3ad1' --iconBackgroundColorDark '#1e3ad1' --splashBackgroundColor '#1e3ad1' --splashBackgroundColorDark '#1e3ad1'
+      - name: Synchronisation
+        run: npx cap sync android
+      - name: Fabrication de l'APK de test
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: teamlausanne-android-test
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30

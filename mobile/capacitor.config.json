@@ -1,0 +1,13 @@
+{
+  "appId": "ch.teamlausanne.app",
+  "appName": "Team Lausanne",
+  "webDir": "www",
+  "server": {
+    "url": "https://app.teamlausanne.ch",
+    "cleartext": false,
+    "errorPath": "offline.html",
+    "allowNavigation": ["app.teamlausanne.ch", "*.supabase.co"]
+  },
+  "android": { "backgroundColor": "#1e3ad1" },
+  "ios": { "backgroundColor": "#1e3ad1", "contentInset": "always" }
+}

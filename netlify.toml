@@ -68,3 +68,10 @@
   to = "/"
   status = 301
   force = true
+
+# Le dossier mobile/ (coquille native Android / iOS, fabriquée par GitHub Actions) n'a rien à faire sur le site.
+[[redirects]]
+  from = "/mobile/*"
+  to = "/"
+  status = 301
+  force = true
