@@ -4178,7 +4178,7 @@ async function addMovement() {
 
 
 // ===================================================================
-//  Accès Mon espace — invitations des familles (pilote sport-études + pro, puis ouverture générale)
+//  Accès Mon espace — invitations des utilisateurs (pilote sport-études + pro, puis ouverture générale)
 //  Un compte = l'e-mail principal de la fiche. RPC portal_access_list ; envoi par la fonction portal-invite,
 //  VERROUILLÉE côté serveur tant que portal_invite_config.sending_enabled est éteint (superadmin seul).
 // ===================================================================
@@ -4214,22 +4214,22 @@ function paRenderLock() {
   const btn = (label) => (paIsSuper() ? `<button type="button" id="pa-lock-btn" class="ghost">${label}</button>` : "");
   $("pa-lock").className = "pa-lock " + (on ? "pa-lock-on" : "pa-lock-off");
   $("pa-lock").innerHTML = on
-    ? `<span><b>Envois ACTIVÉS.</b> Un clic sur « Inviter » envoie de vrais mails aux familles.</span>${btn("Désactiver les envois")}`
-    : `<span><b>Envois désactivés.</b> Rien ne peut partir vers les familles : le serveur refuse tout envoi. « M'envoyer un test » reste possible, uniquement vers ta propre adresse.${paIsSuper() ? "" : " Seul le superadmin peut les activer."}</span>${btn("Activer les envois…")}`;
+    ? `<span><b>Envois ACTIVÉS.</b> Un clic sur « Inviter » envoie de vrais mails aux utilisateurs.</span>${btn("Désactiver les envois")}`
+    : `<span><b>Envois désactivés.</b> Rien ne peut partir vers les utilisateurs : le serveur refuse tout envoi. « M'envoyer un test » reste possible, uniquement vers ta propre adresse.${paIsSuper() ? "" : " Seul le superadmin peut les activer."}</span>${btn("Activer les envois…")}`;
   $("pa-lock-btn")?.addEventListener("click", async () => {
     const next = !paCfg.sending_enabled;
-    if (next && !(await uiConfirm("Activer les envois ?\n\nÀ partir de là, « Inviter » envoie de VRAIS mails aux familles depuis info@teamlausanne.ch.\nAs-tu relu le texte avec « M'envoyer un test » ?"))) return;
+    if (next && !(await uiConfirm("Activer les envois ?\n\nÀ partir de là, « Inviter » envoie de VRAIS mails aux utilisateurs depuis info@teamlausanne.ch.\nAs-tu relu le texte avec « M'envoyer un test » ?"))) return;
     const { error } = await sb.from("portal_invite_config").update({ sending_enabled: next, updated_at: new Date().toISOString(), updated_by: meId }).eq("id", 1);
     if (error) { uiAlert("Réglage impossible : " + error.message); return; }
     paCfg.sending_enabled = next; paRenderLock(); paRenderList();
   });
 }
 
-// État d'une famille : accès actif / invitée (en attente) / compte sans connexion / jamais invitée.
+// État d'un compte : accès actif / invité (en attente) / compte sans connexion / jamais invité.
 function paState(r) {
-  if (r.last_sign_in) return { key: "ok", html: `<span class="gz-cl gz-cl-ok">✓ connectée le ${frDate(r.last_sign_in)}</span>` };
-  if (r.invited_at) return { key: "wait", html: `<span class="gz-cl gz-cl-todo">invitée le ${frDate(r.invited_at)} — pas encore activée</span>` };
-  if (r.has_account) return { key: "acct", html: `<span class="gz-cl gz-cl-todo">compte créé, jamais connectée</span>` };
+  if (r.last_sign_in) return { key: "ok", html: `<span class="gz-cl gz-cl-ok">✓ connecté le ${frDate(r.last_sign_in)}</span>` };
+  if (r.invited_at) return { key: "wait", html: `<span class="gz-cl gz-cl-todo">invité le ${frDate(r.invited_at)} — pas encore activé</span>` };
+  if (r.has_account) return { key: "acct", html: `<span class="gz-cl gz-cl-todo">compte créé, jamais connecté</span>` };
   return { key: "none", html: `<span class="muted">pas d'accès</span>` };
 }
 
@@ -4245,21 +4245,21 @@ async function paLoadList() {
 function paRenderList() {
   const todo = paRows.filter((r) => paState(r).key !== "ok");
   const kids = paRows.reduce((a, r) => a + (r.person_ids || []).length, 0);
-  $("pa-count").textContent = paRows.length ? `${paRows.length} famille(s) · ${kids} jeune(s) · ${paRows.length - todo.length} déjà connectée(s)` : "";
+  $("pa-count").textContent = paRows.length ? `${paRows.length} compte(s) · ${kids} jeune(s) · ${paRows.length - todo.length} déjà connecté(s)` : "";
   const on = !!(paCfg && paCfg.sending_enabled);
   $("pa-send-all").disabled = !on || !todo.length;
-  $("pa-send-all").textContent = todo.length ? `Inviter les ${todo.length} famille(s) sans accès` : "Toutes les familles ont un accès";
+  $("pa-send-all").textContent = todo.length ? `Inviter les ${todo.length} compte(s) sans accès` : "Tous les comptes ont un accès";
   $("pa-send-all").title = on ? "" : "Envois désactivés";
-  if (!paRows.length) { $("pa-list").innerHTML = `<p class="muted">Aucune famille (coche au moins une filière).</p>`; return; }
+  if (!paRows.length) { $("pa-list").innerHTML = `<p class="muted">Aucun compte (coche au moins une filière).</p>`; return; }
   const rowHtml = (r, i) => {
     const st = paState(r);
     const fil = (r.filieres || "").split(", ").map(roleLabel).join(", ");
     const invite = st.key === "ok" ? "" : `<button type="button" class="ghost pa-one" data-i="${i}" ${on ? "" : "disabled"}>${st.key === "wait" ? "Réinviter" : "Inviter"}</button>`;
     return `<tr><td><b>${esc(r.children)}</b></td><td>${esc(r.email)}</td><td class="muted">${esc(fil)}</td><td>${st.html}</td>
       <td style="text-align:right;white-space:nowrap">${invite}
-      <button type="button" class="ghost pa-sample" data-i="${i}" title="M'envoyer le mail tel que cette famille le recevrait (à MON adresse)">Aperçu</button></td></tr>`;
+      <button type="button" class="ghost pa-sample" data-i="${i}" title="M'envoyer le mail tel que cet utilisateur le recevrait (à MON adresse)">Aperçu</button></td></tr>`;
   };
-  $("pa-list").innerHTML = `<table class="crm-table"><thead><tr><th>Jeune(s)</th><th>E-mail de la famille</th><th>Filière</th><th>Accès</th><th></th></tr></thead><tbody>${paRows.map(rowHtml).join("")}</tbody></table>`;
+  $("pa-list").innerHTML = `<table class="crm-table"><thead><tr><th>Jeune(s)</th><th>E-mail du compte</th><th>Filière</th><th>Accès</th><th></th></tr></thead><tbody>${paRows.map(rowHtml).join("")}</tbody></table>`;
   $("pa-list").querySelectorAll(".pa-one").forEach((b) => b.addEventListener("click", () => paInvite([paRows[+b.dataset.i].email])));
   $("pa-list").querySelectorAll(".pa-sample").forEach((b) => b.addEventListener("click", () => paSendTest(paRows[+b.dataset.i].email)));
 }
@@ -4296,7 +4296,7 @@ async function paInvite(emails) {
   if (!emails.length) return;
   if (!paCfg.sending_enabled) { uiAlert("Envois désactivés : rien n'est parti."); return; }
   const list = emails.slice(0, 8).join("\n") + (emails.length > 8 ? "\n…" : "");
-  if (!(await uiConfirm(`Envoyer l'invitation à ${emails.length} famille(s) ?\n\n${list}\n\nCe sont de VRAIS mails, envoyés depuis info@teamlausanne.ch.`))) return;
+  if (!(await uiConfirm(`Envoyer l'invitation à ${emails.length} compte(s) ?\n\n${list}\n\nCe sont de VRAIS mails, envoyés depuis info@teamlausanne.ch.`))) return;
   const st = $("pa-status"); st.textContent = "Envoi en cours…";
   let sent = 0; const problems = [];
   for (let i = 0; i < emails.length; i += 20) {
