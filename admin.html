@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=228" />
+  <link rel="stylesheet" href="style.css?v=229" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1029,7 +1029,7 @@
                     <button type="button" id="gz-sal-add" title="Le salaire sort de la caisse du tournoi">J'ai pris</button>
                     <button type="button" id="gz-sal-later" class="ghost" title="Le salaire est dû mais reste à verser : la caisse ne bouge pas">Pas encore pris</button>
                   </div>
-                  <p class="muted" style="font-size:.78rem;margin:6px 0 0">« J'ai pris » : le cash sort de la caisse. « Pas encore pris » : compté dans les salaires du tournoi, à solder plus tard dans l'onglet Financier.</p>
+                  <p class="muted" style="font-size:.78rem;margin:6px 0 0">« J'ai pris » : le cash sort de la caisse. « Pas encore pris » : compté dans les salaires du tournoi, à solder plus tard dans l'onglet Financier.<br>Barème selon les joueurs présents : 0–22 = <b>200.–</b> · 23–28 = <b>250.–</b> · 29 et + = <b>300.–</b></p>
                 </div>
                 <div class="gz-mgr-sec">
                   <h3>Caisse (cash au secrétariat)</h3>
@@ -1154,6 +1154,12 @@
           <div id="gz-sub-financier" class="gz-sub hidden">
             <div class="crm-head" style="margin-bottom:10px">
               <h2 style="margin:0">Résumé financier</h2>
+              <div class="gz-sal-rule" title="Salaire du responsable selon le nombre de joueurs présents au tournoi">
+                <span class="gz-sal-rule-lbl">Salaire responsable</span>
+                <span class="gz-sal-step">0–22 joueurs <b>200.–</b></span>
+                <span class="gz-sal-step">23–28 <b>250.–</b></span>
+                <span class="gz-sal-step">29 et + <b>300.–</b></span>
+              </div>
               <select id="gz-fin-season"></select>
             </div>
             <div class="table-wrap">

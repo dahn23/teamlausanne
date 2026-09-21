@@ -375,6 +375,10 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .mn-vd{font-size:.82rem;margin-left:4px}
 .mn-v{color:#0b6b3a;font-weight:700}
 .mn-d{color:#b3261e;font-weight:700}
+.gz-sal-rule{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.8rem}
+.gz-sal-rule-lbl{font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-size:.68rem;margin-right:2px}
+.gz-sal-step{background:#eef2fc;color:var(--blue-ink);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.gz-sal-step b{color:var(--blue)}
 .gz-due-box{margin-top:22px;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:#fffdf6}
 .gz-due-box .crm-table{background:#fff}
 .gz-due-settle{padding:6px 14px;font-size:.82rem}
