@@ -48,6 +48,12 @@ Deno.serve(async (req) => {
       if (!pl || !pl.license) continue;
       const { data: person } = await svc.from("people").select("id").eq("license_no", pl.license).maybeSingle();
       const pid = person?.id ?? null;
+      // v9 : le classement du joueur (N4, R2…) envoye par le favori est garde sur sa fiche — il etait jete jusque-la.
+      // Independant des matchs : mis a jour meme si aucun match n'est recu pour cette licence.
+      const cl = typeof pl.classification === "string" ? pl.classification.trim() : "";
+      if (pid && /^[NR]\d$/.test(cl)) {
+        await svc.from("people").update({ classification: cl, classification_at: new Date().toISOString() }).eq("id", pid);
+      }
       const rows = (Array.isArray(pl.matches) ? pl.matches : []).map((m: Record<string, unknown>) => ({
         person_id: pid, license_no: pl.license, mt_person_id: pl.mt_person_id ?? null,
         mt_encounter_id: m.encounterId != null ? String(m.encounterId) : null,
