@@ -3446,6 +3446,15 @@ async function loadBookmarklet() {
   };
 }
 
+// Notre clôture (caisse faite, bouton « Clôturer le tournoi ») — distincte du statut Swiss Tennis, que l'import réécrit.
+function gzClosedTag(t) {
+  if (t.closed_at) return `<span class="gz-cl gz-cl-ok" title="Clôturé chez nous le ${frDate(t.closed_at)}">✓ Clôturé ${frDate(t.closed_at).slice(0, 5)}</span>`;
+  // Rappel seulement sur les 60 derniers jours : les tournois des saisons passées n'ont jamais eu de caisse ici.
+  const today = new Date().toISOString().slice(0, 10), since = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);
+  if (t.tournament_date && t.tournament_date < today && t.tournament_date >= since) return '<span class="gz-cl gz-cl-todo" title="Le tournoi est passé mais pas encore clôturé chez nous (caisse)">À clôturer</span>';
+  return '<span class="muted">—</span>';
+}
+
 async function loadTournaments() {
   const [{ data: tournaments }, { data: cnts }, { data: seasons }] = await Promise.all([
     sb.from("gz_tournaments").select("*").order("tournament_date", { ascending: false, nullsFirst: false }),
@@ -3458,7 +3467,7 @@ async function loadTournaments() {
   if (!gzIsOfficial) {
     const { data: mine } = await sb.from("gz_managers").select("tournament_id").eq("person_id", gzPersonId);
     const allowed = new Set((mine || []).map((m) => m.tournament_id));
-    rows = rows.filter((t) => allowed.has(t.id) && t.status !== "Clôturé");
+    rows = rows.filter((t) => allowed.has(t.id) && !t.closed_at && t.status !== "Clôturé");
   }
   $("gz-tourn-count").textContent = rows.length ? `${rows.length} tournoi(s)` : "";
   const seasonName = {};
@@ -3476,16 +3485,16 @@ async function loadTournaments() {
     const g = groups[sid];
     if (!g || !g.length) continue;
     html += `<h3 class="gz-season-h">${sid === "none" ? "Hors saison" : esc(seasonName[sid] || "—")} <span class="muted" style="font-weight:400">(${g.length})</span></h3>`;
-    html += `<div class="table-wrap" style="margin-bottom:16px"><table class="crm-table"><thead><tr><th>Tournoi</th><th>Date</th><th>Statut</th><th>Inscrits</th><th>Sélect.</th></tr></thead><tbody>`;
+    html += `<div class="table-wrap" style="margin-bottom:16px"><table class="crm-table"><thead><tr><th>Tournoi</th><th>Date</th><th>Swiss Tennis</th><th>Chez nous</th><th>Inscrits</th><th>Sélect.</th></tr></thead><tbody>`;
     let ti = 0, ts = 0;
     for (const t of g) {
       const c = counts[t.id] || { p: 0, s: 0 };
       ti += c.p; ts += c.s;
       const drawn = /peuvent être joués|visibles au public/i.test((t.status || "") + JSON.stringify(t.epreuves || ""));
       const badge = t.is_gamezone ? '<span class="gz-badge">GameZone</span>' : '<span class="gz-badge off">autre</span>';
-      html += `<tr class="gz-trow" data-tid="${t.id}"><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date ? frDate(t.tournament_date) : "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✓" : ""}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
+      html += `<tr class="gz-trow" data-tid="${t.id}"><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date ? frDate(t.tournament_date) : "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✓" : ""}</td><td>${gzClosedTag(t)}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
     }
-    html += `<tr class="gz-total"><td colspan="3">Total — ${g.length} tournoi(s)</td><td>${ti}</td><td>${ts}</td></tr>`;
+    html += `<tr class="gz-total"><td colspan="4">Total — ${g.length} tournoi(s)</td><td>${ti}</td><td>${ts}</td></tr>`;
     html += "</tbody></table></div>";
   }
   $("gz-tournaments-groups").innerHTML = html || '<p class="muted">Aucun tournoi importé. Utilisez le bookmarklet ci-dessous.</p>';
