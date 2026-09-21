@@ -3747,7 +3747,9 @@ function renderMgr() {
           <button type="button" class="gz-credit-add gz-mini" title="Un crédit sert à reporter un remboursement : le joueur le récupère sur une prochaine inscription.">+ crédit</button>
           ${credit > 0 ? '<button type="button" class="gz-credit-cancel gz-mini" title="Remet le crédit à zéro (saisi par erreur, ou remboursé autrement)">annuler le crédit</button>' : ""}
         </div>
-        <button type="button" class="gz-credit-pay gz-mini" ${credit > 0 && !st.absent ? "" : "disabled"}>${credit > 0 ? "utiliser le crédit pour payer" : "pas de crédit à utiliser"}</button>
+        ${used > 0
+          ? `<button type="button" class="gz-credit-unuse gz-mini" title="Le joueur paie le prix plein et garde son crédit pour une autre fois">ne pas utiliser le crédit (rendre ${used} CHF)</button>`
+          : `<button type="button" class="gz-credit-pay gz-mini" ${credit > 0 && !st.absent ? "" : "disabled"}>${credit > 0 ? "utiliser le crédit pour payer" : "pas de crédit à utiliser"}</button>`}
       </td>
       <td style="text-align:center"><label class="gz-tog gz-tog-abs"><input type="checkbox" class="gz-absent" ${st.absent ? "checked" : ""} /><span>Absent</span></label></td>
       <td class="gz-winner-cell" style="text-align:center">${mgrIsGz ? `
@@ -3776,6 +3778,7 @@ function renderMgr() {
     tr.querySelector(".gz-credit-add")?.addEventListener("click", () => grantCredit(tr.dataset.pid));
     tr.querySelector(".gz-credit-cancel")?.addEventListener("click", () => cancelCredit(tr.dataset.pid));
     tr.querySelector(".gz-credit-pay")?.addEventListener("click", () => payWithCredit(tr.dataset.pid));
+    tr.querySelector(".gz-credit-unuse")?.addEventListener("click", () => { const mp = mgrPlayer(tr.dataset.pid); if (mp) persistStatus(mp, { credit_used: 0 }); });
     tr.querySelector(".gz-note-btn")?.addEventListener("click", () => openNoteEditor(tr.dataset.pid));
     tr.querySelector(".gz-remark")?.addEventListener("click", () => openRemarkView(tr.dataset.pid));
   });
@@ -3856,7 +3859,10 @@ function uiChoice(message, choices, current) {
     ov.addEventListener("click", (e) => { if (e.target === ov) done(null); });
   });
 }
-const askPayMethod = (mp, amount) => uiChoice(`${mp.p.first_name} ${mp.p.last_name} — ${amount} CHF\nMoyen de paiement ?`, [["twint", "Twint"], ["cash", "Cash"], ["carte", "Carte"]], mp.st.pay_method || "");
+const askPayMethod = (mp, amount, creditUsed = 0, price = amount) => uiChoice(
+  creditUsed > 0
+    ? `${mp.p.first_name} ${mp.p.last_name}\nPrix ${price} − ${creditUsed} de crédit = ${amount} CHF à encaisser\nMoyen de paiement ?`
+    : `${mp.p.first_name} ${mp.p.last_name} — ${amount} CHF\nMoyen de paiement ?`, [["twint", "Twint"], ["cash", "Cash"], ["carte", "Carte"]], mp.st.pay_method || "");
 
 // Écrit l'état complet du joueur (source = mp.st, plus les cases de la ligne) et rafraîchit la liste.
 // Si le prix change ou si le joueur devient absent alors qu'un crédit avait servi à payer, ce crédit lui est rendu.
@@ -3903,9 +3909,20 @@ async function onAmountChange(tr) {
   if (raw === "") { await persistStatus(mp, { amount_paid: null, pay_method: null }); return; }
   const amount = Number(raw);
   if (amount === 0) { await persistStatus(mp, { amount_paid: 0, pay_method: null }); return; }
-  const m = await askPayMethod(mp, amount);
+  // Crédit déduit AUTOMATIQUEMENT (sinon un oubli de clic fait payer plein pot un joueur qui a un crédit) :
+  //  • au 1er choix du prix (l'arrivée du joueur), s'il a du crédit ;
+  //  • à un changement de prix, seulement si le crédit servait déjà — on le recale sur le nouveau prix.
+  // Pas d'auto quand le prix était déjà posé sans crédit : soit le responsable a choisi « ne pas utiliser »,
+  // soit le crédit vient d'être accordé POUR ce tournoi (remboursement) et ne doit pas s'y consommer.
+  const prevUsed = Number(mp.st.credit_used || 0);
+  const firstPrice = mp.st.amount_paid == null;
+  const avail = Number(mp.p.credit_chf || 0) + prevUsed;
+  const use = (firstPrice || prevUsed > 0) ? Math.min(avail, amount) : 0;
+  const due = Math.max(0, amount - use);
+  // Tout est couvert par le crédit : rien à encaisser, inutile de demander un moyen de paiement.
+  const m = due === 0 ? (mp.st.pay_method || "cash") : await askPayMethod(mp, due, use, amount);
   if (!m) { renderMgr(); return; }   // annulé : le menu revient à l'ancienne valeur
-  await persistStatus(mp, { amount_paid: amount, pay_method: m });
+  await persistStatus(mp, { amount_paid: amount, pay_method: m, credit_used: use });
 }
 async function changePayMethod(tr) {
   const mp = mgrPlayer(tr.dataset.pid); if (!mp || mp.st.amount_paid == null) return;
