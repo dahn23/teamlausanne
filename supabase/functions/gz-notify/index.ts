@@ -38,8 +38,11 @@ const fillVars = (s: string, m: Record<string, string>, girl = false) => String(
 const toHtml = (t: string) => "<p>" + String(t || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>") + "</p>";
 
 // deno-lint-ignore no-explicit-any
-function recipientIds(key: string, entries: any[], status: any[], epreuve: string | null): string[] {
+function recipientIds(key: string, entries: any[], status: any[], epreuve: string | null, winnerMailOn = true): string[] {
   const absent = new Set(status.filter((s) => s.absent).map((s) => s.participant_id));
+  // Ceux qui reçoivent le mail « Vainqueur » (vainqueur + photo) : il contient déjà le remerciement et le sondage,
+  // donc pas de 2e mail « Remerciement » (le 21.09.2026, 9 vainqueurs avaient reçu les deux).
+  const winners = new Set(status.filter((s) => s.is_winner && s.photo_url).map((s) => s.participant_id));
   if (key.startsWith("welcome")) return [...new Set(entries.filter((e) => e.confirmed).map((e) => e.participant_id))];
   if (key === "non_selection") {
     // Non-sélectionné = pas confirmé dans un tableau qui a des confirmés (sinon le tableau est annulé),
@@ -51,8 +54,8 @@ function recipientIds(key: string, entries: any[], status: any[], epreuve: strin
     return [...new Set(entries.filter((e) => !e.confirmed && ran[e.epreuve || "—"] && !confAny.has(e.participant_id)).map((e) => e.participant_id))];
   }
   if (key === "annulation") return [...new Set(entries.filter((e) => !epreuve || (e.epreuve || "—") === epreuve).map((e) => e.participant_id))];
-  if (key === "remerciement") return [...new Set(entries.filter((e) => e.confirmed).map((e) => e.participant_id))].filter((pid) => !absent.has(pid));
-  if (key === "vainqueur") return [...new Set(status.filter((s) => s.is_winner && s.photo_url).map((s) => s.participant_id))];
+  if (key === "remerciement") return [...new Set(entries.filter((e) => e.confirmed).map((e) => e.participant_id))].filter((pid) => !absent.has(pid) && !(winnerMailOn && winners.has(pid)));
+  if (key === "vainqueur") return [...winners];
   return [];
 }
 
@@ -64,12 +67,19 @@ async function sendForTournament(supa: any, tx: any, tId: string, key: string, o
   if (key === "remerciement" && !t.is_gamezone) return { sent: 0, remaining: 0 };
   const { data: tpl } = await supa.from("gz_email_templates").select("*").eq("key", key).maybeSingle();
   if (!tpl) return { sent: 0, remaining: 0, error: "modele introuvable" };
+  // Case « Actif » décochée dans Communication : ce mail ne part pas (ni en automatique, ni à la main).
+  if (tpl.enabled === false) return { sent: 0, remaining: 0, error: "modèle désactivé (case « Actif » décochée)" };
+  let winnerMailOn = true;
+  if (key === "remerciement") {
+    const { data: wt } = await supa.from("gz_email_templates").select("enabled").eq("key", "vainqueur").maybeSingle();
+    winnerMailOn = !!wt && wt.enabled !== false;   // mail Vainqueur coupé → les vainqueurs reçoivent le remerciement normal
+  }
   const [{ data: entries }, { data: status }, { data: mgrs }] = await Promise.all([
     supa.from("gz_entries").select("participant_id,confirmed,epreuve").eq("tournament_id", tId),
     supa.from("gz_player_status").select("participant_id,absent,is_winner,photo_url").eq("tournament_id", tId),
     supa.from("gz_managers").select("person_id").eq("tournament_id", tId),
   ]);
-  let ids = recipientIds(key, entries || [], status || [], epreuve);
+  let ids = recipientIds(key, entries || [], status || [], epreuve, winnerMailOn);
   const { data: sent } = await supa.from("gz_mail_sent").select("participant_id").eq("tournament_id", tId).eq("template_key", key);
   const done = new Set((sent || []).map((r: { participant_id: string }) => r.participant_id));
   ids = ids.filter((id) => !done.has(id));
