@@ -56,3 +56,35 @@ jobs:
           name: teamlausanne-android-test
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+
+      # ---- Version Play Store (AAB signé) : seulement si la clé de signature est déposée dans les secrets du dépôt ----
+      - name: Version Play Store (AAB signé)
+        id: release
+        working-directory: mobile/android
+        env:
+          UPLOAD_KEYSTORE_B64: ${{ secrets.UPLOAD_KEYSTORE_B64 }}
+          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$UPLOAD_KEYSTORE_B64" ] || [ -z "$UPLOAD_KEYSTORE_PASSWORD" ]; then
+            echo "::notice::Clé de signature absente (secrets UPLOAD_KEYSTORE_B64 / UPLOAD_KEYSTORE_PASSWORD) : version Play Store non fabriquée."
+            echo "done=no" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          PASS="$(printf '%s' "$UPLOAD_KEYSTORE_PASSWORD" | tr -d '\r\n ')"
+          printf '%s' "$UPLOAD_KEYSTORE_B64" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/upload-key.p12"
+          # Le numéro de version interne doit augmenter à chaque envoi au Play Store : on prend le numéro de fabrication.
+          CODE=$(( 100 + GITHUB_RUN_NUMBER ))
+          sed -i -E "s/versionCode [0-9]+/versionCode ${CODE}/; s/versionName \"[^\"]*\"/versionName \"1.0.${GITHUB_RUN_NUMBER}\"/" app/build.gradle
+          grep -E "versionCode|versionName" app/build.gradle
+          ./gradlew bundleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/upload-key.p12" \
+            -Pandroid.injected.signing.store.password="$PASS" \
+            -Pandroid.injected.signing.key.alias=upload \
+            -Pandroid.injected.signing.key.password="$PASS"
+          rm -f "$RUNNER_TEMP/upload-key.p12"
+          echo "done=yes" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: steps.release.outputs.done == 'yes'
+        with:
+          name: teamlausanne-playstore
+          path: mobile/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
