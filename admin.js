@@ -9482,9 +9482,21 @@ async function loadMentalParticipants() {
   if (!youths.length) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Aucun participant (sport-études / pro / pro U18) pour cette saison.</p>'; return; }
   const { data: cmts } = await sb.from("mental_comments").select("youth_person_id");
   const cnt = {}; for (const c of cmts || []) cnt[c.youth_person_id] = (cnt[c.youth_person_id] || 0) + 1;
-  cont.innerHTML = '<table class="crm-table"><thead><tr><th>Jeune</th><th>Filière(s)</th><th>Commentaires</th></tr></thead><tbody>'
-    + youths.map((y) => { const roles = (data || []).filter((r) => r.person_id === y.id).map((r) => roleLabel(r.role)).join(", "); return `<tr class="mn-part-row" data-id="${y.id}"><td><b>${esc(y.last_name)} ${esc(y.first_name)}</b></td><td>${esc(roles)}</td><td>${cnt[y.id] || 0}</td></tr>`; }).join("")
-    + "</tbody></table>";
+  // Naissance, classement et bilan de matchs : fonction en base (db/81), car le coach mental ne lit pas ces tables en direct.
+  const { data: stats } = await sb.rpc("mental_participants_stats", { p_season: seasonId });
+  const stOf = {}; for (const s of stats || []) stOf[s.person_id] = s;
+  const ageOf = (d) => { const b = new Date(d + "T00:00:00"), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return a; };
+  const bilan = (n, v, d) => n ? `<b>${n}</b> <span class="mn-vd"><span class="mn-v">${v} V</span> · <span class="mn-d">${d} D</span></span>` : '<span class="muted">—</span>';
+  cont.innerHTML = '<div class="table-wrap"><table class="crm-table mn-part-table"><thead><tr><th>Jeune</th><th>Naissance</th><th>Classement</th><th>Matchs 30 jours</th><th>Matchs depuis le début</th><th>Filière(s)</th><th>Commentaires</th></tr></thead><tbody>'
+    + youths.map((y) => {
+      const roles = (data || []).filter((r) => r.person_id === y.id).map((r) => roleLabel(r.role)).join(", ");
+      const s = stOf[y.id] || {};
+      const birth = s.birthdate ? `${frDate(s.birthdate)} <span class="muted">· ${ageOf(s.birthdate)} ans</span>` : '<span class="muted">—</span>';
+      const rank = s.classification ? `<b>${esc(s.classification)}</b>${s.ranking_position ? ` <span class="muted">· n° ${s.ranking_position}</span>` : ""}` : '<span class="muted">—</span>';
+      const since = s.total && s.first_match ? ` <span class="muted">· depuis ${String(s.first_match).slice(0, 4)}</span>` : "";
+      return `<tr class="mn-part-row" data-id="${y.id}"><td><b>${esc(y.last_name)} ${esc(y.first_name)}</b></td><td>${birth}</td><td>${rank}</td><td>${bilan(s.m30, s.m30_won, s.m30_lost)}</td><td>${bilan(s.total, s.total_won, s.total_lost)}${since}</td><td>${esc(roles)}</td><td>${cnt[y.id] || 0}</td></tr>`;
+    }).join("")
+    + '</tbody></table></div><p class="muted" style="font-size:.8rem;margin:8px 2px 0">Matchs : simples officiels importés de mytennis (V = victoires, D = défaites ; un match sans résultat connu compte dans le total). Classement : dernier relevé Swiss Tennis. « — » : pas de licence enregistrée ou pas encore d\'import.</p>';
   cont.querySelectorAll(".mn-part-row").forEach((tr) => tr.addEventListener("click", () => openMentalParticipant(tr.dataset.id)));
 }
 function openMentalParticipant(yid) {

@@ -371,6 +371,10 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .gz-badge{display:inline-block;font-size:.66rem;font-weight:800;text-transform:uppercase;
   letter-spacing:.4px;background:var(--blue);color:#fff;padding:2px 7px;border-radius:999px;vertical-align:1px}
 .gz-badge.off{background:#c9ccd6;color:#42474f}
+.mn-part-table td{white-space:nowrap}
+.mn-vd{font-size:.82rem;margin-left:4px}
+.mn-v{color:#0b6b3a;font-weight:700}
+.mn-d{color:#b3261e;font-weight:700}
 .gz-due-box{margin-top:22px;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:#fffdf6}
 .gz-due-box .crm-table{background:#fff}
 .gz-due-settle{padding:6px 14px;font-size:.82rem}
