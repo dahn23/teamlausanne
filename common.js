@@ -110,3 +110,44 @@ export async function releaseNativePush() {
   if (token) { try { await sb.rpc("push_unregister_device", { p_token: token }); } catch (_e) { /* hors ligne */ } }
   nativePushStarted = false;
 }
+
+// ===================================================================
+//  « Supprimer mon compte » — fenêtre commune à la console (Mon profil) et à Mon espace (Profil).
+//  Exigé par Apple et Google : la suppression doit pouvoir se lancer DEPUIS l'app. Fonction serveur : account-delete.
+//  Fenêtre autonome (styles en ligne) : common.js ne dépend ni des modales de la console ni de celles du portail.
+// ===================================================================
+export function openDeleteAccount() {
+  const ov = document.createElement("div");
+  ov.setAttribute("style", "position:fixed;inset:0;z-index:10000;background:rgba(10,18,40,.55);display:flex;align-items:center;justify-content:center;padding:16px");
+  ov.innerHTML = `<div style="background:#fff;color:#111;border-radius:18px;max-width:440px;width:100%;box-sizing:border-box;padding:22px;font-size:.95rem;line-height:1.45;max-height:92vh;overflow:auto">
+    <h2 style="margin:0 0 10px;font-size:1.2rem;color:#b3261e">Supprimer mon compte</h2>
+    <p style="margin:0 0 10px">Ton accès est supprimé <b>tout de suite</b> : plus de connexion possible avec cette adresse, et plus aucune notification sur tes appareils. C'est <b>définitif</b>.</p>
+    <p style="margin:0 0 12px;color:#4b5563;font-size:.88rem">Le dossier du membre à l'académie (inscriptions, présences, factures) n'est pas effacé par ce bouton : il sert à la gestion des cours, et les pièces comptables doivent être conservées 10 ans. Tu peux demander son effacement ci-dessous : le secrétariat le traite sous 30 jours.</p>
+    <label style="display:flex;flex-direction:row;gap:8px;align-items:flex-start;margin:0 0 14px;font-weight:400"><input type="checkbox" id="da-erase" style="width:auto;margin-top:3px" /><span>Je demande aussi l'effacement des données de mon dossier (tout ce que la loi n'oblige pas à conserver).</span></label>
+    <label style="display:block;margin:0 0 6px;font-weight:600">Pour confirmer, écris SUPPRIMER</label>
+    <input type="text" id="da-word" autocomplete="off" autocapitalize="characters" style="width:100%;box-sizing:border-box" />
+    <p id="da-err" style="color:#b3261e;margin:8px 0 0;font-size:.88rem" hidden></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap">
+      <button type="button" id="da-cancel" class="ghost">Annuler</button>
+      <button type="button" id="da-go" style="background:#b3261e;color:#fff" disabled>Supprimer définitivement</button>
+    </div></div>`;
+  document.body.appendChild(ov);
+  const q = (id) => ov.querySelector("#" + id);
+  const close = () => ov.remove();
+  q("da-cancel").addEventListener("click", close);
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  q("da-word").addEventListener("input", () => { q("da-go").disabled = q("da-word").value.trim().toUpperCase() !== "SUPPRIMER"; });
+  q("da-go").addEventListener("click", async () => {
+    const btn = q("da-go"), err = q("da-err"); err.hidden = true;
+    btn.disabled = true; btn.textContent = "Suppression…";
+    await releaseNativePush();
+    const { data, error } = await sb.functions.invoke("account-delete", { body: { confirm: "SUPPRIMER", erase_data: q("da-erase").checked } });
+    let msg = error ? error.message : (data && data.error) || "";
+    if (error) { try { msg = (await error.context.json())?.error || msg; } catch (_e) { /* pas de détail */ } }
+    if (msg) { err.textContent = msg; err.hidden = false; btn.disabled = false; btn.textContent = "Supprimer définitivement"; return; }
+    try { await sb.auth.signOut(); } catch (_e) { /* le compte n'existe plus : rien à fermer côté serveur */ }
+    try { localStorage.removeItem("tl-space"); } catch (_e) { /* rien */ }
+    ov.querySelector("div").innerHTML = `<h2 style="margin:0 0 10px;font-size:1.2rem">Compte supprimé</h2><p style="margin:0">Ton accès a été supprimé. Merci d'avoir utilisé Team Lausanne.</p>`;
+    setTimeout(() => { location.href = "/"; }, 2500);
+  });
+}

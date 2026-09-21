@@ -1,5 +1,5 @@
 // Console admin — CRM membres (accès staff uniquement).
-import { sb, getSession, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours, rememberSpace, isNativeApp, initNativePush, releaseNativePush } from "./common.js";
+import { sb, getSession, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours, rememberSpace, isNativeApp, initNativePush, releaseNativePush, openDeleteAccount } from "./common.js";
 import "./pretty-select.js";
 import "./pretty-date.js";
 
@@ -179,9 +179,11 @@ async function openMyProfile() {
         <button type="button" id="me-pw-btn">Changer</button>
       </div>
       <span id="me-pw-status" class="muted" style="font-size:.85rem"></span>
-    </div>`;
+    </div>
+    <p style="margin:18px 0 0;font-size:.82rem;text-align:right"><a href="confidentialite.html" target="_blank" rel="noopener" class="muted">Confidentialité</a> · <a href="#" id="me-delete" style="color:#b3261e">Supprimer mon compte</a></p>`;
   if (hasEmpty) $("me-save").addEventListener("click", saveMyProfile);
   $("me-pw-btn").addEventListener("click", changeMyPassword);
+  $("me-delete").addEventListener("click", (e) => { e.preventDefault(); openDeleteAccount(); });
   $("me-modal").classList.remove("hidden");
 }
 async function changeMyPassword() {
@@ -4202,6 +4204,7 @@ async function loadPortalAccess() {
   const canEdit = paIsSuper();
   $("pa-subject").disabled = !canEdit; $("pa-body").disabled = !canEdit; $("pa-save").classList.toggle("hidden", !canEdit);
   paRenderLock();
+  paLoadDeletions();
   $("pa-filieres").innerHTML = PA_FILIERES.map(([v, l]) =>
     `<label class="pa-fil"><input type="checkbox" value="${v}" ${paSel.has(v) ? "checked" : ""}/> ${esc(l)}</label>`).join("");
   $("pa-filieres").querySelectorAll("input").forEach((c) => c.addEventListener("change", () => {
@@ -4209,6 +4212,28 @@ async function loadPortalAccess() {
     paLoadList();
   }));
   await paLoadList();
+}
+
+// Comptes supprimés par leur utilisateur (bouton « Supprimer mon compte ») : le login est déjà supprimé ; si la personne
+// a aussi demandé l'effacement de son dossier, c'est au secrétariat de le faire (30 jours), puis de cocher « Traité ».
+async function paLoadDeletions() {
+  const box = $("pa-deletions"); if (!box) return;
+  const { data } = await sb.from("account_deletions").select("*").is("handled_at", null).order("requested_at");
+  const rows = data || [];
+  if (!rows.length) { box.innerHTML = ""; return; }
+  box.innerHTML = `<div class="rg-card" style="margin-bottom:16px;border-color:#f0c774;background:#fffdf6">
+    <h2 style="margin-top:0">Comptes supprimés par leur utilisateur <span class="muted" style="font-weight:400">(${rows.length})</span></h2>
+    <div class="table-wrap"><table class="crm-table"><thead><tr><th>Date</th><th>E-mail</th><th>Fiche(s) rattachée(s)</th><th>Demande</th><th></th></tr></thead><tbody>${
+      rows.map((r) => `<tr><td>${frDate(r.requested_at)}</td><td>${esc(r.email)}</td><td>${esc(r.people_label || "—")}</td>
+        <td>${r.erase_data ? '<span class="gz-cl gz-cl-todo">effacer aussi le dossier — sous 30 jours</span>' : '<span class="muted">accès supprimé, dossier conservé</span>'}</td>
+        <td style="text-align:right"><button type="button" class="ghost pa-del-done" data-id="${r.id}">Traité</button></td></tr>`).join("")
+    }</tbody></table></div></div>`;
+  box.querySelectorAll(".pa-del-done").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await uiConfirm("Marquer cette demande comme traitée ?\n\nSi l'effacement du dossier était demandé, vérifie qu'il a bien été fait."))) return;
+    const { error } = await sb.from("account_deletions").update({ handled_at: new Date().toISOString(), handled_by: meId }).eq("id", b.dataset.id);
+    if (error) { uiAlert("Impossible : " + error.message); return; }
+    paLoadDeletions();
+  }));
 }
 
 function paRenderLock() {

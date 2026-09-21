@@ -1,5 +1,5 @@
 // Mon espace — portail membre (jeunes & parents). 100% responsive.
-import { sb, myRoles, hasAny, CONSOLE_ROLES, rememberSpace, initNativePush, releaseNativePush } from "./common.js";
+import { sb, myRoles, hasAny, CONSOLE_ROLES, rememberSpace, initNativePush, releaseNativePush, openDeleteAccount } from "./common.js";
 import { ONESIGNAL_APP_ID } from "./config.js";
 
 /* ============================================================
@@ -632,13 +632,17 @@ const secretariatNote = `<p class="pt-prof-note">🔒 Ces informations sont verr
 
 async function renderProfil() {
   const targets = selYouth === "all" ? YOUTHS : YOUTHS.filter((y) => y.person_id === selYouth);
-  if (!targets.length) { $("view-profil").innerHTML = `<div class="pt-empty"><p>Aucun profil lié à ce compte.</p></div>`; return; }
+  // Pied de l'onglet, présent dans tous les cas : la suppression du compte doit toujours être accessible depuis l'app.
+  const foot = `<p style="margin:22px 4px 8px;font-size:.84rem;text-align:center"><a href="confidentialite.html" target="_blank" rel="noopener" class="muted">Confidentialité</a> · <a href="#" id="pt-delete-account" style="color:#b3261e">Supprimer mon compte</a></p>`;
+  const bindFoot = () => document.getElementById("pt-delete-account").addEventListener("click", (e) => { e.preventDefault(); openDeleteAccount(); });
+  if (!targets.length) { $("view-profil").innerHTML = `<div class="pt-empty"><p>Aucun profil lié à ce compte.</p></div>` + foot; bindFoot(); return; }
   $("view-profil").innerHTML = `<p class="muted" style="text-align:center;padding:18px">Chargement…</p>`;
   const infos = await Promise.all(targets.map(async (y) => {
     const { data } = await sb.rpc("portal_youth_info", { p_youth: y.person_id });
     return { y, info: (data && data[0]) || null };
   }));
-  $("view-profil").innerHTML = infos.map(({ y, info }) => youthProfileCard(y, info)).join("");
+  $("view-profil").innerHTML = infos.map(({ y, info }) => youthProfileCard(y, info)).join("") + foot;
+  bindFoot();
   infos.forEach(({ y }) => {
     const btn = document.getElementById("prof-save-" + y.person_id);
     if (btn) btn.addEventListener("click", () => saveYouthProfile(y.person_id));

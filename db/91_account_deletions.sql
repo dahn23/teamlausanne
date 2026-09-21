@@ -1,0 +1,8 @@
+-- 91 — « Supprimer mon compte » en libre-service (22.09.2026) — exigé par Apple et Google.
+-- Définition complète en base (migration Supabase « account_deletions »).
+--   account_deletions       : journal des comptes supprimés par leur utilisateur (+ demande d'effacement du dossier).
+--                             RLS : lecture / « traité » par admin et secrétariat ; écriture par la clé service seulement.
+--   family_ids_of_user(uid) : fiches rattachées à un compte (clé service).
+-- Fonction serveur account-delete (JWT) : journalise, puis supprime le compte ; si des écritures doivent être gardées
+-- (FK sans cascade : présences saisies, cours, factures…), le compte est neutralisé (e-mail remplacé, mot de passe
+-- aléatoire, connexion bloquée, rôles et profil retirés). Un superadmin ne peut pas se supprimer ici.
