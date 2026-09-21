@@ -1,7 +1,7 @@
 // Service worker minimal — installe la PWA « Mon espace » + secours hors-ligne.
 // Stratégie : réseau d'abord (toujours frais quand connecté), cache en secours.
-const CACHE = "tl-espace-v1";
-const SHELL = ["espace.html", "assets/pwa/icon-192.png", "manifest.json"];
+const CACHE = "tl-espace-v2";
+const SHELL = ["espace.html", "assets/pwa/admin-icon-192.png?v=2", "manifest.json"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

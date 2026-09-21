@@ -8,6 +8,12 @@
     "errorPath": "offline.html",
     "allowNavigation": ["app.teamlausanne.ch", "*.supabase.co"]
   },
-  "android": { "backgroundColor": "#1e3ad1" },
-  "ios": { "backgroundColor": "#1e3ad1", "contentInset": "always" }
+  "android": {
+    "backgroundColor": "#1e3ad1",
+    "adjustMarginsForEdgeToEdge": "force"
+  },
+  "ios": { "backgroundColor": "#1e3ad1", "contentInset": "always" },
+  "plugins": {
+    "StatusBar": { "overlaysWebView": false, "style": "DARK", "backgroundColor": "#1e3ad1" }
+  }
 }
