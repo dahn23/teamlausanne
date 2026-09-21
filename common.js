@@ -63,3 +63,50 @@ export async function requireLogin() {
   if (!session) { location.href = "/"; return null; }
   return session;
 }
+
+// ===================================================================
+//  App native (coquille Capacitor, dossier mobile/) : notifications du téléphone
+//  Le site tourne dans le navigateur interne de l'app, où les notifications « navigateur » (web push) n'existent pas.
+//  On passe donc par le pont natif que Capacitor injecte dans la page (window.Capacitor) : le téléphone obtient un
+//  jeton Firebase, qu'on enregistre dans push_devices ; le serveur (fonction push-native) envoie vers ces jetons.
+//  Hors de l'app (Chrome, Safari, ordinateur), tout ceci ne fait rien.
+// ===================================================================
+export const isNativeApp = () => { try { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); } catch (_e) { return false; } };
+const NATIVE_TOKEN_KEY = "tl-native-push-token";
+let nativePushStarted = false;
+
+export async function initNativePush() {
+  if (!isNativeApp() || nativePushStarted) return;
+  const cap = window.Capacitor, P = "PushNotifications";
+  if (!cap.nativePromise || !cap.nativeCallback) return;
+  nativePushStarted = true;
+  try {
+    // Le téléphone a obtenu (ou renouvelé) son jeton : on le rattache au compte connecté.
+    cap.nativeCallback(P, "addListener", { eventName: "registration" }, async (t) => {
+      const token = t && t.value; if (!token) return;
+      try { localStorage.setItem(NATIVE_TOKEN_KEY, token); } catch (_e) { /* stockage indisponible */ }
+      const platform = cap.getPlatform && cap.getPlatform() === "ios" ? "ios" : "android";
+      const { error } = await sb.rpc("push_register_device", { p_token: token, p_platform: platform });
+      if (error) console.warn("push_register_device :", error.message);
+    });
+    cap.nativeCallback(P, "addListener", { eventName: "registrationError" }, (e) => console.warn("Notifications natives :", e && e.error));
+    // Tap sur une notification : on ouvre la page indiquée (chemin du même site uniquement).
+    cap.nativeCallback(P, "addListener", { eventName: "pushNotificationActionPerformed" }, (a) => {
+      const url = a && a.notification && a.notification.data && a.notification.data.url;
+      if (typeof url === "string" && url.startsWith("/") && !url.startsWith("//") && location.pathname + location.search !== url) location.href = url;
+    });
+    // Canal Android « important » : sans lui, la notification arrive sans bandeau ni son.
+    try { await cap.nativePromise(P, "createChannel", { id: "general", name: "Notifications", description: "Mails, cours, news", importance: 5, visibility: 1 }); } catch (_e) { /* iOS : pas de canaux */ }
+    let perm = await cap.nativePromise(P, "checkPermissions", {});
+    if (perm && perm.receive !== "granted") perm = await cap.nativePromise(P, "requestPermissions", {});
+    if (perm && perm.receive === "granted") await cap.nativePromise(P, "register", {});
+  } catch (e) { console.warn("Notifications natives indisponibles :", e && e.message ? e.message : e); }
+}
+
+// À appeler AVANT sb.auth.signOut() : ce téléphone ne doit plus recevoir les notifications du compte qui se déconnecte.
+export async function releaseNativePush() {
+  if (!isNativeApp()) return;
+  let token = ""; try { token = localStorage.getItem(NATIVE_TOKEN_KEY) || ""; } catch (_e) { /* rien */ }
+  if (token) { try { await sb.rpc("push_unregister_device", { p_token: token }); } catch (_e) { /* hors ligne */ } }
+  nativePushStarted = false;
+}

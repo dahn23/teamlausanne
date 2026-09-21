@@ -1,5 +1,5 @@
 // Console admin — CRM membres (accès staff uniquement).
-import { sb, getSession, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours, rememberSpace } from "./common.js";
+import { sb, getSession, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours, rememberSpace, isNativeApp, initNativePush, releaseNativePush } from "./common.js";
 import "./pretty-select.js";
 import "./pretty-date.js";
 
@@ -324,6 +324,7 @@ function applyTabAccess(roles) {
 
 async function init(roles) {
   myAppRoles = roles || [];
+  initNativePush();   // app native : enregistre ce téléphone pour les notifications (sans effet dans un navigateur)
   // Staff qui est aussi joueur ou parent : bouton de bascule vers Mon espace (même compte, même session).
   sb.rpc("portal_has_space").then(({ data }) => {
     if (!data) return;
@@ -332,6 +333,7 @@ async function init(roles) {
   });
   $("logout").addEventListener("click", async () => {
     if (!(await uiConfirm("Êtes-vous sûr de vouloir vous déconnecter ?"))) return;
+    await releaseNativePush();   // app native : ce téléphone ne reçoit plus les notifications de ce compte
     await sb.auth.signOut();
     location.href = "/";
   });
@@ -10231,6 +10233,8 @@ async function saveSubscription(sub) {
 }
 function updateNotifBtn() {
   const btn = $("mail-notif-btn"); if (!btn) return;
+  // Dans l'app native, les notifications passent par le téléphone (initNativePush) : ce bouton « navigateur » n'a pas lieu d'être.
+  if (isNativeApp()) { btn.classList.add("hidden"); return; }
   const lbl = $("mail-notif-lbl"); if (!lbl) return;  // on garde la cloche SVG, on ne change que le texte
   const ok = ("Notification" in window) && Notification.permission === "granted";
   const denied = ("Notification" in window) && Notification.permission === "denied";

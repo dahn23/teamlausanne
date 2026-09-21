@@ -14,6 +14,8 @@
   },
   "ios": { "backgroundColor": "#1e3ad1", "contentInset": "always" },
   "plugins": {
-    "StatusBar": { "overlaysWebView": false, "style": "DARK", "backgroundColor": "#1e3ad1" }
+    "StatusBar": { "overlaysWebView": false, "style": "DARK", "backgroundColor": "#1e3ad1" },
+    "Keyboard": { "resizeOnFullScreen": true },
+    "PushNotifications": { "presentationOptions": ["badge", "sound", "alert"] }
   }
 }

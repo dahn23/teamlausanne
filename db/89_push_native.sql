@@ -1,0 +1,11 @@
+-- 89 — Notifications de l'app native (Android, puis iOS) par Firebase Cloud Messaging (22.09.2026).
+-- Définitions complètes en base (migrations Supabase « push_devices_native » et « mail_pushed_native »).
+--   push_devices            : un jeton Firebase par téléphone (RLS : chacun les siens).
+--   push_register_device()  : rattache le jeton au compte connecté (reprend le jeton si un autre compte l'avait).
+--   push_unregister_device(): à la déconnexion.
+--   mail_messages.pushed_native : marqueur « déjà notifié sur téléphone », séparé de `pushed` (notifications navigateur)
+--                                 pour NE PAS toucher à mail-cron. Les mails existants ont été marqués (pas de rafale).
+--   pg_cron « push-native-mails » (minutes impaires, juste après la relève des minutes paires) :
+--     appelle la fonction push-native { action: "mails" } avec l'en-tête x-cron-secret.
+-- Fonction serveur push-native : jeton d'accès Google à partir du secret FCM_SERVICE_ACCOUNT, envoi HTTP v1,
+-- suppression des jetons morts. { action: "check" } = diagnostic sans envoi.

@@ -35,6 +35,14 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Projet Android (généré à chaque fois, pas stocké dans le dépôt)
         run: npx cap add android
+      - name: Configuration Firebase (notifications)
+        # Le fichier google-services.json vit dans les secrets du dépôt (le dépôt est public) ; il est recréé ici.
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then echo "::error::Secret GOOGLE_SERVICES_JSON absent : pas de notifications possibles."; exit 1; fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          node -e "const j=require('./android/app/google-services.json'); const p=j.client.map(c=>c.client_info.android_client_info.package_name); if(!p.includes('ch.teamlausanne.app')){console.error('::error::google-services.json ne contient pas le package ch.teamlausanne.app (trouvé : '+p.join(', ')+')'); process.exit(1)} console.log('Firebase OK pour', p.join(', '))"
       - name: Icônes et écran de démarrage
         continue-on-error: true   # sans icône générée, l'app se fabrique quand même (icône par défaut)
         run: npx capacitor-assets generate --android --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#ffffff' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#ffffff'
