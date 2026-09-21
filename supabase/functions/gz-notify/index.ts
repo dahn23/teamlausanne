@@ -60,7 +60,7 @@ function recipientIds(key: string, entries: any[], status: any[], epreuve: strin
 }
 
 // deno-lint-ignore no-explicit-any
-async function sendForTournament(supa: any, tx: any, tId: string, key: string, origin: string, surveyId: string, limit: number, epreuve: string | null) {
+async function sendForTournament(supa: any, tx: any, tId: string, key: string, origin: string, surveyId: string, limit: number, epreuve: string | null, preview: { to: string; pid: string } | null = null) {
   const { data: t } = await supa.from("gz_tournaments").select("id,name,registration_url,is_gamezone,swiss_id").eq("id", tId).maybeSingle();
   if (!t) return { sent: 0, remaining: 0 };
   // Le remerciement ne part que pour les tournois GameZone (les autres tableaux n'ont pas de suivi GameZone).
@@ -83,6 +83,8 @@ async function sendForTournament(supa: any, tx: any, tId: string, key: string, o
   const { data: sent } = await supa.from("gz_mail_sent").select("participant_id").eq("tournament_id", tId).eq("template_key", key);
   const done = new Set((sent || []).map((r: { participant_id: string }) => r.participant_id));
   ids = ids.filter((id) => !done.has(id));
+  // Aperçu : le mail exact d'UN joueur, envoyé à une adresse de contrôle — rien n'est noté comme envoyé.
+  if (preview) ids = [preview.pid];
   const total = ids.length;
   ids = ids.slice(0, limit);
   if (!ids.length) return { sent: 0, remaining: 0 };
@@ -108,7 +110,8 @@ async function sendForTournament(supa: any, tx: any, tId: string, key: string, o
   let sentN = 0;
   for (const id of ids) {
     const p = pById[id];
-    if (!p || !p.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email)) { await supa.from("gz_mail_sent").upsert({ tournament_id: tId, participant_id: id, template_key: key, email: p?.email || null }); continue; }
+    if (preview && !p) return { sent: 0, remaining: 0, error: "joueur introuvable" };
+    if (!preview && (!p || !p.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email))) { await supa.from("gz_mail_sent").upsert({ tournament_id: tId, participant_id: id, template_key: key, email: p?.email || null }); continue; }
     const vars = { ...base, prenom: p.first_name || "" };
     const girl = isGirl(p.license_no, (entries || []).filter((e: { participant_id: string }) => e.participant_id === id).map((e: { epreuve: string }) => e.epreuve));
     const subject = fillVars(tpl.subject || "", vars, girl);
@@ -117,10 +120,10 @@ async function sendForTournament(supa: any, tx: any, tId: string, key: string, o
     const img = imgUrl ? `<div style="margin-top:14px"><img src="${imgUrl}" style="max-width:100%"/></div>` : "";
     const html = `<div style="font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111">${toHtml(bodyTxt)}${img}</div>`;
     try {
-      await tx.sendMail({ from: `\"Tournoi - Team Lausanne\" <${TOURNOI}>`, to: p.email, subject, text: bodyTxt, html });
-      await supa.from("gz_mail_sent").upsert({ tournament_id: tId, participant_id: id, template_key: key, email: p.email });
+      await tx.sendMail({ from: `\"Tournoi - Team Lausanne\" <${TOURNOI}>`, to: preview ? preview.to : p.email, subject, text: bodyTxt, html });
+      if (!preview) await supa.from("gz_mail_sent").upsert({ tournament_id: tId, participant_id: id, template_key: key, email: p.email });
       sentN++;
-    } catch (_e) { /* on reessaiera au prochain passage */ }
+    } catch (e) { if (preview) return { sent: 0, remaining: 0, error: String((e as Error)?.message || e) }; /* sinon on reessaiera au prochain passage */ }
   }
   return { sent: sentN, remaining: Math.max(0, total - sentN) };
 }
@@ -165,6 +168,16 @@ Deno.serve(async (req) => {
     const smtpPass = tPass || hubPass;
     const tx = nodemailer.createTransport({ host: smtpHost(smtpUser), port: 465, secure: true, auth: { user: smtpUser, pass: smtpPass } });
     const surveyId = await activeGzSurvey(supa);
+
+    // Aperçu « comme si j'étais ce joueur » : { preview_to, participant_id, tournament_id, key }.
+    // Traité AVANT la branche cron : avec la clé cron, un aperçu ne doit jamais déclencher l'envoi automatique.
+    if (payload.preview_to) {
+      const to = String(payload.preview_to).trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return json({ error: "adresse d'aperçu invalide" }, 400);
+      if (!payload.tournament_id || !payload.key || !payload.participant_id) return json({ error: "tournament_id, key et participant_id requis" }, 400);
+      const r = await sendForTournament(supa, tx, String(payload.tournament_id), String(payload.key), origin, surveyId, 1, null, { to, pid: String(payload.participant_id) });
+      return json({ ok: !r.error, preview: true, ...r });
+    }
 
     if (isCron || payload.cron) {
       const since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
