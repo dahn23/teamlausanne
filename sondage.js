@@ -11,9 +11,12 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 
 let questions = [];
 
-// Anti double envoi : après un envoi, l'appareil s'en souvient. Sans ça, « page précédente » ou un rechargement
-// ré-affiche le formulaire DÉJÀ REMPLI (le navigateur restaure les réponses) et un 2e clic crée un doublon
-// (vu le 21.09.2026 : deux réponses identiques à 4 s d'écart). « Répondre pour un autre enfant » lève le blocage.
+// Anti double envoi, 30 secondes seulement : le même questionnaire sert chaque week-end, un joueur doit pouvoir
+// le re-remplir à chaque tournoi. On bloque juste le doublon immédiat — « page précédente » ou un rechargement
+// ré-affichent le formulaire DÉJÀ REMPLI (le navigateur restaure les réponses) et un 2e clic créait un doublon
+// (vu le 21.09.2026 : deux réponses identiques à 4 s d'écart). « Répondre à nouveau » lève le blocage tout de suite.
+const BLOCK_MS = 30000;
+const recentlySent = () => { const t = Date.parse(store.get(DONE_KEY) || ""); return !isNaN(t) && Date.now() - t < BLOCK_MS; };
 const DONE_KEY = `sv-done:${surveyId}:${participantId || ""}:${tournamentId || ""}`;
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) { /* navigation privée */ } },
@@ -36,11 +39,11 @@ $("sv-again").addEventListener("click", (e) => {
   if (questions.length) $("sv-form").classList.remove("hidden"); else load();
 });
 // Retour arrière servi depuis le cache du navigateur : la page ne se recharge pas, on revérifie.
-window.addEventListener("pageshow", () => { if (store.get(DONE_KEY)) showDone(); });
+window.addEventListener("pageshow", () => { if (recentlySent()) showDone(); });
 
 async function load() {
   if (!surveyId) { $("sv-wait").textContent = "Lien de sondage invalide."; return; }
-  if (store.get(DONE_KEY)) { showDone(); return; }
+  if (recentlySent()) { showDone(); return; }
   const { data: survey } = await sb.from("gz_surveys").select("*").eq("id", surveyId).eq("active", true).maybeSingle();
   if (!survey) { $("sv-wait").textContent = "Ce sondage n'est plus disponible."; return; }
   const { data: qs } = await sb.from("gz_survey_questions").select("*").eq("survey_id", surveyId).order("position");
@@ -66,7 +69,7 @@ async function load() {
 
 $("sv-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (sending || store.get(DONE_KEY)) return;
+  if (sending || recentlySent()) return;
   const err = $("sv-error"); err.hidden = true;
   const fd = new FormData(e.target);
   const answers = [];
@@ -88,6 +91,7 @@ $("sv-form").addEventListener("submit", async (e) => {
   if (e2) { sending = false; err.textContent = "Erreur : " + e2.message; err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer"; return; }
   sending = false;
   store.set(DONE_KEY, new Date().toISOString());
+  e.target.reset();   // formulaire vidé : un retour sur la page ne propose plus les mêmes réponses
   $("sv-form").classList.add("hidden");
   $("sv-done").classList.remove("hidden");
 });
