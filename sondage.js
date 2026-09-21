@@ -11,8 +11,36 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 
 let questions = [];
 
+// Anti double envoi : après un envoi, l'appareil s'en souvient. Sans ça, « page précédente » ou un rechargement
+// ré-affiche le formulaire DÉJÀ REMPLI (le navigateur restaure les réponses) et un 2e clic crée un doublon
+// (vu le 21.09.2026 : deux réponses identiques à 4 s d'écart). « Répondre pour un autre enfant » lève le blocage.
+const DONE_KEY = `sv-done:${surveyId}:${participantId || ""}:${tournamentId || ""}`;
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) { /* navigation privée */ } },
+  del: (k) => { try { localStorage.removeItem(k); } catch (_) { /* idem */ } } };
+let sending = false;
+
+function showDone() {
+  $("sv-wait").classList.add("hidden");
+  $("sv-form").classList.add("hidden");
+  $("sv-done").classList.remove("hidden");
+}
+$("sv-again").addEventListener("click", (e) => {
+  e.preventDefault();
+  store.del(DONE_KEY);
+  $("sv-form").reset();
+  $("sv-form").querySelectorAll(".sv-scale-val").forEach((o) => (o.textContent = "5"));
+  const btn = $("sv-form").querySelector("button[type=submit]");
+  if (btn) { btn.disabled = false; btn.textContent = "Envoyer"; }
+  $("sv-done").classList.add("hidden");
+  if (questions.length) $("sv-form").classList.remove("hidden"); else load();
+});
+// Retour arrière servi depuis le cache du navigateur : la page ne se recharge pas, on revérifie.
+window.addEventListener("pageshow", () => { if (store.get(DONE_KEY)) showDone(); });
+
 async function load() {
   if (!surveyId) { $("sv-wait").textContent = "Lien de sondage invalide."; return; }
+  if (store.get(DONE_KEY)) { showDone(); return; }
   const { data: survey } = await sb.from("gz_surveys").select("*").eq("id", surveyId).eq("active", true).maybeSingle();
   if (!survey) { $("sv-wait").textContent = "Ce sondage n'est plus disponible."; return; }
   const { data: qs } = await sb.from("gz_survey_questions").select("*").eq("survey_id", surveyId).order("position");
@@ -38,6 +66,7 @@ async function load() {
 
 $("sv-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (sending || store.get(DONE_KEY)) return;
   const err = $("sv-error"); err.hidden = true;
   const fd = new FormData(e.target);
   const answers = [];
@@ -47,15 +76,18 @@ $("sv-form").addEventListener("submit", async (e) => {
   }
   if (!answers.length) { err.textContent = "Merci de répondre à au moins une question."; err.hidden = false; return; }
   const btn = e.target.querySelector("button[type=submit]");
+  sending = true;
   btn.disabled = true; btn.textContent = "Envoi…";
   // id généré côté client : l'anonyme ne peut pas relire la réponse (RLS staff)
   const respId = crypto.randomUUID();
   const { error } = await sb.from("gz_survey_responses")
     .insert({ id: respId, survey_id: surveyId, participant_id: participantId, tournament_id: tournamentId });
-  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer"; return; }
+  if (error) { sending = false; err.textContent = "Erreur : " + error.message; err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer"; return; }
   const rows = answers.map((a) => ({ ...a, response_id: respId }));
   const { error: e2 } = await sb.from("gz_survey_answers").insert(rows);
-  if (e2) { err.textContent = "Erreur : " + e2.message; err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer"; return; }
+  if (e2) { sending = false; err.textContent = "Erreur : " + e2.message; err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer"; return; }
+  sending = false;
+  store.set(DONE_KEY, new Date().toISOString());
   $("sv-form").classList.add("hidden");
   $("sv-done").classList.remove("hidden");
 });
