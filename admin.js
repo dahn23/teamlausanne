@@ -218,7 +218,7 @@ const DEFAULT_TAB_ACCESS = {
   moniteur:   ["cours", "heures"],
   affichage:  ["resa"],                      // ecran du club : grille des courts, lecture seule
   prof:       ["etudes"],
-  coach_mental: ["mental", "heures"],
+  coach_mental: ["mental"],   // pas d'onglet Heures (décision Dan, 21.09.2026)
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
