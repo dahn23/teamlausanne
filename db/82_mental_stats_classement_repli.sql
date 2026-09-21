@@ -1,0 +1,6 @@
+-- 82 — Mental, participants : classement de repli pour les joueurs hors relevé juniors (21.09.2026).
+-- Le relevé Swiss Tennis (table prospects) ne couvre que les moins de 19 ans. Pour un joueur plus âgé
+-- (ex. Loris Gander, N4), on prend son classement tel qu'il apparaît, comme ADVERSAIRE, dans le match importé
+-- le plus récent (prospect_matches / player_matches, rapproché par son identifiant mytennis).
+-- ranking_scan = date du relevé, ou date de ce match. Appliqué via la migration Supabase
+-- « mental_participants_stats_classement_repli » : voir la définition en base (pg_get_functiondef).
