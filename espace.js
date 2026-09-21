@@ -1,5 +1,5 @@
 // Mon espace — portail membre (jeunes & parents). 100% responsive.
-import { sb } from "./common.js";
+import { sb, myRoles, hasAny, CONSOLE_ROLES, rememberSpace } from "./common.js";
 import { ONESIGNAL_APP_ID } from "./config.js";
 
 /* ============================================================
@@ -147,6 +147,12 @@ async function startApp() {
 
   const { data, error } = await sb.rpc("portal_my_youths");
   YOUTHS = error ? [] : (data || []);
+  // Compte qui a aussi un rôle staff (coach qui est joueur, parent qui est moniteur…) : bouton de bascule vers la console.
+  myRoles().then((roles) => {
+    if (!hasAny(roles, CONSOLE_ROLES)) return;
+    const b = $("pt-to-console"); b.classList.remove("hidden");
+    b.addEventListener("click", () => { rememberSpace("console"); location.href = "/console"; });
+  });
   // Feuille de match : onglet visible seulement si un jeune du compte est "joueur" (filière élite).
   const { data: pl } = await sb.rpc("portal_player_youths");
   PLAYERS = pl || [];

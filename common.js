@@ -29,8 +29,13 @@ export const hasAny = (roles, allowed) => roles.some((r) => allowed.includes(r))
 // Destination après connexion selon le rôle : staff → console, sinon → espace membre.
 // « console » est réécrit vers admin.html par Netlify (l'URL affichée reste /console).
 export function landingFor(roles) {
-  return hasAny(roles || [], CONSOLE_ROLES) ? "/console" : "espace.html";
+  if (!hasAny(roles || [], CONSOLE_ROLES)) return "espace.html";
+  // Staff qui est AUSSI joueur ou parent : on rouvre le dernier espace utilisé (bouton de bascule en haut de page).
+  return lastSpace() === "espace" ? "espace.html" : "/console";
 }
+// Dernier espace choisi via le bouton de bascule Console ⇄ Mon espace (mémorisé sur l'appareil).
+export function lastSpace() { try { return localStorage.getItem("tl-space") || ""; } catch (_e) { return ""; } }
+export function rememberSpace(s) { try { localStorage.setItem("tl-space", s); } catch (_e) { /* navigation privée */ } }
 
 // ---- Dates en français : JJ-MM-AAAA (partout sur le site) ----
 const pad2 = (n) => String(n).padStart(2, "0");

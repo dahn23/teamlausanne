@@ -1,0 +1,12 @@
+-- 87 — Mon espace : UN espace famille, rattaché à l'e-mail principal de la fiche (décision Dan, 21.09.2026).
+--   • Pas d'espace « parent » séparé de l'espace « enfant » : le compte = l'e-mail principal de la fiche.
+--   • Un parent qui a le même e-mail sur plusieurs enfants les voit tous (sélecteur d'enfant en haut).
+--   • Le jour où l'ado prend son propre e-mail, on change l'e-mail de SA fiche : l'accès suit.
+--   • Constat : 0 lien guardianships, 0 compte parent, 155 e-mails de famille pour 185 jeunes
+--     (130 avec 1 enfant, 22 avec 2, 3 avec 3+). guardianships reste pris en compte s'il sert un jour.
+--   • Garde-fou : l'e-mail du compte doit être confirmé (comptes créés par invitation).
+-- Fonctions (définitions complètes en base, migrations Supabase « portail_famille_par_email » et « portal_has_space ») :
+--   my_family_ids()      : ma fiche + mes enfants (guardianships) + toutes les fiches portant mon e-mail.
+--   can_read_public_of() : réécrite sur my_family_ids() → toutes les RPC / policies du portail suivent.
+--   portal_my_youths()   : profils du compte ; la personne du compte n'apparaît que si elle est joueuse ou seule.
+--   portal_has_space()   : vrai si un membre de la famille est inscrit dans une filière (bouton « Mon espace » de la console).

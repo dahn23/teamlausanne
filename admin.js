@@ -1,5 +1,5 @@
 // Console admin — CRM membres (accès staff uniquement).
-import { sb, getSession, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours } from "./common.js";
+import { sb, getSession, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours, rememberSpace } from "./common.js";
 import "./pretty-select.js";
 import "./pretty-date.js";
 
@@ -324,6 +324,12 @@ function applyTabAccess(roles) {
 
 async function init(roles) {
   myAppRoles = roles || [];
+  // Staff qui est aussi joueur ou parent : bouton de bascule vers Mon espace (même compte, même session).
+  sb.rpc("portal_has_space").then(({ data }) => {
+    if (!data) return;
+    const b = $("to-espace"); b.classList.remove("hidden");
+    b.addEventListener("click", () => { rememberSpace("espace"); location.href = "espace.html"; });
+  });
   $("logout").addEventListener("click", async () => {
     if (!(await uiConfirm("Êtes-vous sûr de vouloir vous déconnecter ?"))) return;
     await sb.auth.signOut();

@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=229" />
+  <link rel="stylesheet" href="style.css?v=230" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -26,6 +26,7 @@
     <header class="topbar">
       <span class="brand-sm"><img class="brand-logo" src="assets/logo-academie.webp" alt="Team Lausanne Academy" /><span id="brand-role">Console</span></span>
       <span class="spacer"></span>
+      <button id="to-espace" class="ghost space-switch hidden" title="Passer à Mon espace (mes cours, ceux de mes enfants)">⇄ Mon espace</button>
       <button id="who" class="ghost who-btn" title="Mon profil"></button>
       <button id="logout" class="ghost logout-x" title="Déconnexion" aria-label="Déconnexion">✕</button>
     </header>
