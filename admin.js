@@ -1115,6 +1115,13 @@ async function loadPeople() {
   ]);
   if (error) { alert("Erreur chargement : " + error.message); return; }
   people = data || [];
+  // Coach mental : la base ne lui ouvre plus la fiche des jeunes (téléphone, parents, adresse…), seulement leurs NOMS,
+  // via une fonction dédiée. On complète donc la liste avec ces noms pour l'écran Mental.
+  if (hasAny(myAppRoles, ["coach_mental"])) {
+    const { data: mp } = await sb.rpc("mental_people");
+    const known = new Set(people.map((p) => p.id));
+    for (const p of mp || []) if (!known.has(p.id)) people.push(p);
+  }
   peopleRoles = {};
   const add = (pid, role) => { const a = (peopleRoles[pid] || (peopleRoles[pid] = [])); if (!a.includes(role)) a.push(role); };
   for (const r of pr || []) add(r.person_id, r.role);
