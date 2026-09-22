@@ -410,7 +410,7 @@ const DETAILS = {
     sections: [
       { type: "keywords", label: "Ce qui fait le Pro U18", items: [
         "Entraînement à plein temps", "Circuit ITF junior", "Deux sessions par jour",
-        "Suivi médical et physio", "Préparation mentale", "Classement mondial",
+        "Partenariat physio", "Préparation mentale", "Classement mondial",
       ]},
       { type: "split", photos: [
           "assets/photos/pro-u18-2026-s1.jpg", "assets/photos/pro-u18-2026-s2.jpg",
@@ -437,8 +437,8 @@ const DETAILS = {
       { type: "perks", eyebrow: "Ce qui est compris",
         title: "Tout est prévu autour du joueur",
         lead: "Le corps, la tête et la logistique : rien ne doit détourner l'attention du jeu.", items: [
-          ["Suivi médical et physio", "Physiothérapie, tests physiques réguliers et suivi médical continu."],
-          ["Préparation mentale", "Un accompagnement mental intégré à la semaine, pas une option."],
+          ["Partenariat physio", "Un partenariat avec un physiothérapeute : rendez-vous obtenus rapidement et prise en charge assurée."],
+          ["Préparation mentale", "Une séance avec le coach mental toutes les deux semaines, intégrée au programme."],
           ["Retours réguliers", "Des retours suivis et un point régulier sur la progression, les objectifs et la planification."],
           ["Repas de midi", "Inclus et pris sur place, entre les deux sessions."],
           ["Cordage et équipement", "Cordages, raquettes et habillement complet fournis."],
