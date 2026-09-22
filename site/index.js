@@ -415,17 +415,16 @@ const DETAILS = {
         ], link: { label: "Recevoir le dossier", scroll: "brochure", cta: true } },
       { type: "stats", items: [
         ["46", "semaines d'entraînement"],
-        ["15", "tournois internationaux"],
+        ["5", "matchs locaux"],
         ["2", "sessions de tennis / jour"],
         ["5h", "de jeu quotidien"],
       ]},
       { type: "slots", eyebrow: "La semaine type",
         title: "Une journée de joueur professionnel",
-        lead: "Le physique ouvre la matinée, le tennis occupe le reste. Le mercredi après-midi bascule sur une seconde session physique.", items: [
+        lead: "Le physique ouvre la matinée, le tennis occupe le reste de la journée.", items: [
           { titre: "09h00 – 10h00", heures: ["Préparation physique"], note: "lun → ven" },
           { titre: "10h15 – 12h15", heures: ["Tennis, session du matin"], note: "lun → ven" },
           { titre: "13h15 – 15h15", heures: ["Tennis, session de l'après-midi"], note: "lun, mar, jeu, ven" },
-          { titre: "14h00 – 16h00", heures: ["Seconde session physique"], note: "mercredi" },
         ],
         note: "Le calendrier de tournois se superpose à la semaine type : pendant les déplacements, l'entraînement se poursuit sur place." },
       { type: "perks", eyebrow: "Ce qui est compris",
