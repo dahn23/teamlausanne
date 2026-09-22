@@ -30,14 +30,23 @@ window.addEventListener("message", async (e) => {
   if (d.type === "presults-progress") { st.textContent = d.text; return; }
 
   if (d.type === "presults-data") {
-    st.textContent = "Enregistrement des résultats…";
+    // Envoi par PAQUETS : depuis que le favori couvre les 4500 prospects, un envoi unique dépassait les 150 s
+    // autorisées par requête (22.09.2026 : « IDLE_TIMEOUT » alors que tout était enregistré).
+    const rows = d.rows || [], B = 600, N = Math.max(1, Math.ceil(rows.length / B));
+    const tot = { stored: 0, upsets: 0, matched: new Set() };
     try {
-      const j = await callFn({ key: KEY || d.key, action: "recent", rows: d.rows });
-      if (!j.ok) { st.textContent = "Erreur : " + (j.error || JSON.stringify(j)); return; }
+      for (let i = 0; i < rows.length; i += B) {
+        st.textContent = `Enregistrement des résultats… paquet ${Math.floor(i / B) + 1}/${N} (${Math.min(i + B, rows.length)}/${rows.length} matchs)`;
+        const j = await callFn({ key: KEY || d.key, action: "recent", rows: rows.slice(i, i + B) });
+        if (!j.ok) { st.textContent = `Erreur au paquet ${Math.floor(i / B) + 1}/${N} : ` + (j.error || JSON.stringify(j)) + ` — ${tot.stored} match(s) déjà enregistrés.`; return; }
+        tot.stored += j.stored || 0; tot.upsets += j.upsets || 0;
+        for (const l of j.licenses || []) tot.matched.add(l);
+      }
+      if (!rows.length) { await callFn({ key: KEY || d.key, action: "recent", rows: [] }); }
       await logOps("scan", d.who);
-      let msg = `✓ Terminé : ${j.stored} match(s) récents enregistrés pour ${j.matched} prospect(s), dont 🔥 ${j.upsets} exploit(s). Rafraîchis l'onglet Prospects.`;
+      let msg = `✓ Terminé : ${tot.stored} match(s) récents enregistrés pour ${tot.matched.size} prospect(s), dont 🔥 ${tot.upsets} exploit(s). Rafraîchis l'onglet Prospects.`;
       const g = d.diag;
-      if (g && j.stored === 0) {
+      if (g && tot.stored === 0) {
         msg += `\n\n— Diagnostic —\nJetons : ${g.jwts} · valide : ${g.tokenOk ? "oui" : "NON"}\nRésultats parcourus : ${g.scanned ?? 0}`;
         if (g.err) msg += `\nErreur API : ${g.err}`;
       }

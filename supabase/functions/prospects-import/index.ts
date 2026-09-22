@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       const { data: ms } = await svc.from("prospect_matches").select("is_upset").eq("prospect_license", lic);
       await svc.from("prospects").update({ match_count: (ms ?? []).length, upset_count: (ms ?? []).filter((x: { is_upset: boolean }) => x.is_upset).length, updated_at: new Date().toISOString() }).eq("license_no", lic);
     }
-    return json({ ok: true, scanned: rows.length, stored, matched: affected.size, upsets: toUpsert.filter((x) => x.is_upset).length, error: lastErr });
+    return json({ ok: true, scanned: rows.length, stored, matched: affected.size, licenses: [...affected], upsets: toUpsert.filter((x) => x.is_upset).length, error: lastErr });
   }
 
   if (action === "geocode") {
