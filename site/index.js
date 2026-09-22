@@ -441,7 +441,7 @@ const DETAILS = {
         title: "Tout ce qu'il faut savoir avant de s'engager", items: [
           ["À qui s'adresse le Pro U18 ?", "Aux joueuses et joueurs sortis de la scolarité obligatoire, déjà installés en compétition, prêts à faire du tennis leur occupation principale et à voyager pour jouer."],
           ["Faut-il arrêter les études ?", "Non. Le programme s'accommode d'une formation à distance ou d'un apprentissage aménagé — l'horaire libère les fins d'après-midi et les soirées. On en discute au cas par cas."],
-          ["Combien de tournois par an ?", "Une quinzaine de tournois internationaux, avec des déplacements en groupe encadrés par un coach de l'académie."],
+          ["Combien de tournois par an ?", "Il n'y a pas de nombre fixe. Le calendrier se construit avec le joueur et ses coachs, selon son niveau, sa forme et ses objectifs du moment — une saison ne ressemble pas à la suivante. Les déplacements se font en groupe, encadrés par un coach de l'académie."],
           ["Comment se mesure la progression ?", "Par le classement mondial junior, et par un bilan toutes les deux semaines portant sur le jeu, le physique et la planification."],
           ["Qui paie les déplacements ?", "Les frais de voyage — vols, logement, repas et inscriptions aux tournois — restent à la charge du joueur. Le reste de l'encadrement est compris dans le programme."],
           ["Et après le Pro U18 ?", "La filière Pro prend le relais pour celles et ceux qui passent sur le circuit professionnel, avec un programme entièrement sur mesure."],
