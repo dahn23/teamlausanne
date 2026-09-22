@@ -56,7 +56,7 @@ function gzOpenLightbox(urls, start) {
     <div class="gz-lb-count"></div>`;
   const img = ov.querySelector(".gz-lb-img"), count = ov.querySelector(".gz-lb-count");
   const show = (n) => { i = (n + urls.length) % urls.length; img.src = urls[i]; count.textContent = `${i + 1} / ${urls.length}`; };
-  const close = () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; ov.remove(); };
+  const close = () => { document.removeEventListener("keydown", onKey); document.removeEventListener("wheel", noScroll); document.removeEventListener("touchmove", noScroll); ov.remove(); };
   const onKey = (e) => { if (e.key === "Escape") close(); else if (e.key === "ArrowLeft") show(i - 1); else if (e.key === "ArrowRight") show(i + 1); };
   if (urls.length < 2) ov.classList.add("gz-lb-single");
   ov.addEventListener("click", (e) => {
@@ -72,7 +72,11 @@ function gzOpenLightbox(urls, start) {
     if (Math.abs(dx) > 50) show(i + (dx < 0 ? 1 : -1));
   });
   document.addEventListener("keydown", onKey);
-  document.body.style.overflow = "hidden";
+  // Pas de body{overflow:hidden} : sur ce site, ça ramène la page en haut (le body fait la hauteur de l'écran) et la
+  // visionneuse semblait ne pas s'ouvrir. On bloque la molette et le glisser à la place, tant qu'elle est ouverte.
+  const noScroll = (e) => { if (!e.target.closest(".gz-lb")) e.preventDefault(); };
+  document.addEventListener("wheel", noScroll, { passive: false });
+  document.addEventListener("touchmove", noScroll, { passive: false });
   document.body.appendChild(ov);
   show(i);
 }
