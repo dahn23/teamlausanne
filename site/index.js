@@ -59,6 +59,13 @@ const icoStat = (k) => ICO_STAT[k]
 
 const partLogo = (p) => `assets/partenaires/${p.l}.${p.svg ? "svg" : "png"}`;
 
+// Les quatorze partenaires ci-dessus sont ceux du TOURNOI : ils ne s'affichent
+// que sur la page du Lausanne Open, dans sa propre section. Le bandeau du bas de
+// page, lui, appartient a l'academie et ne porte que ses deux partenaires. Une
+// seule liste de donnees, deux sous-ensembles.
+const PARTENAIRES_ACADEMIE = ["garage-plaine", "bs-architectes"]
+  .map((l) => PARTENAIRES.find((p) => p.l === l)).filter(Boolean);
+
 
 // ===================================================================
 //  MONDES
@@ -1576,8 +1583,31 @@ function calerBandeaux() {
       img.addEventListener("error", calerBandeaux, { once: true });
     }
     const l = serie.getBoundingClientRect().width;
-    if (l > 0) piste.style.animationDuration = (l / REEL_VITESSE).toFixed(2) + "s";
+    if (l <= 0) continue;
+    // La piste se translate d'exactement UNE serie, pour que la copie arrive
+    // pile ou etait l'originale. La distance est donc mesuree, pas ecrite en
+    // dur : a -50 % elle ne tomberait juste qu'avec exactement deux series.
+    piste.style.setProperty("--reel-pas", l + "px");
+    piste.style.animationDuration = (l / REEL_VITESSE).toFixed(2) + "s";
+    garnirReel(piste, l);
   }
+}
+
+// Il faut de quoi remplir le cadre PLUS une serie entiere, celle dont on revient
+// en arriere a chaque tour. Avec quatorze logos, deux series suffisaient ; avec
+// les deux logos de l'academie, la piste ne couvre pas un grand ecran et c'est
+// un trou qui defile a la place du bandeau.
+const REEL_SERIES_MAX = 12;
+function garnirReel(piste, largeurSerie) {
+  const vue = piste.parentElement?.clientWidth || 0;
+  if (!vue) return;
+  const voulu = Math.min(Math.ceil(vue / largeurSerie) + 1, REEL_SERIES_MAX);
+  // On recopie la serie DOUBLON (deja masquee aux lecteurs d'ecran et retiree
+  // du parcours clavier), jamais l'originale : sinon chaque logo compterait
+  // plusieurs fois au clavier.
+  const modele = piste.querySelector('.reel-serie[aria-hidden="true"]');
+  if (!modele) return;
+  while (piste.children.length < voulu) piste.appendChild(modele.cloneNode(true));
 }
 
 // Le bandeau du bas de page est le meme pour tous les mondes : on le remplit
@@ -1586,7 +1616,7 @@ function poserPartenaires() {
   const z = $("partners-reel");
   if (!z || z.dataset.pret) return;
   z.dataset.pret = "1";
-  z.innerHTML = reelHTML(PARTENAIRES);
+  z.innerHTML = reelHTML(PARTENAIRES_ACADEMIE);
 }
 
 // La page du tournoi porte deja sa propre section « Partenaires », alimentee par

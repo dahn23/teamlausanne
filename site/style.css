@@ -1638,7 +1638,13 @@ a.ccard-pill:hover .ccard-arrow,button.ccard-pill:hover .ccard-arrow{
    le debut de la copie. */
 .reel-serie{list-style:none;margin:0;padding:0 var(--reel-gap) 0 0;
   display:flex;align-items:center;gap:var(--reel-gap)}
-@keyframes reel-defile{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+/* La piste avance d'exactement UNE serie, distance mesuree en JS et posee dans
+   --reel-pas : la copie arrive alors pile ou etait l'originale, quel que soit
+   le nombre de series. A -50 % la boucle ne tombait juste qu'avec exactement
+   deux series — ce qui cassait des qu'il en fallait plus pour couvrir l'ecran.
+   Repli a 50 % si la mesure n'a pas encore eu lieu. */
+@keyframes reel-defile{from{transform:translateX(0)}
+  to{transform:translateX(calc(-1 * var(--reel-pas, 50%)))}}
 
 .reel-logo{display:flex;align-items:center;justify-content:center;
   text-decoration:none;border-radius:var(--radius-md);padding:8px 4px}
