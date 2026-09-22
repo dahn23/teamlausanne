@@ -46,6 +46,11 @@ jobs:
       - name: Icônes et écran de démarrage
         continue-on-error: true   # sans icône générée, l'app se fabrique quand même (icône par défaut)
         run: npx capacitor-assets generate --android --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#ffffff' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#ffffff'
+      - name: Android 16 (API 36) — exigé par le Play Store depuis août 2026
+        # Capacitor 7 génère un projet qui vise l'API 35 ; le Play Store refuse tout envoi sous 36.
+        run: |
+          sed -i -E 's/compileSdkVersion = [0-9]+/compileSdkVersion = 36/; s/targetSdkVersion = [0-9]+/targetSdkVersion = 36/' android/variables.gradle
+          grep -E "compileSdkVersion|targetSdkVersion|minSdkVersion" android/variables.gradle
       - name: Synchronisation
         run: npx cap sync android
       - name: Fabrication de l'APK de test
