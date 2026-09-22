@@ -439,7 +439,7 @@ const DETAILS = {
         lead: "Le corps, la tête et la logistique : rien ne doit détourner l'attention du jeu.", items: [
           ["Suivi médical et physio", "Physiothérapie, tests physiques réguliers et suivi médical continu."],
           ["Préparation mentale", "Un accompagnement mental intégré à la semaine, pas une option."],
-          ["Bilans toutes les deux semaines", "Un point régulier sur la progression, les objectifs et la planification."],
+          ["Retours réguliers", "Des retours suivis et un point régulier sur la progression, les objectifs et la planification."],
           ["Repas de midi", "Inclus et pris sur place, entre les deux sessions."],
           ["Cordage et équipement", "Cordages, raquettes et habillement complet fournis."],
         ],
@@ -449,7 +449,7 @@ const DETAILS = {
           ["À qui s'adresse le Pro U18 ?", "Aux joueuses et joueurs sortis de la scolarité obligatoire, déjà installés en compétition, prêts à faire du tennis leur occupation principale et à voyager pour jouer."],
           ["Faut-il arrêter les études ?", "Non. Le programme s'accommode d'une formation à distance ou d'un apprentissage aménagé — l'horaire libère les fins d'après-midi et les soirées. On en discute au cas par cas."],
           ["Combien de tournois par an ?", "Il n'y a pas de nombre fixe. Le calendrier se construit avec le joueur et ses coachs, selon son niveau, sa forme et ses objectifs du moment — une saison ne ressemble pas à la suivante. Les déplacements s'organisent au cas par cas : selon le tournoi et les joueurs engagés, le voyage se fait seul ou à plusieurs, accompagné ou non par un coach de l'académie."],
-          ["Comment se mesure la progression ?", "Par le classement mondial junior, et par un bilan toutes les deux semaines portant sur le jeu, le physique et la planification."],
+          ["Comment se mesure la progression ?", "Par le classement mondial junior, et par des points réguliers avec les coachs portant sur le jeu, le physique et la planification."],
           ["Qui paie les déplacements ?", "Les frais de voyage — vols, logement, repas et inscriptions aux tournois — restent à la charge du joueur. Le reste de l'encadrement est compris dans le programme."],
           ["Et après le Pro U18 ?", "La filière Pro prend le relais pour celles et ceux qui passent sur le circuit professionnel, avec un programme entièrement sur mesure."],
         ]},
