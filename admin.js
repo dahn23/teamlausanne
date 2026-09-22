@@ -3452,6 +3452,28 @@ async function loadMtBookmarklet() {
   $("mt-bm-holder").innerHTML = "";
   $("mt-bm-holder").appendChild(a);
   $("mt-bm-note").textContent = "Astuce : glissez-le dans la barre de favoris (ou clic droit → Ajouter aux favoris).";
+  loadMtPlayerBookmarklet();
+}
+
+// Favori « Lire un joueur » : affiche la fiche complète d'un joueur (id, licence ou nom) depuis la session mytennis.
+// Aucune clé ni envoi vers la console : tout reste dans la page mytennis.
+async function loadMtPlayerBookmarklet() {
+  const holder = $("mt-pb-holder");
+  if (!holder) return;
+  let src;
+  try { src = await (await fetch("mt-player-bookmarklet.js")).text(); }
+  catch (_e) { holder.textContent = "(favori indisponible)"; return; }
+  const a = document.createElement("a");
+  a.href = "javascript:" + encodeURIComponent(src);
+  a.textContent = "Lire un joueur";
+  a.className = "btn-prod";
+  a.style.textDecoration = "none";
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("Ne cliquez pas ici : GLISSEZ ce bouton dans votre barre de favoris, puis utilisez-le une fois connecté sur mytennis.ch.");
+  });
+  holder.innerHTML = "";
+  holder.appendChild(a);
 }
 
 async function loadBookmarklet() {
