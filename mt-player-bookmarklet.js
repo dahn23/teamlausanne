@@ -37,12 +37,16 @@
 
     // champs disponibles (introspection) : on prend tout ce qui est scalaire
     const scalarFields = async (typeName) => {
-      const j = await gql("query($n:String!){__type(name:$n){fields{name type{kind name ofType{kind name ofType{kind name}}}}}}", { n: typeName }, token);
+      const j = await gql("query($n:String!){__type(name:$n){fields{name args{name} type{kind name ofType{kind name ofType{kind name}}}}}}", { n: typeName }, token);
       const fs = (j.data && j.data.__type && j.data.__type.fields) || [];
       const leaf = (t) => { while (t && (t.kind === "NON_NULL" || t.kind === "LIST")) t = t.ofType; return t; };
-      const scal = [], obj = [];
-      for (const f of fs) { const l = leaf(f.type); if (!l) continue; if (l.kind === "SCALAR" || l.kind === "ENUM") scal.push(f.name); else obj.push({ name: f.name, type: l.name }); }
-      return { scal, obj };
+      const scal = [], obj = [], withArgs = [];
+      for (const f of fs) {
+        const l = leaf(f.type); if (!l) continue;
+        if (l.kind === "SCALAR" || l.kind === "ENUM") { if (f.args && f.args.length) withArgs.push(f.name + "(" + f.args.map((a) => a.name).join(",") + ")"); else scal.push(f.name); }
+        else obj.push({ name: f.name, type: l.name });
+      }
+      return { scal, obj, withArgs };
     };
     const pf = await scalarFields("person");
     const lnObj = pf.obj.find((o) => o.name === "lizenz_nehmer");
@@ -84,7 +88,8 @@
     const ln = Array.isArray(person.lizenz_nehmer) ? person.lizenz_nehmer : (person.lizenz_nehmer ? [person.lizenz_nehmer] : []);
     const won = (m) => m.playerWinnerCode === 1 || m.playerWinnerCode === true;
     const wins = matches.filter(won).length;
-    const dump = { person, matches, fields: { person: pf.scal, lizenz_nehmer: lf.scal, autres_tables: interesting } };
+    const rel = (o) => (o || []).map((r) => r.name + "→" + r.type);
+    const dump = { person, matches, fields: { person: pf.scal, person_relations: rel(pf.obj), person_calcules: pf.withArgs, lizenz_nehmer: lf.scal, lizenz_nehmer_relations: rel(lf.obj), lizenz_nehmer_calcules: lf.withArgs, autres_tables: interesting } };
 
     const old = document.getElementById("tl-player-box"); if (old) old.remove();
     const box = document.createElement("div"); box.id = "tl-player-box";
@@ -98,7 +103,7 @@
       "<h3 style='margin:14px 0 6px'>Matchs simples (" + matches.length + ", " + wins + " gagnés)</h3>" +
       (sj.errors ? "<p style='color:#b00'>" + esc(sj.errors[0].message) + "</p>" : "") +
       "<table style='border-collapse:collapse'>" + matches.map((m) => "<tr style='border-top:1px solid #eee'><td style='padding:2px 10px 2px 0'>" + esc((m.date || "").slice(0, 10)) + "</td><td style='padding:2px 10px 2px 0'>" + esc(m.tournamentName) + "</td><td style='padding:2px 10px 2px 0'>" + esc(m.adversaryFirstname + " " + m.adversaryLastname) + " <span style='color:#666'>" + esc(m.adversary && m.adversary.classification) + "</span></td><td style='padding:2px 10px 2px 0'>" + (won(m) ? "<b style='color:#2a7'>V</b>" : "<span style='color:#b00'>D</span>") + "</td><td>" + esc(score(m)) + "</td></tr>").join("") + "</table>" +
-      "<h3 style='margin:14px 0 6px'>Champs disponibles dans l'API</h3><p style='color:#666;font-size:12px'>person : " + esc(pf.scal.join(", ")) + "<br>licence : " + esc(lf.scal.join(", ")) + "<br>tables classement/rang : " + esc(interesting.join(", ") || "aucune") + "</p>";
+      "<h3 style='margin:14px 0 6px'>Champs disponibles dans l'API</h3><p style='color:#666;font-size:12px'>person : " + esc(pf.scal.join(", ")) + "<br>licence : " + esc(lf.scal.join(", ")) + "<br>liens licence : " + esc(rel(lf.obj).join(", ") || "aucun") + "<br>champs calculés (avec paramètres) : " + esc(pf.withArgs.concat(lf.withArgs).join(", ") || "aucun") + "<br>tables classement/rang : " + esc(interesting.join(", ") || "aucune") + "</p>";
     document.body.appendChild(box);
     document.getElementById("tl-pb-close").onclick = () => box.remove();
     document.getElementById("tl-pb-copy").onclick = async () => { try { await navigator.clipboard.writeText(JSON.stringify(dump, null, 2)); alert("JSON copié : colle-le dans Claude."); } catch (e) { prompt("Copie ce texte :", JSON.stringify(dump)); } };
