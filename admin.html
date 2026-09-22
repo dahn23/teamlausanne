@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=231" />
+  <link rel="stylesheet" href="style.css?v=232" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -759,6 +759,7 @@
             <p class="muted cal-aide">Sans heure, l'élément couvre toute la journée.</p>
             <label class="mailc-f">Remarque <span class="muted" style="font-weight:400">(facultatif)</span>
               <textarea id="cal-note" rows="2"></textarea></label>
+            <p id="cal-fige" class="muted cal-fige" hidden></p>
             <p id="cal-err" class="error" hidden></p>
             <div class="form-foot">
               <button type="button" id="cal-del" class="danger hidden">Supprimer</button>

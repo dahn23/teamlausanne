@@ -3207,3 +3207,8 @@ tr.rm-loss td{background:#fde8e8}
 @media(max-width:640px){.gz-lb{padding:8px}.gz-lb-img{max-width:100%;max-height:80vh}.gz-lb-prev{left:6px}.gz-lb-next{right:6px}.gz-lb button{width:40px;height:40px}}
 #view-acces .rg-card{max-width:none}
 #view-acces button:disabled{opacity:.45;cursor:not-allowed}
+
+/* Calendrier : pourquoi un élément est verrouillé. Un bouton grisé sans
+   explication se lit comme une panne. */
+.cal-fige{margin:4px 0 0;font-size:.85rem;background:#fff8e6;border:1px solid #f0d89a;
+  border-radius:9px;padding:8px 11px;color:#8a6116}

@@ -2075,6 +2075,23 @@ function calRenderSemaines() {
     b.addEventListener("click", () => calOuvrir(null, "evenement", b.dataset.sem)));
 }
 
+// Qui peut modifier une ligne du calendrier. Copie fidèle de la policy
+// cal_modif : l'auteur fait ce qu'il veut de SA ligne, sauf s'il s'agit de
+// vacances déjà validées — les déplacer sans repasser devant personne
+// reviendrait à s'accorder un congé.
+const calPeutModifier = (ev) =>
+  canCalValider() ||
+  (!!ev.created_by && ev.created_by === meId &&
+   (ev.kind !== "vacances" || ev.status === "demande"));
+
+// Dire POURQUOI c'est verrouillé : un bouton grisé sans explication se lit
+// comme une panne.
+function calRaisonFige(ev) {
+  if (ev.kind === "vacances" && ev.status === "valide" && ev.created_by === meId)
+    return "Ces vacances sont déjà validées : passe par un responsable pour les changer.";
+  return "Seul l'auteur de cet élément (ou un responsable) peut le modifier.";
+}
+
 function calOuvrir(ev, kind, lundi, fin) {
   initCalendrier();
   $("cal-err").hidden = true;
@@ -2097,10 +2114,16 @@ function calOuvrir(ev, kind, lundi, fin) {
     if (moi) $("cal-membre").value = moi.id;
   }
   $("cal-membre-wrap").classList.toggle("hidden", $("cal-kind").value !== "vacances");
-  // Une demande déjà validée ne se modifie plus, sauf par ceux qui valident.
-  const fige = ev && ev.status === "valide" && !canCalValider();
-  $("cal-save").disabled = !!fige;
-  $("cal-del").classList.toggle("hidden", !ev || !!fige);
+  // Qui peut toucher à cette ligne. On reprend mot pour mot la règle de la
+  // base (policy cal_modif) : sans cela le bouton resterait actif et
+  // l'enregistrement ne modifierait aucune ligne — sans erreur, sans rien dire.
+  // Avant, l'écran ne regardait que le statut : or fermetures, camps,
+  // événements et sessions de test naissent en « validé », donc leur auteur se
+  // retrouvait verrouillé dès l'enregistrement.
+  $("cal-save").disabled = !!ev && !calPeutModifier(ev);
+  $("cal-del").classList.toggle("hidden", !ev || !calPeutModifier(ev));
+  $("cal-fige").hidden = !ev || calPeutModifier(ev);
+  if (ev && !calPeutModifier(ev)) $("cal-fige").textContent = calRaisonFige(ev);
   $("cal-modal").classList.remove("hidden");
 }
 
