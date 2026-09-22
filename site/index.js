@@ -435,8 +435,8 @@ const DETAILS = {
           ["Bilans toutes les deux semaines", "Un point régulier sur la progression, les objectifs et la planification."],
           ["Repas de midi", "Inclus et pris sur place, entre les deux sessions."],
           ["Cordage et équipement", "Cordages, raquettes et habillement complet fournis."],
-          ["Tournois à l'étranger", "Les tournois se jouent sur le circuit ITF junior. L'organisation du déplacement se décide tournoi par tournoi."],
-        ]},
+        ],
+        note: "Les tournois ne sont pas compris dans le programme : vols, logement, repas et inscriptions restent à la charge du joueur." },
       { type: "faq", eyebrow: "Questions fréquentes",
         title: "Tout ce qu'il faut savoir avant de s'engager", items: [
           ["À qui s'adresse le Pro U18 ?", "Aux joueuses et joueurs sortis de la scolarité obligatoire, déjà installés en compétition, prêts à faire du tennis leur occupation principale et à voyager pour jouer."],
@@ -1207,6 +1207,7 @@ function sectionHTML(sec) {
         <div class="perk-grid">${sec.items.map(([h, t], k) =>
           `<article class="perk"><span class="perk-num" aria-hidden="true">${String(k + 1).padStart(2, "0")}</span>
             <h3>${esc(h)}</h3><p>${esc(t)}</p></article>`).join("")}</div>
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}
         ${linkHTML(sec.link)}</section>`;
 
     // ---- Creneaux et tarif ----
