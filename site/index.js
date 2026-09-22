@@ -474,7 +474,11 @@ const DETAILS = {
       ]},
       { type: "split", photos: [
           "assets/photos/pro-2026-g1.jpg", "assets/photos/open-serve.jpg",
-          "assets/webflow/physical-training.jpg",
+          // Photo verticale dans un cadre large : le cadrage vise la tête plutôt
+          // que le centre. 42 % est la valeur la plus haute qui garde la tête sur mobile, où
+          // le cadre est bien plus aplati (776 px d'image visibles contre 1075
+          // sur grand écran) ; au-delà, la tête sort par le haut.
+          { src: "assets/photos/pro-2026-court.jpg", pos: "center 42%" },
         ],
         eyebrow: "Du sur-mesure, pas un forfait", title: "Un programme construit autour de vous", body: [
           "Au niveau professionnel, deux joueurs n'ont jamais le même calendrier. L'encadrement s'adapte aux tournois, aux déplacements, aux blessures et aux objectifs de points — pas l'inverse.",
@@ -734,8 +738,11 @@ function sectionHTML(sec) {
             ? `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><video class="split-native" controls playsinline preload="metadata" poster="${esc(sec.poster || "")}"><source src="${esc(sec.videoFile)}" type="video/mp4" />Votre navigateur ne peut pas lire cette vidéo.</video></div>`
             : `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><iframe src="https://www.youtube.com/embed/${esc(sec.video)}" title="${esc(sec.title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`)
           : sec.photos
-            ? `<div class="split-media split-scroller">${sec.photos.map((p, i) =>
-                `<div class="ss-photo${i ? "" : " on"}" style="background-image:url('${p}')"></div>`).join("")}
+            ? `<div class="split-media split-scroller">${sec.photos.map((it, i) => {
+                const p = typeof it === "string" ? it : it.src;
+                const pos = (typeof it === "object" && it.pos) ? `;background-position:${it.pos}` : "";
+                return `<div class="ss-photo${i ? "" : " on"}" style="background-image:url('${p}')${pos}"></div>`;
+              }).join("")}
                 <div class="ss-dots">${sec.photos.map((_, i) =>
                   `<button type="button" class="ss-dot${i ? "" : " on"}" data-ss="${i}" aria-label="Photo ${i + 1}"></button>`).join("")}</div>
               </div>`
