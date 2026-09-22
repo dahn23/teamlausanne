@@ -2236,9 +2236,10 @@ function dashNotes(list) {
     ? rows + ((list || []).length > 5 ? `<button type="button" class="dash-showmore ghost">Voir plus (${list.length - 5})</button>` : "")
     : '<div class="muted">Aucun message ces 7 derniers jours.</div>');
 }
-// Absences cumulées au-delà du seuil (réglage « absences_seuil_heures », 3 h par
-// défaut). On compte des HEURES et non des séances : rater trois cours d'une
-// heure n'a pas le même poids que trois séances de deux heures.
+// Absences cumulées au-delà du seuil : 5 h sur les 20 derniers jours (réglages
+// « absences_seuil_heures » / « absences_fenetre_jours »), filières compétition →
+// pro seulement (db/92). On compte des HEURES et non des séances : rater trois
+// cours d'une heure n'a pas le même poids que trois séances de deux heures.
 function dashAbsences(l) {
   if (!l.length) return '<div class="dash-ok">✓ Personne au-dessus du seuil d\'absences.</div>';
   return l.map((a) => {
@@ -2298,7 +2299,7 @@ function dashGeneral(g, absences) {
      ${line("Tournois GameZone", lu.gz_at, lu.gz_by)}${line("Importer les matchs TeamLausanne", lu.matchs_at, lu.matchs_by)}
      <h3 class="dash-sub">Couverture coachs (cours à venir)</h3>${cov}
      <h3 class="dash-sub">Cours / études passés non validés (21 j)</h3>${unval}
-     <h3 class="dash-sub">Absences cumulées (&gt; seuil, saison en cours)</h3>${dashAbsences(absences || [])}
+     <h3 class="dash-sub">Absences cumulées (&gt; 5 h sur les 20 derniers jours, compétition → pro)</h3>${dashAbsences(absences || [])}
      <h3 class="dash-sub">Anniversaires (J−3 → J+3)</h3>${bday}`);
 }
 function dashMail(m) {
