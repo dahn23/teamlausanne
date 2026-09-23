@@ -3220,3 +3220,17 @@ tr.rm-loss td{background:#fde8e8}
   cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .lien-ecrire:hover{color:var(--blue-ink)}
 .lien-ecrire:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:3px}
+
+/* Project Manager : choix de l'ordre des cartes dans une colonne. Segmenté
+   plutôt qu'une liste déroulante — deux choix, autant les montrer tous les
+   deux. Même allure que la bascule liste/mois du calendrier. */
+.pm-tri-groupe{display:inline-flex;background:#eef1f7;border-radius:999px;padding:3px}
+.pm-tri{border:0;background:transparent;border-radius:999px;cursor:pointer;
+  font-size:.78rem;font-weight:700;color:var(--muted);padding:5px 12px}
+.pm-tri.on{background:#fff;color:var(--blue-ink);box-shadow:0 1px 4px rgba(20,26,46,.14)}
+.pm-tri:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media(max-width:640px){
+  /* Sur téléphone la barre s'empile : l'espaceur ne doit pas pousser le choix
+     de l'ordre tout seul sur une ligne à part. */
+  .pm-filtres .spacer{display:none}
+}

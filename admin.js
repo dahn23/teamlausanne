@@ -12307,6 +12307,31 @@ const pmLabel  = (id) => pmLabels.find((x) => x.id === id);
 const pmIdsM = (c) => (c.pm_card_members || []).map((x) => x.member_id);
 const pmIdsL = (c) => (c.pm_card_labels || []).map((x) => x.label_id);
 
+// --- Ordre des cartes dans une colonne ---
+// Deux lectures du même tableau, parce que les deux servent :
+//   « echeance » — les dates d'abord, la plus proche en haut. C'est la vue de
+//     celui qui veut savoir quoi faire maintenant ; un retard remonte tout seul,
+//     puisqu'une date passée est la plus ancienne de toutes.
+//   « manuel »   — l'ordre dans lequel on a rangé les cartes à la main.
+// Le glisser-déposer continue d'enregistrer une position dans les deux cas :
+// elle ne se voit pas en mode échéance, mais elle est toujours là si on revient
+// en manuel. Rien ne se perd.
+let pmTri = "echeance";
+try { pmTri = localStorage.getItem("tl-pm-tri") || "echeance"; } catch (_) {}
+
+function pmOrdonner(cartes) {
+  if (pmTri !== "echeance") return cartes;
+  // Les cartes sans date ne sont pas urgentes, elles ne sont pas non plus au
+  // fond du panier : elles passent après les datées, dans l'ordre choisi à la
+  // main. Trier sur place casserait l'ordre de pmCards, d'où la copie.
+  return [...cartes].sort((a, b) => {
+    if (a.due_date && b.due_date) return a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : 0;
+    if (a.due_date) return -1;
+    if (b.due_date) return 1;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
+}
+
 function pmRenderFiltres() {
   const z = $("pm-filtres"); if (!z) return;
   const pastille = (m) =>
@@ -12318,7 +12343,20 @@ function pmRenderFiltres() {
   z.innerHTML = `<span class="pm-f-titre">Filtrer</span>
     <span class="pm-f-groupe">${pmMembers.map(pastille).join("")}</span>
     <span class="pm-f-groupe">${pmLabels.map(etiq).join("")}</span>
-    ${(pmFiltre.membre || pmFiltre.etiquette) ? `<button type="button" class="ghost pm-f-raz">Tout afficher</button>` : ""}`;
+    ${(pmFiltre.membre || pmFiltre.etiquette) ? `<button type="button" class="ghost pm-f-raz">Tout afficher</button>` : ""}
+    <span class="spacer"></span>
+    <span class="pm-f-titre">Ordre</span>
+    <span class="pm-tri-groupe">
+      <button type="button" class="pm-tri${pmTri === "echeance" ? " on" : ""}" data-tri="echeance"
+        title="Les échéances les plus proches en haut ; les retards remontent d'eux-mêmes">Échéance</button>
+      <button type="button" class="pm-tri${pmTri === "manuel" ? " on" : ""}" data-tri="manuel"
+        title="L'ordre dans lequel vous rangez les cartes à la main">Manuel</button>
+    </span>`;
+  z.querySelectorAll("[data-tri]").forEach((b) => b.addEventListener("click", () => {
+    pmTri = b.dataset.tri;
+    try { localStorage.setItem("tl-pm-tri", pmTri); } catch (_) {}
+    pmRenderFiltres(); pmRenderBoard();
+  }));
 }
 
 // Une carte passe le filtre si elle satisfait les deux criteres actifs.
@@ -12382,7 +12420,7 @@ function pmRenderBoard() {
   if (!pmCols.length) { b.innerHTML = '<p class="muted">Aucune colonne. Commence par en créer une.</p>'; return; }
   const auj = new Date().toISOString().slice(0, 10);
   b.innerHTML = pmCols.map((col) => {
-    const cartes = pmCards.filter((c) => c.column_id === col.id && pmVisible(c));
+    const cartes = pmOrdonner(pmCards.filter((c) => c.column_id === col.id && pmVisible(c)));
     return `<section class="pm-col" data-col="${col.id}">
       <header class="pm-col-head">
         <h2 class="pm-col-nom" data-rename="${col.id}" title="Renommer">${esc(col.name)}</h2>
