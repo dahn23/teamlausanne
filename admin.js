@@ -2503,7 +2503,8 @@ function dashWeekend(w) {
   const ok = (by) => `<span class="gz-wk-okv">✓ validé${by ? " · " + esc(by) : ""}</span>`;
   const wait = (t) => `<span class="gz-wk-wait">${t}</span>`;
   const todo = (t) => `<span class="gz-wk-diff">${t}</span>`;
-  const cash = w.cash_validated_at ? ok(w.cash_validated_by) : todo("à valider : compter la caisse");
+  const cash = w.cash_validated_at ? ok(w.cash_validated_by)
+    : w.till_after != null ? `${wait(`fond de caisse attendu ${chf(w.till_after)}`)} ${todo("à compter et valider")}` : todo("à valider : compter la caisse");
   const carte = w.card_validated_at ? ok(w.card_validated_by)
     : w.card_gross != null ? `${Number(w.card_gross) === Number(w.carte) ? "" : todo("écart ") }${wait(`mail SumUp reçu : versé ${chf(w.card_net)}`)} ${todo("à valider")}`
     : wait("en attente du mail SumUp");
@@ -4959,9 +4960,13 @@ function renderWeekends(sid) {
   box.innerHTML = list.map((w) => {
     const cashCons = Number(w.cash), carteCons = Number(w.carte), twintCons = Number(w.twint);
     // Cash
+    // Cash : on contrôle le FOND DE CAISSE (caisse entière après la clôture du dimanche), pas les seules rentrées.
     let cash;
-    if (w.cash_validated_at) cash = `compté <b>${gzCHF(w.cash_counted)}</b> · console ${gzCHF(cashCons)} ${Number(w.cash_counted) === cashCons ? "" : `<span class="gz-wk-diff">écart ${gzCHF(Number(w.cash_counted) - cashCons)}</span>`} ${who(w.cash_validated_by, w.cash_validated_at)}`;
-    else cash = `console <b>${gzCHF(cashCons)}</b> · <span class="gz-wk-wait">à compter</span> ${btn("cash", w, "Compter et valider")}`;
+    const fond = w.till_after != null ? `fond de caisse après clôture <b>${gzCHF(w.till_after)}</b>` : `<span class="gz-wk-wait">fond de caisse inconnu (tournois pas clôturés)</span>`;
+    if (w.cash_validated_at) {
+      const ecart = w.till_counted != null && w.till_after != null ? round2(Number(w.till_counted) - Number(w.till_after)) : null;
+      cash = `cash console ${gzCHF(cashCons)} · ${fond} · compté <b>${gzCHF(w.till_counted ?? w.cash_counted)}</b> ${ecart == null ? "" : ecart === 0 ? '<span class="gz-wk-okv">= fond attendu</span>' : `<span class="gz-wk-diff">écart ${gzCHF(ecart)}</span>`} ${who(w.cash_validated_by, w.cash_validated_at)}`;
+    } else cash = `cash console <b>${gzCHF(cashCons)}</b> · ${fond} · <span class="gz-wk-wait">à compter</span> ${btn("cash", w, "Compter la caisse et valider")}`;
     // Carte (SumUp)
     let carte;
     const cardSrc = w.card_source === "sumup" ? `mail SumUp${w.card_stmt_date ? " du " + frDate(w.card_stmt_date) : ""}` : "saisie manuelle";
@@ -4991,9 +4996,12 @@ async function gzWeekendAction(act, wk) {
   const patch = { weekend_start: wk, updated_at: new Date().toISOString() };
   const label = gzWkLabel(w);
   if (act === "cash") {
-    const n = await num(`${label}\nCash selon la console : ${gzCHF(w.cash)} CHF\nMontant compté dans la caisse :`, Number(w.cash)); if (n === undefined) return;
-    if (n !== Number(w.cash) && !(await uiConfirm(`Écart de ${gzCHF(n - Number(w.cash))} CHF avec la console. Valider quand même ?`))) return;
-    Object.assign(patch, { cash_counted: n, cash_validated_at: new Date().toISOString(), cash_validated_by: meName || null });
+    // On compte la caisse ENTIÈRE ; le cash du week-end en est déduit (compté − fond avant le week-end).
+    const attendu = w.till_after != null ? Number(w.till_after) : null, avant = w.till_before != null ? Number(w.till_before) : null;
+    const n = await num(`${label}\nCash selon la console : ${gzCHF(w.cash)} CHF${attendu != null ? `\nFond de caisse attendu après clôture : ${gzCHF(attendu)} CHF (avant le week-end : ${gzCHF(avant)})` : ""}\nFond de caisse compté (caisse entière) :`, attendu ?? ""); if (n === undefined) return;
+    if (attendu != null && n !== attendu && !(await uiConfirm(`Écart de ${gzCHF(n - attendu)} CHF avec le fond attendu (${gzCHF(attendu)}). Valider quand même ?`))) return;
+    const cashDeduit = avant != null ? round2(n - avant) : null;
+    Object.assign(patch, { till_counted: n, cash_counted: cashDeduit, cash_validated_at: new Date().toISOString(), cash_validated_by: meName || null });
   } else if (act === "card-edit" || act === "twint-edit") {
     const k = act.startsWith("card") ? "card" : "twint", nom = k === "card" ? "carte (SumUp)" : "Twint";
     const gross = await num(`${label} — ${nom}\nConsole : ${gzCHF(k === "card" ? w.carte : w.twint)} CHF\nMontant BRUT encaissé selon le relevé :`, w[k + "_gross"] ?? Number(k === "card" ? w.carte : w.twint)); if (gross === undefined) return;
