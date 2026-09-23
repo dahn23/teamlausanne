@@ -4924,12 +4924,12 @@ function renderFinance() {
     T.presents += r.presents; T.twint += twint; T.cash += cash; T.carte += carte; T.total += total;
     T.carteReel += carteReel ?? carte; T.twintReel += twintReel ?? twint; T.salaires += sal; T.net += net;
     return `<tr><td>${esc(r.name || "—")}</td><td>${r.tournament_date ? frDate(r.tournament_date) : "—"}</td><td>${r.presents}</td>
-      <td>${twint}</td><td>${cash}</td><td>${carte}</td><td>${total}</td>${cell(carteReel, carte)}${cell(twintReel, twint)}<td>${sal}</td><td><b>${net}</b></td>
+      <td>${twint}</td>${cell(twintReel, twint)}<td>${cash}</td><td>${carte}</td>${cell(carteReel, carte)}<td>${sal}</td><td><b>${net}</b></td>
       <td class="muted" style="font-size:.8rem">${(gzFinMgrs[r.tournament_id] || []).join(", ")}</td></tr>`;
   }).join("");
-  $("gz-fin-rows").innerHTML = html || '<tr><td colspan="12" class="muted">Aucun tournoi.</td></tr>';
+  $("gz-fin-rows").innerHTML = html || '<tr><td colspan="11" class="muted">Aucun tournoi.</td></tr>';
   $("gz-fin-totals").innerHTML =
-    `<td colspan="2">TOTAL — ${rows.length} tournoi(s)</td><td>${T.presents}</td><td>${T.twint}</td><td>${T.cash}</td><td>${T.carte}</td><td>${round2(T.total)}</td><td>${round2(T.carteReel)}</td><td>${round2(T.twintReel)}</td><td>${T.salaires}</td><td>${round2(T.net)}</td><td></td>`;
+    `<td colspan="2">TOTAL — ${rows.length} tournoi(s)</td><td>${T.presents}</td><td>${T.twint}</td><td>${round2(T.twintReel)}</td><td>${T.cash}</td><td>${T.carte}</td><td>${round2(T.carteReel)}</td><td>${T.salaires}</td><td>${round2(T.net)}</td><td></td>`;
   renderWeekends(sid);
 }
 
