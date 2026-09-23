@@ -4023,6 +4023,9 @@ function closeDetail() {
 // automatiques le lundi 11h (cron gz-mails-lundi).
 async function renderGzMailActions(tid) {
   const box = $("gz-mail-actions"); if (!box) return;
+  // Responsable de tournoi pur (nommé, sans rôle d'accès) : les envois restent au staff / official.
+  if (!hasAny(meRoles, CONSOLE_ROLES)) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+  box.classList.remove("hidden");
   box.innerHTML = `<h3 style="margin-top:0">Envois e-mails <span class="muted" style="font-weight:400;font-size:.85rem">— depuis tournoi@</span></h3><p class="muted" style="font-size:.85rem">Chargement…</p>`;
   const { data: tt } = await sb.from("gz_tournaments").select("tournament_date").eq("id", tid).maybeSingle();
   const d = tt?.tournament_date ? new Date(tt.tournament_date + "T12:00:00") : new Date();
