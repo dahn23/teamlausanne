@@ -37,41 +37,13 @@ function initPush(externalId) {
     } catch (e) { console.warn("OneSignal:", e); }
   });
 }
-
 /* ============================================================
-   Mascotte — « Rebond », balle de tennis coéquipière.
-   Réutilisée : écran de connexion + bouton assistant.
+   Visuel de l'app — logo Team Lausanne Academy.
+   (Remplace l'ancienne mascotte « balle » partout : connexion, assistant, bulles.
+   Décision Dan 23.09.2026 : plus de balle nulle part.)
    ============================================================ */
 function mascot(size = 88) {
-  return `<svg class="mascot" viewBox="0 0 120 128" width="${size}" height="${size * 128 / 120}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <ellipse cx="60" cy="120" rx="30" ry="6" fill="rgba(15,31,110,.14)"/>
-    <!-- raquette -->
-    <g transform="rotate(22 100 40)">
-      <rect x="97" y="24" width="6" height="30" rx="3" fill="#0f1f6e"/>
-      <ellipse cx="100" cy="18" rx="13" ry="16" fill="#eef1ff" stroke="#0f1f6e" stroke-width="4"/>
-      <path d="M92 10v16M100 6v24M108 10v16M88 14h24M88 22h24" stroke="#c3ccf5" stroke-width="1.4"/>
-    </g>
-    <!-- bras -->
-    <path d="M92 66 q10 -8 8 -22" fill="none" stroke="#0f1f6e" stroke-width="6" stroke-linecap="round"/>
-    <path d="M26 70 q-14 4 -16 20" fill="none" stroke="#0f1f6e" stroke-width="6" stroke-linecap="round"/>
-    <circle cx="10" cy="92" r="5" fill="#d8f200" stroke="#0f1f6e" stroke-width="3"/>
-    <!-- corps balle -->
-    <circle cx="58" cy="62" r="44" fill="#d8f200" stroke="#b6cc00" stroke-width="2"/>
-    <path d="M20 40 q26 22 0 44" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
-    <path d="M96 40 q-26 22 0 44" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
-    <!-- bandeau -->
-    <path d="M22 42 q36 -18 72 0" fill="none" stroke="#1e3ad1" stroke-width="10" stroke-linecap="round"/>
-    <path d="M91 40 l12 -5 M91 46 l12 2" stroke="#1e3ad1" stroke-width="5" stroke-linecap="round"/>
-    <!-- yeux -->
-    <circle cx="46" cy="62" r="7" fill="#0f1f6e"/>
-    <circle cx="72" cy="62" r="7" fill="#0f1f6e"/>
-    <circle cx="48.5" cy="59.5" r="2.4" fill="#fff"/>
-    <circle cx="74.5" cy="59.5" r="2.4" fill="#fff"/>
-    <!-- joues + sourire -->
-    <circle cx="38" cy="74" r="4.5" fill="rgba(255,90,90,.4)"/>
-    <circle cx="80" cy="74" r="4.5" fill="rgba(255,90,90,.4)"/>
-    <path d="M46 78 q13 12 26 0" fill="none" stroke="#0f1f6e" stroke-width="4.5" stroke-linecap="round"/>
-  </svg>`;
+  return `<img class="mascot" src="assets/logo-academie.webp" alt="Team Lausanne" width="${size}" height="${size}" style="width:${size}px;height:${size}px;object-fit:contain" />`;
 }
 
 /* ============================================================
