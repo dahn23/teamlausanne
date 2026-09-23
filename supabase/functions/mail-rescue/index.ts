@@ -42,6 +42,13 @@ async function isDupMsg(supa: any, messageId: string | null, fromAddr: string | 
   if (fromAddr && subj) { const { data } = await supa.from("mail_messages").select("id").eq("from_address", fromAddr).eq("subject", subj).eq("received_at", dateIso).limit(1); if (data && data.length) return true; }
   return false;
 }
+// Destinataires en copie, en texte : « Nom <adresse>, … » (migration 96).
+// deno-lint-ignore no-explicit-any
+const ccOf = (p: any): string | null => {
+  const list = (p.cc?.value || []) as { name?: string; address?: string }[];
+  const s = list.filter((v) => v.address).map((v) => (v.name ? `${v.name} <${v.address}>` : String(v.address))).join(", ");
+  return s ? s.slice(0, 2000) : null;
+};
 const isDmarcReport = (subject: string | null, from: string | null) =>
   /^\s*(\[[^\]]*\]\s*)?report domain:/i.test(subject || "") || /(^|[._-])dmarc[^@]*@/i.test(from || "");
 
@@ -105,6 +112,7 @@ Deno.serve(async (req) => {
             const dI = (p.date || new Date()).toISOString();
             const bodyTxt = (p.text || "").trim();
             const { html, rows } = processAtt(p, p.html || null);
+            const cc = ccOf(p);
             let brand = user;
             if (f.dir === "in") {
               // Le hub recevait les redirections des autres boîtes : l'en-tête dit à qui le mail était destiné.
@@ -114,8 +122,8 @@ Deno.serve(async (req) => {
             } else if (fA && ourAddrs.includes(fA)) brand = fA;
             const dm = f.dir === "in" && isDmarcReport(sj, fA);
             const row = f.dir === "in"
-              ? { account_address: brand, direction: "in", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || brand, subject: sj, snippet: bodyTxt.slice(0, 140), body_text: bodyTxt, body_html: html, received_at: dI, imap_uid: `rescue:${u}`, is_read: dm, status: dm ? "traite" : "a_traiter", pushed: true, pushed_native: true }
-              : { account_address: brand, direction: "out", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || null, subject: sj, snippet: bodyTxt.slice(0, 140), body_text: bodyTxt, body_html: html, received_at: dI, imap_uid: `rescue-sent:${u}`, is_read: true, status: "traite", pushed: true, pushed_native: true };
+              ? { account_address: brand, direction: "in", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || brand, cc_address: cc, subject: sj, snippet: bodyTxt.slice(0, 140), body_text: bodyTxt, body_html: html, received_at: dI, imap_uid: `rescue:${u}`, is_read: dm, status: dm ? "traite" : "a_traiter", pushed: true, pushed_native: true }
+              : { account_address: brand, direction: "out", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || null, cc_address: cc, subject: sj, snippet: bodyTxt.slice(0, 140), body_text: bodyTxt, body_html: html, received_at: dI, imap_uid: `rescue-sent:${u}`, is_read: true, status: "traite", pushed: true, pushed_native: true };
             const { data: ins, error: e } = await supa.from("mail_messages").insert(row).select("id").single();
             if (e || !ins) continue;
             if (f.dir === "in") st.inserted++; else st.sentInserted++;

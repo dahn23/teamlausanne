@@ -10516,7 +10516,7 @@ const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() ==
 
 // Colonnes légères pour la LISTE (sans body_text/body_html, parfois énormes avec images
 // base64) → chargement rapide. Le contenu est chargé à l'ouverture d'un mail (openMail).
-const MAIL_COLS = "id,account_address,direction,from_name,from_address,to_address,subject,snippet,received_at,is_read,status,assigned_user,tags,imap_uid,created_at,message_id,comment,treated_by,treated_at,att_fetched,pushed,has_invoice,is_spam";
+const MAIL_COLS = "id,account_address,direction,from_name,from_address,to_address,cc_address,subject,snippet,received_at,is_read,status,assigned_user,tags,imap_uid,created_at,message_id,comment,treated_by,treated_at,att_fetched,pushed,has_invoice,is_spam";
 let mailSearchT = null;
 // Messages chargés = les 300 plus récents toutes boîtes + jusqu'à 1000 (plafond PostgREST) de la boîte
 // sélectionnée (sinon une boîte peu active, ou fraîchement importée, paraît vide).
@@ -11477,6 +11477,8 @@ async function openMail(id) {
     <div class="mail-d-head">
       <div class="mail-d-head-top"><h3>${esc(m.subject || "(sans objet)")}</h3><button type="button" id="mail-d-forward" class="ghost mail-d-fwd" title="Transférer ce message">↪ Transférer</button></div>
       <div class="mail-d-meta">${isOut ? "À " + esc(m.to_address || "") : "<b>" + esc(m.from_name || "") + "</b> &lt;" + esc(m.from_address || "") + "&gt;"} <span class="muted">· ${esc(acctLabel)} · ${mailDT(m.received_at)}</span></div>
+      ${!isOut && m.to_address && m.to_address.toLowerCase() !== String(m.account_address || "").toLowerCase() ? `<div class="mail-d-meta muted" style="font-size:.85rem">À : ${esc(m.to_address)}</div>` : ""}
+      ${m.cc_address ? `<div class="mail-d-meta muted" style="font-size:.85rem">Cc : ${esc(m.cc_address)}</div>` : ""}
     </div>
     ${m.has_invoice ? `<div class="mail-inv-note">📄 Une facture de ce mail a été ajoutée à l'onglet <b>Factures</b>. Tu peux passer ce mail en « Traité ».</div>` : ""}
     ${controls}

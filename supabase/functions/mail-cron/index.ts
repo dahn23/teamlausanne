@@ -5,6 +5,7 @@
 // v24 (18.09.2026) : @teamlausanne.ch chez Hostpoint, serveur IMAP par boîte (voir pollBox).
 // v25 (19.09.2026) : les rapports DMARC quotidiens sont rangés d'office en « Traité », sans notification.
 // v26 (19.09.2026) : le dossier « Spam » des boîtes Hostpoint est relevé aussi (is_spam, migration 73).
+// v27 (23.09.2026) : les destinataires en copie (Cc) sont enregistrés (cc_address, migration 96).
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -137,6 +138,13 @@ const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || 
 // Rapports DMARC quotidiens (Google, Microsoft, Yahoo…) : des robots qui écrivent à l'adresse « rua » du domaine.
 // Ils sont utiles à consulter mais ne demandent aucune réponse : rangés d'office en « Traité », lus, sans notification.
 // Le sujet suit le format de la RFC 7489 : « Report domain: <domaine> Submitter: <qui> Report-ID: <id> ».
+// Destinataires en copie, en texte : « Nom <adresse>, … » (v27, migration 96).
+// deno-lint-ignore no-explicit-any
+const ccOf = (p: any): string | null => {
+  const list = (p.cc?.value || []) as { name?: string; address?: string }[];
+  const s = list.filter((v) => v.address).map((v) => (v.name ? `${v.name} <${v.address}>` : String(v.address))).join(", ");
+  return s ? s.slice(0, 2000) : null;
+};
 const isDmarcReport = (subject: string | null, from: string | null) =>
   /^\s*(\[[^\]]*\]\s*)?report domain:/i.test(subject || "") || /(^|[._-])dmarc[^@]*@/i.test(from || "");
 const dmarcState = (subject: string | null, from: string | null) =>
@@ -215,7 +223,7 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
               }
               const body = (p.text || "").trim();
               const { html, rows } = processAtt(p, p.html || null);
-              const { data: ins, error: e } = await supa.from("mail_messages").insert({ account_address: brand, direction: "in", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || brand, subject: sj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dI, imap_uid: uidTag(u), ...dmarcState(sj, fA || null) }).select("id").single();
+              const { data: ins, error: e } = await supa.from("mail_messages").insert({ account_address: brand, direction: "in", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || brand, cc_address: ccOf(p), subject: sj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dI, imap_uid: uidTag(u), ...dmarcState(sj, fA || null) }).select("id").single();
               if (!e && ins) {
                 st.inserted++;
                 if (rows.length) await supa.from("mail_attachments").insert(rows.map((r) => ({ ...r, mail_id: ins.id })));
@@ -315,7 +323,7 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
           const brand = isHub ? ((fromAddr && ourAddrs.includes(fromAddr.toLowerCase())) ? fromAddr.toLowerCase() : box) : box;
           const body = (p.text || "").trim();
           const { html, rows } = processAtt(p, p.html || null);
-          const { data: ins, error: e } = await supa.from("mail_messages").insert({ account_address: brand, direction: "out", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: toAddr, subject: subj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dateIso, imap_uid: tag, is_read: true, status: "traite", pushed: true }).select("id").single();
+          const { data: ins, error: e } = await supa.from("mail_messages").insert({ account_address: brand, direction: "out", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: toAddr, cc_address: ccOf(p), subject: subj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dateIso, imap_uid: tag, is_read: true, status: "traite", pushed: true }).select("id").single();
           if (!e && ins) { st.sent++; if (rows.length) await supa.from("mail_attachments").insert(rows.map((r) => ({ ...r, mail_id: ins.id }))); }
         }
       } finally { lock2.release(); }
