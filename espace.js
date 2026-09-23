@@ -311,10 +311,10 @@ async function renderAccueil() {
   const who = YOUTHS.length ? YOUTHS.map((y) => y.first_name).join(", ") : "";
   $("view-accueil").innerHTML = `
     <div class="pt-hello">
-      <div>${mascot(72)}</div>
+      <div><img class="pt-hello-logo" src="assets/logo-academie.webp" alt="Team Lausanne" /></div>
       <div>
         <h2>Bienvenue${who ? " — " + who : ""}&nbsp;!</h2>
-        <p class="muted">Les actualités du club, tes cours, et bientôt un assistant.</p>
+        <p class="muted">Les actualités, tes cours et tes infos.</p>
       </div>
     </div>
     <div id="pt-news"><p class="muted" style="text-align:center;padding:20px">Chargement des news…</p></div>`;
