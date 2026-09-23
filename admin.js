@@ -622,7 +622,9 @@ async function loadResaDay() {
   drawResaGrid(date, bookings || [], coachMap, colorMap);
 }
 
+let resaJour = { date: null, bookings: [], coachMap: {}, colorMap: {} };
 function drawResaGrid(date, bookings, coachMap = {}, colorMap = {}) {
+  resaJour = { date, bookings, coachMap, colorMap };
   const grid = $("resa-grid");
   grid.style.gridTemplateColumns = `64px repeat(${resaCourts.length}, minmax(74px,1fr))`;
   grid.innerHTML = "";
@@ -662,7 +664,18 @@ function drawResaGrid(date, bookings, coachMap = {}, colorMap = {}) {
         }
         el.textContent = label;
         el.title = full + (b.recurrence_id ? " · série" : "");
-        el.addEventListener("click", () => isDisplayOnly ? showBookingDetail(b) : editBooking(b, h));
+        el.dataset.resa = b.id;
+        el.dataset.hour = h;
+        el.dataset.court = c.id;
+        el.addEventListener("click", () => {
+          // Un glissement qui vient de se terminer ne doit pas rouvrir la fiche.
+          if (Date.now() - rdepFin < 250) return;
+          isDisplayOnly ? showBookingDetail(b) : editBooking(b, h);
+        });
+        if (!isDisplayOnly && isCourseMgr) {
+          el.classList.add("rbloc");
+          el.addEventListener("pointerdown", (e) => rdepPrise(e, b, h));
+        }
       } else {
         el.classList.add("rfree");
         el.dataset.court = c.id;
@@ -677,6 +690,202 @@ function drawResaGrid(date, bookings, coachMap = {}, colorMap = {}) {
   }
 }
 
+
+// =====================================================================
+//  Deplacer une reservation dans la grille
+// =====================================================================
+// On attrape un bloc et on le pose ailleurs : autre court, autre heure, les
+// deux. La duree suit, et l'endroit ou l'on avait pris le bloc est respecte —
+// saisir la 2e heure d'un bloc de deux heures et la lacher sur 14h place le
+// bloc de 13h a 15h, pas de 14h a 16h.
+//
+// Evenements pointeur et non souris : c'est le seul jeu d'evenements qui
+// fonctionne aussi au doigt. La grille libre juste a cote utilise encore
+// mousedown/mouseover pour dessiner une nouvelle reservation ; les deux ne se
+// marchent pas dessus, l'un vit sur les cases occupees, l'autre sur les libres.
+//
+// Deux pieges que les donnees reelles revelent :
+//   · toutes les reservations ne tombent pas sur la grille. Le Kids Tennis va
+//     de 16h30 a 17h15 ; la grille, elle, est horaire. On DECALE donc les
+//     heures d'un nombre entier d'heures au lieu de les reconstruire a partir
+//     de la case visee — sinon ce cours de 45 minutes deviendrait une heure
+//     pleine en changeant de place.
+//   · un cours peut occuper plusieurs courts en meme temps (quatre, le mercredi
+//     matin). Changer de court ne concerne que le bloc saisi ; changer d'heure
+//     les concerne tous, et le cours avec.
+const RDEP_SEUIL = 6;          // px avant qu'un clic devienne un glissement
+let rdep = null;
+let rdepFin = 0;
+
+// Decale « HH:MM:SS » d'un nombre entier d'heures, minutes intactes.
+const rdepDecale = (t, dh) => pad2(Number(t.slice(0, 2)) + dh) + t.slice(2);
+
+function rdepPrise(e, b, heureCase) {
+  if (e.button != null && e.button !== 0) return;       // clic droit : on laisse
+  // Les cases que ce bloc occupe reellement, lues dans la grille : c'est la
+  // seule source juste quand les heures ne tombent pas rond.
+  const cases = [...document.querySelectorAll(`#resa-grid [data-resa="${b.id}"]`)]
+    .map((el) => Number(el.dataset.hour)).sort((x, y) => x - y);
+  if (!cases.length) return;
+  rdep = {
+    b, cases,
+    premiere: cases[0],
+    offset: heureCase - cases[0],                       // rang de la case saisie
+    x0: e.clientX, y0: e.clientY, parti: false, cible: null,
+  };
+  window.addEventListener("pointermove", rdepBouge);
+  window.addEventListener("pointerup", rdepLache, { once: true });
+  window.addEventListener("pointercancel", rdepAnnule, { once: true });
+}
+
+function rdepBouge(e) {
+  if (!rdep) return;
+  if (!rdep.parti) {
+    if (Math.hypot(e.clientX - rdep.x0, e.clientY - rdep.y0) < RDEP_SEUIL) return;
+    rdep.parti = true;
+    $("resa-grid").classList.add("rgrid-deplace");
+    document.querySelectorAll(`#resa-grid [data-resa="${rdep.b.id}"]`)
+      .forEach((el) => el.classList.add("rbloc-origine"));
+  }
+  e.preventDefault();
+  const sous = document.elementFromPoint(e.clientX, e.clientY);
+  const c = sous?.closest?.("#resa-grid .rslot, #resa-grid .rbloc");
+  rdep.cible = (c && c.dataset.court) ? { court: Number(c.dataset.court), heure: Number(c.dataset.hour) } : null;
+  rdepPeindre();
+}
+
+function rdepPeindre() {
+  document.querySelectorAll("#resa-grid .rcible, #resa-grid .rcible-ko")
+    .forEach((el) => el.classList.remove("rcible", "rcible-ko"));
+  const d = rdepDestination();
+  if (!d) return;
+  for (const h of d.cases) {
+    const el = document.querySelector(`#resa-grid [data-court="${d.court}"][data-hour="${h}"]`);
+    if (el) el.classList.add(d.libre ? "rcible" : "rcible-ko");
+  }
+}
+
+// Ou le bloc atterrirait, et si la place est libre.
+// On simule le deplacement au complet plutot que de deviner : on calcule la
+// position d'arrivee de TOUT ce qui bouge, puis on cherche un chevauchement
+// avec ce qui ne bouge pas, et entre les pieces qui bougent. Un raccourci du
+// genre « les occupations du meme cours ne genent jamais » se trompe des qu'on
+// fait glisser un bloc sur un court que son propre cours occupe deja.
+function rdepDestination() {
+  if (!rdep?.cible) return null;
+  const dh = (rdep.cible.heure - rdep.offset) - rdep.premiere;   // decalage en heures
+  if (dh === 0 && rdep.cible.court === rdep.b.court_id) return null;
+  const cases = rdep.cases.map((h) => h + dh);
+  if (cases[0] < 8 || cases[cases.length - 1] > 21) return null; // hors de la grille
+
+  // Changer d'heure emmene tout le cours ; changer de court ne deplace que le
+  // bloc saisi.
+  const toutLeCours = dh !== 0 && !!rdep.b.course_id;
+  const enMouvement = toutLeCours
+    ? resaJour.bookings.filter((x) => x.course_id === rdep.b.course_id)
+    : [rdep.b];
+  const bouge = new Set(enMouvement.map((x) => x.id));
+  const apres = enMouvement.map((x) => ({
+    court_id: x.id === rdep.b.id ? rdep.cible.court : x.court_id,
+    start_time: rdepDecale(x.start_time, dh),
+    end_time: rdepDecale(x.end_time, dh),
+  }));
+
+  const seChevauchent = (p, q) =>
+    p.court_id === q.court_id && p.start_time < q.end_time && p.end_time > q.start_time;
+  const fixes = resaJour.bookings.filter((x) => !bouge.has(x.id));
+  const occupe =
+    apres.some((p) => fixes.some((q) => seChevauchent(p, q))) ||
+    apres.some((p, k) => apres.some((q, j) => j > k && seChevauchent(p, q)));
+
+  return {
+    court: rdep.cible.court, dh, cases, libre: !occupe,
+    hDeb: rdepDecale(rdep.b.start_time, dh),
+    hFin: rdepDecale(rdep.b.end_time, dh),
+  };
+}
+
+function rdepNettoyer() {
+  window.removeEventListener("pointermove", rdepBouge);
+  $("resa-grid")?.classList.remove("rgrid-deplace");
+  document.querySelectorAll("#resa-grid .rcible, #resa-grid .rcible-ko, #resa-grid .rbloc-origine")
+    .forEach((el) => el.classList.remove("rcible", "rcible-ko", "rbloc-origine"));
+  rdep = null;
+}
+
+function rdepAnnule() { rdepNettoyer(); }
+
+async function rdepLache() {
+  if (!rdep) return;
+  const parti = rdep.parti, b = rdep.b, d = rdepDestination();
+  rdepNettoyer();
+  if (!parti) return;                                   // simple clic
+  rdepFin = Date.now();                                 // le clic qui suit est ignore
+  if (!d) return;                                       // hors grille, ou repose au meme endroit
+  if (!d.libre) { uiAlert("Cette place est déjà prise sur ce court."); return; }
+  await rdepAppliquer(b, d);
+}
+
+// Enregistrer le deplacement. Deux choses peuvent changer, et elles ne portent
+// pas sur les memes lignes :
+//   · le COURT ne concerne que l'occupation qu'on a saisie — un cours peut en
+//     occuper plusieurs, on ne deplace pas les autres ;
+//   · l'HEURE appartient au cours : elle bouge sur le cours ET sur toutes ses
+//     occupations, sinon le planning, les presences et les heures continueraient
+//     d'annoncer l'ancien creneau.
+async function rdepAppliquer(b, d) {
+  const aCours = !!b.course_id;
+  const bouge = d.dh !== 0;
+  const aBouger = (aCours && bouge)
+    ? resaJour.bookings.filter((x) => x.course_id === b.course_id)
+    : [b];
+
+  const avant = aBouger.map((x) => ({ id: x.id, court_id: x.court_id, start_time: x.start_time, end_time: x.end_time }));
+  const cours0 = { start_time: b.start_time, end_time: b.end_time };
+
+  // L'ecran repond tout de suite ; on enregistre derriere.
+  for (const x of aBouger) {
+    if (bouge) { x.start_time = rdepDecale(x.start_time, d.dh); x.end_time = rdepDecale(x.end_time, d.dh); }
+    if (x.id === b.id) x.court_id = d.court;
+  }
+  drawResaGrid(resaJour.date, resaJour.bookings, resaJour.coachMap, resaJour.colorMap);
+
+  const rendre = (msg) => {
+    for (const a of avant) {
+      const x = resaJour.bookings.find((y) => y.id === a.id);
+      if (x) Object.assign(x, a);
+    }
+    drawResaGrid(resaJour.date, resaJour.bookings, resaJour.coachMap, resaJour.colorMap);
+    uiAlert(msg);
+  };
+
+  // 1. Le cours porte l'heure de reference (planning, presences, heures).
+  if (aCours && bouge) {
+    const { error } = await sb.from("courses")
+      .update({ start_time: d.hDeb, end_time: d.hFin }).eq("id", b.course_id);
+    if (error) return rendre("Déplacement refusé : " + error.message);
+  }
+
+  // 2. Les occupations de court, une par une : la contrainte anti-chevauchement
+  //    se prononce ligne par ligne, et on veut savoir laquelle a coince.
+  for (const x of aBouger) {
+    const maj = { start_time: x.start_time, end_time: x.end_time };
+    if (x.id === b.id) maj.court_id = d.court;
+    const { error } = await sb.from("court_bookings").update(maj).eq("id", x.id);
+    if (error) {
+      // Laisser le cours deplace alors que la grille ne l'est pas serait pire
+      // que de tout annuler : on remet tout ce qui avait deja bouge.
+      if (aCours && bouge) await sb.from("courses").update(cours0).eq("id", b.course_id);
+      for (const a of avant) {
+        if (a.id === x.id) continue;
+        await sb.from("court_bookings")
+          .update({ court_id: a.court_id, start_time: a.start_time, end_time: a.end_time }).eq("id", a.id);
+      }
+      return rendre("Déplacement refusé : " + error.message);
+    }
+  }
+  loadResaDay();   // la base a le dernier mot sur ce qui s'affiche
+}
 
 // ---- Detail d'un cours en lecture seule (compte « affichage ») ----
 // Aucune ecriture possible : la fonction RPC ne renvoie que des noms, et le

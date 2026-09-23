@@ -3234,3 +3234,17 @@ tr.rm-loss td{background:#fde8e8}
      de l'ordre tout seul sur une ligne à part. */
   .pm-filtres .spacer{display:none}
 }
+
+/* ---- Déplacer une réservation dans la grille ----
+   Le bloc s'attrape et se pose ailleurs. Pendant le geste, trois états : d'où
+   l'on part (en creux), où l'on va si c'est libre (vert), et où l'on ne peut
+   pas (rouge). */
+.rbloc{cursor:grab;touch-action:none}
+.rgrid-deplace .rbloc{cursor:grabbing}
+/* Pendant le glissement, plus rien ne doit réagir au survol ni sélectionner du
+   texte sous le doigt. */
+.rgrid-deplace{user-select:none}
+.rbloc-origine{opacity:.4}
+.rcible{box-shadow:inset 0 0 0 3px #1c7d38;background-color:#e3f6e8!important;color:#1c7d38!important}
+.rcible-ko{box-shadow:inset 0 0 0 3px #b3261e;background-color:#fdecec!important;color:#b3261e!important}
+@media(prefers-reduced-motion:reduce){.rbloc-origine{opacity:.55}}
