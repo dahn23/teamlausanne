@@ -390,6 +390,22 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .gz-sal-step b{color:var(--blue)}
 .gz-due-box{margin-top:22px;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:#fffdf6}
 .gz-due-box .crm-table{background:#fff}
+/* Rapprochement par week-end (Résumé financier) */
+.gz-wk{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;margin-bottom:10px}
+.gz-wk-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.gz-wk-head b{font-size:1rem;color:var(--blue-ink)}
+.gz-wk-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-top:1px solid #f0f2f5;font-size:.9rem}
+.gz-wk-line .gz-wk-lbl{font-weight:800;width:56px;flex:0 0 auto}
+.gz-wk-line .gz-wk-val{flex:1;min-width:200px}
+.gz-wk-line button{padding:4px 10px;font-size:.8rem}
+.gz-wk-diff{background:#fdecec;color:#b23838;font-weight:800;padding:2px 8px;border-radius:999px;font-size:.78rem}
+.gz-wk-okv{background:#e3f6ea;color:#0b6b3a;font-weight:800;padding:2px 8px;border-radius:999px;font-size:.78rem}
+.gz-wk-wait{background:#eef1f7;color:#4a5568;font-weight:700;padding:2px 8px;border-radius:999px;font-size:.78rem}
+.gz-fin-real{color:#0b6b3a;font-weight:700}
+.gz-fin-prov{color:var(--muted)}
+/* Tableau de bord : encaissé du dernier week-end */
+.dash-wk{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid #f0f2f5;font-size:.9rem}
+.dash-wk .dash-wk-amt{font-weight:800;color:var(--blue-ink);min-width:70px;text-align:right}
 .gz-due-settle{padding:6px 14px;font-size:.82rem}
 #gz-sal-later{background:#fff;color:var(--blue-ink);border:1.5px solid #c9d2ea}
 #gz-sal-later:hover{background:#eef2fc;border-color:var(--blue)}

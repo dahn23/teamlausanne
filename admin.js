@@ -48,6 +48,7 @@ let meId = null;
 let myAppRoles = [];
 let meEmail = null;
 let meName = null;
+let meRoles = [];                // rôles d'accès du compte connecté (user_roles), remplis à la connexion
 let myPersonId = null;
 let isGzManager = false;         // responsable d'au moins un tournoi non clôturé
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -80,6 +81,7 @@ if (!session) {
 } else {
   $("who").textContent = session.user.email;
   const roles = await myRoles();
+  meRoles = roles;
   // « Responsable de tournoi » = être nommé responsable d'un tournoi NON clôturé
   // (table gz_managers). Ça ouvre l'accès GameZone (limité à ses tournois),
   // sans rôle app à attribuer : une seule et même notion.
@@ -2409,21 +2411,24 @@ async function loadDashboard() {
   // Les appels partent ensemble : le tableau de bord ne doit pas s'afficher en
   // plusieurs temps. Une alerte qui échoue ne doit pas emporter le reste, d'où
   // les listes vides par défaut.
-  const [{ data, error }, abs, rel, nts, fac] = await Promise.all([
+  const [{ data, error }, abs, rel, nts, fac, wks] = await Promise.all([
     sb.rpc("dashboard_data"),
     sb.rpc("absences_a_signaler"),
     sb.rpc("contacts_a_relancer"),
     sb.rpc("dash_notes", { p_days: 7 }),
     dashFacturesData().catch(() => null),
+    sb.from("gz_weekends").select("*").lte("weekend_start", new Date().toISOString().slice(0, 10)).order("weekend_start", { ascending: false }).limit(6),
   ]);
   if (error) { body.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
   const D = data || {};
   const absences = abs.error ? [] : (abs.data || []);
   const relances = rel.error ? [] : (rel.data || []);
   const notes = nts.error ? [] : (nts.data || []);
+  // Dernier week-end GameZone encaissé (cash / carte / Twint et leur état de validation).
+  const lastWk = (wks.error ? [] : (wks.data || [])).find((w) => Number(w.cash) + Number(w.carte) + Number(w.twint) > 0) || null;
   $("dash-gen").textContent = D.generated_at ? "— " + frDateTime(D.generated_at) : "";
   body.innerHTML = `<div class="dash-grid">`
-    + dashGeneral(D.general || {}, absences) + dashNotes(notes) + dashRelances(relances) + dashMail(D.mail || {}) + dashFactures(fac)
+    + dashGeneral(D.general || {}, absences, lastWk) + dashNotes(notes) + dashRelances(relances) + dashMail(D.mail || {}) + dashFactures(fac)
     + dashGroup("Pro · Pro U18 · Sport-études", D.se || {})
     + dashGroup("Compétition & Performance", D.comp || {})
     + dashClub(D.club || {}) + dashProspects(D.prospects || {}, (D.general || {}).lastup || {}) + `</div>`;
@@ -2490,7 +2495,28 @@ function dashRelances(l) {
      ${ok ? `<div class="dash-row" style="margin-top:8px"><span class="muted">À jour</span><span>${ok}</span></div>` : ""}`);
 }
 
-function dashGeneral(g, absences) {
+// Encaissé du dernier week-end GameZone : cash (à compter / validé), carte (mail SumUp attendu, reçu, validé),
+// Twint (relevé attendu, reçu, validé). Les montants sont ceux de la console ; « versé » = frais déduits.
+function dashWeekend(w) {
+  if (!w) return '<div class="muted">Aucun week-end encaissé.</div>';
+  const chf = (n) => (n == null ? "—" : Number(n).toFixed(2));
+  const ok = (by) => `<span class="gz-wk-okv">✓ validé${by ? " · " + esc(by) : ""}</span>`;
+  const wait = (t) => `<span class="gz-wk-wait">${t}</span>`;
+  const todo = (t) => `<span class="gz-wk-diff">${t}</span>`;
+  const cash = w.cash_validated_at ? ok(w.cash_validated_by) : todo("à valider : compter la caisse");
+  const carte = w.card_validated_at ? ok(w.card_validated_by)
+    : w.card_gross != null ? `${Number(w.card_gross) === Number(w.carte) ? "" : todo("écart ") }${wait(`mail SumUp reçu : versé ${chf(w.card_net)}`)} ${todo("à valider")}`
+    : wait("en attente du mail SumUp");
+  const twint = w.twint_validated_at ? ok(w.twint_validated_by)
+    : w.twint_gross != null ? `${wait(`relevé saisi : versé ${chf(w.twint_net)}`)} ${todo("à valider")}`
+    : wait(w.twint_mails ? "mail Twint reçu, à saisir" : "en attente du mail Twint");
+  return `<div class="muted" style="font-size:.82rem;margin-bottom:2px">${esc(gzWkLabel(w))} · ${w.n_tournois} tournoi(s) · ${w.presents} présent(s)</div>
+    <div class="dash-wk"><span>Cash</span><span>${cash}</span><span class="dash-wk-amt">${chf(w.cash)}</span></div>
+    <div class="dash-wk"><span>Carte</span><span>${carte}</span><span class="dash-wk-amt">${chf(w.carte)}</span></div>
+    <div class="dash-wk"><span>Twint</span><span>${twint}</span><span class="dash-wk-amt">${chf(w.twint)}</span></div>
+    <div class="dash-wk"><span><b>Total encaissé</b></span><span></span><span class="dash-wk-amt">${chf(Number(w.cash) + Number(w.carte) + Number(w.twint))}</span></div>`;
+}
+function dashGeneral(g, absences, lastWk) {
   const lu = g.lastup || {};
   const line = (label, at, by) => { const red = dDaysAgo(at) > 10; return `<div class="dash-row"><span>${esc(label)}</span><span class="${red ? "dash-red" : ""}">${at ? dFD(at) : "jamais"}${by ? " · " + esc(by) : ""}${red ? " ⚠️" : ""}</span></div>`; };
   const cov = ((g.nocoach || []).length || (g.coachabs || []).length)
@@ -2513,6 +2539,7 @@ function dashGeneral(g, absences) {
   return dashCard("Général",
     `<h3 class="dash-sub">Dernières mises à jour <span class="muted" style="font-weight:400;font-size:.8rem">(⚠️ rouge = &gt; 10 jours)</span></h3>
      ${line("Tournois GameZone", lu.gz_at, lu.gz_by)}${line("Importer les matchs TeamLausanne", lu.matchs_at, lu.matchs_by)}
+     <h3 class="dash-sub">Encaissé du dernier week-end GameZone</h3>${dashWeekend(lastWk)}
      <h3 class="dash-sub">Couverture coachs (cours à venir)</h3>${cov}
      <h3 class="dash-sub">Cours / études passés non validés (21 j)</h3>${unval}
      <h3 class="dash-sub">Absences cumulées (&gt; 5 h sur les 20 derniers jours, compétition → pro)</h3>${dashAbsences(absences || [])}
@@ -4813,7 +4840,7 @@ function renderParts() {
 }
 
 // ---- Résumé financier ----
-let gzFin = [], gzFinMgrs = {}, gzFinSeasonsLoaded = false, gzFinDue = [];
+let gzFin = [], gzFinMgrs = {}, gzFinSeasonsLoaded = false, gzFinDue = [], gzWeekends = [];
 
 // Box « Salaires pas encore pris » : ce qui reste à verser, tous tournois confondus (pas de filtre de saison :
 // une dette ne disparaît pas parce qu'on regarde une autre saison).
@@ -4848,11 +4875,13 @@ async function settleSalary(r) {
 
 async function loadFinanceTab() {
   await gzLoadSeasons();
-  const [{ data: fin }, { data: mgrs }, { data: due }] = await Promise.all([
+  const [{ data: fin }, { data: mgrs }, { data: due }, { data: wks }] = await Promise.all([
     sb.from("gz_tournament_finance").select("*"),
     sb.from("gz_managers").select("tournament_id,person_id"),
     sb.from("gz_salaries").select("*").eq("taken", false).is("settled_at", null).order("created_at"),
+    sb.from("gz_weekends").select("*").order("weekend_start", { ascending: false }),
   ]);
+  gzWeekends = wks || [];
   const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : ""; };
   gzFinDue = (due || []).map((s) => ({ ...s, who: s.name || nameOf(s.person_id) || "—" }));
   gzFinMgrs = {};
@@ -4871,18 +4900,111 @@ function renderFinance() {
   const sid = $("gz-fin-season").value;
   const rows = gzFin.filter((r) => !sid || r.season_id === sid)
     .sort((a, b) => String(b.tournament_date || "").localeCompare(String(a.tournament_date || "")));
-  const T = { presents: 0, twint: 0, cash: 0, carte: 0, total: 0, salaires: 0, net: 0 };
+  const T = { presents: 0, twint: 0, cash: 0, carte: 0, total: 0, carteReel: 0, twintReel: 0, salaires: 0, net: 0 };
+  // « Réel » d'un tournoi = le versé VALIDÉ du week-end (frais déduits), réparti au prorata de ce que
+  // chaque tournoi a encaissé par ce moyen dans la console. Tant que rien n'est validé : montant console.
+  const reel = (r, kind, consoleAmt) => {
+    const w = gzWeekendOf(r.tournament_date);
+    if (!w || !w[kind + "_validated_at"] || w[kind + "_net"] == null) return null;
+    const wkTotal = Number(w[kind === "card" ? "carte" : "twint"]);
+    if (!(wkTotal > 0)) return consoleAmt > 0 ? Number(w[kind + "_net"]) : 0;
+    return round2(Number(w[kind + "_net"]) * consoleAmt / wkTotal);
+  };
+  const cell = (real, cons) => real == null
+    ? `<td class="gz-fin-prov" title="Pas encore validé : montant console">${cons}</td>`
+    : `<td class="gz-fin-real" title="Versé validé, frais déduits">${real}</td>`;
   const html = rows.map((r) => {
     const twint = Number(r.twint), cash = Number(r.cash), carte = Number(r.carte), sal = Number(r.salaires);
-    const total = twint + cash + carte, net = total - sal;
-    T.presents += r.presents; T.twint += twint; T.cash += cash; T.carte += carte; T.total += total; T.salaires += sal; T.net += net;
+    const total = twint + cash + carte;
+    const carteReel = reel(r, "card", carte), twintReel = reel(r, "twint", twint);
+    const net = round2(cash + (carteReel ?? carte) + (twintReel ?? twint) - sal);
+    T.presents += r.presents; T.twint += twint; T.cash += cash; T.carte += carte; T.total += total;
+    T.carteReel += carteReel ?? carte; T.twintReel += twintReel ?? twint; T.salaires += sal; T.net += net;
     return `<tr><td>${esc(r.name || "—")}</td><td>${r.tournament_date ? frDate(r.tournament_date) : "—"}</td><td>${r.presents}</td>
-      <td>${twint}</td><td>${cash}</td><td>${carte}</td><td><b>${total}</b></td><td>${sal}</td><td>${net}</td>
+      <td>${twint}</td><td>${cash}</td><td>${carte}</td><td>${total}</td>${cell(carteReel, carte)}${cell(twintReel, twint)}<td>${sal}</td><td><b>${net}</b></td>
       <td class="muted" style="font-size:.8rem">${(gzFinMgrs[r.tournament_id] || []).join(", ")}</td></tr>`;
   }).join("");
-  $("gz-fin-rows").innerHTML = html || '<tr><td colspan="10" class="muted">Aucun tournoi.</td></tr>';
+  $("gz-fin-rows").innerHTML = html || '<tr><td colspan="12" class="muted">Aucun tournoi.</td></tr>';
   $("gz-fin-totals").innerHTML =
-    `<td colspan="2">TOTAL — ${rows.length} tournoi(s)</td><td>${T.presents}</td><td>${T.twint}</td><td>${T.cash}</td><td>${T.carte}</td><td>${T.total}</td><td>${T.salaires}</td><td>${T.net}</td><td></td>`;
+    `<td colspan="2">TOTAL — ${rows.length} tournoi(s)</td><td>${T.presents}</td><td>${T.twint}</td><td>${T.cash}</td><td>${T.carte}</td><td>${round2(T.total)}</td><td>${round2(T.carteReel)}</td><td>${round2(T.twintReel)}</td><td>${T.salaires}</td><td>${round2(T.net)}</td><td></td>`;
+  renderWeekends(sid);
+}
+
+// ---- Rapprochement par week-end (cash compté · mail SumUp · relevé Twint) ----
+// Samedi du week-end d'une date (lundi→vendredi = week-end précédent, comme la fonction SQL gz_weekend_of).
+function gzSaturdayOf(iso) {
+  if (!iso) return null;
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() - ((d.getDay() + 1) % 7));
+  return d.toISOString().slice(0, 10);
+}
+function gzWeekendOf(iso) { const s = gzSaturdayOf(iso); return gzWeekends.find((w) => w.weekend_start === s) || null; }
+const gzCHF = (n) => (n == null ? "—" : Number(n).toFixed(2));
+function gzWkLabel(w) {
+  const s = new Date(w.weekend_start + "T12:00:00"), e = new Date(s); e.setDate(s.getDate() + 1);
+  return `Week-end du ${s.getDate()}–${e.getDate()}.${String(e.getMonth() + 1).padStart(2, "0")}.${e.getFullYear()}`;
+}
+function renderWeekends(sid) {
+  const box = $("gz-fin-weekends"); if (!box) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const list = gzWeekends.filter((w) => w.weekend_start <= today && (!sid || w.season_id === sid || !w.season_id)
+    && (Number(w.cash) + Number(w.twint) + Number(w.carte) > 0 || w.settlement_id));
+  if (!list.length) { box.innerHTML = '<p class="muted" style="margin:0;font-size:.88rem">Aucun week-end encaissé sur cette saison.</p>'; return; }
+  const canEdit = hasAny(meRoles, ["superadmin", "admin", "secretaire"]);
+  const who = (by, at) => `<span class="gz-wk-okv">✓ validé</span> <span class="muted" style="font-size:.8rem">${esc(by || "")}${at ? " · " + frDate(at.slice(0, 10)) : ""}</span>`;
+  const btn = (act, w, label) => canEdit ? `<button type="button" class="ghost gz-wk-act" data-act="${act}" data-wk="${w.weekend_start}">${label}</button>` : "";
+  box.innerHTML = list.map((w) => {
+    const cashCons = Number(w.cash), carteCons = Number(w.carte), twintCons = Number(w.twint);
+    // Cash
+    let cash;
+    if (w.cash_validated_at) cash = `compté <b>${gzCHF(w.cash_counted)}</b> · console ${gzCHF(cashCons)} ${Number(w.cash_counted) === cashCons ? "" : `<span class="gz-wk-diff">écart ${gzCHF(Number(w.cash_counted) - cashCons)}</span>`} ${who(w.cash_validated_by, w.cash_validated_at)}`;
+    else cash = `console <b>${gzCHF(cashCons)}</b> · <span class="gz-wk-wait">à compter</span> ${btn("cash", w, "Compter et valider")}`;
+    // Carte (SumUp)
+    let carte;
+    const cardSrc = w.card_source === "sumup" ? `mail SumUp${w.card_stmt_date ? " du " + frDate(w.card_stmt_date) : ""}` : "saisie manuelle";
+    if (w.card_validated_at) carte = `versé <b>${gzCHF(w.card_net)}</b> (brut ${gzCHF(w.card_gross)}, frais ${gzCHF(w.card_fees)}) · ${cardSrc} ${who(w.card_validated_by, w.card_validated_at)}`;
+    else if (w.card_gross != null) {
+      const ok = Number(w.card_gross) === carteCons;
+      carte = `console ${gzCHF(carteCons)} · ${cardSrc} : brut ${gzCHF(w.card_gross)} ${ok ? '<span class="gz-wk-okv">= console</span>' : `<span class="gz-wk-diff">écart ${gzCHF(Number(w.card_gross) - carteCons)}</span>`} · frais ${gzCHF(w.card_fees)} · versé <b>${gzCHF(w.card_net)}</b> ${btn("card-edit", w, "Modifier")} ${btn("card-ok", w, "Valider")}`;
+    } else carte = `console <b>${gzCHF(carteCons)}</b> · <span class="gz-wk-wait">en attente du mail SumUp (mardi)</span> ${btn("card-edit", w, "Saisir à la main")}`;
+    // Twint
+    let twint;
+    if (w.twint_validated_at) twint = `versé <b>${gzCHF(w.twint_net)}</b> (brut ${gzCHF(w.twint_gross)}, frais ${gzCHF(w.twint_fees)}) ${who(w.twint_validated_by, w.twint_validated_at)}`;
+    else if (w.twint_gross != null) {
+      const ok = Number(w.twint_gross) === twintCons;
+      twint = `console ${gzCHF(twintCons)} · brut ${gzCHF(w.twint_gross)} ${ok ? '<span class="gz-wk-okv">= console</span>' : `<span class="gz-wk-diff">écart ${gzCHF(Number(w.twint_gross) - twintCons)}</span>`} · frais ${gzCHF(w.twint_fees)} · versé <b>${gzCHF(w.twint_net)}</b> ${btn("twint-edit", w, "Modifier")} ${btn("twint-ok", w, "Valider")}`;
+    } else twint = `console <b>${gzCHF(twintCons)}</b> · <span class="gz-wk-wait">${w.twint_mails ? "mail Twint reçu, montants à saisir" : "en attente du relevé Twint"}</span> ${btn("twint-edit", w, "Saisir")}`;
+    return `<div class="gz-wk"><div class="gz-wk-head"><b>${gzWkLabel(w)}</b><span class="muted" style="font-size:.82rem">${w.n_tournois} tournoi(s) · ${w.presents} présent(s) · ${w.salaires ? "salaires " + gzCHF(w.salaires) : "pas de salaire"}</span></div>
+      <div class="gz-wk-line"><span class="gz-wk-lbl">Cash</span><span class="gz-wk-val">${cash}</span></div>
+      <div class="gz-wk-line"><span class="gz-wk-lbl">Carte</span><span class="gz-wk-val">${carte}</span></div>
+      <div class="gz-wk-line"><span class="gz-wk-lbl">Twint</span><span class="gz-wk-val">${twint}</span></div></div>`;
+  }).join("");
+  box.querySelectorAll(".gz-wk-act").forEach((b) => b.addEventListener("click", () => gzWeekendAction(b.dataset.act, b.dataset.wk)));
+}
+
+async function gzWeekendAction(act, wk) {
+  const w = gzWeekends.find((x) => x.weekend_start === wk); if (!w) return;
+  const num = async (msg, def) => { const raw = await uiPrompt(msg, def == null ? "" : String(def)); if (raw == null) return undefined; const n = round2(Number(String(raw).replace(",", "."))); if (Number.isNaN(n) || n < 0) { uiAlert("Montant invalide."); return undefined; } return n; };
+  const patch = { weekend_start: wk, updated_at: new Date().toISOString() };
+  const label = gzWkLabel(w);
+  if (act === "cash") {
+    const n = await num(`${label}\nCash selon la console : ${gzCHF(w.cash)} CHF\nMontant compté dans la caisse :`, Number(w.cash)); if (n === undefined) return;
+    if (n !== Number(w.cash) && !(await uiConfirm(`Écart de ${gzCHF(n - Number(w.cash))} CHF avec la console. Valider quand même ?`))) return;
+    Object.assign(patch, { cash_counted: n, cash_validated_at: new Date().toISOString(), cash_validated_by: meName || null });
+  } else if (act === "card-edit" || act === "twint-edit") {
+    const k = act.startsWith("card") ? "card" : "twint", nom = k === "card" ? "carte (SumUp)" : "Twint";
+    const gross = await num(`${label} — ${nom}\nConsole : ${gzCHF(k === "card" ? w.carte : w.twint)} CHF\nMontant BRUT encaissé selon le relevé :`, w[k + "_gross"] ?? Number(k === "card" ? w.carte : w.twint)); if (gross === undefined) return;
+    const net = await num(`${label} — ${nom}\nMontant VERSÉ sur le compte (frais déduits) :`, w[k + "_net"] ?? gross); if (net === undefined) return;
+    Object.assign(patch, { [k + "_gross"]: gross, [k + "_net"]: net, [k + "_fees"]: round2(gross - net), [k + "_source"]: "manuel", [k + "_validated_at"]: null, [k + "_validated_by"]: null });
+  } else if (act === "card-ok" || act === "twint-ok") {
+    const k = act.startsWith("card") ? "card" : "twint";
+    const cons = Number(k === "card" ? w.carte : w.twint), gross = Number(w[k + "_gross"]);
+    if (gross !== cons && !(await uiConfirm(`Le brut du relevé (${gzCHF(gross)}) ne correspond pas à la console (${gzCHF(cons)}). Valider quand même ?\n(« Modifier » pour corriger le relevé, ou corriger les paiements dans le tournoi.)`))) return;
+    Object.assign(patch, { [k + "_validated_at"]: new Date().toISOString(), [k + "_validated_by"]: meName || null });
+  } else return;
+  const { error } = await sb.from("gz_weekend_settlements").upsert(patch, { onConflict: "weekend_start" });
+  if (error) { uiAlert("Rapprochement : " + error.message); return; }
+  await loadFinanceTab();
 }
 
 // ---- Communication : modèles d'e-mails ----

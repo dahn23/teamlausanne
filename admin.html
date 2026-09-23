@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=237" />
+  <link rel="stylesheet" href="style.css?v=238" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1202,11 +1202,17 @@
             <div class="table-wrap">
               <table class="crm-table">
                 <thead>
-                  <tr><th>Tournoi</th><th>Date</th><th>Présents</th><th>Twint</th><th>Cash</th><th>Carte</th><th>Total</th><th>Salaires</th><th>Net</th><th>Responsables</th></tr>
+                  <tr><th>Tournoi</th><th>Date</th><th>Présents</th><th>Twint</th><th>Cash</th><th>Carte</th><th>Total</th><th title="Montant réellement versé par SumUp (frais déduits), réparti entre les tournois du week-end">Carte réel</th><th title="Montant réellement versé par Twint (frais déduits), réparti entre les tournois du week-end">Twint réel</th><th>Salaires</th><th title="Cash + carte réel + Twint réel − salaires (montant console tant que le réel n'est pas connu)">Net</th><th>Responsables</th></tr>
                   <tr id="gz-fin-totals" class="gz-total"></tr>
                 </thead>
                 <tbody id="gz-fin-rows"></tbody>
               </table>
+            </div>
+
+            <div class="gz-due-box gz-wk-box">
+              <h3 style="margin:0 0 4px">Rapprochement par week-end</h3>
+              <p class="muted" style="margin:0 0 10px;font-size:.84rem">Samedi + dimanche = un seul versement. <b>Cash</b> : on compte la caisse et on valide. <b>Carte</b> : le mail SumUp du mardi est lu automatiquement (brut / frais / versé), le brut doit égaler la console. <b>Twint</b> : idem quand le relevé arrive (saisie manuelle en attendant). Le montant « versé » validé devient le réel du tableau ci-dessus.</p>
+              <div id="gz-fin-weekends"></div>
             </div>
 
             <div class="gz-due-box">
