@@ -1,5 +1,5 @@
 // Mon espace — portail membre (jeunes & parents). 100% responsive.
-import { sb, myRoles, hasAny, CONSOLE_ROLES, rememberSpace, initNativePush, releaseNativePush, openDeleteAccount } from "./common.js";
+import { sb, myRoles, hasAny, CONSOLE_ROLES, isGzManager, rememberSpace, initNativePush, releaseNativePush, openDeleteAccount } from "./common.js";
 import { ONESIGNAL_APP_ID } from "./config.js";
 
 /* ============================================================
@@ -121,8 +121,9 @@ async function startApp() {
   YOUTHS = error ? [] : (data || []);
   initNativePush();   // app native : enregistre ce téléphone pour les notifications (sans effet dans un navigateur)
   // Compte qui a aussi un rôle staff (coach qui est joueur, parent qui est moniteur…) : bouton de bascule vers la console.
-  myRoles().then((roles) => {
-    if (!hasAny(roles, CONSOLE_ROLES)) return;
+  myRoles().then(async (roles) => {
+    // Rôle staff, ou responsable d'un tournoi GameZone en cours : la console lui est ouverte.
+    if (!hasAny(roles, CONSOLE_ROLES) && !(await isGzManager())) return;
     const b = $("pt-to-console"); b.classList.remove("hidden");
     b.addEventListener("click", () => { rememberSpace("console"); location.href = "/console"; });
   });

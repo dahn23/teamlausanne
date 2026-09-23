@@ -1,7 +1,7 @@
 // Activation d'un accès « Mon espace » depuis le mail d'invitation : activer.html?t=<jeton>.
 // Le jeton (30 jours, usage unique) est vérifié par la fonction portal-activate ; la famille choisit son mot de
 // passe, puis la page la connecte et ouvre Mon espace.
-import { sb, myRoles, landingFor } from "./common.js";
+import { sb, myRoles, landingAfterLogin } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 const token = new URLSearchParams(location.search).get("t") || "";
@@ -48,5 +48,5 @@ $("ac-form").addEventListener("submit", async (e) => {
   if (r.error || !r.ok) { err.textContent = r.error || "Activation impossible."; err.hidden = false; btn.disabled = false; btn.textContent = "Activer Mon espace"; return; }
   const { error } = await sb.auth.signInWithPassword({ email, password: p1 });
   if (error) return fail("Ton accès est activé. Connecte-toi avec ton e-mail et ton nouveau mot de passe.");
-  location.href = landingFor(await myRoles());
+  location.href = await landingAfterLogin();
 });

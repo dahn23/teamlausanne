@@ -1,6 +1,6 @@
 // « Mot de passe oublié » — reset.html (demande du lien) et reset.html?t=<jeton> (nouveau mot de passe).
 // Tout passe par la fonction publique password-reset ; le jeton (1 heure, usage unique) arrive par mail.
-import { sb, myRoles, landingFor } from "./common.js";
+import { sb, myRoles, landingAfterLogin } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 const token = new URLSearchParams(location.search).get("t") || "";
@@ -57,6 +57,6 @@ if (!token) {
     if (res.error || !res.ok) { err.textContent = res.error || "Changement impossible."; err.hidden = false; btn.disabled = false; btn.textContent = "Enregistrer et me connecter"; return; }
     const { error } = await sb.auth.signInWithPassword({ email, password: p1 });
     if (error) { $("rs-new").classList.add("hidden"); $("rs-sent").textContent = "Mot de passe changé. Connecte-toi avec ton e-mail et ton nouveau mot de passe."; $("rs-sent").classList.remove("hidden"); return; }
-    location.replace(landingFor(await myRoles()));
+    location.replace(await landingAfterLogin());
   });
 }

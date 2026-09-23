@@ -1,6 +1,6 @@
 // Page de connexion épurée (app.teamlausanne.ch) — uniquement le login,
 // puis aiguillage par rôle : staff → /console, membre/parent/jeune → Mon espace.
-import { sb, myRoles, landingFor, getSession } from "./common.js";
+import { sb, myRoles, landingAfterLogin, getSession } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -9,7 +9,7 @@ const $ = (id) => document.getElementById(id);
 // session est mémorisée) ; s'il n'y a finalement pas de session valable, on le ré-affiche.
 const showForm = () => document.documentElement.classList.remove("cnx-resuming");
 getSession()
-  .then(async (s) => { if (s) location.replace(landingFor(await myRoles())); else showForm(); })
+  .then(async (s) => { if (s) location.replace(await landingAfterLogin()); else showForm(); })
   .catch(showForm);
 setTimeout(showForm, 8000);   // filet : réseau très lent ou erreur silencieuse → on ne laisse jamais un écran vide
 
@@ -22,5 +22,5 @@ $("login-form").addEventListener("submit", async (e) => {
   });
   btn.disabled = false;
   if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
-  location.href = landingFor(await myRoles());
+  location.href = await landingAfterLogin();
 });

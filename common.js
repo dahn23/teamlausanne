@@ -33,6 +33,16 @@ export function landingFor(roles) {
   // Staff qui est AUSSI joueur ou parent : on rouvre le dernier espace utilisé (bouton de bascule en haut de page).
   return lastSpace() === "espace" ? "espace.html" : "/console";
 }
+// Responsable d'un tournoi GameZone non clôturé : pas de rôle d'accès, mais la console lui est ouverte (onglet GameZone).
+export async function isGzManager() {
+  try { const { data } = await sb.rpc("gz_is_manager"); return data === true; } catch (_e) { return false; }
+}
+// Destination après connexion, en tenant compte des responsables de tournoi (à utiliser partout à la place de landingFor).
+export async function landingAfterLogin() {
+  const roles = await myRoles();
+  if (hasAny(roles, CONSOLE_ROLES) || await isGzManager()) return lastSpace() === "espace" ? "espace.html" : "/console";
+  return "espace.html";
+}
 // Dernier espace choisi via le bouton de bascule Console ⇄ Mon espace (mémorisé sur l'appareil).
 export function lastSpace() { try { return localStorage.getItem("tl-space") || ""; } catch (_e) { return ""; } }
 export function rememberSpace(s) { try { localStorage.setItem("tl-space", s); } catch (_e) { /* navigation privée */ } }

@@ -1,5 +1,5 @@
 // Site public dynamique : mondes + pages détaillées (routage par ancre).
-import { sb, getSession, myRoles, hasAny, landingFor, CONSOLE_ROLES, frDate, jours } from "./common.js";
+import { sb, getSession, myRoles, hasAny, landingAfterLogin, CONSOLE_ROLES, frDate, jours } from "./common.js";
 import "./pretty-select.js";
 import "./pretty-date.js";
 
@@ -850,7 +850,7 @@ $("login-form").addEventListener("submit", async (e) => {
   $("login-btn").disabled = false;
   if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
   // Aiguillage par rôle : staff → console, membre/parent/jeune → Mon espace.
-  location.href = landingFor(await myRoles());
+  location.href = await landingAfterLogin();
 });
 // On NE redirige plus automatiquement : on reste sur le site vitrine même connecté.
 getSession().then(async (s) => {
