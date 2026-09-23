@@ -3212,3 +3212,11 @@ tr.rm-loss td{background:#fde8e8}
    explication se lit comme une panne. */
 .cal-fige{margin:4px 0 0;font-size:.85rem;background:#fff8e6;border:1px solid #f0d89a;
   border-radius:9px;padding:8px 11px;color:#8a6116}
+
+/* Adresse e-mail cliquable qui ouvre un brouillon dans la Messagerie plutôt
+   qu'un « mailto: ». C'est un <button> — pas un lien : il ne mène nulle part —
+   mais il doit se lire comme l'adresse elle-même, pas comme un bouton. */
+.lien-ecrire{background:none;border:0;padding:0;font:inherit;color:var(--blue);
+  cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.lien-ecrire:hover{color:var(--blue-ink)}
+.lien-ecrire:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:3px}

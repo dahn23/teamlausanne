@@ -409,6 +409,9 @@ async function init(roles) {
 }
 
 // ---- Bascule de vues ----
+// Promesse du dernier chargement de la messagerie : « écrire à » l'attend pour
+// que les comptes d'envoi soient prêts avant d'ouvrir un brouillon.
+let mailChargement = null;
 function showView(view) {
   if (view === "bientot") return;
   try { localStorage.setItem("tl-view", view); } catch (_) {}   // mémorise l'onglet pour le prochain rechargement
@@ -426,7 +429,10 @@ function showView(view) {
   if (view === "csel") loadCsel();
   if (view === "anniv") loadBirthdays();
   if (view === "acces") loadPortalAccess();
-  if (view === "mail") loadMail();
+  // On retient la promesse : écrire à quelqu'un depuis un autre onglet doit
+  // pouvoir attendre que les comptes d'envoi soient là, sans relancer un
+  // deuxième chargement complet.
+  if (view === "mail") mailChargement = loadMail();
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
@@ -5540,6 +5546,21 @@ async function deleteNews() {
 const FILIERE_LABEL = { competition: "Compétition", performance: "Performance", club: "Club", kidstennis: "Kids Tennis", adultes: "Adultes", "pro-u18": "Pro U18", pro: "Pro" };
 let inscList = [];
 
+// Écrire à quelqu'un depuis un autre onglet : on bascule sur la Messagerie et on
+// ouvre un brouillon déjà adressé. Remplace le lien « mailto: », qui sortait de
+// la console pour réveiller le logiciel de courrier du poste — et qui, sur un
+// poste sans client configuré, n'ouvrait rien du tout. Le message part alors
+// d'une de nos boîtes et reste dans l'historique, au lieu de disparaître dans
+// un Outlook personnel.
+async function ecrireA(adresse) {
+  if (!adresse) return;
+  showView("mail");
+  // showView a lancé le chargement sans l'attendre : sans cette attente, le
+  // champ « De : » s'ouvrirait vide si la Messagerie n'avait jamais été ouverte.
+  try { await mailChargement; } catch (_) { /* on ouvre quand même le brouillon */ }
+  openMailCompose({ to: adresse });
+}
+
 async function loadInscriptions() {
   const { data, error } = await sb.rpc("list_enrollment_requests");
   inscList = error ? [] : (data || []);
@@ -5551,7 +5572,8 @@ async function loadInscriptions() {
     const info = [r.birthdate ? "Né(e) le " + frDate(r.birthdate) : "", r.avs ? "AVS " + esc(r.avs) : ""].filter(Boolean).join(" · ");
     const contact = [
       r.phone ? `<a href="tel:${esc(r.phone.replace(/\s/g, ""))}">${esc(r.phone)}</a>` : "",
-      r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : "",
+      r.email ? `<button type="button" class="lien-ecrire" data-ecrire="${esc(r.email)}"
+          title="Écrire à cette adresse depuis la Messagerie">${esc(r.email)}</button>` : "",
     ].filter(Boolean).join(" · ");
     return `<div class="insc-card">
       <div class="insc-top">
@@ -5571,6 +5593,7 @@ async function loadInscriptions() {
       </div>
     </div>`;
   }).join("");
+  box.querySelectorAll("[data-ecrire]").forEach((b) => b.addEventListener("click", () => ecrireA(b.dataset.ecrire)));
   box.querySelectorAll(".insc-add").forEach((b) => b.addEventListener("click", () => addToRepertoire(b.dataset.id)));
   box.querySelectorAll(".insc-del").forEach((b) => b.addEventListener("click", () => deleteInscription(b.dataset.id)));
 }
