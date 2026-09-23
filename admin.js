@@ -3474,7 +3474,10 @@ async function loadCoursesDay() {
     b.textContent = card.classList.toggle("expanded") ? "Réduire" : "Plus";
   }));
   if (isCourseMgr) L.querySelectorAll(".cs-card").forEach((el) =>
-    el.addEventListener("click", (e) => { if (e.target.closest(".att-chip,.cs-more")) return; editCourse(el.dataset.id); }));
+    el.addEventListener("click", (e) => {
+      if (e.target.closest(".att-chip,.cs-more,.att-ann,.att-goto,.att-rm")) return;
+      editCourse(el.dataset.id);
+    }));
   filterCoursesDay();
 }
 
