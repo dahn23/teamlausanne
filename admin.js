@@ -3271,6 +3271,86 @@ function rmPopup(pid) {
     </tbody></table>` : '<p class="muted">Aucun match ces 7 derniers jours.</p>';
   $("rm-modal").classList.remove("hidden");
 }
+// =====================================================================
+//  Annonces d'absence / de retard, recues AVANT le cours
+// =====================================================================
+// Les parents ecrivent au secretariat (« Lea sera en retard, rendez-vous chez le
+// medecin »). Avant, ca se perdait : rien ne permettait de le noter, et le coach
+// arrivait au cours sans le savoir.
+//
+// Ce n'est PAS l'appel. L'appel est le constat du coach, il ouvre 25 minutes
+// avant le cours et lui appartient. Une annonce est une information recue avant,
+// qui peut se dementir — l'enfant annonce absent peut finalement venir. Elle ne
+// compte donc pas dans l'alerte « plus de 3 h d'absence » du tableau de bord :
+// une absence annoncee est justement celle pour laquelle il ne faut PAS appeler
+// les parents.
+//
+// Qui annonce : l'equipe administrative, secretariat compris. C'est lui qui
+// recoit les messages, alors qu'il n'a pas le droit de faire l'appel.
+let csNotices = [];
+const csAnnonce = (cid, pid) => csNotices.find((n) => n.course_id === cid && n.person_id === pid);
+const canAnnoncer = () => hasAny(myAppRoles, ["superadmin", "admin", "head_coach", "secretaire"]);
+const ANN_LBL = { absent: "Absent", retard: "En retard" };
+
+// Pastille posee sur la pastille du joueur. Elle doit se voir au premier coup
+// d'oeil : c'est toute la raison d'etre de la fonction.
+function annBadge(cid, pid) {
+  const n = csAnnonce(cid, pid);
+  if (!n) return "";
+  const t = `Annoncé ${n.kind === "absent" ? "absent" : "en retard"}${n.note ? " — " + n.note : ""}`;
+  return `<span class="ann-badge ann-${esc(n.kind)}" title="${esc(t)}">${n.kind === "absent" ? "A" : "R"}</span>`;
+}
+
+let annCible = null;   // { courseId, personId }
+function annOuvrir(courseId, personId) {
+  annCible = { courseId, personId };
+  const n = csAnnonce(courseId, personId);
+  $("ann-err").hidden = true;
+  $("ann-qui").textContent = personName(personId);
+  $("ann-note").value = n?.note || "";
+  document.querySelectorAll("#ann-choix .ann-opt").forEach((b) =>
+    b.classList.toggle("on", b.dataset.kind === (n?.kind || "absent")));
+  $("ann-suppr").classList.toggle("hidden", !n);
+  $("ann-modal").classList.remove("hidden");
+}
+
+function annFermer() { $("ann-modal").classList.add("hidden"); annCible = null; }
+
+async function annEnregistrer() {
+  if (!annCible) return;
+  const err = $("ann-err"); err.hidden = true;
+  const kind = document.querySelector("#ann-choix .ann-opt.on")?.dataset.kind || "absent";
+  const note = $("ann-note").value.trim() || null;
+  const { error } = await sb.from("course_notices").upsert({
+    course_id: annCible.courseId, person_id: annCible.personId,
+    kind, note, created_by: meId, created_at: new Date().toISOString(),
+  }, { onConflict: "course_id,person_id" });
+  if (error) { err.textContent = error.message; err.hidden = false; return; }
+  annFermer();
+  loadCoursesCurrent();
+}
+
+async function annSupprimer() {
+  if (!annCible) return;
+  const { error } = await sb.from("course_notices").delete()
+    .eq("course_id", annCible.courseId).eq("person_id", annCible.personId);
+  if (error) { $("ann-err").textContent = error.message; $("ann-err").hidden = false; return; }
+  annFermer();
+  loadCoursesCurrent();
+}
+
+function annBrancher() {
+  if ($("ann-modal").dataset.pret) return;
+  $("ann-modal").dataset.pret = "1";
+  $("ann-close").addEventListener("click", annFermer);
+  $("ann-modal").addEventListener("click", (e) => { if (e.target === $("ann-modal")) annFermer(); });
+  $("ann-save").addEventListener("click", annEnregistrer);
+  $("ann-suppr").addEventListener("click", annSupprimer);
+  document.querySelectorAll("#ann-choix .ann-opt").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("#ann-choix .ann-opt").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+}
+
 function attChip(course, coachIds, pid, isCoach, status) {
   const can = canMarkBox(course, coachIds, pid, isCoach);
   const cls = status === "present" ? "st-present" : status === "late" ? "st-late"
@@ -3286,7 +3366,15 @@ function attChip(course, coachIds, pid, isCoach, status) {
     data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}" data-cstart="${course.course_date}T${course.start_time}"
     title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${bday ? " · anniversaire" : ""}">${nm}</button>`;
   // chip + ↗ regroupés dans .att-unit → 1 seul enfant par joueur (ne casse pas le masquage « > 4 »).
-  const extra = (isCoach ? "" : rmBadge(pid)) + (reach ? `<button type="button" class="att-goto" data-person="${pid}" data-course="${course.id}" title="Ouvrir la fiche › Tennis">↗</button>` : "");
+  const annonce = isCoach ? "" : annBadge(course.id, pid);
+  // Le bouton d'annonce n'apparait que pour ceux qui ont le droit d'annoncer,
+  // et seulement sur les eleves : un coach ne s'annonce pas malade par le
+  // secretariat, il se declare absent lui-meme.
+  const btnAnn = (!isCoach && canAnnoncer())
+    ? `<button type="button" class="att-ann" data-person="${pid}" data-course="${course.id}"
+         title="Annoncer une absence ou un retard">✎</button>` : "";
+  const extra = (isCoach ? "" : rmBadge(pid)) + annonce + btnAnn
+    + (reach ? `<button type="button" class="att-goto" data-person="${pid}" data-course="${course.id}" title="Ouvrir la fiche › Tennis">↗</button>` : "");
   return extra ? `<span class="att-unit">${chip}${extra}</span>` : chip;
 }
 
@@ -3304,13 +3392,15 @@ async function loadCoursesDay() {
   const { data: courses } = await sb.from("courses").select("*").eq("course_date", date).order("start_time");
   const ids = (courses || []).map((c) => c.id);
   let books = [], coaches = [], parts = [], att = [], segs = [];
+  csNotices = [];
   if (ids.length) {
-    [books, coaches, parts, att, segs] = await Promise.all([
+    [books, coaches, parts, att, segs, csNotices] = await Promise.all([
       sb.from("court_bookings").select("court_id,course_id").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_participants").select("course_id,child_person_id").in("course_id", ids).then((r) => r.data || []),
       sb.from("attendance").select("course_id,person_id,status").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_segments").select("course_id,minutes,course_segment_players(person_id)").in("course_id", ids).then((r) => r.data || []),
+      sb.from("course_notices").select("*").in("course_id", ids).then((r) => r.data || []),
     ]);
   }
   const courtName = (id) => (resaCourtsAll.find((c) => c.id === id)?.name || "?").replace("Court ", "C");
@@ -3361,6 +3451,8 @@ async function loadCoursesDay() {
   const L = $("cs-list");
   L.querySelectorAll(".att-chip").forEach((ch) => ch.addEventListener("click", (e) => { e.stopPropagation(); cycleAtt(ch); }));
   L.querySelectorAll(".att-goto").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); openPersonToTennis(b.dataset.person, b.dataset.course); }));
+  annBrancher();
+  L.querySelectorAll(".att-ann").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); annOuvrir(b.dataset.course, b.dataset.person); }));
   L.querySelectorAll(".att-rm").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); rmPopup(b.dataset.person); }));
   if (!$("rm-close").dataset.w) { $("rm-close").dataset.w = "1"; $("rm-close").addEventListener("click", () => $("rm-modal").classList.add("hidden")); $("rm-modal").addEventListener("click", (e) => { if (e.target === $("rm-modal")) $("rm-modal").classList.add("hidden"); }); }
   L.querySelectorAll(".cs-more").forEach((b) => b.addEventListener("click", (e) => {

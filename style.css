@@ -3248,3 +3248,25 @@ tr.rm-loss td{background:#fde8e8}
 .rcible{box-shadow:inset 0 0 0 3px #1c7d38;background-color:#e3f6e8!important;color:#1c7d38!important}
 .rcible-ko{box-shadow:inset 0 0 0 3px #b3261e;background-color:#fdecec!important;color:#b3261e!important}
 @media(prefers-reduced-motion:reduce){.rbloc-origine{opacity:.55}}
+
+/* ---- Annonce d'absence / de retard, reçue avant le cours ----
+   Distincte de l'appel : l'appel est le constat du coach (vert / rouge /
+   orange), l'annonce est une information reçue avant. Elle porte donc ses
+   propres couleurs, plus sourdes, et se pose EN PLUS de la pastille de
+   présence — les deux coexistent sur la même ligne. */
+.ann-badge{display:inline-flex;align-items:center;justify-content:center;
+  width:17px;height:17px;border-radius:50%;font-size:.62rem;font-weight:800;
+  margin-left:3px;flex:0 0 auto;cursor:help;border:1px solid rgba(0,0,0,.08)}
+.ann-absent{background:#f6ddda;color:#8d2f22}
+.ann-retard{background:#fbeccd;color:#8a5a12}
+.att-ann{background:transparent;border:0;padding:0 3px;cursor:pointer;
+  color:var(--muted);font-size:.8rem;line-height:1}
+.att-ann:hover{color:var(--blue)}
+.att-ann:focus-visible{outline:2px solid var(--blue);outline-offset:1px;border-radius:3px}
+
+/* Choix absent / en retard dans la fenêtre d'annonce. */
+.ann-choix{display:flex;gap:8px;margin:0 0 14px}
+.ann-opt{flex:1;background:#eef1f7;border:2px solid transparent;border-radius:10px;
+  padding:10px;font-weight:700;color:var(--muted);cursor:pointer}
+.ann-opt.on{background:#fff;border-color:var(--blue);color:var(--blue-ink)}
+.ann-opt:focus-visible{outline:2px solid var(--blue);outline-offset:2px}

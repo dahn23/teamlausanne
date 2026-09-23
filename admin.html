@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=235" />
+  <link rel="stylesheet" href="style.css?v=236" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1514,6 +1514,28 @@
         </div>
 
         <!-- Fenêtre : matchs récents d'un joueur (🔥 perf / 🎾 a joué, depuis Cours) -->
+        <!-- Annonce d'absence / de retard reçue avant le cours (message d'un
+             parent au secrétariat). Distincte de l'appel, que fait le coach. -->
+        <div id="ann-modal" class="modal hidden">
+          <div class="card" style="max-width:460px">
+            <button type="button" id="ann-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0">Annoncer une absence ou un retard</h2>
+            <p id="ann-qui" class="muted" style="margin:-8px 0 14px"></p>
+            <div class="ann-choix" id="ann-choix">
+              <button type="button" class="ann-opt" data-kind="absent">Absent</button>
+              <button type="button" class="ann-opt" data-kind="retard">En retard</button>
+            </div>
+            <label class="mailc-f">Ce qu'ont dit les parents <span class="muted" style="font-weight:400">(facultatif)</span>
+              <textarea id="ann-note" rows="3" placeholder="ex. rendez-vous chez le médecin, arrivera vers 17h30"></textarea></label>
+            <p id="ann-err" class="error" hidden></p>
+            <div class="form-foot">
+              <button type="button" id="ann-suppr" class="danger hidden">Retirer l'annonce</button>
+              <span class="spacer"></span>
+              <button type="button" id="ann-save">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+
         <div id="rm-modal" class="modal hidden">
           <div class="card" style="max-width:720px">
             <button type="button" id="rm-close" class="modal-close" aria-label="Fermer">×</button>
