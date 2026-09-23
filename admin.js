@@ -2409,11 +2409,12 @@ async function loadDashboard() {
   // Les appels partent ensemble : le tableau de bord ne doit pas s'afficher en
   // plusieurs temps. Une alerte qui échoue ne doit pas emporter le reste, d'où
   // les listes vides par défaut.
-  const [{ data, error }, abs, rel, nts] = await Promise.all([
+  const [{ data, error }, abs, rel, nts, fac] = await Promise.all([
     sb.rpc("dashboard_data"),
     sb.rpc("absences_a_signaler"),
     sb.rpc("contacts_a_relancer"),
     sb.rpc("dash_notes", { p_days: 7 }),
+    dashFacturesData().catch(() => null),
   ]);
   if (error) { body.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
   const D = data || {};
@@ -2422,7 +2423,7 @@ async function loadDashboard() {
   const notes = nts.error ? [] : (nts.data || []);
   $("dash-gen").textContent = D.generated_at ? "— " + frDateTime(D.generated_at) : "";
   body.innerHTML = `<div class="dash-grid">`
-    + dashGeneral(D.general || {}, absences) + dashNotes(notes) + dashRelances(relances) + dashMail(D.mail || {})
+    + dashGeneral(D.general || {}, absences) + dashNotes(notes) + dashRelances(relances) + dashMail(D.mail || {}) + dashFactures(fac)
     + dashGroup("Pro · Pro U18 · Sport-études", D.se || {})
     + dashGroup("Compétition & Performance", D.comp || {})
     + dashClub(D.club || {}) + dashProspects(D.prospects || {}, (D.general || {}).lastup || {}) + `</div>`;
@@ -2527,6 +2528,44 @@ function dashMail(m) {
      <h3 class="dash-sub">Traités / répondus (7 j) par personne</h3>${done}
      <h3 class="dash-sub">Délai moyen « à traiter → traité »</h3>
      <div class="dash-row"><span>Global</span><span>${m.avg_all_h != null ? m.avg_all_h + " h" : "—"}</span></div>${avgby}`);
+}
+// ---- Facturation : l'envoi du 20 tourne sans personne ----
+// Un mois où rien n'est parti ressemble à un mois calme : on ne s'en aperçoit
+// qu'à la relance. Ce bloc dit quand la tâche est passée, ce qu'elle a envoyé
+// et surtout ce qu'elle N'A PAS envoyé. Les compteurs viennent des factures
+// elles-mêmes, pas du journal : un envoi fait à la main depuis l'onglet
+// Factures compte donc aussi.
+const canFactures = () => hasAny(myAppRoles, ["admin", "superadmin"])
+  || !!(myPersonId && (peopleRoles[myPersonId] || []).includes("finance"));
+async function dashFacturesData() {
+  if (!canFactures()) return null;
+  const j30 = new Date(Date.now() - 30 * 864e5).toISOString();
+  const auj = new Date().toISOString().slice(0, 10);
+  const [run, env, att] = await Promise.all([
+    sb.from("out_invoice_runs").select("ran_at,sent_count,failed_count,detail").order("ran_at", { ascending: false }).limit(1),
+    sb.from("out_invoices").select("id", { count: "exact", head: true }).gte("sent_at", j30),
+    sb.from("out_invoices").select("id", { count: "exact", head: true }).eq("status", "a_envoyer").lte("issue_date", auj),
+  ]);
+  return { run: (run.data || [])[0] || null, envoyees30: env.count || 0, attente: att.count || 0 };
+}
+function dashFactures(d) {
+  if (!d) return "";
+  const r = d.run;
+  const now = new Date();
+  // Date composée à la main : passer par toISOString() sur un Date local
+  // recule d'un jour (minuit + 02 = la veille en UTC) et afficherait le 19.
+  const m = now.getMonth() + (now.getDate() < 20 ? 0 : 1);
+  const p = `${now.getFullYear() + Math.floor(m / 12)}-${String((m % 12) + 1).padStart(2, "0")}-20`;
+  const echecs = r && Array.isArray(r.detail?.ignorees) ? r.detail.ignorees : [];
+  return dashCard("Facturation", `
+    <div class="dash-row"><span>Dernier envoi automatique</span><span class="${r ? "" : "dash-red"}">${r ? frDateTime(r.ran_at) : "aucun pour l'instant"}</span></div>
+    ${r ? `<div class="dash-row"><span>Ce jour-là</span><span><b>${r.sent_count}</b> envoyée(s)${r.failed_count ? ` · <span class="dash-red">${r.failed_count} en échec</span>` : ""}</span></div>` : ""}
+    ${echecs.length ? echecs.map((x) => `<div class="dash-alert">${esc(String(x))}</div>`).join("") : ""}
+    <div class="dash-row"><span>Prochain envoi automatique</span><span>${dFD(p)}</span></div>
+    <h3 class="dash-sub">Factures</h3>
+    <div class="dash-row"><span>Parties ces 30 derniers jours</span><span><b>${d.envoyees30}</b></span></div>
+    <div class="dash-row"><span>En attente d'envoi (échéance atteinte)</span><span class="${d.attente > 0 ? "dash-red" : ""}">${d.attente}</span></div>
+    ${d.attente > 0 ? '<div class="muted" style="font-size:.8rem;margin-top:6px">Elles partiront au prochain passage du 20, ou tout de suite depuis l\'onglet Factures.</div>' : '<div class="dash-ok">✓ Rien en attente.</div>'}`);
 }
 function dashGroup(title, g) {
   const y = g.youths || [];

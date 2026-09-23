@@ -23,7 +23,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // nouveau à configurer.
 const FROM = (Deno.env.get("GMAIL_HUB") || "info@teamlausanne.ch").trim().toLowerCase();
 const NOM_EXPEDITEUR = "Team Lausanne Academy";
-const RECAP_A = "info@teamlausanne.ch";   // récapitulatif au secrétariat
+// Récapitulatif : le secrétariat, plus la direction. Une facture qui n'est pas
+// partie doit avoir deux paires d'yeux dessus, pas une.
+const RECAP_A = "info@teamlausanne.ch, raphael@teamlausanne.ch";
 
 const json = (o: unknown, s = 200) =>
   new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json" } });
@@ -139,6 +141,17 @@ Deno.serve(async (req) => {
         });
       } catch (_) { /* le récapitulatif ne doit pas faire échouer la tâche */ }
     }
+
+    // Trace du passage, lue par le tableau de bord de la console. Écrite même
+    // quand rien n'est parti : « la tâche a tourné, il n'y avait rien à
+    // envoyer » et « la tâche n'a pas tourné » ne se ressemblent pas du tout,
+    // et un mail de récapitulatif peut se perdre ou finir en indésirable.
+    try {
+      await supa.from("out_invoice_runs").insert({
+        kind: "auto", sent_count: envoyees.length, failed_count: ignorees.length,
+        detail: { date: aujourdhui, envoyees, ignorees },
+      });
+    } catch (_) { /* le journal ne doit pas faire échouer l'envoi */ }
 
     return json({ date: aujourdhui, envoyees: envoyees.length, ignorees: ignorees.length, detail: { envoyees, ignorees } });
   } catch (e) {
