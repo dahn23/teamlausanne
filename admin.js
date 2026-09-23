@@ -3303,6 +3303,9 @@ function annBadge(cid, pid) {
 
 let annCible = null;   // { courseId, personId }
 function annOuvrir(courseId, personId) {
+  // Balisage absent (page servie depuis un cache plus ancien que le script) :
+  // on le dit, au lieu de laisser le crayon paraitre mort.
+  if (!$("ann-modal")) { uiAlert("Rechargez la page (Ctrl+Maj+R) : la fenêtre d'annonce n'est pas chargée."); return; }
   annCible = { courseId, personId };
   const n = csAnnonce(courseId, personId);
   $("ann-err").hidden = true;
@@ -3339,17 +3342,26 @@ async function annSupprimer() {
   loadCoursesCurrent();
 }
 
-function annBrancher() {
-  if ($("ann-modal").dataset.pret) return;
-  $("ann-modal").dataset.pret = "1";
-  $("ann-close").addEventListener("click", annFermer);
-  $("ann-modal").addEventListener("click", (e) => { if (e.target === $("ann-modal")) annFermer(); });
-  $("ann-save").addEventListener("click", annEnregistrer);
-  $("ann-suppr").addEventListener("click", annSupprimer);
-  document.querySelectorAll("#ann-choix .ann-opt").forEach((b) => b.addEventListener("click", () => {
-    document.querySelectorAll("#ann-choix .ann-opt").forEach((x) => x.classList.toggle("on", x === b));
-  }));
-}
+// Tout passe par un seul ecouteur pose sur le document. Les ecouteurs etaient
+// auparavant reposes sur chaque bouton a chaque rendu de la liste des cours :
+// il suffisait qu une ligne plus haut dans ce branchement echoue pour que le
+// crayon cesse de repondre, sans le moindre message. La delegation ne depend
+// ni du rendu, ni de l ordre, ni de l existence de la fenetre au moment ou la
+// liste s affiche.
+document.addEventListener("click", (e) => {
+  const crayon = e.target.closest(".att-ann");
+  if (crayon) {
+    e.stopPropagation();
+    return annOuvrir(crayon.dataset.course, crayon.dataset.person);
+  }
+  if (!e.target.closest("#ann-modal") && e.target.id !== "ann-modal") return;
+  if (e.target.closest("#ann-close")) return annFermer();
+  if (e.target.id === "ann-modal") return annFermer();          // clic sur le fond
+  if (e.target.closest("#ann-save")) return annEnregistrer();
+  if (e.target.closest("#ann-suppr")) return annSupprimer();
+  const opt = e.target.closest("#ann-choix .ann-opt");
+  if (opt) document.querySelectorAll("#ann-choix .ann-opt").forEach((x) => x.classList.toggle("on", x === opt));
+});
 
 function attChip(course, coachIds, pid, isCoach, status) {
   const can = canMarkBox(course, coachIds, pid, isCoach);
@@ -3434,7 +3446,9 @@ async function loadCoursesDay() {
     const courtCount = books.filter((b) => b.course_id === c.id).length;
     const detailed = !!type && TR_TYPE_RE.test(type.name || "") && (courtCount > 1 || coachIds.length > 1);
     const elevesCol = detailed
-      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); const sp = `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${isBirthday(pid, c.course_date) ? bdayBadge() + " " : ""}${esc(personName(pid))}${agT}</span>`; const ex = rmBadge(pid) + (reach ? `<button type="button" class="att-goto" data-person="${pid}" data-course="${c.id}" title="Ouvrir la fiche › Tennis">↗</button>` : ""); return ex ? `<span class="att-unit">${sp}${ex}</span>` : sp; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
+      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); const sp = `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${isBirthday(pid, c.course_date) ? bdayBadge() + " " : ""}${esc(personName(pid))}${agT}</span>`; const ex = rmBadge(pid) + annBadge(c.id, pid)
+            + (canAnnoncer() ? `<button type="button" class="att-ann" data-person="${pid}" data-course="${c.id}" title="Annoncer une absence ou un retard">✎</button>` : "")
+            + (reach ? `<button type="button" class="att-goto" data-person="${pid}" data-course="${c.id}" title="Ouvrir la fiche › Tennis">↗</button>` : ""); return ex ? `<span class="att-unit">${sp}${ex}</span>` : sp; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
       : col(c, coachIds, childIds, false, "Élèves");
     return `<div class="cs-card" data-id="${c.id}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cs-card-top">
@@ -3451,8 +3465,7 @@ async function loadCoursesDay() {
   const L = $("cs-list");
   L.querySelectorAll(".att-chip").forEach((ch) => ch.addEventListener("click", (e) => { e.stopPropagation(); cycleAtt(ch); }));
   L.querySelectorAll(".att-goto").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); openPersonToTennis(b.dataset.person, b.dataset.course); }));
-  annBrancher();
-  L.querySelectorAll(".att-ann").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); annOuvrir(b.dataset.course, b.dataset.person); }));
+
   L.querySelectorAll(".att-rm").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); rmPopup(b.dataset.person); }));
   if (!$("rm-close").dataset.w) { $("rm-close").dataset.w = "1"; $("rm-close").addEventListener("click", () => $("rm-modal").classList.add("hidden")); $("rm-modal").addEventListener("click", (e) => { if (e.target === $("rm-modal")) $("rm-modal").classList.add("hidden"); }); }
   L.querySelectorAll(".cs-more").forEach((b) => b.addEventListener("click", (e) => {
