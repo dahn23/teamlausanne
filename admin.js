@@ -7247,7 +7247,8 @@ function initOutInvoices() {
   $("oi-load").addEventListener("click", oiLoadPlayers);
   $("oi-generate").addEventListener("click", oiGenerate);
   $("oi-all").addEventListener("change", () => { $("oi-prep-rows").querySelectorAll(".oi-inc").forEach((c) => { c.checked = $("oi-all").checked; oiPrep[c.dataset.i].include = c.checked; }); oiUpdateGenBtn(); });
-  $("oi-send-all").addEventListener("click", () => oiOpenSend(oiList.filter((x) => x.status === "a_envoyer").map((x) => x.id)));
+  $("oi-send-all").addEventListener("click", () =>
+    oiOpenSend(oiList.filter((f) => oiDansLaListe(f) && f.status === "a_envoyer").map((f) => f.id)));
   $("oi-send-sel").addEventListener("click", () => { if (!oiSel.size) { uiAlert("Coche d'abord les factures à envoyer."); return; } oiOpenSend([...oiSel]); });
   $("oi-sel-all").addEventListener("change", () => { const on = $("oi-sel-all").checked; $("oi-rows").querySelectorAll(".oi-chk").forEach((c) => { c.checked = on; if (on) oiSel.add(c.dataset.id); else oiSel.delete(c.dataset.id); }); oiUpdateSelBtn(); });
   $("oi-send-close").addEventListener("click", () => $("oi-send-modal").classList.add("hidden"));
@@ -7338,14 +7339,32 @@ function renderOiFilters() {
   const counts = { "": vus.length };
   for (const f of vus) counts[f.status] = (counts[f.status] || 0) + 1;
   const chip = (v, l) => `<button type="button" class="chip filt${oiFilter === v ? " sel" : ""}" data-st="${v}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
-  $("oi-filters").innerHTML = chip("", "Toutes") + OI_ORDER.map((s) => chip(s, OI_ST[s][0])).join("");
+  const nMaintenant = vus.filter(oiAEnvoyerMaintenant).length;
+  $("oi-filters").innerHTML = chip("", "Toutes")
+    + `<button type="button" class="chip filt oi-maintenant${oiFilter === "maintenant" ? " sel" : ""}" data-st="maintenant"
+         title="Factures à envoyer dont la date d'émission est arrivée">À envoyer maintenant <span class="muted">(${nMaintenant})</span></button>`
+    + OI_ORDER.map((s) => chip(s, OI_ST[s][0])).join("");
   $("oi-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { oiFilter = b.dataset.st; renderOiFilters(); renderOutInvoices(); }));
-  const n = oiList.filter((x) => x.status === "a_envoyer").length;
-  $("oi-send-all").textContent = `✉ Envoyer les factures à envoyer${n ? ` (${n})` : ""}`;
-  $("oi-send-all").disabled = !n;
+  // Le bouton porte sur ce qui est AFFICHÉ, pas sur toutes les factures à
+  // envoyer : sinon un clic expédiait les douze échéances de chaque famille.
+  const envoyables = oiList.filter((f) => oiDansLaListe(f) && f.status === "a_envoyer");
+  $("oi-send-all").textContent = `✉ Envoyer les factures affichées${envoyables.length ? ` (${envoyables.length})` : ""}`;
+  $("oi-send-all").disabled = !envoyables.length;
 }
+// « À envoyer maintenant » : à envoyer ET dont la date d'émission est arrivée.
+// Sans ce filtre, « Envoyer tout » embarquait les échéances de toute l'année —
+// une famille aurait reçu en septembre sa facture de juin.
+const oiAEnvoyerMaintenant = (f) =>
+  f.status === "a_envoyer" && (!f.issue_date || f.issue_date <= new Date().toISOString().slice(0, 10));
+
+// Le predicat de la liste, ecrit UNE fois : le bouton d'envoi s'en sert aussi,
+// donc il ne peut pas envoyer autre chose que ce qui est affiche.
+const oiDansLaListe = (f) =>
+  (oiFilter === "maintenant" ? oiAEnvoyerMaintenant(f) : (!oiFilter || f.status === oiFilter))
+  && oiCorrespond(f);
+
 function renderOutInvoices() {
-  const rows = oiList.filter((f) => (!oiFilter || f.status === oiFilter) && oiCorrespond(f));
+  const rows = oiList.filter(oiDansLaListe);
   $("oi-empty").hidden = rows.length > 0;
   if (!rows.length && oiRech) $("oi-empty").textContent = `Aucune facture ne correspond à « ${oiRech} ».`;
   for (const id of [...oiSel]) if (!oiList.find((x) => x.id === id && x.status !== "payee" && x.status !== "annulee")) oiSel.delete(id);
