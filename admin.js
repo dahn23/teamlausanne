@@ -12933,10 +12933,27 @@ async function loadMailAttachments(id) {
 // Ouvre une pièce jointe partout (navigateur, mobile, app native) : au 1er clic le contenu (base64 en base) est copié
 // dans le bucket privé « mail-att », puis on ouvre une URL signée valable 5 minutes. Un lien data: ne s'ouvre pas dans
 // l'app (WebView) : c'était le problème sur mobile.
+// Visionneuse d'image dans la console (photo d'attestation, capture…) : plein écran, ajustée à l'écran,
+// fermeture par ✕, tap à côté ou Échap ; lien pour ouvrir/télécharger l'original. Évite d'ouvrir une image
+// en taille réelle dans l'app, où l'on ne pouvait plus la fermer.
+function mailImageViewer(url, name) {
+  const ov = document.createElement("div"); ov.className = "gz-lb";
+  ov.innerHTML = `<img class="gz-lb-img" src="${esc(url)}" alt="${esc(name || "")}" />
+    <button type="button" class="gz-lb-x" aria-label="Fermer">✕</button>
+    <a class="gz-lb-count" href="${esc(url)}" target="_blank" rel="noopener">Ouvrir / télécharger</a>`;
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  const close = () => { ov.remove(); document.removeEventListener("keydown", onKey); };
+  ov.addEventListener("click", (e) => { if (e.target === ov || e.target.classList.contains("gz-lb-x")) close(); });
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(ov);
+}
 async function openMailAttachment(attId, meta, btn) {
   if (!attId) return;
-  // La fenêtre doit être ouverte DANS le clic (sinon les navigateurs mobiles la bloquent) : on l'ouvre vide, puis on la dirige.
-  const win = isNativeApp() ? null : window.open("", "_blank");
+  const isImg = /^image\//i.test(meta?.content_type || "");
+  // Fichier non-image dans un navigateur : la fenêtre doit être ouverte DANS le clic (sinon les navigateurs
+  // mobiles la bloquent), vide puis dirigée. Image : visionneuse interne. App native : lien target=_blank
+  // (ouvert par l'application du téléphone), jamais dans la page de la console.
+  const win = (!isImg && !isNativeApp()) ? window.open("", "_blank") : null;
   const fail = (msg) => { if (win) win.close(); uiAlert("Pièce jointe : " + msg); };
   try {
     if (btn) btn.classList.add("busy");
@@ -12959,7 +12976,9 @@ async function openMailAttachment(attId, meta, btn) {
     }
     const { data: s, error: e2 } = await sb.storage.from("mail-att").createSignedUrl(path, 300);
     if (e2 || !s?.signedUrl) return fail(e2?.message || "lien impossible");
-    if (win) win.location.href = s.signedUrl; else window.open(s.signedUrl, "_system");
+    if (isImg) { mailImageViewer(s.signedUrl, meta?.filename); return; }
+    if (win) win.location.href = s.signedUrl;
+    else { const a = document.createElement("a"); a.href = s.signedUrl; a.target = "_blank"; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove(); }
   } finally { if (btn) btn.classList.remove("busy"); }
 }
 
