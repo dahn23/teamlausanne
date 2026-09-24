@@ -7737,25 +7737,33 @@ async function oiLibs() {
   if (!window.qrcode) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js");
   if (window.qrcode?.stringToBytesFuncs?.["UTF-8"]) window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs["UTF-8"];
 }
-// Logo Team Lausanne (webp → PNG via canvas, jsPDF ne lit pas le webp), mis en cache.
-// Le fichier fait 1937 × 2000 px alors qu'il est posé sur 26 × 27 mm. Embarqué à cette
-// taille, jsPDF le stockait pixel par pixel : 1937 × 2000 × 4 octets, soit 15 Mo par
-// facture. Trop lourd pour la boîte de certaines familles — bluewin, hotmail et icloud
-// plafonnent autour de 20 Mo, et une pièce jointe grossit d'un tiers à l'encodage.
-// On réduit donc le logo à la taille réellement utile avant de l'embarquer.
-const OI_LOGO_MAX = 400;   // 400 px sur 26 mm ≈ 390 dpi : au-delà rien ne se voit à l'impression.
-let oiLogoPng = null;
+// Logo Team Lausanne (webp → canvas, jsPDF ne lit pas le webp), mis en cache.
+//
+// Deux pièges, qui faisaient des factures de 15 Mo — au-delà de ce qu'acceptent
+// bluewin, hotmail ou icloud, où sont plusieurs familles :
+//  1. le fichier fait 1937 × 2000 px alors qu'il est posé sur 26 × 27 mm ;
+//  2. un PNG à couche alpha, jsPDF le décode et l'embarque pixel par pixel,
+//     sans compression : 1937 × 2000 × 4 octets = 14,8 Mo à lui seul.
+//
+// D'où le JPEG : jsPDF le recopie tel quel, compressé (DCTDecode). Le logo est
+// bleu foncé et se pose sur le haut de page, qui est blanc — on aplatit donc la
+// transparence sur du blanc, ce qui ne change rien à l'œil. Mesuré sur une vraie
+// facture : 14,78 Mo en PNG pleine taille, 0,59 Mo en PNG réduit, 0,08 Mo ainsi.
+const OI_LOGO_MAX = 600;   // 600 px sur 26 mm ≈ 585 dpi : au-delà rien ne se voit à l'impression.
+let oiLogoJpg = null;
 async function oiLogo() {
-  if (oiLogoPng) return oiLogoPng;
+  if (oiLogoJpg) return oiLogoJpg;
   try {
     const img = new Image(); img.src = "assets/logo-academie.webp"; await img.decode();
     const k = Math.min(1, OI_LOGO_MAX / Math.max(img.naturalWidth, img.naturalHeight));
     const c = document.createElement("canvas");
     c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
-    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-    oiLogoPng = c.toDataURL("image/png");
-  } catch (e) { console.warn("logo facture :", e); oiLogoPng = null; }
-  return oiLogoPng;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    oiLogoJpg = c.toDataURL("image/jpeg", 0.95);
+  } catch (e) { console.warn("logo facture :", e); oiLogoJpg = null; }
+  return oiLogoJpg;
 }
 async function oiBuildPdf(inv) {
   await oiLibs();
@@ -7769,7 +7777,7 @@ async function oiBuildPdf(inv) {
   // --- En-tête : logo Team Lausanne + titre + bandeau bleu (charte : bleu #1e3ad1) ---
   const BLUE = [30, 58, 209], INK = [15, 31, 110], LIGHT = [232, 237, 255], GREY = [110, 110, 110];
   const logo = await oiLogo();
-  if (logo) doc.addImage(logo, "PNG", 18, 11, 26, 27);
+  if (logo) doc.addImage(logo, "JPEG", 18, 11, 26, 27);
   doc.setTextColor(...BLUE); T("FACTURE", 192, 24, { b: true, s: 26, al: "right" });
   doc.setTextColor(...GREY); T(`N° ${inv.number}`, 192, 31.5, { b: true, s: 12, al: "right" });
   doc.setFillColor(...BLUE); doc.rect(18, 43, 174, 1.6, "F");
