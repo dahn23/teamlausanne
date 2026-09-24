@@ -4304,7 +4304,7 @@ async function openTournamentMgr(tid) {
   for (const e of entries || []) { if (e.comment && !remarkByPid[e.participant_id]) remarkByPid[e.participant_id] = e.comment; }
   const ids = [...new Set((entries || []).map((e) => e.participant_id))];
   if (!ids.length) {
-    $("gz-mgr-players").innerHTML = '<tr><td colspan="7" class="muted">Aucun joueur sélectionné (tirage pas encore fait ?).</td></tr>';
+    $("gz-mgr-players").innerHTML = '<tr><td colspan="6" class="muted">Aucun joueur sélectionné (tirage pas encore fait ?).</td></tr>';
     $("gz-mgr-totals").innerHTML = "";
   } else {
     const [{ data: parts }, { data: statuses }, { data: ours }] = await Promise.all([
@@ -4490,16 +4490,19 @@ function gzRowClass(st) {
 function renderMgr() {
   const opts = priceOpts();
   $("gz-mgr-players").innerHTML = mgrPlayers.map(({ p, st, remark }) => {
-    const amtOpts = ['<option value="">—</option>', '<option value="0">Gratuit</option>']
-      .concat(opts.map((o) => `<option value="${o.amount}" ${Number(st.amount_paid) === Number(o.amount) ? "selected" : ""}>${esc(o.label)} — ${o.amount}</option>`)).join("");
     const credit = Number(p.credit_chf || 0);
     const price = st.amount_paid == null ? null : Number(st.amount_paid);
     const used = Number(st.credit_used || 0);
     const due = price == null ? null : Math.max(0, price - used);
-    // Paiement : le moyen se choisit dans une fenêtre à la sélection du prix (plus de menu laissé sur « méthode »).
-    const payCell = (price == null || st.absent) ? '<span class="muted">—</span>'
-      : price === 0 ? '<span class="gz-pay-chip gz-pay-free">gratuit</span>'
-      : `<button type="button" class="gz-pay-chip gz-pay-${esc(st.pay_method || "none")}" title="Changer le moyen de paiement">${esc(GZ_PAY_LABEL[st.pay_method] || "à préciser")}</button>`
+    // Encaissement : UN bouton « Encaisser <tarif suggéré> » (club si jeune de chez nous, sinon externe) qui ouvre la
+    // fenêtre tarif + crédit + moyen de paiement ; une fois encaissé, pastille verte (tap = corriger).
+    let encCell;
+    if (st.absent) encCell = '<span class="muted">—</span>';
+    else if (price == null) {
+      const sug = gzSuggestedPrice(p, opts);
+      encCell = `<button type="button" class="gz-enc-btn">Encaisser ${sug ? gzCHFshort(sug.amount) : ""}</button>` + (sug ? `<div class="gz-enc-sub">${esc(sug.label)}</div>` : "");
+    } else if (price === 0) encCell = '<button type="button" class="gz-enc-done" title="Modifier">✓ gratuit</button>';
+    else encCell = `<button type="button" class="gz-enc-done" title="Modifier le tarif ou le moyen de paiement">✓ ${gzCHFshort(due)} <span class="gz-enc-m">· ${esc(GZ_PAY_LABEL[st.pay_method] || "à préciser")}</span></button>`
         + (used > 0 ? `<div class="gz-pay-calc">${price} − ${used} crédit = <b>${due} CHF</b></div>` : "");
     return `<tr data-pid="${p.id}" class="${gzRowClass(st)}">
       <td class="gz-col-player">
@@ -4511,8 +4514,7 @@ function renderMgr() {
         </div>
       </td>
       <td class="gz-col-note"><button type="button" class="gz-note-btn">${p.note ? gzShort(p.note, 24) : '<span class="muted">+ note</span>'}</button></td>
-      <td><select class="gz-amount" ${st.absent ? "disabled" : ""}>${amtOpts}</select></td>
-      <td class="gz-col-pay"><input type="hidden" class="gz-method" value="${esc(st.pay_method || "")}" />${payCell}</td>
+      <td class="gz-col-enc">${encCell}</td>
       <td class="gz-col-credit">
         <div class="gz-credit-line">
           ${credit > 0 ? `<b class="gz-credit">${credit} CHF</b>` : '<span class="muted">—</span>'}
@@ -4537,8 +4539,7 @@ function renderMgr() {
   }).join("");
   $("gz-mgr-players").querySelectorAll("tr[data-pid]").forEach((tr) => {
     tr.querySelectorAll(".gz-absent,.gz-winner").forEach((el) => el.addEventListener("change", () => saveStatus(tr)));
-    tr.querySelector(".gz-amount").addEventListener("change", () => onAmountChange(tr));
-    tr.querySelector("button.gz-pay-chip")?.addEventListener("click", () => changePayMethod(tr));
+    tr.querySelectorAll(".gz-enc-btn,.gz-enc-done").forEach((b) => b.addEventListener("click", () => gzEncaisser(tr.dataset.pid)));
     const btn = tr.querySelector(".gz-photo-btn"), file = tr.querySelector(".gz-photo-file");
     if (btn && file) {
       btn.addEventListener("click", () => file.click());
@@ -4631,10 +4632,67 @@ function uiChoice(message, choices, current) {
     ov.addEventListener("click", (e) => { if (e.target === ov) done(null); });
   });
 }
-const askPayMethod = (mp, amount, creditUsed = 0, price = amount) => uiChoice(
-  creditUsed > 0
-    ? `${mp.p.first_name} ${mp.p.last_name}\nPrix ${price} − ${creditUsed} de crédit = ${amount} CHF à encaisser\nMoyen de paiement ?`
-    : `${mp.p.first_name} ${mp.p.last_name} — ${amount} CHF\nMoyen de paiement ?`, [["twint", "Twint"], ["cash", "Cash"], ["carte", "Carte"]], mp.st.pay_method || "");
+const gzCHFshort = (n) => (Number(n) === Math.floor(Number(n)) ? `${Number(n)}.–` : `${Number(n).toFixed(2)}`);
+// Tarif suggéré : « Jeune Team Lausanne » (plein) si le joueur est de chez nous, sinon « Externe » (plein) ;
+// jamais un tarif « 1 seul match » par défaut. Repli : le premier tarif de la catégorie.
+function gzSuggestedPrice(p, opts) {
+  if (!opts || !opts.length) return null;
+  const full = opts.filter((o) => !/1 seul|un seul|1 match/i.test(o.label || ""));
+  const ours = mgrOurs.has(p.id);
+  const pick = full.find((o) => ours === /team lausanne|club|jeune/i.test(o.label || "")) || full[0] || opts[0];
+  return pick || null;
+}
+
+// Fenêtre d'encaissement : tarif (pastilles, suggestion présélectionnée) + crédit déduit + moyen de paiement.
+// Rien n'est enregistré tant qu'un bouton Twint / Cash / Carte (ou Valider) n'est pas pressé.
+function gzEncaisser(pid) {
+  const mp = mgrPlayer(pid); if (!mp || mp.st.absent) return;
+  const opts = priceOpts();
+  if (!opts.length) { uiAlert("Choisis d'abord la catégorie de tarifs du tournoi (menu en haut)."); return; }
+  const tarifs = opts.map((o) => ({ label: o.label, amount: Number(o.amount) })).concat([{ label: "Gratuit", amount: 0 }]);
+  const sug = gzSuggestedPrice(mp.p, opts);
+  const prevPrice = mp.st.amount_paid == null ? null : Number(mp.st.amount_paid);
+  const prevUsed = Number(mp.st.credit_used || 0);
+  const avail = Number(mp.p.credit_chf || 0) + prevUsed;      // crédit disponible (celui déjà engagé compris)
+  let amount = prevPrice != null ? prevPrice : (sug ? Number(sug.amount) : Number(tarifs[0].amount));
+  // Crédit déduit d'office à l'arrivée du joueur (ou s'il servait déjà) ; décochable dans la fenêtre.
+  let useCredit = avail > 0 && (prevPrice == null || prevUsed > 0);
+
+  const ov = document.createElement("div");
+  ov.className = "ui-modal";
+  const render = () => {
+    const use = useCredit ? Math.min(avail, amount) : 0;
+    const due = Math.max(0, amount - use);
+    const chips = tarifs.map((t) => `<button type="button" class="gz-tarif${t.amount === amount ? " sel" : ""}" data-a="${t.amount}">${esc(t.label)}${t.amount ? " " + gzCHFshort(t.amount) : ""}</button>`).join("");
+    const creditBox = avail > 0
+      ? `<div class="gz-enc-credit"><label><input type="checkbox" class="gz-enc-usecredit" ${useCredit ? "checked" : ""} /> Utiliser le crédit du joueur (${gzCHFshort(avail)} disponible)</label>${use > 0 ? `<div>${gzCHFshort(amount)} − ${gzCHFshort(use)} de crédit</div>` : ""}</div>`
+      : "";
+    const pay = amount === 0
+      ? `<button type="button" class="gz-paybtn ok" data-m="">Valider · gratuit</button>`
+      : due === 0
+        ? `<button type="button" class="gz-paybtn ok" data-m="${esc(mp.st.pay_method || "cash")}">Valider · tout est couvert par le crédit</button>`
+        : ["twint", "cash", "carte"].map((m) => `<button type="button" class="gz-paybtn ${m}${mp.st.pay_method === m ? " cur" : ""}" data-m="${m}">${GZ_PAY_LABEL[m]}</button>`).join("");
+    ov.innerHTML = `<div class="ui-box gz-enc-box">
+      <p class="gz-enc-name">${esc(mp.p.first_name)} ${esc(mp.p.last_name)}${mgrOurs.has(mp.p.id) ? " " + ICO_TL_OURS : ""}</p>
+      <div class="gz-tarifs">${chips}</div>
+      ${sug && prevPrice == null ? `<div class="gz-tarif-sug">Suggestion : ${esc(sug.label)} ${mgrOurs.has(mp.p.id) ? "(jeune de chez nous)" : "(joueur externe)"}</div>` : ""}
+      ${creditBox}
+      <div class="gz-enc-due">${gzCHFshort(due)} CHF<small>${amount === 0 ? "aucun encaissement" : due === 0 ? "rien à encaisser" : "à encaisser · choisis le moyen de paiement"}</small></div>
+      <div class="gz-paybtns">${pay}</div>
+      <div class="ui-actions"><button type="button" class="ghost ui-no">Annuler</button></div></div>`;
+    ov.querySelectorAll(".gz-tarif").forEach((b) => b.addEventListener("click", () => { amount = Number(b.dataset.a); render(); }));
+    ov.querySelector(".gz-enc-usecredit")?.addEventListener("change", (e) => { useCredit = e.target.checked; render(); });
+    ov.querySelectorAll(".gz-paybtn").forEach((b) => b.addEventListener("click", async () => {
+      const m = b.dataset.m || null;
+      ov.remove();
+      await persistStatus(mp, { amount_paid: amount, pay_method: amount === 0 ? null : m, credit_used: amount === 0 ? 0 : use });
+    }));
+    ov.querySelector(".ui-no").addEventListener("click", () => ov.remove());
+  };
+  ov.addEventListener("click", (e) => { if (e.target === ov) ov.remove(); });
+  render();
+  document.body.appendChild(ov);
+}
 
 // Écrit l'état complet du joueur (source = mp.st, plus les cases de la ligne) et rafraîchit la liste.
 // Si le prix change ou si le joueur devient absent alors qu'un crédit avait servi à payer, ce crédit lui est rendu.
@@ -4674,33 +4732,7 @@ async function saveStatus(tr) {
   await persistStatus(mp, { absent, is_winner: winner });
 }
 
-// Choix d'un prix : un montant > 0 ouvre tout de suite la fenêtre du moyen de paiement.
-async function onAmountChange(tr) {
-  const mp = mgrPlayer(tr.dataset.pid); if (!mp) return;
-  const raw = tr.querySelector(".gz-amount").value;
-  if (raw === "") { await persistStatus(mp, { amount_paid: null, pay_method: null }); return; }
-  const amount = Number(raw);
-  if (amount === 0) { await persistStatus(mp, { amount_paid: 0, pay_method: null }); return; }
-  // Crédit déduit AUTOMATIQUEMENT (sinon un oubli de clic fait payer plein pot un joueur qui a un crédit) :
-  //  • au 1er choix du prix (l'arrivée du joueur), s'il a du crédit ;
-  //  • à un changement de prix, seulement si le crédit servait déjà — on le recale sur le nouveau prix.
-  // Pas d'auto quand le prix était déjà posé sans crédit : soit le responsable a choisi « ne pas utiliser »,
-  // soit le crédit vient d'être accordé POUR ce tournoi (remboursement) et ne doit pas s'y consommer.
-  const prevUsed = Number(mp.st.credit_used || 0);
-  const firstPrice = mp.st.amount_paid == null;
-  const avail = Number(mp.p.credit_chf || 0) + prevUsed;
-  const use = (firstPrice || prevUsed > 0) ? Math.min(avail, amount) : 0;
-  const due = Math.max(0, amount - use);
-  // Tout est couvert par le crédit : rien à encaisser, inutile de demander un moyen de paiement.
-  const m = due === 0 ? (mp.st.pay_method || "cash") : await askPayMethod(mp, due, use, amount);
-  if (!m) { renderMgr(); return; }   // annulé : le menu revient à l'ancienne valeur
-  await persistStatus(mp, { amount_paid: amount, pay_method: m, credit_used: use });
-}
-async function changePayMethod(tr) {
-  const mp = mgrPlayer(tr.dataset.pid); if (!mp || mp.st.amount_paid == null) return;
-  const m = await askPayMethod(mp, Math.max(0, Number(mp.st.amount_paid) - Number(mp.st.credit_used || 0)));
-  if (m) await persistStatus(mp, { pay_method: m });
-}
+// (Le choix du prix et du moyen de paiement passe par la fenêtre gzEncaisser, plus haut.)
 
 // Crédit : sert à reporter un remboursement sur une prochaine inscription.
 async function grantCredit(pid) {
@@ -4870,7 +4902,7 @@ function computeCaisse() {
 
 async function closeTournament() {
   const rows = [...$("gz-mgr-players").querySelectorAll("tr[data-pid]")];
-  const unresolved = rows.filter((tr) => !tr.querySelector(".gz-absent").checked && tr.querySelector(".gz-amount").value === "").length;
+  const unresolved = mgrPlayers.filter(({ st }) => !st.absent && st.amount_paid == null).length;
   if (unresolved > 0) { alert(`${unresolved} joueur(s) ne sont ni payés ni marqués « absent ». Impossible de clôturer — complétez-les d'abord.`); return; }
   const winnersNoPhoto = rows.filter((tr) => tr.querySelector(".gz-winner")?.checked && !tr.querySelector(".gz-photo-wrap img")).length;
   const c = caisseNumbers();

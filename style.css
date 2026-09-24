@@ -3142,6 +3142,28 @@ tr.rm-loss td{background:#fde8e8}
 .gz-pay-none{background:#fff;color:#b3261e;border:1.5px dashed #b3261e}
 .gz-pay-free{cursor:default}
 .gz-pay-calc{font-size:.72rem;color:#555;margin-top:3px}
+/* Colonne « Encaissement » : un seul bouton par joueur (tarif suggéré), pastille verte une fois encaissé */
+.gz-col-enc{white-space:nowrap;min-width:150px}
+.gz-enc-btn{display:block;width:100%;padding:9px 12px;border-radius:12px;border:none;background:var(--blue);color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;text-align:center}
+.gz-enc-btn:hover{filter:brightness(1.08)}
+.gz-enc-sub{font-size:.72rem;color:var(--muted);margin-top:3px;text-align:center}
+.gz-enc-done{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1.5px solid #bfe3cb;background:#e3f6ea;color:#0b6b3a;font-weight:800;font-size:.9rem;cursor:pointer}
+.gz-enc-done .gz-enc-m{font-weight:600;opacity:.8}
+/* Fenêtre d'encaissement */
+.gz-enc-box{max-width:460px}
+.gz-enc-name{font-size:1.15rem;font-weight:800;color:var(--blue-ink);margin:0 0 10px}
+.gz-tarifs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px 0 12px}
+.gz-tarif{padding:9px 13px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--blue-ink);font-weight:700;font-size:.9rem;cursor:pointer}
+.gz-tarif.sel{background:var(--blue);border-color:var(--blue);color:#fff}
+.gz-tarif-sug{font-size:.72rem;color:var(--muted);text-align:center;margin:-6px 0 10px}
+.gz-enc-credit{background:#fffdf6;border:1px solid #f0e6c8;border-radius:10px;padding:8px 12px;font-size:.88rem;margin:0 0 10px;text-align:center}
+.gz-enc-due{font-size:1.6rem;font-weight:900;color:var(--blue-ink);text-align:center;margin:6px 0 12px}
+.gz-enc-due small{display:block;font-size:.78rem;font-weight:600;color:var(--muted)}
+.gz-paybtns{display:flex;gap:10px;justify-content:center}
+.gz-paybtn{flex:1;padding:16px 8px;border-radius:14px;border:none;color:#fff;font-weight:800;font-size:1.05rem;cursor:pointer}
+.gz-paybtn.twint{background:#1d4ed8}.gz-paybtn.cash{background:#15803d}.gz-paybtn.carte{background:#c2410c}.gz-paybtn.ok{background:var(--blue)}
+.gz-paybtn.cur{outline:3px solid #ffd54f;outline-offset:2px}
+@media (max-width:640px){.gz-paybtn{padding:18px 6px;font-size:1.1rem}.gz-enc-btn{font-size:1rem;padding:11px 10px}}
 .gz-col-credit{white-space:normal;min-width:170px}
 .gz-credit-cancel{background:#fdeaea;color:#b3261e}
 .gz-credit-cancel:hover{background:#f9d4d4}

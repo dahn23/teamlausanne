@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=246" />
+  <link rel="stylesheet" href="style.css?v=247" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1048,7 +1048,7 @@
               <p class="muted gz-credit-help" style="font-size:.8rem;margin:10px 0 6px"><b>Crédit</b> : sert à reporter un remboursement. « + crédit » l'ajoute au joueur. Au prochain tournoi, il est <b>déduit automatiquement</b> dès que tu choisis le prix (55 − 25 = 30 à encaisser ; le solde éventuel reste pour une autre fois). « ne pas utiliser le crédit » le lui rend, « annuler le crédit » le remet à zéro.</p>
               <div class="table-wrap gz-mgr-wrap">
                 <table class="crm-table gz-mgr-table">
-                  <thead><tr><th>Joueur</th><th>Note</th><th>Prix</th><th>Paiement</th><th>Crédit</th><th>Absent</th><th>Victoire</th></tr></thead>
+                  <thead><tr><th>Joueur</th><th>Note</th><th title="Tarif suggéré (club si logo Team Lausanne, sinon externe) ; un tap ouvre le choix du tarif et du moyen de paiement">Encaissement</th><th>Crédit</th><th>Absent</th><th>Victoire</th></tr></thead>
                   <tbody id="gz-mgr-players"></tbody>
                 </table>
               </div>
