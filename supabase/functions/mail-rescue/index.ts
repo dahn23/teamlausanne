@@ -78,6 +78,58 @@ Deno.serve(async (req) => {
 
     const client = new ImapFlow({ host: "imap.gmail.com", port: 993, secure: true, auth: { user, pass }, logger: false });
     await client.connect();
+
+    // Mode « fix_stubs » : les mails trop lourds entrés comme fiche sans contenu récupèrent leur TEXTE
+    // (partie text/plain ou text/html seulement, jamais les pièces jointes) + la liste des pièces jointes (nom, taille).
+    if (body.fix_stubs === true) {
+      const limit = Math.min(Number(body.max) || 60, 200);
+      const { data: stubs } = await supa.from("mail_messages").select("id,imap_uid,direction")
+        .like("imap_uid", "rescue%").like("snippet", "⚠ Mail volumineux%").order("received_at").limit(limit);
+      const res = { done: 0, failed: 0, sample: [] as string[] };
+      try {
+        const boxes = await client.list();
+        let allBox: string | null = null, sentBox: string | null = null;
+        for (const b of boxes) { const su = (b as { specialUse?: string }).specialUse; if (su === "\\All") allBox = (b as { path: string }).path; if (su === "\\Sent") sentBox = (b as { path: string }).path; }
+        // deno-lint-ignore no-explicit-any
+        const walk = (node: any, path: string[], out: any[]) => {
+          if (!node) return;
+          if (node.childNodes && node.childNodes.length) { node.childNodes.forEach((c: any, i: number) => walk(c, [...path, String(i + 1)], out)); return; }
+          out.push({ part: node.part || path.join(".") || "1", type: String(node.type || "").toLowerCase(), charset: node.parameters?.charset, disposition: String(node.disposition || "").toLowerCase(), filename: node.dispositionParameters?.filename || node.parameters?.name || null, size: Number(node.size || 0) });
+        };
+        for (const st of stubs || []) {
+          const uid = Number(String(st.imap_uid).replace(/^rescue(-sent)?:/, ""));
+          const box = st.direction === "out" ? (sentBox || allBox || "INBOX") : (allBox || "INBOX");
+          const lock = await client.getMailboxLock(box);
+          try {
+            const meta = await client.fetchOne(uid, { bodyStructure: true }, { uid: true });
+            // deno-lint-ignore no-explicit-any
+            const parts: any[] = []; walk((meta as any)?.bodyStructure, [], parts);
+            const textPart = parts.find((p) => p.type === "text/plain" && p.disposition !== "attachment") || null;
+            const htmlPart = parts.find((p) => p.type === "text/html" && p.disposition !== "attachment") || null;
+            const readPart = async (p: any) => {
+              if (!p) return null;
+              const { content } = await client.download(uid, p.part, { uid: true });
+              const chunks: Uint8Array[] = []; for await (const ch of content) chunks.push(ch as Uint8Array);
+              const all = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0)); let o = 0; for (const c of chunks) { all.set(c, o); o += c.length; }
+              try { return new TextDecoder(p.charset || "utf-8").decode(all); } catch (_) { return new TextDecoder().decode(all); }
+            };
+            const txt = (await readPart(textPart)) || "";
+            const html = await readPart(htmlPart);
+            const plain = txt.trim() || String(html || "").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+            const atts = parts.filter((p) => p.disposition === "attachment" || (p.filename && !p.type.startsWith("text/")));
+            const attRows = atts.map((p) => ({ mail_id: st.id, filename: p.filename || "fichier", content_type: p.type || null, size_bytes: p.size, content_id: null, is_inline: false, content_b64: null }));
+            const note = `\n\n— Pièces jointes non importées (trop volumineuses) : ${atts.length ? atts.map((p) => `${p.filename || "fichier"} (${Math.round(p.size / 1024)} Ko)`).join(", ") : "aucune"} — consultables dans l'archive Gmail.`;
+            const { error: e } = await supa.from("mail_messages").update({ body_text: (plain || "(sans texte)") + note, body_html: html ? String(html).slice(0, 400000) : null, snippet: (plain || "(sans texte)").slice(0, 140) }).eq("id", st.id);
+            if (e) { res.failed++; continue; }
+            if (attRows.length) { await supa.from("mail_attachments").delete().eq("mail_id", st.id); await supa.from("mail_attachments").insert(attRows); }
+            res.done++;
+            if (res.sample.length < 10) res.sample.push(`${st.imap_uid} → ${plain.slice(0, 60)}`);
+          } catch (e) { res.failed++; if (res.sample.length < 10) res.sample.push(`${st.imap_uid} ERREUR ${String((e as Error)?.message || e).slice(0, 80)}`); }
+          finally { lock.release(); }
+        }
+      } finally { try { await client.logout(); } catch (_) { /* déjà fermé */ } }
+      return json({ ok: true, fix_stubs: true, remaining_hint: (stubs || []).length, ...res });
+    }
     const st = { examined: 0, missing: 0, inserted: 0, sentExamined: 0, sentMissing: 0, sentInserted: 0, skippedBig: 0 };
     const sample: string[] = [];
     try {
