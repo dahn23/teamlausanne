@@ -2539,8 +2539,6 @@ label.fld select{min-width:180px}
 .mail-statusinfo{font-size:.84rem;margin-top:2px}
 .mail-warn{color:#b3261e;font-weight:600}
 .mail-d-atts{margin:6px 0}
-/* Pied de la liste des mails : chargé vs total de la boîte, bouton « charger les plus anciens » */
-.mail-more{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;font-size:.82rem;border-top:1px solid var(--line);background:#fafbfe}
 .mail-atts{display:flex;flex-wrap:wrap;gap:8px}
 .mail-att{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:.85rem;text-decoration:none;color:var(--blue-ink)}
 .mail-att:hover{background:#eef3ff}
