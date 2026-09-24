@@ -7496,6 +7496,61 @@ async function salOpenPdf(path) {
   if (error || !data?.signedUrl) { uiAlert("PDF indisponible : " + (error?.message || "")); return; }
   window.open(data.signedUrl, "_blank", "noopener");
 }
+
+// ---- Le retour de la fiduciaire couvre-t-il tout le monde ? --------------
+// Août 2026 : un PDF nommé « partiel » a produit 2 fiches pour un mois où
+// dix-sept personnes avaient travaillé, et rien ne l'a signalé. Personne ne
+// relit un décompte pour y chercher quelqu'un qui n'y est pas.
+//
+// On compare donc ce qui revient à ce qui est parti. Référence : l'instantané
+// du mois clôturé — c'est exactement la liste envoyée. Mois encore ouvert : on
+// se rabat sur les heures vivantes, en le disant, parce que cette liste-là peut
+// encore bouger.
+function salCouverture() {
+  const snap = paieMois?.snapshot?.coaches;
+  const base = (snap || heuresData.coaches || []).filter((x) => !x.by_invoice);
+  if (!base.length) return null;
+  const brutAttendu = (x) => {
+    const b = x.salary != null ? Number(x.salary)
+            : (x.rate != null ? Math.round(Number(x.hours) * Number(x.rate) * 100) / 100 : null);
+    return b == null ? null : Math.round((b + (Number(x.extra) || 0)) * 100) / 100;
+  };
+  const parId = new Map(salSlips.filter((s) => s.net != null).map((s) => [s.person_id, s]));
+  const manquants = [], ecarts = [];
+  for (const x of base) {
+    const s = parId.get(x.person_id);
+    if (!s) { manquants.push(x); continue; }
+    const att = brutAttendu(x);
+    // On ne compare que si la fiduciaire a renvoyé un brut : son brut inclut
+    // parfois des éléments qu'on ne connaît pas, mais un écart franc se voit.
+    if (att != null && s.gross != null && Math.abs(Number(s.gross) - att) > 0.5) {
+      ecarts.push({ nom: x.name, attendu: att, recu: Number(s.gross) });
+    }
+    parId.delete(x.person_id);
+  }
+  const inattendus = [...parId.values()];
+  return { base: snap ? "cloture" : "vivant", attendus: base.length,
+           recus: salSlips.filter((s) => s.net != null).length, manquants, ecarts, inattendus };
+}
+
+function renderCouverture() {
+  const c = salCouverture();
+  if (!c || !c.recus) return "";      // rien d'importé : rien à vérifier encore
+  const nom = (x) => esc(x.name || x.nom || "?");
+  if (!c.manquants.length && !c.ecarts.length && !c.inattendus.length) {
+    return `<div class="sal-couv sal-couv-ok">✓ Retour complet : les ${c.recus} personne(s) attendue(s) ont leur net.</div>`;
+  }
+  const blocs = [];
+  if (c.manquants.length) blocs.push(`<li><b>${c.manquants.length} sans net</b> — attendus mais absents du retour :
+    ${c.manquants.map((x) => `${nom(x)} <span class="muted">(${x.hours} h)</span>`).join(", ")}</li>`);
+  if (c.ecarts.length) blocs.push(`<li><b>${c.ecarts.length} écart(s) de brut</b> :
+    ${c.ecarts.map((e) => `${esc(e.nom)} <span class="muted">(attendu ${oiChf(e.attendu)}, reçu ${oiChf(e.recu)})</span>`).join(", ")}</li>`);
+  if (c.inattendus.length) blocs.push(`<li><b>${c.inattendus.length} non attendu(s)</b> — un net existe pour quelqu'un qui n'était pas dans le décompte.</li>`);
+  return `<div class="sal-couv">
+    <b>⚠ Le retour de la fiduciaire ne couvre pas tout</b>
+    <span class="muted" style="font-size:.8rem"> — ${c.recus}/${c.attendus} personne(s), référence ${c.base === "cloture" ? "l'instantané du mois clôturé" : "les heures actuelles (mois non clôturé)"}</span>
+    <ul class="paie-l">${blocs.join("")}</ul></div>`;
+}
 // Encadré au-dessus des tableaux : PDF de la fiduciaire détecté dans les mails + import manuel + validation.
 async function renderSalBox() {
   const host = $("heures-salaires"); if (!host) return;
@@ -7546,6 +7601,7 @@ async function renderSalBox() {
         : "");
   host.innerHTML = `<div class="sal-box">
     <div class="sal-mails">${vrais.length ? mailRows : (autres.length ? `<span class="muted" style="font-size:.88rem">Aucun fichier de salaires pour ce mois.</span>${mailRows}` : '<span class="muted" style="font-size:.88rem">Aucun PDF de salaires de la fiduciaire dans les mails pour ce mois.</span>')}</div>
+    ${renderCouverture()}
     <div class="sal-acts">
       <label class="btnlike ghost" style="margin:0">Importer un PDF de salaires<input type="file" id="sal-file" accept="application/pdf" hidden /></label>
       <button type="button" id="sal-validate" ${pending ? "" : "disabled"} title="Crée une facture à payer par personne (net, IBAN) dans l'onglet Factures">✓ Valider les salaires${pending ? ` (${pending})` : ""}</button>
@@ -7561,15 +7617,15 @@ async function renderSalBox() {
     if (error) { uiAlert(error.message); return; }
     renderSalBox();
   }));
-  $("sal-file").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) salStartImport(new Uint8Array(await f.arrayBuffer()), null); });
+  $("sal-file").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) salStartImport(new Uint8Array(await f.arrayBuffer()), null, f.name); });
   $("sal-validate").addEventListener("click", salValidate);
 }
 async function salImportFromMail(attId, mailId) {
-  const { data, error } = await sb.from("mail_attachments").select("content_b64").eq("id", attId).single();
+  const { data, error } = await sb.from("mail_attachments").select("content_b64,filename").eq("id", attId).single();
   if (error || !data?.content_b64) { uiAlert("Pièce jointe illisible : " + (error?.message || "")); return; }
   const bin = atob(data.content_b64.replace(/\s+/g, ""));
   const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  salStartImport(bytes, mailId);
+  salStartImport(bytes, mailId, data.filename);
 }
 async function salLibs() {
   if (!window.pdfjsLib) {
@@ -7643,9 +7699,27 @@ function salMatch(row, people) {
   const strict = cands.filter((p) => rf[0] && salNorm(p.first_name).split(" ")[0] === rf[0]);
   return strict.length === 1 ? strict[0] : null;
 }
-async function salStartImport(bytes, mailId) {
+// Mois lu dans le nom du fichier : « 2026-09 », « 09_2026 », « 09.2026 ».
+// Le mois vient d'abord du contenu du PDF ; celui du nom ne sert qu'à croiser.
+function salMoisDuNom(nom) {
+  const s = String(nom || "");
+  let m = s.match(/(20\d{2})[-_.](0[1-9]|1[0-2])(?!\d)/);
+  if (m) return `${m[1]}-${m[2]}`;
+  m = s.match(/(?<!\d)(0[1-9]|1[0-2])[-_.](20\d{2})/);
+  if (m) return `${m[2]}-${m[1]}`;
+  return null;
+}
+async function salStartImport(bytes, mailId, filename) {
   try {
     await salLibs();
+    // Deux signaux gratuits dans le nom du fichier, quand il y en a un.
+    const moisNom = salMoisDuNom(filename);
+    const partiel = /partiel|partielle|partial/i.test(String(filename || ""));
+    if (moisNom && moisNom !== heuresYm && !(await uiConfirm(
+        `Le nom du fichier parle de ${moisNom}, or tu es sur ${heuresYm}.\n\n`
+      + `Les fiches seront rangées au mois lu dans chaque page du PDF, pas au mois affiché — mais vérifie que c'est bien le bon fichier.\n\nContinuer ?`))) return;
+    if (partiel) uiAlert(`Ce fichier est marqué « partiel ».\n\n`
+      + `Il ne contient probablement pas tout le monde. Après l'import, l'encadré des salaires dira qui manque encore.`);
     const [rows, people] = await Promise.all([salParsePdf(bytes), salLoadPeople()]);
     if (!rows.length) { uiAlert("Aucune page lisible dans ce PDF."); return; }
     salParsed = rows.map((r) => ({ ...r, person_id: salMatch(r, people)?.id || "", include: true }));
