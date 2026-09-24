@@ -413,6 +413,8 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .gz-cl-ok{background:#e3f6ea;color:#0b6b3a}
 .gz-cl-todo{background:#fff1d6;color:#8a5a00}
 .gz-total td{font-weight:800;color:var(--blue-ink);background:#eef1f7;border-top:2px solid var(--line)}
+/* Petit logo Team Lausanne à côté d'un joueur « de chez nous » (répertoire + filière active) */
+.gz-ours{height:16px;width:auto;vertical-align:-3px;margin-left:5px}
 .gz-trow{cursor:pointer}
 .gz-trow:hover{background:#f3f7f5}
 .gz-mgr-table select{padding:5px 26px 5px 8px;font-size:.82rem;background-position:right 7px center}

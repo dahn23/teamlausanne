@@ -4281,6 +4281,8 @@ function gzPhonesHtml(raw) {
 
 // ---- Gestion d'un tournoi (responsable) ----
 let mgrTid = null, mgrCats = [], mgrPlayers = [], mgrIsGz = false;
+let mgrOurs = new Set();   // participants « de chez nous » (répertoire + filière active à la date du tournoi), RPC gz_our_players
+const ICO_TL_OURS = '<img class="gz-ours" src="assets/logo-academie.webp" alt="" title="Jeune Team Lausanne (cours actif cette saison)" />';
 
 async function openTournamentMgr(tid) {
   mgrTid = tid;
@@ -4305,8 +4307,12 @@ async function openTournamentMgr(tid) {
     $("gz-mgr-players").innerHTML = '<tr><td colspan="7" class="muted">Aucun joueur sélectionné (tirage pas encore fait ?).</td></tr>';
     $("gz-mgr-totals").innerHTML = "";
   } else {
-    const { data: parts } = await sb.from("gz_participants").select("*").in("id", ids);
-    const { data: statuses } = await sb.from("gz_player_status").select("*").eq("tournament_id", tid);
+    const [{ data: parts }, { data: statuses }, { data: ours }] = await Promise.all([
+      sb.from("gz_participants").select("*").in("id", ids),
+      sb.from("gz_player_status").select("*").eq("tournament_id", tid),
+      sb.rpc("gz_our_players", { p_tid: tid }),
+    ]);
+    mgrOurs = new Set(ours || []);
     const stMap = {}; for (const s of statuses || []) stMap[s.participant_id] = s;
     mgrPlayers = (parts || []).sort((a, b) => (a.last_name + a.first_name).localeCompare(b.last_name + b.first_name))
       .map((p) => ({ p, st: stMap[p.id] || {}, remark: remarkByPid[p.id] || null }));
@@ -4497,7 +4503,7 @@ function renderMgr() {
         + (used > 0 ? `<div class="gz-pay-calc">${price} − ${used} crédit = <b>${due} CHF</b></div>` : "");
     return `<tr data-pid="${p.id}" class="${gzRowClass(st)}">
       <td class="gz-col-player">
-        <div class="gz-name"><b>${esc(p.last_name)} ${esc(p.first_name)}</b>${st.is_winner ? " " + ICO_CUP : ""}</div>
+        <div class="gz-name"><b>${esc(p.last_name)} ${esc(p.first_name)}</b>${mgrOurs.has(p.id) ? ICO_TL_OURS : ""}${st.is_winner ? " " + ICO_CUP : ""}</div>
         <div class="gz-sub">
           ${p.club ? `<span class="gz-club">${esc(p.club)}</span>` : ""}
           ${gzPhonesHtml(p.phone)}
