@@ -12884,14 +12884,47 @@ async function loadMailDraft(id) {
 async function loadMailAttachments(id) {
   const box = $("mail-d-atts"); if (!box) return;
   box.innerHTML = "";
-  const { data } = await sb.from("mail_attachments").select("filename,content_type,size_bytes,content_b64").eq("mail_id", id).eq("is_inline", false);
-  const atts = (data || []).filter((a) => a.content_b64);
+  // Pas de contenu chargé ici (les pièces peuvent peser plusieurs Mo) : on liste, et on ne lit le fichier qu'au clic.
+  const { data } = await sb.from("mail_attachments").select("id,filename,content_type,size_bytes,storage_path").eq("mail_id", id).eq("is_inline", false);
+  const atts = data || [];
   if (!atts.length) return;
   box.innerHTML = `<div class="mail-atts">${atts.map((a) => {
     const kb = Math.max(1, Math.round((a.size_bytes || 0) / 1024));
-    const href = `data:${a.content_type || "application/octet-stream"};base64,${a.content_b64}`;
-    return `<a class="mail-att" href="${href}" download="${esc(a.filename || "fichier")}">📎 ${esc(a.filename || "fichier")} <span class="muted">(${kb} Ko)</span></a>`;
+    return `<button type="button" class="mail-att" data-att="${a.id}" title="Ouvrir">📎 ${esc(a.filename || "fichier")} <span class="muted">(${kb} Ko)</span></button>`;
   }).join("")}</div>`;
+  box.querySelectorAll(".mail-att").forEach((b) => b.addEventListener("click", () => openMailAttachment(b.dataset.att, atts.find((a) => a.id === b.dataset.att), b)));
+}
+// Ouvre une pièce jointe partout (navigateur, mobile, app native) : au 1er clic le contenu (base64 en base) est copié
+// dans le bucket privé « mail-att », puis on ouvre une URL signée valable 5 minutes. Un lien data: ne s'ouvre pas dans
+// l'app (WebView) : c'était le problème sur mobile.
+async function openMailAttachment(attId, meta, btn) {
+  if (!attId) return;
+  // La fenêtre doit être ouverte DANS le clic (sinon les navigateurs mobiles la bloquent) : on l'ouvre vide, puis on la dirige.
+  const win = isNativeApp() ? null : window.open("", "_blank");
+  const fail = (msg) => { if (win) win.close(); uiAlert("Pièce jointe : " + msg); };
+  try {
+    if (btn) btn.classList.add("busy");
+    let path = meta?.storage_path || null;
+    if (!path) {
+      const { data, error } = await sb.from("mail_attachments").select("mail_id,filename,content_type,content_b64,storage_path").eq("id", attId).single();
+      if (error || !data) return fail(error?.message || "introuvable");
+      path = data.storage_path;
+      if (!path) {
+        if (!data.content_b64) return fail("contenu absent (pièce trop volumineuse ou non importée)");
+        const bin = atob(data.content_b64.replace(/\s+/g, ""));
+        const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        const safe = String(data.filename || "fichier").replace(/[^\w.\- ]+/g, "_").slice(0, 120);
+        path = `${data.mail_id}/${attId}-${safe}`;
+        const up = await sb.storage.from("mail-att").upload(path, u8, { contentType: data.content_type || "application/octet-stream", upsert: true });
+        if (up.error) return fail(up.error.message);
+        await sb.from("mail_attachments").update({ storage_path: path }).eq("id", attId);
+        if (meta) meta.storage_path = path;
+      }
+    }
+    const { data: s, error: e2 } = await sb.storage.from("mail-att").createSignedUrl(path, 300);
+    if (e2 || !s?.signedUrl) return fail(e2?.message || "lien impossible");
+    if (win) win.location.href = s.signedUrl; else window.open(s.signedUrl, "_system");
+  } finally { if (btn) btn.classList.remove("busy"); }
 }
 
 // ===================================================================
