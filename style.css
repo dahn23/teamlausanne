@@ -2394,6 +2394,9 @@ button.prosp-upfeed-h:hover{background:transparent;color:#8f1e18}
 
 /* ---- Heures (décomptes) ---- */
 .he-val{color:#0b6b3a;font-weight:800}
+/* Heures › Privé-adultes : détail des cours d'un coach (ligne dépliable) */
+.he-detail{display:flex;flex-direction:column;gap:4px;padding:6px 4px;font-size:.86rem}
+.he-detail-row{display:flex;justify-content:space-between;gap:12px;padding:3px 0;border-bottom:1px solid #f0f2f5}
 .fac-table{min-width:820px}
 .fac-table th,.fac-table td{padding:9px 10px;white-space:nowrap}
 .fac-table td:first-child{white-space:normal;min-width:130px}

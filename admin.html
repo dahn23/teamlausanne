@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=248" />
+  <link rel="stylesheet" href="style.css?v=249" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1340,6 +1340,15 @@
             </div>
           </div>
           <div id="heures-mine"></div>
+          <div class="subnav" id="heures-subnav">
+            <button class="subtab he-subtab active" data-hsub="recap">Décompte</button>
+            <button class="subtab he-subtab" data-hsub="pa" title="Cours de type « Privé-adultes » : comptés ici seulement, hors décompte et hors salaire">Privé-adultes</button>
+          </div>
+          <div id="heures-pa" class="hidden">
+            <p class="muted" style="margin:-6px 0 12px">Heures données par les coachs dans les cours <b>Privé-adultes</b>. Elles n'entrent dans aucun autre décompte (Heures, salaires, fiduciaire) : ce tableau est leur seul suivi. Une heure compte quand le coach a validé le cours (présences).</p>
+            <div class="table-wrap"><table class="crm-table"><thead><tr><th>Coach</th><th>Cours validés</th><th>Heures validées</th><th>Heures planifiées</th><th></th></tr></thead><tbody id="heures-pa-rows"></tbody></table>
+              <p id="heures-pa-empty" class="muted" hidden style="font-size:.85rem">Aucun cours Privé-adultes ce mois-ci.</p></div>
+          </div>
           <div id="heures-recap">
           <p class="muted" style="margin:-6px 0 12px">Décomptes mensuels : coachs (heures de cours) et profs (après-midis études). À valider par chacun, puis à envoyer à la fiduciaire.</p>
           <div id="heures-cloture"></div>

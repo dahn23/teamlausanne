@@ -6772,23 +6772,51 @@ function initHeures() {
   $("heures-export").addEventListener("click", exportHeures);
   $("heures-export-pdf").addEventListener("click", exportHeuresPdf);
   $("heures-send").addEventListener("click", sendHeuresToFiduciaire);
+  // Sous-onglets : Décompte (tout ce qui existe) / Privé-adultes (suivi à part, hors décompte).
+  document.querySelectorAll("#heures-subnav .he-subtab").forEach((b) => b.addEventListener("click", () => {
+    heuresSub = b.dataset.hsub;
+    document.querySelectorAll("#heures-subnav .he-subtab").forEach((x) => x.classList.toggle("active", x === b));
+    applyHeuresSub();
+  }));
+}
+let heuresSub = "recap", heuresPa = [];
+function applyHeuresSub() {
+  const isManager = hasAny(myAppRoles, ["superadmin", "admin", "secretaire", "head_coach"]);
+  $("heures-subnav").classList.toggle("hidden", !isManager);
+  $("heures-recap").classList.toggle("hidden", !isManager || heuresSub !== "recap");
+  $("heures-pa").classList.toggle("hidden", !isManager || heuresSub !== "pa");
+  ["heures-export", "heures-export-pdf"].forEach((id) => $(id).classList.toggle("hidden", !isManager || heuresSub !== "recap"));
+  $("heures-send").classList.toggle("hidden", !canSalaries() || heuresSub !== "recap");
+}
+// Heures › Privé-adultes : par coach, heures validées du mois, avec le détail des cours au clic.
+function renderPriveAdultes() {
+  const rows = heuresPa || [];
+  $("heures-pa-empty").hidden = rows.length > 0;
+  $("heures-pa-rows").innerHTML = rows.map((c) => `
+    <tr><td><b>${esc(c.name)}</b></td><td>${c.courses}/${c.total_courses}</td><td><b>${Number(c.hours)} h</b></td><td class="muted">${Number(c.planned)} h</td>
+      <td style="text-align:right"><button type="button" class="ghost he-pa-detail" data-pid="${c.person_id}">Détail</button></td></tr>
+    <tr class="he-pa-rows hidden" data-for="${c.person_id}"><td colspan="5"><div class="he-detail">${(c.detail || []).map((d) =>
+      `<div class="he-detail-row"><span>${frDate(d.date)} ${esc(d.start)}–${esc(d.end)} · ${esc(d.title)}</span><span>${Number(d.hours)} h ${d.validated ? '<span class="he-val">✓ validé</span>' : '<span class="muted">à valider</span>'}</span></div>`).join("") || '<span class="muted">—</span>'}</div></td></tr>`).join("")
+    + (rows.length ? `<tr class="gz-total"><td>Total</td><td>${rows.reduce((a, c) => a + Number(c.courses), 0)}/${rows.reduce((a, c) => a + Number(c.total_courses), 0)}</td><td>${round2(rows.reduce((a, c) => a + Number(c.hours), 0))} h</td><td>${round2(rows.reduce((a, c) => a + Number(c.planned), 0))} h</td><td></td></tr>` : "");
+  $("heures-pa-rows").querySelectorAll(".he-pa-detail").forEach((b) => b.addEventListener("click", () => {
+    const tr = $("heures-pa-rows").querySelector(`tr.he-pa-rows[data-for="${b.dataset.pid}"]`); if (tr) tr.classList.toggle("hidden");
+  }));
 }
 async function loadHeures() {
   initHeures();
   heuresYm = $("heures-month").value || ymNow();
   await renderMyHours();
   const isManager = hasAny(myAppRoles, ["superadmin", "admin", "secretaire", "head_coach"]);
-  $("heures-recap").classList.toggle("hidden", !isManager);
-  $("heures-export").classList.toggle("hidden", !isManager);
-  $("heures-export-pdf").classList.toggle("hidden", !isManager);
-  $("heures-send").classList.toggle("hidden", !canSalaries());   // envoi à la fiduciaire : admin/superadmin
+  applyHeuresSub();
   if (isManager) {
-    const [{ data, error }] = await Promise.all([sb.rpc("staff_hours_month", { p_ym: heuresYm }), loadSalSlips(), loadPaieMois(), loadSurFacture()]);
+    const [{ data, error }, pa] = await Promise.all([sb.rpc("staff_hours_month", { p_ym: heuresYm }), sb.rpc("prive_adultes_month", { p_ym: heuresYm }), loadSalSlips(), loadPaieMois(), loadSurFacture()]);
     heuresData = error ? { coaches: [], profs: [] } : (data || { coaches: [], profs: [] });
+    heuresPa = pa.error ? [] : (pa.data || []);
     renderHeures();
     renderCloture();
     renderSurFacture();
     renderSalBox();
+    renderPriveAdultes();
   }
 }
 
@@ -6998,13 +7026,21 @@ async function renderMyHours() {
   const host = $("heures-mine"); if (!host) return;
   const { data } = await sb.rpc("my_hours_month", { p_ym: heuresYm });
   const m = data || {};
-  const hasCoach = (m.coach_total || 0) > 0, hasProf = (m.prof_total || 0) > 0;
-  if (!hasCoach && !hasProf) { host.innerHTML = ""; await renderMySalaires(); return; }
+  const hasCoach = (m.coach_total || 0) > 0, hasProf = (m.prof_total || 0) > 0, hasPa = (m.pa_total || 0) > 0;
+  if (!hasCoach && !hasProf && !hasPa) { host.innerHTML = ""; await renderMySalaires(); return; }
   let inner = "";
   if (hasCoach) {
     const done = m.coach_total > 0 && m.coach_val === m.coach_total;
     inner += `<div class="he-mine-row">
       <span>Cours (coach) : <b>${m.coach_hours} h</b> <span class="muted">(${m.coach_val}/${m.coach_total} cours validés)</span></span>
+      <span class="he-mine-act ${done ? "he-val" : "muted"}" style="font-size:.85rem">${done ? "✓ tout validé" : "Valide chaque cours en saisissant les présences"}</span>
+    </div>`;
+  }
+  if (hasPa) {
+    // Privé-adultes : ligne à part, jamais additionnée aux heures de cours (hors décompte, hors salaire).
+    const done = m.pa_val === m.pa_total;
+    inner += `<div class="he-mine-row">
+      <span>Privé-adultes : <b>${m.pa_hours} h</b> <span class="muted">(${m.pa_val}/${m.pa_total} cours validés · suivi à part, hors décompte)</span></span>
       <span class="he-mine-act ${done ? "he-val" : "muted"}" style="font-size:.85rem">${done ? "✓ tout validé" : "Valide chaque cours en saisissant les présences"}</span>
     </div>`;
   }
@@ -13244,7 +13280,8 @@ const ET_DEBUT = "12:45", ET_FIN = "17:15";   // créneau d'études : sert à é
 async function etPrivees(jours) {
   const vide = { parJour: {}, parCellule: {} };
   if (!jours.length) return vide;
-  const { data: types } = await sb.from("course_types").select("id,name").ilike("name", "%priv%");
+  // « Privé-adultes » contient aussi « priv » mais ne concerne pas les jeunes : écarté (hours_bucket, db/100).
+  const { data: types } = await sb.from("course_types").select("id,name").ilike("name", "%priv%").neq("hours_bucket", "prive_adultes");
   const ids = (types || []).map((t) => t.id);
   if (!ids.length) return vide;
 
