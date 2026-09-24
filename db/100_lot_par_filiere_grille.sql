@@ -1,0 +1,17 @@
+-- Lot de factures pour une filière à tarif (24.09.2026)
+--
+-- KidsTennis, Club, Compétition, Performance, Adultes : le prix vient de la
+-- grille des tarifs (app_settings 'sub_prices'), le découpage de billing_plans
+-- — une facture par défaut, davantage si la famille a demandé à étaler.
+--
+-- Même logique de destinataire que l'échéancier des contrats : parent lié avec
+-- e-mail, sinon parent1/parent2 du champ texte, sinon le joueur lui-même.
+--
+-- La fonction refuse de facturer deux fois : un joueur qui a déjà une facture
+-- pour cette saison est ignoré, quelle que soit la filière — un joueur de
+-- Performance passé par un contrat sport-études ne doit pas être repris ici.
+--
+-- p_essai = vrai par défaut : on regarde ce que ça donnerait avant d'écrire.
+-- Voir la fonction déployée en base (migration lot_par_filiere_grille) ;
+-- la première échéance est émise du jour, les suivantes 30 jours avant leur
+-- terme, pour que le lot puisse partir tout de suite.

@@ -8489,12 +8489,15 @@ async function oiLoadPlayers() {
   const { data: rp } = await sb.from("role_periods").select("person_id").eq("season_id", seasonId).eq("role", fil);
   const ids = [...new Set((rp || []).map((r) => r.person_id))];
   if (!ids.length) { note.textContent = `Aucun joueur en ${oiFil(fil)} pour cette saison (rôles par saison de la fiche).`; oiPrep = []; $("oi-prep-rows").innerHTML = ""; oiUpdateGenBtn(); return; }
-  const [{ data: pl }, { data: gs }, { data: ct }, { data: st }] = await Promise.all([
+  const [{ data: pl }, { data: gs }, { data: ct }, { data: st }, { data: bp }] = await Promise.all([
     sb.from("people").select("id,first_name,last_name,address,postal_code,city,email,parent1,parent2").in("id", ids),
     sb.from("guardianships").select("guardian_id,child_id,relation").in("child_id", ids),
     sb.from("player_contracts").select("person_id,data").eq("season_id", seasonId).in("person_id", ids),
     sb.from("app_settings").select("value").eq("key", "sub_prices").maybeSingle(),
+    // Arrangement de paiement déjà convenu avec la famille, s'il y en a un.
+    sb.from("billing_plans").select("person_id,instalments").eq("season_id", seasonId).in("person_id", ids),
   ]);
+  const planPar = {}; for (const p of bp || []) planPar[p.person_id] = p.instalments;
   const gIds = [...new Set((gs || []).filter((g) => g.relation !== "sibling").map((g) => g.guardian_id))];
   const { data: gp } = gIds.length ? await sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").in("id", gIds) : { data: [] };
   const byId = {}; for (const p of [...(pl || []), ...(gp || [])]) byId[p.id] = p;
@@ -8505,11 +8508,14 @@ async function oiLoadPlayers() {
     const { cands, def } = oiDebtorCands(p, parents);   // parent lié / Parent 1 / Parent 2 / joueur
     const d = (ct || []).find((c) => c.person_id === p.id)?.data || {};
     const fee = parseFloat(d["Annual fee"]), cInst = parseInt(d["Instalments"]);
-    let amount = null, source = "—";
-    const total = nInst || cInst || 1;
-    if (fee > 0) { amount = Math.round((fee / total) * 100) / 100; source = `contrat ${oiChf(fee)} ÷ ${total}`; }
-    else if (gridPrice > 0) { amount = Math.round((gridPrice / total) * 100) / 100; source = `tarifs ${oiChf(gridPrice)} ÷ ${total}`; }
-    return { include: amount > 0, person: p, cands, debtor: def.key, amount, source, total };
+    // L'arrangement de la famille prime sur tout : c'est une décision prise
+    // avec elle. À défaut, le contrat, puis la valeur saisie pour le lot.
+    const total = planPar[p.id] || cInst || nInst || 1;
+    const annuel = fee > 0 ? fee : (gridPrice > 0 ? gridPrice : null);
+    const source = fee > 0 ? `contrat ${oiChf(fee)}` : (gridPrice > 0 ? `tarifs ${oiChf(gridPrice)}` : "—");
+    const amount = annuel ? Math.round((annuel / total) * 100) / 100 : null;
+    return { include: amount > 0, person: p, cands, debtor: def.key,
+             annuel, amount, source, total, planEnregistre: !!planPar[p.id] };
   });
   renderOiPrep();
   const missing = oiPrep.filter((r) => !(r.amount > 0)).length;
@@ -8526,9 +8532,21 @@ function renderOiPrep() {
       <td style="font-size:.82rem">${addrOk ? esc(`${a.street}, ${a.zip} ${a.city}`) : '<span style="color:#b45309">adresse incomplète</span>'}</td>
       <td style="font-size:.82rem">${a.email ? esc(a.email) : '<span style="color:#b45309">pas d\'e-mail</span>'}</td>
       <td class="muted" style="font-size:.8rem">${esc(r.source)}</td>
-      <td><input type="number" step="0.05" min="0" class="oi-amt" data-i="${i}" value="${r.amount != null ? r.amount.toFixed(2) : ""}" style="width:100px;text-align:right" /></td></tr>`;
+      <td><input type="number" min="1" max="12" step="1" class="oi-inst" data-i="${i}" value="${r.total}"
+            title="Nombre de factures pour cette famille. 1 = tout en une fois."
+            style="width:58px;text-align:center${r.planEnregistre ? ";font-weight:800;color:var(--blue)" : ""}" /></td>
+      <td><input type="number" step="0.05" min="0" class="oi-amt" data-i="${i}" value="${r.amount != null ? r.amount.toFixed(2) : ""}" style="width:100px;text-align:right" />
+        ${r.total > 1 ? `<div class="muted" style="font-size:.74rem">× ${r.total} = ${oiChf(r.annuel || 0)}</div>` : ""}</td></tr>`;
   }).join("");
   $("oi-prep-rows").querySelectorAll(".oi-inc").forEach((c) => c.addEventListener("change", () => { oiPrep[c.dataset.i].include = c.checked; c.closest("tr").classList.toggle("muted", !c.checked); oiUpdateGenBtn(); }));
+  // Changer le nombre de fois recalcule le montant de chaque échéance : on
+  // découpe un abonnement annuel, on ne multiplie pas le prix.
+  $("oi-prep-rows").querySelectorAll(".oi-inst").forEach((c) => c.addEventListener("change", () => {
+    const r = oiPrep[c.dataset.i];
+    r.total = Math.min(12, Math.max(1, parseInt(c.value) || 1));
+    if (r.annuel) r.amount = Math.round((r.annuel / r.total) * 100) / 100;
+    renderOiPrep();
+  }));
   $("oi-prep-rows").querySelectorAll(".oi-amt").forEach((c) => c.addEventListener("change", () => { oiPrep[c.dataset.i].amount = c.value === "" ? null : Number(c.value); oiUpdateGenBtn(); }));
   $("oi-prep-rows").querySelectorAll(".oi-debtor").forEach((c) => c.addEventListener("change", () => { oiPrep[c.dataset.i].debtor = c.value; renderOiPrep(); }));
   oiUpdateGenBtn();
@@ -8539,6 +8557,23 @@ function oiScor(base) {
   let m = 0; for (const ch of s) m = (m * 10 + Number(ch)) % 97;
   return "RF" + String(98 - m).padStart(2, "0") + base;
 }
+// Décaler une échéance de n mois en restant dans le mois : le 31 janvier + 1
+// mois doit donner le 28 février, pas le 3 mars.
+function oiDecalerMois(iso, n) {
+  if (!iso || !n) return iso || null;
+  const [a, m, j] = iso.split("-").map(Number);
+  const cible = new Date(Date.UTC(a, m - 1 + n, 1));
+  const dernier = new Date(Date.UTC(cible.getUTCFullYear(), cible.getUTCMonth() + 1, 0)).getUTCDate();
+  cible.setUTCDate(Math.min(j, dernier));
+  return cible.toISOString().slice(0, 10);
+}
+const oiMoins30 = (iso) => {
+  if (!iso) return new Date().toISOString().slice(0, 10);
+  const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - 30);
+  const auj = new Date().toISOString().slice(0, 10);
+  const s = d.toISOString().slice(0, 10);
+  return s < auj ? auj : s;          // jamais une date d'émission dans le passé
+};
 async function oiGenerate() {
   const rows = oiPrep.filter((r) => r.include && r.amount > 0);
   if (!rows.length) return;
@@ -8546,23 +8581,55 @@ async function oiGenerate() {
   const acct = facAccts.find((a) => a.id === $("oi-acct").value) || facAccts[0];
   const instNo = parseInt($("oi-inst-no").value) || 1, due = $("oi-due").value || null, tpl = $("oi-label").value || "{filiere} {saison} — {joueur}";
   if (!acct?.iban) { uiAlert("Compte à créditer sans IBAN."); return; }
-  if (!(await uiConfirm(`Générer ${rows.length} facture(s) « ${oiFil(fil)} ${sea?.label || ""} » — total ${oiChf(rows.reduce((a, r) => a + r.amount, 0))} CHF ? (numérotées, avec PDF QR-facture ; à envoyer ensuite)`))) return;
+  const nFac = rows.reduce((a, r) => a + r.total, 0);
+  const totalDu = rows.reduce((a, r) => a + (r.annuel || r.amount * r.total), 0);
+  const etales = rows.filter((r) => r.total > 1);
+  if (!(await uiConfirm(
+      `Générer ${nFac} facture(s) « ${oiFil(fil)} ${sea?.label || ""} » pour ${rows.length} joueur(s) ?\n\n`
+    + `Total facturé : ${oiChf(totalDu)}\n`
+    + (etales.length
+        ? `${etales.length} famille(s) paient en plusieurs fois : ${etales.slice(0, 5).map((r) => `${r.person.last_name} (×${r.total})`).join(", ")}`
+          + (etales.length > 5 ? `, …` : "") + "\n"
+        : "Toutes en une seule fois.\n")
+    + `\nElles seront numérotées, avec leur PDF QR-facture, au statut « à envoyer ».`))) return;
   const btn = $("oi-generate"); btn.disabled = true; const st = $("oi-gen-status");
   const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
   let ok = 0; const errs = [];
+  // Une famille qui paie en n fois reçoit n factures d'un coup, échelonnées de
+  // mois en mois. On ne les crée pas au fil de l'eau : la famille doit pouvoir
+  // tout classer dès maintenant, et nous voir d'avance ce qui reste à encaisser.
+  const totalFactures = rows.reduce((a, r) => a + r.total, 0);
   for (const r of rows) {
-    st.textContent = `Facture ${ok + 1}/${rows.length}…`;
     try {
       const a = r.cands.find((c) => c.key === r.debtor) || r.cands[r.cands.length - 1];
-      const { data: num, error: e1 } = await sb.rpc("out_invoice_next_number"); if (e1) throw new Error(e1.message);
-      const label = tpl.replace("{filiere}", oiFil(fil)).replace("{saison}", sea?.label || "").replace("{n}", instNo).replace("{total}", r.total).replace("{joueur}", r.person.first_name + " " + r.person.last_name);
-      const inv = { number: num, season_id: seasonId, filiere: fil, person_id: r.person.id, debtor_person_id: a.pid,
-        debtor_name: a.name, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_email: a.email || null,
-        label, items: [{ label, amount: r.amount }], instalment_no: instNo, instalment_total: r.total, amount: r.amount, currency: "CHF", due_date: due,
-        reference: oiScor(num.replace(/\D/g, "")), account_id: acct.id, status: "a_envoyer", created_by: uid };
-      const { data: ins, error: e2 } = await sb.from("out_invoices").insert(inv).select().single(); if (e2) throw new Error(e2.message);
-      await oiMakePdf({ ...ins, player_name: r.person.first_name + " " + r.person.last_name });
-      ok++;
+      const joueur = r.person.first_name + " " + r.person.last_name;
+      let cumul = 0;
+      for (let k = 1; k <= r.total; k++) {
+        st.textContent = `Facture ${ok + 1}/${totalFactures}…`;
+        // La dernière échéance absorbe l'arrondi : le total facturé doit tomber
+        // au centime sur le prix de l'abonnement.
+        const mt = (r.total > 1 && k === r.total && r.annuel)
+          ? Math.round((r.annuel - cumul) * 100) / 100 : r.amount;
+        cumul += mt;
+        const ech = oiDecalerMois(due, k - 1);
+        const { data: num, error: e1 } = await sb.rpc("out_invoice_next_number"); if (e1) throw new Error(e1.message);
+        const label = tpl.replace("{filiere}", oiFil(fil)).replace("{saison}", sea?.label || "")
+          .replace("{n}", r.total > 1 ? k : instNo).replace("{total}", r.total).replace("{joueur}", joueur);
+        const inv = { number: num, season_id: seasonId, filiere: fil, person_id: r.person.id, debtor_person_id: a.pid,
+          debtor_name: a.name, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_email: a.email || null,
+          label, items: [{ label, amount: mt }], instalment_no: r.total > 1 ? k : instNo, instalment_total: r.total,
+          amount: mt, currency: "CHF", due_date: ech,
+          // Une échéance ne s'émet pas le jour où on la crée : elle part 30
+          // jours avant son terme, comme les échéanciers de contrat.
+          issue_date: k === 1 ? new Date().toISOString().slice(0, 10) : oiMoins30(ech),
+          reference: oiScor(num.replace(/\D/g, "")), account_id: acct.id, status: "a_envoyer", created_by: uid };
+        const { data: ins, error: e2 } = await sb.from("out_invoices").insert(inv).select().single(); if (e2) throw new Error(e2.message);
+        await oiMakePdf({ ...ins, player_name: joueur });
+        ok++;
+      }
+      // On retient l'arrangement : l'an prochain, plus besoin d'y repenser.
+      await sb.from("billing_plans").upsert({ person_id: r.person.id, season_id: seasonId,
+        instalments: r.total, updated_at: new Date().toISOString(), updated_by: uid }, { onConflict: "person_id,season_id" });
     } catch (e) { errs.push(`${r.person.last_name} : ${e?.message || e}`); }
   }
   st.textContent = ""; btn.disabled = false;

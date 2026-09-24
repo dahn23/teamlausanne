@@ -1627,7 +1627,7 @@
               <label>Filière<select id="oi-filiere"></select></label>
               <label>Saison<select id="oi-season"></select></label>
               <label>Échéance n°<input id="oi-inst-no" type="number" min="1" value="1" /></label>
-              <label>Nombre d'échéances<input id="oi-inst-total" type="number" min="1" value="10" title="Vide = utilise le nombre d'échéances du contrat de chaque joueur" /></label>
+              <label>Découpage par défaut<input id="oi-inst-total" type="number" min="1" value="1" title="Valeur par défaut pour les familles sans arrangement. Chaque ligne reste modifiable." /></label>
               <label>Date d'échéance<input id="oi-due" type="date" /></label>
               <label>Compte à créditer<select id="oi-acct"></select></label>
               <label style="grid-column:1/-1">Libellé <span class="muted" style="font-weight:400">({filiere}, {saison}, {n}, {total}, {joueur})</span><input id="oi-label" value="{filiere} {saison} — échéance {n}/{total} — {joueur}" /></label>
@@ -1636,7 +1636,7 @@
               <button type="button" id="oi-load" class="ghost">↻ Recharger la liste</button>
               <span id="oi-prep-note" class="muted" style="font-size:.85rem"></span>
             </div>
-            <div class="table-wrap"><table class="crm-table"><thead><tr><th><input type="checkbox" id="oi-all" checked /></th><th>Joueur</th><th>Destinataire</th><th>Adresse</th><th>E-mail</th><th>Source</th><th>Montant</th></tr></thead><tbody id="oi-prep-rows"></tbody></table></div>
+            <div class="table-wrap"><table class="crm-table"><thead><tr><th><input type="checkbox" id="oi-all" checked /></th><th>Joueur</th><th>Destinataire</th><th>Adresse</th><th>E-mail</th><th>Source</th><th title="Nombre de factures pour cette famille. 1 = tout en une fois.">En n fois</th><th>Montant par facture</th></tr></thead><tbody id="oi-prep-rows"></tbody></table></div>
             <div class="form-foot"><span id="oi-gen-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span><button type="button" id="oi-generate" disabled>Générer les factures</button></div>
           </div>
         </div>
