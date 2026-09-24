@@ -3399,3 +3399,101 @@ tr.rm-loss td{background:#fde8e8}
   .dpanel{padding:18px 16px 16px}
   .dbar{grid-template-columns:minmax(80px,104px) 1fr 38px;gap:8px}
 }
+
+/* ---- Blocs de detail : meme langage que les tuiles du haut -------------
+   Une carte, un en-tete avec un compteur, des onglets quand il y a plusieurs
+   listes, et des lignes « qui · quoi · etat ». Les listes longues defilent
+   dans leur carte plutot que d'etirer la page. */
+.dcardx{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.dcx-h{display:flex;align-items:center;gap:10px}
+.dcx-t{margin:0;font-size:1.02rem;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.dcx-n{margin-left:auto;min-width:26px;height:22px;padding:0 8px;border-radius:999px;
+  background:#eef1f7;color:var(--muted);font-size:.78rem;font-weight:800;
+  display:inline-grid;place-items:center}
+.dcx-n-info{background:#e4ecfb;color:var(--blue)}
+.dcx-n-ok{background:#e7f6ec;color:#1c7d38}
+.dcx-n-warn{background:#fff1da;color:#a35f00}
+.dcx-n-bad{background:#fdeceb;color:#b3261e}
+.dcx-s{margin:4px 0 12px;font-size:.8rem;color:var(--muted);line-height:1.4}
+.dcx-b{min-width:0}
+
+/* Onglets internes */
+.dtabs{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 12px;padding:3px;
+  background:#f1f4f9;border-radius:999px}
+.dtab{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;
+  padding:5px 11px;border-radius:999px;font:inherit;font-size:.8rem;font-weight:700;
+  color:var(--muted);cursor:pointer;transition:background .12s ease,color .12s ease}
+.dtab:hover{color:var(--ink)}
+.dtab.on{background:var(--card);color:var(--blue);box-shadow:0 1px 4px rgba(20,26,46,.12)}
+.dtab-n{min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:#e2e7ef;
+  color:var(--muted);font-size:.68rem;font-weight:800;display:inline-grid;place-items:center}
+.dtab.on .dtab-n{background:#e4ecfb;color:var(--blue)}
+.dtab-n-ok{background:#e7f6ec!important;color:#1c7d38!important}
+.dtab-n-warn{background:#fff1da!important;color:#a35f00!important}
+.dtab-n-bad{background:#fdeceb!important;color:#b3261e!important}
+
+/* Ligne « qui · quoi · etat » */
+.dper{display:flex;align-items:flex-start;gap:10px;padding:8px 0;
+  border-bottom:1px solid #f2f4f8}
+.dper:last-child{border-bottom:0}
+.dav{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  font-size:.72rem;font-weight:800;letter-spacing:.02em;
+  background:hsl(var(--h,220) 62% 94%);color:hsl(var(--h,220) 52% 32%)}
+.dper-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.dper-t b{font-size:.9rem;color:var(--ink);font-weight:700}
+.dper-r{flex:none;align-self:center}
+.dmeta{font-size:.78rem;color:var(--muted);line-height:1.4}
+.dtel a{color:var(--blue);font-weight:700;text-decoration:none}
+.dtel a:hover{text-decoration:underline}
+
+/* Pastille d'etat */
+.dchip{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.74rem;
+  font-weight:700;white-space:nowrap;background:#eef1f7;color:var(--muted)}
+.dc-ok{background:#e7f6ec;color:#1c7d38}
+.dc-warn{background:#fff1da;color:#a35f00}
+.dc-bad{background:#fdeceb;color:#b3261e}
+.dc-info{background:#e4ecfb;color:var(--blue)}
+
+/* Cle / valeur */
+.dkv{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:7px 0;border-bottom:1px solid #f2f4f8;font-size:.86rem;color:var(--ink)}
+.dkv:last-child{border-bottom:0}
+.dkv > span:first-child{color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Etat vide : une bonne nouvelle est une information, pas un trou */
+.dempty{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;
+  background:#f6f8fb;color:var(--muted);font-size:.85rem}
+.dempty span{font-weight:800;color:#b8bfd0}
+.de-ok{background:#f0faf3;color:#1c7d38}
+.de-ok span{color:#27a35b}
+
+/* Liste qui defile dans sa carte */
+.dscroll{max-height:250px;overflow-y:auto;margin-right:-6px;padding-right:6px}
+
+/* Fil des derniers messages */
+.dfeed{display:flex;flex-direction:column}
+.dfi{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #f2f4f8}
+.dfi:last-child{border-bottom:0}
+.dfi-b{flex:1;min-width:0}
+.dfi-h{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.dfi-h b{font-size:.9rem;color:var(--ink)}
+.dfi-d{margin-left:auto;font-size:.74rem;color:var(--muted)}
+.dfi-x{margin-top:3px;font-size:.85rem;color:#333;white-space:pre-wrap;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Encaissement du week-end */
+.dpay{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;
+  padding:7px 0;border-bottom:1px solid #f2f4f8;font-size:.86rem}
+.dpay-n{font-weight:700;color:var(--ink);white-space:nowrap}
+.dpay-m{font-weight:800;color:var(--blue-ink);text-align:right;white-space:nowrap}
+.dpay-tot{border-bottom:0;border-top:2px solid var(--line);margin-top:3px;padding-top:9px}
+
+/* Factures non parties : a voir, pas a chercher */
+.dfail{margin:8px 0;padding:9px 11px;border-radius:12px;background:#fdeceb;
+  border:1px solid #f4cdca;color:#8a1c1c;font-size:.8rem;display:grid;gap:3px}
+
+@media (max-width:640px){
+  .dcardx{padding:15px 15px 13px}
+  .dscroll{max-height:none}
+}

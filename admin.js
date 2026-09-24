@@ -2543,10 +2543,14 @@ async function loadDashboard() {
     + `<section class="dsec"><h2 class="dsec-h">Le détail</h2>
        <p class="dsec-s">Tout ce qui nourrit les chiffres ci-dessus, bloc par bloc.</p>
        <div class="dash-grid">`
-    + dashGeneral(g, absences, lastWk) + dashNotes(notes) + dashRelances(relances) + dashMail(mail) + dashFactures(fac)
+    + dashEncadrement(g) + dashAssiduite(absences, D.club || {})
     + dashGroup("Pro · Pro U18 · Sport-études", D.se || {})
     + dashGroup("Compétition & Performance", D.comp || {})
-    + dashClub(D.club || {}) + dashProspects(prosp, g.lastup || {}) + `</div></section>`;
+    + dashNotes(notes) + dashRelances(relances) + dashProspects(prosp)
+    + dashMail(mail) + dashFactures(fac)
+    + dCard("Week-end GameZone", dashWeekend(lastWk), { sous: "Dernier week-end encaissé, moyen de paiement par moyen de paiement." })
+    + dashAnniv(g) + dashImports(g.lastup || {})
+    + `</div></section>`;
 
   // « Voir tous » : révèle les lignes masquées (.dash-more) du même bloc.
   body.querySelectorAll(".dash-showmore").forEach((b) => b.addEventListener("click", () => {
@@ -2570,6 +2574,12 @@ async function loadDashboard() {
     el.addEventListener("click", () => aller(el));
     el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); aller(el); } });
   });
+  // Onglets internes aux cartes de détail : un seul panneau visible à la fois.
+  body.querySelectorAll(".dtab").forEach((b) => b.addEventListener("click", () => {
+    const carte = b.closest(".dcardx"); if (!carte) return;
+    carte.querySelectorAll(".dtab").forEach((o) => { o.classList.toggle("on", o === b); o.setAttribute("aria-selected", String(o === b)); });
+    carte.querySelectorAll(".dpane").forEach((p) => p.classList.toggle("hidden", p.dataset.pane !== b.dataset.tab));
+  }));
 }
 
 // Bandeau d'attention : seulement ce qui demande une action aujourd'hui. Vide,
@@ -2639,125 +2649,216 @@ function dashArgentPanneau(a, eff) {
         <span class="dpanel-go" role="button" tabindex="0" data-go="factures">Ouvrir les factures →</span></p>
     </div></section>`;
 }
-// Derniers messages écrits (7 jours), toutes sources : notes de cours (blocs), fil « Suivi »
-// transverse, notes Tennis / Physique, canal Mental avec le jeune. 5 visibles, « Voir plus » au-delà.
+// ---- Briques du détail ---------------------------------------------------
+// Les blocs de détail partagent le vocabulaire visuel des tuiles du haut : une
+// carte, un en-tête avec un compteur, des lignes « qui · quoi · état ». Une
+// ligne nomme presque toujours quelqu'un, d'où la pastille d'initiales : on
+// repère un nom dans une liste bien plus vite qu'on ne le lit.
+const dInit = (nom) => String(nom || "?").trim().split(/\s+/).slice(0, 2)
+  .map((m) => m[0] || "").join("").toUpperCase() || "?";
+// Teinte stable par personne : le même nom garde sa couleur d'un bloc à l'autre.
+const dTeinte = (nom) => { let h = 0; for (const c of String(nom || "")) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+const dAvatar = (nom) => `<span class="dav" style="--h:${dTeinte(nom)}">${esc(dInit(nom))}</span>`;
+const dChip = (txt, tone = "mut") => `<span class="dchip dc-${tone}">${esc(txt)}</span>`;
+const dEmpty = (txt, ok = true) => `<div class="dempty${ok ? " de-ok" : ""}"><span>${ok ? "✓" : "—"}</span>${esc(txt)}</div>`;
+// Une ligne : personne à gauche, précisions dessous, état à droite. `meta` est
+// du HTML déjà échappé par l'appelant (il y met parfois un lien « appeler »).
+function dPer(nom, meta = "", droite = "") {
+  return `<div class="dper">${dAvatar(nom)}
+    <span class="dper-t"><b>${esc(nom)}</b>${meta ? `<span class="dmeta">${meta}</span>` : ""}</span>
+    ${droite ? `<span class="dper-r">${droite}</span>` : ""}</div>`;
+}
+function dKv(label, valeur) {
+  return `<div class="dkv"><span>${esc(label)}</span><span>${valeur}</span></div>`;
+}
+// Carte de détail. `n` affiche un compteur dans l'en-tête : savoir « combien »
+// avant d'ouvrir évite de parcourir la liste pour le découvrir.
+function dCard(titre, corps, { id = "", n = null, tone = "", sous = "" } = {}) {
+  const pill = n === null ? "" : `<span class="dcx-n${n && tone ? " dcx-n-" + tone : ""}">${dashNum(n)}</span>`;
+  return `<section class="dcardx"${id ? ` id="${id}"` : ""}>
+    <div class="dcx-h"><h3 class="dcx-t">${esc(titre)}</h3>${pill}</div>
+    ${sous ? `<p class="dcx-s">${esc(sous)}</p>` : ""}
+    <div class="dcx-b">${corps}</div></section>`;
+}
+// Onglets internes. Ces blocs empilaient sept listes les unes sous les autres,
+// ce qui faisait défiler longtemps pour rien : on n'en montre qu'une à la fois,
+// le compteur de chaque onglet disant s'il vaut la peine d'être ouvert.
+let dTabSeq = 0;
+function dTabs(panneaux) {
+  const vus = panneaux.filter(Boolean);
+  if (!vus.length) return "";
+  const g = "dt" + (++dTabSeq);
+  return `<div class="dtabs" role="tablist">
+      ${vus.map(([lbl, n, , tone], i) => `<button type="button" class="dtab${i ? "" : " on"}" role="tab" aria-selected="${!i}" data-tab="${g}-${i}">
+        ${esc(lbl)}${n != null ? `<span class="dtab-n${n && tone ? " dtab-n-" + tone : ""}">${dashNum(n)}</span>` : ""}</button>`).join("")}
+    </div>
+    ${vus.map(([, , html], i) => `<div class="dpane${i ? " hidden" : ""}" data-pane="${g}-${i}">${html}</div>`).join("")}`;
+}
+
+// ---- Derniers messages : un fil, pas un tableau --------------------------
 const DASH_NOTE_KIND = { cours: ["Cours", "dn-cours"], suivi: ["Suivi", "dn-suivi"], tennis: ["Tennis", "dn-tennis"], physique: ["Physique", "dn-phys"], mental: ["Mental", "dn-mental"], echange: ["Échange", "dn-echange"] };
 function dashNotes(list) {
-  const rows = (list || []).map((n, i) => {
+  const l = list || [];
+  const rows = l.map((n, i) => {
     const [lbl, cls] = DASH_NOTE_KIND[n.kind] || [n.kind, ""];
     const d = n.date ? new Date(n.date) : null;
     const when = d ? `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : "";
-    return `<div class="dash-li dash-note${i >= 5 ? " dash-more hidden" : ""}">
-      <div class="dn-head"><span class="dn-kind ${cls}">${esc(lbl)}${n.extra ? ` · ${esc(n.extra)}` : ""}</span><span class="muted">${when}</span></div>
-      <div><b>${esc(n.youth || "—")}</b> <span class="muted">— ${esc(n.author || "—")}${n.role ? ` (${esc(n.role)})` : ""}</span></div>
-      <div class="dn-body">${esc(n.body || "")}</div>
-    </div>`;
+    return `<div class="dfi${i >= 5 ? " dash-more hidden" : ""}">
+      ${dAvatar(n.youth || "—")}
+      <div class="dfi-b">
+        <div class="dfi-h"><b>${esc(n.youth || "—")}</b>
+          <span class="dn-kind ${cls}">${esc(lbl)}${n.extra ? ` · ${esc(n.extra)}` : ""}</span>
+          <span class="dfi-d">${esc(when)}</span></div>
+        <div class="dmeta">${esc(n.author || "—")}${n.role ? ` · ${esc(n.role)}` : ""}</div>
+        <div class="dfi-x">${esc(n.body || "")}</div>
+      </div></div>`;
   }).join("");
-  return dashCard("Derniers messages (7 jours)", rows
-    ? rows + ((list || []).length > 5 ? `<button type="button" class="dash-showmore ghost">Voir plus (${list.length - 5})</button>` : "")
-    : '<div class="muted">Aucun message ces 7 derniers jours.</div>');
+  return dCard("Derniers messages", rows
+    ? `<div class="dfeed">${rows}</div>${l.length > 5 ? `<button type="button" class="dash-showmore ghost">Voir plus (${l.length - 5})</button>` : ""}`
+    : dEmpty("Aucun message ces 7 derniers jours.", false),
+    { n: l.length, sous: "Cours, suivi, tennis, physique et mental — 7 derniers jours." });
 }
-// Absences cumulées au-delà du seuil : 5 h sur les 20 derniers jours (réglages
-// « absences_seuil_heures » / « absences_fenetre_jours »), filières compétition →
-// pro seulement (db/92). On compte des HEURES et non des séances : rater trois
-// cours d'une heure n'a pas le même poids que trois séances de deux heures.
+
+// ---- Absences au-dessus du seuil ----------------------------------------
 function dashAbsences(l) {
-  if (!l.length) return '<div class="dash-ok">✓ Personne au-dessus du seuil d\'absences.</div>';
+  if (!l.length) return dEmpty("Personne au-dessus du seuil d'absences.");
   return l.map((a) => {
-    // Le contact du parent est dans un champ texte « Nom · tél · e-mail » : on
-    // en tire le téléphone pour pouvoir appeler directement.
+    // Le contact du parent est un champ texte « Nom · tél · e-mail » : on en
+    // tire le numéro pour pouvoir appeler sans ouvrir la fiche.
     const tel = (a.parent || "").split("·").map((x) => x.trim()).find((x) => /\d{3}/.test(x) && !/@/.test(x));
-    return `<div class="dash-li dash-abs">
-      <b>${esc(a.eleve)}</b> <span class="muted">${esc(a.filiere || "")}</span>
-      <span class="dash-abs-h">${esc(String(a.heures))} h</span>
-      <span class="muted">· ${a.seances} séance(s) · dernière ${dFD(a.derniere)}</span>
-      ${a.parent ? `<div class="dash-abs-p">${esc(a.parent)}${tel ? ` <a href="tel:${esc(tel.replace(/\s+/g, ""))}">appeler</a>` : ""}</div>` : ""}
-    </div>`;
+    return dPer(a.eleve,
+      `${esc(a.filiere || "")} · ${a.seances} séance(s) · dernière ${dFD(a.derniere)}`
+      + (a.parent ? `<br><span class="dtel">${esc(a.parent)}${tel ? ` <a href="tel:${esc(tel.replace(/\s+/g, ""))}">appeler</a>` : ""}</span>` : ""),
+      dChip(`${a.heures} h`, "bad"));
   }).join("");
 }
 
-// Joueurs des filières sport-études / pro / pro-u18 qu'on n'a pas contactés
-// depuis la cadence convenue (réglage « contact_cadence_jours », 30 j).
+// ---- À recontacter -------------------------------------------------------
 function dashRelances(l) {
   const retard = l.filter((r) => r.en_retard);
-  const inner = !l.length
-    ? '<div class="muted">Aucun joueur dans ces filières cette saison.</div>'
-    : !retard.length
-    ? '<div class="dash-ok">✓ Tout le monde a été contacté récemment.</div>'
-    : retard.map((r) => `<div class="dash-li">
-        <b>${esc(r.joueur)}</b> <span class="muted">${esc(r.filiere || "")}</span> —
-        <span class="dash-red">${r.dernier_contact ? `il y a ${r.jours} jours` : "jamais contacté"}</span>
-      </div>`).join("");
+  const corps = !l.length ? dEmpty("Aucun joueur dans ces filières cette saison.", false)
+    : !retard.length ? dEmpty("Tout le monde a été contacté récemment.")
+    : retard.map((r) => dPer(r.joueur, esc(r.filiere || ""),
+        dChip(r.dernier_contact ? `il y a ${r.jours} j` : "jamais",
+              (!r.dernier_contact || r.jours > 60) ? "bad" : "warn"))).join("");
   const ok = l.length - retard.length;
-  return dashCard("À recontacter",
-    `<p class="muted" style="margin:0 0 8px;font-size:.85rem">Sport-études, Pro et Pro U18 — un point par mois.</p>
-     ${inner}
-     ${ok ? `<div class="dash-row" style="margin-top:8px"><span class="muted">À jour</span><span>${ok}</span></div>` : ""}`, "dbloc-relances");
+  return dCard("À recontacter", corps + (ok ? dKv("À jour", `<b>${ok}</b>`) : ""),
+    { id: "dbloc-relances", n: retard.length, tone: "warn",
+      sous: "Sport-études, Pro et Pro U18 — un point par mois." });
 }
 
-// Encaissé du dernier week-end GameZone : cash (à compter / validé), carte (mail SumUp attendu, reçu, validé),
-// Twint (relevé attendu, reçu, validé). Les montants sont ceux de la console ; « versé » = frais déduits.
+// ---- Week-end GameZone : l'encaissement, moyen par moyen -----------------
 function dashWeekend(w) {
-  if (!w) return '<div class="muted">Aucun week-end encaissé.</div>';
+  if (!w) return dEmpty("Aucun week-end encaissé.", false);
   const chf = (n) => (n == null ? "—" : Number(n).toFixed(2));
-  const ok = (by) => `<span class="gz-wk-okv">✓ validé${by ? " · " + esc(by) : ""}</span>`;
-  const wait = (t) => `<span class="gz-wk-wait">${t}</span>`;
-  const todo = (t) => `<span class="gz-wk-diff">${t}</span>`;
-  const cash = w.cash_validated_at ? ok(w.cash_validated_by)
-    : w.till_after != null ? `${wait(`fond de caisse attendu ${chf(w.till_after)}`)} ${todo("à compter et valider")}` : todo("à valider : compter la caisse");
-  const carte = w.card_validated_at ? ok(w.card_validated_by)
-    : w.card_gross != null ? `${Number(w.card_gross) === Number(w.carte) ? "" : todo("écart ") }${wait(`mail SumUp reçu : versé ${chf(w.card_net)}`)} ${todo("à valider")}`
-    : wait("en attente du mail SumUp");
-  const twint = w.twint_validated_at ? ok(w.twint_validated_by)
-    : w.twint_gross != null ? `${wait(`relevé saisi : versé ${chf(w.twint_net)}`)} ${todo("à valider")}`
-    : wait(w.twint_mails ? "mail Twint reçu, à saisir" : "en attente du mail Twint");
-  return `<div class="muted" style="font-size:.82rem;margin-bottom:2px">${esc(gzWkLabel(w))} · ${w.n_tournois} tournoi(s) · ${w.presents} présent(s)</div>
-    <div class="dash-wk"><span>Cash</span><span>${cash}</span><span class="dash-wk-amt">${chf(w.cash)}</span></div>
-    <div class="dash-wk"><span>Carte</span><span>${carte}</span><span class="dash-wk-amt">${chf(w.carte)}</span></div>
-    <div class="dash-wk"><span>Twint</span><span>${twint}</span><span class="dash-wk-amt">${chf(w.twint)}</span></div>
-    <div class="dash-wk"><span><b>Total encaissé</b></span><span></span><span class="dash-wk-amt">${chf(Number(w.cash) + Number(w.carte) + Number(w.twint))}</span></div>`;
+  const etat = (valide, par, attente, aFaire) => valide
+    ? dChip("validé" + (par ? " · " + par : ""), "ok")
+    : aFaire ? dChip(aFaire, "warn") : dChip(attente, "mut");
+  const lignes = [
+    ["Cash", w.cash, w.cash_validated_at, w.cash_validated_by,
+      w.till_after != null ? `fond attendu ${chf(w.till_after)}` : "à compter",
+      w.cash_validated_at ? "" : "à compter et valider"],
+    ["Carte", w.carte, w.card_validated_at, w.card_validated_by,
+      w.card_gross != null ? `SumUp reçu · versé ${chf(w.card_net)}` : "en attente du mail SumUp",
+      w.card_validated_at ? "" : (w.card_gross != null ? "à valider" : "")],
+    ["Twint", w.twint, w.twint_validated_at, w.twint_validated_by,
+      w.twint_gross != null ? `relevé saisi · versé ${chf(w.twint_net)}` : (w.twint_mails ? "mail reçu, à saisir" : "en attente du mail"),
+      w.twint_validated_at ? "" : (w.twint_gross != null ? "à valider" : "")],
+  ];
+  const total = Number(w.cash) + Number(w.carte) + Number(w.twint);
+  return `<p class="dmeta" style="margin:0 0 10px">${esc(gzWkLabel(w))} · ${w.n_tournois} tournoi(s) · ${w.presents} présent(s)</p>
+    ${lignes.map(([nom, montant, val, par, att, todo]) => `<div class="dpay">
+      <span class="dpay-n">${esc(nom)}</span>
+      <span class="dpay-e">${etat(val, par, att, todo)}</span>
+      <span class="dpay-m">${chf(montant)}</span></div>`).join("")}
+    <div class="dpay dpay-tot"><span class="dpay-n">Total encaissé</span><span></span>
+      <span class="dpay-m">${chf(total)}</span></div>`;
 }
-function dashGeneral(g, absences, lastWk) {
-  const lu = g.lastup || {};
-  const line = (label, at, by) => { const red = dDaysAgo(at) > 10; return `<div class="dash-row"><span>${esc(label)}</span><span class="${red ? "dash-red" : ""}">${at ? dFD(at) : "jamais"}${by ? " · " + esc(by) : ""}${red ? " ⚠️" : ""}</span></div>`; };
-  const cov = ((g.nocoach || []).length || (g.coachabs || []).length)
-    ? (g.nocoach || []).map((c) => `<div class="dash-alert">Cours sans coach : <b>${esc(c.label)}</b> — ${dFD(c.date)}</div>`).join("")
-      + (g.coachabs || []).map((c) => `<div class="dash-alert">Seul coach absent : <b>${esc(c.label)}</b> — ${dFD(c.date)}</div>`).join("")
-    : `<div class="dash-ok">✓ Tous les cours à venir ont un coach attribué.</div>`;
+
+// ---- Encadrement des cours ----------------------------------------------
+function dashEncadrement(g) {
+  const nc = g.nocoach || [], ca = g.coachabs || [];
+  const cov = (nc.length || ca.length)
+    ? nc.map((c) => dPer(c.label, dFD(c.date), dChip("sans coach", "bad"))).join("")
+      + ca.map((c) => dPer(c.label, dFD(c.date), dChip("seul coach absent", "bad"))).join("")
+    : dEmpty("Tous les cours à venir ont un coach attribué.");
   const unvAll = [...(g.unvalidated || []).map((c) => ({ date: c.date, label: c.label })),
                   ...(g.unvalidated_et || []).map((c) => ({ date: c.date, label: "Études" }))]
-                 .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));  // plus récent en haut
+                 .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   const unval = unvAll.length
-    ? unvAll.map((c) => `<div class="dash-li">${dFD(c.date)} — ${esc(c.label)}</div>`).join("")
-    : `<div class="dash-ok">✓ Tout est validé.</div>`;
-  const bdays = g.birthdays || [];
-  const bday = bdays.length
-    ? bdays.map((b) => {
-        const when = b.off === 0 ? "🎂 aujourd'hui" : b.off > 0 ? `dans ${b.off} j` : `il y a ${-b.off} j`;
-        return `<div class="dash-li${b.off === 0 ? " dash-bday-today" : ""}"><b>${esc(b.name)}</b> — ${when} <span class="muted">(${b.age} ans)</span></div>`;
-      }).join("")
-    : '<div class="muted">Aucun anniversaire à ±3 jours.</div>';
-  return dashCard("Général",
-    `<h3 class="dash-sub">Dernières mises à jour <span class="muted" style="font-weight:400;font-size:.8rem">(⚠️ rouge = &gt; 10 jours)</span></h3>
-     ${line("Tournois GameZone", lu.gz_at, lu.gz_by)}${line("Importer les matchs TeamLausanne", lu.matchs_at, lu.matchs_by)}
-     <h3 class="dash-sub">Encaissé du dernier week-end GameZone</h3>${dashWeekend(lastWk)}
-     <h3 class="dash-sub">Couverture coachs (cours à venir)</h3>${cov}
-     <h3 class="dash-sub">Cours / études passés non validés (21 j)</h3>${unval}
-     <h3 class="dash-sub">Absences cumulées (&gt; 5 h sur les 20 derniers jours, compétition → pro)</h3>${dashAbsences(absences || [])}
-     <h3 class="dash-sub">Anniversaires (J−3 → J+3)</h3>${bday}`, "dbloc-general");
+    ? unvAll.map((c) => dKv(c.label, `<span class="dmeta">${dFD(c.date)}</span>`)).join("")
+    : dEmpty("Tout est validé.");
+  return dCard("Encadrement des cours", dTabs([
+    ["Couverture", nc.length + ca.length, `<div class="dscroll">${cov}</div>`, "bad"],
+    ["Non validés", unvAll.length, `<div class="dscroll">${unval}</div>`, "warn"],
+  ]), { id: "dbloc-general", sous: "Cours à venir sans encadrant, et cours passés qui attendent leur validation." });
 }
+
+// ---- Assiduité : absences et retards, toutes filières --------------------
+function dashAssiduite(absences, c) {
+  const streak = (c.abs_streak || []).length
+    ? (c.abs_streak || []).map((x) => dPer(x.name, "Club / KidsTennis", dChip(`${x.streak} de suite`, "bad"))).join("")
+    : dEmpty("Personne avec plus de 2 absences de suite.");
+  const ret = (c.retards || []).length
+    ? (c.retards || []).map((x) => dPer(x.name, "Club / KidsTennis", dChip(`${x.n} retards`, "warn"))).join("")
+    : dEmpty("Personne avec plus de 3 retards cette saison.");
+  return dCard("Absences & retards", dTabs([
+    ["Au-dessus du seuil", absences.length, `<div class="dscroll">${dashAbsences(absences || [])}</div>`, "bad"],
+    ["Absences de suite", (c.abs_streak || []).length, `<div class="dscroll">${streak}</div>`, "bad"],
+    ["Retards", (c.retards || []).length, `<div class="dscroll">${ret}</div>`, "warn"],
+  ]), { sous: "Seuil : plus de 5 h sur 20 jours (compétition → pro) ; séries et retards pour le club." });
+}
+
+// ---- Anniversaires -------------------------------------------------------
+function dashAnniv(g) {
+  const b = g.birthdays || [];
+  const corps = b.length
+    ? b.map((x) => dPer(x.name, `${x.age} ans`,
+        dChip(x.off === 0 ? "aujourd'hui 🎂" : x.off > 0 ? `dans ${x.off} j` : `il y a ${-x.off} j`,
+              x.off === 0 ? "ok" : "mut"))).join("")
+    : dEmpty("Aucun anniversaire à ±3 jours.", false);
+  return dCard("Anniversaires", corps, { n: b.length, tone: "ok", sous: "De J−3 à J+3." });
+}
+
+// ---- Imports & mises à jour ---------------------------------------------
+function dashImports(lu) {
+  const line = (label, at, by) => {
+    const j = dDaysAgo(at);
+    return dPer(label, at ? `${dFD(at)}${by ? " · " + esc(by) : ""}` : "jamais importé",
+      dChip(at ? (j > 10 ? `il y a ${j} j` : "à jour") : "jamais", at ? (j > 10 ? "bad" : "ok") : "bad"));
+  };
+  return dCard("Imports & mises à jour",
+    line("Tournois GameZone", lu.gz_at, lu.gz_by)
+    + line("Matchs TeamLausanne", lu.matchs_at, lu.matchs_by)
+    + line("Prospects", lu.rank_at, lu.rank_by)
+    + line("Matchs des prospects", lu.scan_at, lu.scan_by),
+    { sous: "Rouge au-delà de 10 jours sans import." });
+}
+
+// ---- Messagerie ----------------------------------------------------------
 function dashMail(m) {
-  const boxes = (m.boxes || []).map((b) => `<div class="dash-row"><span>${esc(b.label)}</span><span><b>${b.recv7}</b> reçus</span></div>`).join("");
-  const done = (m.done7 || []).map((d) => `<div class="dash-row"><span>${esc(d.who || "—")}</span><span>${d.traite} traité · ${d.repondu} répondu</span></div>`).join("") || '<div class="muted">—</div>';
-  const avgby = (m.avg_by || []).map((d) => `<div class="dash-row"><span>${esc(d.who || "—")}</span><span>${d.hours != null ? d.hours + " h" : "—"} <span class="muted">(${d.n})</span></span></div>`).join("") || '<div class="muted">—</div>';
-  return dashCard("Messagerie",
-    `<h3 class="dash-sub">Reçus (7 jours)</h3>${boxes}
-     <div class="dash-row"><span><b>À traiter</b> (toutes boîtes)</span><span class="${(m.a_traiter || 0) > 0 ? "dash-red" : ""}">${m.a_traiter || 0}</span></div>
-     <h3 class="dash-sub">Traités / répondus (7 j) par personne</h3>${done}
-     <h3 class="dash-sub">Délai moyen « à traiter → traité »</h3>
-     <div class="dash-row"><span>Global</span><span>${m.avg_all_h != null ? m.avg_all_h + " h" : "—"}</span></div>${avgby}`);
+  const done = (m.done7 || []).length
+    ? (m.done7 || []).map((d) => dPer(d.who || "—", `${d.traite} traité(s) · ${d.repondu} répondu(s)`,
+        dChip(String(d.traite), d.traite ? "ok" : "mut"))).join("")
+    : dEmpty("Personne n'a traité de message cette semaine.", false);
+  const avg = (m.avg_by || []).length
+    ? (m.avg_by || []).map((d) => dPer(d.who || "—", `${d.n} message(s)`,
+        dChip(d.hours != null ? d.hours + " h" : "—", d.hours != null && d.hours > 24 ? "warn" : "mut"))).join("")
+    : dEmpty("Pas encore de délai mesurable.", false);
+  const boxes = (m.boxes || []).length
+    ? dashBars((m.boxes || []).map((b) => ({ label: b.label, n: b.recv7 || 0 })))
+    : dEmpty("Aucun message reçu cette semaine.", false);
+  return dCard("Messagerie", dTabs([
+    ["Reçus", (m.boxes || []).reduce((a, b) => a + (b.recv7 || 0), 0), boxes],
+    ["Qui traite", (m.done7 || []).length, `<div class="dscroll">${done}</div>`],
+    ["Délais", (m.avg_by || []).length, `<div class="dscroll">${avg}</div>`],
+  ]) + dKv("Délai moyen global", `<b>${m.avg_all_h != null ? m.avg_all_h + " h" : "—"}</b>`),
+    { n: m.a_traiter || 0, tone: (m.a_traiter || 0) ? "warn" : "",
+      sous: "7 derniers jours ; le compteur est le nombre de messages à traiter." });
 }
-// ---- Facturation : l'envoi du 20 tourne sans personne ----
+
+
+// ---- Facturation : l'envoi du 20 tourne sans personne --------------------
 // Un mois où rien n'est parti ressemble à un mois calme : on ne s'en aperçoit
 // qu'à la relance. Ce bloc dit quand la tâche est passée, ce qu'elle a envoyé
 // et surtout ce qu'elle N'A PAS envoyé. Les compteurs viennent des factures
@@ -2785,44 +2886,51 @@ function dashFactures(d) {
   const m = now.getMonth() + (now.getDate() < 20 ? 0 : 1);
   const p = `${now.getFullYear() + Math.floor(m / 12)}-${String((m % 12) + 1).padStart(2, "0")}-20`;
   const echecs = r && Array.isArray(r.detail?.ignorees) ? r.detail.ignorees : [];
-  return dashCard("Facturation", `
-    <div class="dash-row"><span>Dernier envoi automatique</span><span class="${r ? "" : "dash-red"}">${r ? frDateTime(r.ran_at) : "aucun pour l'instant"}</span></div>
-    ${r ? `<div class="dash-row"><span>Ce jour-là</span><span><b>${r.sent_count}</b> envoyée(s)${r.failed_count ? ` · <span class="dash-red">${r.failed_count} en échec</span>` : ""}</span></div>` : ""}
-    ${echecs.length ? echecs.map((x) => `<div class="dash-alert">${esc(String(x))}</div>`).join("") : ""}
-    <div class="dash-row"><span>Prochain envoi automatique</span><span>${dFD(p)}</span></div>
-    <h3 class="dash-sub">Factures</h3>
-    <div class="dash-row"><span>Parties ces 30 derniers jours</span><span><b>${d.envoyees30}</b></span></div>
-    <div class="dash-row"><span>En attente d'envoi (échéance atteinte)</span><span class="${d.attente > 0 ? "dash-red" : ""}">${d.attente}</span></div>
-    ${d.attente > 0 ? '<div class="muted" style="font-size:.8rem;margin-top:6px">Elles partiront au prochain passage du 20, ou tout de suite depuis l\'onglet Factures.</div>' : '<div class="dash-ok">✓ Rien en attente.</div>'}`);
+  return dCard("Facturation",
+    dPer("Envoi automatique", r ? `dernier passage le ${frDateTime(r.ran_at)}` : "aucun passage pour l'instant",
+      r ? dChip(`${r.sent_count} envoyée(s)`, r.failed_count ? "warn" : "ok") : dChip("jamais", "bad"))
+    + (echecs.length ? `<div class="dfail">${echecs.map((x) => `<div>${esc(String(x))}</div>`).join("")}</div>` : "")
+    + dKv("Prochain passage", `<span class="dmeta">${dFD(p)}</span>`)
+    + dKv("Parties ces 30 derniers jours", `<b>${dashNum(d.envoyees30)}</b>`)
+    + dKv("En attente d'envoi", d.attente > 0 ? dChip(`${d.attente} prête(s)`, "warn") : dChip("rien", "ok"))
+    + (d.attente > 0
+        ? `<p class="dmeta" style="margin:8px 0 0">Elles partiront au prochain passage du 20, ou tout de suite depuis l'onglet Factures.</p>`
+        : ""),
+    { n: d.attente, tone: d.attente ? "warn" : "", sous: "La tâche du 20 de chaque mois, et ce qu'elle a fait." });
 }
-function dashGroup(title, g) {
+// ---- Un groupe de filières ----------------------------------------------
+function dashGroup(titre, g) {
   const y = g.youths || [];
-  const abs = y.filter((x) => (x.absences || []).length).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> : ${x.absences.map((a) => `${esc(a.label)} (${dFD(a.date)})`).join(", ")}</div>`).join("") || '<div class="dash-ok">✓ Aucune absence.</div>';
-  const ret = y.filter((x) => (x.retards || []).length).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> : ${x.retards.map((a) => `${esc(a.label)} (${dFD(a.date)})`).join(", ")}</div>`).join("") || '<div class="dash-ok">✓ Aucun retard.</div>';
-  const staleList = y.filter((x) => !x.tennis_last || dDaysAgo(x.tennis_last) > 21);
-  const stale = staleList.length
-    ? staleList.map((x, i) => `<div class="dash-li${i >= 5 ? " dash-more hidden" : ""}"><b>${esc(x.name)}</b> — ${x.tennis_last ? "dernière : " + dFD(x.tennis_last) : "aucune remarque"}</div>`).join("")
-      + (staleList.length > 5 ? `<button type="button" class="dash-showmore ghost">Voir tous (${staleList.length})</button>` : "")
-    : '<div class="dash-ok">✓ Tous ont une remarque récente.</div>';
-  const forms = y.map((x) => `<div class="dash-row"><span>${esc(x.name)}</span><span>${x.coach_forms || 0}</span></div>`).join("") || '<div class="muted">—</div>';
-  const suivi = (g.suivi || []).map((s) => `<div class="dash-li">${dFD(s.date)} · <b>${esc(s.youth || "—")}</b> — ${esc(s.author || "—")}${s.role ? ` (${esc(s.role)})` : ""} : ${esc(s.body || "")}</div>`).join("") || '<div class="muted">—</div>';
-  const ls = (g.lastscores || []).map((s) => `<div class="dash-li${s.won ? " dash-win" : ""}">${dFD(s.date)} · <b>${esc(s.youth)}</b> vs ${esc(s.opponent || "—")}${s.oc ? ` (${esc(s.oc)})` : ""} — ${s.won === true ? "V" : s.won === false ? "D" : ""} ${esc(s.score || "")}</div>`).join("") || '<div class="muted">—</div>';
-  const rep = (g.reports || []).map((s) => `<div class="dash-li">${dFD(s.date)} · <b>${esc(s.youth)}</b> vs ${esc(s.opponent || "—")} — ${s.result === "gagne" ? "Gagné" : s.result === "perdu" ? "Perdu" : ""} ${esc(s.score || "")} <span class="dash-tag">${esc(s.role)}</span></div>`).join("") || '<div class="muted">—</div>';
-  return dashCard(title,
-    `<h3 class="dash-sub">Absences (10 j)</h3>${abs}
-     <h3 class="dash-sub">Retards (10 j)</h3>${ret}
-     <h3 class="dash-sub">Sans remarque « Tennis » depuis &gt; 3 semaines</h3>${stale}
-     <h3 class="dash-sub">Derniers messages « Suivi »</h3><div class="dash-scroll">${suivi}</div>
-     <h3 class="dash-sub">Matchs (14 j)</h3><div class="dash-scroll">${ls}</div>
-     <h3 class="dash-sub">Feuilles de match</h3><div class="dash-scroll">${rep}</div>
-     <h3 class="dash-sub">Feuilles remplies par un coach (saison)</h3><div class="dash-scroll">${forms}</div>`);
-}
-function dashClub(c) {
-  const abs = (c.abs_streak || []).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> — ${x.streak} absences de suite</div>`).join("") || '<div class="dash-ok">✓ Personne avec &gt; 2 absences de suite (2 sem.).</div>';
-  const ret = (c.retards || []).map((x) => `<div class="dash-li"><b>${esc(x.name)}</b> — ${x.n} retards</div>`).join("") || '<div class="dash-ok">✓ Personne avec &gt; 3 retards (saison).</div>';
-  return dashCard("Club & KidsTennis",
-    `<h3 class="dash-sub">Plus de 2 absences de suite (2 semaines)</h3>${abs}
-     <h3 class="dash-sub">Plus de 3 retards (saison)</h3>${ret}`);
+  const abs = y.filter((x) => (x.absences || []).length);
+  const ret = y.filter((x) => (x.retards || []).length);
+  const stale = y.filter((x) => !x.tennis_last || dDaysAgo(x.tennis_last) > 21);
+  const ls = g.lastscores || [], rep = g.reports || [], sui = g.suivi || [];
+  const liste = (arr, rendu, vide) => arr.length
+    ? `<div class="dscroll">${arr.map(rendu).join("")}</div>` : dEmpty(vide);
+  return dCard(titre, dTabs([
+    ["Absences", abs.length, liste(abs, (x) => dPer(x.name,
+        x.absences.map((a) => `${esc(a.label)} (${dFD(a.date)})`).join(", "),
+        dChip(String(x.absences.length), "bad")), "Aucune absence sur 10 jours."), "bad"],
+    ["Retards", ret.length, liste(ret, (x) => dPer(x.name,
+        x.retards.map((a) => `${esc(a.label)} (${dFD(a.date)})`).join(", "),
+        dChip(String(x.retards.length), "warn")), "Aucun retard sur 10 jours."), "warn"],
+    ["Sans remarque", stale.length, liste(stale, (x) => dPer(x.name,
+        x.tennis_last ? "dernière le " + dFD(x.tennis_last) : "aucune remarque",
+        dChip(x.tennis_last ? `${dDaysAgo(x.tennis_last)} j` : "jamais", "warn")),
+        "Tous ont une remarque récente."), "warn"],
+    ["Suivi", sui.length, liste(sui, (s) => dPer(s.youth || "—",
+        `${dFD(s.date)} · ${esc(s.author || "—")}${s.role ? ` (${esc(s.role)})` : ""}<br>${esc(s.body || "")}`),
+        "Aucun message de suivi.")],
+    ["Matchs", ls.length, liste(ls, (s) => dPer(s.youth,
+        `${dFD(s.date)} · vs ${esc(s.opponent || "—")}${s.oc ? ` (${esc(s.oc)})` : ""} ${esc(s.score || "")}`,
+        s.won === true ? dChip("V", "ok") : s.won === false ? dChip("D", "bad") : ""),
+        "Aucun match sur 14 jours.")],
+    ["Feuilles", rep.length, liste(rep, (s) => dPer(s.youth,
+        `${dFD(s.date)} · vs ${esc(s.opponent || "—")} ${esc(s.score || "")} · ${esc(s.role)}`,
+        s.result === "gagne" ? dChip("Gagné", "ok") : s.result === "perdu" ? dChip("Perdu", "bad") : ""),
+        "Aucune feuille de match.")],
+    ["Par coach", y.length, liste(y, (x) => dKv(x.name, `<b>${x.coach_forms || 0}</b>`), "—")],
+  ]), { n: y.length, sous: "Absences et retards sur 10 jours ; matchs sur 14 jours." });
 }
 
 // ---- Photos / vidéos d'une personne ----
@@ -6909,19 +7017,23 @@ function renderProspectFollowups() {
   }));
 }
 // Bloc Dashboard « Prospects » : alertes échues / à venir (7 j) + les deux mises à jour d'import liées aux prospects.
-function dashProspects(p, lu) {
+function dashProspects(p) {
   const today = new Date().toISOString().slice(0, 10);
-  const line = (label, at, by) => { const red = dDaysAgo(at) > 10; return `<div class="dash-row"><span>${esc(label)}</span><span class="${red ? "dash-red" : ""}">${at ? dFD(at) : "jamais"}${by ? " · " + esc(by) : ""}${red ? " ⚠️" : ""}</span></div>`; };
   const alerts = p.alerts || [];
-  const due = alerts.filter((a) => a.alert_at <= today), soon = alerts.filter((a) => a.alert_at > today);
-  const li = (a) => `<div class="dash-li"><b>${esc(a.name || "—")}</b>${a.ranking ? ` <span class="muted">(${esc(a.ranking)})</span>` : ""} — ${esc(pfModeLbl(a.mode))}, dernière interaction ${dFD(a.last_contact)}${a.status_text ? `<div class="muted" style="font-size:.8rem">${esc(a.status_text)}</div>` : ""}</div>`;
-  return dashCard("Prospects",
-    `<h3 class="dash-sub">Dernières mises à jour <span class="muted" style="font-weight:400;font-size:.8rem">(⚠️ rouge = &gt; 10 jours)</span></h3>
-     ${line("Importer les prospects", lu.rank_at, lu.rank_by)}${line("Importer les matchs des prospects", lu.scan_at, lu.scan_by)}
-     <h3 class="dash-sub">À relancer maintenant <span class="muted" style="font-weight:400;font-size:.8rem">(${p.n_active || 0} suivi(s) actifs)</span></h3>
-     ${due.length ? due.map(li).join("") : '<div class="dash-ok">✓ Aucune relance en retard.</div>'}
-     <h3 class="dash-sub">À relancer dans les 7 jours</h3>
-     ${soon.length ? soon.map((a) => li(a).replace("</b>", `</b> <span class="muted">→ ${dFD(a.alert_at)}</span>`)).join("") : '<div class="muted">—</div>'}`);
+  const due = alerts.filter((a) => a.alert_at <= today);
+  const soon = alerts.filter((a) => a.alert_at > today);
+  const li = (a, quand) => dPer(a.name || "—",
+    `${a.ranking ? `${esc(a.ranking)} · ` : ""}${esc(pfModeLbl(a.mode))} · dernière interaction ${dFD(a.last_contact)}`
+    + (a.status_text ? `<br>${esc(a.status_text)}` : ""), quand);
+  return dCard("Prospects", dTabs([
+    ["À relancer", due.length, due.length
+      ? `<div class="dscroll">${due.map((a) => li(a, dChip("en retard", "bad"))).join("")}</div>`
+      : dEmpty("Aucune relance en retard."), "bad"],
+    ["Dans 7 jours", soon.length, soon.length
+      ? `<div class="dscroll">${soon.map((a) => li(a, dChip(dFD(a.alert_at), "mut"))).join("")}</div>`
+      : dEmpty("Rien de prévu cette semaine.", false)],
+  ]) + dKv("Suivis actifs", `<b>${dashNum(p.n_active || 0)}</b>`),
+    { n: due.length, tone: "warn", sous: "Scouting : qui attend un signe de notre part." });
 }
 
 // ===================================================================
