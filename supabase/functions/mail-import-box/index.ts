@@ -32,7 +32,7 @@ const MAX_FETCH = 2 * 1024 * 1024;
 // Serveurs par boîte (18.09.2026) : les adresses @teamlausanne.ch sont chez Hostpoint (Cloud Office),
 // les autres boîtes restent chez Gmail. Un mot de passe d'application Gmail s'écrit avec des espaces ;
 // un mot de passe Hostpoint se prend tel quel.
-const HOSTPOINT_DOMAINS = ["teamlausanne.ch"];
+const HOSTPOINT_DOMAINS = ["teamlausanne.ch", "lausanneopen.ch"];   // lausanneopen.ch chez Hostpoint depuis le 24.09.2026
 const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
 const imapHost = (addr: string) => (isHostpoint(addr) ? "imap.mail.hostpoint.ch" : "imap.gmail.com");
 // Anciennes boîtes Google des adresses passées chez Hostpoint. Secrets DÉDIÉS : les secrets GMAIL_* de ces

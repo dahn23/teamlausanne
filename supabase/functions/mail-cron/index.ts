@@ -140,7 +140,7 @@ async function sendPush(supa: any) {
 // boîtes (info@lausanneopen.ch, admin@lstennis.ch) restent chez Gmail et REDIRIGENT vers le hub.
 // Chez Hostpoint, chaque boîte est relevée directement (pas de redirection à configurer),
 // et les mails restent dans la boîte de réception : on ne les déplace pas et on ne les marque pas lus.
-const HOSTPOINT_DOMAINS = ["teamlausanne.ch"];
+const HOSTPOINT_DOMAINS = ["teamlausanne.ch", "lausanneopen.ch"];   // lausanneopen.ch chez Hostpoint depuis le 24.09.2026
 const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
 const imapHost = (addr: string) => (isHostpoint(addr) ? "imap.mail.hostpoint.ch" : "imap.gmail.com");
 // Un mot de passe d'application Gmail s'écrit avec des espaces ; un mot de passe Hostpoint se prend tel quel.
@@ -165,6 +165,7 @@ const DIAG: Record<string, unknown> = {};
 const EXTRA_BOXES: Record<string, string> = {
   "tournoi@teamlausanne.ch": "GMAIL_PASS_TOURNOI",
   "raphael@teamlausanne.ch": "GMAIL_PASSE_RAPHAEL",
+  "info@lausanneopen.ch": "GMAIL_PASS_LAUSANNEOPEN",   // Hostpoint depuis le 24.09.2026 (avant : Gmail redirigé vers le hub)
 };
 
 // deno-lint-ignore no-explicit-any

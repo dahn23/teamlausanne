@@ -20,7 +20,7 @@ const BATCH = 30;
 // Serveurs par boîte (18.09.2026) : les adresses @teamlausanne.ch sont chez Hostpoint (Cloud Office),
 // les autres boîtes restent chez Gmail. Un mot de passe d'application Gmail s'écrit avec des espaces ;
 // un mot de passe Hostpoint se prend tel quel.
-const HOSTPOINT_DOMAINS = ["teamlausanne.ch"];
+const HOSTPOINT_DOMAINS = ["teamlausanne.ch", "lausanneopen.ch"];   // lausanneopen.ch chez Hostpoint depuis le 24.09.2026
 const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
 const smtpHost = (addr: string) => (isHostpoint(addr) ? "asmtp.mail.hostpoint.ch" : "smtp.gmail.com");
 const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));

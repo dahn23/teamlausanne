@@ -18,7 +18,7 @@ const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: 
 
 const FROM = (Deno.env.get("GMAIL_HUB") || "info@teamlausanne.ch").trim();
 const APP = "https://app.teamlausanne.ch";
-const HOSTPOINT_DOMAINS = ["teamlausanne.ch"];
+const HOSTPOINT_DOMAINS = ["teamlausanne.ch", "lausanneopen.ch"];   // lausanneopen.ch chez Hostpoint depuis le 24.09.2026
 const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
 const smtpHost = (addr: string) => (isHostpoint(addr) ? "asmtp.mail.hostpoint.ch" : "smtp.gmail.com");
 const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
