@@ -11864,7 +11864,28 @@ let mailSearchT = null;
 // nombre change selon la boîte ouverte : elles viennent d'une requête à part, qui ne ramène que les mails
 // reçus encore « actifs » ou non lus, toutes boîtes confondues.
 let mailBadgeRows = [];
+// Total réel par boîte (en base), pour dire « 1 000 chargés sur 5 208 » et proposer de charger les plus anciens.
+let mailBoxTotal = {};
+async function mailCountBox(addr) {
+  if (!addr) return;
+  const { count } = await sb.from("mail_messages").select("id", { count: "exact", head: true }).eq("account_address", addr);
+  mailBoxTotal[addr] = count ?? null;
+}
+// Charge les 1 000 messages suivants (plus anciens) de la boîte affichée, à la demande.
+async function mailLoadOlder() {
+  const addr = mailFilterAddr; if (!addr) return;
+  const btn = $("mail-more-btn"); if (btn) { btn.disabled = true; btn.textContent = "Chargement…"; }
+  const mine = mailMsgs.filter((m) => m.account_address === addr);
+  const oldest = mine.reduce((a, m) => (!a || String(m.received_at) < a ? String(m.received_at) : a), null);
+  if (!oldest) return;
+  const { data } = await sb.from("mail_messages").select(MAIL_COLS).eq("account_address", addr).lt("received_at", oldest).order("received_at", { ascending: false }).limit(1000);
+  const seen = new Set(mailMsgs.map((m) => m.id));
+  for (const m of data || []) if (!seen.has(m.id)) { seen.add(m.id); mailMsgs.push(m); }
+  mailMsgs.sort((a, b) => String(b.received_at).localeCompare(String(a.received_at)));
+  refreshMailView();
+}
 async function mailFetchMsgs() {
+  if (mailFilterAddr) mailCountBox(mailFilterAddr);   // en parallèle, sans bloquer la liste
   const base = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(300);
   const qs = [base];
   if (mailFilterAddr) qs.push(sb.from("mail_messages").select(MAIL_COLS).eq("account_address", mailFilterAddr).order("received_at", { ascending: false }).limit(1000));
@@ -12733,6 +12754,17 @@ function renderMailList() {
       </div>`}
     </div>`;
   }).join("") : mailVide();
+  // Pied de liste : ce qui est chargé pour la boîte affichée vs ce qu'elle contient en base, et « charger les plus anciens ».
+  if (mailFilterAddr) {
+    const loaded = mailMsgs.filter((m) => m.account_address === mailFilterAddr).length;
+    const total = mailBoxTotal[mailFilterAddr];
+    if (total == null || loaded < total) {
+      $("mail-list").insertAdjacentHTML("beforeend", `<div class="mail-more"><span class="muted">${loaded} message(s) chargé(s)${total != null ? ` sur ${total}` : ""} pour cette boîte · les pastilles comptent ce qui est chargé</span><button type="button" class="ghost" id="mail-more-btn">Charger les plus anciens</button></div>`);
+      $("mail-more-btn").addEventListener("click", mailLoadOlder);
+    } else if (total != null) {
+      $("mail-list").insertAdjacentHTML("beforeend", `<div class="mail-more"><span class="muted">Tout l'historique de cette boîte est chargé (${total} message(s)).</span></div>`);
+    }
+  }
   $("mail-list").querySelectorAll(".mail-item").forEach((el) => el.addEventListener("click", () => openMail(el.dataset.id)));
   $("mail-list").querySelectorAll(".mail-rdtoggle").forEach((b) => b.addEventListener("click", async (e) => {
     e.stopPropagation();
