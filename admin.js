@@ -7738,13 +7738,22 @@ async function oiLibs() {
   if (window.qrcode?.stringToBytesFuncs?.["UTF-8"]) window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs["UTF-8"];
 }
 // Logo Team Lausanne (webp → PNG via canvas, jsPDF ne lit pas le webp), mis en cache.
+// Le fichier fait 1937 × 2000 px alors qu'il est posé sur 26 × 27 mm. Embarqué à cette
+// taille, jsPDF le stockait pixel par pixel : 1937 × 2000 × 4 octets, soit 15 Mo par
+// facture. Trop lourd pour la boîte de certaines familles — bluewin, hotmail et icloud
+// plafonnent autour de 20 Mo, et une pièce jointe grossit d'un tiers à l'encodage.
+// On réduit donc le logo à la taille réellement utile avant de l'embarquer.
+const OI_LOGO_MAX = 400;   // 400 px sur 26 mm ≈ 390 dpi : au-delà rien ne se voit à l'impression.
 let oiLogoPng = null;
 async function oiLogo() {
   if (oiLogoPng) return oiLogoPng;
   try {
     const img = new Image(); img.src = "assets/logo-academie.webp"; await img.decode();
-    const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
-    c.getContext("2d").drawImage(img, 0, 0); oiLogoPng = c.toDataURL("image/png");
+    const k = Math.min(1, OI_LOGO_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    oiLogoPng = c.toDataURL("image/png");
   } catch (e) { console.warn("logo facture :", e); oiLogoPng = null; }
   return oiLogoPng;
 }
