@@ -7614,8 +7614,12 @@ async function salOpenPdf(path) {
 // se rabat sur les heures vivantes, en le disant, parce que cette liste-là peut
 // encore bouger.
 function salCouverture() {
-  const snap = paieMois?.snapshot?.coaches;
-  const base = (snap || heuresData.coaches || []).filter((x) => !x.by_invoice);
+  // Coachs ET profs : les deux figurent au décompte, donc les deux doivent
+  // revenir. Un prof oublié se remarque encore moins qu'un coach — il n'a pas
+  // de montant attendu, seulement des heures.
+  const snap = paieMois?.snapshot;
+  const base = [...(snap?.coaches || heuresData.coaches || []),
+                ...(snap?.profs   || heuresData.profs   || [])].filter((x) => !x.by_invoice);
   if (!base.length) return null;
   const brutAttendu = (x) => {
     const b = x.salary != null ? Number(x.salary)
