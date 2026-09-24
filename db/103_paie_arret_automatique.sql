@@ -1,0 +1,19 @@
+-- Paie — arrêt automatique du mois, le 3 du mois suivant (24.09.2026)
+--
+-- Pourquoi pas le dernier jour du mois : un cours donné le 30 se valide le 31,
+-- parfois le 2. Figer à minuit le 31 arrêterait des heures incomplètes et
+-- sous-paierait quelqu'un — l'erreur la plus coûteuse du circuit, parce que
+-- personne ne relit un décompte pour y chercher des heures absentes.
+--
+-- La tâche (edge function payroll-cron, cron « paie-arret-du-mois », 0 6 3 * *)
+-- ne force jamais :
+--   · tout validé et tarifé  → elle clôture et envoie un récapitulatif ;
+--   · un seul point qui cloche → elle ne touche à rien et envoie la liste.
+--
+-- payroll_close_sys : même corps que payroll_close mais sans contrôle
+-- can_finance, puisque la tâche n'a pas d'utilisateur connecté. Réservée au
+-- service_role. payroll_close se contente désormais de vérifier les droits
+-- puis de l'appeler.
+--
+-- payroll_blocages(ym) : ce qui empêche de clôturer, lu par la tâche comme par
+-- l'écran — une seule définition de « prêt à clôturer ».

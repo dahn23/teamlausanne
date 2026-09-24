@@ -3522,3 +3522,16 @@ tr.enc-ok td{background:#f4fbf6}
 /* Les barres d'outils de chaque onglet : meme respiration que les cartes. */
 .fac-sub > p.muted:first-of-type{max-width:78ch;line-height:1.5}
 #view-factures .fac-filters{margin-bottom:10px}
+
+/* ---- Paie : bandeau de clôture du mois ---------------------------------- */
+.paie-bar{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--ocean);
+  border-radius:var(--radius);padding:14px 18px;margin:0 0 14px;box-shadow:var(--shadow)}
+.paie-bar.paie-bloc{border-left-color:#d4453b;background:#fffaf9}
+.paie-bar.paie-close{border-left-color:#27a35b;background:#f6fbf8}
+.paie-t{font-size:.95rem;color:var(--ink)}
+.paie-l{margin:8px 0 0;padding-left:20px;font-size:.86rem;color:var(--muted);display:grid;gap:4px}
+.paie-l b{color:var(--ink)}
+.paie-ok{margin:6px 0 0;font-size:.88rem;color:#1c7d38}
+.paie-a{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.paie-drift{margin-top:10px;padding:10px 12px;border-radius:12px;background:#fff6e6;border:1px solid #f0d9a8}
+.paie-drift > b{color:#a35f00;font-size:.9rem}

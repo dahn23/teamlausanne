@@ -6730,11 +6730,109 @@ async function loadHeures() {
   $("heures-export-pdf").classList.toggle("hidden", !isManager);
   $("heures-send").classList.toggle("hidden", !canSalaries());   // envoi à la fiduciaire : admin/superadmin
   if (isManager) {
-    const [{ data, error }] = await Promise.all([sb.rpc("staff_hours_month", { p_ym: heuresYm }), loadSalSlips()]);
+    const [{ data, error }] = await Promise.all([sb.rpc("staff_hours_month", { p_ym: heuresYm }), loadSalSlips(), loadPaieMois()]);
     heuresData = error ? { coaches: [], profs: [] } : (data || { coaches: [], profs: [] });
     renderHeures();
+    renderCloture();
     renderSalBox();
   }
+}
+
+// ---- Clôture du mois de paie -------------------------------------------
+// Un mois arrêté est la pièce qui tient tout le circuit : le décompte part de
+// l'instantané, le retour de la fiduciaire s'y compare, et le paiement s'y
+// justifie. Tant que le mois est ouvert, les heures bougent encore.
+//
+// La clôture ne se fait PAS au dernier jour du mois : un cours du 30 se valide
+// le 31, parfois le 2. Fermer à minuit le 31 fige des heures incomplètes et
+// sous-paie quelqu'un. On ferme quand les heures sont complètes — le bandeau
+// dit ce qui manque encore.
+let paieMois = null, paieDrift = [];
+
+async function loadPaieMois() {
+  if (!canSalaries()) { paieMois = null; paieDrift = []; return; }
+  const { data } = await sb.from("payroll_months").select("*").eq("ym", heuresYm).maybeSingle();
+  paieMois = data || null;
+  paieDrift = [];
+  if (paieMois?.snapshot) {
+    const { data: d } = await sb.rpc("payroll_drift", { p_ym: heuresYm });
+    paieDrift = d || [];
+  }
+}
+
+// Ce qui empêche de clôturer, dit en clair plutôt qu'en bouton grisé.
+function paieBlocages() {
+  const c = heuresData.coaches || [], p = heuresData.profs || [];
+  const sansTarif = c.filter((x) => x.rate == null && x.salary == null && !x.by_invoice && Number(x.hours) > 0);
+  const nonValides = [...c.filter((x) => x.total_courses > 0 && x.courses < x.total_courses),
+                      ...p.filter((x) => x.total_days > 0 && x.days < x.total_days)];
+  return { sansTarif, nonValides };
+}
+
+function renderCloture() {
+  const host = $("heures-cloture"); if (!host) return;
+  if (!canSalaries()) { host.innerHTML = ""; return; }
+  const { sansTarif, nonValides } = paieBlocages();
+  const st = paieMois?.status || "ouvert";
+
+  if (st === "ouvert") {
+    const pbs = [];
+    if (sansTarif.length) pbs.push(`<li><b>${sansTarif.length} sans tarif horaire</b> : ${sansTarif.map((x) => esc(x.name) + ` (${x.hours} h)`).join(", ")}
+      — leurs heures partiraient à zéro chez la fiduciaire.</li>`);
+    if (nonValides.length) pbs.push(`<li>${nonValides.length} personne(s) dont tous les cours ne sont pas encore validés :
+      ${nonValides.slice(0, 6).map((x) => esc(x.name) + ` (${x.courses ?? x.days}/${x.total_courses ?? x.total_days})`).join(", ")}${nonValides.length > 6 ? "…" : ""}</li>`);
+    host.innerHTML = `<div class="paie-bar${sansTarif.length ? " paie-bloc" : ""}">
+      <div class="paie-t"><b>Mois ouvert</b> — les heures peuvent encore bouger.</div>
+      ${pbs.length ? `<ul class="paie-l">${pbs.join("")}</ul>` : `<p class="paie-ok">✓ Tout est validé et tarifé : le mois peut être arrêté.</p>`}
+      <div class="paie-a">
+        <button type="button" id="paie-clore"${sansTarif.length ? ' class="ghost"' : ""}>🔒 Clôturer ${esc(heuresYm)}</button>
+        <span class="muted" style="font-size:.82rem">Fige les heures et les tarifs. Réversible.</span>
+      </div></div>`;
+    $("paie-clore").addEventListener("click", () => paieClore(sansTarif));
+    return;
+  }
+
+  const drift = paieDrift.length
+    ? `<div class="paie-drift"><b>⚠ ${paieDrift.length} écart(s) depuis la clôture</b>
+        <ul class="paie-l">${paieDrift.map((d) => `<li>${esc(d.nom)} : figé à <b>${d.heures_figees} h</b>, aujourd'hui <b>${d.heures_actuelles} h</b></li>`).join("")}</ul>
+        <p class="muted" style="font-size:.82rem;margin:4px 0 0">Le décompte envoyé porte les heures figées. Pour tenir compte de ces changements, rouvre le mois et clôture à nouveau.</p></div>`
+    : "";
+  host.innerHTML = `<div class="paie-bar paie-close">
+    <div class="paie-t"><b>Mois clôturé</b> le ${frDateTime(paieMois.closed_at)} —
+      ${dashNum(paieMois.n_people)} personne(s), ${oiChf(paieMois.total_gross)} brut.</div>
+    ${drift}
+    <div class="paie-a">
+      <button type="button" id="paie-rouvrir" class="ghost">🔓 Rouvrir le mois</button>
+      <span class="muted" style="font-size:.82rem">Rouvrir efface l'instantané ; il sera refait à la prochaine clôture.</span>
+    </div></div>`;
+  $("paie-rouvrir").addEventListener("click", paieRouvrir);
+}
+
+async function paieClore(sansTarif) {
+  if (sansTarif.length && !(await uiConfirm(
+      `${sansTarif.length} personne(s) ont des heures sans tarif horaire :\n\n`
+    + sansTarif.map((x) => `· ${x.name} — ${x.hours} h`).join("\n")
+    + `\n\nElles seront comptées à ZÉRO dans le décompte de la fiduciaire, donc payées zéro.\n\n`
+    + `Clôturer quand même ?`))) return;
+  if (!sansTarif.length && !(await uiConfirm(
+      `Clôturer ${heuresYm} ?\n\nLes heures et les tarifs sont figés : le décompte, le retour de la fiduciaire et le paiement s'appuieront tous dessus. Le mois reste réouvrable.`))) return;
+  const { data, error } = await sb.rpc("payroll_close", { p_ym: heuresYm, p_force: sansTarif.length > 0 });
+  if (error) {
+    // Le refus côté base porte le compte dans son message : on le traduit.
+    const m = /tarif_manquant:(\d+)/.exec(error.message || "");
+    uiAlert(m ? `Clôture refusée : ${m[1]} personne(s) ont des heures sans tarif horaire.` : error.message);
+    return;
+  }
+  uiAlert(`✓ ${heuresYm} clôturé — ${data.personnes} personne(s), ${oiChf(data.brut)} brut.\n\n`
+    + `Étape suivante : « ✉ Envoyer à la fiduciaire ».`);
+  await loadHeures();
+}
+
+async function paieRouvrir() {
+  if (!(await uiConfirm(`Rouvrir ${heuresYm} ?\n\nL'instantané des heures est effacé. Si le décompte est déjà parti à la fiduciaire, préviens-la : les nets qu'elle prépare ne correspondront plus.`))) return;
+  const { error } = await sb.rpc("payroll_reopen", { p_ym: heuresYm });
+  if (error) { uiAlert(error.message); return; }
+  await loadHeures();
 }
 async function renderMyHours() {
   const host = $("heures-mine"); if (!host) return;
