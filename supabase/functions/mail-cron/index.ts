@@ -6,6 +6,9 @@
 // v25 (19.09.2026) : les rapports DMARC quotidiens sont rangés d'office en « Traité », sans notification.
 // v26 (19.09.2026) : le dossier « Spam » des boîtes Hostpoint est relevé aussi (is_spam, migration 73).
 // v27 (23.09.2026) : les destinataires en copie (Cc) sont enregistrés (cc_address, migration 96).
+// v28 (24.09.2026) : le contrôle des doublons tient compte du sens (voir isDupMsg) — un mail
+//                    envoyé depuis la console vers une de nos propres boîtes arrive maintenant
+//                    bien dans la Messagerie au lieu d'être pris pour un doublon de l'envoi.
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -51,10 +54,17 @@ function processAtt(p: any, htmlIn: string | null) {
   return { html, rows };
 }
 
+// Le sens compte. Un mail écrit depuis la console vers une de nos propres boîtes
+// (un essai de facture envoyé à info@ ou raphael@) est déjà en base en « envoyé » :
+// sans filtre sur la direction, sa copie livrée dans la boîte de réception passait
+// pour un doublon et n'était jamais enregistrée. Résultat : l'essai partait bien,
+// mais restait invisible dans la Messagerie — alors qu'un essai vers une adresse
+// extérieure (Gmail) s'affichait normalement. On ne compare donc un message qu'aux
+// messages du même sens.
 // deno-lint-ignore no-explicit-any
-async function isDupMsg(supa: any, messageId: string | null, fromAddr: string | null, subj: string | null, dateIso: string) {
-  if (messageId) { const { data } = await supa.from("mail_messages").select("id").eq("message_id", messageId).limit(1); if (data && data.length) return true; }
-  if (fromAddr && subj) { const { data } = await supa.from("mail_messages").select("id").eq("from_address", fromAddr).eq("subject", subj).eq("received_at", dateIso).limit(1); if (data && data.length) return true; }
+async function isDupMsg(supa: any, messageId: string | null, fromAddr: string | null, subj: string | null, dateIso: string, dir: "in" | "out" = "in") {
+  if (messageId) { const { data } = await supa.from("mail_messages").select("id").eq("message_id", messageId).eq("direction", dir).limit(1); if (data && data.length) return true; }
+  if (fromAddr && subj) { const { data } = await supa.from("mail_messages").select("id").eq("from_address", fromAddr).eq("subject", subj).eq("received_at", dateIso).eq("direction", dir).limit(1); if (data && data.length) return true; }
   return false;
 }
 
@@ -307,7 +317,8 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
           const toAddr = p.to?.value?.[0]?.address || null;
           const subj = p.subject || null;
           const dateIso = (p.date || new Date()).toISOString();
-          if (await isDupMsg(supa, messageId, fromAddr, subj, dateIso)) {
+          // Dossier « Envoyés » : on compare aux messages envoyés, pas aux reçus.
+          if (await isDupMsg(supa, messageId, fromAddr, subj, dateIso, "out")) {
             const { data: exist } = await supa.from("mail_messages").select("id").eq("message_id", messageId).eq("direction", "out").limit(1);
             const existId = exist && exist[0] && (exist[0] as { id: string }).id;
             if (existId) {
