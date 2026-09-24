@@ -2074,7 +2074,12 @@ function renderLastScores() {
 // Seules les VACANCES d'un membre demandent une validation. Fermetures, camps
 // et événements sont des faits d'organisation : ils s'ajoutent directement.
 const CAL_KIND = { vacances: "Vacances", fermeture: "Fermeture", camp: "Camp",
-                   evenement: "Événement", test: "Session de test" };
+                   evenement: "Événement", test: "Session de test", absence: "Absence" };
+// Deux types concernent UNE personne et réclament donc un « qui » : ses
+// vacances et son absence. Tout le reste les sépare — des vacances se
+// demandent et se valident, une absence se constate.
+const CAL_KIND_QUI = ["vacances", "absence"];
+const calVeutQui = (k) => CAL_KIND_QUI.includes(k);
 // Postgres rend « 14:00:00 » : on garde les heures et les minutes. Une plage se
 // lit « 14:00–16:00 », une heure seule « 14:00 ». Rien quand il n'y en a pas :
 // la plupart des lignes du calendrier occupent la journée entière.
@@ -2102,12 +2107,18 @@ function initCalendrier() {
   $("cal-suiv").addEventListener("click", () => calMoisDecaler(1));
   $("cal-auj").addEventListener("click", () => { const n = new Date(); calMois = new Date(n.getFullYear(), n.getMonth(), 1); loadCalendrier(); });
   $("cal-new-vac").addEventListener("click", () => calOuvrir(null, "vacances"));
+  $("cal-new-abs").addEventListener("click", () => calOuvrir(null, "absence"));
   $("cal-close").addEventListener("click", () => $("cal-modal").classList.add("hidden"));
   $("cal-form").addEventListener("submit", calEnregistrer);
   $("cal-del").addEventListener("click", calSupprimer);
-  // Le choix « qui » n'a de sens que pour des vacances.
+  // Le choix « qui » n'a de sens que pour ce qui vise une personne.
   $("cal-kind").addEventListener("change", () => {
-    $("cal-membre-wrap").classList.toggle("hidden", $("cal-kind").value !== "vacances");
+    const k = $("cal-kind").value;
+    $("cal-membre-wrap").classList.toggle("hidden", !calVeutQui(k));
+    // Le titre par défaut suit le type tant que personne ne l'a retouché.
+    const t = $("cal-titre");
+    if (!t.value.trim() || Object.values(CAL_KIND).includes(t.value.trim()))
+      t.value = calVeutQui(k) ? CAL_KIND[k] : "";
   });
 }
 
@@ -2234,7 +2245,7 @@ async function calRenderMois() {
                      data-jour="${j}" title="${vac ? esc(vac.label) : ""}">
           <span class="cal-num">${d.getDate()}</span>
           ${duJour.map((e) => {
-            const v = e.kind === "vacances";
+            const v = calVeutQui(e.kind);
             const style = v && e.pm_members?.color ? ` style="--c:${esc(e.pm_members.color)}"` : "";
             const att = e.status === "demande" ? " cal-chip-att" : e.status === "refuse" ? " cal-chip-ref" : "";
             const h = calHeure(e.start_time, e.end_time);
@@ -2264,7 +2275,7 @@ function calRenderSemaines() {
     // plus utile pour planifier.
     const classe = scol === 5 ? " cal-sem-vac" : scol > 0 ? " cal-sem-part" : "";
     const chips = (s.evenements || []).map((e) => {
-      const vac = e.kind === "vacances";
+      const vac = calVeutQui(e.kind);
       const style = vac && e.couleur ? ` style="--c:${esc(e.couleur)}"` : "";
       const qui = vac ? `${esc(e.initiales || "?")} · ` : "";
       const att = e.status === "demande" ? " cal-chip-att" : e.status === "refuse" ? " cal-chip-ref" : "";
@@ -2313,9 +2324,11 @@ function calOuvrir(ev, kind, lundi, fin) {
   initCalendrier();
   $("cal-err").hidden = true;
   $("cal-id").value = ev?.id || "";
-  $("cal-modal-titre").textContent = ev ? "Modifier" : kind === "vacances" ? "Demander des vacances" : "Nouvel événement";
+  $("cal-modal-titre").textContent = ev ? "Modifier"
+    : kind === "vacances" ? "Demander des vacances"
+    : kind === "absence"  ? "Déclarer une absence" : "Nouvel événement";
   $("cal-kind").value = ev?.kind || kind || "evenement";
-  $("cal-titre").value = ev?.title || (kind === "vacances" ? "Vacances" : "");
+  $("cal-titre").value = ev?.title || (calVeutQui(kind) ? CAL_KIND[kind] : "");
   $("cal-start").value = ev?.start_date || lundi || "";
   // Depuis la vue mois on clique UN jour : début et fin se valent. Depuis la
   // liste on vise une semaine : on propose lundi → vendredi.
@@ -2325,12 +2338,12 @@ function calOuvrir(ev, kind, lundi, fin) {
   $("cal-note").value = ev?.note || "";
   $("cal-membre").innerHTML = pmMembers.map((m) =>
     `<option value="${m.id}"${ev?.member_id === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("");
-  // Par défaut, on demande des vacances POUR SOI.
-  if (!ev && kind === "vacances" && myPersonId) {
+  // Par défaut, vacances et absence valent POUR SOI.
+  if (!ev && calVeutQui(kind) && myPersonId) {
     const moi = pmMembers.find((m) => m.person_id === myPersonId);
     if (moi) $("cal-membre").value = moi.id;
   }
-  $("cal-membre-wrap").classList.toggle("hidden", $("cal-kind").value !== "vacances");
+  $("cal-membre-wrap").classList.toggle("hidden", !calVeutQui($("cal-kind").value));
   // Qui peut toucher à cette ligne. On reprend mot pour mot la règle de la
   // base (policy cal_modif) : sans cela le bouton resterait actif et
   // l'enregistrement ne modifierait aucune ligne — sans erreur, sans rien dire.
@@ -2369,7 +2382,7 @@ async function calEnregistrer(e) {
   const row = {
     kind, title: $("cal-titre").value.trim() || CAL_KIND[kind],
     start_date: debut, end_date: fin,
-    member_id: kind === "vacances" ? ($("cal-membre").value || null) : null,
+    member_id: calVeutQui(kind) ? ($("cal-membre").value || null) : null,
     start_time: $("cal-h1").value || null,
     // Une heure de fin sans heure de début ne veut rien dire : la base la
     // refuse, autant ne pas l'envoyer.
@@ -2378,8 +2391,10 @@ async function calEnregistrer(e) {
     created_by: sess?.session?.user?.id || null,
   };
   // Une demande de vacances naît « à valider » — sauf posée par un valideur,
-  // qui n'a personne à qui demander.
+  // qui n'a personne à qui demander. Une absence, elle, se constate : elle naît
+  // acquise, comme une fermeture ou un camp.
   if (kind === "vacances") row.status = canCalValider() ? "valide" : "demande";
+  if (kind === "absence")  row.status = "valide";
   const id = $("cal-id").value;
   const { error } = id
     ? await sb.from("cal_events").update(row).eq("id", id)

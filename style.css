@@ -2775,6 +2775,20 @@ tr.rm-loss td{background:#fde8e8}
 .cal-lg .cal-pastille.cal-k-vacances{
   background:linear-gradient(135deg,#e8a33d 0 33%,#3f86e0 33% 66%,#d2557e 66%)}
 .cal-chip.cal-k-vacances{box-shadow:inset 0 0 0 99px rgba(0,0,0,.08)}
+/* Absence : la même couleur de personne que ses vacances — c'est la même
+   personne — mais hachurée. Un congé se distingue ainsi d'un arrêt sans avoir
+   à lire l'intitulé, et sans dépenser une teinte de plus dans la légende. */
+.cal-k-absence, .cal-ev.cal-k-absence{background-color:var(--c,#8d93a8);color:#fff;
+  background-image:repeating-linear-gradient(-45deg,
+    rgba(255,255,255,.30) 0 4px, rgba(255,255,255,0) 4px 9px)}
+/* Dans la légende, même base tricolore que les vacances — « une couleur par
+   personne » — plus la hachure, resserrée pour rester lisible sur 12 px. */
+.cal-lg .cal-pastille.cal-k-absence{
+  background-color:#8d93a8;
+  background-image:repeating-linear-gradient(-45deg,
+      rgba(255,255,255,.60) 0 2px, rgba(255,255,255,0) 2px 5px),
+    linear-gradient(135deg,#e8a33d 0 33%,#3f86e0 33% 66%,#d2557e 66%)}
+.cal-chip.cal-k-absence{box-shadow:inset 0 0 0 99px rgba(0,0,0,.12)}
 /* L'heure passe devant l'intitule et se lit d'un coup : chiffres de meme
    chasse, pour que deux horaires l'un sous l'autre s'alignent. */
 .cal-h{font-weight:800;font-variant-numeric:tabular-nums;opacity:.85}
