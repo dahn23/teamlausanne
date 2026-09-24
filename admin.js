@@ -1357,7 +1357,7 @@ async function loadPeople() {
   for (const r of rp || []) add(r.person_id, r.role); // rôles saisonniers de la saison EN COURS
   renderFilters();
   renderRows();
-  refreshBirthdayBadge(); refreshInscriptionBadge();   // pastilles du menu latéral
+  refreshBirthdayBadge(); refreshInscriptionBadge(); refreshStagesBadge();   // pastilles du menu latéral
 }
 
 // ---- Pastilles du menu latéral : demandes d'inscription visibles, anniversaires du jour ----
@@ -9995,6 +9995,7 @@ function initStages() {
     }));
   $("stg-cat-new").addEventListener("click", createStageCat);
   $("stg-new").addEventListener("click", () => openStageModal(null));
+  $("stg-season").addEventListener("change", () => { stgSeason = $("stg-season").value; renderStageList(); });
   $("stg-detail-back").addEventListener("click", closeStageDetail);
   $("stg-detail-edit").addEventListener("click", () => openStageModal(stgCurrent));
   $("stg-reg-add").addEventListener("click", openRegModal);
@@ -10029,8 +10030,46 @@ async function loadStagesTab() {
   for (const r of regs || []) stgCounts[r.stage_id] = (stgCounts[r.stage_id] || 0) + 1;
   stgSessionCats = {};
   for (const l of links || []) (stgSessionCats[l.session_id] = stgSessionCats[l.session_id] || []).push(l.category_id);
+  await fillStageSeasons();
   renderStageCats();
   renderStageList();
+  refreshStagesBadge();
+}
+
+// ---- Saisons (20 août → 19 août, table seasons kind « juniors ») : pour comparer les stages d'une année à l'autre ----
+let stgSeasons = [], stgSeason = "";
+async function fillStageSeasons() {
+  if (!stgSeasons.length) {
+    const { data } = await sb.from("seasons").select("label,start_date,end_date").eq("kind", "juniors").order("start_date", { ascending: false });
+    stgSeasons = data || [];
+  }
+  // Un stage hors de toute saison enregistrée (très ancien ou très futur) reçoit sa saison calculée (20.08 → 19.08).
+  const labelOf = (d) => { const y = Number(d.slice(0, 4)), md = d.slice(5); const s = md >= "08-20" ? y : y - 1; return `${s}/${String(s + 1).slice(2)}`; };
+  for (const s of stgSessions) {
+    const lab = labelOf(s.start_date);
+    if (!stgSeasons.some((x) => x.label === lab)) {
+      const y = Number(lab.slice(0, 4));
+      stgSeasons.push({ label: lab, start_date: `${y}-08-20`, end_date: `${y + 1}-08-19` });
+    }
+  }
+  stgSeasons.sort((a, b) => b.start_date.localeCompare(a.start_date));
+  const today = new Date().toISOString().slice(0, 10);
+  if (!stgSeason) stgSeason = (stgSeasons.find((x) => x.start_date <= today && today <= x.end_date) || stgSeasons[0] || {}).label || "";
+  const sel = $("stg-season");
+  sel.innerHTML = stgSeasons.map((x) => `<option value="${esc(x.label)}">Saison ${esc(x.label)}</option>`).join("");
+  sel.value = stgSeason;   // forcer la valeur (pretty-select)
+}
+const stgInSeason = (s) => { const x = stgSeasons.find((y) => y.label === stgSeason); return !x || (s.start_date >= x.start_date && s.start_date <= x.end_date); };
+
+// Pastille du menu : total des inscrits aux stages pas encore terminés (date de fin ≥ aujourd'hui).
+async function refreshStagesBadge() {
+  if (!document.querySelector('.side-item[data-view="stages"]')) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: ss } = await sb.from("stage_sessions").select("id").gte("end_date", today);
+  const ids = (ss || []).map((s) => s.id);
+  if (!ids.length) { setSideBadge("stages", 0); return; }
+  const { count } = await sb.from("stage_registrations").select("id", { count: "exact", head: true }).in("stage_id", ids);
+  setSideBadge("stages", count || 0);
 }
 
 // ---- Catégories ----
@@ -10135,7 +10174,9 @@ function stgCatBadges(sessionId) {
 }
 
 function renderStageList() {
-  $("stg-rows").innerHTML = stgSessions.map((s) => {
+  const list = stgSessions.filter(stgInSeason);
+  const totalRegs = list.reduce((a, s) => a + (stgCounts[s.id] || 0), 0);
+  $("stg-rows").innerHTML = list.map((s) => {
     const days = stgDays(s.start_date, s.end_date);
     const dates = s.start_date === s.end_date ? frDate(s.start_date) : `${frDate(s.start_date)} → ${frDate(s.end_date)}`;
     return `<tr class="stg-row" data-id="${s.id}">
@@ -10144,7 +10185,7 @@ function renderStageList() {
       <td>${jours(days)}${days < 5 ? " <span class='muted'>(pro-rata)</span>" : ""}</td>
       <td class="role-cell">${stgCatBadges(s.id)}</td>
       <td>${stgCounts[s.id] || 0}</td>
-      <td>
+      <td class="stg-vis-cell">
         <select class="stg-vis" data-id="${s.id}">
           <option value="auto"${s.visibility_mode === "auto" ? " selected" : ""}>Auto (J-3)</option>
           <option value="show"${s.visibility_mode === "manual" && s.visible ? " selected" : ""}>Visible</option>
@@ -10153,9 +10194,12 @@ function renderStageList() {
         <div class="muted" style="font-size:.72rem">${stgVisLabel(s)}</div>
       </td>
     </tr>`;
-  }).join("") || '<tr><td colspan="6" class="muted">Aucun stage.</td></tr>';
+  }).join("") + (list.length ? `<tr class="gz-total"><td>Total saison ${esc(stgSeason)}</td><td></td><td>${list.length} stage(s)</td><td></td><td>${totalRegs}</td><td></td></tr>` : "")
+    || `<tr><td colspan="6" class="muted">Aucun stage pour la saison ${esc(stgSeason)}.</td></tr>`;
+  // Le menu « Sur le site » est embelli par pretty-select (bouton + liste dans un .ps-wrap) : un clic dans
+  // toute la cellule ne doit pas ouvrir le stage.
   $("stg-rows").querySelectorAll(".stg-row").forEach((tr) =>
-    tr.addEventListener("click", (e) => { if (e.target.closest(".stg-vis")) return; openStage(tr.dataset.id); }));
+    tr.addEventListener("click", (e) => { if (e.target.closest(".stg-vis-cell")) return; openStage(tr.dataset.id); }));
   $("stg-rows").querySelectorAll(".stg-vis").forEach((sel) =>
     sel.addEventListener("change", () => setStageVisibility(sel.dataset.id, sel.value)));
 }
@@ -10491,7 +10535,7 @@ async function saveReg(e) {
     category_id: $("reg-f-cat").value || null,
   });
   if (error) { err.textContent = error.message; err.hidden = false; return; }
-  stgCounts[stgCurrent] = (stgCounts[stgCurrent] || 0) + 1;
+  stgCounts[stgCurrent] = (stgCounts[stgCurrent] || 0) + 1; refreshStagesBadge();
   $("reg-modal").classList.add("hidden");
   loadRegistrations();
 }
@@ -10528,7 +10572,7 @@ async function togglePaid(id, paid) {
 async function delRegistrant(id) {
   if (!await uiConfirm("Supprimer cet inscrit ?")) return;
   await sb.from("stage_registrations").delete().eq("id", id);
-  stgCounts[stgCurrent] = Math.max(0, (stgCounts[stgCurrent] || 1) - 1);
+  stgCounts[stgCurrent] = Math.max(0, (stgCounts[stgCurrent] || 1) - 1); refreshStagesBadge();
   loadRegistrations();
 }
 
