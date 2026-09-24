@@ -7516,25 +7516,51 @@ async function renderSalBox() {
     for (const d of done || []) imported.add(d.mail_id);
     atts = atts.filter((a) => !imported.has(a.mail_id));
   }
+  // Une pièce écartée à la main ne revient jamais.
+  if (atts.length) {
+    const { data: ign } = await sb.from("sal_mail_ignored").select("att_id").in("att_id", atts.map((a) => a.id));
+    const set = new Set((ign || []).map((r) => r.att_id));
+    atts = atts.filter((a) => !set.has(a.id));
+  }
   const pendList = salSlips.filter((s) => !s.invoice_id && salToPay(s) > 0);
   const pending = pendList.length, pendAmt = pendList.reduce((a, s) => a + salToPay(s), 0);
   const covered = salSlips.filter((s) => s.net > 0 && !s.invoice_id && salToPay(s) === 0).length;   // couverts par l'ordre permanent
   const done = salSlips.filter((s) => s.invoice_id).length;
   const total = salSlips.reduce((a, s) => a + (Number(s.net) || 0), 0);
-  const mailRows = atts.map((a) => {
-    const m = mails.find((x) => x.id === a.mail_id);
-    const isImp = imported.has(a.mail_id);
-    return `<div class="sal-mail">📩 PDF de la fiduciaire reçu le <b>${frDate(m.received_at)}</b> — « ${esc(a.filename)} » <span class="muted">(${esc(m.subject || "")})</span>
-      ${isImp ? '<span class="sal-fact">✓ importé</span>' : `<button type="button" class="sal-from-mail" data-att="${a.id}" data-mail="${a.mail_id}">Lire et importer</button>`}</div>`;
-  }).join("");
+  // La fiduciaire n'envoie pas que des salaires : situations, décomptes divers.
+  // Proposer « lire et importer » sur une situation client fait perdre du temps
+  // et, si on clique, remplit les fiches avec n'importe quoi. On ne met donc en
+  // avant que ce qui ressemble à un fichier de salaires ; le reste est rangé
+  // au-dessous, lisible mais pas proposé.
+  const estSalaire = (a, m) => /salaire|salaires|paie|paye|lohn/i.test(`${a.filename || ""} ${m?.subject || ""}`);
+  const ligne = (a, m, sec) => `<div class="sal-mail${sec ? " sal-mail-sec" : ""}">📩 ${sec ? "Document" : "PDF de salaires"} de la fiduciaire du <b>${frDate(m.received_at)}</b> — « ${esc(a.filename)} » <span class="muted">(${esc(m.subject || "")})</span>
+      <button type="button" class="sal-from-mail${sec ? " ghost" : ""}" data-att="${a.id}" data-mail="${a.mail_id}">${sec ? "Lire quand même" : "Lire et importer"}</button>
+      <button type="button" class="ghost sal-ignore" data-att="${a.id}" data-mail="${a.mail_id}" data-name="${esc(a.filename || "")}" title="Ne plus proposer cette pièce">✕</button></div>`;
+  const paires = atts.map((a) => ({ a, m: mails.find((x) => x.id === a.mail_id) })).filter((x) => x.m);
+  const vrais = paires.filter((x) => estSalaire(x.a, x.m));
+  const autres = paires.filter((x) => !estSalaire(x.a, x.m));
+  const mailRows = vrais.map((x) => ligne(x.a, x.m, false)).join("")
+    + (autres.length
+        ? `<details class="sal-autres"><summary>${autres.length} autre(s) document(s) de la fiduciaire — sans rapport avec les salaires</summary>`
+          + autres.map((x) => ligne(x.a, x.m, true)).join("") + `</details>`
+        : "");
   host.innerHTML = `<div class="sal-box">
-    <div class="sal-mails">${mailRows || '<span class="muted" style="font-size:.88rem">Aucun PDF de salaires de la fiduciaire dans les mails pour ce mois.</span>'}</div>
+    <div class="sal-mails">${vrais.length ? mailRows : (autres.length ? `<span class="muted" style="font-size:.88rem">Aucun fichier de salaires pour ce mois.</span>${mailRows}` : '<span class="muted" style="font-size:.88rem">Aucun PDF de salaires de la fiduciaire dans les mails pour ce mois.</span>')}</div>
     <div class="sal-acts">
       <label class="btnlike ghost" style="margin:0">Importer un PDF de salaires<input type="file" id="sal-file" accept="application/pdf" hidden /></label>
       <button type="button" id="sal-validate" ${pending ? "" : "disabled"} title="Crée une facture à payer par personne (net, IBAN) dans l'onglet Factures">✓ Valider les salaires${pending ? ` (${pending})` : ""}</button>
       <span class="muted" style="font-size:.85rem">${salSlips.length ? `Net total : <b>${total.toLocaleString("fr-CH", { minimumFractionDigits: 2 })} CHF</b>${pending ? ` · à payer via Factures : <b>${pendAmt.toLocaleString("fr-CH", { minimumFractionDigits: 2 })} CHF</b>` : ""}${covered ? ` · ${covered} couvert(s) par ordre permanent` : ""}${done ? ` · ${done} déjà transmis à Factures` : ""}` : "Saisis ou importe les nets à payer, puis valide."}</span>
     </div></div>`;
   host.querySelectorAll(".sal-from-mail").forEach((b) => b.addEventListener("click", () => salImportFromMail(b.dataset.att, b.dataset.mail)));
+  host.querySelectorAll(".sal-ignore").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await uiConfirm(`Ne plus proposer « ${b.dataset.name} » ?\n\nLa pièce reste dans la Messagerie ; elle disparaît seulement d'ici.`))) return;
+    const { data: sess } = await sb.auth.getSession();
+    const { error } = await sb.from("sal_mail_ignored").insert({
+      att_id: b.dataset.att, mail_id: b.dataset.mail, filename: b.dataset.name,
+      ignored_by: sess?.session?.user?.id || null });
+    if (error) { uiAlert(error.message); return; }
+    renderSalBox();
+  }));
   $("sal-file").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) salStartImport(new Uint8Array(await f.arrayBuffer()), null); });
   $("sal-validate").addEventListener("click", salValidate);
 }

@@ -3535,3 +3535,10 @@ tr.enc-ok td{background:#f4fbf6}
 .paie-a{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
 .paie-drift{margin-top:10px;padding:10px 12px;border-radius:12px;background:#fff6e6;border:1px solid #f0d9a8}
 .paie-drift > b{color:#a35f00;font-size:.9rem}
+
+/* ---- Salaires : pieces jointes de la fiduciaire ------------------------- */
+.sal-mail-sec{opacity:.72;font-size:.86rem}
+.sal-autres{margin-top:6px}
+.sal-autres > summary{cursor:pointer;font-size:.84rem;color:var(--muted);padding:4px 0}
+.sal-autres > summary:hover{color:var(--ink)}
+.sal-ignore{padding:2px 8px;font-size:.8rem;line-height:1.3}
