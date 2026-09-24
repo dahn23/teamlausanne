@@ -1,0 +1,15 @@
+-- Tarif horaire : un tarif seul vaut tarif par défaut (24.09.2026)
+--
+-- staff_hours_month_brut lisait le tarif ainsi :
+--   (select chf_per_hour from coach_rates where person_id = … and is_default limit 1)
+-- Dix coachs sur douze avaient bien un tarif saisi, mais sans la case « par
+-- défaut » cochée : ils ressortaient SANS tarif, donc à zéro dans le décompte
+-- de la fiduciaire. Une erreur muette — personne ne voit un coach absent d'une
+-- liste qu'il ne relit pas.
+--
+-- Correction en deux temps, appliquées en base :
+--   1. les tarifs existants non cochés sont passés « par défaut » (chaque
+--      personne n'en avait qu'un, le choix était donc sans ambiguïté) ;
+--   2. la lecture devient « le tarif par défaut, sinon le plus ancien » :
+--        order by is_default desc, created_at limit 1
+--      pour qu'un tarif saisi seul compte toujours, coché ou non.
