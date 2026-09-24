@@ -787,8 +787,17 @@
         </div>
 
         <div id="view-dashboard" class="view hidden">
-          <div class="crm-head"><h1>Dashboard <span id="dash-gen" class="muted" style="font-size:.95rem;font-weight:400"></span></h1>
-            <span class="spacer"></span><button type="button" id="dash-refresh" class="ghost">↻ Actualiser</button></div>
+          <header class="dash-hero">
+            <div class="dash-hero-t">
+              <p class="dash-eyebrow" id="dash-saison">Team Lausanne Academy</p>
+              <h1 class="dash-title">Tableau de bord</h1>
+              <p class="dash-lede">Ce qui attend une action, puis les chiffres de la saison, puis le détail.</p>
+            </div>
+            <div class="dash-hero-a">
+              <span id="dash-gen" class="dash-gen"></span>
+              <button type="button" id="dash-refresh" class="ghost">↻ Actualiser</button>
+            </div>
+          </header>
           <div id="dash-body"></div>
         </div>
 

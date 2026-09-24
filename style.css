@@ -3290,3 +3290,112 @@ tr.rm-loss td{background:#fde8e8}
   padding:10px;font-weight:700;color:var(--muted);cursor:pointer}
 .ann-opt.on{background:#fff;border-color:var(--blue);color:var(--blue-ink)}
 .ann-opt:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* ===================================================================
+   Tableau de bord — chiffres en tête, détail ensuite
+   ------------------------------------------------------------------
+   Trois niveaux de lecture : le bandeau d'attention (ce qui demande une
+   action aujourd'hui), les tuiles chiffrees par theme, puis les blocs de
+   detail existants. Les couleurs sortent de la charte : Absolute Blue pour
+   le principal, Ocean Blue pour le neutre, Mint pour le positif ; rouge et
+   ambre restent reserves a ce qui cloche, pour qu'ils gardent leur poids.
+   =================================================================== */
+.dash-hero{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;margin:0 0 20px}
+.dash-hero-t{flex:1 1 320px;min-width:0}
+.dash-eyebrow{margin:0 0 6px;font-size:.72rem;font-weight:800;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ocean)}
+.dash-title{margin:0;font-size:2.1rem;line-height:1.1;letter-spacing:-.02em;color:var(--ink)}
+.dash-lede{margin:8px 0 0;color:var(--muted);font-size:.95rem;max-width:56ch}
+.dash-hero-a{display:flex;align-items:center;gap:10px}
+.dash-gen{color:var(--muted);font-size:.82rem}
+
+/* Bandeau d'attention */
+.dalert{display:flex;gap:14px;align-items:flex-start;background:#fff8e6;border:1px solid #f4e0ad;
+  border-radius:var(--radius);padding:16px 18px;margin:0 0 26px}
+.dalert-i{flex:none;width:28px;height:28px;border-radius:50%;background:#f0b429;color:#3d2c00;
+  display:grid;place-items:center;font-weight:900;font-size:.95rem}
+.dalert b{color:#7a5300}
+.dalert-l{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:5px}
+.dalert-go{color:#8a3b00;font-weight:700;font-size:.9rem;cursor:pointer;
+  border-bottom:1px solid rgba(138,59,0,.35)}
+.dalert-go:hover{border-bottom-color:#8a3b00}
+.dalert-ok{background:#eefaf1;border-color:#c6e9d2}
+.dalert-ok .dalert-i{background:var(--fluo);color:var(--fluo-ink)}
+.dalert-ok b{color:#16693a}
+
+/* Sections */
+.dsec{margin:0 0 30px}
+.dsec-h{margin:0;font-size:1.3rem;letter-spacing:-.01em;color:var(--ink)}
+.dsec-s{margin:3px 0 14px;color:var(--muted);font-size:.88rem}
+
+/* Tuiles chiffrees */
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
+.dstat{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 18px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:2px;
+  border-left:4px solid var(--line)}
+.dstat-i{position:absolute;top:14px;right:16px;font-size:1.15rem;opacity:.5}
+.dstat-l{font-size:.7rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.dstat-v{font-size:2rem;line-height:1.15;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.dstat-s{font-size:.78rem;color:var(--muted);line-height:1.35}
+.dstat.st-blue{border-left-color:var(--blue)} .dstat.st-blue .dstat-v{color:var(--blue)}
+.dstat.st-ocean{border-left-color:var(--ocean)}
+.dstat.st-mint{border-left-color:var(--fluo-d)}
+.dstat.st-ok{border-left-color:#27a35b} .dstat.st-ok .dstat-v{color:#1c7d38}
+.dstat.st-warn{border-left-color:#e08c00} .dstat.st-warn .dstat-v{color:#a35f00}
+.dstat.st-bad{border-left-color:#d4453b} .dstat.st-bad .dstat-v{color:#b3261e}
+.dstat-go{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+.dstat-go:hover,.dstat-go:focus-visible{transform:translateY(-2px);
+  box-shadow:0 8px 22px rgba(20,26,46,.13);outline:none}
+.dstat-go:focus-visible{border-color:var(--blue)}
+.dstat-go-i{position:absolute;right:16px;bottom:14px;color:var(--blue);font-weight:800;
+  opacity:0;transform:translateX(-4px);transition:opacity .12s ease,transform .12s ease}
+.dstat-go:hover .dstat-go-i,.dstat-go:focus-visible .dstat-go-i{opacity:1;transform:none}
+
+/* Carte claire (graphiques) */
+.dcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px;box-shadow:var(--shadow);margin-top:14px}
+.dcard-h{margin:0 0 12px;font-size:.72rem;font-weight:800;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--muted)}
+
+/* Barres horizontales */
+.dbars{display:grid;gap:9px}
+.dbar{display:grid;grid-template-columns:minmax(110px,180px) 1fr 44px;align-items:center;gap:12px}
+.dbar-l{font-size:.85rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dbar-t{background:#eef1f7;border-radius:999px;height:12px;overflow:hidden}
+.dbar-t i{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--blue),var(--ocean))}
+.dbar-v{font-size:.85rem;font-weight:800;color:var(--ink);text-align:right}
+
+/* Panneau sombre — l'argent */
+.dpanel{background:var(--prussian);border-radius:var(--radius);padding:24px 24px 20px;
+  color:#fff;box-shadow:0 10px 30px rgba(0,54,82,.28)}
+.dpanel-h{margin:0 0 16px;font-size:.7rem;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;color:rgba(255,255,255,.62)}
+.dpanel-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px}
+.dpi{display:flex;flex-direction:column;gap:3px;padding-left:12px;
+  border-left:3px solid rgba(255,255,255,.18)}
+.dpi-l{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:rgba(255,255,255,.62)}
+.dpi-v{font-size:1.6rem;font-weight:800;letter-spacing:-.02em;color:#fff}
+.dpi-s{font-size:.76rem;color:rgba(255,255,255,.55)}
+.dpi-ok{border-left-color:var(--fluo)} .dpi-ok .dpi-v{color:var(--fluo)}
+.dpi-wait{border-left-color:#ffc24d} .dpi-wait .dpi-v{color:#ffc24d}
+.dpi-bad{border-left-color:#ff7a70} .dpi-bad .dpi-v{color:#ff9d95}
+.dprog{height:9px;border-radius:999px;background:rgba(255,255,255,.14);margin:20px 0 10px;overflow:hidden}
+.dprog i{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--fluo),#7fe0a0)}
+.dpanel-f{margin:0;font-size:.84rem;color:rgba(255,255,255,.72)}
+.dpanel-go{margin-left:10px;color:var(--fluo);font-weight:700;cursor:pointer;white-space:nowrap}
+.dpanel-go:hover{text-decoration:underline}
+
+/* Le bloc de detail vise par une alerte clignote une fois */
+.dash-flash{animation:dash-flash 1.6s ease}
+@keyframes dash-flash{0%,100%{box-shadow:var(--shadow)}
+  18%{box-shadow:0 0 0 3px rgba(7,62,181,.35),var(--shadow)}}
+
+@media (max-width:640px){
+  .dash-title{font-size:1.6rem}
+  .dstat-v{font-size:1.7rem}
+  .dpanel{padding:18px 16px 16px}
+  .dbar{grid-template-columns:minmax(80px,104px) 1fr 38px;gap:8px}
+}

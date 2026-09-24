@@ -2403,7 +2403,103 @@ async function calSupprimer() {
 // ===================================================================
 const dDaysAgo = (iso) => iso ? Math.floor((Date.now() - new Date(iso)) / 86400000) : 99999;
 const dFD = (iso) => iso ? frDate(String(iso).slice(0, 10)) : "—";
-function dashCard(title, inner) { return `<section class="dash-card"><h2 class="dash-h">${esc(title)}</h2>${inner}</section>`; }
+function dashCard(title, inner, id = "") {
+  return `<section class="dash-card"${id ? ` id="${id}"` : ""}><h2 class="dash-h">${esc(title)}</h2>${inner}</section>`;
+}
+
+// ---- Chiffres de tête ----------------------------------------------------
+// Le tableau de bord commence par ce qui se lit de loin : quelques nombres, et
+// ce qui demande une action. Le détail, lui, reste en dessous — il sert quand
+// on a repéré quelque chose, pas pour prendre la température.
+const dashNum = (n) => Number(n || 0).toLocaleString("fr-CH");
+const dashChf = (n) => Number(n || 0).toLocaleString("fr-CH", { maximumFractionDigits: 0 }) + " CHF";
+
+// Une tuile. `view` la rend cliquable : un chiffre qui interpelle doit mener
+// là où on peut agir, sinon il faut deviner quel onglet ouvrir.
+// Un head coach voit le tableau de bord mais n'a ni Messagerie ni Répertoire :
+// une tuile qui mène à un onglet qu'il n'a pas ouvrirait une vue vide. On garde
+// alors le chiffre, on retire seulement le lien. Un ancrage « #bloc » reste
+// toujours valable : il pointe dans la page elle-même.
+const dashPeutVoir = (v) => !v || v.startsWith("#")
+  || !!document.querySelector(`.side-item[data-view="${v}"]:not(.hidden)`);
+function dashStat({ label, value, sub = "", tone = "", view = "", icon = "" }) {
+  if (!dashPeutVoir(view)) view = "";
+  const cls = ["dstat", tone ? "st-" + tone : "", view ? "dstat-go" : ""].filter(Boolean).join(" ");
+  const attrs = view ? ` role="button" tabindex="0" data-go="${esc(view)}"` : "";
+  return `<div class="${cls}"${attrs}>
+    ${icon ? `<span class="dstat-i">${icon}</span>` : ""}
+    <span class="dstat-l">${esc(label)}</span>
+    <b class="dstat-v">${esc(String(value))}</b>
+    ${sub ? `<span class="dstat-s">${sub}</span>` : ""}
+    ${view ? '<span class="dstat-go-i" aria-hidden="true">→</span>' : ""}
+  </div>`;
+}
+function dashSection(title, sub, inner) {
+  return `<section class="dsec"><h2 class="dsec-h">${esc(title)}</h2>
+    ${sub ? `<p class="dsec-s">${esc(sub)}</p>` : ""}${inner}</section>`;
+}
+// Barres horizontales, en CSS : pas de librairie à charger pour huit lignes.
+function dashBars(rows) {
+  const max = Math.max(1, ...rows.map((r) => r.n));
+  // `title` : une adresse de boîte est plus longue que la colonne, et on ne
+  // doit pas avoir à deviner laquelle est laquelle.
+  return `<div class="dbars">${rows.map((r) => `<div class="dbar">
+    <span class="dbar-l" title="${esc(r.label)}">${esc(r.label)}</span>
+    <span class="dbar-t"><i style="width:${Math.round((r.n / max) * 100)}%"></i></span>
+    <span class="dbar-v">${dashNum(r.n)}</span></div>`).join("")}</div>`;
+}
+
+// Effectifs de la saison en cours, par filière. Une personne peut cumuler
+// plusieurs filières : on compte donc des personnes distinctes, par filière et
+// en tout — additionner les filières donnerait un total faux.
+async function dashEffectifs() {
+  const sea = currentSeason("juniors");
+  if (!sea) return null;
+  const { data, error } = await sb.from("role_periods").select("person_id,role").eq("season_id", sea.id);
+  if (error) return null;
+  const parRole = new Map(), tous = new Set();
+  for (const r of data || []) {
+    if (!parRole.has(r.role)) parRole.set(r.role, new Set());
+    parRole.get(r.role).add(r.person_id);
+    tous.add(r.person_id);
+  }
+  return {
+    saison: sea.label, total: tous.size,
+    filieres: [...parRole.entries()].map(([role, s]) => ({ label: roleLabel(role), n: s.size }))
+      .sort((a, b) => b.n - a.n),
+  };
+}
+// Cours de la semaine en cours (lundi → dimanche), en dates locales.
+async function dashSemaine() {
+  const n = new Date();
+  const j = (n.getDay() + 6) % 7;                         // 0 = lundi
+  const d = (dec) => { const x = new Date(n); x.setDate(n.getDate() + dec); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+  const { count } = await sb.from("courses").select("id", { count: "exact", head: true })
+    .gte("course_date", d(-j)).lte("course_date", d(6 - j));
+  return { cours: count || 0, du: d(-j), au: d(6 - j) };
+}
+// L'argent de la saison. Réservé à qui voit déjà l'onglet Factures : ce bloc
+// nomme des montants, il n'a rien à faire sous les yeux d'un coach.
+async function dashArgent() {
+  if (!canFactures()) return null;
+  const sea = currentSeason("juniors");
+  let q = sb.from("out_invoices").select("amount,status,issue_date,due_date");
+  if (sea) q = q.eq("season_id", sea.id);
+  const { data, error } = await q;
+  if (error) return null;
+  const auj = new Date().toISOString().slice(0, 10);
+  const a = { total: 0, encaisse: 0, reste: 0, maintenant: 0, retard: 0, nRetard: 0, n: (data || []).length };
+  for (const f of data || []) {
+    const m = Number(f.amount) || 0;
+    a.total += m;
+    if (f.status === "payee") { a.encaisse += m; continue; }
+    a.reste += m;
+    if (f.status === "a_envoyer" && f.issue_date <= auj) a.maintenant += m;
+    if (f.status === "envoyee" && f.due_date && f.due_date < auj) { a.retard += m; a.nRetard++; }
+  }
+  return a;
+}
+
 async function loadDashboard() {
   const body = $("dash-body");
   if (!$("dash-refresh").dataset.w) { $("dash-refresh").dataset.w = "1"; $("dash-refresh").addEventListener("click", loadDashboard); }
@@ -2411,13 +2507,16 @@ async function loadDashboard() {
   // Les appels partent ensemble : le tableau de bord ne doit pas s'afficher en
   // plusieurs temps. Une alerte qui échoue ne doit pas emporter le reste, d'où
   // les listes vides par défaut.
-  const [{ data, error }, abs, rel, nts, fac, wks] = await Promise.all([
+  const [{ data, error }, abs, rel, nts, fac, wks, eff, sem, arg] = await Promise.all([
     sb.rpc("dashboard_data"),
     sb.rpc("absences_a_signaler"),
     sb.rpc("contacts_a_relancer"),
     sb.rpc("dash_notes", { p_days: 7 }),
     dashFacturesData().catch(() => null),
     sb.from("gz_weekends").select("*").lte("weekend_start", new Date().toISOString().slice(0, 10)).order("weekend_start", { ascending: false }).limit(6),
+    dashEffectifs().catch(() => null),
+    dashSemaine().catch(() => null),
+    dashArgent().catch(() => null),
   ]);
   if (error) { body.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
   const D = data || {};
@@ -2426,18 +2525,119 @@ async function loadDashboard() {
   const notes = nts.error ? [] : (nts.data || []);
   // Dernier week-end GameZone encaissé (cash / carte / Twint et leur état de validation).
   const lastWk = (wks.error ? [] : (wks.data || [])).find((w) => Number(w.cash) + Number(w.carte) + Number(w.twint) > 0) || null;
-  $("dash-gen").textContent = D.generated_at ? "— " + frDateTime(D.generated_at) : "";
-  body.innerHTML = `<div class="dash-grid">`
-    + dashGeneral(D.general || {}, absences, lastWk) + dashNotes(notes) + dashRelances(relances) + dashMail(D.mail || {}) + dashFactures(fac)
+  $("dash-gen").textContent = D.generated_at ? "Mis à jour " + frDateTime(D.generated_at) : "";
+  if (eff?.saison) $("dash-saison").textContent = "Saison " + eff.saison;
+
+  const g = D.general || {}, mail = D.mail || {}, prosp = D.prospects || {};
+  const nSansCoach = (g.nocoach || []).length + (g.coachabs || []).length;
+  const nNonValides = (g.unvalidated || []).length + (g.unvalidated_et || []).length;
+  const nRelances = relances.filter((r) => r.en_retard).length;
+  const auj = new Date().toISOString().slice(0, 10);
+  const nProspects = (prosp.alerts || []).filter((a) => a.alert_at <= auj).length;
+
+  body.innerHTML =
+      dashAlertes({ nSansCoach, nNonValides, nAbsences: absences.length, nRelances, nProspects,
+                    nMail: mail.a_traiter || 0, arg })
+    + dashChiffres(eff, sem, g, mail, absences, nSansCoach, nNonValides, nRelances, nProspects)
+    + (arg ? dashArgentPanneau(arg, eff) : "")
+    + `<section class="dsec"><h2 class="dsec-h">Le détail</h2>
+       <p class="dsec-s">Tout ce qui nourrit les chiffres ci-dessus, bloc par bloc.</p>
+       <div class="dash-grid">`
+    + dashGeneral(g, absences, lastWk) + dashNotes(notes) + dashRelances(relances) + dashMail(mail) + dashFactures(fac)
     + dashGroup("Pro · Pro U18 · Sport-études", D.se || {})
     + dashGroup("Compétition & Performance", D.comp || {})
-    + dashClub(D.club || {}) + dashProspects(D.prospects || {}, (D.general || {}).lastup || {}) + `</div>`;
+    + dashClub(D.club || {}) + dashProspects(prosp, g.lastup || {}) + `</div></section>`;
+
   // « Voir tous » : révèle les lignes masquées (.dash-more) du même bloc.
   body.querySelectorAll(".dash-showmore").forEach((b) => b.addEventListener("click", () => {
     let el = b.previousElementSibling;
     while (el && el.classList.contains("dash-li")) { el.classList.remove("hidden"); el = el.previousElementSibling; }
     b.remove();
   }));
+  // Une tuile ou une alerte mène à l'onglet où l'on peut agir ; un ancrage
+  // « #bloc » fait défiler jusqu'au bloc de détail correspondant.
+  const aller = (el) => {
+    const v = el.dataset.go;
+    if (!v) return;
+    if (v.startsWith("#")) {
+      const c = body.querySelector(v);
+      if (c) { c.scrollIntoView({ behavior: "smooth", block: "center" }); c.classList.add("dash-flash"); setTimeout(() => c.classList.remove("dash-flash"), 1600); }
+      return;
+    }
+    showView(v);
+  };
+  body.querySelectorAll("[data-go]").forEach((el) => {
+    el.addEventListener("click", () => aller(el));
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); aller(el); } });
+  });
+}
+
+// Bandeau d'attention : seulement ce qui demande une action aujourd'hui. Vide,
+// il devient une ligne verte — l'absence d'alerte est une information, pas un
+// trou dans la page.
+function dashAlertes(x) {
+  const items = [];
+  if (x.nSansCoach) items.push([`${x.nSansCoach} cours à venir sans coach`, "#dbloc-general"]);
+  if (x.arg?.maintenant) items.push([`${dashChf(x.arg.maintenant)} de factures prêtes à partir`, "factures"]);
+  if (x.arg?.nRetard) items.push([`${x.arg.nRetard} facture(s) échue(s) et impayée(s) — ${dashChf(x.arg.retard)}`, "factures"]);
+  if (x.nMail) items.push([`${x.nMail} message(s) à traiter`, "mail"]);
+  if (x.nAbsences) items.push([`${x.nAbsences} élève(s) au-dessus du seuil d'absences`, "#dbloc-general"]);
+  if (x.nNonValides) items.push([`${x.nNonValides} cours passé(s) non validé(s)`, "#dbloc-general"]);
+  if (x.nRelances) items.push([`${x.nRelances} joueur(s) à recontacter`, "#dbloc-relances"]);
+  if (x.nProspects) items.push([`${x.nProspects} prospect(s) à relancer`, "prospects"]);
+  if (!items.length) return `<div class="dalert dalert-ok"><span class="dalert-i">✓</span>
+    <div><b>Rien qui presse.</b> Aucun cours sans coach, aucune facture en retard, aucun message en attente.</div></div>`;
+  return `<div class="dalert"><span class="dalert-i">!</span>
+    <div><b>${items.length} point(s) demandent une action</b>
+    <ul class="dalert-l">${items.map(([t, go]) => `<li>${dashPeutVoir(go)
+      ? `<span class="dalert-go" role="button" tabindex="0" data-go="${esc(go)}">${esc(t)}</span>`
+      : esc(t)}</li>`).join("")}</ul></div></div>`;
+}
+
+function dashChiffres(eff, sem, g, mail, absences, nSansCoach, nNonValides, nRelances, nProspects) {
+  const bdays = (g.birthdays || []).length;
+  const eleves = eff
+    ? dashStat({ label: "Élèves suivis", value: dashNum(eff.total), sub: "personnes différentes, toutes filières", tone: "blue", view: "membres", icon: "👥" })
+    : dashStat({ label: "Élèves suivis", value: "—", sub: "saison introuvable", tone: "blue" });
+  return dashSection("Les élèves", "Effectifs de la saison en cours ; une personne peut cumuler plusieurs filières.",
+      `<div class="dgrid">${eleves}
+        ${dashStat({ label: "Filières actives", value: eff ? eff.filieres.length : "—", sub: "avec au moins un élève", tone: "ocean" })}
+        ${dashStat({ label: "Anniversaires", value: bdays, sub: "de J−3 à J+3", tone: "mint", view: "anniv", icon: "🎂" })}
+        ${dashStat({ label: "À recontacter", value: nRelances, sub: "sport-études, pro et pro U18", tone: nRelances ? "warn" : "ok", view: "#dbloc-relances" })}</div>
+       ${eff && eff.filieres.length ? `<div class="dcard"><h3 class="dcard-h">Répartition par filière</h3>${dashBars(eff.filieres)}</div>` : ""}`)
+    + dashSection("Les cours", "La semaine en cours, et ce qui reste à traiter derrière.",
+      `<div class="dgrid">
+        ${dashStat({ label: "Cours cette semaine", value: sem ? dashNum(sem.cours) : "—", sub: sem ? `du ${dFD(sem.du)} au ${dFD(sem.au)}` : "", tone: "blue", view: "cours", icon: "🎾" })}
+        ${dashStat({ label: "Sans coach", value: nSansCoach, sub: "cours à venir non couverts", tone: nSansCoach ? "bad" : "ok", view: "#dbloc-general" })}
+        ${dashStat({ label: "Non validés", value: nNonValides, sub: "cours / études des 21 derniers jours", tone: nNonValides ? "warn" : "ok", view: "#dbloc-general" })}
+        ${dashStat({ label: "Absences à signaler", value: absences.length, sub: "plus de 5 h sur 20 jours", tone: absences.length ? "bad" : "ok", view: "#dbloc-general" })}</div>`)
+    + dashSection("La messagerie & le suivi", "Ce qui arrive, et ce qu'on n'a pas encore rendu.",
+      `<div class="dgrid">
+        ${dashStat({ label: "À traiter", value: mail.a_traiter || 0, sub: "toutes boîtes confondues", tone: (mail.a_traiter || 0) ? "warn" : "ok", view: "mail", icon: "✉" })}
+        ${dashStat({ label: "Reçus (7 j)", value: (mail.boxes || []).reduce((a, b) => a + (b.recv7 || 0), 0), sub: "sur l'ensemble des boîtes", tone: "ocean" })}
+        ${dashStat({ label: "Délai moyen", value: mail.avg_all_h != null ? mail.avg_all_h + " h" : "—", sub: "d'« à traiter » à « traité »", tone: "ocean" })}
+        ${dashStat({ label: "Prospects à relancer", value: nProspects, sub: "échéance atteinte", tone: nProspects ? "warn" : "ok", view: "prospects" })}</div>
+       ${(mail.boxes || []).length ? `<div class="dcard"><h3 class="dcard-h">Reçus par boîte (7 jours)</h3>${dashBars((mail.boxes || []).map((b) => ({ label: b.label, n: b.recv7 || 0 })))}</div>` : ""}`);
+}
+
+// L'argent, sur fond sombre : c'est le bloc qu'on vient chercher, il doit se
+// distinguer du reste au premier coup d'œil.
+function dashArgentPanneau(a, eff) {
+  const pct = a.total ? Math.round((a.encaisse / a.total) * 100) : 0;
+  return `<section class="dsec"><h2 class="dsec-h">L'argent</h2>
+    <p class="dsec-s">Saison ${esc(eff?.saison || "en cours")} · ${dashNum(a.n)} facture(s) émise(s).</p>
+    <div class="dpanel">
+      <p class="dpanel-h">Facturation de la saison</p>
+      <div class="dpanel-g">
+        <div class="dpi"><span class="dpi-l">Total facturé</span><b class="dpi-v">${dashChf(a.total)}</b><span class="dpi-s">toutes filières</span></div>
+        <div class="dpi dpi-ok"><span class="dpi-l">Encaissé</span><b class="dpi-v">${dashChf(a.encaisse)}</b><span class="dpi-s">paiements pointés</span></div>
+        <div class="dpi dpi-wait"><span class="dpi-l">Reste à encaisser</span><b class="dpi-v">${dashChf(a.reste)}</b><span class="dpi-s">envoyées et à envoyer</span></div>
+        <div class="dpi${a.nRetard ? " dpi-bad" : ""}"><span class="dpi-l">Échu et impayé</span><b class="dpi-v">${dashChf(a.retard)}</b><span class="dpi-s">${a.nRetard ? dashNum(a.nRetard) + " facture(s) en retard" : "rien en retard"}</span></div>
+      </div>
+      <div class="dprog" role="img" aria-label="${pct} % encaissé"><i style="width:${Math.min(100, pct)}%"></i></div>
+      <p class="dpanel-f">${pct} % de la saison encaissée · ${dashChf(a.maintenant)} prêt(es) à partir maintenant
+        <span class="dpanel-go" role="button" tabindex="0" data-go="factures">Ouvrir les factures →</span></p>
+    </div></section>`;
 }
 // Derniers messages écrits (7 jours), toutes sources : notes de cours (blocs), fil « Suivi »
 // transverse, notes Tennis / Physique, canal Mental avec le jeune. 5 visibles, « Voir plus » au-delà.
@@ -2492,7 +2692,7 @@ function dashRelances(l) {
   return dashCard("À recontacter",
     `<p class="muted" style="margin:0 0 8px;font-size:.85rem">Sport-études, Pro et Pro U18 — un point par mois.</p>
      ${inner}
-     ${ok ? `<div class="dash-row" style="margin-top:8px"><span class="muted">À jour</span><span>${ok}</span></div>` : ""}`);
+     ${ok ? `<div class="dash-row" style="margin-top:8px"><span class="muted">À jour</span><span>${ok}</span></div>` : ""}`, "dbloc-relances");
 }
 
 // Encaissé du dernier week-end GameZone : cash (à compter / validé), carte (mail SumUp attendu, reçu, validé),
@@ -2544,7 +2744,7 @@ function dashGeneral(g, absences, lastWk) {
      <h3 class="dash-sub">Couverture coachs (cours à venir)</h3>${cov}
      <h3 class="dash-sub">Cours / études passés non validés (21 j)</h3>${unval}
      <h3 class="dash-sub">Absences cumulées (&gt; 5 h sur les 20 derniers jours, compétition → pro)</h3>${dashAbsences(absences || [])}
-     <h3 class="dash-sub">Anniversaires (J−3 → J+3)</h3>${bday}`);
+     <h3 class="dash-sub">Anniversaires (J−3 → J+3)</h3>${bday}`, "dbloc-general");
 }
 function dashMail(m) {
   const boxes = (m.boxes || []).map((b) => `<div class="dash-row"><span>${esc(b.label)}</span><span><b>${b.recv7}</b> reçus</span></div>`).join("");
