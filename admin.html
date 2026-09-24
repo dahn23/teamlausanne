@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=250" />
+  <link rel="stylesheet" href="style.css?v=251" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -95,6 +95,7 @@
                 <button id="new-person">+ Nouveau</button>
               </div>
             </div>
+            <div id="gz-review-banner" class="gz-review-banner hidden"></div>
             <div id="people-filters" class="people-filters"></div>
             <p id="people-count" class="people-count muted"></p>
             <div class="table-wrap">
@@ -1809,6 +1810,7 @@ Team Lausanne Tennis</textarea></label>
         <button type="button" class="ptab" data-ptab="contacts">Échanges</button>
         <button type="button" class="ptab" data-ptab="contrat">Contrat</button>
         <button type="button" class="ptab" data-ptab="stages">Stages</button>
+        <button type="button" class="ptab hidden" data-ptab="gamezone">GameZone</button>
         <button type="button" class="ptab" data-ptab="media">Photos / vidéos</button>
         <button type="button" class="ptab" data-ptab="obj">Objectifs</button>
         <button type="button" class="ptab" data-ptab="coach">Rémunération</button>
@@ -2006,6 +2008,11 @@ Team Lausanne Tennis</textarea></label>
         </div>
       </div>
 
+      <div id="ptab-gamezone" class="ptab-panel hidden">
+        <h3 style="margin:0 0 8px">Participations aux tournois</h3>
+        <div id="pgz-summary" class="muted" style="font-size:.86rem;margin-bottom:8px"></div>
+        <div id="pgz-list" class="table-wrap"></div>
+      </div>
       <div id="ptab-media" class="ptab-panel hidden">
         <div class="media-add">
           <button type="button" id="media-btn" class="ghost">Ajouter une photo / vidéo</button>

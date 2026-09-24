@@ -240,6 +240,7 @@ const PERSON_ROLES = [
   ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"],
   ["prof", "Prof"], ["coach-mental", "Coach mental"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
   ["concierge", "Concierge"],   // salarié sans aucun accès à l'app (fiche + salaire seulement)
+  ["gamezone", "GameZone"],     // joueur de tournoi GameZone relié automatiquement (db/101) ; aucun accès à l'app
 ];
 const roleLabel = (r) => (PERSON_ROLES.find(([v]) => v === r) || [r, r])[1];
 
@@ -1333,13 +1334,26 @@ async function toggleRole(c) {
   }
 }
 
+// Lecture complète d'une table au-delà de la limite de 1 000 lignes par requête (voir la note « Limite 1000 lignes »).
+// `make` reconstruit la requête à chaque page (un constructeur Supabase ne se réutilise pas après exécution).
+async function fetchAllRows(make) {
+  const out = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await make().range(from, from + 999);
+    if (error) return { data: null, error };
+    out.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return { data: out, error: null };
+}
 async function loadPeople() {
   await loadSeasonsList();
   const curIds = [currentSeason("cotisation"), currentSeason("juniors")].filter(Boolean).map((s) => s.id);
+  // Le répertoire dépasse 1 000 fiches depuis l'arrivée des joueurs GameZone (db/101) : lecture par pages.
   const [{ data, error }, { data: pr }, { data: rp }] = await Promise.all([
-    sb.from("people").select("*").order("last_name").order("first_name"),
-    sb.from("person_roles").select("person_id,role"),
-    curIds.length ? sb.from("role_periods").select("person_id,role,season_id").in("season_id", curIds) : Promise.resolve({ data: [] }),
+    fetchAllRows(() => sb.from("people").select("*").order("last_name").order("first_name").order("id")),
+    fetchAllRows(() => sb.from("person_roles").select("person_id,role").order("person_id").order("role")),
+    curIds.length ? fetchAllRows(() => sb.from("role_periods").select("person_id,role,season_id").in("season_id", curIds).order("person_id").order("role")) : Promise.resolve({ data: [] }),
   ]);
   if (error) { alert("Erreur chargement : " + error.message); return; }
   people = data || [];
@@ -1358,6 +1372,7 @@ async function loadPeople() {
   renderFilters();
   renderRows();
   refreshBirthdayBadge(); refreshInscriptionBadge(); refreshStagesBadge();   // pastilles du menu latéral
+  loadGzReview();
 }
 
 // ---- Pastilles du menu latéral : demandes d'inscription visibles, anniversaires du jour ----
@@ -1629,6 +1644,10 @@ function openPerson(p) {
   $("credit-section").classList.toggle("hidden", !p);
   if (p) { populateFamPersons(p.id); loadFamily(p.id); loadCredit(p.id); }
   const roles = p ? (peopleRoles[p.id] || []) : [];
+  // Joueur GameZone sans autre rôle ni filière : seulement Info + GameZone (les autres onglets reviennent
+  // dès qu'il reçoit un rôle). showPersonTab() applique ce filtre, y compris aux onglets affichés plus tard.
+  personGzOnly = !!p && roles.length > 0 && roles.every((r) => r === "gamezone");
+  loadPersonGz(p ? p.id : null);
   // Onglet Réservations : visible si membre/client (ou si des résas existent — persistance)
   const resaByRole = roles.includes("membre") || roles.includes("client");
   const coursByRole = COURSE_ROLES.some((r) => roles.includes(r));
@@ -1668,6 +1687,7 @@ function openPerson(p) {
   loadCoachRates(p ? p.id : null);
   loadPersonPay(p ? p.id : null, staffPayRole && canSalaries());
   setPersonTab("info");
+  applyGzOnlyTabs();
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
@@ -1686,9 +1706,88 @@ function setPersonTab(tab) {
   document.querySelectorAll("#person-form .ptab-panel").forEach((p) =>
     p.classList.toggle("hidden", p.id !== `ptab-${tab}`));
 }
+let personGzOnly = false;
+const GZ_ONLY_TABS = ["info", "gamezone"];
 function showPersonTab(tab, show) {
   const btn = document.querySelector(`#p-tabs .ptab[data-ptab="${tab}"]`);
-  if (btn) btn.classList.toggle("hidden", !show);
+  if (!btn) return;
+  btn.removeAttribute("data-gzhid");
+  btn.classList.toggle("hidden", !show || (personGzOnly && !GZ_ONLY_TABS.includes(tab)));
+}
+// Onglets toujours visibles (Saisons, Photos, Objectifs…) : masqués eux aussi pour une fiche GameZone seulement,
+// avec une marque pour les ré-afficher à l'ouverture de la fiche suivante.
+function applyGzOnlyTabs() {
+  document.querySelectorAll("#p-tabs .ptab").forEach((b) => {
+    if (personGzOnly && !GZ_ONLY_TABS.includes(b.dataset.ptab)) {
+      if (!b.classList.contains("hidden")) { b.classList.add("hidden"); b.setAttribute("data-gzhid", "1"); }
+    } else if (b.hasAttribute("data-gzhid")) { b.classList.remove("hidden"); b.removeAttribute("data-gzhid"); }
+  });
+}
+
+// ---- Onglet « GameZone » de la fiche : tournois joués, par saison, avec les victoires (RPC person_gz_history, db/101) ----
+async function loadPersonGz(pid) {
+  $("pgz-list").innerHTML = ""; $("pgz-summary").textContent = "";
+  if (!pid) { showPersonTab("gamezone", false); return; }
+  const { data } = await sb.rpc("person_gz_history", { p_person: pid });
+  if ($("p-id").value !== pid) return;   // une autre fiche a été ouverte entre-temps
+  const rows = Array.isArray(data) ? data : [];
+  showPersonTab("gamezone", rows.length > 0);
+  if (!rows.length) return;
+  const played = rows.filter((r) => !r.absent), wins = rows.filter((r) => r.winner);
+  const bySeason = {};
+  for (const r of rows) (bySeason[r.season || "—"] = bySeason[r.season || "—"] || []).push(r);
+  $("pgz-summary").innerHTML = `${rows.length} inscription(s) · ${played.length} tournoi(s) joué(s) · <b>${wins.length} victoire(s)</b>`
+    + (rows[0].club ? ` · club ${esc(rows[0].club)}` : "");
+  $("pgz-list").innerHTML = Object.keys(bySeason).sort().reverse().map((s) => {
+    const list = bySeason[s], w = list.filter((r) => r.winner).length;
+    return `<h4 style="margin:12px 0 6px">Saison ${esc(s)} <span class="muted" style="font-weight:600;font-size:.82rem">· ${list.length} tournoi(s)${w ? ` · ${w} victoire(s)` : ""}</span></h4>
+      <table class="crm-table"><thead><tr><th>Date</th><th>Tournoi</th><th>Épreuve</th><th>Résultat</th></tr></thead><tbody>`
+      + list.map((r) => `<tr><td>${frDate(r.date)}</td><td>${esc(r.name || "Tournoi")}${r.gamezone ? "" : ' <span class="muted" style="font-size:.75rem">(Team Lausanne)</span>'}</td>
+          <td>${esc(r.epreuves || "—")}</td>
+          <td>${r.winner ? `${ICO_CUP} <b>Vainqueur</b>` : r.absent ? '<span class="muted">absent</span>' : "joué"}</td></tr>`).join("")
+      + "</tbody></table>";
+  }).join("");
+}
+
+// ---- Joueurs GameZone « à vérifier » : ressemblance avec une fiche sans certitude (db/101) ----
+let gzReview = [];
+async function loadGzReview() {
+  const box = $("gz-review-banner"); if (!box) return;
+  const { data, error } = await sb.rpc("gz_link_review_list");
+  gzReview = error ? [] : (data || []);
+  box.classList.toggle("hidden", !gzReview.length);
+  if (!gzReview.length) { box.innerHTML = ""; return; }
+  box.innerHTML = `<span>⚠ <b>${gzReview.length} joueur(s) GameZone</b> ressemble(nt) à une fiche existante sans certitude : à vérifier avant de les relier.</span>
+    <button type="button" class="ghost" id="gz-review-open">Vérifier</button>`;
+  $("gz-review-open").addEventListener("click", openGzReview);
+}
+function openGzReview() {
+  const ov = document.createElement("div"); ov.className = "ui-modal";
+  const render = () => {
+    if (!gzReview.length) { ov.remove(); loadPeople(); return; }
+    ov.innerHTML = `<div class="ui-box" style="max-width:620px;text-align:left">
+      <h3 style="margin:0 0 6px">Joueurs GameZone à vérifier</h3>
+      <p class="muted" style="margin:0 0 12px;font-size:.85rem">Même nom qu'une fiche, mais la licence ou la naissance ne concorde pas. Relie-le à la bonne fiche, ou crée une nouvelle fiche si c'est quelqu'un d'autre.</p>
+      ${gzReview.map((r, i) => `<div class="gz-review-item">
+        <div><b>${esc(r.player.last_name)} ${esc(r.player.first_name)}</b> · licence ${esc(r.player.license_no || "—")}${r.player.born ? ` · né(e) le ${frDate(r.player.born)}` : ""}${r.player.club ? ` · ${esc(r.player.club)}` : ""}
+          <div class="muted" style="font-size:.78rem">${esc(r.reason)}</div></div>
+        ${(r.candidates || []).map((c) => `<div class="gz-review-cand"><span>Fiche : <b>${esc(c.last_name)} ${esc(c.first_name)}</b> · ${c.birthdate ? frDate(c.birthdate) : "naissance ?"} · licence ${esc(c.license_no || "—")}</span>
+          <button type="button" class="primary gz-rv-link" data-i="${i}" data-p="${c.id}">C'est la même personne</button></div>`).join("")}
+        <button type="button" class="ghost gz-rv-new" data-i="${i}">Autre personne : créer une fiche</button>
+      </div>`).join("")}
+      <div class="ui-actions"><button type="button" class="ghost ui-no">Fermer</button></div></div>`;
+    const act = async (i, person) => {
+      const r = gzReview[i];
+      const { error } = await sb.rpc("gz_link_resolve", { p_gid: r.participant_id, p_person: person });
+      if (error) { uiAlert("Impossible : " + error.message); return; }
+      gzReview.splice(i, 1); render();
+    };
+    ov.querySelectorAll(".gz-rv-link").forEach((b) => b.addEventListener("click", () => act(+b.dataset.i, b.dataset.p)));
+    ov.querySelectorAll(".gz-rv-new").forEach((b) => b.addEventListener("click", () => act(+b.dataset.i, null)));
+    ov.querySelector(".ui-no").addEventListener("click", () => { ov.remove(); loadPeople(); });
+  };
+  render();
+  document.body.appendChild(ov);
 }
 
 // Rôles qui font apparaître l'onglet Cours
@@ -13032,7 +13131,7 @@ async function openMailAttachment(attId, meta, btn) {
 //  Anniversaires (secrétaire/admin/superadmin/head coach)
 //  Fenêtre : aujourd'hui −7 j → +21 j. Tout le monde sauf membres/clients.
 // ===================================================================
-const BDAY_EXCLUDE = ["membre", "client"];
+const BDAY_EXCLUDE = ["membre", "client", "gamezone"];   // gamezone : joueurs de tournoi externes (db/101)
 // Rôles mis en évidence dans la liste (les « importants » de l'académie)
 const BDAY_HIGHLIGHT = ["pro", "pro-u18", "sport-etudes", "competition", "performance", "coach", "head-coach", "prof", "admin", "superadmin"];
 async function loadBirthdays() {
