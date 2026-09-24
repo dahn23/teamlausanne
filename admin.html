@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=240" />
+  <link rel="stylesheet" href="style.css?v=241" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1374,8 +1374,17 @@
         </div>
 
         <div id="view-factures" class="view hidden">
-          <div class="crm-head"><h1>Factures</h1></div>
-          <div class="subnav">
+          <header class="dash-hero">
+            <div class="dash-hero-t">
+              <p class="dash-eyebrow" id="fac-eyebrow">QR-facture suisse</p>
+              <h1 class="dash-title">Facturation</h1>
+              <p class="dash-lede">Ce qu'on doit encore payer, ce qu'on doit encaisser, et ce qui est arrivé sur le compte.</p>
+            </div>
+            <div class="dash-hero-a"><button type="button" id="fac-refresh" class="ghost">↻ Actualiser</button></div>
+          </header>
+          <div id="fac-attention"></div>
+          <div id="fac-chiffres" class="dgrid" style="margin-bottom:22px"></div>
+          <div class="subnav subnav-pills">
             <button type="button" class="subtab fac-subtab active" data-fsub="recues">Reçues — à payer</button>
             <button type="button" class="subtab fac-subtab" data-fsub="emises">Émises — à encaisser</button>
             <button type="button" class="subtab fac-subtab" data-fsub="encaiss">Encaissements</button>

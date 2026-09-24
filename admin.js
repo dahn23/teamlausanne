@@ -7711,11 +7711,99 @@ function initFactures() {
   }));
   initOutInvoices();
   initEncaissements();
+  $("fac-refresh").addEventListener("click", () => loadFactures());
   // La pastille « Impayées » doit être juste sans qu'on ouvre l'onglet : c'est
   // elle qui signale qu'une famille est en retard.
   loadImpayees();
 }
 
+
+// ===================================================================
+//  Facturation — en-tête : ce qui presse, puis les quatre chiffres
+// ===================================================================
+// Même logique que le tableau de bord : on entre par ce qui demande une action
+// et par des nombres qui se lisent de loin, les tableaux viennent après. Les
+// chiffres sont calculés à part des onglets : ils doivent être justes même
+// quand on est sur « Tarifs » et que rien d'autre n'est chargé.
+let facChiffresCache = null;
+
+async function facChiffres() {
+  const auj = new Date().toISOString().slice(0, 10);
+  const [oi, ent, rec] = await Promise.all([
+    sb.from("out_invoices").select("amount,status,issue_date,due_date,filiere"),
+    sb.from("bank_entries").select("amount,status"),
+    sb.from("invoices").select("id,status").neq("status", "payee"),
+  ]);
+  const f = oi.data || [];
+  const c = { aEnvoyer: 0, aEnvoyerM: 0, mEnvoyer: 0, encaissables: 0, mEncaissables: 0,
+              payees: 0, mPayees: 0, retard: 0, mRetard: 0,
+              aValider: (ent.data || []).filter((e) => e.status === "a_valider").length,
+              mAValider: (ent.data || []).filter((e) => e.status === "a_valider").reduce((a, e) => a + Number(e.amount), 0),
+              recues: (rec.data || []).length };
+  for (const x of f) {
+    const m = Number(x.amount) || 0;
+    if (x.status === "a_envoyer") {
+      c.aEnvoyer++; c.mEnvoyer += m;
+      if (x.issue_date <= auj) c.aEnvoyerM++;
+    } else if (x.status === "envoyee") {
+      c.encaissables++; c.mEncaissables += m;
+      if (x.due_date && x.due_date < auj) { c.retard++; c.mRetard += m; }
+    } else if (x.status === "payee") { c.payees++; c.mPayees += m; }
+  }
+  facChiffresCache = c;
+  return c;
+}
+
+// Aller à un onglet de la section, en posant au passage le filtre qui va bien :
+// une tuile « en retard » doit ouvrir la liste des retards, pas la liste entière.
+function facAller(sub, filtre) {
+  const b = document.querySelector(`#view-factures .fac-subtab[data-fsub="${sub}"]`);
+  if (b) b.click();
+  if (sub === "emises" && filtre) { oiFilter = filtre; renderOiFilters(); renderOutInvoices(); }
+}
+
+function renderFacEntete(c) {
+  if (!c) return;
+  const sea = currentSeason("juniors");
+  const eye = $("fac-eyebrow");
+  if (eye) eye.textContent = `QR-facture suisse${sea ? " · Saison " + sea.label : ""}`;
+
+  const items = [];
+  if (c.aEnvoyerM) items.push([`${c.aEnvoyerM} facture(s) prête(s) à partir`, "emises:maintenant"]);
+  if (c.aValider) items.push([`${c.aValider} versement(s) à valider — ${oiChf(c.mAValider)}`, "encaiss:"]);
+  if (c.retard) items.push([`${c.retard} facture(s) en retard — ${oiChf(c.mRetard)}`, "impayees:"]);
+  if (c.recues) items.push([`${c.recues} facture(s) reçue(s) encore à traiter`, "recues:"]);
+  $("fac-attention").innerHTML = items.length
+    ? `<div class="dalert"><span class="dalert-i">!</span><div>
+        <b>${items.length} point(s) demandent une action</b>
+        <ul class="dalert-l">${items.map(([t, go]) =>
+          `<li><span class="dalert-go" role="button" tabindex="0" data-fgo="${esc(go)}">${esc(t)}</span></li>`).join("")}</ul>
+       </div></div>`
+    : `<div class="dalert dalert-ok"><span class="dalert-i">✓</span><div>
+        <b>Rien qui presse.</b> Aucune facture prête à partir, aucun versement en attente, aucun retard.</div></div>`;
+
+  const tuile = (label, n, montant, sub, tone, icon) => `
+    <div class="dstat st-${tone} dstat-go" role="button" tabindex="0" data-fgo="${esc(sub)}">
+      <span class="dstat-i">${icon}</span>
+      <span class="dstat-l">${esc(label)}</span>
+      <b class="dstat-v">${dashNum(n)}</b>
+      <span class="dstat-s">${oiChf(montant)}</span>
+      <span class="dstat-go-i" aria-hidden="true">→</span>
+    </div>`;
+  $("fac-chiffres").innerHTML =
+      tuile("À envoyer", c.aEnvoyer, c.mEnvoyer, "emises:maintenant", c.aEnvoyerM ? "warn" : "blue", "✉")
+    + tuile("À encaisser", c.encaissables, c.mEncaissables, "emises:envoyee", "ocean", "⏳")
+    + tuile("Encaissé", c.payees, c.mPayees, "encaiss:", "ok", "✓")
+    + tuile("En retard", c.retard, c.mRetard, "impayees:", c.retard ? "bad" : "ok", "⚠");
+
+  document.querySelectorAll("#view-factures [data-fgo]").forEach((el) => {
+    const go = () => { const [sub, filtre] = el.dataset.fgo.split(":"); facAller(sub, filtre); };
+    el.addEventListener("click", go);
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
+}
+
+async function majFacEntete() { renderFacEntete(await facChiffres()); }
 // ===================================================================
 //  Encaissements — relevé bancaire → rapprochement → validation
 // ===================================================================
@@ -7988,6 +8076,7 @@ async function encValider(ids) {
   if (errs.length) uiAlert(`${ok} encaissé(s).\n\n${errs.length} en échec :\n` + errs.slice(0, 5).join("\n"));
   await loadEncaissements();
   loadImpayees();
+  majFacEntete();
   if (typeof loadOutInvoices === "function") loadOutInvoices();
 }
 
@@ -8130,6 +8219,7 @@ async function impRelancer(ids) {
   st.textContent = ""; btn.disabled = false;
   uiAlert(`${ok} rappel(s) envoyé(s).` + (errs.length ? `\n\n${errs.length} en échec :\n` + errs.slice(0, 5).join("\n") : ""));
   await loadImpayees();
+  majFacEntete();
 }
 
 function initEncaissements() {
@@ -8894,6 +8984,7 @@ async function loadFactures() {
   if (error) { $("fac-rows").innerHTML = `<tr><td colspan="7" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
   facList = data || [];
   renderFacFilters(); renderFactures();
+  majFacEntete();    // les quatre chiffres de l'en-tête, indépendants de l'onglet ouvert
   facAutoScanQR();   // factures venues des mails (ou sans montant) : lecture du QR en arrière-plan
 }
 // Lit le QR des factures encore sans montant (surtout celles créées depuis un mail),

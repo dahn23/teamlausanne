@@ -3509,3 +3509,16 @@ tr.enc-ok td{background:#f4fbf6}
 .sub-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;
   margin-left:5px;border-radius:999px;background:#fdeceb;color:#b3261e;
   font-size:.7rem;font-weight:800;vertical-align:middle}
+
+/* ---- Facturation : en-tete facon tableau de bord ----------------------- */
+/* Sous-onglets en pastilles : la section en compte cinq, un simple soulignement
+   se perdait au milieu des barres d'outils qui suivent. */
+.subnav-pills{box-shadow:none;gap:4px;padding:4px;background:#f1f4f9;border-radius:999px;
+  display:inline-flex;max-width:100%;margin:0 0 18px}
+.subnav-pills .subtab{border:0;border-radius:999px;padding:8px 16px;font-size:.88rem}
+.subnav-pills .subtab:hover{background:#e7ecf5}
+.subnav-pills .subtab.active{background:var(--card);color:var(--blue);border-bottom:0;
+  box-shadow:0 1px 4px rgba(20,26,46,.14)}
+/* Les barres d'outils de chaque onglet : meme respiration que les cartes. */
+.fac-sub > p.muted:first-of-type{max-width:78ch;line-height:1.5}
+#view-factures .fac-filters{margin-bottom:10px}
