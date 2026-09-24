@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=239" />
+  <link rel="stylesheet" href="style.css?v=240" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1378,6 +1378,8 @@
           <div class="subnav">
             <button type="button" class="subtab fac-subtab active" data-fsub="recues">Reçues — à payer</button>
             <button type="button" class="subtab fac-subtab" data-fsub="emises">Émises — à encaisser</button>
+            <button type="button" class="subtab fac-subtab" data-fsub="encaiss">Encaissements</button>
+            <button type="button" class="subtab fac-subtab" data-fsub="impayees">Impayées <span id="imp-badge" class="sub-badge" hidden></span></button>
             <button type="button" class="subtab fac-subtab" data-fsub="tarifs">Tarifs</button>
           </div>
 
@@ -1409,6 +1411,7 @@
                  out_invoices_en_attente() : dès qu'une fiche est complétée, la
                  facturation part toute seule et la ligne disparaît d'ici. -->
             <div id="oi-attente" class="oi-attente hidden"></div>
+            <div id="oi-filieres" class="fac-filters fac-fil-row"></div>
             <div class="fac-barre">
               <div id="oi-filters" class="fac-filters"></div>
               <label class="fac-rech">
@@ -1422,6 +1425,40 @@
               </tr></thead><tbody id="oi-rows"></tbody></table>
             </div>
             <p id="oi-empty" class="muted" hidden>Aucune facture émise.</p>
+          </div>
+
+          <!-- ---- Encaissements : import du relevé bancaire et rapprochement ---- -->
+          <div id="fac-sub-encaiss" class="fac-sub hidden">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+              <label class="btnlike" style="cursor:pointer">📥 Importer un relevé
+                <input id="enc-file" type="file" accept="application/pdf,.xml,text/xml,application/xml" hidden /></label>
+              <button id="enc-valider-tout" type="button" class="ghost" title="Valide tous les versements rapprochés par la référence QR">✓ Valider les rapprochements sûrs</button>
+              <span id="enc-status" class="muted" style="font-size:.86rem"></span>
+            </div>
+            <p class="muted" style="margin-top:0;font-size:.88rem">Dépose le relevé PostFinance — <b>PDF</b> ou, bien mieux, le fichier <b>camt.053 (XML)</b> proposé par l'e-banking : il contient la référence QR de chaque versement, donc le rapprochement est exact. Rien n'est encaissé à l'import : chaque ligne se valide, et c'est la validation qui marque la facture payée.</p>
+            <div id="enc-recap" class="enc-recap"></div>
+            <div class="table-wrap">
+              <table class="crm-table fac-table"><thead><tr>
+                <th>Date</th><th>Montant</th><th>Versé par</th><th>Référence / communication</th><th>Facture</th><th>Rapprochement</th><th></th>
+              </tr></thead><tbody id="enc-rows"></tbody></table>
+            </div>
+            <p id="enc-empty" class="muted" hidden>Aucun versement importé pour l'instant.</p>
+          </div>
+
+          <!-- ---- Impayées : qui doit encore, et depuis combien de temps ---- -->
+          <div id="fac-sub-impayees" class="fac-sub hidden">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+              <button id="imp-relancer" type="button" class="ghost" title="Envoie un rappel par mail aux familles cochées, avec la facture en pièce jointe">✉ Envoyer un rappel à la sélection</button>
+              <span id="imp-status" class="muted" style="font-size:.86rem"></span>
+            </div>
+            <p class="muted" style="margin-top:0;font-size:.88rem">Factures envoyées dont l'échéance est passée et qui ne sont pas encore pointées comme payées. Le rappel reprend la facture d'origine, avec sa QR-facture — la famille n'a rien à retrouver.</p>
+            <div id="imp-filters" class="fac-filters"></div>
+            <div class="table-wrap">
+              <table class="crm-table fac-table"><thead><tr>
+                <th><input type="checkbox" id="imp-sel-all" title="Tout cocher" /></th><th>N°</th><th>Destinataire</th><th>Joueur</th><th>Filière</th><th>Montant</th><th>Échéance</th><th>Retard</th><th>Rappels</th><th></th>
+              </tr></thead><tbody id="imp-rows"></tbody></table>
+            </div>
+            <p id="imp-empty" class="muted" hidden>Aucune facture en retard. </p>
           </div>
 
           <div id="fac-sub-tarifs" class="fac-sub hidden">

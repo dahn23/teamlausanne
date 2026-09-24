@@ -7706,8 +7706,451 @@ function initFactures() {
     document.querySelectorAll("#view-factures .fac-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "fac-sub-" + b.dataset.fsub));
     if (b.dataset.fsub === "tarifs") { renderFacTarifs(); renderFacPeak(); }
     if (b.dataset.fsub === "emises") loadOutInvoices();
+    if (b.dataset.fsub === "encaiss") loadEncaissements();
+    if (b.dataset.fsub === "impayees") loadImpayees();
   }));
   initOutInvoices();
+  initEncaissements();
+  // La pastille « Impayées » doit être juste sans qu'on ouvre l'onglet : c'est
+  // elle qui signale qu'une famille est en retard.
+  loadImpayees();
+}
+
+// ===================================================================
+//  Encaissements — relevé bancaire → rapprochement → validation
+// ===================================================================
+// Rien n'est encaissé à l'import. On lit le relevé, on propose un
+// rapprochement, et c'est la validation qui marque la facture payée. Un
+// rapprochement automatique qui se trompe encaisse une facture qui ne l'est
+// pas : la famille ne reçoit plus de rappel et personne ne s'en aperçoit.
+//
+// Deux formats. Le camt.053 (XML de l'e-banking) porte la référence QR dans un
+// champ à lui : le rapprochement est alors exact. Le PDF n'est qu'une mise en
+// page — on y retrouve la référence quand elle y est écrite, sinon la ligne
+// reste à rapprocher à la main. D'où la règle : on ne rapproche tout seul que
+// sur référence QR ET montant identique.
+let encList = [], encStmts = [], encInit = false;
+
+const encNum = (s) => {
+  const t = String(s || "").replace(/['’ \s]/g, "").replace(",", ".");
+  return /^-?\d+(\.\d{1,2})?$/.test(t) ? Number(t) : null;
+};
+// Référence SCOR telle qu'on la compare : sans espaces, en majuscules.
+const encRef = (s) => String(s || "").replace(/\s+/g, "").toUpperCase();
+const encDate = (s) => {
+  const m = String(s || "").match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
+  if (!m) return null;
+  const an = m[3].length === 2 ? "20" + m[3] : m[3];
+  return `${an}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+};
+const encEmpreinte = (l) => [l.value_date || "", l.amount, encRef(l.reference), String(l.communication || "").slice(0, 40)].join("|");
+
+// ---- camt.053 : le format fait pour ça ----------------------------------
+function encLireCamt(texte) {
+  const doc = new DOMParser().parseFromString(texte, "application/xml");
+  if (doc.querySelector("parsererror")) throw new Error("XML illisible.");
+  const txt = (el, sel) => { const n = el?.querySelector(sel); return n ? n.textContent.trim() : ""; };
+  const lignes = [];
+  for (const ntry of doc.querySelectorAll("Ntry")) {
+    // Seuls les crédits nous intéressent : un débit n'encaisse aucune facture.
+    if (txt(ntry, "CdtDbtInd") !== "CRDT") continue;
+    const dateN = txt(ntry, "ValDt Dt") || txt(ntry, "BookgDt Dt");
+    // Une écriture peut regrouper plusieurs versements (Ntry → n × TxDtls).
+    const dtls = [...ntry.querySelectorAll("TxDtls")];
+    const sources = dtls.length ? dtls : [ntry];
+    for (const d of sources) {
+      const montant = encNum(txt(d, "Amt") || txt(ntry, "Amt"));
+      if (montant == null || montant <= 0) continue;
+      lignes.push({
+        value_date: dateN || null,
+        amount: montant,
+        currency: (d.querySelector("Amt") || ntry.querySelector("Amt"))?.getAttribute("Ccy") || "CHF",
+        reference: encRef(txt(d, "CdtrRefInf Ref")),
+        debtor_name: txt(d, "RltdPties Dbtr Nm") || txt(ntry, "RltdPties Dbtr Nm"),
+        communication: txt(d, "Ustrd") || txt(ntry, "AddtlNtryInf"),
+        raw: (txt(d, "Ustrd") || txt(ntry, "AddtlNtryInf") || "").slice(0, 300),
+      });
+    }
+  }
+  return lignes;
+}
+
+// ---- PDF : on lit ce qu'on peut, on ne devine rien ----------------------
+// Le texte est reconstitué en lignes (même y), puis découpé en blocs qui
+// commencent à une date : un versement tient souvent sur deux ou trois lignes,
+// la référence étant rejetée en dessous du montant.
+async function encLirePdf(bytes) {
+  await salLibs();
+  const pdf = await window.pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+  const toutes = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    const items = tc.items.filter((it) => it.str && it.str.trim())
+      .map((it) => ({ s: it.str.trim(), x: it.transform[4], y: it.transform[5] }));
+    const lignes = [];
+    for (const it of items) {
+      const L = lignes.find((l) => Math.abs(l.y - it.y) <= 2);
+      if (L) L.items.push(it); else lignes.push({ y: it.y, items: [it] });
+    }
+    lignes.sort((a, b) => b.y - a.y);
+    for (const l of lignes) { l.items.sort((a, b) => a.x - b.x); toutes.push(l.items.map((i) => i.s).join(" ")); }
+  }
+  // Découpage en blocs : une nouvelle date ouvre un versement.
+  const blocs = []; let cur = null;
+  for (const l of toutes) {
+    if (/^\s*\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}\b/.test(l)) { if (cur) blocs.push(cur); cur = [l]; }
+    else if (cur) cur.push(l);
+  }
+  if (cur) blocs.push(cur);
+
+  const lignes = [];
+  for (const b of blocs) {
+    const texte = b.join(" ");
+    const date = encDate(texte);
+    if (!date) continue;
+    const ref = encRef((texte.match(/RF\s?\d{2}[\s0-9A-Za-z]{1,25}/) || [""])[0]);
+    // Tous les nombres du bloc qui ressemblent à un montant. On ne sait pas
+    // lequel est le mouvement et lequel est le solde : on garde le plus
+    // plausible et on laisse la ligne « à vérifier » si rien ne colle.
+    const nums = (texte.match(/\d[\d'’  ]*[.,]\d{2}\b/g) || []).map(encNum).filter((n) => n != null && n > 0);
+    if (!nums.length) continue;
+    lignes.push({
+      value_date: date,
+      amount: nums[0],
+      montants_possibles: [...new Set(nums)],
+      currency: "CHF",
+      reference: ref,
+      debtor_name: "",
+      communication: texte.replace(/\s+/g, " ").slice(0, 200),
+      raw: texte.replace(/\s+/g, " ").slice(0, 300),
+    });
+  }
+  return lignes;
+}
+
+// ---- Rapprochement ------------------------------------------------------
+// Sur référence QR uniquement, et seulement si le montant concorde. Un
+// versement partiel ou arrondi reste à traiter à la main : l'encaisser en
+// entier ferait disparaître une créance qui existe toujours.
+function encRapprocher(lignes, factures) {
+  const parRef = new Map();
+  for (const f of factures) if (f.reference) parRef.set(encRef(f.reference), f);
+  for (const l of lignes) {
+    const f = l.reference ? parRef.get(l.reference) : null;
+    if (f && Math.abs(Number(f.amount) - l.amount) < 0.01) { l.invoice_id = f.id; l.match_kind = "reference"; continue; }
+    if (f) {
+      // Bonne référence, mauvais montant : on rattache mais on ne valide pas.
+      l.invoice_id = f.id; l.match_kind = "montant_different"; continue;
+    }
+    // Repli : un seul impayé du montant exact. Proposé, jamais validé seul.
+    const cands = factures.filter((x) => x.status !== "payee" && Math.abs(Number(x.amount) - l.amount) < 0.01);
+    if (cands.length === 1) { l.invoice_id = cands[0].id; l.match_kind = "montant_seul"; }
+    else { l.invoice_id = null; l.match_kind = null; }
+  }
+  return lignes;
+}
+
+async function encImporter(file) {
+  const st = $("enc-status");
+  st.textContent = "Lecture du relevé…";
+  try {
+    const estXml = /\.xml$/i.test(file.name) || /xml/.test(file.type || "");
+    let lignes, format;
+    if (estXml) { lignes = encLireCamt(await file.text()); format = "camt053"; }
+    else { lignes = await encLirePdf(new Uint8Array(await file.arrayBuffer())); format = "pdf"; }
+    if (!lignes.length) throw new Error("Aucun versement trouvé dans ce fichier.");
+
+    // On rapproche sur TOUTES les factures émises, pas seulement la saison en
+    // cours : un paiement peut arriver en retard sur une facture ancienne.
+    const { data: fact, error: e1 } = await sb.from("out_invoices")
+      .select("id,number,reference,amount,status,debtor_name,person_id,filiere");
+    if (e1) throw new Error(e1.message);
+    encRapprocher(lignes, fact || []);
+
+    // Doublons : on ne réimporte pas un versement déjà connu.
+    const empreintes = lignes.map(encEmpreinte);
+    const { data: deja } = await sb.from("bank_entries").select("fingerprint").in("fingerprint", empreintes);
+    const connues = new Set((deja || []).map((r) => r.fingerprint));
+    const neuves = lignes.filter((l) => !connues.has(encEmpreinte(l)));
+    if (!neuves.length) {
+      st.textContent = "";
+      uiAlert(`Tous les versements de ce fichier (${lignes.length}) sont déjà importés. Rien n'a été ajouté.`);
+      return;
+    }
+
+    const dates = neuves.map((l) => l.value_date).filter(Boolean).sort();
+    const { data: stmt, error: e2 } = await sb.from("bank_statements").insert({
+      source: "postfinance", format, filename: file.name,
+      period_from: dates[0] || null, period_to: dates[dates.length - 1] || null,
+      n_entries: neuves.length,
+      total_credit: neuves.reduce((a, l) => a + l.amount, 0),
+      imported_by: (await sb.auth.getSession()).data?.session?.user?.id || null,
+    }).select("id").single();
+    if (e2) throw new Error(e2.message);
+
+    const { error: e3 } = await sb.from("bank_entries").insert(neuves.map((l) => ({
+      statement_id: stmt.id, value_date: l.value_date, amount: l.amount, currency: l.currency,
+      reference: l.reference || null, debtor_name: l.debtor_name || null,
+      communication: l.communication || null, raw: l.raw || null,
+      fingerprint: encEmpreinte(l), invoice_id: l.invoice_id || null, match_kind: l.match_kind || null,
+    })));
+    if (e3) throw new Error(e3.message);
+
+    st.textContent = "";
+    const srs = neuves.filter((l) => l.match_kind === "reference").length;
+    uiAlert(`${neuves.length} versement(s) importé(s)${connues.size ? ` · ${connues.size} déjà connu(s), ignoré(s)` : ""}.\n\n`
+      + `${srs} rapproché(s) par la référence QR — à valider d'un clic.\n`
+      + `${neuves.length - srs} à vérifier à la main.`
+      + (format === "pdf" ? "\n\nLe PDF ne porte pas toujours la référence : le camt.053 de l'e-banking donne un rapprochement exact." : ""));
+    await loadEncaissements();
+  } catch (e) {
+    st.textContent = "";
+    uiAlert("Import impossible : " + (e?.message || e));
+  }
+}
+
+async function loadEncaissements() {
+  const [{ data: ent }, { data: stm }] = await Promise.all([
+    sb.from("bank_entries").select("*").order("value_date", { ascending: false }).limit(400),
+    sb.from("bank_statements").select("*").order("imported_at", { ascending: false }).limit(20),
+  ]);
+  encList = ent || []; encStmts = stm || [];
+  // Les factures rattachées, pour afficher un numéro plutôt qu'un uuid.
+  const ids = [...new Set(encList.map((e) => e.invoice_id).filter(Boolean))];
+  let parId = {};
+  if (ids.length) {
+    const { data } = await sb.from("out_invoices").select("id,number,debtor_name,amount,status").in("id", ids);
+    for (const f of data || []) parId[f.id] = f;
+  }
+  for (const e of encList) e.facture = parId[e.invoice_id] || null;
+  renderEncaissements();
+}
+
+const ENC_MATCH = {
+  reference:         ["Référence QR", "dc-ok"],
+  montant_different: ["Référence OK, montant différent", "dc-warn"],
+  montant_seul:      ["Montant seul — à vérifier", "dc-warn"],
+  manuel:            ["Rattaché à la main", "dc-info"],
+};
+function renderEncaissements() {
+  const aValider = encList.filter((e) => e.status === "a_valider");
+  const surs = aValider.filter((e) => e.match_kind === "reference");
+  $("enc-valider-tout").textContent = `✓ Valider les rapprochements sûrs${surs.length ? ` (${surs.length})` : ""}`;
+  $("enc-valider-tout").disabled = !surs.length;
+
+  const totalAValider = aValider.reduce((a, e) => a + Number(e.amount), 0);
+  $("enc-recap").innerHTML = encStmts.length
+    ? `<div class="enc-r">
+        <span><b>${encStmts.length}</b> relevé(s) importé(s)</span>
+        <span><b>${aValider.length}</b> versement(s) à valider · ${oiChf(totalAValider)}</span>
+        <span><b>${encList.filter((e) => e.status === "valide").length}</b> validé(s)</span>
+        <span class="muted">Dernier : ${esc(encStmts[0].filename || "—")} (${encStmts[0].format === "camt053" ? "camt.053" : "PDF"}), ${frDateTime(encStmts[0].imported_at)}</span>
+      </div>` : "";
+
+  $("enc-empty").hidden = encList.length > 0;
+  $("enc-rows").innerHTML = encList.map((e) => {
+    const [lbl, cls] = ENC_MATCH[e.match_kind] || ["Non rapproché", "dc-bad"];
+    const fact = e.facture
+      ? `<b>${esc(e.facture.number)}</b><br><span class="muted" style="font-size:.8rem">${esc(e.facture.debtor_name || "")} · ${oiChf(e.facture.amount)}</span>`
+      : '<span class="muted">—</span>';
+    return `<tr class="${e.status === "valide" ? "enc-ok" : ""}">
+      <td>${dFD(e.value_date)}</td>
+      <td style="white-space:nowrap;font-weight:800">${oiChf(e.amount)}</td>
+      <td>${esc(e.debtor_name || "—")}</td>
+      <td class="muted" style="font-size:.82rem">${e.reference ? `<b>${esc(oiFmt4(e.reference))}</b><br>` : ""}${esc((e.communication || "").slice(0, 90))}</td>
+      <td>${fact}</td>
+      <td>${e.status === "valide" ? '<span class="dchip dc-ok">Encaissé</span>' : `<span class="dchip ${cls}">${esc(lbl)}</span>`}</td>
+      <td class="he-acts">${e.status === "valide"
+        ? `<button class="ghost enc-annul" data-id="${e.id}" title="Annuler l'encaissement">↺</button>`
+        : `<button class="ghost enc-lier" data-id="${e.id}" title="Rattacher à une facture">🔗</button>`
+          + (e.invoice_id ? `<button class="ghost enc-val" data-id="${e.id}" title="Valider : la facture passe payée">✓</button>` : "")}
+      </td></tr>`;
+  }).join("");
+
+  $("enc-rows").querySelectorAll(".enc-val").forEach((b) => b.addEventListener("click", () => encValider([b.dataset.id])));
+  $("enc-rows").querySelectorAll(".enc-annul").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await uiConfirm("Annuler cet encaissement ? La facture repassera « envoyée »."))) return;
+    const { error } = await sb.rpc("bank_entry_devalider", { p_entry: b.dataset.id });
+    if (error) uiAlert(error.message); else { await loadEncaissements(); loadImpayees(); }
+  }));
+  $("enc-rows").querySelectorAll(".enc-lier").forEach((b) => b.addEventListener("click", () => encLier(b.dataset.id)));
+}
+
+async function encValider(ids) {
+  const st = $("enc-status"); st.textContent = `Validation de ${ids.length} versement(s)…`;
+  let ok = 0; const errs = [];
+  for (const id of ids) {
+    const { error } = await sb.rpc("bank_entry_valider", { p_entry: id });
+    if (error) errs.push(error.message); else ok++;
+  }
+  st.textContent = "";
+  if (errs.length) uiAlert(`${ok} encaissé(s).\n\n${errs.length} en échec :\n` + errs.slice(0, 5).join("\n"));
+  await loadEncaissements();
+  loadImpayees();
+  if (typeof loadOutInvoices === "function") loadOutInvoices();
+}
+
+// Rattacher un versement à une facture à la main : on cherche par numéro, nom
+// ou référence parmi les factures non encore encaissées.
+async function encLier(entryId) {
+  const e = encList.find((x) => x.id === entryId); if (!e) return;
+  const q = await uiPrompt("Rattacher à quelle facture ?\nNuméro, nom du destinataire ou référence :",
+    e.reference || e.debtor_name || "");
+  if (!q) return;
+  const { data } = await sb.from("out_invoices")
+    .select("id,number,debtor_name,amount,status,reference")
+    .neq("status", "annulee").limit(400);
+  const n = (s) => String(s || "").toLowerCase().replace(/\s+/g, "");
+  const cands = (data || []).filter((f) =>
+    n(f.number).includes(n(q)) || n(f.debtor_name).includes(n(q)) || n(f.reference).includes(n(q)));
+  if (!cands.length) { uiAlert("Aucune facture ne correspond."); return; }
+  const choix = cands.length === 1 ? cands[0] : cands.find((f) => Math.abs(Number(f.amount) - Number(e.amount)) < 0.01) || cands[0];
+  if (!(await uiConfirm(`Rattacher ${oiChf(e.amount)} du ${dFD(e.value_date)} à la facture ${choix.number} `
+      + `(${choix.debtor_name}, ${oiChf(choix.amount)}) ?`
+      + (cands.length > 1 ? `\n\n${cands.length} factures correspondaient ; celle-ci a été retenue.` : "")))) return;
+  const { error } = await sb.from("bank_entries")
+    .update({ invoice_id: choix.id, match_kind: "manuel" }).eq("id", entryId);
+  if (error) { uiAlert(error.message); return; }
+  await loadEncaissements();
+}
+
+// ===================================================================
+//  Impayées — qui doit encore, et depuis quand
+// ===================================================================
+let impList = [], impSel = new Set(), impFil = "";
+
+async function loadImpayees() {
+  const auj = new Date().toISOString().slice(0, 10);
+  const { data, error } = await sb.from("out_invoices")
+    .select("id,number,debtor_name,debtor_email,person_id,filiere,amount,due_date,label,reference,pdf_path,status")
+    .eq("status", "envoyee").lt("due_date", auj).order("due_date");
+  if (error) { $("imp-rows").innerHTML = `<tr><td colspan="10" class="error">${esc(error.message)}</td></tr>`; return; }
+  impList = data || [];
+  const ids = impList.map((f) => f.id);
+  if (ids.length) {
+    const { data: rap } = await sb.from("out_invoice_reminders").select("invoice_id,sent_at").in("invoice_id", ids);
+    const parF = {};
+    for (const r of rap || []) (parF[r.invoice_id] = parF[r.invoice_id] || []).push(r.sent_at);
+    for (const f of impList) { const l = parF[f.id] || []; f.rappels = l.length; f.dernier_rappel = l.sort().pop() || null; }
+  }
+  // Les noms de joueurs, pour savoir de qui il s'agit sans ouvrir la fiche.
+  const pids = [...new Set(impList.map((f) => f.person_id).filter(Boolean))];
+  if (pids.length) {
+    const { data: ps } = await sb.from("people").select("id,first_name,last_name").in("id", pids);
+    const parP = {}; for (const p of ps || []) parP[p.id] = `${p.first_name} ${p.last_name}`;
+    for (const f of impList) f.player_name = parP[f.person_id] || "";
+  }
+  impSel = new Set();
+  renderImpayees();
+}
+
+function renderImpayees() {
+  const badge = $("imp-badge");
+  if (badge) { badge.textContent = impList.length || ""; badge.hidden = !impList.length; }
+  const vus = impList.filter((f) => !impFil || f.filiere === impFil);
+  const counts = { "": impList.length };
+  for (const f of impList) counts[f.filiere] = (counts[f.filiere] || 0) + 1;
+  const chip = (v, l) => `<button type="button" class="chip filt${impFil === v ? " sel" : ""}" data-fil="${v}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
+  $("imp-filters").innerHTML = chip("", "Toutes") + OI_FIL_ALL.map(([v, l]) => chip(v, l)).join("");
+  $("imp-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { impFil = b.dataset.fil; renderImpayees(); }));
+
+  const auj = new Date();
+  $("imp-empty").hidden = vus.length > 0;
+  $("imp-rows").innerHTML = vus.map((f) => {
+    const jours = Math.floor((auj - new Date(f.due_date + "T12:00:00")) / 86400000);
+    const tone = jours > 60 ? "dc-bad" : jours > 30 ? "dc-warn" : "dc-info";
+    return `<tr>
+      <td><input type="checkbox" class="imp-ck" data-id="${f.id}"${impSel.has(f.id) ? " checked" : ""}${f.debtor_email ? "" : " disabled title='Pas d\\'adresse e-mail'"} /></td>
+      <td>${esc(f.number)}</td>
+      <td>${esc(f.debtor_name || "—")}<br><span class="muted" style="font-size:.8rem">${esc(f.debtor_email || "pas d'e-mail")}</span></td>
+      <td>${esc(f.player_name || "—")}</td>
+      <td>${esc(f.filiere ? oiFil(f.filiere) : "—")}</td>
+      <td style="white-space:nowrap;font-weight:800">${oiChf(f.amount)}</td>
+      <td>${dFD(f.due_date)}</td>
+      <td><span class="dchip ${tone}">${jours} j</span></td>
+      <td>${f.rappels ? `${f.rappels}<br><span class="muted" style="font-size:.78rem">${dFD(f.dernier_rappel)}</span>` : '<span class="muted">—</span>'}</td>
+      <td class="he-acts"><button class="ghost imp-un" data-id="${f.id}" title="Envoyer un rappel">✉</button></td>
+    </tr>`;
+  }).join("");
+  $("imp-rows").querySelectorAll(".imp-ck").forEach((c) => c.addEventListener("change", () => {
+    if (c.checked) impSel.add(c.dataset.id); else impSel.delete(c.dataset.id);
+    impMajBouton();
+  }));
+  $("imp-rows").querySelectorAll(".imp-un").forEach((b) => b.addEventListener("click", () => impRelancer([b.dataset.id])));
+  impMajBouton();
+}
+function impMajBouton() {
+  $("imp-relancer").textContent = `✉ Envoyer un rappel à la sélection${impSel.size ? ` (${impSel.size})` : ""}`;
+  $("imp-relancer").disabled = !impSel.size;
+}
+
+const IMP_OBJET = "Rappel — facture {numero} échue le {echeance}";
+const IMP_CORPS = `Bonjour {destinataire},
+
+Sauf erreur de notre part, la facture n° {numero} ({libelle}) d'un montant de CHF {montant}, échue le {echeance}, ne nous est pas encore parvenue.
+
+Vous la trouverez à nouveau ci-jointe, avec sa QR-facture (référence {reference}).
+
+Si le paiement a été effectué entre-temps, merci de ne pas tenir compte de ce message.
+
+Avec nos meilleures salutations,
+Team Lausanne Tennis`;
+
+// Un rappel renvoie la facture d'origine : la famille ne doit pas avoir à
+// retrouver un mail vieux d'un mois pour payer.
+async function impRelancer(ids) {
+  const list = impList.filter((f) => ids.includes(f.id) && f.debtor_email);
+  if (!list.length) { uiAlert("Aucune de ces factures n'a d'adresse e-mail."); return; }
+  if (!(await uiConfirm(`Envoyer un rappel à ${list.length} famille(s) ?\n\n`
+    + list.slice(0, 8).map((f) => `· ${f.debtor_name} — ${f.number} — ${oiChf(f.amount)}`).join("\n")
+    + (list.length > 8 ? `\n… et ${list.length - 8} autre(s)` : "")))) return;
+
+  const st = $("imp-status"); const btn = $("imp-relancer"); btn.disabled = true;
+  const uid = (await sb.auth.getSession()).data?.session?.user?.id || null;
+  let ok = 0; const errs = [];
+  for (const f of list) {
+    st.textContent = `Rappel ${ok + errs.length + 1}/${list.length} — ${f.debtor_name}…`;
+    try {
+      const chemin = await oiAssurerPdf(f);
+      const { data: blob, error: e1 } = await sb.storage.from("out_invoices").download(chemin);
+      if (e1) throw new Error(e1.message);
+      const b64 = await fileToB64(blob);
+      const { data, error } = await sb.functions.invoke("mail-send", { body: {
+        account: OI_FROM, to: f.debtor_email,
+        subject: oiVars(IMP_OBJET, f), text: oiVars(IMP_CORPS, f),
+        attachments: [{ filename: `facture-${f.number}.pdf`, contentType: "application/pdf", content: b64 }] } });
+      if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} throw new Error(m); }
+      if (data?.error) throw new Error(data.error);
+      await sb.from("out_invoice_reminders").insert({
+        invoice_id: f.id, level: (f.rappels || 0) + 1, to_email: f.debtor_email, sent_by: uid });
+      ok++;
+    } catch (e) { errs.push(`${f.number} — ${e?.message || e}`); }
+  }
+  st.textContent = ""; btn.disabled = false;
+  uiAlert(`${ok} rappel(s) envoyé(s).` + (errs.length ? `\n\n${errs.length} en échec :\n` + errs.slice(0, 5).join("\n") : ""));
+  await loadImpayees();
+}
+
+function initEncaissements() {
+  if (encInit) return; encInit = true;
+  $("enc-file").addEventListener("change", (ev) => {
+    const f = ev.target.files?.[0]; ev.target.value = "";
+    if (f) encImporter(f);
+  });
+  $("enc-valider-tout").addEventListener("click", async () => {
+    const surs = encList.filter((e) => e.status === "a_valider" && e.match_kind === "reference");
+    if (!surs.length) return;
+    if (!(await uiConfirm(`Valider ${surs.length} versement(s) rapproché(s) par la référence QR ?\n\n`
+      + `Les factures correspondantes passeront « payée », à la date du versement.`))) return;
+    encValider(surs.map((e) => e.id));
+  });
+  $("imp-relancer").addEventListener("click", () => impRelancer([...impSel]));
+  $("imp-sel-all").addEventListener("change", (e) => {
+    const vus = impList.filter((f) => (!impFil || f.filiere === impFil) && f.debtor_email);
+    impSel = e.target.checked ? new Set(vus.map((f) => f.id)) : new Set();
+    renderImpayees();
+  });
 }
 // ===================================================================
 //  Factures ÉMISES (à encaisser) : lot par filière → n° + référence RF → PDF QR-facture → envoi mail → suivi
@@ -7718,7 +8161,7 @@ const OI_ORDER = ["a_envoyer", "envoyee", "payee", "annulee"];
 const OI_FILIERES = [["performance", "Performance"], ["competition", "Compétition"], ["club", "Club"], ["kidstennis", "KidsTennis"], ["adultes", "Adultes"]];
 const OI_FIL_ALL = [...OI_FILIERES, ["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"]];
 const OI_FROM = "info@teamlausanne.ch";
-let oiList = [], oiFilter = "", oiInit = false, oiPrep = [], oiSendIds = [], oiSel = new Set();
+let oiList = [], oiFilter = "", oiFiliere = "", oiInit = false, oiPrep = [], oiSendIds = [], oiSel = new Set();
 let oieId = null, oieDebtorPid = null, oiePlayerPid = null, oieSeason = null, oieFiliere = null;
 const oiChf = (n) => Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ");   // 1 234.50 (format QR-facture)
 const oiFmt4 = (s) => String(s || "").replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
@@ -7819,9 +8262,20 @@ function oiCorrespond(f) {
 function renderOiFilters() {
   // Les compteurs suivent la recherche : chercher « Picci » doit montrer combien
   // de SES factures sont à envoyer, pas le total du club.
-  const vus = oiList.filter(oiCorrespond);
+  const vus = oiList.filter((f) => oiCorrespond(f) && (!oiFiliere || f.filiere === oiFiliere));
   const counts = { "": vus.length };
   for (const f of vus) counts[f.status] = (counts[f.status] || 0) + 1;
+  // Filières : une rangée à part. On facture des cursus très différents et on
+  // travaille filière par filière — mélanger KidsTennis et Pro dans une même
+  // liste oblige à trier à l'œil.
+  const surRech = oiList.filter(oiCorrespond);
+  const cf = { "": surRech.length };
+  for (const f of surRech) cf[f.filiere] = (cf[f.filiere] || 0) + 1;
+  const cfil = (v, l) => `<button type="button" class="chip filt${oiFiliere === v ? " sel" : ""}" data-fil="${v}">${l} <span class="muted">(${cf[v] || 0})</span></button>`;
+  $("oi-filieres").innerHTML = cfil("", "Toutes filières") + OI_FIL_ALL.map(([v, l]) => cfil(v, l)).join("");
+  $("oi-filieres").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => {
+    oiFiliere = b.dataset.fil; renderOiFilters(); renderOutInvoices();
+  }));
   const chip = (v, l) => `<button type="button" class="chip filt${oiFilter === v ? " sel" : ""}" data-st="${v}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
   const nMaintenant = vus.filter(oiAEnvoyerMaintenant).length;
   $("oi-filters").innerHTML = chip("", "Toutes")
@@ -7845,6 +8299,7 @@ const oiAEnvoyerMaintenant = (f) =>
 // donc il ne peut pas envoyer autre chose que ce qui est affiche.
 const oiDansLaListe = (f) =>
   (oiFilter === "maintenant" ? oiAEnvoyerMaintenant(f) : (!oiFilter || f.status === oiFilter))
+  && (!oiFiliere || f.filiere === oiFiliere)
   && oiCorrespond(f);
 
 function renderOutInvoices() {
