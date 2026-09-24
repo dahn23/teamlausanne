@@ -6730,14 +6730,121 @@ async function loadHeures() {
   $("heures-export-pdf").classList.toggle("hidden", !isManager);
   $("heures-send").classList.toggle("hidden", !canSalaries());   // envoi à la fiduciaire : admin/superadmin
   if (isManager) {
-    const [{ data, error }] = await Promise.all([sb.rpc("staff_hours_month", { p_ym: heuresYm }), loadSalSlips(), loadPaieMois()]);
+    const [{ data, error }] = await Promise.all([sb.rpc("staff_hours_month", { p_ym: heuresYm }), loadSalSlips(), loadPaieMois(), loadSurFacture()]);
     heuresData = error ? { coaches: [], profs: [] } : (data || { coaches: [], profs: [] });
     renderHeures();
     renderCloture();
+    renderSurFacture();
     renderSalBox();
   }
 }
 
+
+// ---- Coachs « sur facture » : leur demander leur facture ----------------
+// Ces indépendants ne passent pas par la fiduciaire : ils nous facturent. Ils
+// sont déjà hors du décompte et des totaux de paie. Reste le tour de main de
+// fin de mois — leur écrire le montant convenu, puis retrouver leur facture
+// quand elle arrive dans la Messagerie.
+//
+// On ne demande qu'une fois le mois arrêté : demander sur des heures qui
+// bougent encore, c'est annoncer un montant qu'on devra corriger.
+let sfDemandes = [];
+
+async function loadSurFacture() {
+  if (!canSalaries()) { sfDemandes = []; return; }
+  const { data } = await sb.from("coach_invoice_requests").select("*").eq("ym", heuresYm);
+  sfDemandes = data || [];
+}
+const sfGens = () => [...(heuresData.coaches || []), ...(heuresData.profs || [])].filter((x) => x.by_invoice);
+const sfMontant = (x) => (x.rate != null ? Math.round(Number(x.hours) * Number(x.rate) * 100) / 100 : null);
+const sfDe = (pid) => sfDemandes.find((d) => d.person_id === pid);
+
+function renderSurFacture() {
+  const host = $("heures-surfacture"); if (!host) return;
+  const gens = sfGens();
+  if (!canSalaries() || !gens.length) { host.innerHTML = ""; return; }
+  const clos = paieMois?.status && paieMois.status !== "ouvert";
+
+  const lignes = gens.map((x) => {
+    const d = sfDe(x.person_id), mt = sfMontant(x);
+    const etat = d?.received_at
+      ? `<span class="dchip dc-ok">facture reçue</span>`
+      : d?.sent_at ? `<span class="dchip dc-warn">demandée le ${dFD(d.sent_at)}</span>`
+      : `<span class="dchip dc-mut">à demander</span>`;
+    return `<tr>
+      <td><b>${esc(x.name)}</b><br><span class="muted" style="font-size:.78rem">${esc(x.email || "pas d'e-mail")}</span></td>
+      <td>${x.hours} h</td>
+      <td>${x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>'}</td>
+      <td><b>${mt != null ? oiChf(mt) : "—"}</b></td>
+      <td>${etat}</td>
+      <td class="he-acts">${x.email && mt != null && !d?.received_at
+        ? `<button type="button" class="ghost sf-ask" data-pid="${x.person_id}">${d?.sent_at ? "↻ Relancer" : "✉ Demander"}</button>` : ""}</td>
+    </tr>`;
+  }).join("");
+
+  const aDemander = gens.filter((x) => x.email && sfMontant(x) != null && !sfDe(x.person_id)?.sent_at);
+  host.innerHTML = `<div class="sf-box">
+    <div class="sf-h"><b>Sur facture</b> — ${gens.length} indépendant(s), hors décompte fiduciaire.
+      <span class="muted">Ils nous facturent ; on leur écrit le montant une fois le mois arrêté.</span></div>
+    <div class="table-wrap"><table class="crm-table"><thead><tr>
+      <th>Coach</th><th>Heures</th><th>Tarif/h</th><th>Montant à facturer</th><th>État</th><th></th>
+    </tr></thead><tbody>${lignes}</tbody></table></div>
+    <div class="sf-a">
+      <button type="button" id="sf-ask-all"${clos && aDemander.length ? "" : " disabled"}>
+        ✉ Demander les factures${aDemander.length ? ` (${aDemander.length})` : ""}</button>
+      <span class="muted" style="font-size:.82rem">${clos
+        ? "Leur facture arrivera dans « Reçues — à payer » dès qu'ils répondront."
+        : "Arrête d'abord le mois : sur des heures qui bougent encore, le montant annoncé devrait être corrigé."}</span>
+    </div></div>`;
+
+  host.querySelectorAll(".sf-ask").forEach((b) => b.addEventListener("click", () => {
+    if (!clos) { uiAlert("Arrête d'abord le mois : le montant annoncé doit être définitif."); return; }
+    sfDemander([b.dataset.pid]);
+  }));
+  $("sf-ask-all").addEventListener("click", () => sfDemander(aDemander.map((x) => x.person_id)));
+}
+
+const SF_OBJET = "Votre facture — {mois}";
+const SF_CORPS = `Bonjour {prenom},
+
+Tes heures de {mois} sont validées : {heures} heures à {tarif}.–/h, soit CHF {montant}.
+
+Peux-tu nous envoyer ta facture pour ce montant, en réponse à ce message ? Elle arrivera directement dans notre suivi des factures à payer.
+
+Merci et à bientôt,
+Team Lausanne Academy`;
+
+async function sfDemander(pids) {
+  const gens = sfGens().filter((x) => pids.includes(x.person_id) && x.email && sfMontant(x) != null);
+  if (!gens.length) return;
+  const moisLbl = heuresYm;
+  if (!(await uiConfirm(`Demander leur facture à ${gens.length} coach(s) pour ${moisLbl} ?\n\n`
+    + gens.map((x) => `· ${x.name} — ${x.hours} h × ${x.rate}.– = ${oiChf(sfMontant(x))}`).join("\n")))) return;
+
+  const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
+  let ok = 0; const errs = [];
+  for (const x of gens) {
+    const mt = sfMontant(x);
+    const vars = (t) => t.replace(/\{prenom\}/g, (x.name || "").split(" ")[0])
+      .replace(/\{mois\}/g, moisLbl).replace(/\{heures\}/g, String(x.hours))
+      .replace(/\{tarif\}/g, String(x.rate)).replace(/\{montant\}/g, oiChf(mt).replace(" CHF", ""));
+    try {
+      const { data, error } = await sb.functions.invoke("mail-send", { body: {
+        account: OI_FROM, to: x.email, subject: vars(SF_OBJET), text: vars(SF_CORPS) } });
+      if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} throw new Error(m); }
+      if (data?.error) throw new Error(data.error);
+      await sb.from("coach_invoice_requests").upsert({
+        person_id: x.person_id, ym: heuresYm, hours: x.hours, rate: x.rate, amount: mt,
+        to_email: x.email, sent_at: new Date().toISOString(), sent_by: uid, updated_at: new Date().toISOString(),
+      }, { onConflict: "person_id,ym" });
+      ok++;
+    } catch (e) { errs.push(`${x.name} : ${e?.message || e}`); }
+  }
+  uiAlert(`${ok} demande(s) envoyée(s).` + (errs.length ? `\n\n${errs.length} en échec :\n` + errs.join("\n") : "")
+    + `\n\nLeur facture arrivera dans « Reçues — à payer » dès qu'ils répondront.`);
+  await loadSurFacture();
+  renderSurFacture();
+}
 // ---- Clôture du mois de paie -------------------------------------------
 // Un mois arrêté est la pièce qui tient tout le circuit : le décompte part de
 // l'instantané, le retour de la fiduciaire s'y compare, et le paiement s'y

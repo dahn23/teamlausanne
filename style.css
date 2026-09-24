@@ -3548,3 +3548,10 @@ tr.enc-ok td{background:#f4fbf6}
   border:1px solid #f0d9a8;font-size:.88rem}
 .sal-couv > b{color:#a35f00}
 .sal-couv-ok{background:#f0faf3;border-color:#c6e9d2;color:#1c7d38}
+
+/* ---- Coachs « sur facture » --------------------------------------------- */
+.sf-box{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--fluo-d);
+  border-radius:var(--radius);padding:14px 18px;margin:0 0 14px;box-shadow:var(--shadow)}
+.sf-h{font-size:.92rem;color:var(--ink);margin-bottom:10px}
+.sf-a{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.dc-mut{background:#eef1f7;color:var(--muted)}

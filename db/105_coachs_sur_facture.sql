@@ -1,0 +1,19 @@
+-- Coachs « sur facture » — demande de facture mensuelle (24.09.2026)
+--
+-- Trois indépendants (Lombardi, Moha, Du Pasquier) ne passent pas par la
+-- fiduciaire : ils nous facturent. Leur exclusion du décompte et des totaux de
+-- paie existait déjà (people.pays_by_invoice, db/43). Restait le tour de main
+-- de fin de mois.
+--
+-- coach_invoice_requests : une ligne par personne et par mois — ce qui a été
+-- demandé, quand, et la facture reçue en retour. Sans cette trace, on redemande
+-- deux fois ou on oublie quelqu'un, et un indépendant qui n'a pas facturé ne
+-- réclame pas toujours.
+--
+-- Le rattachement se fait par DÉCLENCHEUR sur invoices, et non dans la relève
+-- des mails : une facture est ainsi rattachée quelle que soit la voie par
+-- laquelle elle entre (relève automatique, import manuel, ajout depuis un
+-- mail). Un seul endroit à maintenir, et rien à redéployer.
+--
+-- Voir en base : coach_invoice_requests, coach_invoice_match(invoice, from),
+-- invoice_link_coach() et le trigger du même nom sur invoices.
