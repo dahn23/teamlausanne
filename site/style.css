@@ -2586,13 +2586,26 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 .filmsec .eyebrow,body[data-world="academie"] .filmsec .eyebrow{color:#fff}
 .filmsec .eyebrow::before,body[data-world="academie"] .filmsec .eyebrow::before{background:var(--fluo)}
 .film-head .perks-lead{color:rgba(255,255,255,.82)}
+/* Le cadre se detache du fond par une lueur, pas par une bordure epaisse : un
+   liseré vert de 5 px posait un rectangle criard autour de l'image. Un trait
+   fin, une ombre portee et un halo discret font le meme travail en plus sobre. */
 .film-cadre{position:relative;max-width:980px;margin:0 auto;aspect-ratio:16/9;
   border-radius:var(--radius);overflow:hidden;background:#000;
-  box-shadow:0 24px 60px rgba(0,0,0,.45)}
+  box-shadow:0 30px 70px rgba(0,0,0,.5),
+             0 0 60px -18px rgba(178,253,19,.5)}
 /* Le liseré est un ::after pose par-dessus : une bordure sur le cadre lui-meme
-   rognerait la video, qui remplit tout l'element. */
-.film-cadre::after{content:"";position:absolute;inset:0;pointer-events:none;
-  border:5px solid var(--fluo);border-radius:var(--radius)}
+   rognerait la video, qui remplit tout l'element. Le trait sombre interieur
+   separe le vert de l'image, sinon les deux se mangent sur un plan clair. */
+.film-cadre::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+  border:2px solid var(--fluo);border-radius:var(--radius);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.55)}
+/* Voile vers le bas : le bouton et le liseré gardent leur contraste meme quand
+   l'affiche est claire. Il est porte par le bouton, pas par le cadre : au clic
+   le bouton est remplace par l'iframe, donc le voile s'en va tout seul — pas
+   besoin de :has(), qui laisserait un voile sur la video sur un vieux
+   navigateur. */
+.film-lance::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(0,0,0,.18) 0%,rgba(0,0,0,0) 38%,rgba(0,0,0,.42) 100%)}
 .film-media{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;
   object-fit:cover;background:#000}
 .film-note{max-width:980px;margin:16px auto 0;text-align:center;
@@ -2692,7 +2705,7 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
   transition:transform .5s ease,filter .35s ease}
 .film-lance:hover .film-affiche{transform:scale(1.04);filter:brightness(.82)}
 .film-lance:focus-visible{outline:3px solid var(--fluo);outline-offset:-5px}
-.film-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+.film-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;
   width:clamp(62px,8vw,88px);aspect-ratio:1;border-radius:50%;background:var(--fluo);
   display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.45);
   transition:transform .28s ease}
@@ -2814,3 +2827,18 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 .gz-lb-count{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#fff;font-size:.85rem;font-weight:700;background:rgba(255,255,255,.14);padding:4px 12px;border-radius:999px}
 .gz-lb-single .gz-lb-nav,.gz-lb-single .gz-lb-count{display:none}
 @media(max-width:640px){.gz-lb{padding:8px}.gz-lb-img{max-width:100%;max-height:80vh}.gz-lb-prev{left:6px}.gz-lb-next{right:6px}.gz-lb button{width:40px;height:40px}}
+
+/* ---- Film dans une section « split » (Lausanne Open) --------------------
+   Le cadre doit se detacher du bleu du tournoi sans crier : un trait fin vert
+   plutot qu'un gros liseré, une ombre portee et un halo discret. L'image est en
+   16/9 et remplit le cadre ; le voile du bas garde le contraste du bouton quand
+   l'affiche est claire. */
+.split-film{aspect-ratio:16/9;min-height:0;align-self:center;
+  border-radius:var(--radius);overflow:hidden;background:#000;
+  box-shadow:0 26px 60px rgba(0,0,0,.45),
+             0 0 54px -18px rgba(178,253,19,.45)}
+.split-film::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+  border:2px solid var(--fluo);border-radius:var(--radius);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.55)}
+.split-film .film-media{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+@media(max-width:760px){ .split-film{margin-inline:0} }

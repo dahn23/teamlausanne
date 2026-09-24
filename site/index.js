@@ -128,7 +128,11 @@ const WORLDS = {
         { v: "Gratuit",   l: "entrée libre",      ico: "billet",   scroll: "infos" },
         { v: "ITF M25",   l: "catégorie",         ico: "ecusson",  href: ITF_URL },
       ] },
-      { type: "split", anchor: "presentation", title: "Le grand rendez-vous du tennis vaudois masculin", videoFile: "assets/video/lausanne-open-2026.mp4", poster: "assets/video/lausanne-open-2026.jpg", vertical: true, body: [
+      // Video YouTube « Lausanne Open 2026 — les meilleurs moments ». L'affiche
+      // est servie par le site : rien n'est demande a YouTube tant qu'on ne
+      // clique pas, et le lecteur (et sa marque) n'apparait qu'a la lecture.
+      { type: "split", anchor: "presentation", title: "Le grand rendez-vous du tennis vaudois masculin",
+        video: "S1kulGoQPNM", poster: "assets/video/lausanne-open-2026-film.jpg", body: [
         "Le Lausanne Open réunit chaque année plusieurs dizaines de joueurs de toutes nationalités, pour la plupart classés à l'ATP, sur les courts de la Pontaise.",
         "L'accès est entièrement gratuit, toute la semaine.",
       ], link: { label: "Site & résultats ITF ↗", href: ITF_URL } },
@@ -736,6 +740,17 @@ function sectionHTML(sec) {
         ${(sec.video || sec.videoFile)
           ? (sec.videoFile
             ? `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><video class="split-native" controls playsinline preload="metadata" poster="${esc(sec.poster || "")}"><source src="${esc(sec.videoFile)}" type="video/mp4" />Votre navigateur ne peut pas lire cette vidéo.</video></div>`
+            // Avec une affiche : on montre l'image du site et un bouton. YouTube
+            // n'est appele qu'au clic — donc ni cookie, ni bandeau de titre, ni
+            // suggestions tant que la video n'est pas lancee.
+            : sec.poster
+            ? `<div class="split-media split-video split-film">
+                 <button type="button" class="film-lance" data-film="${esc(sec.video)}"
+                   data-titre="${esc(sec.title)}" aria-label="Lire la vidéo : ${esc(sec.title)}">
+                   <img class="film-affiche" src="${esc(sec.poster)}" alt="" loading="lazy" />
+                   <span class="film-play" aria-hidden="true"></span>
+                 </button>
+               </div>`
             : `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><iframe src="https://www.youtube.com/embed/${esc(sec.video)}" title="${esc(sec.title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`)
           : sec.photos
             ? `<div class="split-media split-scroller">${sec.photos.map((it, i) => {
