@@ -1,7 +1,7 @@
 # DNS — domaines de Dan (regroupement chez Hostpoint)
 
 Relevé public du **09–12.09.2026**. Sert de liste de contrôle pour recréer chaque zone chez **Hostpoint** (registrar + DNS uniques, décidé le 12.09.2026 ; Infomaniak et Cloudflare exclus).
-Messagerie = **Hostpoint Cloud Office** sur teamlausanne.ch (depuis le 18.09.2026), **Google Workspace** sur lausanneopen.ch et swisssportadvisors.com (on ne touche pas aux comptes, on recopie MX/SPF). Sites = **Netlify** partout. Newsletter = Resend.
+Messagerie = **Hostpoint Cloud Office** sur teamlausanne.ch (depuis le 18.09.2026) et lausanneopen.ch (depuis le 24.09.2026), **Google Workspace** sur swisssportadvisors.com (on ne touche pas aux comptes, on recopie MX/SPF). Sites = **Netlify** partout. Newsletter = Resend.
 
 ## État de départ
 
@@ -43,12 +43,11 @@ Optionnel plus tard : DKIM Google Workspace (Admin Google › Gmail › Authenti
 | CNAME | www | lausanne-open-site.netlify.app | | idem |
 | CNAME | players | lausanne-open-2026.netlify.app | | Player Hub (dossier `open/`) |
 | CNAME | welcome | lausanne-open-welcome.netlify.app | | Page d'accueil joueurs (dossier `welcome/`) |
-| MX | @ | aspmx.l.google.com | 10 | Boîte mail Google |
-| MX | @ | alt1.aspmx.l.google.com | 20 | |
-| MX | @ | alt2.aspmx.l.google.com | 30 | |
-| MX | @ | alt3.aspmx.l.google.com | 40 | |
-| MX | @ | alt4.aspmx.l.google.com | 50 | |
-| TXT | @ | `v=spf1 include:_spf.google.com ~all` | | SPF Google |
+| MX | @ | mx1.mail.hostpoint.ch | 10 | Boîte **info@lausanneopen.ch** chez Hostpoint Cloud Office Basic (depuis le 24.09.2026, avant : Google) |
+| MX | @ | mx2.mail.hostpoint.ch | 10 | idem |
+| TXT | @ | `v=spf1 include:spf.mail.hostpoint.ch include:_spf.google.com ~all` | | SPF Hostpoint (+ Google gardé pendant la transition, à retirer après résiliation du Workspace) |
+| CNAME | autoconfig | autoconfig.mail.hostpoint.ch | | Configuration automatique des clients mail |
+| CNAME | autodiscover | autoconfig-nonssl.mail.hostpoint.ch | | idem |
 | TXT | @ | `google-site-verification=HSjLFcIPD6D2zTRQhPDFfOfioHMbTedL1Dxzpce_e8A` | | Vérification Google |
 
 Pas de transfert nécessaire : déjà chez Hostpoint. Il suffit de remettre les serveurs de noms Hostpoint (à la place de ns12/ns13.wixdns.net) après avoir recréé la zone ci-dessus.
