@@ -7478,11 +7478,14 @@ function nlRenderChiffres() {
   const sent = s("n_sent"), ouv = s("n_opened"), unsub = s("n_unsub"), reb = s("n_bounced") + s("n_spam");
   const dern = envoyees[0];   // la liste arrive déjà du plus récent au plus ancien
   const dm = dern ? (nlMetrics[dern.id] || {}) : null;
+  // Même code couleur que les tuiles de détail : froid pour le parcours d'un
+  // envoi, chaud pour ce qui va mal. Les deux dernières ne s'allument que s'il
+  // y a vraiment quelque chose — un « 0 » en rouge inquiéterait pour rien.
   $("nl-chiffres").innerHTML = [
-    dashStat({ label: "Envois", value: dashNum(envoyees.length), sub: nlList.length > envoyees.length ? `${nlList.length - envoyees.length} brouillon(s)` : "" }),
-    dashStat({ label: "E-mails partis", value: dashNum(sent), sub: "toutes newsletters" }),
-    dashStat({ label: "Ouverture moyenne", value: nlPct(ouv, sent), sub: `${dashNum(ouv)} ouverture(s)`, tone: sent && ouv / sent >= 0.3 ? "ok" : "" }),
-    dashStat({ label: "Dernier envoi", value: dm ? nlPct(dm.n_opened, dm.n_sent) : "—", sub: dern ? `${dashNum(dm.n_sent || 0)} destinataires` : "aucun envoi" }),
+    dashStat({ label: "Envois", value: dashNum(envoyees.length), tone: "blue", sub: nlList.length > envoyees.length ? `${nlList.length - envoyees.length} brouillon(s)` : "" }),
+    dashStat({ label: "E-mails partis", value: dashNum(sent), tone: "ocean", sub: "toutes newsletters" }),
+    dashStat({ label: "Ouverture moyenne", value: nlPct(ouv, sent), tone: "ok", sub: `${dashNum(ouv)} ouverture(s)` }),
+    dashStat({ label: "Dernier envoi", value: dm ? nlPct(dm.n_opened, dm.n_sent) : "—", tone: "mint", sub: dern ? `${dashNum(dm.n_sent || 0)} destinataires` : "aucun envoi" }),
     dashStat({ label: "Désinscriptions", value: dashNum(unsub), sub: "cumul", tone: unsub ? "warn" : "" }),
     dashStat({ label: "Rebonds & spam", value: dashNum(reb), sub: "adresses à nettoyer", tone: reb ? "bad" : "" }),
   ].join("");
@@ -7561,19 +7564,23 @@ async function nlRetryFailed(id, btn) {
 // liste de 12 : filtrer sur `status` donnerait d'autres nombres, parce que la
 // vue compte des horodatages (opened_at…) et non l'état courant — quelqu'un qui
 // a cliqué a le statut « clique » mais compte aussi comme ouverture.
+// L'ordre et les couleurs disent quelque chose de vrai, ils ne décorent pas :
+//   · les CINQ premières suivent le parcours d'un e-mail — parti, arrivé, lu,
+//     cliqué — sur une échelle froide qui verdit à mesure qu'on progresse ;
+//   · les QUATRE dernières sont les ennuis, sur une rampe chaude classée par
+//     gravité : se désinscrire est un choix, une erreur d'envoi est une panne.
+// D'où l'ordre « désinscrits → rebonds → spam → erreurs » : la rampe monte.
 const NL_FILTRES = [
-  ["tous",       "Destinataires", "",    () => true],
-  ["envoye",     "Envoyés",       "",    (r) => r.status !== "en_attente" && r.status !== "erreur"],
+  ["tous",       "Destinataires", "",     () => true],
+  ["envoye",     "Envoyés",       "",     (r) => r.status !== "en_attente" && r.status !== "erreur"],
   ["delivre",    "Délivrés",      "sent", (r) => r.delivered_at || r.opened_at || r.clicked_at],
   ["ouvert",     "Ouvertures",    "sent", (r) => r.opened_at],
   ["clique",     "Clics",         "sent", (r) => r.clicked_at],
-  ["rebond",     "Rebonds",       "",    (r) => r.bounced_at],
-  ["spam",       "Spam",          "",    (r) => r.complained_at],
-  ["desinscrit", "Désinscrits",   "",    (r) => r.status === "desinscrit"],
-  ["erreur",     "Erreurs",       "",    (r) => r.status === "erreur"],
+  ["desinscrit", "Désinscrits",   "",     (r) => r.status === "desinscrit"],
+  ["rebond",     "Rebonds",       "",     (r) => r.bounced_at],
+  ["spam",       "Spam",          "",     (r) => r.complained_at],
+  ["erreur",     "Erreurs",       "",     (r) => r.status === "erreur"],
 ];
-// Ce qui doit attirer l'œil : un rebond, un spam, une erreur sont des ennuis.
-const NL_TON = { rebond: "bad", spam: "bad", erreur: "bad", desinscrit: "warn", ouvert: "ok", clique: "ok" };
 const NL_MAX_LIGNES = 120;   // au-delà, on déplie à la demande
 
 let nlDet = null;   // { n, rows, filtre, q, tout }
@@ -7611,8 +7618,10 @@ function nlRenderDetail() {
   const tuiles = NL_FILTRES.map(([cle, lbl, base, pred]) => {
     const v = nlDet.rows.filter(pred).length;
     const sous = base === "sent" ? nlPct(v, envoyes) : "";
-    const ton = v ? (NL_TON[cle] || "") : "";
-    return `<button type="button" class="nl-tuile${nlDet.filtre === cle ? " on" : ""}${ton ? " nt-" + ton : ""}"
+    // La couleur identifie toujours la tuile (filet de gauche, pastille), mais
+    // un zéro garde un chiffre gris : « Rebonds 0 » écrit en rouge ferait
+    // craindre un problème là où il n'y en a pas.
+    return `<button type="button" class="nl-tuile nk-${cle}${nlDet.filtre === cle ? " on" : ""}${v ? "" : " nl-zero"}"
         data-f="${cle}" aria-pressed="${nlDet.filtre === cle}">
       <span class="nl-tuile-l">${esc(lbl)}</span>
       <b class="nl-tuile-v">${dashNum(v)}</b>

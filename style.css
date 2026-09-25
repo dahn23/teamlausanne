@@ -2680,16 +2680,37 @@ tr.rm-loss td{background:#fde8e8}
 .nl-tuile:hover,.nl-tuile:focus-visible{transform:translateY(-2px);
   box-shadow:0 8px 20px rgba(20,26,46,.12);outline:none;border-color:var(--blue)}
 .nl-tuile-l{font-size:.64rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.nl-tuile-v{font-size:1.5rem;line-height:1.15;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.nl-tuile-v{font-size:1.5rem;line-height:1.15;font-weight:800;color:var(--nc,var(--ink));letter-spacing:-.02em}
 .nl-tuile-s{font-size:.72rem;color:var(--muted);min-height:1em}
-.nl-tuile.nt-ok{border-left-color:#27a35b}   .nl-tuile.nt-ok .nl-tuile-v{color:#1c7d38}
-.nl-tuile.nt-warn{border-left-color:#e08c00} .nl-tuile.nt-warn .nl-tuile-v{color:#a35f00}
-.nl-tuile.nt-bad{border-left-color:#d4453b}  .nl-tuile.nt-bad .nl-tuile-v{color:#b3261e}
-/* La tuile active porte le filtre en cours : elle doit se distinguer nettement
-   des huit autres, sinon on ne sait plus ce qu'on regarde. */
-.nl-tuile.on{background:var(--blue);border-color:var(--blue);border-left-color:var(--blue)}
-.nl-tuile.on .nl-tuile-l,.nl-tuile.on .nl-tuile-s{color:rgba(255,255,255,.78)}
-.nl-tuile.on .nl-tuile-v{color:#fff}
+
+/* Code couleur. Il porte du sens, il ne decore pas :
+   · les CINQ premieres suivent le parcours d'un e-mail — parti, arrive, lu,
+     clique — sur une echelle froide qui verdit a mesure qu'on avance ;
+   · les QUATRE dernieres sont les ennuis, rampe chaude classee par gravite :
+     se desinscrire est un choix, une erreur d'envoi est une panne.
+   Chaque teinte est assez eloignee de sa voisine pour se distinguer d'un
+   coup d'oeil, filet de gauche et chiffre partageant la meme couleur. */
+.nl-tuile{--nc:#64748b}
+.nl-tuile.nk-tous      {--nc:#64748b}   /* ardoise : le total, neutre     */
+.nl-tuile.nk-envoye    {--nc:#073eb5}   /* bleu    : c'est parti          */
+.nl-tuile.nk-delivre   {--nc:#137297}   /* ocean   : c'est arrive         */
+.nl-tuile.nk-ouvert    {--nc:#1c7d38}   /* vert    : c'est lu             */
+.nl-tuile.nk-clique    {--nc:#4e8309}   /* vert vif: c'est clique         */
+.nl-tuile.nk-desinscrit{--nc:#9c6500}   /* ambre   : un depart volontaire */
+.nl-tuile.nk-rebond    {--nc:#c2560d}   /* orange  : adresse morte        */
+.nl-tuile.nk-spam      {--nc:#c0392f}   /* rouge   : plainte              */
+.nl-tuile.nk-erreur    {--nc:#8e2620}   /* grenat  : panne d'envoi        */
+.nl-tuile{border-left-color:var(--nc)}
+/* Un zero ne doit pas crier : la tuile garde son identite de couleur, mais le
+   chiffre repasse en gris. « Rebonds 0 » en rouge ferait craindre un ennui. */
+.nl-tuile.nl-zero .nl-tuile-v{color:var(--muted)}
+.nl-tuile:hover,.nl-tuile:focus-visible{border-color:var(--nc)}
+
+/* La tuile active porte le filtre en cours : elle se remplit de sa propre
+   couleur, pour qu'on sache d'un regard ce qu'on est en train de lire. */
+.nl-tuile.on{background:var(--nc);border-color:var(--nc);border-left-color:var(--nc)}
+.nl-tuile.on .nl-tuile-l,.nl-tuile.on .nl-tuile-s{color:rgba(255,255,255,.88)}
+.nl-tuile.on .nl-tuile-v,.nl-tuile.on.nl-zero .nl-tuile-v{color:#fff}
 
 .nl-det-barre{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .nl-det-rech{flex:1 1 240px;min-width:0}
