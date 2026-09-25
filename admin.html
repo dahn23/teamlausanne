@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=253" />
+  <link rel="stylesheet" href="style.css?v=254" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -807,8 +807,20 @@
 
         <!-- ---- Vue Newsletter (superadmin / admin / secrétaire) ---- -->
         <div id="view-newsletter" class="view hidden">
-          <div class="crm-head"><h1>Newsletter</h1>
-            <span class="spacer"></span><button type="button" id="nl-new">✉ Nouvelle newsletter</button></div>
+          <header class="dash-hero">
+            <div class="dash-hero-t">
+              <p class="dash-eyebrow" id="nl-eyebrow">Envois groupés</p>
+              <h1 class="dash-title">Newsletter</h1>
+              <p class="dash-lede">Ce qui est parti, ce qui a été lu, et qui ne veut plus rien recevoir.</p>
+            </div>
+            <div class="dash-hero-a">
+              <button type="button" id="nl-refresh" class="ghost">↻ Actualiser</button>
+              <button type="button" id="nl-new">✉ Nouvelle newsletter</button>
+            </div>
+          </header>
+          <!-- Chiffres d'ensemble : la santé des envois se lit avant d'ouvrir
+               quoi que ce soit. Les tuiles mènent au détail concerné. -->
+          <div id="nl-chiffres" class="dgrid" style="margin-bottom:22px"></div>
           <div id="nl-rows" class="nl-list"></div>
           <p id="nl-empty" class="muted" hidden>Aucune newsletter pour l'instant.</p>
           <div id="nl-detail" class="hidden" style="margin-top:18px"></div>

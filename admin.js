@@ -7443,6 +7443,7 @@ const nlPct = (a, b) => (b ? Math.round((a / b) * 100) + " %" : "—");
 function initNewsletter() {
   if (nlInit) return; nlInit = true;
   $("nl-new").addEventListener("click", () => nlOpen(null));
+  $("nl-refresh").addEventListener("click", loadNewsletters);
   $("nl-close").addEventListener("click", () => $("nl-modal").classList.add("hidden"));
   $("nl-count").addEventListener("click", nlComputeAudience);
   $("nl-save").addEventListener("click", async () => { const id = await nlSave(); if (id) { $("nl-status").textContent = "✓ Brouillon enregistré."; loadNewsletters(); } });
@@ -7465,7 +7466,26 @@ async function loadNewsletters() {
   if (error) { $("nl-rows").innerHTML = `<tr><td colspan="13" class="muted">${esc(error.message)}</td></tr>`; return; }
   nlList = rows || []; nlMetrics = {}; for (const m of mets || []) nlMetrics[m.newsletter_id] = m;
   nlPending = {}; for (const p of pend || []) nlPending[p.newsletter_id] = Number(p.n) || 0;
+  nlRenderChiffres();
   renderNewsletters();
+}
+
+// Chiffres d'ensemble. Cumulés sur les envois RÉELS : compter les brouillons
+// ferait baisser des moyennes qui ne veulent alors plus rien dire.
+function nlRenderChiffres() {
+  const envoyees = nlList.filter((n) => n.status === "envoyee");
+  const s = (k) => envoyees.reduce((t, n) => t + ((nlMetrics[n.id] || {})[k] || 0), 0);
+  const sent = s("n_sent"), ouv = s("n_opened"), unsub = s("n_unsub"), reb = s("n_bounced") + s("n_spam");
+  const dern = envoyees[0];   // la liste arrive déjà du plus récent au plus ancien
+  const dm = dern ? (nlMetrics[dern.id] || {}) : null;
+  $("nl-chiffres").innerHTML = [
+    dashStat({ label: "Envois", value: dashNum(envoyees.length), sub: nlList.length > envoyees.length ? `${nlList.length - envoyees.length} brouillon(s)` : "" }),
+    dashStat({ label: "E-mails partis", value: dashNum(sent), sub: "toutes newsletters" }),
+    dashStat({ label: "Ouverture moyenne", value: nlPct(ouv, sent), sub: `${dashNum(ouv)} ouverture(s)`, tone: sent && ouv / sent >= 0.3 ? "ok" : "" }),
+    dashStat({ label: "Dernier envoi", value: dm ? nlPct(dm.n_opened, dm.n_sent) : "—", sub: dern ? `${dashNum(dm.n_sent || 0)} destinataires` : "aucun envoi" }),
+    dashStat({ label: "Désinscriptions", value: dashNum(unsub), sub: "cumul", tone: unsub ? "warn" : "" }),
+    dashStat({ label: "Rebonds & spam", value: dashNum(reb), sub: "adresses à nettoyer", tone: reb ? "bad" : "" }),
+  ].join("");
 }
 function nlAudLabel(a) {
   if (!a) return "—";
@@ -7493,10 +7513,16 @@ function renderNewsletters() {
       stat("destinataires", m.n_total || 0) + stat("délivrés", m.n_delivered || 0, nlPct(m.n_delivered, m.n_sent)) +
       stat("ouvertures", m.n_opened || 0, nlPct(m.n_opened, m.n_sent), "nl-stat-hi") + stat("clics", m.n_clicked || 0, nlPct(m.n_clicked, m.n_sent)) +
       (m.n_bounced ? stat("rebonds", m.n_bounced, "", "nl-stat-bad") : "") + (m.n_spam ? stat("spam", m.n_spam, "", "nl-stat-bad") : "") + (m.n_unsub ? stat("désinscrits", m.n_unsub) : "");
-    return `<article class="nl-card">
+    // Une barre d'ouverture : le taux se compare d'un envoi à l'autre bien plus
+    // vite en longueur qu'en pourcentage lu ligne par ligne.
+    const tx = m.n_sent ? Math.round(((m.n_opened || 0) / m.n_sent) * 100) : 0;
+    const jauge = draft ? "" : `<div class="nl-jauge" title="Taux d'ouverture : ${tx} %">
+      <i style="width:${Math.min(100, tx)}%"></i></div>`;
+    return `<article class="nl-card${draft ? " nl-card-draft" : ""}">
       <div class="nl-card-main">
         <div class="nl-card-title"><b>${esc(n.subject || "(sans objet)")}</b><span class="nl-st ${n.status}">${NL_ST[n.status] || n.status}</span></div>
         <div class="nl-card-meta">${draft ? "Créée le " : "Envoyée le "}${frDateTime(n.sent_at || n.created_at)} · ${esc(nlAudLabel(n.audience) || "ciblage non défini")}</div>
+        ${jauge}
         ${n.last_error ? `<div class="nl-card-err" title="${esc(n.last_error)}">⚠ ${esc(n.last_error.slice(0, 90))}${n.last_error.length > 90 ? "…" : ""}</div>` : ""}
       </div>
       <div class="nl-card-stats">${stats}</div>
@@ -7525,20 +7551,154 @@ async function nlRetryFailed(id, btn) {
   return nlLancerEnvoi(id, nb, btn);
 }
 
+// ---- Détail d'un envoi : les chiffres mènent aux personnes ---------------
+// Les compteurs s'affichaient au-dessus d'une liste complète : on voyait « 12
+// désinscrits » sans pouvoir savoir QUI, alors que c'est justement le chiffre
+// sur lequel on veut agir. Chaque tuile devient donc un filtre.
+//
+// Les prédicats ci-dessous recopient EXACTEMENT ceux de la vue SQL
+// newsletter_metrics. C'est la seule façon qu'une tuile affichant 12 ouvre une
+// liste de 12 : filtrer sur `status` donnerait d'autres nombres, parce que la
+// vue compte des horodatages (opened_at…) et non l'état courant — quelqu'un qui
+// a cliqué a le statut « clique » mais compte aussi comme ouverture.
+const NL_FILTRES = [
+  ["tous",       "Destinataires", "",    () => true],
+  ["envoye",     "Envoyés",       "",    (r) => r.status !== "en_attente" && r.status !== "erreur"],
+  ["delivre",    "Délivrés",      "sent", (r) => r.delivered_at || r.opened_at || r.clicked_at],
+  ["ouvert",     "Ouvertures",    "sent", (r) => r.opened_at],
+  ["clique",     "Clics",         "sent", (r) => r.clicked_at],
+  ["rebond",     "Rebonds",       "",    (r) => r.bounced_at],
+  ["spam",       "Spam",          "",    (r) => r.complained_at],
+  ["desinscrit", "Désinscrits",   "",    (r) => r.status === "desinscrit"],
+  ["erreur",     "Erreurs",       "",    (r) => r.status === "erreur"],
+];
+// Ce qui doit attirer l'œil : un rebond, un spam, une erreur sont des ennuis.
+const NL_TON = { rebond: "bad", spam: "bad", erreur: "bad", desinscrit: "warn", ouvert: "ok", clique: "ok" };
+const NL_MAX_LIGNES = 120;   // au-delà, on déplie à la demande
+
+let nlDet = null;   // { n, rows, filtre, q, tout }
+
 async function nlShowDetail(id) {
   const n = nlList.find((x) => x.id === id); if (!n) return;
-  const m = nlMetrics[id] || {};
-  const { data } = await sb.from("newsletter_recipients").select("email,name,source,status,open_count,click_count,error,sent_at").eq("newsletter_id", id).order("email");
-  const rows = data || [];
-  const kpi = (l, v, sub) => `<div><b>${v}</b>${esc(l)}${sub ? ` <span class="muted">${sub}</span>` : ""}</div>`;
-  $("nl-detail").innerHTML = `<div class="crm-head" style="align-items:center"><h2 style="margin:0;font-size:1.1rem">${esc(n.subject)} <span class="muted" style="font-weight:400;font-size:.85rem">— ${n.sent_at ? "envoyée le " + frDateTime(n.sent_at) : NL_ST[n.status]}</span></h2><span class="spacer"></span><button type="button" class="ghost" id="nl-detail-close">Fermer</button></div>
-    <div class="nl-kpi">${kpi("Destinataires", m.n_total || 0)}${kpi("Envoyés", m.n_sent || 0)}${kpi("Délivrés", m.n_delivered || 0, nlPct(m.n_delivered, m.n_sent))}${kpi("Ouvertures", m.n_opened || 0, nlPct(m.n_opened, m.n_sent))}${kpi("Clics", m.n_clicked || 0, nlPct(m.n_clicked, m.n_sent))}${kpi("Rebonds", m.n_bounced || 0)}${kpi("Spam", m.n_spam || 0)}${kpi("Désinscrits", m.n_unsub || 0)}${kpi("Erreurs", m.n_error || 0)}</div>
-    <div class="table-wrap"><table class="crm-table"><thead><tr><th>E-mail</th><th>Nom</th><th>Source</th><th>Statut</th><th>Ouv.</th><th>Clics</th><th>Détail</th></tr></thead><tbody>
-    ${rows.map((r) => `<tr><td>${esc(r.email)}</td><td>${esc(r.name || "")}</td><td class="muted">${esc(r.source || "")}</td><td><span class="nl-rcpt-st ${r.status}">${NL_RST[r.status] || r.status}</span></td><td>${r.open_count || ""}</td><td>${r.click_count || ""}</td><td class="muted" style="font-size:.78rem">${esc(r.error || "")}</td></tr>`).join("")}
-    </tbody></table></div>`;
-  $("nl-detail").classList.remove("hidden");
-  $("nl-detail-close").addEventListener("click", () => $("nl-detail").classList.add("hidden"));
-  $("nl-detail").scrollIntoView({ behavior: "smooth", block: "start" });
+  const z = $("nl-detail");
+  z.classList.remove("hidden");
+  z.innerHTML = '<p class="muted">Chargement…</p>';
+  z.scrollIntoView({ behavior: "smooth", block: "start" });
+  // Les horodatages sont indispensables : ce sont eux que comptent les tuiles.
+  const { data, error } = await sb.from("newsletter_recipients")
+    .select("email,name,source,status,open_count,click_count,error,sent_at,delivered_at,opened_at,clicked_at,bounced_at,complained_at")
+    .eq("newsletter_id", id).order("email");
+  if (error) { z.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  nlDet = { n, rows: data || [], filtre: "tous", q: "", tout: false };
+  nlRenderDetail();
+}
+
+const nlDetCompte = (cle) => {
+  const f = NL_FILTRES.find(([k]) => k === cle); if (!f) return 0;
+  return nlDet.rows.filter(f[3]).length;
+};
+
+function nlDetLignes() {
+  const f = NL_FILTRES.find(([k]) => k === nlDet.filtre) || NL_FILTRES[0];
+  const q = nlDet.q.trim().toLowerCase();
+  return nlDet.rows.filter(f[3]).filter((r) => !q
+    || (r.email || "").toLowerCase().includes(q) || (r.name || "").toLowerCase().includes(q));
+}
+
+function nlRenderDetail() {
+  const { n } = nlDet;
+  const envoyes = nlDetCompte("envoye");
+  const tuiles = NL_FILTRES.map(([cle, lbl, base, pred]) => {
+    const v = nlDet.rows.filter(pred).length;
+    const sous = base === "sent" ? nlPct(v, envoyes) : "";
+    const ton = v ? (NL_TON[cle] || "") : "";
+    return `<button type="button" class="nl-tuile${nlDet.filtre === cle ? " on" : ""}${ton ? " nt-" + ton : ""}"
+        data-f="${cle}" aria-pressed="${nlDet.filtre === cle}">
+      <span class="nl-tuile-l">${esc(lbl)}</span>
+      <b class="nl-tuile-v">${dashNum(v)}</b>
+      <span class="nl-tuile-s">${sous || "&nbsp;"}</span></button>`;
+  }).join("");
+
+  $("nl-detail").innerHTML = `<section class="nl-det">
+    <header class="nl-det-h">
+      <div>
+        <p class="dash-eyebrow">${n.sent_at ? "Envoyée le " + frDateTime(n.sent_at) : esc(NL_ST[n.status] || n.status)}</p>
+        <h2 class="nl-det-t">${esc(n.subject || "(sans objet)")}</h2>
+      </div>
+      <span class="spacer"></span>
+      <button type="button" class="ghost" id="nl-det-csv" title="Télécharger la liste affichée">⬇ CSV</button>
+      <button type="button" class="ghost" id="nl-detail-close">Fermer</button>
+    </header>
+    <div class="nl-tuiles">${tuiles}</div>
+    <div class="nl-det-barre">
+      <label class="nl-det-rech"><span class="sr-only">Rechercher un destinataire</span>
+        <input type="search" id="nl-det-q" placeholder="Rechercher un nom ou une adresse…" autocomplete="off" value="${esc(nlDet.q)}" /></label>
+      <span id="nl-det-n" class="muted"></span>
+    </div>
+    <div id="nl-det-liste"></div>
+  </section>`;
+
+  $("nl-detail-close").addEventListener("click", () => { $("nl-detail").classList.add("hidden"); nlDet = null; });
+  $("nl-det-csv").addEventListener("click", nlDetCsv);
+  $("nl-detail").querySelectorAll(".nl-tuile").forEach((b) => b.addEventListener("click", () => {
+    nlDet.filtre = b.dataset.f; nlDet.tout = false; nlRenderDetail();
+  }));
+  // Le champ vit hors de la zone redessinee : sinon la saisie perdrait le focus
+  // a chaque lettre.
+  const q = $("nl-det-q");
+  q.addEventListener("input", () => { nlDet.q = q.value; nlDet.tout = false; nlRenderListe(); });
+  nlRenderListe();
+}
+
+function nlRenderListe() {
+  const l = nlDetLignes();
+  const cache = Math.max(0, l.length - NL_MAX_LIGNES);
+  const vus = nlDet.tout ? l : l.slice(0, NL_MAX_LIGNES);
+  $("nl-det-n").textContent = l.length
+    ? `${dashNum(l.length)} ${l.length > 1 ? "personnes" : "personne"}${cache && !nlDet.tout ? ` · ${dashNum(vus.length)} affichées` : ""}`
+    : "";
+  const lbl = (NL_FILTRES.find(([k]) => k === nlDet.filtre) || [])[1] || "";
+  $("nl-det-liste").innerHTML = l.length
+    ? `<div class="dscroll">${vus.map((r) => {
+        const etats = [];
+        if (r.bounced_at) etats.push(dChip("Rebond", "bad"));
+        if (r.complained_at) etats.push(dChip("Spam", "bad"));
+        if (r.status === "desinscrit") etats.push(dChip("Désinscrit", "warn"));
+        if (r.status === "erreur") etats.push(dChip("Erreur", "bad"));
+        if (r.clicked_at) etats.push(dChip(`Clic${r.click_count > 1 ? ` ×${r.click_count}` : ""}`, "ok"));
+        else if (r.opened_at) etats.push(dChip(`Ouvert${r.open_count > 1 ? ` ×${r.open_count}` : ""}`, "ok"));
+        else if (r.delivered_at) etats.push(dChip("Délivré", "mut"));
+        else if (r.status === "en_attente") etats.push(dChip("En attente", "mut"));
+        const meta = [esc(r.email), r.source ? esc(r.source) : ""].filter(Boolean).join(" · ")
+          + (r.error ? `<br><span class="nl-det-err">${esc(r.error)}</span>` : "");
+        return dPer(r.name || r.email, meta, etats.join(""));
+      }).join("")}</div>`
+      + (cache && !nlDet.tout
+        ? `<button type="button" class="ghost nl-det-plus">Voir les ${dashNum(cache)} autres</button>` : "")
+    // Une liste vide n'a pas le même sens selon la tuile : zéro rebond est une
+    // bonne nouvelle (✓), zéro ouverture n'en est pas une.
+    : dEmpty(nlDet.q ? "Personne ne correspond à cette recherche."
+        : `Aucun destinataire dans « ${lbl} ».`,
+      !nlDet.q && ["rebond", "spam", "erreur", "desinscrit"].includes(nlDet.filtre));
+  const p = $("nl-det-liste").querySelector(".nl-det-plus");
+  if (p) p.addEventListener("click", () => { nlDet.tout = true; nlRenderListe(); });
+}
+
+// Exporter ce qu'on voit : repérer les désinscrits ne sert que si on peut
+// ensuite les traiter hors de l'écran.
+function nlDetCsv() {
+  const l = nlDetLignes();
+  if (!l.length) { uiAlert("Rien à exporter dans cette sélection."); return; }
+  const lignes = [["Nom", "E-mail", "Source", "Statut", "Ouvertures", "Clics", "Envoyé le", "Erreur"]];
+  for (const r of l) {
+    lignes.push([r.name || "", r.email || "", r.source || "", NL_RST[r.status] || r.status || "",
+      r.open_count || 0, r.click_count || 0, r.sent_at ? frDateTime(r.sent_at) : "", r.error || ""]);
+  }
+  const csv = lignes.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `newsletter-${nlDet.filtre}-${(nlDet.n.subject || "envoi").replace(/[^\w-]+/g, "-").slice(0, 40)}.csv`;
+  a.click();
 }
 // ---- Éditeur ----
 async function nlOpen(n) {

@@ -2634,8 +2634,14 @@ tr.rm-win td{background:#e3f6ea}
 tr.rm-loss td{background:#fde8e8}
 /* ---- Newsletter ---- */
 /* Liste des newsletters en cartes (plus de tableau à défilement horizontal) */
-.nl-list{display:flex;flex-direction:column;gap:10px}
-.nl-card{display:grid;grid-template-columns:minmax(220px,1.2fr) auto auto;gap:18px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+.nl-list{display:flex;flex-direction:column;gap:12px}
+/* Carte d'un envoi : meme matiere que les cartes du tableau de bord (fond,
+   rayon, ombre), et un leger relevement au survol pour dire qu'on peut ouvrir. */
+.nl-card{display:grid;grid-template-columns:minmax(220px,1.2fr) auto auto;gap:18px;align-items:center;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px 20px;
+  transition:transform .12s ease,box-shadow .12s ease}
+.nl-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(20,26,46,.13)}
 .nl-card-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:1rem}
 .nl-card-meta{color:#6b7280;font-size:.82rem;margin-top:3px}
 .nl-card-err{color:#b91c1c;font-size:.76rem;margin-top:4px}
@@ -2652,12 +2658,52 @@ tr.rm-loss td{background:#fde8e8}
 .nl-roles label{font-size:.82rem;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
 .nl-preview{margin-top:8px;max-height:180px;overflow:auto;font-size:.8rem;color:#555}
 .nl-preview div{padding:2px 0;border-bottom:1px dashed #e5e7eb}
-.nl-kpi{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 12px}
-.nl-kpi div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:110px}
-.nl-kpi b{display:block;font-size:1.2rem;color:var(--blue-ink)}
 .nl-st{display:inline-block;font-size:.72rem;font-weight:800;border-radius:6px;padding:2px 7px;text-transform:uppercase;letter-spacing:.03em}
 .nl-st.brouillon{background:#eef1f7;color:#4b5563}.nl-st.envoi{background:#fff4e5;color:#b45309}.nl-st.envoyee{background:#e3f6ea;color:#0b6b3a}
-.nl-rcpt-st.ouvert,.nl-rcpt-st.clique{color:#0b6b3a;font-weight:700}.nl-rcpt-st.rebond,.nl-rcpt-st.spam,.nl-rcpt-st.erreur{color:#b91c1c;font-weight:700}.nl-rcpt-st.desinscrit{color:#b45309}
+
+/* ---- Newsletter : detail d'un envoi (v253) ----
+   Les compteurs s'affichaient au-dessus d'une liste entiere : on lisait « 12
+   desinscrits » sans jamais savoir QUI. Chaque tuile est donc un bouton qui
+   filtre la liste, et reprend la grammaire du tableau de bord — filet de
+   couleur a gauche, libelle en capitales, grand chiffre. */
+.nl-det{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:18px 20px 20px}
+.nl-det-h{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.nl-det-h .dash-eyebrow{margin:0 0 2px}
+.nl-det-t{margin:0;font-size:1.25rem;letter-spacing:-.01em;color:var(--ink)}
+
+.nl-tuiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(124px,1fr));gap:9px;margin-bottom:16px}
+.nl-tuile{position:relative;text-align:left;cursor:pointer;font:inherit;
+  background:var(--card);border:1px solid var(--line);border-left:4px solid var(--line);
+  border-radius:11px;padding:10px 12px 9px;display:flex;flex-direction:column;gap:1px;
+  transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+.nl-tuile:hover,.nl-tuile:focus-visible{transform:translateY(-2px);
+  box-shadow:0 8px 20px rgba(20,26,46,.12);outline:none;border-color:var(--blue)}
+.nl-tuile-l{font-size:.64rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.nl-tuile-v{font-size:1.5rem;line-height:1.15;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.nl-tuile-s{font-size:.72rem;color:var(--muted);min-height:1em}
+.nl-tuile.nt-ok{border-left-color:#27a35b}   .nl-tuile.nt-ok .nl-tuile-v{color:#1c7d38}
+.nl-tuile.nt-warn{border-left-color:#e08c00} .nl-tuile.nt-warn .nl-tuile-v{color:#a35f00}
+.nl-tuile.nt-bad{border-left-color:#d4453b}  .nl-tuile.nt-bad .nl-tuile-v{color:#b3261e}
+/* La tuile active porte le filtre en cours : elle doit se distinguer nettement
+   des huit autres, sinon on ne sait plus ce qu'on regarde. */
+.nl-tuile.on{background:var(--blue);border-color:var(--blue);border-left-color:var(--blue)}
+.nl-tuile.on .nl-tuile-l,.nl-tuile.on .nl-tuile-s{color:rgba(255,255,255,.78)}
+.nl-tuile.on .nl-tuile-v{color:#fff}
+
+.nl-det-barre{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.nl-det-rech{flex:1 1 240px;min-width:0}
+.nl-det-rech input{width:100%;font:inherit;padding:8px 12px;border:1px solid var(--line);
+  border-radius:9px;background:var(--card);color:var(--ink)}
+.nl-det-barre .muted{font-size:.82rem;white-space:nowrap}
+.nl-det-err{color:#b3261e;font-size:.76rem}
+.nl-det-plus{margin-top:8px;width:100%}
+
+/* Jauge d'ouverture sur la carte d'un envoi : deux taux se comparent plus vite
+   en longueur qu'en pourcentages lus l'un apres l'autre. */
+.nl-jauge{height:5px;border-radius:999px;background:#e8ebf2;overflow:hidden;margin-top:9px;max-width:320px}
+.nl-jauge i{display:block;height:100%;border-radius:999px;background:var(--blue)}
+.nl-card-draft .nl-card-title b{color:var(--muted)}
 /* Fiche › Cours : en-tête avec icône Team Lausanne + cartes Présences / Temps de jeu */
 .cours-box-h{display:flex;align-items:center;gap:8px}
 .cours-ico{display:inline-flex;width:26px;height:26px;border-radius:8px;background:#e8edff;color:var(--blue,#073eb5);align-items:center;justify-content:center}
