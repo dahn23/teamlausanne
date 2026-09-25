@@ -7516,7 +7516,7 @@ function renderNewsletters() {
     const m = nlMetrics[n.id] || {};
     const acts = n.status === "brouillon"
       ? `<button class="ghost nl-edit" data-id="${n.id}">Modifier</button><button class="ghost nl-del" data-id="${n.id}" title="Supprimer">✕</button>`
-      : `<button class="ghost nl-view" data-id="${n.id}">Voir</button><button class="ghost nl-dup" data-id="${n.id}" title="Réutiliser comme brouillon">Dupliquer</button>`
+      : `<button class="ghost nl-view" data-id="${n.id}">Voir</button><button class="ghost nl-dup" data-id="${n.id}" title="Réutiliser comme brouillon">Dupliquer</button><button class="ghost nl-copy" data-id="${n.id}" title="Envoie un exemplaire à une ou quelques adresses (toi, un collègue), sans toucher aux destinataires ni aux statistiques">✉ Exemplaire</button>`
         + ((n.status === "envoyee" || n.status === "erreur") && (nlPending[n.id] || 0) > 0
           ? `<button class="primary nl-retry" data-id="${n.id}" title="Renvoie seulement aux destinataires pas encore servis (erreur ou en attente, ex. quota Resend dépassé) ; ceux qui l'ont reçue ne la reçoivent pas une 2e fois">Relancer les ${nlPending[n.id]} envoi(s) manquant(s)</button>` : "");
     // Carte par newsletter : titre + contexte à gauche, chiffres au milieu, actions à droite.
@@ -7548,12 +7548,33 @@ function renderNewsletters() {
   R.querySelectorAll(".nl-view").forEach((b) => b.addEventListener("click", () => nlShowDetail(b.dataset.id)));
   R.querySelectorAll(".nl-dup").forEach((b) => b.addEventListener("click", () => { const n = nlList.find((x) => x.id === b.dataset.id); nlOpen({ ...n, id: null, status: "brouillon" }); }));
   R.querySelectorAll(".nl-retry").forEach((b) => b.addEventListener("click", () => nlRetryFailed(b.dataset.id, b)));
+  R.querySelectorAll(".nl-copy").forEach((b) => b.addEventListener("click", () => nlSendCopy(b.dataset.id, b)));
   R.querySelectorAll(".nl-del").forEach((b) => b.addEventListener("click", async () => {
     if (!(await uiConfirm("Supprimer ce brouillon ?"))) return;
     await sb.from("newsletters").delete().eq("id", b.dataset.id); loadNewsletters();
   }));
 }
 // Relance des envois en erreur (quota Resend, panne passagère) : seuls les destinataires « erreur » repartent.
+// Exemplaire d'une newsletter déjà envoyée (ex. pour soi) : même envoi que le « test » de l'éditeur, qui ne touche
+// ni aux destinataires ni aux statistiques. Adresse(s) séparées par des virgules, NL_TEST_MAX au plus.
+async function nlSendCopy(id, btn) {
+  const n = nlList.find((x) => x.id === id); if (!n) return;
+  let def = ""; try { def = localStorage.getItem(NL_TEST_CLE) || ""; } catch (_) {}
+  if (!def) { const { data: sess } = await sb.auth.getSession(); def = sess?.session?.user?.email || ""; }
+  const v = await uiPrompt(`Envoyer un exemplaire de « ${n.subject} » à quelle(s) adresse(s) ?`, def);
+  if (!v) return;
+  const dests = v.split(/[,;\n]/).map((x) => x.trim()).filter(Boolean);
+  const bad = dests.find((a) => !nlEmailOk(a));
+  if (bad) { uiAlert(`Cette adresse ne va pas : ${bad}`); return; }
+  if (!dests.length || dests.length > NL_TEST_MAX) { uiAlert(`Entre 1 et ${NL_TEST_MAX} adresses.`); return; }
+  if (btn) btn.disabled = true;
+  const { data, error } = await sb.functions.invoke("newsletter-send", { body: { id, test_to: dests } });
+  if (btn) btn.disabled = false;
+  if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} uiAlert("Échec : " + m); return; }
+  if (data?.error) { uiAlert("Échec : " + data.error); return; }
+  uiAlert(`✓ Exemplaire envoyé à ${(data?.envoyes || dests).join(", ")}.`);
+}
+
 async function nlRetryFailed(id, btn) {
   const n = nlList.find((x) => x.id === id); if (!n) return;
   const k = nlPending[id] || 0;
