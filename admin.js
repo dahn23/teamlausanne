@@ -4450,10 +4450,12 @@ function closeDetail() {
 // Envois e-mails d'un tournoi (depuis tournoi@). Un « tournoi » regroupe plusieurs
 // épreuves (tableaux) : l'ANNULATION est PAR ÉPREUVE. Remerciement/Vainqueur aussi
 // automatiques le lundi 11h (cron gz-mails-lundi).
+const GZ_MAIL_ROLES = ["superadmin", "admin", "secretaire", "organisateur"];
 async function renderGzMailActions(tid) {
   const box = $("gz-mail-actions"); if (!box) return;
-  // Responsable de tournoi pur (nommé, sans rôle d'accès) : les envois restent au staff / official.
-  if (!hasAny(meRoles, CONSOLE_ROLES)) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+  // Envois réservés aux mêmes rôles que la fonction gz-notify (superadmin, admin, secrétariat, official) : un
+  // responsable de tournoi, même coach ou moniteur (ex. Célyan, 25.09.2026), ne voit pas ce bloc.
+  if (!hasAny(meRoles, GZ_MAIL_ROLES)) { box.classList.add("hidden"); box.innerHTML = ""; return; }
   box.classList.remove("hidden");
   box.innerHTML = `<h3 style="margin-top:0">Envois e-mails <span class="muted" style="font-weight:400;font-size:.85rem">— depuis tournoi@</span></h3><p class="muted" style="font-size:.85rem">Chargement…</p>`;
   const { data: tt } = await sb.from("gz_tournaments").select("tournament_date").eq("id", tid).maybeSingle();
