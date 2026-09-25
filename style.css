@@ -1186,6 +1186,7 @@ html{-webkit-tap-highlight-color:transparent}
 .mail-banner{background:#fff7e6;border:1px solid #f0d59a;color:#8a6100;border-radius:10px;padding:9px 12px;font-size:.84rem;margin-bottom:12px}
 .mail-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .mail-accts{display:flex;gap:6px;flex-wrap:wrap}
+.mail-total{font-size:.8rem;font-weight:600;white-space:nowrap;align-self:center}
 .mail-acct{background:#eef1f7;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:.82rem;font-weight:600;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .mail-acct.sel{background:var(--blue);color:#fff;border-color:var(--blue)}
 .mail-badge{background:#e23b3b;color:#fff;border-radius:999px;font-size:.68rem;padding:0 6px;min-width:16px;text-align:center}

@@ -12395,7 +12395,16 @@ let mailBadgeRows = [];
 // Au-delà, c'est la RECHERCHE (tout l'historique, en base) qui sert à retrouver un mail ancien. Pas de
 // pagination : décision Dan, 24.09.2026.
 const MAIL_LOAD_ALL = 150, MAIL_LOAD_BOX = 250;
+// Total en base (toute l'historique) de la boîte affichée, ou de toutes : simple comptage, sans rien charger.
+async function mailShowTotal() {
+  const el = $("mail-total"); if (!el) return;
+  let q = sb.from("mail_messages").select("id", { count: "exact", head: true });
+  if (mailFilterAddr) q = q.eq("account_address", mailFilterAddr);
+  const { count, error } = await q;
+  el.textContent = error || count == null ? "" : `${count.toLocaleString("fr-CH")} mails${mailFilterAddr ? " dans cette boîte" : " au total"}`;
+}
 async function mailFetchMsgs() {
+  mailShowTotal();   // en parallèle, ne retarde pas la liste
   const base = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(MAIL_LOAD_ALL);
   const qs = [base];
   if (mailFilterAddr) qs.push(sb.from("mail_messages").select(MAIL_COLS).eq("account_address", mailFilterAddr).order("received_at", { ascending: false }).limit(MAIL_LOAD_BOX));
