@@ -7480,7 +7480,9 @@ function renderNewsletters() {
     const m = nlMetrics[n.id] || {};
     const acts = n.status === "brouillon"
       ? `<button class="ghost nl-edit" data-id="${n.id}">Modifier</button><button class="ghost nl-del" data-id="${n.id}" title="Supprimer">✕</button>`
-      : `<button class="ghost nl-view" data-id="${n.id}">Voir</button><button class="ghost nl-dup" data-id="${n.id}" title="Réutiliser comme brouillon">Dupliquer</button>`;
+      : `<button class="ghost nl-view" data-id="${n.id}">Voir</button><button class="ghost nl-dup" data-id="${n.id}" title="Réutiliser comme brouillon">Dupliquer</button>`
+        + (n.status === "envoyee" && (nlMetrics[n.id]?.n_error || 0) > 0
+          ? `<button class="primary nl-retry" data-id="${n.id}" title="Renvoie seulement aux destinataires en erreur (ex. quota Resend dépassé) ; ceux qui l'ont reçue ne la reçoivent pas une 2e fois">Relancer les ${nlMetrics[n.id].n_error} échec(s)</button>` : "");
     // Carte par newsletter : titre + contexte à gauche, chiffres au milieu, actions à droite.
     // Les compteurs d'incidents (rebonds, spam, désinscrits) ne s'affichent que s'ils sont non nuls.
     const stat = (l, v, sub, cls) => `<div class="nl-stat ${cls || ""}"><b>${v}</b><span>${esc(l)}${sub ? ` · ${sub}` : ""}</span></div>`;
@@ -7503,11 +7505,24 @@ function renderNewsletters() {
   R.querySelectorAll(".nl-edit").forEach((b) => b.addEventListener("click", () => nlOpen(nlList.find((x) => x.id === b.dataset.id))));
   R.querySelectorAll(".nl-view").forEach((b) => b.addEventListener("click", () => nlShowDetail(b.dataset.id)));
   R.querySelectorAll(".nl-dup").forEach((b) => b.addEventListener("click", () => { const n = nlList.find((x) => x.id === b.dataset.id); nlOpen({ ...n, id: null, status: "brouillon" }); }));
+  R.querySelectorAll(".nl-retry").forEach((b) => b.addEventListener("click", () => nlRetryFailed(b.dataset.id, b)));
   R.querySelectorAll(".nl-del").forEach((b) => b.addEventListener("click", async () => {
     if (!(await uiConfirm("Supprimer ce brouillon ?"))) return;
     await sb.from("newsletters").delete().eq("id", b.dataset.id); loadNewsletters();
   }));
 }
+// Relance des envois en erreur (quota Resend, panne passagère) : seuls les destinataires « erreur » repartent.
+async function nlRetryFailed(id, btn) {
+  const n = nlList.find((x) => x.id === id); if (!n) return;
+  const k = nlMetrics[id]?.n_error || 0;
+  if (!(await uiConfirm(`Renvoyer « ${n.subject} » aux ${k} destinataire(s) en erreur ?\nCeux qui l'ont déjà reçue ne la recevront pas une deuxième fois.`))) return;
+  if (btn) btn.disabled = true;
+  const { data: nb, error } = await sb.rpc("newsletter_retry_failed", { p_id: id });
+  if (error) { if (btn) btn.disabled = false; uiAlert("Relance impossible : " + error.message); return; }
+  if (!nb) { if (btn) btn.disabled = false; uiAlert("Aucun envoi en erreur à relancer."); loadNewsletters(); return; }
+  return nlLancerEnvoi(id, nb, btn);
+}
+
 async function nlShowDetail(id) {
   const n = nlList.find((x) => x.id === id); if (!n) return;
   const m = nlMetrics[id] || {};
