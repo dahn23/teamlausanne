@@ -754,6 +754,27 @@ input.pd-native{display:none}
 .stg-coach-row .stg-coach-note{flex:2;min-width:180px}
 .stg-coach-row .stg-coach-sel,.stg-coach-row .ps-wrap{flex:1;min-width:160px}
 .stg-linked{font-size:.72rem;font-weight:700;color:#1c7d38;background:#e3f6e8;border-radius:999px;padding:1px 8px}
+/* Inscrits d'un stage : une ligne sur deux niveaux, sans tableau large (25.09.2026) */
+.stg-regs{display:flex;flex-direction:column;margin-top:8px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.stg-reg{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.stg-reg:first-child{border-top:0}
+.stg-reg-who{min-width:0;flex:1 1 260px}
+.stg-reg-name{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.stg-reg-name .stg-link{padding:2px 10px;font-size:.78rem}
+.stg-reg-info{font-size:.8rem;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.stg-reg-cmt{font-size:.8rem;color:#555;margin-top:3px;overflow-wrap:anywhere}
+.stg-reg-money{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;justify-content:flex-end}
+.stg-reg-price{font-size:.98rem;color:var(--blue-ink);white-space:nowrap}
+.stg-reb-ask{border:1.5px dashed var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:3px 10px;font-weight:700;font-size:.78rem;cursor:pointer}
+.stg-reb-ask:hover{border-color:var(--blue);color:var(--blue)}
+.stg-reb-on{display:inline-flex;align-items:center;gap:4px;background:#fff4e0;color:#8a5a00;border-radius:999px;padding:3px 6px 3px 10px;font-weight:700;font-size:.78rem;white-space:nowrap}
+.stg-reb-on .stg-reb-del{border:0;background:transparent;color:#8a5a00;cursor:pointer;padding:0 4px;font-size:.8rem}
+.stg-inv-btn{border:0;background:var(--blue);color:#fff;border-radius:10px;padding:6px 12px;font-weight:700;font-size:.8rem;cursor:pointer;white-space:nowrap}
+.stg-inv-chip{border:1px solid var(--line);background:#fff;border-radius:10px;padding:4px 8px;font-size:.78rem;font-weight:700;color:var(--blue-ink);cursor:pointer;white-space:nowrap}
+.stg-reg-inv .ghost{padding:4px 10px;font-size:.78rem}
+.stg-paid-lbl{display:inline-flex;align-items:center;gap:4px;font-size:.8rem;font-weight:600;white-space:nowrap}
+.stg-paid-on{font-size:.8rem;font-weight:800;color:#0b6b3a;white-space:nowrap}
+@media (max-width:640px){.stg-reg-money{justify-content:flex-start;width:100%}}
 .stlink-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 /* ===== Saisons (fiche) ===== */
 .ss-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}

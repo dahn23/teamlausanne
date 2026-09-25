@@ -241,6 +241,7 @@ const PERSON_ROLES = [
   ["prof", "Prof"], ["coach-mental", "Coach mental"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
   ["concierge", "Concierge"],   // salarié sans aucun accès à l'app (fiche + salaire seulement)
   ["gamezone", "GameZone"],     // joueur de tournoi GameZone relié automatiquement (db/101) ; aucun accès à l'app
+  ["stage", "Stage"],           // inscrit à un stage relié automatiquement (db/103) ; aucun accès à l'app
 ];
 const roleLabel = (r) => (PERSON_ROLES.find(([v]) => v === r) || [r, r])[1];
 
@@ -1646,7 +1647,7 @@ function openPerson(p) {
   const roles = p ? (peopleRoles[p.id] || []) : [];
   // Joueur GameZone sans autre rôle ni filière : seulement Info + GameZone (les autres onglets reviennent
   // dès qu'il reçoit un rôle). showPersonTab() applique ce filtre, y compris aux onglets affichés plus tard.
-  personGzOnly = !!p && roles.length > 0 && roles.every((r) => r === "gamezone");
+  personGzOnly = !!p && roles.length > 0 && roles.every((r) => EXTERNAL_TAGS.includes(r));   // GameZone et/ou stage seulement
   loadPersonGz(p ? p.id : null);
   // Onglet Réservations : visible si membre/client (ou si des résas existent — persistance)
   const resaByRole = roles.includes("membre") || roles.includes("client");
@@ -1706,8 +1707,9 @@ function setPersonTab(tab) {
   document.querySelectorAll("#person-form .ptab-panel").forEach((p) =>
     p.classList.toggle("hidden", p.id !== `ptab-${tab}`));
 }
-let personGzOnly = false;
-const GZ_ONLY_TABS = ["info", "gamezone"];
+let personGzOnly = false;   // fiche « externe seulement » : joueur GameZone et/ou inscrit à un stage, sans autre rôle
+const EXTERNAL_TAGS = ["gamezone", "stage"];
+const GZ_ONLY_TABS = ["info", "gamezone", "stages"];
 function showPersonTab(tab, show) {
   const btn = document.querySelector(`#p-tabs .ptab[data-ptab="${tab}"]`);
   if (!btn) return;
@@ -1750,14 +1752,21 @@ async function loadPersonGz(pid) {
 }
 
 // ---- Joueurs GameZone « à vérifier » : ressemblance avec une fiche sans certitude (db/101) ----
+// Deux sources : joueurs GameZone (db/101) et inscrits aux stages (db/103). Chaque élément garde sa source
+// (kind) pour appeler la bonne fonction de décision.
 let gzReview = [];
 async function loadGzReview() {
   const box = $("gz-review-banner"); if (!box) return;
-  const { data, error } = await sb.rpc("gz_link_review_list");
-  gzReview = error ? [] : (data || []);
+  const [gz, st] = await Promise.all([sb.rpc("gz_link_review_list"), sb.rpc("stage_link_review_list")]);
+  gzReview = [
+    ...(gz.error ? [] : (gz.data || [])).map((r) => ({ ...r, kind: "gz", key: r.participant_id })),
+    ...(st.error ? [] : (st.data || [])).map((r) => ({ ...r, kind: "stage", key: r.registration_id })),
+  ];
   box.classList.toggle("hidden", !gzReview.length);
   if (!gzReview.length) { box.innerHTML = ""; return; }
-  box.innerHTML = `<span>⚠ <b>${gzReview.length} joueur(s) GameZone</b> ressemble(nt) à une fiche existante sans certitude : à vérifier avant de les relier.</span>
+  const nGz = gzReview.filter((r) => r.kind === "gz").length, nSt = gzReview.length - nGz;
+  const quoi = [nGz ? `${nGz} joueur(s) GameZone` : "", nSt ? `${nSt} inscrit(s) à un stage` : ""].filter(Boolean).join(" et ");
+  box.innerHTML = `<span>⚠ <b>${quoi}</b> ressemble(nt) à une fiche existante sans certitude : à vérifier avant de les relier.</span>
     <button type="button" class="ghost" id="gz-review-open">Vérifier</button>`;
   $("gz-review-open").addEventListener("click", openGzReview);
 }
@@ -1766,19 +1775,21 @@ function openGzReview() {
   const render = () => {
     if (!gzReview.length) { ov.remove(); loadPeople(); return; }
     ov.innerHTML = `<div class="ui-box" style="max-width:620px;text-align:left">
-      <h3 style="margin:0 0 6px">Joueurs GameZone à vérifier</h3>
-      <p class="muted" style="margin:0 0 12px;font-size:.85rem">Même nom qu'une fiche, mais la licence ou la naissance ne concorde pas. Relie-le à la bonne fiche, ou crée une nouvelle fiche si c'est quelqu'un d'autre.</p>
+      <h3 style="margin:0 0 6px">Fiches à vérifier</h3>
+      <p class="muted" style="margin:0 0 12px;font-size:.85rem">Même nom qu'une fiche, mais la licence, la naissance ou l'e-mail ne concorde pas. Relie à la bonne fiche, ou crée une nouvelle fiche si c'est quelqu'un d'autre.</p>
       ${gzReview.map((r, i) => `<div class="gz-review-item">
-        <div><b>${esc(r.player.last_name)} ${esc(r.player.first_name)}</b> · licence ${esc(r.player.license_no || "—")}${r.player.born ? ` · né(e) le ${frDate(r.player.born)}` : ""}${r.player.club ? ` · ${esc(r.player.club)}` : ""}
+        <div><span class="ss-tag ${r.kind === "gz" ? "ss-role" : "ss-warn"}">${r.kind === "gz" ? "GameZone" : "Stage"}</span> <b>${esc(r.player.last_name)} ${esc(r.player.first_name)}</b>${r.kind === "gz" ? ` · licence ${esc(r.player.license_no || "—")}` : ""}${r.player.born ? ` · né(e) le ${frDate(r.player.born)}` : ""}${r.player.club ? ` · ${esc(r.player.club)}` : ""}${r.player.email ? ` · ${esc(r.player.email)}` : ""}${r.player.stage ? ` · ${esc(r.player.stage)}` : ""}
           <div class="muted" style="font-size:.78rem">${esc(r.reason)}</div></div>
-        ${(r.candidates || []).map((c) => `<div class="gz-review-cand"><span>Fiche : <b>${esc(c.last_name)} ${esc(c.first_name)}</b> · ${c.birthdate ? frDate(c.birthdate) : "naissance ?"} · licence ${esc(c.license_no || "—")}</span>
+        ${(r.candidates || []).map((c) => `<div class="gz-review-cand"><span>Fiche : <b>${esc(c.last_name)} ${esc(c.first_name)}</b> · ${c.birthdate ? frDate(c.birthdate) : "naissance ?"}${r.kind === "gz" ? ` · licence ${esc(c.license_no || "—")}` : ` · ${esc(c.email || "sans e-mail")}`}</span>
           <button type="button" class="primary gz-rv-link" data-i="${i}" data-p="${c.id}">C'est la même personne</button></div>`).join("")}
         <button type="button" class="ghost gz-rv-new" data-i="${i}">Autre personne : créer une fiche</button>
       </div>`).join("")}
       <div class="ui-actions"><button type="button" class="ghost ui-no">Fermer</button></div></div>`;
     const act = async (i, person) => {
       const r = gzReview[i];
-      const { error } = await sb.rpc("gz_link_resolve", { p_gid: r.participant_id, p_person: person });
+      const { error } = r.kind === "stage"
+        ? await sb.rpc("stage_link_resolve", { p_reg: r.registration_id, p_person: person })
+        : await sb.rpc("gz_link_resolve", { p_gid: r.participant_id, p_person: person });
       if (error) { uiAlert("Impossible : " + error.message); return; }
       gzReview.splice(i, 1); render();
     };
@@ -9015,7 +9026,7 @@ const OI_ST = { a_envoyer: ["À envoyer", "fac-todo"], envoyee: ["Envoyée", "fa
 const OI_ORDER = ["a_envoyer", "envoyee", "payee", "annulee"];
 // Lot par filière = filières « grille Tarifs » ; sport-études / pro / pro U18 = depuis le contrat de la fiche.
 const OI_FILIERES = [["performance", "Performance"], ["competition", "Compétition"], ["club", "Club"], ["kidstennis", "KidsTennis"], ["adultes", "Adultes"]];
-const OI_FIL_ALL = [...OI_FILIERES, ["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"]];
+const OI_FIL_ALL = [...OI_FILIERES, ["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"], ["stage", "Stages"]];
 const OI_FROM = "info@teamlausanne.ch";
 let oiList = [], oiFilter = "", oiFiliere = "", oiInit = false, oiPrep = [], oiSendIds = [], oiSel = new Set();
 let oieId = null, oieDebtorPid = null, oiePlayerPid = null, oieSeason = null, oieFiliere = null;
@@ -9630,6 +9641,7 @@ async function oiSendGo() {
   btn.disabled = false; st.textContent = "";
   $("oi-send-modal").classList.add("hidden");
   await loadOutInvoices();
+  if (stgCurrent) loadRegistrations();   // facture de stage : la liste des inscrits montre le nouveau statut
   uiAlert(`✓ ${ok} facture(s) envoyée(s) depuis ${OI_FROM}.${errs.length ? "\n\nErreurs :\n" + errs.join("\n") : ""}`);
 }
 
@@ -10687,8 +10699,16 @@ async function loadRegistrations() {
   ]);
   stgRegs = regs || [];
   stgStaff = staff || [];
+  // Factures liées (onglet Factures, db/103) : numéro, statut, échéance.
+  const invIds = stgRegs.map((r) => r.out_invoice_id).filter(Boolean);
+  stgInv = {};
+  if (invIds.length) {
+    const { data: invs } = await sb.from("out_invoices").select("id,number,status,amount,issue_date,due_date,sent_at").in("id", invIds);
+    for (const f of invs || []) stgInv[f.id] = f;
+  }
   renderRegistrants();
 }
+let stgInv = {};
 
 const round2 = (n) => Math.round(n * 100) / 100;
 function stgRegPrice(r, days) {
@@ -10732,10 +10752,7 @@ function renderRegistrants() {
     const coaches = stgStaff.filter((x) => x.category_id === c.id);
     return `<div class="rg-card stg-box">
       <div class="stg-card-head"><h3 style="margin:0">${esc(c.name)} (${regs.length}) <span class="muted" style="font-weight:400">· ${stgEffPrice(c.price || 0, days)} CHF${c.meal ? " · repas" : ""}${c.tshirt ? " · t-shirt" : ""}</span></h3></div>
-      <div class="table-wrap" style="margin-top:8px">
-        <table class="crm-table"><thead><tr><th>Nom</th><th>Naissance</th><th>Mail</th>${c.tshirt ? "<th>T-shirt</th>" : ""}${c.meal ? "<th>Repas</th>" : ""}<th>Commentaire</th><th>Rabais</th><th>Prix</th><th>Facture</th><th>Payé</th><th></th></tr></thead>
-        <tbody>${regs.length ? regs.map((r) => stgRegRow(r, c, days)).join("") : '<tr><td colspan="11" class="muted">Aucun inscrit.</td></tr>'}</tbody></table>
-      </div>
+      <div class="stg-regs">${regs.length ? regs.map((r) => stgRegRow(r, c, days)).join("") : '<p class="muted" style="margin:6px 0">Aucun inscrit.</p>'}</div>
       <div class="stg-coaches">
         <div class="stg-card-head"><h4 style="margin:10px 0 4px">Coachs</h4><button type="button" class="ghost stg-coach-add" data-cat="${c.id}">+ Ajouter un coach</button></div>
         <div class="stg-coach-rows">${coaches.map(stgCoachRow).join("") || '<p class="muted" style="font-size:.82rem;margin:0">Aucun coach.</p>'}</div>
@@ -10746,25 +10763,44 @@ function renderRegistrants() {
   wireStageDetail();
 }
 
+// Un inscrit = une ligne sur deux niveaux (plus de tableau large ni de défilement horizontal) :
+// à gauche l'identité et les infos, à droite rabais · prix · facture · payé.
 function stgRegRow(r, cat, days) {
   const price = stgRegPrice(r, days);
-  const rebate = r.discount_pct ? `−${r.discount_pct}% <span class="muted">(${esc(r.discount_reason || "")})</span> <button class="fam-del stg-reb-del" data-id="${r.id}">✕</button>`
-    : `<button class="ghost stg-reb-add" data-id="${r.id}">−20%</button>`;
-  const invoice = r.invoice_created ? `<span class="muted">Facturé${r.invoice_sent_at ? " le " + frDate(r.invoice_sent_at) : ""}</span>`
-    : `<button class="ghost stg-inv" data-id="${r.id}">Facture + mail</button>`;
-  return `<tr data-id="${r.id}">
-    <td><b>${esc(r.first_name)} ${esc(r.last_name)}</b> ${r.person_id ? '<span class="stg-linked" title="Lié à une fiche du répertoire">✓ fiche</span>' : `<button class="ghost stg-link" data-id="${r.id}">Lier</button>`}</td>
-    <td>${r.birth_date ? frDate(r.birth_date) : "—"}</td>
-    <td>${esc(r.email || "—")}</td>
-    ${cat.tshirt ? `<td>${esc(r.tshirt_size || "—")}</td>` : ""}
-    ${cat.meal ? `<td>${esc(r.meal_restriction || "—")}</td>` : ""}
-    <td class="stg-cmt">${r.private_addon ? '<span class="stg-tag">+3h privé</span> ' : ""}${r.ranking ? `<b>Classement : ${esc(r.ranking)}</b>${r.comment ? "<br>" : ""}` : ""}${esc(r.comment || "")}</td>
-    <td>${rebate}</td>
-    <td><b>${price}</b></td>
-    <td>${invoice}</td>
-    <td><input type="checkbox" class="stg-paid" data-id="${r.id}" ${r.paid ? "checked" : ""}/></td>
-    <td><button class="fam-del stg-reg-del" data-id="${r.id}">✕</button></td>
-  </tr>`;
+  const inv = r.out_invoice_id ? stgInv[r.out_invoice_id] : null;
+  const locked = !!inv;   // facture émise : le prix ne change plus ici (modifier la facture dans l'onglet Factures)
+  const rebate = r.discount_pct
+    ? `<span class="stg-reb-on">−${r.discount_pct}% ${esc(r.discount_reason || "")}${locked ? "" : ` <button type="button" class="stg-reb-del" data-id="${r.id}" title="Retirer le rabais">✕</button>`}</span>`
+    : (locked ? "" : `<button type="button" class="stg-reb-ask stg-reb-add" data-id="${r.id}" title="Rabais famille ou 2e semaine">−20% ?</button>`);
+  const ST = { a_envoyer: ["à envoyer", "ss-warn"], envoyee: ["envoyée", "ss-role"], payee: ["payée", "ss-ok"], annulee: ["annulée", ""] };
+  const invoice = inv
+    ? `<button type="button" class="stg-inv-chip stg-inv-open" data-id="${inv.id}" title="Ouvrir dans Factures › Émises">${esc(inv.number)} <span class="ss-tag ${(ST[inv.status] || ["", ""])[1]}">${(ST[inv.status] || [inv.status])[0]}</span></button>`
+      + (inv.status === "a_envoyer" ? ` <button type="button" class="ghost stg-inv-send" data-id="${inv.id}">Envoyer</button>` : "")
+    : `<button type="button" class="stg-inv-btn stg-inv" data-id="${r.id}">Facture + mail</button>`;
+  const paid = inv
+    ? (inv.status === "payee" ? '<span class="stg-paid-on">✓ payé</span>' : '<span class="muted" style="font-size:.78rem" title="Passe à « payé » tout seul quand la facture est encaissée dans Factures">non payé</span>')
+    : `<label class="stg-paid-lbl"><input type="checkbox" class="stg-paid" data-id="${r.id}" ${r.paid ? "checked" : ""}/> payé</label>`;
+  const infos = [
+    r.birth_date ? `né(e) le ${frDate(r.birth_date)}` : "",
+    r.email ? esc(r.email) : "",
+    cat.tshirt && r.tshirt_size ? `T-shirt ${esc(r.tshirt_size)}` : "",
+    cat.meal && r.meal_restriction ? `Repas : ${esc(r.meal_restriction)}` : "",
+    r.ranking ? `<b>Classement ${esc(r.ranking)}</b>` : "",
+  ].filter(Boolean).join(" · ");
+  return `<div class="stg-reg" data-id="${r.id}">
+    <div class="stg-reg-who">
+      <div class="stg-reg-name"><b>${esc(r.first_name)} ${esc(r.last_name)}</b> ${r.person_id ? '<span class="stg-linked" title="Lié à une fiche du répertoire">✓ fiche</span>' : `<button type="button" class="ghost stg-link" data-id="${r.id}">Lier</button>`}${r.private_addon ? ' <span class="stg-tag">+3h privé</span>' : ""}</div>
+      <div class="stg-reg-info">${infos || '<span class="muted">—</span>'}</div>
+      ${r.comment ? `<div class="stg-reg-cmt">💬 ${esc(r.comment)}</div>` : ""}
+    </div>
+    <div class="stg-reg-money">
+      ${rebate}
+      <b class="stg-reg-price">${price} CHF</b>
+      <span class="stg-reg-inv">${invoice}</span>
+      ${paid}
+      <button type="button" class="fam-del stg-reg-del" data-id="${r.id}" title="Supprimer l'inscrit">✕</button>
+    </div>
+  </div>`;
 }
 function stgCoachOptions(selectedId) {
   const coaches = people.filter((p) => hasRoleIn(p.id, COACH_ROLES)).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
@@ -10783,6 +10819,8 @@ function wireStageDetail() {
   D.querySelectorAll(".stg-reb-add").forEach((b) => b.addEventListener("click", () => setDiscount(b.dataset.id)));
   D.querySelectorAll(".stg-reb-del").forEach((b) => b.addEventListener("click", () => removeDiscount(b.dataset.id)));
   D.querySelectorAll(".stg-inv").forEach((b) => b.addEventListener("click", () => createInvoice(b.dataset.id)));
+  D.querySelectorAll(".stg-inv-send").forEach((b) => b.addEventListener("click", () => stgSendInvoice(b.dataset.id)));
+  D.querySelectorAll(".stg-inv-open").forEach((b) => b.addEventListener("click", () => stgOpenInvoiceTab(b.dataset.id)));
   D.querySelectorAll(".stg-paid").forEach((c) => c.addEventListener("change", () => togglePaid(c.dataset.id, c.checked)));
   D.querySelectorAll(".stg-reg-del").forEach((b) => b.addEventListener("click", () => delRegistrant(b.dataset.id)));
   D.querySelectorAll(".stg-coach-add").forEach((b) => b.addEventListener("click", () => addStageStaff(b.dataset.cat)));
@@ -10845,17 +10883,17 @@ function openStageLink(regId) {
   $("stlink-suggestions").querySelectorAll(".stlink-pick").forEach((b) => b.addEventListener("click", () => linkRegToPerson(regId, b.dataset.id)));
   $("stlink-modal").classList.remove("hidden");
 }
+// « Lier » à la main : même fonction que la liste « à vérifier » (tag Stage + retrait de la liste, db/103).
 async function linkRegToPerson(regId, personId) {
-  const { error } = await sb.from("stage_registrations").update({ person_id: personId }).eq("id", regId);
+  const { error } = await sb.rpc("stage_link_resolve", { p_reg: regId, p_person: personId });
   if (error) { alert(error.message); return; }
   $("stlink-modal").classList.add("hidden");
+  await loadPeople();
   loadRegistrations();
 }
 async function createPersonFromReg() {
-  const r = stgRegs.find((x) => x.id === stLinkRegId); if (!r) return;
-  const res = await sb.from("people").insert({ first_name: r.first_name, last_name: r.last_name, birthdate: r.birth_date || null, email: r.email || null, is_active: true }).select("id").single();
-  if (res.error) { alert(res.error.message); return; }
-  await sb.from("stage_registrations").update({ person_id: res.data.id }).eq("id", stLinkRegId);
+  const { error } = await sb.rpc("stage_link_resolve", { p_reg: stLinkRegId, p_person: null });
+  if (error) { alert(error.message); return; }
   $("stlink-modal").classList.add("hidden");
   await loadPeople();
   loadRegistrations();
@@ -10865,16 +10903,21 @@ async function createPersonFromReg() {
 async function loadPersonStages(personId) {
   if (!personId) { $("ps-participations").innerHTML = ""; $("ps-coaching").innerHTML = ""; showPersonTab("stages", false); return; }
   const [{ data: regs }, { data: staff }] = await Promise.all([
-    sb.from("stage_registrations").select("*, stage_sessions(title,start_date,end_date), stage_categories(name,price,private_addon_price)").eq("person_id", personId),
+    sb.from("stage_registrations").select("*, stage_sessions(title,start_date,end_date), stage_categories(name,price,private_addon_price), out_invoices(number,status,amount)").eq("person_id", personId),
     sb.from("stage_staff").select("*, stage_sessions(title,start_date,end_date), stage_categories(name)").eq("coach_person_id", personId),
   ]);
   const R = regs || [], S = staff || [];
   showPersonTab("stages", R.length + S.length > 0);
-  $("ps-participations").innerHTML = R.length ? '<table class="crm-table"><thead><tr><th>Stage</th><th>Dates</th><th>Catégorie</th><th>Payé</th><th>Prix</th></tr></thead><tbody>'
+  R.sort((a, b) => String(b.stage_sessions?.start_date || "").localeCompare(String(a.stage_sessions?.start_date || "")));
+  $("ps-participations").innerHTML = R.length ? '<table class="crm-table"><thead><tr><th>Stage</th><th>Dates</th><th>Catégorie</th><th>Prix</th><th>Facture</th><th>Payé</th></tr></thead><tbody>'
     + R.map((r) => {
       const s = r.stage_sessions, c = r.stage_categories, days = s ? stgDays(s.start_date, s.end_date) : 5;
       const base = stgEffPrice(c?.price || 0, days), disc = base * (1 - (r.discount_pct || 0) / 100), addon = r.private_addon ? Number(c?.private_addon_price || 0) : 0;
-      return `<tr><td><b>${esc(s?.title || "Stage")}</b></td><td>${s ? frDate(s.start_date) + " → " + frDate(s.end_date) : "—"}</td><td>${esc(c?.name || "—")}</td><td>${r.paid ? '<span class="ss-tag ss-ok">payé</span>' : '<span class="ss-tag ss-warn">en attente</span>'}</td><td><b>${round2(disc + addon)} CHF</b></td></tr>`;
+      const f = r.out_invoices;
+      const price = f ? Number(f.amount) : round2(disc + addon);
+      return `<tr><td><b>${esc(s?.title || "Stage")}</b></td><td>${s ? frDate(s.start_date) + " → " + frDate(s.end_date) : "—"}</td><td>${esc(c?.name || "—")}${r.discount_pct ? ` <span class="muted">(−${r.discount_pct} %)</span>` : ""}</td>
+        <td><b>${price} CHF</b></td><td>${f ? esc(f.number) : '<span class="muted">—</span>'}</td>
+        <td>${r.paid ? '<span class="ss-tag ss-ok">payé</span>' : '<span class="ss-tag ss-warn">en attente</span>'}</td></tr>`;
     }).join("") + "</tbody></table>" : '<p class="muted" style="font-size:.85rem">Aucune participation à un stage.</p>';
   $("ps-coaching-block").classList.toggle("hidden", !S.length);
   $("ps-coaching").innerHTML = S.length ? '<table class="crm-table"><thead><tr><th>Stage</th><th>Dates</th><th>Catégorie</th><th>Tarif reçu</th></tr></thead><tbody>'
@@ -10909,9 +10952,9 @@ async function saveReg(e) {
 }
 
 async function setDiscount(id) {
-  const t = (await uiPrompt("Motif du rabais −20% — tape : famille / 2e semaine", "famille") || "").toLowerCase().trim();
-  if (!t) return;
-  const reason = t.startsWith("2") || t.includes("sem") ? "2e semaine" : "famille";
+  const r0 = stgRegs.find((x) => x.id === id); if (!r0) return;
+  const reason = await uiChoice(`Rabais −20 % pour ${r0.first_name} ${r0.last_name} ?\nPour quelle raison ?`, [["famille", "Famille (frère / sœur)"], ["2e semaine", "2e semaine de stage"]], "");
+  if (!reason) return;
   await sb.from("stage_registrations").update({ discount_pct: 20, discount_reason: reason }).eq("id", id);
   const r = stgRegs.find((x) => x.id === id); Object.assign(r, { discount_pct: 20, discount_reason: reason });
   renderRegistrants();
@@ -10923,12 +10966,63 @@ async function removeDiscount(id) {
   renderRegistrants();
 }
 
+// Facture d'un inscrit = vraie facture de l'onglet Factures › Émises (filière « stage », db/103) : n°, référence
+// QR, PDF, envoi par mail depuis info@, statut suivi et encaissement par le rapprochement bancaire. Quand elle
+// passe « payée », l'inscription passe payée toute seule. Articles : stage (prix au pro-rata), rabais, option privé.
+// Échéance : 5 jours avant le début du stage, mais jamais moins de 10 jours après l'émission.
 async function createInvoice(id) {
-  if (!await uiConfirm("Créer la facture et envoyer le mail d'inscription (avec facture jointe) ?\nL'envoi réel s'activera en production.")) return;
-  const now = new Date().toISOString();
-  await sb.from("stage_registrations").update({ invoice_created: true, invoice_sent_at: now }).eq("id", id);
-  const r = stgRegs.find((x) => x.id === id); Object.assign(r, { invoice_created: true, invoice_sent_at: now });
-  renderRegistrants();
+  const r = stgRegs.find((x) => x.id === id); if (!r) return;
+  if (r.out_invoice_id) { stgOpenInvoiceTab(r.out_invoice_id); return; }
+  const s = stgSessions.find((x) => x.id === stgCurrent); if (!s) return;
+  const cat = stgCatById(r.category_id);
+  const days = stgDays(s.start_date, s.end_date);
+  const base = stgEffPrice(cat.price || 0, days);
+  const items = [{ label: `Stage « ${s.title || "Stage"} » — ${cat.name || "catégorie"} (${frDate(s.start_date)} → ${frDate(s.end_date)})`, amount: round2(base) }];
+  if (r.discount_pct) items.push({ label: `Rabais −${r.discount_pct} %${r.discount_reason ? ` (${r.discount_reason})` : ""}`, amount: -round2(base * r.discount_pct / 100) });
+  if (r.private_addon && Number(cat.private_addon_price)) items.push({ label: "Option 3 h de cours privé", amount: round2(Number(cat.private_addon_price)) });
+  const amount = round2(items.reduce((a, it) => a + it.amount, 0));
+  const person = r.person_id ? people.find((p) => p.id === r.person_id) : null;
+  const email = (r.email || person?.email || "").trim();
+  const today = new Date().toISOString().slice(0, 10);
+  const minDue = new Date(); minDue.setDate(minDue.getDate() + 10);
+  const beforeStart = new Date(s.start_date + "T12:00:00"); beforeStart.setDate(beforeStart.getDate() - 5);
+  const due = (beforeStart > minDue ? beforeStart : minDue).toISOString().slice(0, 10);
+  if (!(await uiConfirm(`Créer la facture de ${oiChf(amount)} CHF pour ${r.first_name} ${r.last_name}${email ? ` (${email})` : " (⚠ sans e-mail)"}, échéance le ${frDate(due)} ?\n\nElle apparaîtra dans Factures › Émises, puis la fenêtre d'envoi par mail s'ouvrira.`))) return;
+  try {
+    if (!facAccts.length) { const { data: acc } = await sb.from("finance_accounts").select("*").order("sort"); facAccts = acc || []; }
+    const acct = facAccts.find((a) => a.is_default) || facAccts[0];
+    const { data: sess } = await sb.auth.getSession();
+    const { data: num, error: e1 } = await sb.rpc("out_invoice_next_number"); if (e1) throw new Error(e1.message);
+    const season = (seasons || []).find((x) => x.kind === "juniors" && s.start_date >= x.start_date && s.start_date <= x.end_date);
+    const ins = {
+      number: num, reference: oiScor(String(num).replace(/\D/g, "")), filiere: "stage", season_id: season?.id || null,
+      person_id: r.person_id || null, debtor_person_id: r.person_id || null,
+      debtor_name: `${r.first_name} ${r.last_name}`.trim(), debtor_email: email || null,
+      debtor_street: person?.address || null, debtor_zip: person?.postal_code || null, debtor_city: person?.city || null,
+      items, amount, label: `Stage ${s.title || ""} — ${cat.name || ""}`.trim().slice(0, 140),
+      currency: "CHF", issue_date: today, due_date: due, account_id: acct?.id || null, status: "a_envoyer",
+      created_by: sess?.session?.user?.id || null,
+    };
+    const { data: row, error: e2 } = await sb.from("out_invoices").insert(ins).select().single(); if (e2) throw new Error(e2.message);
+    await oiMakePdf(row);
+    await sb.from("stage_registrations").update({ out_invoice_id: row.id, invoice_created: true }).eq("id", id);
+    await loadRegistrations();
+    stgSendInvoice(row.id);
+  } catch (e) { uiAlert("Facture impossible : " + (e?.message || e)); }
+}
+// Ouvre la fenêtre d'envoi standard des factures (aperçu, test, envoi depuis info@) pour cette facture.
+async function stgSendInvoice(invId) {
+  await loadOutInvoices();
+  oiOpenSend([invId]);
+}
+// Aller à la facture dans l'onglet Factures › Émises (recherche sur son numéro).
+async function stgOpenInvoiceTab(invId) {
+  const inv = stgInv[invId];
+  showView("factures");
+  await loadOutInvoices();
+  facAller("emises");
+  const ch = $("oi-search");
+  if (ch && inv) { ch.value = inv.number; oiRech = inv.number; renderOiFilters(); renderOutInvoices(); }
 }
 
 async function togglePaid(id, paid) {
@@ -13477,7 +13571,7 @@ async function openMailAttachment(attId, meta, btn) {
 //  Anniversaires (secrétaire/admin/superadmin/head coach)
 //  Fenêtre : aujourd'hui −7 j → +21 j. Tout le monde sauf membres/clients.
 // ===================================================================
-const BDAY_EXCLUDE = ["membre", "client", "gamezone"];   // gamezone : joueurs de tournoi externes (db/101)
+const BDAY_EXCLUDE = ["membre", "client", "gamezone", "stage"];   // gamezone / stage : joueurs externes (db/101, db/103)
 // Rôles mis en évidence dans la liste (les « importants » de l'académie)
 const BDAY_HIGHLIGHT = ["pro", "pro-u18", "sport-etudes", "competition", "performance", "coach", "head-coach", "prof", "admin", "superadmin"];
 async function loadBirthdays() {
