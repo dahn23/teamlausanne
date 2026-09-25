@@ -7447,6 +7447,7 @@ function initNewsletter() {
   $("nl-count").addEventListener("click", nlComputeAudience);
   $("nl-save").addEventListener("click", async () => { const id = await nlSave(); if (id) { $("nl-status").textContent = "✓ Brouillon enregistré."; loadNewsletters(); } });
   $("nl-test").addEventListener("click", nlSendTest);
+  $("nl-test-to").addEventListener("input", nlMajVite);
   $("nl-send").addEventListener("click", nlSendAll);
   document.querySelectorAll("#nl-modal .nl-rt").forEach((b) => b.addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand(b.dataset.cmd, false, null); }));
   // La barre d'outils d'ensemble a cede la place a l'editeur par blocs :
@@ -7541,6 +7542,7 @@ async function nlOpen(n) {
   $("nl-gz-season-on").checked = !!a.gz_season_id;
   $("nl-extra").value = (a.extra_emails || []).join("\n");
   $("nl-count-res").textContent = ""; $("nl-preview").innerHTML = ""; $("nl-status").textContent = "";
+  await nlPrepTest();
   $("nl-modal").classList.remove("hidden");
 }
 function nlReadAudience() {
@@ -7575,15 +7577,94 @@ async function nlSave() {
   if (res.error) { $("nl-status").textContent = "Erreur : " + res.error.message; return null; }
   nlEditId = res.data.id; return nlEditId;
 }
+// ---- Test : à qui ? -------------------------------------------------------
+// Le test partait à l'adresse du compte connecté, sans alternative. Ça suffit
+// quand on se relit soi-même, mais pas à plusieurs : celle qui prépare l'envoi
+// veut le faire valider avant de l'expédier au répertoire entier, et voir ce
+// que ça donne sur une autre boîte — Gmail et Outlook ne rendent pas le même
+// HTML. D'où un champ, des raccourcis vers l'équipe, et la mémoire du dernier
+// choix pour ne pas retaper.
+const NL_TEST_MAX = 5;          // doit rester aligné sur TEST_MAX de newsletter-send
+const NL_TEST_CLE = "tl-nl-test-to";
+let nlTesteurs = null;
+
+const nlEmailOk = (a) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a);
+const nlLireTestTo = () => [...new Set($("nl-test-to").value.split(/[,;\n]/)
+  .map((s) => s.trim().toLowerCase()).filter(Boolean))];
+
+// Les raccourcis : l'équipe qui a accès à l'outil. La fonction SQL est en
+// SECURITY DEFINER — profiles et user_roles ne sont lisibles que par un admin,
+// une secrétaire n'y verrait rien.
+async function nlChargerTesteurs() {
+  if (nlTesteurs) return nlTesteurs;
+  const { data, error } = await sb.rpc("newsletter_testeurs");
+  nlTesteurs = error ? [] : (data || []);
+  return nlTesteurs;
+}
+
+async function nlPrepTest() {
+  const { data: sess } = await sb.auth.getSession();
+  const moi = (sess?.session?.user?.email || "").toLowerCase();
+  // Par défaut : la dernière adresse utilisée, sinon la sienne. On se teste
+  // sur soi le plus souvent, mais celle qui vise toujours la même relectrice
+  // ne doit pas la retaper à chaque fois.
+  let dernier = null; try { dernier = localStorage.getItem(NL_TEST_CLE); } catch (_) {}
+  $("nl-test-to").value = dernier || moi;
+  const gens = await nlChargerTesteurs();
+  const vus = new Set();
+  const puces = [];
+  if (moi) { vus.add(moi); puces.push([moi, "Moi"]); }
+  for (const g of gens) {
+    const e = String(g.email || "").toLowerCase();
+    if (!e || vus.has(e)) continue;
+    vus.add(e);
+    puces.push([e, String(g.nom || e).split(" ")[0]]);
+  }
+  $("nl-test-vite").innerHTML = puces.map(([e, l]) =>
+    `<button type="button" class="nl-vite" data-mail="${esc(e)}" title="${esc(e)}">${esc(l)}</button>`).join("");
+  // Un raccourci AJOUTE au champ : tester à deux d'un coup est le cas courant
+  // (soi + la personne qui relit). Recliquer retire l'adresse.
+  $("nl-test-vite").querySelectorAll(".nl-vite").forEach((b) => b.addEventListener("click", () => {
+    const a = b.dataset.mail, liste = nlLireTestTo();
+    const i = liste.indexOf(a);
+    if (i >= 0) liste.splice(i, 1); else liste.push(a);
+    $("nl-test-to").value = liste.join(", ");
+    nlMajVite();
+  }));
+  nlMajVite();
+}
+
+// Les raccourcis montrent ce que contient le champ, y compris après une saisie
+// à la main : sans cela ils mentiraient sur l'état réel.
+function nlMajVite() {
+  const liste = nlLireTestTo();
+  $("nl-test-vite").querySelectorAll(".nl-vite").forEach((b) =>
+    b.classList.toggle("on", liste.includes(b.dataset.mail)));
+}
+
 async function nlSendTest() {
   if (!$("nl-subject").value.trim() || !nlCompiler(nlBlocs).trim()) { uiAlert("Objet et contenu obligatoires."); return; }
+  const dests = nlLireTestTo();
+  if (!dests.length) { uiAlert("Indique au moins une adresse pour le test."); $("nl-test-to").focus(); return; }
+  const mauvaise = dests.find((a) => !nlEmailOk(a));
+  if (mauvaise) { uiAlert(`Cette adresse ne va pas : ${mauvaise}`); $("nl-test-to").focus(); return; }
+  if (dests.length > NL_TEST_MAX) {
+    uiAlert(`Un test va à ${NL_TEST_MAX} adresses au maximum (tu en as mis ${dests.length}).\n\n`
+      + "Pour toucher plus de monde, passe par « Destinataires » puis « Envoyer » : "
+      + "c'est la voie qui tient la liste, les désinscriptions et le suivi.");
+    return;
+  }
   const id = await nlSave(); if (!id) return;
-  const { data: sess } = await sb.auth.getSession(); const me = sess?.session?.user?.email;
-  $("nl-status").textContent = `Envoi du test à ${me}…`;
-  const { data, error } = await sb.functions.invoke("newsletter-send", { body: { id, test_to: me } });
+  try { localStorage.setItem(NL_TEST_CLE, dests.join(", ")); } catch (_) {}
+  const quoi = dests.length === 1 ? dests[0] : `${dests.length} adresses`;
+  $("nl-status").textContent = `Envoi du test à ${quoi}…`;
+  $("nl-test").disabled = true;
+  const { data, error } = await sb.functions.invoke("newsletter-send", { body: { id, test_to: dests } });
+  $("nl-test").disabled = false;
   if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} $("nl-status").textContent = "Échec : " + m; return; }
   if (data?.error) { $("nl-status").textContent = "Échec : " + data.error; return; }
-  $("nl-status").textContent = `✓ Test envoyé à ${me}. Vérifie le rendu (et le dossier spam) avant l'envoi réel.`;
+  const partis = (data?.envoyes || dests).join(", ");
+  $("nl-status").textContent = `✓ Test envoyé à ${partis}. Vérifie le rendu (et le dossier spam) avant l'envoi réel.`;
   loadNewsletters();
 }
 async function nlSendAll() {

@@ -3120,6 +3120,26 @@ tr.rm-loss td{background:#fde8e8}
 .nl-dest-corps{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:12px 0 4px}
 @media(max-width:980px){.nl-dest-corps{grid-template-columns:1fr}}
 
+/* Bande de test : le champ prend la place, les raccourcis se lisent a cote,
+   le bouton ferme la ligne. Distincte du pied de page, ou vivent les gestes
+   definitifs — on ne doit pas confondre « tester » et « envoyer ». */
+.nl-essai{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;flex-shrink:0;
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;
+  background:#f7f9fc}
+.nl-essai-f{flex:1 1 260px;min-width:0;margin:0}
+.nl-essai-f input{width:100%}
+.nl-test-vite{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:6px}
+.nl-vite{border:1px solid var(--line);background:#fff;color:#4a5568;border-radius:999px;
+  padding:5px 12px;font-size:.8rem;font-weight:700;cursor:pointer;line-height:1.2}
+.nl-vite:hover{border-color:var(--blue);color:var(--blue-ink)}
+/* Un raccourci actif dit que son adresse EST dans le champ : la puce reprend
+   donc l'etat du champ, elle ne fait pas que reagir au clic. */
+.nl-vite.on{background:var(--blue);border-color:var(--blue);color:#fff}
+@media(max-width:700px){
+  .nl-essai{align-items:stretch}
+  .nl-essai>button{width:100%}
+}
+
 
 /* ---- Blocs de séance : état (blessé / au repos) et sparring (v197) ---- */
 .tr-states{display:inline-flex;gap:6px;margin-left:10px;padding-left:10px;border-left:1px solid var(--line)}

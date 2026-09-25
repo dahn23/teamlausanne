@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=252" />
+  <link rel="stylesheet" href="style.css?v=253" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1585,8 +1585,18 @@
               </div>
             </details>
 
+            <!-- Le test part où on le décide : à soi pour se relire, à un
+                 collègue pour faire valider, à une autre boîte pour vérifier le
+                 rendu. Les raccourcis évitent de retaper une adresse connue. -->
+            <div class="nl-essai">
+              <label class="mailc-f nl-essai-f">Envoyer un test à
+                <input id="nl-test-to" type="text" autocomplete="off"
+                  placeholder="prenom@exemple.ch — plusieurs adresses séparées par une virgule" /></label>
+              <div id="nl-test-vite" class="nl-test-vite"></div>
+              <button type="button" id="nl-test" class="ghost">Envoyer le test</button>
+            </div>
+
             <div class="form-foot"><span id="nl-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span>
-              <button type="button" id="nl-test" class="ghost" title="Envoie la newsletter à ton adresse uniquement">Test → moi</button>
               <button type="button" id="nl-save" class="ghost">Enregistrer le brouillon</button>
               <button type="button" id="nl-send">Envoyer</button></div>
           </div>
@@ -1700,7 +1710,7 @@ Merci d'avance et meilleures salutations,
 Team Lausanne Tennis</textarea></label>
             <div id="oi-send-preview" class="muted" style="font-size:.85rem;margin-top:8px"></div>
             <div class="form-foot"><span id="oi-send-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span>
-              <button type="button" id="oi-send-test" class="ghost" title="Envoie la première facture à votre adresse, sans la marquer comme envoyée">Test → moi</button>
+              <button type="button" id="oi-send-test" class="ghost" title="Envoie la première facture à l'adresse de votre choix, sans la marquer comme envoyée">Envoyer un test</button>
               <button type="button" id="oi-send-go">Envoyer</button></div>
           </div>
         </div>

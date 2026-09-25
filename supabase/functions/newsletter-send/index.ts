@@ -2,7 +2,11 @@
 // Secrets Supabase requis : RESEND_API_KEY. Optionnel : PUBLIC_APP_URL (défaut https://app.teamlausanne.ch).
 // Appel (utilisateur connecté, rôle superadmin/admin/secretaire) :
 //   { id: <newsletter_id> }                 → envoie à tous les destinataires « en_attente » (lots de 50)
-//   { id: <newsletter_id>, test_to: "x@y" } → envoie UN e-mail de test, sans toucher aux destinataires
+//   { id: <newsletter_id>, test_to: "x@y" } → envoie un e-mail de test, sans toucher aux destinataires
+//     test_to accepte une adresse, une liste séparée par , ; ou saut de ligne, ou un tableau.
+//     Plafonné à TEST_MAX : le test saute le verrou d'envoi, la liste des
+//     destinataires et le suivi des désinscriptions. Sans plafond il deviendrait
+//     une voie d'envoi en nombre échappant à toute cette comptabilité.
 // Chaque e-mail contient un lien de désinscription unique (jeton = id du destinataire) + en-tête List-Unsubscribe
 // (obligatoire pour ne pas finir en spam). Les ouvertures/clics/rebonds remontent par le webhook newsletter-webhook.
 //
@@ -13,6 +17,11 @@
 // une newsletter deja « envoyee » ne repart jamais.
 //   { id, reprendre: true } → reprend un envoi reste bloque (fonction morte en route).
 import { createClient } from "npm:@supabase/supabase-js@2";
+
+// Un test sert à relire et à vérifier un rendu : une poignée d'adresses suffit.
+// Au-delà, ce ne serait plus un test mais un envoi, et il doit alors passer par
+// la voie normale (verrou, liste des destinataires, désinscriptions).
+const TEST_MAX = 5;
 
 const CORS = {
   "access-control-allow-origin": "*",
@@ -80,10 +89,31 @@ Deno.serve(async (req) => {
       return j;
     };
 
-    // --- Test : un seul e-mail, destinataires intouchés ---
+    // --- Test : quelques e-mails, destinataires intouchés ---
+    // Plusieurs adresses parce que c'est précisément l'usage : faire relire
+    // l'envoi par un collègue, et vérifier le rendu sur une autre boîte (Gmail
+    // et Outlook ne montrent pas le même HTML).
     if (body.test_to) {
-      const j = await call("/emails", build("00000000-0000-0000-0000-000000000000", String(body.test_to).trim()));
-      return json({ ok: true, test: true, id: j?.id });
+      const dests = [...new Set(
+        (Array.isArray(body.test_to) ? body.test_to : String(body.test_to).split(/[,;\n]/))
+          .map((s: unknown) => String(s).trim().toLowerCase()).filter(Boolean),
+      )];
+      if (!dests.length) return json({ error: "Aucune adresse de test." }, 400);
+      const mauvaise = dests.find((a) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a));
+      if (mauvaise) return json({ error: `Adresse de test invalide : ${mauvaise}` }, 400);
+      if (dests.length > TEST_MAX) {
+        return json({ error: `Un test va à ${TEST_MAX} adresses au maximum (${dests.length} demandées). Pour toucher plus de monde, passe par les destinataires et « Envoyer ».` }, 400);
+      }
+      // Un appel par adresse : chacun reçoit un message qui lui est adressé, et
+      // personne ne voit les autres destinataires du test.
+      const envoyes: string[] = [];
+      for (const a of dests) {
+        await call("/emails", build("00000000-0000-0000-0000-000000000000", a));
+        envoyes.push(a);
+        // Meme cadence que l'envoi reel : Resend plafonne a 2 requetes/seconde.
+        if (envoyes.length < dests.length) await sleep(600);
+      }
+      return json({ ok: true, test: true, envoyes });
     }
 
     // --- Envoi réel ---
