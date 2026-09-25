@@ -7437,7 +7437,7 @@ function dashProspects(p) {
 const NL_ROLE_OPTS = [["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"], ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"], ["adultes", "Adultes"], ["membre", "Membres"], ["coach", "Coachs"], ["prof", "Profs"], ["official", "Officials"]];
 const NL_ST = { brouillon: "Brouillon", envoi: "Envoi en cours", envoyee: "Envoyée" };
 const NL_RST = { en_attente: "En attente", envoye: "Envoyé", delivre: "Délivré", ouvert: "Ouvert", clique: "Cliqué", rebond: "Rebond", spam: "Spam", erreur: "Erreur", desinscrit: "Désinscrit" };
-let nlList = [], nlMetrics = {}, nlInit = false, nlEditId = null, nlAud = null;
+let nlList = [], nlMetrics = {}, nlPending = {}, nlInit = false, nlEditId = null, nlAud = null;
 const nlPct = (a, b) => (b ? Math.round((a / b) * 100) + " %" : "—");
 
 function initNewsletter() {
@@ -7457,12 +7457,14 @@ function initNewsletter() {
 }
 async function loadNewsletters() {
   initNewsletter();
-  const [{ data: rows, error }, { data: mets }] = await Promise.all([
+  const [{ data: rows, error }, { data: mets }, { data: pend }] = await Promise.all([
     sb.from("newsletters").select("*").order("created_at", { ascending: false }),
     sb.from("newsletter_metrics").select("*"),
+    sb.rpc("newsletter_pending_counts"),
   ]);
   if (error) { $("nl-rows").innerHTML = `<tr><td colspan="13" class="muted">${esc(error.message)}</td></tr>`; return; }
   nlList = rows || []; nlMetrics = {}; for (const m of mets || []) nlMetrics[m.newsletter_id] = m;
+  nlPending = {}; for (const p of pend || []) nlPending[p.newsletter_id] = Number(p.n) || 0;
   renderNewsletters();
 }
 function nlAudLabel(a) {
@@ -7481,8 +7483,8 @@ function renderNewsletters() {
     const acts = n.status === "brouillon"
       ? `<button class="ghost nl-edit" data-id="${n.id}">Modifier</button><button class="ghost nl-del" data-id="${n.id}" title="Supprimer">✕</button>`
       : `<button class="ghost nl-view" data-id="${n.id}">Voir</button><button class="ghost nl-dup" data-id="${n.id}" title="Réutiliser comme brouillon">Dupliquer</button>`
-        + (n.status === "envoyee" && (nlMetrics[n.id]?.n_error || 0) > 0
-          ? `<button class="primary nl-retry" data-id="${n.id}" title="Renvoie seulement aux destinataires en erreur (ex. quota Resend dépassé) ; ceux qui l'ont reçue ne la reçoivent pas une 2e fois">Relancer les ${nlMetrics[n.id].n_error} échec(s)</button>` : "");
+        + ((n.status === "envoyee" || n.status === "erreur") && (nlPending[n.id] || 0) > 0
+          ? `<button class="primary nl-retry" data-id="${n.id}" title="Renvoie seulement aux destinataires pas encore servis (erreur ou en attente, ex. quota Resend dépassé) ; ceux qui l'ont reçue ne la reçoivent pas une 2e fois">Relancer les ${nlPending[n.id]} envoi(s) manquant(s)</button>` : "");
     // Carte par newsletter : titre + contexte à gauche, chiffres au milieu, actions à droite.
     // Les compteurs d'incidents (rebonds, spam, désinscrits) ne s'affichent que s'ils sont non nuls.
     const stat = (l, v, sub, cls) => `<div class="nl-stat ${cls || ""}"><b>${v}</b><span>${esc(l)}${sub ? ` · ${sub}` : ""}</span></div>`;
@@ -7514,8 +7516,8 @@ function renderNewsletters() {
 // Relance des envois en erreur (quota Resend, panne passagère) : seuls les destinataires « erreur » repartent.
 async function nlRetryFailed(id, btn) {
   const n = nlList.find((x) => x.id === id); if (!n) return;
-  const k = nlMetrics[id]?.n_error || 0;
-  if (!(await uiConfirm(`Renvoyer « ${n.subject} » aux ${k} destinataire(s) en erreur ?\nCeux qui l'ont déjà reçue ne la recevront pas une deuxième fois.`))) return;
+  const k = nlPending[id] || 0;
+  if (!(await uiConfirm(`Envoyer « ${n.subject} » aux ${k} destinataire(s) qui ne l'ont pas encore reçue ?\nCeux qui l'ont déjà reçue ne la recevront pas une deuxième fois.`))) return;
   if (btn) btn.disabled = true;
   const { data: nb, error } = await sb.rpc("newsletter_retry_failed", { p_id: id });
   if (error) { if (btn) btn.disabled = false; uiAlert("Relance impossible : " + error.message); return; }
