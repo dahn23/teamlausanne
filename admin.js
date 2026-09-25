@@ -12385,18 +12385,20 @@ const mailShort = (iso) => { const d = new Date(iso); return d.toDateString() ==
 // base64) → chargement rapide. Le contenu est chargé à l'ouverture d'un mail (openMail).
 const MAIL_COLS = "id,account_address,direction,from_name,from_address,to_address,cc_address,subject,snippet,received_at,is_read,status,assigned_user,tags,imap_uid,created_at,message_id,comment,treated_by,treated_at,att_fetched,pushed,has_invoice,is_spam";
 let mailSearchT = null;
-// Messages chargés = les 300 plus récents toutes boîtes + jusqu'à 1000 (plafond PostgREST) de la boîte
-// sélectionnée (sinon une boîte peu active, ou fraîchement importée, paraît vide).
+// Messages chargés = les 150 plus récents toutes boîtes + les 250 derniers de la boîte sélectionnée (sinon une
+// boîte peu active paraît vide). Réduit le 25.09.2026 (avant : 300 + 1000, relus chaque minute → console lente) ;
+// tout l'historique reste accessible par la RECHERCHE, qui interroge la base directement.
 // Les PASTILLES (à traiter / attribué / non lus) ne doivent pas dépendre de ce qui est chargé, sinon leur
 // nombre change selon la boîte ouverte : elles viennent d'une requête à part, qui ne ramène que les mails
 // reçus encore « actifs » ou non lus, toutes boîtes confondues.
 let mailBadgeRows = [];
-// La liste charge les 1 000 derniers messages de la boîte ; au-delà, c'est la RECHERCHE (tout l'historique,
-// en base) qui sert à retrouver un mail ancien. Pas de pagination : décision Dan, 24.09.2026.
+// Au-delà, c'est la RECHERCHE (tout l'historique, en base) qui sert à retrouver un mail ancien. Pas de
+// pagination : décision Dan, 24.09.2026.
+const MAIL_LOAD_ALL = 150, MAIL_LOAD_BOX = 250;
 async function mailFetchMsgs() {
-  const base = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(300);
+  const base = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(MAIL_LOAD_ALL);
   const qs = [base];
-  if (mailFilterAddr) qs.push(sb.from("mail_messages").select(MAIL_COLS).eq("account_address", mailFilterAddr).order("received_at", { ascending: false }).limit(1000));
+  if (mailFilterAddr) qs.push(sb.from("mail_messages").select(MAIL_COLS).eq("account_address", mailFilterAddr).order("received_at", { ascending: false }).limit(MAIL_LOAD_BOX));
   const badgeQ = sb.from("mail_messages").select("id,account_address,direction,status,is_read,assigned_user")
     .or("direction.is.null,direction.eq.in").or("status.in.(a_traiter,en_cours),is_read.eq.false").limit(1000);
   const [badges, ...res] = await Promise.all([badgeQ, ...qs]);
@@ -12440,7 +12442,7 @@ async function loadMail() {
     // Rafraîchissement auto de la liste quand la messagerie est ouverte (le serveur relève
     // chaque minute) — ne touche pas au message ouvert ni à un brouillon en cours.
     setInterval(async () => {
-      if ($("view-mail").classList.contains("hidden")) return;
+      if ($("view-mail").classList.contains("hidden") || document.hidden) return;   // onglet caché : pas de rechargement inutile
       const msgs = await mailFetchMsgs();
       if (msgs) { mailMsgs = msgs; renderMailAccts(); refreshMailView(); }
     }, 60000);
@@ -13219,7 +13221,7 @@ function renderMailAccts() {
     // retirait jamais de la liste. Le classé reste à un clic, sous « Traité ».
     if (!mailStatusF) mailStatusF = "a_traiter";
     renderMailAccts(); renderMailToolbar(); refreshMailView();
-    const msgs = await mailFetchMsgs();   // recharge avec les 1000 derniers de cette boîte
+    const msgs = await mailFetchMsgs();   // recharge avec les derniers messages de cette boîte (MAIL_LOAD_BOX)
     if (msgs) { mailMsgs = msgs; renderMailAccts(); renderMailToolbar(); refreshMailView(); }
   }));
 }
