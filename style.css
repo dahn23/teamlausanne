@@ -3270,6 +3270,18 @@ tr.rm-loss td{background:#fde8e8}
 .gz-lb-prev{left:16px;top:50%;transform:translateY(-50%)}
 .gz-lb-next{right:16px;top:50%;transform:translateY(-50%)}
 .gz-lb-count{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#fff;font-size:.85rem;font-weight:700;background:rgba(255,255,255,.14);padding:4px 12px;border-radius:999px}
+button.gz-lb-count{width:auto;height:auto;border-radius:999px;font-family:inherit;cursor:pointer}
+.gz-lb button.gz-lb-count{position:absolute;top:auto;bottom:16px;left:50%;transform:translateX(-50%);width:auto;height:auto;padding:8px 16px;border-radius:999px;font-size:.85rem}
+/* Visionneuse PDF des pièces jointes (mobile + app) */
+.pdf-lb{position:fixed;inset:0;z-index:9999;background:#2b2f3a;display:flex;flex-direction:column}
+.pdf-lb-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top));background:#161a24;color:#fff}
+.pdf-lb-name{font-weight:700;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pdf-lb-n{font-weight:500;opacity:.7}
+.pdf-lb-act{display:flex;gap:6px;flex:0 0 auto}
+.pdf-lb-btn{width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:1.1rem;font-weight:800;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+.pdf-lb-btn:hover{background:var(--fluo);color:var(--fluo-ink)}
+.pdf-lb-body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.pdf-lb-body canvas{background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.35);max-width:none;flex:0 0 auto;margin:0 auto}
 .gz-lb-single .gz-lb-nav,.gz-lb-single .gz-lb-count{display:none}
 @media(max-width:640px){.gz-lb{padding:8px}.gz-lb-img{max-width:100%;max-height:80vh}.gz-lb-prev{left:6px}.gz-lb-next{right:6px}.gz-lb button{width:40px;height:40px}}
 #view-acces .rg-card{max-width:none}

@@ -13078,52 +13078,129 @@ async function loadMailAttachments(id) {
 // Ouvre une pièce jointe partout (navigateur, mobile, app native) : au 1er clic le contenu (base64 en base) est copié
 // dans le bucket privé « mail-att », puis on ouvre une URL signée valable 5 minutes. Un lien data: ne s'ouvre pas dans
 // l'app (WebView) : c'était le problème sur mobile.
+// Ouvrir un fichier HORS de la console. Dans l'app (coquille Capacitor), les adresses *.supabase.co s'ouvrent
+// DANS l'app (allowNavigation), qui ne sait ni afficher un PDF/Word ni ouvrir un « nouvel onglet » : rien ne se
+// passait. On passe donc par teamlausanne.ch/fichier/… (proxy Netlify vers le lien signé Supabase, voir
+// site/netlify.toml) : ce domaine n'est pas autorisé dans l'app, qui le confie au navigateur du téléphone.
+const MAIL_ATT_PROXY = "https://teamlausanne.ch/fichier/";
+function openFileOutside(signedUrl) {
+  if (isNativeApp()) {
+    const m = String(signedUrl).match(/\/storage\/v1\/object\/sign\/(.+)$/);
+    window.location.href = m ? MAIL_ATT_PROXY + m[1] : signedUrl;
+    return;
+  }
+  const a = document.createElement("a"); a.href = signedUrl; a.target = "_blank"; a.rel = "noopener";
+  document.body.appendChild(a); a.click(); a.remove();
+}
 // Visionneuse d'image dans la console (photo d'attestation, capture…) : plein écran, ajustée à l'écran,
-// fermeture par ✕, tap à côté ou Échap ; lien pour ouvrir/télécharger l'original. Évite d'ouvrir une image
-// en taille réelle dans l'app, où l'on ne pouvait plus la fermer.
-function mailImageViewer(url, name) {
+// fermeture par ✕, tap à côté ou Échap ; bouton pour ouvrir/télécharger l'original.
+function mailImageViewer(url, name, downloadUrl) {
   const ov = document.createElement("div"); ov.className = "gz-lb";
   ov.innerHTML = `<img class="gz-lb-img" src="${esc(url)}" alt="${esc(name || "")}" />
     <button type="button" class="gz-lb-x" aria-label="Fermer">✕</button>
-    <a class="gz-lb-count" href="${esc(url)}" target="_blank" rel="noopener">Ouvrir / télécharger</a>`;
+    <button type="button" class="gz-lb-count gz-lb-dl">Ouvrir / télécharger</button>`;
   const onKey = (e) => { if (e.key === "Escape") close(); };
   const close = () => { ov.remove(); document.removeEventListener("keydown", onKey); };
   ov.addEventListener("click", (e) => { if (e.target === ov || e.target.classList.contains("gz-lb-x")) close(); });
+  ov.querySelector(".gz-lb-dl").addEventListener("click", (e) => { e.stopPropagation(); openFileOutside(downloadUrl || url); });
   document.addEventListener("keydown", onKey);
   document.body.appendChild(ov);
 }
+// Visionneuse PDF dans la console (mobile et app) : pages rendues par PDF.js (déjà utilisé pour les fiches de
+// salaire), ajustées à la largeur, défilement vertical, zoom − / +, fermeture ✕ ou Échap, bouton Télécharger.
+async function mailPdfViewer(bytes, name, getDownloadUrl) {
+  if (!window.pdfjsLib) {
+    await facLoadScript("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js");
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+  }
+  const pdf = await window.pdfjsLib.getDocument({ data: bytes }).promise;
+  const ov = document.createElement("div"); ov.className = "pdf-lb";
+  ov.innerHTML = `<div class="pdf-lb-bar">
+      <span class="pdf-lb-name">${esc(name || "Document")} <span class="pdf-lb-n">· ${pdf.numPages} page(s)</span></span>
+      <span class="pdf-lb-act">
+        <button type="button" class="pdf-lb-btn pdf-lb-out" aria-label="Réduire">−</button>
+        <button type="button" class="pdf-lb-btn pdf-lb-in" aria-label="Agrandir">+</button>
+        <button type="button" class="pdf-lb-btn pdf-lb-dl" title="Ouvrir dans le navigateur / télécharger">⬇</button>
+        <button type="button" class="pdf-lb-btn pdf-lb-x" aria-label="Fermer">✕</button>
+      </span></div>
+    <div class="pdf-lb-body"></div>`;
+  document.body.appendChild(ov);
+  const body = ov.querySelector(".pdf-lb-body");
+  let zoom = 1, token = 0;
+  const render = async () => {
+    const my = ++token;
+    body.innerHTML = "";
+    const avail = Math.min(body.clientWidth - 16, 1000);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    for (let n = 1; n <= pdf.numPages; n++) {
+      if (my !== token) return;   // zoom changé pendant le rendu : on repart de zéro
+      const page = await pdf.getPage(n);
+      const base = page.getViewport({ scale: 1 });
+      const scale = (avail / base.width) * zoom;
+      const vp = page.getViewport({ scale: scale * dpr });
+      const c = document.createElement("canvas");
+      c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+      c.style.width = Math.floor(vp.width / dpr) + "px"; c.style.height = Math.floor(vp.height / dpr) + "px";
+      body.appendChild(c);
+      await page.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+    }
+  };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  const close = () => { token++; ov.remove(); document.removeEventListener("keydown", onKey); try { pdf.destroy(); } catch (_) { /* déjà libéré */ } };
+  ov.querySelector(".pdf-lb-x").addEventListener("click", close);
+  ov.querySelector(".pdf-lb-in").addEventListener("click", () => { zoom = Math.min(zoom * 1.4, 4); render(); });
+  ov.querySelector(".pdf-lb-out").addEventListener("click", () => { zoom = Math.max(zoom / 1.4, 0.5); render(); });
+  ov.querySelector(".pdf-lb-dl").addEventListener("click", async () => { const u = await getDownloadUrl(); if (u) openFileOutside(u); });
+  document.addEventListener("keydown", onKey);
+  render();
+}
+// Copie la pièce jointe dans le bucket privé « mail-att » (1re fois) et renvoie un lien signé de 5 minutes.
+async function mailAttSignedUrl(attId, meta, download = false) {
+  let path = meta?.storage_path || null;
+  if (!path) {
+    const { data, error } = await sb.from("mail_attachments").select("mail_id,filename,content_type,content_b64,storage_path").eq("id", attId).single();
+    if (error || !data) throw new Error(error?.message || "introuvable");
+    path = data.storage_path;
+    if (!path) {
+      if (!data.content_b64) throw new Error("contenu absent (pièce trop volumineuse ou non importée)");
+      const safe = String(data.filename || "fichier").replace(/[^\w.\- ]+/g, "_").slice(0, 120);
+      path = `${data.mail_id}/${attId}-${safe}`;
+      const up = await sb.storage.from("mail-att").upload(path, b64ToBytes(data.content_b64), { contentType: data.content_type || "application/octet-stream", upsert: true });
+      if (up.error) throw new Error(up.error.message);
+      await sb.from("mail_attachments").update({ storage_path: path }).eq("id", attId);
+    }
+    if (meta) meta.storage_path = path;
+  }
+  const { data: s, error: e2 } = await sb.storage.from("mail-att").createSignedUrl(path, 300, download ? { download: meta?.filename || true } : undefined);
+  if (e2 || !s?.signedUrl) throw new Error(e2?.message || "lien impossible");
+  return s.signedUrl;
+}
+const b64ToBytes = (b64) => { const bin = atob(String(b64).replace(/\s+/g, "")); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8; };
+// Écran tactile ou app : on garde les documents DANS la console (visionneuse) plutôt qu'un nouvel onglet.
+const preferInAppViewer = () => isNativeApp() || window.matchMedia("(pointer: coarse)").matches;
+
 async function openMailAttachment(attId, meta, btn) {
   if (!attId) return;
-  const isImg = /^image\//i.test(meta?.content_type || "");
-  // Fichier non-image dans un navigateur : la fenêtre doit être ouverte DANS le clic (sinon les navigateurs
-  // mobiles la bloquent), vide puis dirigée. Image : visionneuse interne. App native : lien target=_blank
-  // (ouvert par l'application du téléphone), jamais dans la page de la console.
-  const win = (!isImg && !isNativeApp()) ? window.open("", "_blank") : null;
-  const fail = (msg) => { if (win) win.close(); uiAlert("Pièce jointe : " + msg); };
+  const type = String(meta?.content_type || "").toLowerCase(), fname = String(meta?.filename || "");
+  const isImg = type.startsWith("image/");
+  const isPdf = type.includes("pdf") || /\.pdf$/i.test(fname);
+  const inApp = (isImg || isPdf) && preferInAppViewer();
+  // Ordinateur, fichier ouvert dans un nouvel onglet : la fenêtre doit être ouverte DANS le clic (sinon bloquée), vide puis dirigée.
+  const win = (!isImg && !inApp && !isNativeApp()) ? window.open("", "_blank") : null;
   try {
     if (btn) btn.classList.add("busy");
-    let path = meta?.storage_path || null;
-    if (!path) {
-      const { data, error } = await sb.from("mail_attachments").select("mail_id,filename,content_type,content_b64,storage_path").eq("id", attId).single();
-      if (error || !data) return fail(error?.message || "introuvable");
-      path = data.storage_path;
-      if (!path) {
-        if (!data.content_b64) return fail("contenu absent (pièce trop volumineuse ou non importée)");
-        const bin = atob(data.content_b64.replace(/\s+/g, ""));
-        const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-        const safe = String(data.filename || "fichier").replace(/[^\w.\- ]+/g, "_").slice(0, 120);
-        path = `${data.mail_id}/${attId}-${safe}`;
-        const up = await sb.storage.from("mail-att").upload(path, u8, { contentType: data.content_type || "application/octet-stream", upsert: true });
-        if (up.error) return fail(up.error.message);
-        await sb.from("mail_attachments").update({ storage_path: path }).eq("id", attId);
-        if (meta) meta.storage_path = path;
-      }
+    if (isPdf && inApp) {
+      const { data, error } = await sb.from("mail_attachments").select("content_b64").eq("id", attId).single();
+      if (error || !data?.content_b64) throw new Error(error?.message || "contenu absent (pièce trop volumineuse ou non importée)");
+      await mailPdfViewer(b64ToBytes(data.content_b64), fname, () => mailAttSignedUrl(attId, meta, true).catch((e) => { uiAlert("Pièce jointe : " + e.message); return null; }));
+      return;
     }
-    const { data: s, error: e2 } = await sb.storage.from("mail-att").createSignedUrl(path, 300);
-    if (e2 || !s?.signedUrl) return fail(e2?.message || "lien impossible");
-    if (isImg) { mailImageViewer(s.signedUrl, meta?.filename); return; }
-    if (win) win.location.href = s.signedUrl;
-    else { const a = document.createElement("a"); a.href = s.signedUrl; a.target = "_blank"; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove(); }
+    const url = await mailAttSignedUrl(attId, meta);
+    if (isImg) { mailImageViewer(url, fname, await mailAttSignedUrl(attId, meta, true)); return; }
+    if (win) win.location.href = url; else openFileOutside(await mailAttSignedUrl(attId, meta, true));
+  } catch (e) {
+    if (win) win.close();
+    uiAlert("Pièce jointe : " + (e?.message || e));
   } finally { if (btn) btn.classList.remove("busy"); }
 }
 

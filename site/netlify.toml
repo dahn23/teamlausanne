@@ -80,6 +80,16 @@
   force = true
 
 
+# --- Pièces jointes de la messagerie ouvertes depuis l'APP (25.09.2026) ---
+# Dans l'app Team Lausanne, les liens Supabase s'ouvrent dans l'app, qui ne sait pas afficher un PDF/Word.
+# La console passe donc par ce domaine (non autorisé dans l'app → confié au navigateur du téléphone), qui relaie
+# le lien signé Supabase (jeton de 5 minutes dans ?token=…, transmis tel quel). Aucun fichier n'est stocké ici.
+[[redirects]]
+  from = "/fichier/*"
+  to = "https://lnrmtwamuaqcubohontn.supabase.co/storage/v1/object/sign/:splat"
+  status = 200
+  force = true
+
 # --- Les deux pages d'inscription gardent leur adresse exacte ---
 [[redirects]]
   from = "/samedi-famille"
