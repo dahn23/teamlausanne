@@ -4432,6 +4432,10 @@ async function openTournamentMgr(tid) {
   $("gz-mgr-title").textContent = `Gérer — ${t.name || "tournoi"}${t.tournament_date ? " (" + frDate(t.tournament_date) + ")" : ""}`;
   $("gz-mgr-gz").checked = mgrIsGz;
   $("gz-mgr-url").value = t.registration_url || "";
+  // Texte grisé = le VRAI lien automatique de CE tournoi (celui des mails), plus un exemple fixe (26.09.2026).
+  $("gz-mgr-url").placeholder = t.swiss_id
+    ? `auto : https://www.mytennis.ch/fr/tournois/${String(t.swiss_id).replace(/\D/g, "")}`
+    : "aucun lien détecté à l'import : colle ici le lien mytennis du tournoi";
   const { data: cats } = await sb.from("gz_price_categories").select("*").order("created_at");
   mgrCats = cats || [];
   $("gz-mgr-cat").innerHTML = '<option value="">— catégorie de tarifs —</option>' +
