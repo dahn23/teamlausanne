@@ -764,7 +764,7 @@ async function renderPortalSeason(player) {
   weeks.forEach((ws, i) => { const m = psDay(ws, 3).getMonth(); if (m !== prev) { if (prev !== -1) months += `<span style="grid-column:${start}/${i + 1}">${PS_MONTHS[prev]}</span>`; prev = m; start = i + 1; } });
   months += `<span style="grid-column:${start}/${weeks.length + 1}">${PS_MONTHS[prev]}</span>`;
   // Téléphone : mosaïque (une ligne par mois, tuiles larges et faciles à toucher) ; ordinateur : frise sur une ligne.
-  const mosaic = window.matchMedia("(max-width: 700px)").matches;
+  const mosaic = window.matchMedia("(max-width: 1024px), (pointer: coarse)").matches;   // téléphone et tablette
   const cellArr = weeks.map((ws, i) => {
     const k = kinds[ws] || "", pl = planned(ws), rg = regsIn(ws), hors = rg.some(regHors);
     return `<div class="pl-col ps-col${ws === thisMonday ? " pl-now" : ""}" data-i="${i}"><div class="pl-top pl-k-${k || "none"}">${mosaic ? `<span class="pl-day">${psDay(ws, 0).getDate()}</span>` : ""}</div><div class="pl-we${pl.length ? " pl-we-on" : ""}"></div><div class="pl-reg${rg.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}"></div></div>`;

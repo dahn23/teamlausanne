@@ -2260,8 +2260,9 @@ function plMonthsRow() {
   html += `<span style="grid-column:${start}/${plWeekList.length + 1}">${PL_MONTHS[prev]}</span>`;
   return `<div class="pl-months" style="grid-template-columns:repeat(${plWeekList.length},minmax(0,1fr))">${html}</div>`;
 }
-// Téléphone (≤ 700 px) : l'éditeur passe en mosaïque — une ligne par mois, tuiles larges faciles à toucher.
-const plNarrow = () => window.matchMedia("(max-width: 700px)").matches;
+// Téléphone et tablette : l'éditeur passe en mosaïque — une ligne par mois, tuiles larges faciles à toucher.
+// Mosaïque sur téléphone ET tablette : écran ≤ 1024 px, ou écran tactile (pointeur « grossier »), 26.09.2026.
+const plNarrow = () => window.matchMedia("(max-width: 1024px), (pointer: coarse)").matches;
 function plFrise(pid, big) {
   const kinds = plWeeks[pid] || {};
   const today = isoA(new Date());

@@ -3809,3 +3809,5 @@ tr.enc-ok td{background:#f4fbf6}
 .pl-day{font-size:.82rem;font-weight:800;color:#1f2a4d;opacity:.75;pointer-events:none}
 .pl-mosaic .ps-col-sel{box-shadow:0 0 0 3px #0f1f6e}
 .pl-mosaic .ps-col-sel .pl-top{outline:none}
+/* Mosaïque sur tablette (plus large qu'un téléphone) : deux mois côte à côte */
+@media (min-width:640px){.pl-frise.pl-mosaic{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:22px;row-gap:8px}}
