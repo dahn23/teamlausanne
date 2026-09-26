@@ -4486,11 +4486,16 @@ async function renderGzMailActions(tid) {
   const mo = d.getMonth() + 1, day = d.getDate();
   const ete = (mo > 4 && mo < 10) || (mo === 4 && day >= 15) || (mo === 10 && day < 15);
   const welcomeKey = ete ? "welcome_ete" : "welcome_hiver";
-  const [{ data: entries }, { data: status }, { data: sent }] = await Promise.all([
+  const [{ data: entries }, { data: status }, { data: sent }, { data: winTpl }] = await Promise.all([
     sb.from("gz_entries").select("participant_id,confirmed,epreuve").eq("tournament_id", tid),
     sb.from("gz_player_status").select("participant_id,absent,is_winner,photo_url").eq("tournament_id", tid),
     sb.from("gz_mail_sent").select("participant_id,template_key").eq("tournament_id", tid),
+    sb.from("gz_email_templates").select("enabled").eq("key", "vainqueur").maybeSingle(),
   ]);
+  // Même règle que gz-notify : si le mail « Vainqueur » est actif, les vainqueurs avec photo ne reçoivent pas
+  // le « Remerciement » (le mail Vainqueur le contient déjà) — le compteur doit l'afficher pareil.
+  const winnerMailOn = !!winTpl && winTpl.enabled !== false;
+  const winnersWithPhoto = new Set((status || []).filter((s) => s.is_winner && s.photo_url).map((s) => s.participant_id));
   const allIds = [...new Set((entries || []).map((e) => e.participant_id).concat((status || []).map((s) => s.participant_id)))];
   const { data: parts } = allIds.length ? await sb.from("gz_participants").select("id,first_name,last_name,email").in("id", allIds) : { data: [] };
   const pInfo = {}; (parts || []).forEach((p) => (pInfo[p.id] = p));
@@ -4511,7 +4516,7 @@ async function renderGzMailActions(tid) {
       const confAny = new Set((entries || []).filter((e) => e.confirmed).map((e) => e.participant_id));
       ids = (entries || []).filter((e) => !e.confirmed && epConfirmed[e.epreuve || "—"] && !confAny.has(e.participant_id)).map((e) => e.participant_id);
     }
-    else if (key === "remerciement") ids = (entries || []).filter((e) => e.confirmed).map((e) => e.participant_id).filter((pid) => !absent.has(pid));
+    else if (key === "remerciement") ids = (entries || []).filter((e) => e.confirmed).map((e) => e.participant_id).filter((pid) => !absent.has(pid) && !(winnerMailOn && winnersWithPhoto.has(pid)));
     else if (key === "vainqueur") ids = (status || []).filter((s) => s.is_winner && s.photo_url).map((s) => s.participant_id);
     else ids = [];
     const done = doneKey(key);
