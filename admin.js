@@ -9492,7 +9492,11 @@ async function oiBuildPdf(inv) {
   const acct = facAccts.find((a) => a.id === inv.account_id) || facAccts.find((a) => a.is_default) || facAccts[0];
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const T = (s, x, y, o = {}) => { doc.setFont("helvetica", o.b ? "bold" : "normal"); doc.setFontSize(o.s || 10); doc.text(String(s ?? ""), x, y, o.al ? { align: o.al } : undefined); };
+  // La police standard du PDF (Helvetica, encodage WinAnsi) ne connaît pas certains signes (→, emojis…) : un seul
+  // suffit à faire écrire la ligne entière lettre par lettre et à fausser sa largeur (chevauchement du montant,
+  // facture de stage du 26.09.2026). On les remplace par un équivalent simple avant d'écrire.
+  const PS = (s) => String(s ?? "").replace(/[→⇒➔➜]/g, "-").replace(/[–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/…/g, "...").replace(/[^\x00-\xFF€]/gu, "");
+  const T = (s, x, y, o = {}) => { doc.setFont("helvetica", o.b ? "bold" : "normal"); doc.setFontSize(o.s || 10); doc.text(Array.isArray(s) ? s.map(PS) : PS(s), x, y, o.al ? { align: o.al } : undefined); };
   const sp = oiSpc(inv, acct);
   const cLines = [acct.name, [sp.cStreet, sp.cNo].filter(Boolean).join(" "), `${sp.cZip} ${sp.cCity}`.trim()];
   const dLines = sp.hasD ? [inv.debtor_name, [sp.dStreet, sp.dNo].filter(Boolean).join(" "), `${inv.debtor_zip} ${inv.debtor_city}`] : [inv.debtor_name || ""];
@@ -9527,7 +9531,7 @@ async function oiBuildPdf(inv) {
   T("Désignation", 21, y + 5.5, { b: true, s: 9 }); T("Montant CHF", 189, y + 5.5, { b: true, s: 9, al: "right" }); doc.setTextColor(0);
   let yi = y + 8, zebra = false;
   for (const it of items) {
-    const desc = doc.splitTextToSize(it.label || "", 135); const h = desc.length * 5 + 4;
+    const desc = doc.splitTextToSize(PS(it.label || ""), 135); const h = desc.length * 5 + 4;
     if (zebra) { doc.setFillColor(...LIGHT); doc.rect(18, yi, 174, h, "F"); } zebra = !zebra;
     T(desc, 21, yi + 5.5, { s: 10 }); T(oiChf(it.amount || 0), 189, yi + 5.5, { s: 10, al: "right" });
     yi += h;
@@ -9565,7 +9569,7 @@ async function oiBuildPdf(inv) {
   const X = 118;
   T("Compte / Payable à", X, Y + 15, { b: true, s: 8 }); T(ibanF, X, Y + 19, { s: 10 }); cLines.forEach((l, i) => T(l, X, Y + 23 + i * 4, { s: 10 }));
   T("Référence", X, Y + 38, { b: true, s: 8 }); T(refF, X, Y + 42, { s: 10 });
-  T("Informations supplémentaires", X, Y + 48, { b: true, s: 8 }); T(doc.splitTextToSize(inv.label || "", 85).slice(0, 2), X, Y + 52, { s: 9 });
+  T("Informations supplémentaires", X, Y + 48, { b: true, s: 8 }); T(doc.splitTextToSize(PS(inv.label || ""), 85).slice(0, 2), X, Y + 52, { s: 9 });
   T("Payable par", X, Y + 62, { b: true, s: 8 }); dLines.forEach((l, i) => T(l, X, Y + 66 + i * 4, { s: 10 }));
   return doc;
 }
@@ -10998,8 +11002,8 @@ async function createInvoice(id) {
   const cat = stgCatById(r.category_id);
   const days = stgDays(s.start_date, s.end_date);
   const base = stgEffPrice(cat.price || 0, days);
-  const items = [{ label: `Stage « ${s.title || "Stage"} » — ${cat.name || "catégorie"} (${frDate(s.start_date)} → ${frDate(s.end_date)})`, amount: round2(base) }];
-  if (r.discount_pct) items.push({ label: `Rabais −${r.discount_pct} %${r.discount_reason ? ` (${r.discount_reason})` : ""}`, amount: -round2(base * r.discount_pct / 100) });
+  const items = [{ label: `Stage ${s.title || ""} - ${cat.name || "catégorie"}, du ${frDate(s.start_date)} au ${frDate(s.end_date)}`.replace(/\s+/g, " "), amount: round2(base) }];
+  if (r.discount_pct) items.push({ label: `Rabais -${r.discount_pct}%${r.discount_reason ? ` (${r.discount_reason})` : ""}`, amount: -round2(base * r.discount_pct / 100) });
   if (r.private_addon && Number(cat.private_addon_price)) items.push({ label: "Option 3 h de cours privé", amount: round2(Number(cat.private_addon_price)) });
   const amount = round2(items.reduce((a, it) => a + it.amount, 0));
   const person = r.person_id ? people.find((p) => p.id === r.person_id) : null;
