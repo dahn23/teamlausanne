@@ -3726,3 +3726,54 @@ tr.enc-ok td{background:#f4fbf6}
 .sf-h{font-size:.92rem;color:var(--ink);margin-bottom:10px}
 .sf-a{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .dc-mut{background:#eef1f7;color:var(--muted)}
+
+/* ===== Planning tournois (db/106) : frise de saison en double case (semaine + week-end) ===== */
+.pl-k-prepa{background:#f0997b}.pl-k-entrainement{background:#85b7eb}.pl-k-option{background:#9fe1cb}
+.pl-k-vacances{background:#d3d1c7}.pl-k-etranger{background:#b39ddb}.pl-k-none{background:#eef1f6}
+.pl-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);margin:6px 0 12px}
+.pl-legend span,.pl-brush{display:inline-flex;align-items:center;gap:6px}
+.pl-legend i,.pl-brush i{width:13px;height:13px;border-radius:4px;display:inline-block}
+.pl-legend i.pl-we-on{background:#ef9f27;height:6px;align-self:center}
+.pl-frise{display:grid;gap:1px;border-radius:7px;overflow:hidden;touch-action:none;user-select:none}
+.pl-col{display:flex;flex-direction:column;gap:1px;min-width:0}
+.pl-top{height:16px}.pl-we{height:5px;background:#eef1f6}
+.pl-we-on{background:#ef9f27}
+.pl-now .pl-top{box-shadow:inset 0 0 0 2px #1e3ad1}
+.pl-frise-big .pl-top{height:34px;cursor:crosshair}
+.pl-frise-big .pl-we{height:18px;cursor:pointer;font-size:.62rem;font-weight:800;color:#633806;display:flex;align-items:center;justify-content:center}
+.pl-frise-big .pl-we:hover{outline:2px solid #ef9f27;outline-offset:-2px}
+.pl-top.pl-sel{outline:2px solid var(--blue-ink,#0f1f6e);outline-offset:-2px;filter:brightness(.92)}
+.pl-months{display:grid;font-size:.7rem;color:var(--muted);margin:0 0 3px}
+.pl-months span{border-left:1px solid var(--line);padding-left:3px;overflow:hidden;white-space:nowrap}
+.pl-rows{display:flex;flex-direction:column;gap:6px}
+.pl-row{display:grid;grid-template-columns:170px minmax(0,1fr);gap:10px;align-items:center;padding:4px 6px;border-radius:10px;cursor:pointer}
+.pl-row:hover,.pl-row.sel{background:#eef3ff}
+.pl-row-head{cursor:default}.pl-row-head:hover{background:none}
+.pl-row-name{display:flex;flex-direction:column;font-size:.86rem;line-height:1.25;min-width:0}
+.pl-row-name .muted{font-size:.74rem}
+.pl-ed{margin:0 0 14px}
+.pl-brushes{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
+.pl-brush{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:.8rem;font-weight:700;color:var(--blue-ink);cursor:pointer}
+.pl-brush.sel{border-color:var(--blue);background:#eef3ff}
+.pl-ed{max-width:none}
+.pl-ed-grid{display:grid;grid-template-columns:64px minmax(0,1fr);column-gap:8px;align-items:end}
+.pl-ed-side{display:flex;flex-direction:column;gap:1px;font-size:.72rem;color:var(--muted);text-align:right}
+.pl-ed-side span:first-child{height:34px;line-height:34px}.pl-ed-side span:last-child{height:18px;line-height:18px}
+@media (max-width:700px){.pl-ed-grid{grid-template-columns:48px minmax(0,1fr)}.pl-ed-side span:first-child{height:28px;line-height:28px}}
+.pl-week-h{margin:16px 0 6px;font-size:.95rem;color:var(--blue-ink)}
+.pl-tcard{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:0 0 8px;background:#fff}
+.pl-tcard-h{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pl-count{background:#fff1dc;color:#7a4a00;border-radius:999px;padding:2px 10px;font-size:.78rem;font-weight:800;white-space:nowrap}
+.pl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pl-chip{background:#f3f6fc;border-radius:999px;padding:3px 10px;font-size:.8rem}
+.pl-src{font-size:.75rem}
+.pl-wt{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.pl-cp-list{max-height:48vh;overflow:auto;margin:10px 0;display:flex;flex-direction:column;gap:10px}
+.pl-cp-grp{display:flex;flex-direction:column;gap:2px}
+@media (max-width:700px){.pl-row{grid-template-columns:1fr;gap:4px}.pl-row-head{display:none}.pl-top{height:14px}.pl-frise-big .pl-top{height:28px}}
+/* Mon espace › Ma saison */
+.ps-card .pl-legend{margin:4px 0 10px}
+.ps-h{font-size:.95rem;margin:14px 0 4px;color:var(--blue-ink)}
+.ps-add{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ps-add select{flex:0 0 auto;max-width:100%}.ps-add input{flex:1 1 180px;min-width:0}
+.ps-del{border:0;background:transparent;color:#b3261e;font-weight:800;cursor:pointer;padding:2px 6px}
