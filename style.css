@@ -3648,7 +3648,10 @@ button.gz-lb-count{width:auto;height:auto;border-radius:999px;font-family:inheri
 .dfi-h b{font-size:.9rem;color:var(--ink)}
 .dfi-d{margin-left:auto;font-size:.74rem;color:var(--muted)}
 .dfi-x{margin-top:3px;font-size:.85rem;color:#333;white-space:pre-wrap;
-  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  overflow-wrap:anywhere}
+.dfi-x.dfi-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.dfi-more{border:0;background:none;padding:2px 0 0;color:var(--blue);font-weight:700;font-size:.78rem;cursor:pointer}
+.dfi-more:hover{text-decoration:underline}
 
 /* Encaissement du week-end */
 .dpay{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;

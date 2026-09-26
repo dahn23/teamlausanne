@@ -2688,6 +2688,12 @@ async function loadDashboard() {
     while (el && el.classList.contains("dash-li")) { el.classList.remove("hidden"); el = el.previousElementSibling; }
     b.remove();
   }));
+  // Derniers messages : chaque message s'affiche sur 3 lignes ; « voir plus » le déplie en entier.
+  body.querySelectorAll(".dfi-more").forEach((b) => b.addEventListener("click", () => {
+    const x = b.previousElementSibling; if (!x) return;
+    const open = x.classList.toggle("dfi-clamp") === false;
+    b.textContent = open ? "voir moins" : "voir plus";
+  }));
   // Une tuile ou une alerte mène à l'onglet où l'on peut agir ; un ancrage
   // « #bloc » fait défiler jusqu'au bloc de détail correspondant.
   const aller = (el) => {
@@ -2840,7 +2846,8 @@ function dashNotes(list) {
           <span class="dn-kind ${cls}">${esc(lbl)}${n.extra ? ` · ${esc(n.extra)}` : ""}</span>
           <span class="dfi-d">${esc(when)}</span></div>
         <div class="dmeta">${esc(n.author || "—")}${n.role ? ` · ${esc(n.role)}` : ""}</div>
-        <div class="dfi-x">${esc(n.body || "")}</div>
+        <div class="dfi-x dfi-clamp">${esc(n.body || "")}</div>
+        ${String(n.body || "").length > 170 || /\n/.test(n.body || "") ? '<button type="button" class="dfi-more">voir plus</button>' : ""}
       </div></div>`;
   }).join("");
   return dCard("Derniers messages", rows
