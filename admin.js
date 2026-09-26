@@ -5061,10 +5061,36 @@ async function closeTournament() {
   const rows = [...$("gz-mgr-players").querySelectorAll("tr[data-pid]")];
   const unresolved = mgrPlayers.filter(({ st }) => !st.absent && st.amount_paid == null).length;
   if (unresolved > 0) { alert(`${unresolved} joueur(s) ne sont ni payés ni marqués « absent ». Impossible de clôturer — complétez-les d'abord.`); return; }
-  const winnersNoPhoto = rows.filter((tr) => tr.querySelector(".gz-winner")?.checked && !tr.querySelector(".gz-photo-wrap img")).length;
-  const c = caisseNumbers();
   let warn = "";
-  if (mgrIsGz && winnersNoPhoto > 0) warn += `\n• ${winnersNoPhoto} vainqueur(s) sans photo.`;
+  // Un vainqueur par tableau joué (26.09.2026 : un vainqueur oublié avant clôture). Tableau joué = au moins un
+  // joueur SÉLECTIONNÉ et présent ; ses vainqueurs se cherchent parmi ses joueurs sélectionnés (un joueur inscrit
+  // dans deux tableaux mais retenu dans un seul ne compte que pour celui-là).
+  if (mgrIsGz) {
+    const { data: ents } = await sb.from("gz_entries").select("participant_id,epreuve,confirmed").eq("tournament_id", mgrTid);
+    const st = new Map(mgrPlayers.map(({ p, st }) => [p.id, st]));
+    const tabs = {};
+    for (const e of ents || []) {
+      if (!e.confirmed) continue;
+      const s = st.get(e.participant_id) || {};
+      const k = e.epreuve || "Tableau";
+      const t = tabs[k] || (tabs[k] = { present: 0, winners: 0 });
+      if (!s.absent) t.present++;
+      if (s.is_winner) t.winners++;
+    }
+    const played = Object.entries(tabs).filter(([, t]) => t.present > 0);
+    const missing = played.filter(([, t]) => t.winners === 0).map(([k]) => k);
+    if (missing.length) {
+      alert(`Il manque le vainqueur de ${missing.length} tableau(x) :\n• ${missing.join("\n• ")}\n\nCoche « Victoire » pour le vainqueur de chaque tableau joué, puis clôture. (${played.length} tableau(x) joué(s) ce jour.)`);
+      return;
+    }
+    const double = played.filter(([, t]) => t.winners > 1).map(([k]) => k);
+    if (double.length) warn += `\n• Plusieurs vainqueurs cochés dans : ${double.join(", ")}.`;
+    // Photo : avertissement seulement. En poule de 3, le vainqueur (au set-average) est parfois déjà parti :
+    // il doit être coché pour le classement, même sans photo.
+    const winnersNoPhoto = rows.filter((tr) => tr.querySelector(".gz-winner")?.checked && !tr.querySelector(".gz-photo-wrap img")).length;
+    if (winnersNoPhoto > 0) warn += `\n• ${winnersNoPhoto} vainqueur(s) sans photo (normal s'il est déjà parti ; il reste compté pour le classement).`;
+  }
+  const c = caisseNumbers();
   if (c.counted !== null && c.diff !== 0) warn += `\n• La caisse comptée ne correspond pas (écart ${c.diff > 0 ? "+" : ""}${c.diff} CHF).`;
   if (warn && !await uiConfirm("Attention :" + warn + "\n\nClôturer le tournoi quand même ?")) return;
   const { data: cz } = await sb.from("gz_caisse").select("closed").eq("tournament_id", mgrTid).maybeSingle();
