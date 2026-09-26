@@ -2678,8 +2678,13 @@ async function loadDashboard() {
     + `</div></section>`;
 
   // « Voir tous » : révèle les lignes masquées (.dash-more) du même bloc.
+  // Les lignes cachées sont DANS le bloc qui précède le bouton (fil .dfeed des « Derniers messages ») ; l'ancien
+  // format (lignes .dash-li sœurs du bouton) reste géré. Le bouton ne cherchait que l'ancien format : il se
+  // retirait sans rien afficher (26.09.2026).
   body.querySelectorAll(".dash-showmore").forEach((b) => b.addEventListener("click", () => {
-    let el = b.previousElementSibling;
+    const prev = b.previousElementSibling;
+    prev?.querySelectorAll(".dash-more.hidden").forEach((x) => x.classList.remove("hidden"));
+    let el = prev;
     while (el && el.classList.contains("dash-li")) { el.classList.remove("hidden"); el = el.previousElementSibling; }
     b.remove();
   }));
