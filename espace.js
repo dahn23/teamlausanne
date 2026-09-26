@@ -763,18 +763,25 @@ async function renderPortalSeason(player) {
   let months = "", prev = -1, start = 1;
   weeks.forEach((ws, i) => { const m = psDay(ws, 3).getMonth(); if (m !== prev) { if (prev !== -1) months += `<span style="grid-column:${start}/${i + 1}">${PS_MONTHS[prev]}</span>`; prev = m; start = i + 1; } });
   months += `<span style="grid-column:${start}/${weeks.length + 1}">${PS_MONTHS[prev]}</span>`;
-  const cells = weeks.map((ws, i) => {
+  // Téléphone : mosaïque (une ligne par mois, tuiles larges et faciles à toucher) ; ordinateur : frise sur une ligne.
+  const mosaic = window.matchMedia("(max-width: 700px)").matches;
+  const cellArr = weeks.map((ws, i) => {
     const k = kinds[ws] || "", pl = planned(ws), rg = regsIn(ws), hors = rg.some(regHors);
-    return `<div class="pl-col ps-col${ws === thisMonday ? " pl-now" : ""}" data-i="${i}"><div class="pl-top pl-k-${k || "none"}"></div><div class="pl-we${pl.length ? " pl-we-on" : ""}"></div><div class="pl-reg${rg.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}"></div></div>`;
-  }).join("");
+    return `<div class="pl-col ps-col${ws === thisMonday ? " pl-now" : ""}" data-i="${i}"><div class="pl-top pl-k-${k || "none"}">${mosaic ? `<span class="pl-day">${psDay(ws, 0).getDate()}</span>` : ""}</div><div class="pl-we${pl.length ? " pl-we-on" : ""}"></div><div class="pl-reg${rg.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}"></div></div>`;
+  });
+  const rowsM = [];
+  weeks.forEach((ws, i) => { const m = psDay(ws, 3).getMonth(); const last = rowsM[rowsM.length - 1]; if (last && last.m === m) last.idx.push(i); else rowsM.push({ m, idx: [i] }); });
+  const friseHtml = mosaic
+    ? `<div class="pl-frise pl-mosaic ps-frise">${rowsM.map((r) => `<div class="pl-mrow"><span class="pl-mlab">${PS_MONTHS[r.m]}</span><div class="pl-mcells">${r.idx.map((i) => cellArr[i]).join("")}</div></div>`).join("")}</div>`
+    : `<div class="pl-months" style="grid-template-columns:repeat(${weeks.length},minmax(0,1fr))">${months}</div>
+    <div class="pl-frise ps-frise" style="grid-template-columns:repeat(${weeks.length},minmax(0,1fr))">${cellArr.join("")}</div>`;
   const mine = all.filter((x) => x.source === "joueur" && x.end_date >= today);
   const legend = Object.entries(PS_KINDS).map(([k, l]) => `<span><i class="pl-k-${k}"></i>${l}</span>`).join("")
     + '<span><i class="pl-we-on pl-bar"></i>Tournoi prévu par les coachs</span><span><i class="pl-reg-on pl-bar"></i>Mes inscriptions</span><span><i class="pl-reg-hors pl-bar"></i>Inscription hors planification</span>';
   host.innerHTML = `<div class="mrp-card ps-card">
     <h2 class="mrp-h">Ma saison ${escHtml(s.label)}</h2>
     <div class="pl-legend">${legend}</div>
-    <div class="pl-months" style="grid-template-columns:repeat(${weeks.length},minmax(0,1fr))">${months}</div>
-    <div class="pl-frise ps-frise" style="grid-template-columns:repeat(${weeks.length},minmax(0,1fr))">${cells}</div>
+    ${friseHtml}
     <div id="ps-week" class="ps-week"><span class="muted">Touche une semaine pour voir son programme.</span></div>
     <h3 class="ps-h">Mes inscriptions à venir</h3>
     ${mine.length ? mine.map((x) => `<div class="pl-wt"><span><b>${psRange(x.start_date, x.end_date)}</b> · ${escHtml(x.name)}${regHors(x) ? ' <span class="ps-hors">hors planification</span>' : ""}</span>${x.created_by === me ? `<button type="button" class="ps-del" data-id="${x.id}" aria-label="Retirer">✕</button>` : ""}</div>`).join("") : '<p class="muted" style="margin:4px 0">Aucune inscription pour l\'instant.</p>'}

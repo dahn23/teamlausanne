@@ -2260,17 +2260,25 @@ function plMonthsRow() {
   html += `<span style="grid-column:${start}/${plWeekList.length + 1}">${PL_MONTHS[prev]}</span>`;
   return `<div class="pl-months" style="grid-template-columns:repeat(${plWeekList.length},minmax(0,1fr))">${html}</div>`;
 }
+// Téléphone (≤ 700 px) : l'éditeur passe en mosaïque — une ligne par mois, tuiles larges faciles à toucher.
+const plNarrow = () => window.matchMedia("(max-width: 700px)").matches;
 function plFrise(pid, big) {
   const kinds = plWeeks[pid] || {};
   const today = isoA(new Date());
-  const cells = plWeekList.map((ws, i) => {
+  const mosaic = big && plNarrow();
+  const cellArr = plWeekList.map((ws, i) => {
     const k = kinds[ws] || "", plan = plPlanned(pid, ws), regs = plRegsIn(pid, ws);
     const now = ws <= today && today <= isoA(plAdd(ws, 6));
     const hors = regs.some(plRegHors);
     const tip = `Sem. du ${plWkLabel(ws)} · ${PL_KIND_LABEL[k] || "—"}${plan.length ? " · Week-end prévu : " + plan.map((t) => t.name).join(", ") : ""}${regs.length ? " · Inscrit : " + regs.map((t) => `${t.name} (${plRange(t.start_date, t.end_date)})`).join(", ") : ""}${hors ? " · HORS ZONE PRÉVUE" : ""}`;
-    return `<div class="pl-col${now ? " pl-now" : ""}" title="${esc(tip)}"><div class="pl-top pl-k-${k || "none"}" data-i="${i}"></div><div class="pl-we${plan.length ? " pl-we-on" : ""}" data-i="${i}">${big && plan.length > 1 ? plan.length : ""}</div><div class="pl-reg${regs.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}" data-i="${i}"></div></div>`;
-  }).join("");
-  return `<div class="pl-frise${big ? " pl-frise-big" : ""}" data-pid="${pid}" style="grid-template-columns:repeat(${plWeekList.length},minmax(0,1fr))">${cells}</div>`;
+    return `<div class="pl-col${now ? " pl-now" : ""}" title="${esc(tip)}"><div class="pl-top pl-k-${k || "none"}" data-i="${i}">${mosaic ? `<span class="pl-day">${plAdd(ws, 0).getDate()}</span>` : ""}</div><div class="pl-we${plan.length ? " pl-we-on" : ""}" data-i="${i}">${big && plan.length > 1 ? plan.length : ""}</div><div class="pl-reg${regs.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}" data-i="${i}"></div></div>`;
+  });
+  if (mosaic) {
+    const rows = [];
+    plWeekList.forEach((ws, i) => { const m = plAdd(ws, 3).getMonth(); const last = rows[rows.length - 1]; if (last && last.m === m) last.idx.push(i); else rows.push({ m, idx: [i] }); });
+    return `<div class="pl-frise pl-frise-big pl-mosaic" data-pid="${pid}">${rows.map((r) => `<div class="pl-mrow"><span class="pl-mlab">${PL_MONTHS[r.m]}</span><div class="pl-mcells">${r.idx.map((i) => cellArr[i]).join("")}</div></div>`).join("")}</div>`;
+  }
+  return `<div class="pl-frise${big ? " pl-frise-big" : ""}" data-pid="${pid}" style="grid-template-columns:repeat(${plWeekList.length},minmax(0,1fr))">${cellArr.join("")}</div>`;
 }
 function plLegend() {
   return PL_KINDS.map(([k, l]) => `<span><i class="pl-k-${k}"></i>${esc(l)}</span>`).join("")
@@ -2304,8 +2312,8 @@ function plRenderEditor() {
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="ghost" id="pl-copy">Copier vers…</button><button type="button" class="ghost" id="pl-close">Fermer</button></div></div>
     <div class="pl-brushes">${PL_KINDS.map(([k, l]) => `<button type="button" class="pl-brush${plBrush === k ? " sel" : ""}" data-k="${k}"><i class="pl-k-${k}"></i>${esc(l)}</button>`).join("")}
       <button type="button" class="pl-brush${plBrush === "" ? " sel" : ""}" data-k=""><i class="pl-k-none"></i>Effacer</button></div>
-    <div class="pl-ed-grid"><span></span>${plMonthsRow()}<div class="pl-ed-side"><span>Semaine</span><span>Week-end</span><span>Inscrit</span></div>${plFrise(plSel, true)}</div>
-    <p class="muted" style="font-size:.8rem;margin:8px 0 0">Choisis un type puis glisse sur les semaines. Clique sur un week-end pour y prévoir un tournoi. La rangée « Inscrit » montre les inscriptions saisies par le jeune (en rouge : hors d'une zone tournoi prévue).</p>
+    ${plNarrow() ? plFrise(plSel, true) : `<div class="pl-ed-grid"><span></span>${plMonthsRow()}<div class="pl-ed-side"><span>Semaine</span><span>Week-end</span><span>Inscrit</span></div>${plFrise(plSel, true)}</div>`}
+    <p class="muted" id="pl-tap-hint" style="font-size:.8rem;margin:8px 0 0">${plNarrow() ? "Choisis un type, touche la 1re semaine puis la dernière. Touche la bande orange ou bleue d'une tuile pour ses tournois." : "Choisis un type puis glisse sur les semaines. Clique sur un week-end pour y prévoir un tournoi. La rangée « Inscrit » montre les inscriptions saisies par le jeune (en rouge : hors d'une zone tournoi prévue)."}</p>
   </div>`;
   box.querySelectorAll(".pl-brush").forEach((b) => b.addEventListener("click", () => { plBrush = b.dataset.k; plRenderEditor(); }));
   $("pl-close").addEventListener("click", () => { plSel = null; plRenderCal(); });
@@ -2314,24 +2322,35 @@ function plRenderEditor() {
   let start = null, cur = null;
   const paint = () => {
     const [a, b] = [Math.min(start, cur), Math.max(start, cur)];
-    fr.querySelectorAll(".pl-top").forEach((c) => c.classList.toggle("pl-sel", +c.dataset.i >= a && +c.dataset.i <= b));
+    fr.querySelectorAll(".pl-top").forEach((c) => c.classList.toggle("pl-sel", start !== null && +c.dataset.i >= a && +c.dataset.i <= b));
   };
-  fr.addEventListener("pointerdown", (e) => {
-    const c = e.target.closest(".pl-top"); if (!c) return;
-    e.preventDefault(); start = cur = +c.dataset.i; paint();
-    fr.setPointerCapture(e.pointerId);
-  });
-  fr.addEventListener("pointermove", (e) => {
-    if (start === null) return;
-    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".pl-col");
-    const top = el?.querySelector(".pl-top"); if (!top || !fr.contains(top)) return;
-    if (+top.dataset.i !== cur) { cur = +top.dataset.i; paint(); }
-  });
-  fr.addEventListener("pointerup", async () => {
-    if (start === null) return;
-    const [a, b] = [Math.min(start, cur), Math.max(start, cur)]; start = null;
-    await plPaintWeeks(plSel, plWeekList.slice(a, b + 1), plBrush);
-  });
+  if (fr.classList.contains("pl-mosaic")) {
+    // Téléphone : deux touchers (1re semaine, puis dernière) — la page reste défilable au doigt.
+    const hint = $("pl-tap-hint");
+    fr.querySelectorAll(".pl-top").forEach((c) => c.addEventListener("click", async () => {
+      const i = +c.dataset.i;
+      if (start === null) { start = cur = i; paint(); if (hint) hint.textContent = "Touche maintenant la dernière semaine de la zone (ou la même pour une seule semaine)."; return; }
+      const [a, b] = [Math.min(start, i), Math.max(start, i)]; start = null;
+      await plPaintWeeks(plSel, plWeekList.slice(a, b + 1), plBrush);
+    }));
+  } else {
+    fr.addEventListener("pointerdown", (e) => {
+      const c = e.target.closest(".pl-top"); if (!c) return;
+      e.preventDefault(); start = cur = +c.dataset.i; paint();
+      fr.setPointerCapture(e.pointerId);
+    });
+    fr.addEventListener("pointermove", (e) => {
+      if (start === null) return;
+      const el = document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".pl-col");
+      const top = el?.querySelector(".pl-top"); if (!top || !fr.contains(top)) return;
+      if (+top.dataset.i !== cur) { cur = +top.dataset.i; paint(); }
+    });
+    fr.addEventListener("pointerup", async () => {
+      if (start === null) return;
+      const [a, b] = [Math.min(start, cur), Math.max(start, cur)]; start = null;
+      await plPaintWeeks(plSel, plWeekList.slice(a, b + 1), plBrush);
+    });
+  }
   fr.querySelectorAll(".pl-we,.pl-reg").forEach((c) => c.addEventListener("click", () => plOpenWeekend(plSel, plWeekList[+c.dataset.i])));
 }
 async function plPaintWeeks(pid, weeks, kind) {

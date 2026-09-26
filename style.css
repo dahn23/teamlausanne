@@ -3795,3 +3795,17 @@ tr.enc-ok td{background:#f4fbf6}
 .ps-hors{color:#b3261e;font-weight:700;font-size:.8rem}
 .ps-add label{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);flex:0 0 auto}
 .ps-add label input{width:auto}
+/* Planning : mosaïque sur téléphone (une ligne par mois, tuiles larges) — Mon espace et éditeur console */
+.pl-frise.pl-mosaic{display:flex;flex-direction:column;gap:6px;border-radius:0;overflow:visible;touch-action:manipulation}
+.pl-mrow{display:grid;grid-template-columns:38px minmax(0,1fr);gap:6px;align-items:center}
+.pl-mlab{font-size:.76rem;font-weight:800;color:var(--muted)}
+.pl-mcells{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.pl-mosaic .pl-col{border-radius:9px;overflow:hidden;background:#eef1f6;gap:0}
+.pl-frise.pl-mosaic .pl-top{height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.pl-frise.pl-mosaic .pl-we,.pl-frise.pl-mosaic .pl-reg{height:7px}
+.pl-frise.pl-frise-big.pl-mosaic .pl-we,.pl-frise.pl-frise-big.pl-mosaic .pl-reg{height:14px;font-size:.62rem}
+.pl-mosaic .pl-now{box-shadow:0 0 0 2px #1e3ad1}
+.pl-mosaic .pl-now .pl-top{box-shadow:none}
+.pl-day{font-size:.82rem;font-weight:800;color:#1f2a4d;opacity:.75;pointer-events:none}
+.pl-mosaic .ps-col-sel{box-shadow:0 0 0 3px #0f1f6e}
+.pl-mosaic .ps-col-sel .pl-top{outline:none}
