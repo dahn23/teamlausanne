@@ -3,6 +3,14 @@
   publish = "."
   command = ""
 
+# Photo « dernier vainqueur GameZone » pour la présentation des tournois sur mytennis (26.09.2026) :
+# adresse stable sur notre domaine, servie par la fonction gz-last-winner (photos autorisées à la publication).
+[[redirects]]
+  from = "/gz/dernier-vainqueur.jpg"
+  to = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/gz-last-winner"
+  status = 200
+  force = true
+
 # La racine du site (app.teamlausanne.ch) n'affiche QUE la page de connexion.
 # force = true : sinon index.html (la vitrine) l'emporterait. La vitrine reste
 # accessible sur /index.html si besoin ; le vrai site public est sur Wix.
