@@ -727,14 +727,17 @@ function renderMatchs() {
   renderPortalSeason(player);
 }
 
-/* ---------- Ma saison (db/106) : frise de la saison posée par les coachs + mes tournois ----------
-   Double case par semaine : la semaine (prépa, entraînement, option, vacances, tournoi à l'étranger) et le
-   week-end (tournois). Le jeune (ou son parent) ajoute les tournois auxquels il est inscrit ; il peut retirer
-   ceux qu'il a saisis lui-même, pas ceux des coachs. */
+/* ---------- Ma saison (db/106) ----------
+   La frise montre la PLANIFICATION des coachs (zone de chaque semaine + week-ends de tournoi prévus) et, en dessous,
+   MES INSCRIPTIONS (dates libres, elles peuvent déborder du week-end ou se chevaucher). Une inscription hors d'une zone
+   tournoi prévue est marquée en rouge ; elle ne change jamais la planification. Toucher une semaine = son détail.
+   Le jeune (ou son parent) ajoute et retire ses propres inscriptions, pas celles saisies par les coachs. */
 const PS_KINDS = { prepa: "Prépa physique", entrainement: "Entraînement", option: "Entraînement en option", vacances: "Vacances", etranger: "Tournoi à l'étranger" };
 const PS_MONTHS = ["janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc"];
 const psDay = (iso, n) => addDays(new Date(iso + "T12:00:00"), n);
-const psWe = (ws) => { const sa = psDay(ws, 5), di = psDay(ws, 6); return `sam ${sa.getDate()}${sa.getMonth() !== di.getMonth() ? " " + PS_MONTHS[sa.getMonth()] : ""} – dim ${di.getDate()} ${PS_MONTHS[di.getMonth()]}`; };
+const psD = (iso) => { const d = new Date(iso + "T12:00:00"); return `${d.getDate()} ${PS_MONTHS[d.getMonth()]}`; };
+const psRange = (a, b) => (a === b ? psD(a) : `${psD(a)} – ${psD(b)}`);
+const psWe = (ws) => psRange(isoLocal(psDay(ws, 5)), isoLocal(psDay(ws, 6)));
 async function renderPortalSeason(player) {
   const host = $("mrp-season"); if (!host) return;
   const today = isoLocal(new Date());
@@ -742,50 +745,71 @@ async function renderPortalSeason(player) {
   const s = (seasons || []).find((x) => x.start_monday <= today && isoLocal(psDay(x.start_monday, x.weeks * 7 - 1)) >= today) || (seasons || [])[0];
   if (!s) { host.innerHTML = ""; return; }
   const weeks = []; for (let i = 0; i < s.weeks; i++) weeks.push(isoLocal(psDay(s.start_monday, 7 * i)));
-  const a = weeks[0], z = weeks[weeks.length - 1];
+  const a = weeks[0], z = isoLocal(psDay(weeks[weeks.length - 1], 6));
   const [{ data: w }, { data: t }, { data: u }] = await Promise.all([
     sb.from("plan_weeks").select("week_start,kind").eq("person_id", player.person_id).gte("week_start", a).lte("week_start", z),
-    sb.from("plan_tournaments").select("id,week_start,name,source,created_by").eq("person_id", player.person_id).gte("week_start", a).lte("week_start", z).order("week_start"),
+    sb.from("plan_tournaments").select("id,week_start,start_date,end_date,name,source,created_by").eq("person_id", player.person_id).gte("week_start", isoLocal(psDay(a, -49))).lte("week_start", z).order("start_date"),
     sb.auth.getUser(),
   ]);
   if ($("mrp-season") !== host) return;   // l'onglet a été redessiné entre-temps
   const kinds = {}; for (const r of w || []) kinds[r.week_start] = r.kind;
-  const tours = t || [], me = u?.user?.id;
+  const all = t || [], me = u?.user?.id;
+  const planned = (ws) => all.filter((x) => x.source === "staff" && x.week_start === ws);
+  const regsIn = (ws) => { const we = isoLocal(psDay(ws, 6)); return all.filter((x) => x.source === "joueur" && x.start_date <= we && x.end_date >= ws); };
+  const covered = (ws) => planned(ws).length > 0 || kinds[ws] === "etranger";
+  // Inscription hors planification = aucune des semaines qu'elle touche n'a de tournoi prévu (ni semaine à l'étranger).
+  const regHors = (x) => !weeks.filter((ws) => ws <= x.end_date && isoLocal(psDay(ws, 6)) >= x.start_date).some(covered);
   const thisMonday = isoLocal(psDay(today, -((new Date().getDay() + 6) % 7)));
   let months = "", prev = -1, start = 1;
   weeks.forEach((ws, i) => { const m = psDay(ws, 3).getMonth(); if (m !== prev) { if (prev !== -1) months += `<span style="grid-column:${start}/${i + 1}">${PS_MONTHS[prev]}</span>`; prev = m; start = i + 1; } });
   months += `<span style="grid-column:${start}/${weeks.length + 1}">${PS_MONTHS[prev]}</span>`;
-  const cells = weeks.map((ws) => {
-    const k = kinds[ws] || "", tt = tours.filter((x) => x.week_start === ws);
-    const tip = `${psWe(ws)} · ${PS_KINDS[k] || "—"}${tt.length ? " · " + tt.map((x) => x.name).join(", ") : ""}`;
-    return `<div class="pl-col${ws === thisMonday ? " pl-now" : ""}" title="${escHtml(tip)}"><div class="pl-top pl-k-${k || "none"}"></div><div class="pl-we${tt.length ? " pl-we-on" : ""}"></div></div>`;
+  const cells = weeks.map((ws, i) => {
+    const k = kinds[ws] || "", pl = planned(ws), rg = regsIn(ws), hors = rg.some(regHors);
+    return `<div class="pl-col ps-col${ws === thisMonday ? " pl-now" : ""}" data-i="${i}"><div class="pl-top pl-k-${k || "none"}"></div><div class="pl-we${pl.length ? " pl-we-on" : ""}"></div><div class="pl-reg${rg.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}"></div></div>`;
   }).join("");
-  const upcoming = tours.filter((x) => x.week_start >= thisMonday);
-  const nextWeeks = weeks.filter((ws) => ws >= thisMonday);
-  const legend = Object.entries(PS_KINDS).map(([k, l]) => `<span><i class="pl-k-${k}"></i>${l}</span>`).join("") + '<span><i class="pl-we-on"></i>Week-end tournoi</span>';
+  const mine = all.filter((x) => x.source === "joueur" && x.end_date >= today);
+  const legend = Object.entries(PS_KINDS).map(([k, l]) => `<span><i class="pl-k-${k}"></i>${l}</span>`).join("")
+    + '<span><i class="pl-we-on pl-bar"></i>Tournoi prévu par les coachs</span><span><i class="pl-reg-on pl-bar"></i>Mes inscriptions</span><span><i class="pl-reg-hors pl-bar"></i>Inscription hors planification</span>';
   host.innerHTML = `<div class="mrp-card ps-card">
     <h2 class="mrp-h">Ma saison ${escHtml(s.label)}</h2>
     <div class="pl-legend">${legend}</div>
     <div class="pl-months" style="grid-template-columns:repeat(${weeks.length},minmax(0,1fr))">${months}</div>
-    <div class="pl-frise" style="grid-template-columns:repeat(${weeks.length},minmax(0,1fr))">${cells}</div>
-    <h3 class="ps-h">Mes prochains tournois</h3>
-    ${upcoming.length ? upcoming.map((x) => `<div class="pl-wt"><span><b>${psWe(x.week_start)}</b> · ${escHtml(x.name)}${x.source === "staff" ? ' <span class="muted" style="font-size:.78rem">(coach)</span>' : ""}</span>${x.source === "joueur" && x.created_by === me ? `<button type="button" class="ps-del" data-id="${x.id}" aria-label="Retirer">✕</button>` : ""}</div>`).join("") : '<p class="muted" style="margin:4px 0">Aucun tournoi prévu pour l\'instant.</p>'}
+    <div class="pl-frise ps-frise" style="grid-template-columns:repeat(${weeks.length},minmax(0,1fr))">${cells}</div>
+    <div id="ps-week" class="ps-week"><span class="muted">Touche une semaine pour voir son programme.</span></div>
+    <h3 class="ps-h">Mes inscriptions à venir</h3>
+    ${mine.length ? mine.map((x) => `<div class="pl-wt"><span><b>${psRange(x.start_date, x.end_date)}</b> · ${escHtml(x.name)}${regHors(x) ? ' <span class="ps-hors">hors planification</span>' : ""}</span>${x.created_by === me ? `<button type="button" class="ps-del" data-id="${x.id}" aria-label="Retirer">✕</button>` : ""}</div>`).join("") : '<p class="muted" style="margin:4px 0">Aucune inscription pour l\'instant.</p>'}
     <div class="ps-add">
-      <select id="ps-week">${nextWeeks.map((ws) => `<option value="${ws}">${psWe(ws)}</option>`).join("")}</select>
       <input type="text" id="ps-name" placeholder="Tournoi auquel je suis inscrit·e" />
+      <label>Du<input type="date" id="ps-from" /></label>
+      <label>Au<input type="date" id="ps-to" /></label>
       <button type="button" id="ps-add-btn">Ajouter</button>
     </div>
     <p id="ps-msg" class="muted" style="font-size:.8rem;margin:6px 0 0"></p>
   </div>`;
+  // Détail d'une semaine : ce que les coachs ont prévu, et mes inscriptions.
+  const showWeek = (i) => {
+    const ws = weeks[i], k = kinds[ws], pl = planned(ws), rg = regsIn(ws);
+    host.querySelectorAll(".ps-col").forEach((c) => c.classList.toggle("ps-col-sel", +c.dataset.i === i));
+    $("ps-week").innerHTML = `<b>Semaine du ${psRange(ws, isoLocal(psDay(ws, 6)))}</b>
+      <div>Programme : <b>${escHtml(PS_KINDS[k] || "rien de prévu")}</b></div>
+      <div>Week-end (${psWe(ws)}) : ${pl.length ? "tournoi prévu — " + pl.map((x) => escHtml(x.name)).join(", ") : "pas de tournoi prévu"}</div>
+      <div>Mes inscriptions : ${rg.length ? rg.map((x) => `${escHtml(x.name)} (${psRange(x.start_date, x.end_date)})`).join(", ") : "aucune"}</div>
+      ${rg.some(regHors) ? '<div class="ps-hors" style="margin-top:4px">Cette inscription tombe hors de la planification des coachs : parles-en avec ton coach.</div>' : ""}`;
+    const f = $("ps-from"); if (f && !f.value && ws >= today) { f.value = isoLocal(psDay(ws, 5)); $("ps-to").value = isoLocal(psDay(ws, 6)); }
+  };
+  host.querySelectorAll(".ps-col").forEach((c) => c.addEventListener("click", () => showWeek(+c.dataset.i)));
+  const cur = weeks.indexOf(thisMonday); if (cur >= 0) showWeek(cur);
+  $("ps-from").addEventListener("change", () => { if (!$("ps-to").value || $("ps-to").value < $("ps-from").value) $("ps-to").value = $("ps-from").value; });
   host.querySelectorAll(".ps-del").forEach((b) => b.addEventListener("click", async () => {
     const { error } = await sb.from("plan_tournaments").delete().eq("id", b.dataset.id);
     if (error) { $("ps-msg").textContent = "Impossible : " + error.message; return; }
     renderPortalSeason(player);
   }));
   $("ps-add-btn").addEventListener("click", async () => {
-    const name = $("ps-name").value.trim(), ws = $("ps-week").value;
-    if (name.length < 2 || !ws) { $("ps-msg").textContent = "Indique le nom du tournoi et le week-end."; return; }
-    const { error } = await sb.from("plan_tournaments").insert({ person_id: player.person_id, week_start: ws, name, source: "joueur", created_by: me });
+    const name = $("ps-name").value.trim(), from = $("ps-from").value, to = $("ps-to").value || $("ps-from").value;
+    if (name.length < 2 || !from) { $("ps-msg").textContent = "Indique le nom du tournoi et ses dates."; return; }
+    if (to < from) { $("ps-msg").textContent = "La date de fin est avant la date de début."; return; }
+    const { error } = await sb.from("plan_tournaments").insert({ person_id: player.person_id, week_start: from, start_date: from, end_date: to, name, source: "joueur", created_by: me });
     if (error) { $("ps-msg").textContent = "Impossible : " + error.message; return; }
     renderPortalSeason(player);
   });

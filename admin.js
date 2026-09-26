@@ -2128,8 +2128,12 @@ function winterFocusBox(needle, label, chf, tile) {
 }
 
 // ===================================================================
-//  Planning tournois (db/106) — frises de saison des jeunes (double case : semaine + week-end tournoi)
-//  et prochains tournois regroupés pour organiser les délégations. Head coach, coach, admin, superadmin.
+//  Planning tournois (db/106) — deux choses distinctes :
+//  • la PLANIFICATION idéale des coachs : zone de chaque semaine (prépa, entraînement, option, vacances, tournoi à
+//    l'étranger) + week-ends de tournoi prévus (plan_tournaments source « staff », au week-end) ;
+//  • les INSCRIPTIONS réelles du jeune (source « joueur ») : dates libres, qui peuvent déborder du week-end, se
+//    chevaucher ou tomber hors d'une zone prévue (signalé en rouge) — elles ne modifient jamais la planification.
+//  Head coach, coach, admin, superadmin. Les prochains tournois sont regroupés pour organiser les délégations.
 // ===================================================================
 const PL_KINDS = [["prepa", "Prépa physique"], ["entrainement", "Entraînement"], ["option", "Entraînement en option"], ["vacances", "Vacances"], ["etranger", "Tournoi à l'étranger"]];
 const PL_KIND_LABEL = Object.fromEntries(PL_KINDS);
@@ -2139,13 +2143,22 @@ const PL_MONTHS = ["janv", "févr", "mars", "avr", "mai", "juin", "juil", "août
 let plInit = false, plSeasons = [], plSeason = null, plSub = "tournois", plWeekList = [];
 let plWeeks = {}, plTours = [], plPlayers = [], plFil = new Set(), plSel = null, plBrush = "entrainement";
 
-const plWeekStarts = (s) => { const out = []; const d = new Date(s.start_monday + "T12:00:00"); for (let i = 0; i < s.weeks; i++) { const x = new Date(d); x.setDate(d.getDate() + 7 * i); out.push(isoA(x)); } return out; };
 const plAdd = (iso, n) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return d; };
+const plMonday = (iso) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoA(d); };
+const plWeekStarts = (s) => { const out = []; for (let i = 0; i < s.weeks; i++) out.push(isoA(plAdd(s.start_monday, 7 * i))); return out; };
+const plD = (iso) => { const d = new Date(iso + "T12:00:00"); return `${d.getDate()} ${PL_MONTHS[d.getMonth()]}`; };
+const plRange = (a, b) => (a === b ? plD(a) : `${plD(a)} – ${plD(b)}`);
 const plWeLabel = (ws) => { const sa = plAdd(ws, 5), di = plAdd(ws, 6); return `sam ${sa.getDate()}${sa.getMonth() !== di.getMonth() ? " " + PL_MONTHS[sa.getMonth()] : ""} – dim ${di.getDate()} ${PL_MONTHS[di.getMonth()]}`; };
-const plWkLabel = (ws) => { const d = plAdd(ws, 0), e = plAdd(ws, 6); return `${d.getDate()} ${PL_MONTHS[d.getMonth()]} – ${e.getDate()} ${PL_MONTHS[e.getMonth()]}`; };
+const plWkLabel = (ws) => plRange(ws, isoA(plAdd(ws, 6)));
 const plFilOf = (pid) => (peopleRoles[pid] || []).find((r) => PL_FIL_LABEL[r]) || "";
 const plName = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name} ${p.last_name}` : "?"; };
-const plToursOf = (pid, ws) => plTours.filter((t) => t.person_id === pid && t.week_start === ws);
+const plPlanned = (pid, ws) => plTours.filter((t) => t.source === "staff" && t.person_id === pid && t.week_start === ws);
+// Inscriptions du jeune qui touchent une semaine donnée (du lundi au dimanche).
+const plRegsIn = (pid, ws) => { const we = isoA(plAdd(ws, 6)); return plTours.filter((t) => t.source === "joueur" && t.person_id === pid && t.start_date <= we && t.end_date >= ws); };
+// Semaine « couverte » par la planification : week-end de tournoi prévu, ou semaine de tournoi à l'étranger.
+const plCovered = (pid, ws) => plPlanned(pid, ws).length > 0 || (plWeeks[pid] || {})[ws] === "etranger";
+// Inscription hors planification : aucune des semaines qu'elle touche (du lundi de début au dimanche de fin) n'est couverte.
+const plRegHors = (t) => { for (let ws = plMonday(t.start_date); ws <= t.end_date; ws = isoA(plAdd(ws, 7))) if (plCovered(t.person_id, ws)) return false; return true; };
 
 async function loadPlanning() {
   if (!plInit) {
@@ -2171,10 +2184,10 @@ async function loadPlanning() {
 async function plLoadData() {
   if (!plSeason) { $("pl-tour-list").innerHTML = '<p class="muted">Aucune saison de planning.</p>'; return; }
   plWeekList = plWeekStarts(plSeason);
-  const a = plWeekList[0], z = plWeekList[plWeekList.length - 1];
+  const a = plWeekList[0], z = isoA(plAdd(plWeekList[plWeekList.length - 1], 6));
   const [{ data: w }, { data: t }] = await Promise.all([
     sb.from("plan_weeks").select("person_id,week_start,kind").gte("week_start", a).lte("week_start", z),
-    sb.from("plan_tournaments").select("id,person_id,week_start,name,source,created_by").gte("week_start", a).lte("week_start", z).order("created_at"),
+    sb.from("plan_tournaments").select("id,person_id,week_start,start_date,end_date,name,source,created_by").gte("week_start", isoA(plAdd(a, -49))).lte("week_start", z).order("created_at"),
   ]);
   plWeeks = {};
   for (const r of w || []) (plWeeks[r.person_id] || (plWeeks[r.person_id] = {}))[r.week_start] = r.kind;
@@ -2185,12 +2198,12 @@ async function plLoadData() {
 }
 function plRender() { if (plSub === "tournois") plRenderTournois(); else plRenderCal(); }
 
-// ---- Prochains tournois regroupés : même week-end + noms proches (mots en commun, sans « tournoi », « junior »…) ----
+// ---- Prochains tournois regroupés : dates qui se chevauchent + noms proches ----
 const PL_STOP = new Set(["tournoi", "tournament", "turnier", "torneo", "de", "du", "des", "la", "le", "les", "d", "l", "et", "junior", "juniors", "jun", "tc", "tennis", "club", "open", "cup", "coupe", "the", "of"]);
 // Mots utiles du nom (sans accents ni mots vides) + sigles des premiers mots (« Swiss Junior Tour Berne » → « sjt »,
 // « sjtb »), pour rapprocher « SJT Berne » de « Swiss Junior Tour Berne ».
 const plTokens = (s) => {
-  const words = String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const words = String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
   const out = new Set(words.filter((w) => !PL_STOP.has(w)));
   const letters = words.filter((w) => /^[a-z]/.test(w) && w.length > 1).map((w) => w[0]);
   for (let n = 3; n <= letters.length; n++) out.add(letters.slice(0, n).join(""));
@@ -2202,38 +2215,42 @@ function plSimilar(a, b) {
   return inter / Math.min(a.size, b.size) >= 0.6;
 }
 function plRenderTournois() {
-  const thisMonday = isoA(plAdd(isoA(new Date()), -((new Date().getDay() + 6) % 7)));
-  const upcoming = plTours.filter((t) => t.week_start >= thisMonday);
+  const today = isoA(new Date());
+  // Une ligne par entrée : inscription du jeune (ses dates) ou tournoi prévu par le coach (samedi–dimanche).
+  const items = plTours.map((t) => t.source === "joueur"
+    ? { ...t, a: t.start_date, b: t.end_date }
+    : { ...t, a: isoA(plAdd(t.week_start, 5)), b: isoA(plAdd(t.week_start, 6)) })
+    .filter((x) => x.b >= today).sort((x, y) => x.a.localeCompare(y.a));
   const groups = [];
-  for (const t of upcoming) {
-    const tk = plTokens(t.name);
-    let g = groups.find((x) => x.week === t.week_start && plSimilar(x.tokens, tk));
-    if (!g) { g = { week: t.week_start, tokens: tk, names: {}, players: new Map() }; groups.push(g); }
-    for (const x of tk) g.tokens.add(x);
-    g.names[t.name.trim()] = (g.names[t.name.trim()] || 0) + 1;
-    if (!g.players.has(t.person_id)) g.players.set(t.person_id, t);
+  for (const it of items) {
+    const tk = plTokens(it.name);
+    const g = groups.find((x) => it.a <= x.b && it.b >= x.a && plSimilar(x.tokens, tk));
+    if (!g) { groups.push({ a: it.a, b: it.b, tokens: tk, names: { [it.name.trim()]: 1 }, reg: new Map(), plan: new Map() }); }
+    const G = g || groups[groups.length - 1];
+    if (g) { for (const x of tk) G.tokens.add(x); G.names[it.name.trim()] = (G.names[it.name.trim()] || 0) + 1; if (it.a < G.a) G.a = it.a; if (it.b > G.b) G.b = it.b; }
+    (it.source === "joueur" ? G.reg : G.plan).set(it.person_id, it);
   }
-  groups.sort((x, y) => x.week.localeCompare(y.week) || y.players.size - x.players.size);
+  groups.sort((x, y) => x.a.localeCompare(y.a) || (y.reg.size + y.plan.size) - (x.reg.size + x.plan.size));
   const box = $("pl-tour-list");
-  if (!groups.length) { box.innerHTML = '<p class="muted">Aucun tournoi à venir pour l\'instant. Ajoute-les dans « Calendriers » (clic sur le week-end d\'un jeune) ; les jeunes peuvent aussi les saisir dans Mon espace.</p>'; return; }
-  let lastWeek = "";
+  if (!groups.length) { box.innerHTML = '<p class="muted">Aucun tournoi à venir pour l\'instant. Les jeunes saisissent leurs inscriptions dans Mon espace › Saison ; les coachs prévoient les week-ends de tournoi dans « Calendriers ».</p>'; return; }
   box.innerHTML = groups.map((g) => {
     const title = Object.entries(g.names).sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0][0];
     const alias = Object.keys(g.names).filter((n) => n !== title);
-    const head = g.week !== lastWeek ? `<h3 class="pl-week-h">${plWeLabel(g.week)}</h3>` : "";
-    lastWeek = g.week;
-    const chips = [...g.players.entries()].sort((a, b) => plName(a[0]).localeCompare(plName(b[0]))).map(([pid, t]) => {
-      const abroad = (plWeeks[pid] || {})[g.week] === "etranger";
-      return `<span class="pl-chip">${esc(plName(pid))}<span class="muted"> · ${esc(PL_FIL_LABEL[plFilOf(pid)] || "")}</span>${t.source === "joueur" ? ' <span class="pl-src" title="Saisi par le jeune dans Mon espace">✎</span>' : ""}${abroad ? ' <span class="pl-src" title="Semaine « tournoi à l\'étranger »">✈</span>' : ""}</span>`;
-    }).join("");
-    return `${head}<div class="pl-tcard">
-      <div class="pl-tcard-h"><b>${esc(title)}</b><span class="pl-count">${g.players.size} joueur${g.players.size > 1 ? "s" : ""}</span></div>
+    const chip = (pid, it, planned) => {
+      const hors = !planned && plRegHors(it);
+      return `<span class="pl-chip${planned ? " pl-chip-plan" : ""}${hors ? " pl-chip-hors" : ""}" title="${planned ? "Prévu par le coach (pas encore inscrit)" : hors ? "Inscrit hors d'une zone tournoi prévue par les coachs" : "Inscrit"}">${esc(plName(pid))}<span class="muted"> · ${esc(PL_FIL_LABEL[plFilOf(pid)] || "")}</span>${!planned && (it.a !== g.a || it.b !== g.b) ? ` <span class="muted">(${plRange(it.a, it.b)})</span>` : ""}</span>`;
+    };
+    const regs = [...g.reg.entries()].sort((a, b) => plName(a[0]).localeCompare(plName(b[0])));
+    const plans = [...g.plan.entries()].filter(([pid]) => !g.reg.has(pid)).sort((a, b) => plName(a[0]).localeCompare(plName(b[0])));
+    return `<div class="pl-tcard">
+      <div class="pl-tcard-h"><div><b>${esc(title)}</b><div class="muted" style="font-size:.8rem">${plRange(g.a, g.b)}</div></div>
+        <span class="pl-count">${g.reg.size} inscrit${g.reg.size > 1 ? "s" : ""}${plans.length ? ` · ${plans.length} prévu${plans.length > 1 ? "s" : ""}` : ""}</span></div>
       ${alias.length ? `<div class="muted" style="font-size:.78rem;margin:2px 0 4px">Aussi saisi comme : ${alias.map(esc).join(" · ")}</div>` : ""}
-      <div class="pl-chips">${chips}</div></div>`;
+      <div class="pl-chips">${regs.map(([pid, it]) => chip(pid, it, false)).join("")}${plans.map(([pid, it]) => chip(pid, it, true)).join("")}</div></div>`;
   }).join("");
 }
 
-// ---- Frises ----
+// ---- Frises (3 rangées : zone de la semaine · week-end prévu · inscriptions du jeune) ----
 function plMonthsRow() {
   let html = "", prev = -1, start = 1;
   plWeekList.forEach((ws, i) => {
@@ -2247,15 +2264,17 @@ function plFrise(pid, big) {
   const kinds = plWeeks[pid] || {};
   const today = isoA(new Date());
   const cells = plWeekList.map((ws, i) => {
-    const k = kinds[ws] || "", tours = plToursOf(pid, ws);
+    const k = kinds[ws] || "", plan = plPlanned(pid, ws), regs = plRegsIn(pid, ws);
     const now = ws <= today && today <= isoA(plAdd(ws, 6));
-    const tip = `Sem. du ${plWkLabel(ws)} · ${PL_KIND_LABEL[k] || "—"}${tours.length ? " · Week-end : " + tours.map((t) => t.name).join(", ") : ""}`;
-    return `<div class="pl-col${now ? " pl-now" : ""}" title="${esc(tip)}"><div class="pl-top pl-k-${k || "none"}" data-i="${i}"></div><div class="pl-we${tours.length ? " pl-we-on" : ""}" data-i="${i}">${big && tours.length > 1 ? tours.length : ""}</div></div>`;
+    const hors = regs.some(plRegHors);
+    const tip = `Sem. du ${plWkLabel(ws)} · ${PL_KIND_LABEL[k] || "—"}${plan.length ? " · Week-end prévu : " + plan.map((t) => t.name).join(", ") : ""}${regs.length ? " · Inscrit : " + regs.map((t) => `${t.name} (${plRange(t.start_date, t.end_date)})`).join(", ") : ""}${hors ? " · HORS ZONE PRÉVUE" : ""}`;
+    return `<div class="pl-col${now ? " pl-now" : ""}" title="${esc(tip)}"><div class="pl-top pl-k-${k || "none"}" data-i="${i}"></div><div class="pl-we${plan.length ? " pl-we-on" : ""}" data-i="${i}">${big && plan.length > 1 ? plan.length : ""}</div><div class="pl-reg${regs.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}" data-i="${i}"></div></div>`;
   }).join("");
   return `<div class="pl-frise${big ? " pl-frise-big" : ""}" data-pid="${pid}" style="grid-template-columns:repeat(${plWeekList.length},minmax(0,1fr))">${cells}</div>`;
 }
 function plLegend() {
-  return PL_KINDS.map(([k, l]) => `<span><i class="pl-k-${k}"></i>${esc(l)}</span>`).join("") + '<span><i class="pl-we-on"></i>Week-end tournoi</span>';
+  return PL_KINDS.map(([k, l]) => `<span><i class="pl-k-${k}"></i>${esc(l)}</span>`).join("")
+    + '<span><i class="pl-we-on pl-bar"></i>Week-end tournoi prévu</span><span><i class="pl-reg-on pl-bar"></i>Inscrit (par le jeune)</span><span><i class="pl-reg-hors pl-bar"></i>Inscrit hors zone prévue</span>';
 }
 function plRenderCal() {
   $("pl-filters").innerHTML = `<span class="filters-lbl">Filière&nbsp;:</span><button type="button" class="chip filt reset${plFil.size ? "" : " sel"}" data-f="">Toutes</button>`
@@ -2275,18 +2294,18 @@ function plRenderCal() {
   plRenderEditor();
 }
 
-// ---- Éditeur d'une frise : peindre les semaines (glisser), cliquer un week-end pour ses tournois ----
+// ---- Éditeur d'une frise : peindre les semaines (glisser), clic sur un week-end = tournois prévus + inscriptions ----
 function plRenderEditor() {
   const box = $("pl-editor");
-  if (!plSel) { box.innerHTML = '<p class="muted" style="margin:0 0 10px;font-size:.86rem">Clique sur un jeune pour ouvrir sa frise : glisse sur les semaines pour poser une zone, clique sur un week-end pour ses tournois.</p>'; return; }
+  if (!plSel) { box.innerHTML = '<p class="muted" style="margin:0 0 10px;font-size:.86rem">Clique sur un jeune pour ouvrir sa frise : glisse sur les semaines pour poser une zone, clique sur un week-end pour y prévoir un tournoi.</p>'; return; }
   const p = people.find((x) => x.id === plSel);
   box.innerHTML = `<div class="rg-card pl-ed">
     <div class="stg-card-head"><h2 style="margin:0">${esc(p ? p.first_name + " " + p.last_name : "?")} <span class="muted" style="font-weight:400;font-size:.9rem">· ${esc(PL_FIL_LABEL[plFilOf(plSel)] || "")} · saison ${esc(plSeason.label)}</span></h2>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="ghost" id="pl-copy">Copier vers…</button><button type="button" class="ghost" id="pl-close">Fermer</button></div></div>
     <div class="pl-brushes">${PL_KINDS.map(([k, l]) => `<button type="button" class="pl-brush${plBrush === k ? " sel" : ""}" data-k="${k}"><i class="pl-k-${k}"></i>${esc(l)}</button>`).join("")}
       <button type="button" class="pl-brush${plBrush === "" ? " sel" : ""}" data-k=""><i class="pl-k-none"></i>Effacer</button></div>
-    <div class="pl-ed-grid"><span></span>${plMonthsRow()}<div class="pl-ed-side"><span>Semaine</span><span>Week-end</span></div>${plFrise(plSel, true)}</div>
-    <p class="muted" style="font-size:.8rem;margin:8px 0 0">Choisis un type puis glisse sur les semaines (en haut). Clique sur une case du bas pour ajouter ou retirer les tournois du week-end.</p>
+    <div class="pl-ed-grid"><span></span>${plMonthsRow()}<div class="pl-ed-side"><span>Semaine</span><span>Week-end</span><span>Inscrit</span></div>${plFrise(plSel, true)}</div>
+    <p class="muted" style="font-size:.8rem;margin:8px 0 0">Choisis un type puis glisse sur les semaines. Clique sur un week-end pour y prévoir un tournoi. La rangée « Inscrit » montre les inscriptions saisies par le jeune (en rouge : hors d'une zone tournoi prévue).</p>
   </div>`;
   box.querySelectorAll(".pl-brush").forEach((b) => b.addEventListener("click", () => { plBrush = b.dataset.k; plRenderEditor(); }));
   $("pl-close").addEventListener("click", () => { plSel = null; plRenderCal(); });
@@ -2313,7 +2332,7 @@ function plRenderEditor() {
     const [a, b] = [Math.min(start, cur), Math.max(start, cur)]; start = null;
     await plPaintWeeks(plSel, plWeekList.slice(a, b + 1), plBrush);
   });
-  fr.querySelectorAll(".pl-we").forEach((c) => c.addEventListener("click", () => plOpenWeekend(plSel, plWeekList[+c.dataset.i])));
+  fr.querySelectorAll(".pl-we,.pl-reg").forEach((c) => c.addEventListener("click", () => plOpenWeekend(plSel, plWeekList[+c.dataset.i])));
 }
 async function plPaintWeeks(pid, weeks, kind) {
   if (!weeks.length) return;
@@ -2328,12 +2347,15 @@ async function plPaintWeeks(pid, weeks, kind) {
 function plOpenWeekend(pid, ws) {
   const ov = document.createElement("div"); ov.className = "ui-modal";
   const draw = () => {
-    const tours = plToursOf(pid, ws);
-    ov.innerHTML = `<div class="ui-box" style="max-width:480px;text-align:left">
+    const plan = plPlanned(pid, ws), regs = plRegsIn(pid, ws);
+    ov.innerHTML = `<div class="ui-box" style="max-width:500px;text-align:left">
       <h3 style="margin:0 0 4px">${esc(plName(pid))}</h3>
-      <p class="muted" style="margin:0 0 10px;font-size:.86rem">Week-end du ${plWeLabel(ws)}${(plWeeks[pid] || {})[ws] ? ` · semaine « ${esc(PL_KIND_LABEL[plWeeks[pid][ws]])} »` : ""}</p>
-      ${tours.length ? tours.map((t) => `<div class="pl-wt"><span>${esc(t.name)}${t.source === "joueur" ? ' <span class="muted" style="font-size:.78rem">(saisi par le jeune)</span>' : ""}</span><button type="button" class="fam-del pl-wt-del" data-id="${t.id}" title="Retirer">✕</button></div>`).join("") : '<p class="muted" style="margin:0 0 8px">Aucun tournoi ce week-end.</p>'}
-      <div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="pl-wt-new" placeholder="Nom du tournoi (ex. Tournoi de Genève R3)" style="flex:1" /><button type="button" class="primary" id="pl-wt-add">Ajouter</button></div>
+      <p class="muted" style="margin:0 0 10px;font-size:.86rem">Semaine du ${plWkLabel(ws)}${(plWeeks[pid] || {})[ws] ? ` · « ${esc(PL_KIND_LABEL[plWeeks[pid][ws]])} »` : ""}</p>
+      <div class="pl-wt-h">Tournoi prévu le week-end (${plWeLabel(ws)})</div>
+      ${plan.length ? plan.map((t) => `<div class="pl-wt"><span>${esc(t.name)}</span><button type="button" class="fam-del pl-wt-del" data-id="${t.id}" title="Retirer">✕</button></div>`).join("") : '<p class="muted" style="margin:0 0 6px;font-size:.85rem">Aucun tournoi prévu ce week-end.</p>'}
+      <div style="display:flex;gap:8px;margin-top:8px"><input type="text" id="pl-wt-new" placeholder="Tournoi prévu (ex. Tournoi de Genève R3)" style="flex:1" /><button type="button" class="primary" id="pl-wt-add">Prévoir</button></div>
+      <div class="pl-wt-h" style="margin-top:14px">Inscriptions du jeune cette semaine</div>
+      ${regs.length ? regs.map((t) => `<div class="pl-wt"><span>${esc(t.name)} <span class="muted" style="font-size:.8rem">· ${plRange(t.start_date, t.end_date)}</span></span><button type="button" class="fam-del pl-wt-del" data-id="${t.id}" title="Retirer cette inscription">✕</button></div>`).join("") : '<p class="muted" style="margin:0;font-size:.85rem">Aucune inscription saisie par le jeune.</p>'}
       <div class="ui-actions"><button type="button" class="ghost ui-no">Fermer</button></div></div>`;
     ov.querySelectorAll(".pl-wt-del").forEach((b) => b.addEventListener("click", async () => {
       const { error } = await sb.from("plan_tournaments").delete().eq("id", b.dataset.id);
@@ -2349,20 +2371,20 @@ function plOpenWeekend(pid, ws) {
     $("pl-wt-add").addEventListener("click", add);
     $("pl-wt-new").addEventListener("keydown", (e) => { if (e.key === "Enter") add(); });
     ov.querySelector(".ui-no").addEventListener("click", () => { ov.remove(); plRender(); });
-    setTimeout(() => $("pl-wt-new")?.focus(), 30);
   };
   ov.addEventListener("click", (e) => { if (e.target === ov) { ov.remove(); plRender(); } });
   draw(); document.body.appendChild(ov);
 }
-// Copier les zones (et, au choix, les tournois du staff) de la frise ouverte vers d'autres jeunes.
+// Copier la planification (zones + au choix les tournois prévus) de la frise ouverte vers d'autres jeunes.
+// Les inscriptions des jeunes ne sont jamais copiées ni touchées.
 function plOpenCopy() {
   const src = plSel; if (!src) return;
   const ov = document.createElement("div"); ov.className = "ui-modal";
   const others = plPlayers.filter((p) => p.id !== src);
   ov.innerHTML = `<div class="ui-box" style="max-width:560px;text-align:left">
-    <h3 style="margin:0 0 4px">Copier la frise de ${esc(plName(src))}</h3>
-    <p class="muted" style="margin:0 0 10px;font-size:.85rem">Les zones de semaine des jeunes choisis sont <b>remplacées</b> par celles-ci, sur toute la saison ${esc(plSeason.label)}.</p>
-    <label class="rg-check"><input type="checkbox" id="pl-cp-tours" /> Copier aussi les tournois saisis par le staff</label>
+    <h3 style="margin:0 0 4px">Copier la planification de ${esc(plName(src))}</h3>
+    <p class="muted" style="margin:0 0 10px;font-size:.85rem">Les zones de semaine des jeunes choisis sont <b>remplacées</b> par celles-ci, sur toute la saison ${esc(plSeason.label)}. Leurs inscriptions ne sont pas touchées.</p>
+    <label class="rg-check"><input type="checkbox" id="pl-cp-tours" /> Copier aussi les week-ends de tournoi prévus</label>
     <div class="pl-cp-list">${PL_FILIERES.map(([f, l]) => {
       const ps = others.filter((p) => plFilOf(p.id) === f); if (!ps.length) return "";
       return `<div class="pl-cp-grp"><label class="rg-check"><b><input type="checkbox" class="pl-cp-all" data-f="${f}" /> ${esc(l)}</b></label>
@@ -2388,7 +2410,7 @@ function plOpenCopy() {
         plWeeks[t] = Object.fromEntries(srcWeeks);
         if (withTours) {
           const rows = plTours.filter((x) => x.person_id === src && x.source === "staff")
-            .filter((x) => !plTours.some((y) => y.person_id === t && y.week_start === x.week_start && y.name.trim().toLowerCase() === x.name.trim().toLowerCase()))
+            .filter((x) => !plTours.some((y) => y.person_id === t && y.source === "staff" && y.week_start === x.week_start && y.name.trim().toLowerCase() === x.name.trim().toLowerCase()))
             .map((x) => ({ person_id: t, week_start: x.week_start, name: x.name, source: "staff" }));
           if (rows.length) {
             const r = await sb.from("plan_tournaments").insert(rows).select();
@@ -2398,7 +2420,7 @@ function plOpenCopy() {
         }
       }
       ov.remove(); plRenderCal();
-      uiAlert(`✓ Frise copiée vers ${targets.length} jeune(s).`);
+      uiAlert(`✓ Planification copiée vers ${targets.length} jeune(s).`);
     } catch (e) { uiAlert("Copie impossible : " + (e?.message || e)); }
   });
   ov.addEventListener("click", (e) => { if (e.target === ov) ov.remove(); });

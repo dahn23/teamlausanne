@@ -3777,3 +3777,21 @@ tr.enc-ok td{background:#f4fbf6}
 .ps-add{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .ps-add select{flex:0 0 auto;max-width:100%}.ps-add input{flex:1 1 180px;min-width:0}
 .ps-del{border:0;background:transparent;color:#b3261e;font-weight:800;cursor:pointer;padding:2px 6px}
+/* Planning tournois v2 : 3e rangée « Inscrit » (inscriptions du jeune), hors zone en rouge */
+.pl-reg{height:4px;background:#eef1f6}
+.pl-reg-on{background:#1e3ad1}.pl-reg-hors{background:#d6453d}
+.pl-frise-big .pl-reg{height:12px;cursor:pointer}
+.pl-frise-big .pl-reg-on:hover,.pl-frise-big .pl-reg-hors:hover{filter:brightness(1.15)}
+.pl-legend i.pl-bar{height:6px;align-self:center}
+.pl-ed-side span:nth-child(3){height:12px;line-height:12px}
+.pl-chip-plan{background:#fff;border:1px dashed #ef9f27}
+.pl-chip-hors{background:#fdeceb;box-shadow:inset 0 0 0 1px #f3b4af}
+.pl-wt-h{font-size:.78rem;font-weight:800;color:var(--blue-ink);text-transform:uppercase;letter-spacing:.03em;margin:0 0 4px}
+/* Mon espace › Ma saison v2 : semaine touchée = son détail ; inscriptions à dates libres */
+.ps-col{cursor:pointer}
+.ps-col-sel .pl-top{outline:2px solid var(--blue-ink,#0f1f6e);outline-offset:-2px}
+.ps-frise .pl-top{height:20px}.ps-frise .pl-we{height:6px}.ps-frise .pl-reg{height:6px}
+.ps-week{margin:10px 0 0;padding:10px 12px;background:#f6f8fd;border-radius:12px;font-size:.86rem;line-height:1.5}
+.ps-hors{color:#b3261e;font-weight:700;font-size:.8rem}
+.ps-add label{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);flex:0 0 auto}
+.ps-add label input{width:auto}

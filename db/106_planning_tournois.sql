@@ -84,3 +84,26 @@ create policy plan_tournaments_delete on public.plan_tournaments for delete to a
   using (can_plan(auth.uid()) or (source = 'joueur' and created_by = auth.uid() and plan_is_my_player(person_id)));
 
 grant select, insert, update, delete on public.plan_seasons, public.plan_weeks, public.plan_tournaments to authenticated;
+
+-- v2 (26.09.2026) : deux choses distinctes.
+--  • PLANIFICATION des coachs : zones de semaine + week-ends de tournoi prévus (source 'staff').
+--  • INSCRIPTIONS du jeune (source 'joueur') : dates LIBRES (début–fin, ≤ 45 jours), qui peuvent déborder du week-end,
+--    se chevaucher ou tomber hors d'une zone prévue (signalé en rouge) — elles ne modifient jamais la planification.
+alter table public.plan_tournaments add column if not exists start_date date;
+alter table public.plan_tournaments add column if not exists end_date date;
+update public.plan_tournaments set start_date = week_start + 5, end_date = week_start + 6 where source = 'joueur' and start_date is null;
+alter table public.plan_tournaments drop constraint if exists plan_tournaments_dates_chk;
+alter table public.plan_tournaments add constraint plan_tournaments_dates_chk
+  check ((source = 'staff') or (start_date is not null and end_date is not null and end_date >= start_date and end_date - start_date <= 45));
+create or replace function public.plan_tournaments_week_trg() returns trigger language plpgsql as $$
+begin
+  if new.start_date is not null then
+    new.week_start := new.start_date - (extract(isodow from new.start_date)::int - 1);
+    if new.end_date is null then new.end_date := new.start_date; end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists plan_tournaments_week on public.plan_tournaments;
+create trigger plan_tournaments_week before insert or update on public.plan_tournaments
+  for each row execute function public.plan_tournaments_week_trg();
+create index if not exists plan_tournaments_dates_idx on public.plan_tournaments(start_date, end_date);
