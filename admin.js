@@ -4357,6 +4357,7 @@ function gzClosedTag(t) {
   return '<span class="muted">—</span>';
 }
 
+let gzTournSeason = "";
 async function loadTournaments() {
   const [{ data: tournaments }, { data: cnts }, { data: seasons }] = await Promise.all([
     sb.from("gz_tournaments").select("*").order("tournament_date", { ascending: false, nullsFirst: false }),
@@ -4371,7 +4372,6 @@ async function loadTournaments() {
     const allowed = new Set((mine || []).map((m) => m.tournament_id));
     rows = rows.filter((t) => allowed.has(t.id) && !t.closed_at && t.status !== "Clôturé");
   }
-  $("gz-tourn-count").textContent = rows.length ? `${rows.length} tournoi(s)` : "";
   const seasonName = {};
   for (const s of seasons || []) seasonName[s.id] = s.name;
   const seasonOfDate = (d) => {
@@ -4381,7 +4381,16 @@ async function loadTournaments() {
   };
   const groups = {};
   for (const t of rows) { const k = seasonOfDate(t.tournament_date); (groups[k] || (groups[k] = [])).push(t); }
-  const order = (seasons || []).map((s) => s.id).concat("none");
+  // Choix de la saison (comme Financier) : par défaut la saison en cours ; les autres (passées, futures) au choix.
+  const sel = $("gz-tourn-season");
+  if (!sel.dataset.pret) { sel.dataset.pret = "1"; sel.addEventListener("change", () => { gzTournSeason = sel.value; loadTournaments(); }); }
+  const today = new Date().toISOString().slice(0, 10);
+  if (!gzTournSeason) gzTournSeason = ((seasons || []).find((x) => today >= x.start_date && today <= x.end_date) || (seasons || [])[0] || {}).id || "none";
+  sel.innerHTML = (seasons || []).map((s) => `<option value="${s.id}">${esc(s.name)}${groups[s.id] ? ` (${groups[s.id].length})` : ""}</option>`).join("")
+    + (groups.none ? `<option value="none">Hors saison (${groups.none.length})</option>` : "");
+  sel.value = gzTournSeason;   // forcer la valeur (pretty-select)
+  $("gz-tourn-count").textContent = (groups[gzTournSeason] || []).length ? `${groups[gzTournSeason].length} tournoi(s)` : "";
+  const order = [gzTournSeason];
   let html = "";
   for (const sid of order) {
     const g = groups[sid];
@@ -4399,7 +4408,7 @@ async function loadTournaments() {
     html += `<tr class="gz-total"><td colspan="4">Total — ${g.length} tournoi(s)</td><td>${ti}</td><td>${ts}</td></tr>`;
     html += "</tbody></table></div>";
   }
-  $("gz-tournaments-groups").innerHTML = html || '<p class="muted">Aucun tournoi importé. Utilisez le bookmarklet ci-dessous.</p>';
+  $("gz-tournaments-groups").innerHTML = html || (rows.length ? '<p class="muted">Aucun tournoi sur cette saison.</p>' : '<p class="muted">Aucun tournoi importé. Utilisez le bookmarklet ci-dessous.</p>');
   $("gz-tournaments-groups").querySelectorAll(".gz-trow").forEach((r) =>
     r.addEventListener("click", () => openTournamentMgr(r.dataset.tid)));
 }
@@ -5446,7 +5455,7 @@ function renderWeekends(sid) {
   const box = $("gz-fin-weekends"); if (!box) return;
   const today = new Date().toISOString().slice(0, 10);
   const list = gzWeekends.filter((w) => w.weekend_start <= today && (!sid || w.season_id === sid || !w.season_id)
-    && (Number(w.cash) + Number(w.twint) + Number(w.carte) > 0 || w.settlement_id));
+    && (Number(w.cash) + Number(w.twint) + Number(w.carte) > 0 || w.cash_validated_at || w.card_validated_at || w.twint_validated_at));   // un relevé seul (sans vente) ne fait pas un week-end
   if (!list.length) { box.innerHTML = '<p class="muted" style="margin:0;font-size:.88rem">Aucun week-end encaissé sur cette saison.</p>'; return; }
   const canEdit = hasAny(meRoles, ["superadmin", "admin", "secretaire"]);
   const who = (by, at) => `<span class="gz-wk-okv">✓ validé</span> <span class="muted" style="font-size:.8rem">${esc(by || "")}${at ? " · " + frDate(at.slice(0, 10)) : ""}</span>`;
