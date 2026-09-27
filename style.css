@@ -2216,11 +2216,18 @@ body.portal{background:var(--bg)}
 .news-img-preview{width:130px;height:86px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
 .news-aud-wrap{margin:2px 0 8px}
 .news-aud-lbl{font-weight:600;font-size:.9rem}
-.news-aud-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px;margin-top:8px}
-.news-aud-chk{display:flex;align-items:center;gap:6px;font-size:.88rem;font-weight:500}
-.news-aud-chk input{width:auto}
+.news-aud-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+/* Destinataires = pastilles cliquables (case cachée) ; « #news-form » pour passer devant « #news-form label » */
+#news-form .news-aud-chk{position:relative;display:inline-flex;flex-direction:row;margin:0;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);font-size:.86rem;font-weight:600;cursor:pointer;user-select:none;transition:background .12s,border-color .12s}
+#news-form .news-aud-chk:hover{border-color:var(--blue)}
+#news-form .news-aud-chk input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+#news-form .news-aud-chk:has(input:checked){background:var(--blue);border-color:var(--blue);color:#fff}
+#news-form .news-aud-chk:has(input:checked)::before{content:"✓";font-weight:800}
+#news-form .news-aud-chk:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:2px}
 .news-pub{flex-direction:row !important;align-items:center;gap:8px;font-weight:700}
 .news-pub input{width:auto}
+#news-form .news-pub{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;margin:6px 0 10px;color:var(--ink)}
+#news-form .news-pub input{width:20px;height:20px;flex:0 0 auto;margin:0;accent-color:var(--blue)}
 
 /* ================= NEWS (portail Mon espace) ================= */
 .pt-news-card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;
