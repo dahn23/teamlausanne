@@ -23,6 +23,7 @@ insert into public.plan_days_off(day, label) values
   ('2026-12-24', 'Veille de Noël'),
   ('2026-12-25', 'Noël'),
   ('2027-03-26', 'Vendredi saint'),
+  ('2027-03-29', 'Lundi de Pâques'),
   ('2027-05-06', 'Ascension'),
   ('2027-05-17', 'Lundi de Pentecôte')
 on conflict (day) do nothing;
