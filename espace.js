@@ -1091,6 +1091,12 @@ function renderPhysique() {
   }));
   renderPhSub();
 }
+// Vignette d'un exercice : illustration (trait fin bleu, /assets/phys/<img>.svg) + nom, dosage et consigne dessous.
+const phExCard = (x, i) => `<div class="ph-card">
+    ${x.img ? `<div class="ph-pic"><img src="/assets/phys/${escHtml(x.img)}.svg" alt="" loading="lazy"></div>` : ""}
+    <div class="ph-card-b"><div class="ph-card-t"><span class="ph-num">${i + 1}</span><b>${escHtml(x.name || "")}</b></div>
+      ${x.dose && x.dose !== "—" ? `<span class="ph-dose">${escHtml(x.dose)}</span>` : ""}
+      ${x.how ? `<p>${escHtml(x.how)}</p>` : ""}</div></div>`;
 function renderPhSub() { if (phSub === "prepa") renderPhThread(); else renderPhRoutines(); }
 async function renderPhRoutines() {
   const host = $("ph-sub"); if (!host) return;
@@ -1102,7 +1108,7 @@ async function renderPhRoutines() {
   host.innerHTML = rows.map((r, i) => `<details class="ph-rt ph-k-${escHtml(r.kind)}"${i === 0 ? " open" : ""}>
       <summary><span class="ph-kind">${escHtml(PH_KIND[r.kind] || "Programme")}</span><b>${escHtml(r.title)}</b>${r.duration ? `<span class="ph-dur">⏱ ${escHtml(r.duration)}</span>` : ""}</summary>
       ${r.intro ? `<p class="ph-intro">${escHtml(r.intro).replace(/\n/g, "<br/>")}</p>` : ""}
-      <ol class="ph-ex">${(r.exercises || []).map((x) => `<li><div class="ph-ex-top"><b>${escHtml(x.name || "")}</b>${x.dose ? `<span class="ph-dose">${escHtml(x.dose)}</span>` : ""}</div>${x.how ? `<p>${escHtml(x.how)}</p>` : ""}</li>`).join("")}</ol>
+      <div class="ph-cards">${(r.exercises || []).map(phExCard).join("")}</div>
     </details>`).join("");
 }
 // Fil « Prépa physique » : les photos et vidéos s'affichent directement (liens signés, bucket privé « physique »).

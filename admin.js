@@ -7859,6 +7859,15 @@ const PHX_FIL = { "sport-etudes": "Sport-études", pro: "Pro", "pro-u18": "Pro U
 const PHX_KINDS = [["echauffement", "Avant l'effort (échauffement)"], ["decrassage", "Après l'effort (décrassage)"], ["soir", "Chaque soir"], ["renfo", "Renforcement"], ["autre", "Autre"]];
 const PHX_KIND_SHORT = { echauffement: "Avant l'effort", decrassage: "Après l'effort", soir: "Chaque soir", renfo: "Renforcement", autre: "Programme" };
 const canPhysEdit = () => hasAny(myAppRoles, ["coach", "coach_physique", "head_coach", "admin", "superadmin"]);
+// Vignettes disponibles (/assets/phys/<clé>.svg, tools/pictos-physique.js) pour illustrer un exercice.
+const PHX_PICTOS = [["footing", "Footing / corde à sauter"], ["marche", "Marche"], ["pas_chasses", "Pas chassés"], ["genoux", "Montées de genoux"],
+  ["fente_rotation", "Fente avec rotation du buste"], ["fente_ouverture", "Grande fente avec ouverture"], ["balancer", "Balancés de jambes"],
+  ["rotation_epaule", "Élastique : rotation d'épaule"], ["rowing", "Élastique : tirage"], ["marche_laterale", "Élastique : marche latérale"],
+  ["cercles_bras", "Cercles de bras"], ["reactivite", "Réactivité / split-step"], ["boire", "Boire / collation"], ["quadriceps", "Quadriceps debout"],
+  ["ischios_banc", "Ischios sur un banc"], ["ischios_dos", "Ischios allongé (sangle)"], ["mollets_mur", "Mollets contre un mur"],
+  ["fessiers_assis", "Fessiers assis"], ["fessier_4", "Fessier en « 4 »"], ["psoas", "Psoas (genou au sol)"], ["epaule_croise", "Épaule bras croisé"],
+  ["avant_bras", "Avant-bras / poignets"], ["chat_vache", "Chat-vache"], ["rotation_dos", "Rotation du haut du dos"], ["enfant", "Posture de l'enfant"],
+  ["respiration_assis", "Respiration assis"], ["respiration_dos", "Respiration allongé"]];
 let phxSub = "jeunes", phxInit = false, phxRoutines = [], phxAssign = [], phxYouths = [], phxSel = null, phxFil = "";
 const phxName = (pid) => { const y = phxYouths.find((x) => x.id === pid) || people.find((p) => p.id === pid); return y ? `${y.first_name} ${y.last_name}` : "?"; };
 const phxAssigned = (pid) => phxRoutines.filter((r) => phxAssign.some((a) => a.routine_id === r.id && a.person_id === pid));
@@ -7912,7 +7921,7 @@ function phxRenderYouths() {
 function phxRoutineHtml(r, open, label) {
   return `<details class="phx-rt phx-k-${esc(r.kind)}"${open ? " open" : ""}><summary>${label ? `<span class="muted">${esc(label)}</span>` : `<span class="phx-kind">${esc(PHX_KIND_SHORT[r.kind] || "Programme")}</span> <b>${esc(r.title)}</b>${r.duration ? ` <span class="muted">· ${esc(r.duration)}</span>` : ""}`}</summary>
     ${r.intro ? `<p class="phx-intro">${esc(r.intro)}</p>` : ""}
-    <ol class="phx-ex">${(r.exercises || []).map((x) => `<li><b>${esc(x.name || "")}</b>${x.dose ? ` <span class="phx-dose">${esc(x.dose)}</span>` : ""}${x.how ? `<div class="muted">${esc(x.how)}</div>` : ""}</li>`).join("")}</ol></details>`;
+    <div class="ph-cards">${(r.exercises || []).map((x, i) => `<div class="ph-card">${x.img ? `<div class="ph-pic"><img src="/assets/phys/${esc(x.img)}.svg" alt="" loading="lazy"></div>` : ""}<div class="ph-card-b"><div class="ph-card-t"><span class="ph-num">${i + 1}</span><b>${esc(x.name || "")}</b></div>${x.dose && x.dose !== "—" ? `<span class="ph-dose">${esc(x.dose)}</span>` : ""}${x.how ? `<p>${esc(x.how)}</p>` : ""}</div></div>`).join("")}</div></details>`;
 }
 async function phxRenderYouth() {
   const box = $("phx-body"), pid = phxSel, y = phxYouths.find((x) => x.id === pid);
@@ -8039,14 +8048,15 @@ function phxEditRoutine(r) {
       <div id="phx-exs">${ex.map((x, i) => `<div class="phx-exrow" data-i="${i}">
         <span class="phx-exn">${i + 1}</span>
         <div class="phx-exf"><input type="text" class="phx-en" placeholder="Exercice" value="${esc(x.name || "")}" /><input type="text" class="phx-ed" placeholder="Dosage (ex. 30 s par jambe)" value="${esc(x.dose || "")}" />
-          <textarea class="phx-eh" rows="2" placeholder="Comment le faire">${esc(x.how || "")}</textarea></div>
+          <textarea class="phx-eh" rows="2" placeholder="Comment le faire">${esc(x.how || "")}</textarea>
+          <label class="phx-pic-l">Vignette<select class="phx-ei"><option value="">— aucune —</option>${PHX_PICTOS.map(([k, l]) => `<option value="${k}"${x.img === k ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label></div>
         <div class="phx-exa"><button type="button" class="ghost phx-up" title="Monter">↑</button><button type="button" class="ghost phx-down" title="Descendre">↓</button><button type="button" class="fam-del phx-rm" title="Retirer">✕</button></div></div>`).join("")}</div>
       <button type="button" class="ghost" id="phx-addex" style="margin-top:6px">+ Ajouter un exercice</button>
       <div class="ui-actions"><button type="button" class="ghost ui-no">Annuler</button><button type="button" class="primary" id="phx-save">Enregistrer</button></div></div>`;
     ov.querySelector("#phx-t").value = ov._t ?? (r?.title || ""); ov.querySelector("#phx-k").value = ov._k ?? (r?.kind || "autre"); ov.querySelector("#phx-d").value = ov._d ?? (r?.duration || ""); ov.querySelector("#phx-i").value = ov._i ?? (r?.intro || "");
     const grab = () => {
       ov._t = ov.querySelector("#phx-t").value; ov._k = ov.querySelector("#phx-k").value; ov._d = ov.querySelector("#phx-d").value; ov._i = ov.querySelector("#phx-i").value;
-      ov.querySelectorAll(".phx-exrow").forEach((row) => { const i = +row.dataset.i; ex[i] = { name: row.querySelector(".phx-en").value, dose: row.querySelector(".phx-ed").value, how: row.querySelector(".phx-eh").value }; });
+      ov.querySelectorAll(".phx-exrow").forEach((row) => { const i = +row.dataset.i; ex[i] = { name: row.querySelector(".phx-en").value, dose: row.querySelector(".phx-ed").value, how: row.querySelector(".phx-eh").value, img: row.querySelector(".phx-ei").value }; });
     };
     ov.querySelector("#phx-addex").addEventListener("click", () => { grab(); ex.push({ name: "", dose: "", how: "" }); draw(); });
     ov.querySelectorAll(".phx-exrow").forEach((row) => {
@@ -8059,7 +8069,7 @@ function phxEditRoutine(r) {
     ov.querySelector("#phx-save").addEventListener("click", async () => {
       grab();
       const row = { title: ov._t.trim(), kind: ov._k, duration: ov._d.trim() || null, intro: ov._i.trim() || null,
-        exercises: ex.map((x) => ({ name: (x.name || "").trim(), dose: (x.dose || "").trim(), how: (x.how || "").trim() })).filter((x) => x.name), updated_at: new Date().toISOString() };
+        exercises: ex.map((x) => ({ name: (x.name || "").trim(), dose: (x.dose || "").trim(), how: (x.how || "").trim(), ...(x.img ? { img: x.img } : {}) })).filter((x) => x.name), updated_at: new Date().toISOString() };
       if (row.title.length < 2) { uiAlert("Donne un titre à la routine."); return; }
       if (!row.exercises.length) { uiAlert("Ajoute au moins un exercice."); return; }
       const { data, error } = r?.id
