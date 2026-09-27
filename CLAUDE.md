@@ -53,6 +53,7 @@ Tout est dans la **console** (`admin.html`) sauf mention, menu latéral groupé.
 - **Planning tournois** (db/106) : frise de saison des jeunes élite en double case (semaine : prépa / entraînement / option / vacances / tournoi à l'étranger ; week-end : tournois), éditée par head coach, coach, admin, superadmin ; le jeune ajoute ses tournois dans Mon espace › Saison ; les prochains tournois sont regroupés par nom proche pour organiser les délégations.
 - **Suivi du jeune unifié** : un seul fil `youth_notes` avec badges de rôle (remplace les canaux Mental/Études séparés). Calendriers **Mental** et **Études** par saison.
 - **Prospects** (scouting) · **Inscriptions** (formulaire public → onglet console) · **Finances** (voir section dédiée).
+- **Physique** (db/111) : routines attribuées jeune par jeune + fil « Prépa physique » staff ↔ jeune (console Physique, fiche › Prépa physique, Mon espace › Physique). **Accueil espace privé** (ex-News) : messages par saison et par filière. **Contact** Mon espace → Messagerie info@ (« ESPACE PRIVÉ - Prénom Nom »).
 - **Couche 3 (squelettes)** : **Arrosage** et **Serrures** (onglets + edge functions *mock* à brancher sur le vrai matériel plus tard).
 - **Saisons / annualité** : `role_periods` = source de vérité de l'historique par saison ; onglet Saisons dans la fiche.
 
