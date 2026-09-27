@@ -213,12 +213,12 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
   secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats"],
-  head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "mental", "stages", "prospects", "heures"],
-  coach:      ["cours", "matchs", "lastscores", "plantournois", "phystests", "heures"],
-  coach_physique: ["cours", "phystests", "heures"],
+  head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "heures"],
+  coach:      ["cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "heures"],
+  coach_physique: ["cours", "phystests", "physique", "heures"],
   moniteur:   ["cours", "heures"],
   affichage:  ["resa"],                      // ecran du club : grille des courts, lecture seule
   prof:       ["etudes"],
@@ -226,7 +226,7 @@ const DEFAULT_TAB_ACCESS = {
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["acces", "Accès Mon espace"], ["prospects", "Prospects"], ["news", "News"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["acces", "Accès Mon espace"], ["prospects", "Prospects"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -440,6 +440,7 @@ function showView(view) {
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
+  if (view === "physique") loadPhysique();
   if (view === "inscriptions") loadInscriptions();
   if (view === "prospects") loadProspects();
   if (view === "heures") loadHeures();
@@ -1664,6 +1665,8 @@ function openPerson(p) {
   showPersonTab("suivi", physByRole);   // fil « Suivi du jeune » pour tout junior
   const mentalTabRole = canMentalView() && MENTAL_TAB_ROLES.some((r) => roles.includes(r)); // onglet Mental : encadrement mental + jeune de filière
   showPersonTab("mental", mentalTabRole);
+  const prepaPhysTab = canPhysEdit() && PHX_ROLES.some((r) => roles.includes(r));   // onglet Prépa physique : fil avec le jeune + ses routines (db/111)
+  showPersonTab("prepaphys", prepaPhysTab);
   const tennisByRole = canTennisView() && TENNIS_ROLES.some((r) => roles.includes(r)); // onglet Tennis : filières compétition→pro, accès encadrement
   showPersonTab("tennis", tennisByRole);
   const isPlayer = ["sport-etudes", "pro", "pro-u18"].some((r) => roles.includes(r)); // contrat = sport-études / pro
@@ -1694,7 +1697,7 @@ function openPerson(p) {
   loadMedia(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
   loadPersonPhysNotes(p ? p.id : null, !!p && canPhysNotes() && PHYS_NOTE_ROLES.some((r) => roles.includes(r)));   // fil « Physique » (sport-études / pro / pro U18)
-  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonTennis(p.id, tennisByRole); loadPersonMental(p.id, mentalTabRole); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
+  if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonTennis(p.id, tennisByRole); loadPersonMental(p.id, mentalTabRole); loadPersonPrepaPhys(p.id, prepaPhysTab); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
   else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("ptn-body").innerHTML = ""; $("pc-body").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
@@ -6865,42 +6868,65 @@ async function invitePerson() {
 }
 
 // ===================================================================
-//  News (actualités du portail « Mon espace »)
+//  Accueil espace privé (ex-« News », db/111) : messages de l'accueil de Mon espace, par saison juniors et par
+//  filière. Mon espace n'affiche que la saison en cours ; le plus récent en haut. Dupliquer = repartir d'un message.
 // ===================================================================
 const NEWS_AUDIENCES = [["membre", "Membres"], ["kidstennis", "KidsTennis"], ["club", "Club"],
   ["competition", "Compétition"], ["performance", "Performance"], ["sport-etudes", "Sport-études"],
-  ["pro-u18", "Pro U18"], ["pro", "Pro"]];
+  ["pro-u18", "Pro U18"], ["pro", "Pro"], ["adultes", "Adultes"]];
 const newsAudLabel = (a) => (NEWS_AUDIENCES.find(([v]) => v === a) || [a, a])[1];
-let newsList = [], newsImageUrl = null;
+let newsList = [], newsImageUrl = null, newsSeason = null, newsInit = false, newsWho = {};
+const newsDate = (n) => n.published_at || n.created_at;
 
 function initNews() {
   $("news-new").addEventListener("click", () => openNews(null));
   $("news-close").addEventListener("click", closeNews);
   $("news-form").addEventListener("submit", saveNews);
   $("n-delete").addEventListener("click", deleteNews);
+  $("n-dup").addEventListener("click", duplicateNews);
   $("n-img-btn").addEventListener("click", () => $("n-img-file").click());
   $("n-img-file").addEventListener("change", (e) => { if (e.target.files[0]) uploadNewsImage(e.target.files[0]); });
   $("n-img-clear").addEventListener("click", () => { newsImageUrl = null; updateNewsImg(); });
+  $("n-aud").addEventListener("change", () => renderNewsWho(null));
+  $("n-season").addEventListener("change", () => renderNewsWho(null));
 }
 
 async function loadNews() {
-  const { data } = await sb.from("news").select("*")
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
-  newsList = data || [];
+  if (!newsInit) {
+    newsInit = true;
+    await loadSeasonsList();
+    const cur = currentSeason("juniors")?.id;
+    newsSeason = cur || seasonsOf("juniors")[0]?.id || "";
+    $("news-season").addEventListener("change", () => { newsSeason = $("news-season").value; loadNews(); });
+  }
+  const opts = seasonsOf("juniors").map((s) => `<option value="${s.id}">Saison ${esc(s.label)}${s.id === currentSeason("juniors")?.id ? " (en cours)" : ""}</option>`).join("");
+  $("news-season").innerHTML = opts + '<option value="none">Sans saison</option>';
+  $("news-season").value = newsSeason || "none";
+  let q = sb.from("news").select("*");
+  q = newsSeason && newsSeason !== "none" ? q.eq("season_id", newsSeason) : q.is("season_id", null);
+  const { data } = await q;
+  newsList = (data || []).sort((a, b) => String(newsDate(b)).localeCompare(String(newsDate(a))));
+  // Qui voit chaque message (les jeunes de la filière pour la saison du message).
+  newsWho = {};
+  await Promise.all(newsList.filter((n) => (n.audiences || []).length).map(async (n) => {
+    const { data: ppl } = await sb.rpc("news_audience_people", { p_news: n.id });
+    newsWho[n.id] = ppl || [];
+  }));
   const box = $("news-list");
-  if (!newsList.length) { box.innerHTML = `<p class="muted">Aucune news pour l'instant. Cliquez « + Nouvelle news ».</p>`; return; }
+  if (!newsList.length) { box.innerHTML = `<p class="muted">Aucun message pour cette saison. Cliquez « + Nouveau message ».</p>`; return; }
   box.innerHTML = newsList.map((n) => {
     const aud = (n.audiences && n.audiences.length)
       ? n.audiences.map((a) => `<span class="role-badge">${esc(newsAudLabel(a))}</span>`).join(" ")
       : `<span class="role-badge">Tout le monde</span>`;
+    const who = newsWho[n.id];
+    const whoTxt = who ? `<span class="news-who-n" title="${esc(who.map((p) => `${p.first_name} ${p.last_name}`).join(", "))}">${who.length} personne${who.length > 1 ? "s" : ""}</span>` : "";
     return `<div class="news-adm-card" data-id="${n.id}">
       ${n.image_url ? `<img class="news-adm-thumb" src="${esc(n.image_url)}" alt="" />` : `<div class="news-adm-thumb ph">📣</div>`}
       <div class="news-adm-info">
         <div class="news-adm-top"><b>${esc(n.title)}</b>
           <span class="news-state ${n.published ? "pub" : "draft"}">${n.published ? "Publié" : "Brouillon"}</span></div>
-        <div class="news-adm-aud">${aud}</div>
-        <div class="muted news-adm-date">${n.published_at ? frDate(n.published_at) : "non publié"}</div>
+        <div class="news-adm-aud">${aud} ${whoTxt}</div>
+        <div class="muted news-adm-date">${n.published ? "Publié le " + frDate(newsDate(n)) : "Créé le " + frDate(n.created_at) + " · non publié"}</div>
       </div></div>`;
   }).join("");
   box.querySelectorAll(".news-adm-card").forEach((c) =>
@@ -6911,6 +6937,24 @@ function renderNewsAud(sel) {
   $("n-aud").innerHTML = NEWS_AUDIENCES.map(([v, l]) =>
     `<label class="news-aud-chk"><input type="checkbox" value="${v}"${sel.includes(v) ? " checked" : ""} /> ${esc(l)}</label>`).join("");
 }
+// Liste des personnes qui voient le message : celle calculée en base pour un message enregistré et inchangé,
+// sinon calcul à la volée d'après les filières cochées et la saison choisie (role_periods).
+async function renderNewsWho(n) {
+  const box = $("n-who"); if (!box) return;
+  const aud = [...$("n-aud").querySelectorAll("input:checked")].map((i) => i.value);
+  const season = $("n-season").value === "none" ? currentSeason("juniors")?.id : $("n-season").value;
+  if (!aud.length) { box.innerHTML = '<span class="muted">Visible par tous les comptes Mon espace.</span>'; return; }
+  let ppl;
+  if (n && newsWho[n.id]) ppl = newsWho[n.id];
+  else {
+    const { data } = await sb.from("role_periods").select("person_id,role,people(first_name,last_name)").eq("season_id", season).in("role", aud);
+    const seen = new Map();
+    for (const r of data || []) if (!seen.has(r.person_id)) seen.set(r.person_id, r.people || people.find((p) => p.id === r.person_id) || { first_name: "?", last_name: "" });
+    ppl = [...seen.values()];
+  }
+  const names = ppl.map((p) => `${p.first_name} ${p.last_name}`).sort((a, b) => a.localeCompare(b, "fr"));
+  box.innerHTML = `<details><summary>Qui le voit : <b>${names.length} personne${names.length > 1 ? "s" : ""}</b> (et leurs parents)</summary><div class="news-who-list">${names.map(esc).join(" · ") || "—"}</div></details>`;
+}
 function updateNewsImg() {
   const img = $("n-img-preview");
   if (newsImageUrl) {
@@ -6920,18 +6964,27 @@ function updateNewsImg() {
     img.classList.add("hidden"); $("n-img-clear").classList.add("hidden"); $("n-img-btn").textContent = "Ajouter une image";
   }
 }
-function openNews(n) {
+function openNews(n, copyFrom) {
+  const src = n || copyFrom;
   $("n-error").hidden = true;
-  $("news-modal-title").textContent = n ? "Modifier la news" : "Nouvelle news";
+  $("news-modal-title").textContent = n ? "Modifier le message" : copyFrom ? "Copie du message" : "Nouveau message";
   $("n-id").value = n?.id || "";
-  $("n-title").value = n?.title || "";
-  $("n-body").value = n?.body || "";
+  $("n-title").value = n ? n.title : copyFrom ? `${copyFrom.title} (copie)` : "";
+  $("n-body").value = src?.body || "";
   $("n-published").checked = !!n?.published;
-  newsImageUrl = n?.image_url || null;
+  $("n-season").innerHTML = seasonsOf("juniors").map((s) => `<option value="${s.id}">Saison ${esc(s.label)}</option>`).join("") + '<option value="none">Sans saison (toujours visible)</option>';
+  $("n-season").value = src ? (src.season_id || "none") : (newsSeason || currentSeason("juniors")?.id || "none");
+  newsImageUrl = src?.image_url || null;
   updateNewsImg();
-  renderNewsAud(n?.audiences || []);
+  renderNewsAud(src?.audiences || []);
+  renderNewsWho(n);
   $("n-delete").classList.toggle("hidden", !n);
+  $("n-dup").classList.toggle("hidden", !n);
   $("news-modal").classList.remove("hidden");
+}
+function duplicateNews() {
+  const n = newsList.find((x) => x.id === $("n-id").value); if (!n) return;
+  openNews(null, n);
 }
 function closeNews() { $("news-modal").classList.add("hidden"); }
 
@@ -6955,18 +7008,20 @@ async function saveNews(e) {
   const row = {
     title, body: $("n-body").value.trim() || null, image_url: newsImageUrl,
     audiences: [...$("n-aud").querySelectorAll("input:checked")].map((i) => i.value),
+    season_id: $("n-season").value === "none" ? null : $("n-season").value,
     published, updated_at: new Date().toISOString(),
   };
   if (published && !wasPublished) row.published_at = new Date().toISOString();
   const res = id ? await sb.from("news").update(row).eq("id", id) : await sb.from("news").insert(row);
   if (res.error) { err.textContent = "Enregistrement impossible : " + res.error.message; err.hidden = false; return; }
+  newsSeason = row.season_id || "none";
   closeNews();
   loadNews();
 }
 
 async function deleteNews() {
   const id = $("n-id").value;
-  if (!id || !await uiConfirm("Supprimer cette news ?")) return;
+  if (!id || !await uiConfirm("Supprimer ce message ?")) return;
   const { error } = await sb.from("news").delete().eq("id", id);
   if (error) { alert("Suppression impossible : " + error.message); return; }
   closeNews();
@@ -7765,6 +7820,267 @@ async function sendHeuresToFiduciaire() {
     uiAlert(`✓ Décompte de ${heuresMoisLbl()} envoyé à ${FIDU_TO} depuis ${FIDU_FROM}. Il apparaîtra dans Messagerie › Envoyés à la prochaine relève.`);
   } catch (e) { uiAlert("Envoi impossible : " + (e?.message || e)); }
   btn.disabled = false; btn.textContent = lbl;
+}
+
+// ===================================================================
+//  Physique (db/111) — onglet console (coach, coach physique, head coach, admin, superadmin)
+//  • « Par jeune » : exactement ce que le jeune voit dans Mon espace › Physique (ses routines + le fil
+//    Prépa physique), avec la possibilité de lui attribuer / retirer une routine et de lui écrire.
+//  • « Routines » : créer, modifier, dupliquer, supprimer un programme et l'attribuer jeune par jeune.
+//  Jeunes concernés : sport-études, pro, pro U18, compétition, performance (filière de la saison en cours).
+// ===================================================================
+const PHX_ROLES = ["sport-etudes", "pro", "pro-u18", "competition", "performance"];
+const PHX_FIL = { "sport-etudes": "Sport-études", pro: "Pro", "pro-u18": "Pro U18", competition: "Compétition", performance: "Performance" };
+const PHX_KINDS = [["echauffement", "Avant l'effort (échauffement)"], ["decrassage", "Après l'effort (décrassage)"], ["soir", "Chaque soir"], ["renfo", "Renforcement"], ["autre", "Autre"]];
+const PHX_KIND_SHORT = { echauffement: "Avant l'effort", decrassage: "Après l'effort", soir: "Chaque soir", renfo: "Renforcement", autre: "Programme" };
+const canPhysEdit = () => hasAny(myAppRoles, ["coach", "coach_physique", "head_coach", "admin", "superadmin"]);
+let phxSub = "jeunes", phxInit = false, phxRoutines = [], phxAssign = [], phxYouths = [], phxSel = null, phxFil = "";
+const phxName = (pid) => { const y = phxYouths.find((x) => x.id === pid) || people.find((p) => p.id === pid); return y ? `${y.first_name} ${y.last_name}` : "?"; };
+const phxAssigned = (pid) => phxRoutines.filter((r) => phxAssign.some((a) => a.routine_id === r.id && a.person_id === pid));
+
+async function loadPhysique() {
+  if (!phxInit) {
+    phxInit = true;
+    document.querySelectorAll("#phx-subnav .phx-subtab").forEach((b) => b.addEventListener("click", () => {
+      phxSub = b.dataset.phx;
+      document.querySelectorAll("#phx-subnav .phx-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      phxRender();
+    }));
+  }
+  $("phx-body").innerHTML = '<p class="muted">Chargement…</p>';
+  await loadSeasonsList();
+  if (!people.length) await loadPeople();
+  const cur = currentSeason("juniors")?.id;
+  const [{ data: r }, { data: a }, { data: rp }] = await Promise.all([
+    sb.from("phys_routines").select("*").order("created_at"),
+    fetchAllRows(() => sb.from("phys_routine_assign").select("routine_id,person_id")),
+    cur ? sb.from("role_periods").select("person_id,role").eq("season_id", cur).in("role", PHX_ROLES) : Promise.resolve({ data: [] }),
+  ]);
+  phxRoutines = r || []; phxAssign = a || [];
+  const fil = {};
+  for (const x of rp || []) if (!fil[x.person_id] || PHX_ROLES.indexOf(x.role) < PHX_ROLES.indexOf(fil[x.person_id])) fil[x.person_id] = x.role;
+  phxYouths = Object.keys(fil).map((id) => { const p = people.find((q) => q.id === id); return p ? { id, first_name: p.first_name, last_name: p.last_name, fil: fil[id] } : null; })
+    .filter(Boolean).sort((x, y) => (x.last_name || "").localeCompare(y.last_name || "") || (x.first_name || "").localeCompare(y.first_name || ""));
+  phxRender();
+}
+function phxRender() { if (phxSub === "routines") phxRenderRoutines(); else if (phxSel) phxRenderYouth(); else phxRenderYouths(); }
+
+// ---- Par jeune ----
+function phxRenderYouths() {
+  const box = $("phx-body");
+  const list = phxYouths.filter((y) => !phxFil || y.fil === phxFil);
+  box.innerHTML = `<div class="people-filters"><span class="filters-lbl">Filière&nbsp;:</span><button type="button" class="chip filt reset${phxFil ? "" : " sel"}" data-f="">Toutes</button>${PHX_ROLES.map((f) => `<button type="button" class="chip filt${phxFil === f ? " sel" : ""}" data-f="${f}">${esc(PHX_FIL[f])}</button>`).join("")}</div>
+    <p class="muted" style="font-size:.85rem;margin:0 0 10px">Clique sur un jeune pour voir exactement ce qu'il voit dans Mon espace › Physique, lui attribuer des routines et lui écrire.</p>
+    ${list.length ? `<div class="table-wrap"><table class="crm-table"><thead><tr><th>Jeune</th><th>Filière</th><th>Routines</th><th>Dernier message</th></tr></thead><tbody>${list.map((y) => {
+      const rts = phxAssigned(y.id);
+      return `<tr class="phx-row" data-id="${y.id}"><td><b>${esc(y.last_name)} ${esc(y.first_name)}</b></td><td>${esc(PHX_FIL[y.fil] || "")}</td><td>${rts.length ? rts.map((r) => `<span class="phx-chip phx-k-${esc(r.kind)}">${esc(PHX_KIND_SHORT[r.kind] || r.title)}</span>`).join(" ") : '<span class="muted">aucune</span>'}</td><td class="phx-last" data-id="${y.id}"><span class="muted">—</span></td></tr>`;
+    }).join("")}</tbody></table></div>` : '<p class="muted">Aucun jeune dans ces filières pour la saison en cours.</p>'}`;
+  box.querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { phxFil = b.dataset.f; phxRenderYouths(); }));
+  box.querySelectorAll(".phx-row").forEach((tr) => tr.addEventListener("click", () => { phxSel = tr.dataset.id; phxRenderYouth(); window.scrollTo(0, 0); }));
+  // Dernier message du fil de chaque jeune (une seule requête).
+  const ids = list.map((y) => y.id);
+  if (ids.length) sb.from("phys_thread").select("youth_person_id,created_at,author_is_staff").in("youth_person_id", ids).order("created_at", { ascending: false }).then(({ data }) => {
+    const last = {}; for (const m of data || []) if (!last[m.youth_person_id]) last[m.youth_person_id] = m;
+    box.querySelectorAll(".phx-last").forEach((td) => { const m = last[td.dataset.id]; if (m) td.innerHTML = `${frDate(m.created_at)} <span class="muted">· ${m.author_is_staff ? "staff" : "jeune"}</span>`; });
+  });
+}
+function phxRoutineHtml(r, open, label) {
+  return `<details class="phx-rt phx-k-${esc(r.kind)}"${open ? " open" : ""}><summary>${label ? `<span class="muted">${esc(label)}</span>` : `<span class="phx-kind">${esc(PHX_KIND_SHORT[r.kind] || "Programme")}</span> <b>${esc(r.title)}</b>${r.duration ? ` <span class="muted">· ${esc(r.duration)}</span>` : ""}`}</summary>
+    ${r.intro ? `<p class="phx-intro">${esc(r.intro)}</p>` : ""}
+    <ol class="phx-ex">${(r.exercises || []).map((x) => `<li><b>${esc(x.name || "")}</b>${x.dose ? ` <span class="phx-dose">${esc(x.dose)}</span>` : ""}${x.how ? `<div class="muted">${esc(x.how)}</div>` : ""}</li>`).join("")}</ol></details>`;
+}
+async function phxRenderYouth() {
+  const box = $("phx-body"), pid = phxSel, y = phxYouths.find((x) => x.id === pid);
+  const mine = phxAssigned(pid);
+  box.innerHTML = `<button type="button" class="ghost stg-back" id="phx-back">← Tous les jeunes</button>
+    <div class="rg-card" style="margin-top:10px">
+      <h2 style="margin:0 0 2px">${esc(phxName(pid))} <span class="muted" style="font-weight:400;font-size:.9rem">· ${esc(PHX_FIL[y?.fil] || "")}</span></h2>
+      <p class="muted" style="margin:0 0 12px;font-size:.85rem">Ce que ${esc(y?.first_name || "le jeune")} voit dans Mon espace › Physique.</p>
+      <h3 class="phx-h">Routine</h3>
+      <div class="phx-assign">${phxRoutines.map((r) => `<label class="rg-check"><input type="checkbox" class="phx-as" value="${r.id}"${mine.some((m) => m.id === r.id) ? " checked" : ""} /> ${esc(r.title)}</label>`).join("") || '<span class="muted">Aucune routine : crée-en une dans « Routines ».</span>'}</div>
+      <div id="phx-preview">${mine.length ? mine.map((r, i) => phxRoutineHtml(r, i === 0)).join("") : '<p class="muted" style="margin:6px 0 0">Aucune routine attribuée : le jeune voit « Pas encore de routine ».</p>'}</div>
+      <h3 class="phx-h" style="margin-top:18px">Prépa physique <span class="muted" style="font-weight:400;font-size:.8rem">— discussion avec le jeune</span></h3>
+      <div id="phx-thread"></div>
+    </div>`;
+  $("phx-back").addEventListener("click", () => { phxSel = null; phxRenderYouths(); });
+  box.querySelectorAll(".phx-as").forEach((c) => c.addEventListener("change", async () => {
+    const { error } = c.checked
+      ? await sb.from("phys_routine_assign").insert({ routine_id: c.value, person_id: pid, assigned_by: meId })
+      : await sb.from("phys_routine_assign").delete().eq("routine_id", c.value).eq("person_id", pid);
+    if (error) { uiAlert(error.message); c.checked = !c.checked; return; }
+    if (c.checked) phxAssign.push({ routine_id: c.value, person_id: pid });
+    else phxAssign = phxAssign.filter((a) => !(a.routine_id === c.value && a.person_id === pid));
+    phxRenderYouth();
+  }));
+  physThread("phx-thread", pid);
+}
+
+// ---- Fil « Prépa physique » (console et fiche du jeune) : texte, lien, photo, vidéo, document ----
+const pxIsImg = (n) => /\.(jpe?g|png|gif|webp|heic)$/i.test(n || "");
+const pxIsVid = (n) => /\.(mp4|mov|m4v|webm)$/i.test(n || "");
+async function physThread(mountId, youthId) {
+  const el = $(mountId); if (!el) return;
+  if (!youthId) { el.innerHTML = ""; return; }
+  const { data } = await sb.rpc("phys_thread_list", { p_youth: youthId });
+  if ($(mountId) !== el) return;
+  const rows = data || [];
+  const msg = (m) => {
+    const side = m.author_is_staff ? "staff" : "youth";
+    const media = m.file_path ? (pxIsImg(m.file_name) ? `<img class="ph-media" data-path="${esc(m.file_path)}" alt="">`
+      : pxIsVid(m.file_name) ? `<video class="ph-media" data-path="${esc(m.file_path)}" controls playsinline preload="metadata"></video>`
+      : `<button type="button" class="mt-file-dl" data-path="${esc(m.file_path)}">📎 ${esc(m.file_name || "document")}</button>`) : "";
+    const canDel = m.created_by === meId || canPhysEdit();
+    return `<div class="mt-msg ${side}"><div class="mt-meta"><b>${esc(m.author_name || "—")}</b> <span class="mt-role ${side}">${m.author_is_staff ? "Staff" : "Joueur"}</span> <span class="muted">${frDateTime(m.created_at)}</span>${canDel ? ` <button type="button" class="mt-del" data-id="${m.id}" title="Supprimer">✕</button>` : ""}</div>${m.body ? `<div class="mt-text">${esc(m.body).replace(/\n/g, "<br/>")}</div>` : ""}${m.link_url ? `<a href="${esc(m.link_url)}" target="_blank" rel="noopener" class="mt-linkout">🔗 ${esc(m.link_url)}</a>` : ""}${media}</div>`;
+  };
+  el.innerHTML = `<div class="mt-thread">${rows.length ? rows.map(msg).join("") : '<p class="obj-empty">Aucun message. Envoie au jeune un exercice, une photo ou une vidéo.</p>'}</div>
+    <div class="mt-composer">
+      <textarea class="mt-body" rows="2" placeholder="Écrire au jeune…"></textarea>
+      <input type="url" class="mt-link" placeholder="Lien (https://…) — optionnel" />
+      <div class="mt-crow"><label class="mt-file-lbl">📎 Photo, vidéo ou document<input type="file" class="mt-file" hidden></label><span class="mt-file-name muted"></span><span class="spacer"></span><button type="button" class="mt-send">Envoyer</button></div>
+      <span class="mt-status muted"></span>
+    </div>`;
+  const th = el.querySelector(".mt-thread"); th.scrollTop = th.scrollHeight;
+  el.querySelectorAll(".ph-media").forEach(async (m) => { const { data: u } = await sb.storage.from("physique").createSignedUrl(m.dataset.path, 3600); if (u?.signedUrl) m.src = u.signedUrl; });
+  el.querySelectorAll(".mt-file-dl").forEach((b) => b.addEventListener("click", async () => {
+    const { data: u } = await sb.storage.from("physique").createSignedUrl(b.dataset.path, 300);
+    if (u?.signedUrl) window.open(u.signedUrl, "_blank"); else uiAlert("Impossible d'ouvrir le fichier.");
+  }));
+  el.querySelectorAll(".mt-del").forEach((b) => b.addEventListener("click", async () => { if (!await uiConfirm("Supprimer ce message ?")) return; await sb.rpc("phys_thread_delete", { p_id: b.dataset.id }); physThread(mountId, youthId); }));
+  const fi = el.querySelector(".mt-file");
+  fi.addEventListener("change", () => { el.querySelector(".mt-file-name").textContent = fi.files[0]?.name || ""; });
+  el.querySelector(".mt-send").addEventListener("click", async (e) => {
+    const body = el.querySelector(".mt-body").value.trim(), link = el.querySelector(".mt-link").value.trim(), f = fi.files[0], st = el.querySelector(".mt-status");
+    if (!body && !link && !f) return;
+    if (f && f.size > 50 * 1024 * 1024) { st.textContent = "Fichier trop lourd (50 Mo au maximum)."; return; }
+    e.currentTarget.disabled = true; st.textContent = "Envoi…";
+    let fp = null, fn = null;
+    if (f) {
+      const path = `${youthId}/${crypto.randomUUID()}_${f.name.replace(/[^\w.\-]/g, "_")}`;
+      const up = await sb.storage.from("physique").upload(path, f, { contentType: f.type || undefined });
+      if (up.error) { st.textContent = "Échec du fichier : " + up.error.message; e.currentTarget.disabled = false; return; }
+      fp = path; fn = f.name;
+    }
+    const { error } = await sb.rpc("phys_thread_post", { p_youth: youthId, p_body: body || null, p_link: link || null, p_file_path: fp, p_file_name: fn });
+    if (error) { st.textContent = "Erreur : " + error.message; e.currentTarget.disabled = false; return; }
+    physThread(mountId, youthId);
+  });
+}
+
+// ---- Routines ----
+function phxRenderRoutines() {
+  const box = $("phx-body");
+  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">
+      <p class="muted" style="font-size:.85rem;margin:0">Chaque routine s'attribue jeune par jeune. Duplique une routine pour en faire une version pour un seul joueur.</p>
+      <button type="button" class="primary" id="phx-new">+ Nouvelle routine</button></div>
+    ${phxRoutines.length ? phxRoutines.map((r) => {
+      const n = phxAssign.filter((a) => a.routine_id === r.id).length;
+      return `<div class="rg-card phx-rcard" data-id="${r.id}">
+        <div class="phx-rcard-h"><div><span class="phx-kind phx-k-${esc(r.kind)}">${esc(PHX_KIND_SHORT[r.kind] || "Programme")}</span> <b>${esc(r.title)}</b>
+          <div class="muted" style="font-size:.82rem;margin-top:2px">${(r.exercises || []).length} exercice${(r.exercises || []).length > 1 ? "s" : ""}${r.duration ? ` · ${esc(r.duration)}` : ""} · <b>${n}</b> jeune${n > 1 ? "s" : ""}</div></div>
+          <div class="phx-racts"><button type="button" class="ghost phx-assign-b">Attribuer…</button><button type="button" class="ghost phx-edit">Modifier</button><button type="button" class="ghost phx-dup">Dupliquer</button><button type="button" class="fam-del phx-del" title="Supprimer">✕</button></div></div>
+        ${phxRoutineHtml(r, false, "Voir le détail des exercices")}</div>`;
+    }).join("") : '<p class="muted">Aucune routine.</p>'}`;
+  $("phx-new").addEventListener("click", () => phxEditRoutine(null));
+  box.querySelectorAll(".phx-rcard").forEach((c) => {
+    const r = phxRoutines.find((x) => x.id === c.dataset.id);
+    c.querySelector(".phx-edit").addEventListener("click", () => phxEditRoutine(r));
+    c.querySelector(".phx-dup").addEventListener("click", () => phxEditRoutine({ ...r, id: null, title: `${r.title} (copie)` }));
+    c.querySelector(".phx-assign-b").addEventListener("click", () => phxAssignRoutine(r));
+    c.querySelector(".phx-del").addEventListener("click", async () => {
+      const n = phxAssign.filter((a) => a.routine_id === r.id).length;
+      if (!await uiConfirm(`Supprimer la routine « ${r.title} » ?${n ? ` Elle disparaîtra de Mon espace pour ${n} jeune${n > 1 ? "s" : ""}.` : ""}`)) return;
+      const { error } = await sb.from("phys_routines").delete().eq("id", r.id);
+      if (error) { uiAlert(error.message); return; }
+      phxRoutines = phxRoutines.filter((x) => x.id !== r.id); phxAssign = phxAssign.filter((a) => a.routine_id !== r.id);
+      phxRenderRoutines();
+    });
+  });
+}
+// Création / modification (ou copie : r sans id) d'une routine : titre, moment, durée, consigne, exercices.
+function phxEditRoutine(r) {
+  const ex = (r?.exercises || []).map((x) => ({ ...x }));
+  if (!ex.length) ex.push({ name: "", dose: "", how: "" });
+  const ov = document.createElement("div"); ov.className = "ui-modal";
+  const draw = () => {
+    ov.innerHTML = `<div class="ui-box phx-editor" style="max-width:640px;text-align:left">
+      <h3 style="margin:0 0 10px">${r?.id ? "Modifier la routine" : r ? "Copie de la routine" : "Nouvelle routine"}</h3>
+      <div class="phx-ed-grid">
+        <label>Titre<input type="text" id="phx-t" maxlength="120" /></label>
+        <label>Moment<select id="phx-k">${PHX_KINDS.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("")}</select></label>
+        <label>Durée<input type="text" id="phx-d" placeholder="ex. 10 min" maxlength="40" /></label>
+      </div>
+      <label class="phx-full">Consigne générale<textarea id="phx-i" rows="2" placeholder="Quand et comment faire la routine…"></textarea></label>
+      <div class="phx-h" style="margin:12px 0 6px">Exercices</div>
+      <div id="phx-exs">${ex.map((x, i) => `<div class="phx-exrow" data-i="${i}">
+        <span class="phx-exn">${i + 1}</span>
+        <div class="phx-exf"><input type="text" class="phx-en" placeholder="Exercice" value="${esc(x.name || "")}" /><input type="text" class="phx-ed" placeholder="Dosage (ex. 30 s par jambe)" value="${esc(x.dose || "")}" />
+          <textarea class="phx-eh" rows="2" placeholder="Comment le faire">${esc(x.how || "")}</textarea></div>
+        <div class="phx-exa"><button type="button" class="ghost phx-up" title="Monter">↑</button><button type="button" class="ghost phx-down" title="Descendre">↓</button><button type="button" class="fam-del phx-rm" title="Retirer">✕</button></div></div>`).join("")}</div>
+      <button type="button" class="ghost" id="phx-addex" style="margin-top:6px">+ Ajouter un exercice</button>
+      <div class="ui-actions"><button type="button" class="ghost ui-no">Annuler</button><button type="button" class="primary" id="phx-save">Enregistrer</button></div></div>`;
+    ov.querySelector("#phx-t").value = ov._t ?? (r?.title || ""); ov.querySelector("#phx-k").value = ov._k ?? (r?.kind || "autre"); ov.querySelector("#phx-d").value = ov._d ?? (r?.duration || ""); ov.querySelector("#phx-i").value = ov._i ?? (r?.intro || "");
+    const grab = () => {
+      ov._t = ov.querySelector("#phx-t").value; ov._k = ov.querySelector("#phx-k").value; ov._d = ov.querySelector("#phx-d").value; ov._i = ov.querySelector("#phx-i").value;
+      ov.querySelectorAll(".phx-exrow").forEach((row) => { const i = +row.dataset.i; ex[i] = { name: row.querySelector(".phx-en").value, dose: row.querySelector(".phx-ed").value, how: row.querySelector(".phx-eh").value }; });
+    };
+    ov.querySelector("#phx-addex").addEventListener("click", () => { grab(); ex.push({ name: "", dose: "", how: "" }); draw(); });
+    ov.querySelectorAll(".phx-exrow").forEach((row) => {
+      const i = +row.dataset.i;
+      row.querySelector(".phx-rm").addEventListener("click", () => { grab(); ex.splice(i, 1); if (!ex.length) ex.push({ name: "", dose: "", how: "" }); draw(); });
+      row.querySelector(".phx-up").addEventListener("click", () => { grab(); if (i > 0) [ex[i - 1], ex[i]] = [ex[i], ex[i - 1]]; draw(); });
+      row.querySelector(".phx-down").addEventListener("click", () => { grab(); if (i < ex.length - 1) [ex[i + 1], ex[i]] = [ex[i], ex[i + 1]]; draw(); });
+    });
+    ov.querySelector(".ui-no").addEventListener("click", () => ov.remove());
+    ov.querySelector("#phx-save").addEventListener("click", async () => {
+      grab();
+      const row = { title: ov._t.trim(), kind: ov._k, duration: ov._d.trim() || null, intro: ov._i.trim() || null,
+        exercises: ex.map((x) => ({ name: (x.name || "").trim(), dose: (x.dose || "").trim(), how: (x.how || "").trim() })).filter((x) => x.name), updated_at: new Date().toISOString() };
+      if (row.title.length < 2) { uiAlert("Donne un titre à la routine."); return; }
+      if (!row.exercises.length) { uiAlert("Ajoute au moins un exercice."); return; }
+      const { data, error } = r?.id
+        ? await sb.from("phys_routines").update(row).eq("id", r.id).select().single()
+        : await sb.from("phys_routines").insert({ ...row, created_by: meId }).select().single();
+      if (error) { uiAlert(error.message); return; }
+      phxRoutines = r?.id ? phxRoutines.map((x) => (x.id === r.id ? data : x)) : [...phxRoutines, data];
+      ov.remove(); phxRender();
+      if (!r?.id) phxAssignRoutine(data);   // nouvelle routine : on propose tout de suite de l'attribuer
+    });
+  };
+  draw(); document.body.appendChild(ov);
+}
+// Attribuer une routine jeune par jeune (cases groupées par filière, « tout cocher » par filière).
+function phxAssignRoutine(r) {
+  const ov = document.createElement("div"); ov.className = "ui-modal";
+  const has = new Set(phxAssign.filter((a) => a.routine_id === r.id).map((a) => a.person_id));
+  ov.innerHTML = `<div class="ui-box" style="max-width:560px;text-align:left">
+    <h3 style="margin:0 0 4px">Attribuer « ${esc(r.title)} »</h3>
+    <p class="muted" style="margin:0 0 10px;font-size:.85rem">Coche les jeunes qui verront cette routine dans Mon espace › Physique.</p>
+    <div class="pl-cp-list">${PHX_ROLES.map((f) => {
+      const ps = phxYouths.filter((y) => y.fil === f); if (!ps.length) return "";
+      return `<div class="pl-cp-grp"><label class="rg-check"><b><input type="checkbox" class="phx-all" data-f="${f}" /> ${esc(PHX_FIL[f])}</b></label>
+        ${ps.map((y) => `<label class="rg-check"><input type="checkbox" class="phx-y" data-f="${f}" value="${y.id}"${has.has(y.id) ? " checked" : ""} /> ${esc(y.first_name)} ${esc(y.last_name)}</label>`).join("")}</div>`;
+    }).join("")}</div>
+    <div class="ui-actions"><button type="button" class="ghost ui-no">Annuler</button><button type="button" class="primary" id="phx-as-go">Enregistrer</button></div></div>`;
+  ov.querySelectorAll(".phx-all").forEach((c) => c.addEventListener("change", () => ov.querySelectorAll(`.phx-y[data-f="${c.dataset.f}"]`).forEach((x) => (x.checked = c.checked))));
+  ov.querySelector(".ui-no").addEventListener("click", () => ov.remove());
+  ov.querySelector("#phx-as-go").addEventListener("click", async () => {
+    const want = new Set([...ov.querySelectorAll(".phx-y:checked")].map((x) => x.value));
+    const add = [...want].filter((id) => !has.has(id)), del = [...has].filter((id) => !want.has(id) && phxYouths.some((y) => y.id === id));
+    if (add.length) { const { error } = await sb.from("phys_routine_assign").insert(add.map((id) => ({ routine_id: r.id, person_id: id, assigned_by: meId }))); if (error) { uiAlert(error.message); return; } }
+    if (del.length) { const { error } = await sb.from("phys_routine_assign").delete().eq("routine_id", r.id).in("person_id", del); if (error) { uiAlert(error.message); return; } }
+    phxAssign = phxAssign.filter((a) => !(a.routine_id === r.id && del.includes(a.person_id))).concat(add.map((id) => ({ routine_id: r.id, person_id: id })));
+    ov.remove(); phxRender();
+  });
+  document.body.appendChild(ov);
+}
+// Fiche du jeune › onglet « Prépa physique » : le fil + la liste de ses routines.
+async function loadPersonPrepaPhys(personId, show) {
+  showPersonTab("prepaphys", show);
+  if (!personId || !show) { $("ppx-thread").innerHTML = ""; $("ppx-routines").innerHTML = ""; return; }
+  physThread("ppx-thread", personId);
+  const { data } = await sb.rpc("portal_phys_routines", { p_youth: personId });
+  const rows = data || [];
+  $("ppx-routines").innerHTML = rows.length ? rows.map((r) => phxRoutineHtml(r, false)).join("") : '<p class="obj-empty">Aucune routine attribuée (onglet Physique › Routines).</p>';
 }
 
 // ===================================================================

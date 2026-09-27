@@ -3866,3 +3866,63 @@ tr.enc-ok td{background:#f4fbf6}
 .pl-frise-big .pl-top.pl-off::after,.pl-mosaic .pl-top.pl-off::after{border-width:0 11px 11px 0}
 .pl-legend i.pl-off{position:relative;overflow:hidden}
 .pl-legend i.pl-off::after{border-width:0 7px 7px 0}
+/* Mon espace : bouton « Plus » et son menu (joueurs : trop d'onglets pour la barre) */
+.pt-nav-more{flex:1;background:transparent;color:var(--muted);border:none;border-radius:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 2px 8px;font-size:.7rem;font-weight:600;cursor:pointer}
+.pt-nav-more svg{width:23px;height:23px;fill:currentColor;stroke:none}
+.pt-nav-more.active,.pt-nav-more:hover{color:var(--blue);background:transparent}
+.pt-more-menu{position:fixed;right:max(10px,calc(50% - 310px));bottom:calc(70px + env(safe-area-inset-bottom));z-index:30;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(20,30,60,.18);padding:6px;min-width:200px}
+.pt-more-menu .pt-nav-item{flex-direction:row;justify-content:flex-start;gap:12px;width:100%;padding:11px 12px;font-size:.92rem;border-radius:10px}
+.pt-more-menu .pt-nav-item svg{width:21px;height:21px}
+.pt-more-menu .pt-nav-item:hover{background:#f3f6fc}
+/* Mon espace › Physique (db/111) */
+.ph-rt{background:#fff;border:1px solid var(--line);border-radius:16px;margin:0 0 12px;overflow:hidden}
+.ph-rt summary{list-style:none;cursor:pointer;padding:13px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.ph-rt summary::-webkit-details-marker{display:none}
+.ph-rt summary b{flex:1 1 100%;font-size:1rem;color:var(--ink)}
+.ph-kind{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px;background:#e8f0fe;color:#1b2f7a}
+.ph-k-echauffement .ph-kind{background:#fff0e0;color:#8a4b08}
+.ph-k-decrassage .ph-kind{background:#e3f4ea;color:#0b6b3a}
+.ph-k-soir .ph-kind{background:#efe8fb;color:#4b2a8a}
+.ph-dur{font-size:.8rem;color:var(--muted);margin-left:auto}
+.ph-intro{margin:0 14px 10px;font-size:.88rem;color:var(--muted);line-height:1.45}
+.ph-ex{margin:0;padding:0 14px 12px 34px}
+.ph-ex li{padding:8px 0;border-top:1px solid var(--line)}
+.ph-ex-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.ph-dose{font-size:.8rem;font-weight:700;color:var(--blue);white-space:nowrap}
+.ph-ex p{margin:3px 0 0;font-size:.86rem;line-height:1.4;color:#3b4560}
+.ph-media{display:block;max-width:100%;max-height:320px;border-radius:10px;margin-top:6px;background:#eef1f6}
+.ct-subject{font-size:.85rem;background:#f3f6fc;border-radius:10px;padding:8px 11px;margin:0 0 12px;color:#3b4560}
+/* Console › Physique (db/111) */
+.phx-row{cursor:pointer}
+.phx-chip,.phx-kind{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:#e8f0fe;color:#1b2f7a;white-space:nowrap}
+.phx-k-echauffement.phx-chip,.phx-k-echauffement .phx-kind,.phx-kind.phx-k-echauffement{background:#fff0e0;color:#8a4b08}
+.phx-k-decrassage.phx-chip,.phx-k-decrassage .phx-kind,.phx-kind.phx-k-decrassage{background:#e3f4ea;color:#0b6b3a}
+.phx-k-soir.phx-chip,.phx-k-soir .phx-kind,.phx-kind.phx-k-soir{background:#efe8fb;color:#4b2a8a}
+.phx-h{margin:0 0 8px;font-size:.95rem;color:var(--blue-ink,#0f1f6e)}
+.phx-assign{display:flex;flex-wrap:wrap;gap:4px 18px;margin:0 0 10px}
+.phx-rt{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:0 0 8px;background:#fff}
+.phx-rt summary{cursor:pointer}
+.phx-intro{font-size:.85rem;color:var(--muted);margin:8px 0}
+.phx-ex{margin:6px 0 4px;padding-left:22px;font-size:.88rem}
+.phx-ex li{margin:0 0 6px}
+.phx-dose{font-size:.78rem;font-weight:700;color:var(--blue)}
+.phx-rcard-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start;margin:0 0 8px}
+.phx-racts{display:flex;gap:6px;flex-wrap:wrap}
+.phx-rcard .phx-rt{border:0;padding:0;margin:0}
+.phx-ed-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) minmax(0,1fr);gap:8px}
+.phx-ed-grid input,.phx-ed-grid select,.phx-exf input,.phx-exf textarea,.phx-full textarea{width:100%;min-width:0;box-sizing:border-box}
+.phx-ed-grid label,.phx-full{display:flex;flex-direction:column;gap:3px;font-size:.82rem;font-weight:700}
+.phx-full{margin-top:8px}
+.phx-editor{max-height:88vh;overflow-y:auto}
+.phx-exrow{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 0;border-top:1px solid var(--line)}
+.phx-exn{font-weight:800;color:var(--blue);padding-top:8px}
+.phx-exf{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:6px;min-width:0}
+.phx-exf textarea{grid-column:1/-1}
+.phx-exa{display:flex;flex-direction:column;gap:4px}
+.phx-exa button{padding:3px 8px}
+@media (max-width:640px){.phx-ed-grid,.phx-exf{grid-template-columns:1fr}}
+/* Console › Accueil espace privé : qui voit le message */
+.news-who{margin-top:8px;font-size:.84rem}
+.news-who summary{cursor:pointer}
+.news-who-list{margin-top:6px;color:var(--muted);line-height:1.5}
+.news-who-n{font-size:.78rem;color:var(--muted);margin-left:4px}

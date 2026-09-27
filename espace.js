@@ -133,6 +133,8 @@ async function startApp() {
   $("pt-nav-matchs").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-comp").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-feuille").classList.toggle("hidden", PLAYERS.length === 0);
+  $("pt-nav-physique").classList.toggle("hidden", PLAYERS.length === 0);
+  arrangeNav();
   renderYouthSelector();
   bindNav();
   bindBot();
@@ -160,14 +162,29 @@ function renderYouthSelector() {
 
 /* ---------- Navigation (barre du bas) ---------- */
 let currentView = "accueil";
-const VIEW_TITLES = { accueil: "Accueil", cours: "Mes cours", matchs: "Ma saison", feuille: "Feuille de match", comp: "Mental", reserver: "Réserver", stages: "Stages", profil: "Profil" };
+const VIEW_TITLES = { accueil: "Accueil", cours: "Mes cours", matchs: "Ma saison", feuille: "Feuille de match", physique: "Physique", comp: "Mental", reserver: "Réserver", stages: "Stages", profil: "Profil", contact: "Contact" };
+// Joueurs (filières élite) : trop d'onglets pour la barre → Stages, Profil, Contact et Réserver passent dans « Plus ».
+const NAV_OVERFLOW = ["stages", "profil", "contact", "reserver"];
+function arrangeNav() {
+  const nav = document.querySelector(".pt-nav"), menu = $("pt-more-menu"), more = $("pt-nav-more");
+  const many = PLAYERS.length > 0;
+  for (const v of NAV_OVERFLOW) {
+    const b = document.querySelector(`.pt-nav-item[data-view="${v}"]`); if (!b) continue;
+    if (many) menu.appendChild(b); else nav.insertBefore(b, more);
+  }
+  more.classList.toggle("hidden", !many);
+}
 function bindNav() {
   document.querySelectorAll(".pt-nav-item").forEach((b) =>
     b.addEventListener("click", () => switchView(b.dataset.view)));
+  $("pt-nav-more").addEventListener("click", (e) => { e.stopPropagation(); $("pt-more-menu").classList.toggle("hidden"); });
+  document.addEventListener("click", (e) => { if (!e.target.closest("#pt-more-menu")) $("pt-more-menu").classList.add("hidden"); });
 }
 function switchView(v) {
   currentView = v;
+  $("pt-more-menu").classList.add("hidden");
   document.querySelectorAll(".pt-nav-item").forEach((b) => b.classList.toggle("active", b.dataset.view === v));
+  $("pt-nav-more").classList.toggle("active", !!$("pt-more-menu").querySelector(`[data-view="${v}"]`));
   document.querySelectorAll(".pt-view").forEach((s) => s.classList.add("hidden"));
   $("view-" + v).classList.remove("hidden");
   $("pt-view-title").textContent = VIEW_TITLES[v] || "";
@@ -179,10 +196,12 @@ function renderCurrentView() {
   else if (currentView === "cours") renderCours();
   else if (currentView === "matchs") renderMatchs();
   else if (currentView === "feuille") renderFeuille();
+  else if (currentView === "physique") renderPhysique();
   else if (currentView === "comp") renderComp();
   else if (currentView === "reserver") renderReserver();
   else if (currentView === "stages") renderStages();
   else if (currentView === "profil") renderProfil();
+  else if (currentView === "contact") renderContact();
 }
 
 /* ---------- Assistant Rebond (scripté, sans IA) ---------- */
@@ -1046,6 +1065,129 @@ function renderMfSheet() {
     const { error } = await sb.rpc("portal_mr_post", { p_youth: mfSel, p_id: r.id, p_data: data });
     if (error) { $("mf-status").textContent = "Erreur : " + error.message; e.currentTarget.disabled = false; return; }
     renderFeuille();
+  });
+}
+
+/* ---------- Onglet « Physique » (db/111) ----------
+   • Routine : les programmes que le staff m'a attribués (échauffement, décrassage, routine du soir…).
+   • Prépa physique : fil type chat avec le staff (texte, lien, photo, vidéo, document). */
+let phSel = null, phSub = "routine";
+const PH_KIND = { echauffement: "Avant l'effort", decrassage: "Après l'effort", soir: "Chaque soir", renfo: "Renforcement", autre: "Programme" };
+function renderPhysique() {
+  const host = $("view-physique");
+  if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>Réservé aux joueurs de compétition.</p></div>`; return; }
+  phSel = playerPick(phSel);
+  host.innerHTML = playerSelHtml(phSel) + `
+    <div class="comp-subtabs">
+      <button type="button" class="comp-subtab ${phSub === "routine" ? "on" : ""}" data-s="routine">Routine</button>
+      <button type="button" class="comp-subtab ${phSub === "prepa" ? "on" : ""}" data-s="prepa">Prépa physique</button>
+    </div>
+    <div id="ph-sub"></div>`;
+  host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { phSel = b.dataset.id; renderPhysique(); }));
+  host.querySelectorAll(".comp-subtab").forEach((b) => b.addEventListener("click", () => {
+    phSub = b.dataset.s;
+    host.querySelectorAll(".comp-subtab").forEach((x) => x.classList.toggle("on", x === b));
+    renderPhSub();
+  }));
+  renderPhSub();
+}
+function renderPhSub() { if (phSub === "prepa") renderPhThread(); else renderPhRoutines(); }
+async function renderPhRoutines() {
+  const host = $("ph-sub"); if (!host) return;
+  host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
+  const { data, error } = await sb.rpc("portal_phys_routines", { p_youth: phSel });
+  if ($("ph-sub") !== host) return;
+  const rows = error ? [] : (data || []);
+  if (!rows.length) { host.innerHTML = `<div class="pt-empty"><p>Pas encore de routine pour toi. Ton coach t'en attribuera bientôt.</p></div>`; return; }
+  host.innerHTML = rows.map((r, i) => `<details class="ph-rt ph-k-${escHtml(r.kind)}"${i === 0 ? " open" : ""}>
+      <summary><span class="ph-kind">${escHtml(PH_KIND[r.kind] || "Programme")}</span><b>${escHtml(r.title)}</b>${r.duration ? `<span class="ph-dur">⏱ ${escHtml(r.duration)}</span>` : ""}</summary>
+      ${r.intro ? `<p class="ph-intro">${escHtml(r.intro).replace(/\n/g, "<br/>")}</p>` : ""}
+      <ol class="ph-ex">${(r.exercises || []).map((x) => `<li><div class="ph-ex-top"><b>${escHtml(x.name || "")}</b>${x.dose ? `<span class="ph-dose">${escHtml(x.dose)}</span>` : ""}</div>${x.how ? `<p>${escHtml(x.how)}</p>` : ""}</li>`).join("")}</ol>
+    </details>`).join("");
+}
+// Fil « Prépa physique » : les photos et vidéos s'affichent directement (liens signés, bucket privé « physique »).
+const phIsImg = (n) => /\.(jpe?g|png|gif|webp|heic)$/i.test(n || "");
+const phIsVid = (n) => /\.(mp4|mov|m4v|webm)$/i.test(n || "");
+async function renderPhThread() {
+  const host = $("ph-sub"); if (!host) return;
+  host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
+  const { data } = await sb.rpc("phys_thread_list", { p_youth: phSel });
+  if ($("ph-sub") !== host) return;
+  const rows = data || [];
+  const msg = (m) => {
+    const side = m.author_is_staff ? "staff" : "youth";
+    const media = m.file_path ? (phIsImg(m.file_name) ? `<img class="ph-media" data-path="${escHtml(m.file_path)}" alt="">`
+      : phIsVid(m.file_name) ? `<video class="ph-media" data-path="${escHtml(m.file_path)}" controls playsinline preload="metadata"></video>`
+      : `<button type="button" class="mt-file-dl" data-path="${escHtml(m.file_path)}">📎 ${escHtml(m.file_name || "document")}</button>`) : "";
+    return `<div class="mt-msg ${side}"><div class="mt-meta"><b>${escHtml(m.author_name || "—")}</b> <span class="mt-role ${side}">${m.author_is_staff ? "Coach" : "Moi"}</span> <span class="muted">${frShort((m.created_at || "").slice(0, 10))}</span></div>${m.body ? `<div class="mt-text">${escHtml(m.body).replace(/\n/g, "<br/>")}</div>` : ""}${m.link_url ? `<a href="${escHtml(m.link_url)}" target="_blank" rel="noopener" class="mt-linkout">🔗 ${escHtml(m.link_url)}</a>` : ""}${media}</div>`;
+  };
+  host.innerHTML = `<div class="mt-thread ph-thread">${rows.length ? rows.map(msg).join("") : `<p class="muted" style="text-align:center;padding:12px">Aucun message pour l'instant. Tes coachs peuvent t'envoyer ici des exercices, des photos ou des vidéos, et tu peux leur répondre.</p>`}</div>
+    <div class="mt-composer">
+      <textarea class="mt-body" rows="2" placeholder="Écrire un message…"></textarea>
+      <div class="mt-crow"><label class="mt-file-lbl">📎 Photo, vidéo ou document<input type="file" class="mt-file" hidden></label><span class="mt-file-name muted"></span><span class="spacer"></span><button type="button" class="mt-send">Envoyer</button></div>
+      <span class="mt-status muted"></span>
+    </div>`;
+  const th = host.querySelector(".ph-thread"); th.scrollTop = th.scrollHeight;
+  host.querySelectorAll(".ph-media").forEach(async (el) => {
+    const { data: u } = await sb.storage.from("physique").createSignedUrl(el.dataset.path, 3600);
+    if (u?.signedUrl) el.src = u.signedUrl;
+  });
+  host.querySelectorAll(".mt-file-dl").forEach((b) => b.addEventListener("click", async () => {
+    const { data: u } = await sb.storage.from("physique").createSignedUrl(b.dataset.path, 300);
+    if (u?.signedUrl) window.open(u.signedUrl, "_blank"); else alert("Impossible d'ouvrir le fichier.");
+  }));
+  const fi = host.querySelector(".mt-file");
+  fi.addEventListener("change", () => { host.querySelector(".mt-file-name").textContent = fi.files[0]?.name || ""; });
+  host.querySelector(".mt-send").addEventListener("click", async (e) => {
+    const body = host.querySelector(".mt-body").value.trim(), f = fi.files[0], st = host.querySelector(".mt-status");
+    if (!body && !f) return;
+    if (f && f.size > 50 * 1024 * 1024) { st.textContent = "Fichier trop lourd (50 Mo au maximum)."; return; }
+    e.currentTarget.disabled = true; st.textContent = "Envoi…";
+    let fp = null, fn = null;
+    if (f) {
+      const path = `${phSel}/${crypto.randomUUID()}_${f.name.replace(/[^\w.\-]/g, "_")}`;
+      const up = await sb.storage.from("physique").upload(path, f, { contentType: f.type || undefined });
+      if (up.error) { st.textContent = "Échec du fichier : " + up.error.message; e.currentTarget.disabled = false; return; }
+      fp = path; fn = f.name;
+    }
+    const { error } = await sb.rpc("phys_thread_post", { p_youth: phSel, p_body: body || null, p_link: null, p_file_path: fp, p_file_name: fn });
+    if (error) { st.textContent = "Erreur : " + error.message; e.currentTarget.disabled = false; return; }
+    renderPhThread();
+  });
+}
+
+/* ---------- Onglet « Contact » (db/111) ----------
+   Écrit au secrétariat : le message arrive dans la Messagerie de la console (boîte info@teamlausanne.ch),
+   sujet « ESPACE PRIVÉ - Prénom Nom » du jeune concerné ; la réponse part vers l'adresse du compte. */
+let ctSel = null;
+async function renderContact() {
+  const host = $("view-contact");
+  const email = (await sb.auth.getUser()).data.user?.email || "";
+  if (!ctSel || !YOUTHS.some((y) => y.person_id === ctSel))
+    ctSel = (selYouth !== "all" && YOUTHS.some((y) => y.person_id === selYouth)) ? selYouth : (YOUTHS[0]?.person_id || null);
+  const who = () => { const y = YOUTHS.find((x) => x.person_id === ctSel); return y ? `${y.first_name} ${y.last_name || ""}`.trim() : ""; };
+  host.innerHTML = `<div class="mrp-card ct-card">
+      <h2 class="mrp-h">Écrire au secrétariat</h2>
+      <p class="muted" style="margin:0 0 12px;font-size:.88rem">Ton message arrive directement chez Team Lausanne (info@teamlausanne.ch). On te répond par e-mail${email ? ` à <b>${escHtml(email)}</b>` : ""}.</p>
+      ${YOUTHS.length > 1 ? `<label class="comp-f"><span>Concerne</span><select id="ct-youth">${YOUTHS.map((y) => `<option value="${y.person_id}"${y.person_id === ctSel ? " selected" : ""}>${escHtml(y.first_name)} ${escHtml(y.last_name || "")}</option>`).join("")}</select></label>` : ""}
+      <div class="ct-subject">Sujet : <b id="ct-subj"></b></div>
+      <label class="comp-f"><span>Message</span><textarea id="ct-msg" rows="6" maxlength="5000" placeholder="Ta question, une absence à signaler, un changement d'adresse…"></textarea></label>
+      <div class="comp-actions" style="padding-bottom:6px"><button type="button" id="ct-send">Envoyer</button><span id="ct-status" class="muted"></span></div>
+      <p class="muted" style="font-size:.8rem;margin:6px 0 0">Secrétariat : <a href="tel:+41216461350">${SECRETARIAT_TEL}</a> · du lundi au vendredi, 9h00–12h00 et 13h00–17h00.</p>
+    </div>`;
+  const subj = () => { $("ct-subj").textContent = `ESPACE PRIVÉ - ${who() || "…"}`; };
+  subj();
+  $("ct-youth")?.addEventListener("change", () => { ctSel = $("ct-youth").value; subj(); });
+  $("ct-send").addEventListener("click", async (e) => {
+    const msg = $("ct-msg").value.trim(), st = $("ct-status");
+    if (msg.length < 2) { st.textContent = "Écris ton message."; return; }
+    e.currentTarget.disabled = true; st.textContent = "Envoi…";
+    const { error } = await sb.rpc("portal_contact", { p_youth: ctSel, p_message: msg });
+    if (error) { st.textContent = "Erreur : " + error.message; e.currentTarget.disabled = false; return; }
+    host.querySelector(".ct-card").innerHTML = `<h2 class="mrp-h">Merci !</h2>
+      <p style="margin:0 0 10px">Ton message est bien parti au secrétariat. On te répond dès que possible${email ? `, par e-mail à <b>${escHtml(email)}</b>` : ""}.</p>
+      <button type="button" id="ct-again" class="ghost">Écrire un autre message</button>`;
+    $("ct-again").addEventListener("click", renderContact);
   });
 }
 
