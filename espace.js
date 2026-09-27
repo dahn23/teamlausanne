@@ -256,7 +256,7 @@ async function qrCours() {
   botQuick([{ label: "Ouvrir mes cours", run: () => { closeBot(); switchView("cours"); } }, menuBtn]);
 }
 function qrAnnonce() {
-  botBubble("Dans l'onglet <b>Cours</b>, tant que le cours n'a pas commencé, tu peux cliquer <b>Présent</b>, <b>En retard</b> ou <b>Absent</b>. Après le début, c'est la présence notée par ton coach qui s'affiche.");
+  botBubble("Dans l'onglet <b>Cours</b>, tant que le cours n'a pas commencé, tu es présent par défaut. Si tu es empêché, touche <b>En retard</b> ou <b>Absent</b> et laisse un petit message à ton coach si tu veux ; touche à nouveau le bouton pour annuler. Après le début, c'est la présence notée par ton coach qui s'affiche.");
   botQuick([{ label: "Ouvrir mes cours", run: () => { closeBot(); switchView("cours"); } }, menuBtn]);
 }
 function qrReserver() {
@@ -367,20 +367,29 @@ const ST = {
 const showYouthName = () => YOUTHS.length > 1;
 const youthChip = (first) => showYouthName() ? `<div class="pt-course-youth">${escHtml(first || "")}</div>` : "";
 
+// Annonces du jeune avant le cours (db/108) : il est présent par défaut ; il peut s'annoncer en retard ou absent,
+// avec un message facultatif que les coachs voient dans la console. Recliquer sur l'annonce choisie l'annule.
+const NT = {
+  retard: { lbl: "En retard", cls: "late" },
+  absent: { lbl: "Absent", cls: "no" },
+};
 function courseCard(c, now) {
   const start = new Date(`${c.course_date}T${c.start_time}:00`);
   const before = now < start;
   let control;
   if (before) {
-    const btn = (s) => `<button class="pt-decl ${c.self_status === s ? "sel " + ST[s].cls : ""}"
-        data-course="${c.course_id}" data-youth="${c.youth_id}" data-status="${s}">${ST[s].lbl}</button>`;
+    const btn = (k) => `<button class="pt-decl ${c.notice_kind === k ? "sel " + NT[k].cls : ""}"
+        data-course="${c.course_id}" data-youth="${c.youth_id}" data-status="${k}">${NT[k].lbl}</button>`;
     control = `<div class="pt-decl-row">
-        <span class="pt-decl-hint">Je m'annonce :</span>
-        ${btn("present")}${btn("late")}${btn("absent")}
-      </div>`;
+        <span class="pt-decl-hint">${c.notice_kind ? "Annoncé :" : "Empêché ?"}</span>
+        ${btn("retard")}${btn("absent")}
+      </div>
+      ${c.notice_kind ? `<div class="pt-decl-note">${c.notice_note ? `Ton message : « ${escHtml(c.notice_note)} » · ` : ""}Touche à nouveau le bouton pour annuler.</div>` : ""}`;
   } else if (c.coach_status) {
     const s = ST[c.coach_status];
     control = `<div class="pt-mark ${s.cls}">Marqué par le coach : <b>${s.lbl}</b></div>`;
+  } else if (c.notice_kind) {
+    control = `<div class="pt-mark ${NT[c.notice_kind].cls}">Annoncé : <b>${NT[c.notice_kind].lbl}</b></div>`;
   } else {
     control = `<div class="pt-mark wait">Présence pas encore saisie</div>`;
   }
@@ -417,12 +426,37 @@ function etudesCard(e) {
   </div>`;
 }
 
-async function declare(courseId, youthId, status) {
-  const { error } = await sb.rpc("portal_set_self_report", { p_course_id: courseId, p_youth_id: youthId, p_status: status });
-  if (error) { alert("Impossible d'enregistrer : " + (error.message || "")); return; }
-  const c = coursesCache.find((x) => x.course_id === courseId && x.youth_id === youthId);
-  if (c) c.self_status = status;
+async function saveNotice(c, kind, note) {
+  const { error } = await sb.rpc("portal_set_notice", { p_course_id: c.course_id, p_youth_id: c.youth_id, p_kind: kind, p_note: note });
+  if (error) { alert("Impossible d'enregistrer : " + (error.message || "")); return false; }
+  c.notice_kind = kind; c.notice_note = kind ? (note || "").trim().slice(0, 500) || null : null;
   drawCoursList();
+  return true;
+}
+// Clic sur « En retard » / « Absent » : la même annonce déjà posée → on l'annule ; sinon fenêtre avec message facultatif.
+function declare(courseId, youthId, kind) {
+  const c = coursesCache.find((x) => x.course_id === courseId && x.youth_id === youthId);
+  if (!c) return;
+  if (c.notice_kind === kind) { saveNotice(c, null, null); return; }
+  const who = showYouthName() ? ` (${escHtml(c.youth_first || "")})` : "";
+  const ov = document.createElement("div"); ov.className = "ui-modal";
+  ov.innerHTML = `<div class="ui-box pt-notice-box">
+    <h3 style="margin:0 0 4px">${kind === "absent" ? "Annoncer une absence" : "Annoncer un retard"}${who}</h3>
+    <p class="muted" style="margin:0 0 10px;font-size:.86rem">${escHtml(c.title || "Cours")} · ${frShort(c.course_date)} à ${c.start_time}</p>
+    <label class="pt-notice-lbl" for="pt-notice-txt">Message pour le coach <span class="muted">(facultatif)</span></label>
+    <textarea id="pt-notice-txt" rows="3" maxlength="500" placeholder="${kind === "absent" ? "ex. malade, rendez-vous chez le médecin" : "ex. j'arrive vers 17h15, fin de l'école"}"></textarea>
+    <div class="ui-actions"><button type="button" class="ghost pt-notice-no">Annuler</button><button type="button" class="primary pt-notice-ok">${kind === "absent" ? "Je serai absent·e" : "Je serai en retard"}</button></div>
+  </div>`;
+  const close = () => ov.remove();
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  ov.querySelector(".pt-notice-no").addEventListener("click", close);
+  ov.querySelector(".pt-notice-ok").addEventListener("click", async (e) => {
+    e.currentTarget.disabled = true;
+    if (await saveNotice(c, kind, ov.querySelector("#pt-notice-txt").value)) close();
+    else e.currentTarget.disabled = false;
+  });
+  document.body.appendChild(ov);
+  ov.querySelector("#pt-notice-txt").focus();
 }
 
 /* ============================================================

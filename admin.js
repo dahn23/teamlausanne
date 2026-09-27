@@ -4173,7 +4173,7 @@ const ANN_LBL = { absent: "Absent", retard: "En retard" };
 function annBadge(cid, pid) {
   const n = csAnnonce(cid, pid);
   if (!n) return "";
-  const t = `Annoncé ${n.kind === "absent" ? "absent" : "en retard"}${n.note ? " — " + n.note : ""}`;
+  const t = `Annoncé ${n.kind === "absent" ? "absent" : "en retard"}${n.via === "portail" ? " (par le jeune ou ses parents, Mon espace)" : ""}${n.note ? " — " + n.note : ""}`;
   return `<span class="ann-badge ann-${esc(n.kind)}" title="${esc(t)}">${n.kind === "absent" ? "A" : "R"}</span>`;
 }
 
@@ -4225,6 +4225,9 @@ async function annSupprimer() {
 // ni du rendu, ni de l ordre, ni de l existence de la fenetre au moment ou la
 // liste s affiche.
 document.addEventListener("click", (e) => {
+  // Pastille A / R : son message s'affiche aussi au toucher (le survol n'existe pas sur téléphone).
+  const badge = e.target.closest(".ann-badge");
+  if (badge) { e.stopPropagation(); return uiAlert(badge.title); }
   const crayon = e.target.closest(".att-ann");
   if (crayon) {
     e.stopPropagation();

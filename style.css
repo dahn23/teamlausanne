@@ -3444,7 +3444,7 @@ button.gz-lb-count{width:auto;height:auto;border-radius:999px;font-family:inheri
    présence — les deux coexistent sur la même ligne. */
 .ann-badge{display:inline-flex;align-items:center;justify-content:center;
   width:17px;height:17px;border-radius:50%;font-size:.62rem;font-weight:800;
-  margin-left:3px;flex:0 0 auto;cursor:help;border:1px solid rgba(0,0,0,.08)}
+  margin-left:3px;flex:0 0 auto;cursor:pointer;border:1px solid rgba(0,0,0,.08)}
 .ann-absent{background:#f6ddda;color:#8d2f22}
 .ann-retard{background:#fbeccd;color:#8a5a12}
 .att-ann{background:transparent;border:0;padding:0 3px;cursor:pointer;
@@ -3823,3 +3823,8 @@ tr.enc-ok td{background:#f4fbf6}
 .ps-todo{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .ps-todo-b{background:#fff8ee;border:1px solid #ef9f27;color:#633806;border-radius:999px;padding:5px 12px;font-size:.8rem;font-weight:700;cursor:pointer}
 .ps-todo-b:hover{background:#fdebd0}
+/* Mon espace › Cours : annonce retard / absence (db/108) */
+.pt-decl-note{font-size:.78rem;color:var(--muted);margin-top:6px;line-height:1.35}
+.pt-notice-box{max-width:440px;text-align:left}
+.pt-notice-lbl{display:block;font-size:.82rem;font-weight:700;margin:0 0 4px}
+.pt-notice-box textarea{width:100%;box-sizing:border-box;font:inherit;font-size:.95rem;padding:10px 12px;border:1px solid var(--line);border-radius:12px;resize:vertical}
