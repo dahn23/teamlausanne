@@ -3488,7 +3488,7 @@ function dashGroup(titre, g) {
         `${dFD(s.date)} · vs ${esc(s.opponent || "—")} ${esc(s.score || "")} · ${esc(s.role)}`,
         s.result === "gagne" ? dChip("Gagné", "ok") : s.result === "perdu" ? dChip("Perdu", "bad") : ""),
         "Aucune feuille de match.")],
-    ["Par coach", y.length, liste(y, (x) => dKv(x.name, `<b>${x.coach_forms || 0}</b>`), "—")],
+    ["Par joueur", y.length, liste(y, (x) => dKv(x.name, `<b>${x.coach_forms || 0}</b>`), "—")],
   ]), { n: y.length, sous: "Absences et retards sur 10 jours ; matchs sur 14 jours." });
 }
 
