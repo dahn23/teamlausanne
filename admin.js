@@ -1711,7 +1711,7 @@ function setPersonTab(tab) {
   document.querySelectorAll("#person-form .ptab-panel").forEach((p) =>
     p.classList.toggle("hidden", p.id !== `ptab-${tab}`));
 }
-let personGzOnly = false;   // fiche « externe seulement » : joueur GameZone et/ou inscrit à un stage, sans autre rôle
+let personGzOnly = false, personHasMedia = false;   // fiche « externe seulement » : joueur GameZone et/ou inscrit à un stage, sans autre rôle
 const EXTERNAL_TAGS = ["gamezone", "stage"];
 const GZ_ONLY_TABS = ["info", "gamezone", "stages"];
 function showPersonTab(tab, show) {
@@ -1724,7 +1724,8 @@ function showPersonTab(tab, show) {
 // avec une marque pour les ré-afficher à l'ouverture de la fiche suivante.
 function applyGzOnlyTabs() {
   document.querySelectorAll("#p-tabs .ptab").forEach((b) => {
-    if (personGzOnly && !GZ_ONLY_TABS.includes(b.dataset.ptab)) {
+    // Fiche GameZone seulement : l'onglet Photos / vidéos reste visible s'il contient une photo (vainqueur, db/114).
+    if (personGzOnly && !GZ_ONLY_TABS.includes(b.dataset.ptab) && !(b.dataset.ptab === "media" && personHasMedia)) {
       if (!b.classList.contains("hidden")) { b.classList.add("hidden"); b.setAttribute("data-gzhid", "1"); }
     } else if (b.hasAttribute("data-gzhid")) { b.classList.remove("hidden"); b.removeAttribute("data-gzhid"); }
   });
@@ -1739,7 +1740,13 @@ async function loadPersonGz(pid) {
   const rows = Array.isArray(data) ? data : [];
   showPersonTab("gamezone", rows.length > 0);
   if (!rows.length) return;
-  const played = rows.filter((r) => !r.absent), wins = rows.filter((r) => r.winner);
+  // Résultat (décision Dan 28.09.2026) : « inscrit » tant que le tournoi n'est pas joué ; ensuite « vainqueur »,
+  // « joué » s'il a été retenu (confirmed), « absent » s'il était retenu mais pas venu, sinon « non retenu ».
+  const played = rows.filter((r) => r.played && (r.winner || (r.confirmed && !r.absent))), wins = rows.filter((r) => r.winner);
+  const result = (r) => r.winner ? `${ICO_CUP} <b>Vainqueur</b>`
+    : !r.played ? '<span class="pgz-st pgz-inscrit">inscrit</span>'
+    : r.absent ? '<span class="muted">absent</span>'
+    : r.confirmed ? "joué" : '<span class="muted">non retenu</span>';
   const bySeason = {};
   for (const r of rows) (bySeason[r.season || "—"] = bySeason[r.season || "—"] || []).push(r);
   $("pgz-summary").innerHTML = `${rows.length} inscription(s) · ${played.length} tournoi(s) joué(s) · <b>${wins.length} victoire(s)</b>`
@@ -1750,7 +1757,7 @@ async function loadPersonGz(pid) {
       <table class="crm-table"><thead><tr><th>Date</th><th>Tournoi</th><th>Épreuve</th><th>Résultat</th></tr></thead><tbody>`
       + list.map((r) => `<tr><td>${frDate(r.date)}</td><td>${esc(r.name || "Tournoi")}${r.gamezone ? "" : ' <span class="muted" style="font-size:.75rem">(Team Lausanne)</span>'}</td>
           <td>${esc(r.epreuves || "—")}</td>
-          <td>${r.winner ? `${ICO_CUP} <b>Vainqueur</b>` : r.absent ? '<span class="muted">absent</span>' : "joué"}</td></tr>`).join("")
+          <td>${result(r)}</td></tr>`).join("")
       + "</tbody></table>";
   }).join("");
 }
@@ -3492,10 +3499,13 @@ async function loadMedia(personId) {
   $("media-btn").disabled = !has;
   $("media-need-save").hidden = has;
   $("media-status").textContent = "";
+  personHasMedia = false;
   if (!has) { grid.innerHTML = ""; return; }
   const { data, error } = await sb.from("person_media")
     .select("*").eq("person_id", personId).order("created_at", { ascending: false });
   if (error) { grid.innerHTML = `<p class="obj-empty">Erreur : ${esc(error.message)}</p>`; return; }
+  if ($("p-id").value !== personId) return;   // une autre fiche a été ouverte entre-temps
+  personHasMedia = data.length > 0; applyGzOnlyTabs();
   if (!data.length) { grid.innerHTML = `<p class="obj-empty">Aucune photo ni vidéo.</p>`; return; }
   grid.innerHTML = data.map((m) => {
     const media = m.kind === "video"

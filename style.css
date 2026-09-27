@@ -3933,3 +3933,5 @@ tr.enc-ok td{background:#f4fbf6}
 .news-who summary{cursor:pointer}
 .news-who-list{margin-top:6px;color:var(--muted);line-height:1.5}
 .news-who-n{font-size:.78rem;color:var(--muted);margin-left:4px}
+/* Fiche › GameZone : tournoi pas encore joué */
+.pgz-inscrit{display:inline-block;font-size:.78rem;font-weight:700;color:#1b2f7a;background:#e8f0fe;border-radius:999px;padding:2px 9px}
