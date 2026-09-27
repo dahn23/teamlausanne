@@ -132,6 +132,7 @@ async function startApp() {
   PLAYERS = pl || [];
   $("pt-nav-matchs").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-comp").classList.toggle("hidden", PLAYERS.length === 0);
+  $("pt-nav-feuille").classList.toggle("hidden", PLAYERS.length === 0);
   renderYouthSelector();
   bindNav();
   bindBot();
@@ -159,7 +160,7 @@ function renderYouthSelector() {
 
 /* ---------- Navigation (barre du bas) ---------- */
 let currentView = "accueil";
-const VIEW_TITLES = { accueil: "Accueil", cours: "Mes cours", matchs: "Ma saison & matchs", comp: "Mental", reserver: "Réserver", stages: "Stages", profil: "Profil" };
+const VIEW_TITLES = { accueil: "Accueil", cours: "Mes cours", matchs: "Ma saison", feuille: "Feuille de match", comp: "Mental", reserver: "Réserver", stages: "Stages", profil: "Profil" };
 function bindNav() {
   document.querySelectorAll(".pt-nav-item").forEach((b) =>
     b.addEventListener("click", () => switchView(b.dataset.view)));
@@ -177,6 +178,7 @@ function renderCurrentView() {
   if (currentView === "accueil") renderAccueil();
   else if (currentView === "cours") renderCours();
   else if (currentView === "matchs") renderMatchs();
+  else if (currentView === "feuille") renderFeuille();
   else if (currentView === "comp") renderComp();
   else if (currentView === "reserver") renderReserver();
   else if (currentView === "stages") renderStages();
@@ -704,6 +706,9 @@ const MRP_RATINGS = [
   ["r_objectives", "Tenir les objectifs"], ["r_combative", "Combatif"],
 ];
 const MR_KEYS = ["strategy_pre", "opp_sw", "opp_style", "how_won", "how_lost", "did_well", "to_improve", "three_positives"];
+// Feuille du jeune en deux temps (db/109) : textes AVANT le match, puis APRÈS.
+const MR_PRE_KEYS = ["strategy_pre", "opp_sw", "opp_style"];
+const MR_POST_KEYS = ["how_won", "how_lost", "did_well", "to_improve", "three_positives"];
 function mrpLabels(role, gender) {
   const il = gender === "F" ? "elle" : "il";
   const base = {
@@ -711,53 +716,49 @@ function mrpLabels(role, gender) {
     opp_style: "Style de jeu de l'adversaire", three_positives: "3 choses positives de ce match",
   };
   if (role === "joueur") return {
-    ...base, how_won: "Comment j'ai gagné la majorité des points", how_lost: "Comment j'ai perdu la majorité des points",
-    did_well: "Ce que j'ai bien réussi à faire", to_improve: "Ce que je dois améliorer",
+    ...base, strategy_pre: "Ma stratégie pour ce match",
+    how_won: "Comment j'ai gagné la majorité des points", how_lost: "Comment j'ai perdu la majorité des points",
+    did_well: "Ce que j'ai bien réussi à faire, ce dont je suis satisfait·e", to_improve: "Ce que je dois améliorer, ce qui pourrait être mieux",
   };
   return {
     ...base, how_won: `Comment ${il} a gagné la majorité des points`, how_lost: `Comment ${il} a perdu la majorité des points`,
     did_well: `Ce qu'${il} a bien réussi à faire`, to_improve: `Ce qu'${il} doit améliorer`,
   };
 }
+// Questions de préparation / d'analyse mentale (ex-formulaire « Compétition » du Mental), ramenées au match.
+const MF_PREP = [
+  ["horaires", "Horaires et routines de préparation", "Réveil, repas, échauffement, trajet…"],
+  ["specifique", "Qu'est-ce qui est spécifique à ce match ou à ce tournoi ? Qu'est-ce qui peut être différent ?", "L'horaire, l'entourage, le bruit, l'enchaînement des matchs…"],
+  ["represente", "Qu'est-ce que ce match représente pour moi ?", ""],
+  ["objectifs", "Quels sont mes objectifs ?", ""],
+  ["tester", "Qu'est-ce que je vais tester de nouveau ?", "Un autre échauffement, un mindset… ou rien"],
+  ["sentir", "Comment je veux me sentir pendant le match ?", "Confiant·e, puissant·e…"],
+];
+const MF_ANALYSE = [
+  ["highlight", "Mon highlight du match", ""],
+  ["avant", "Comment je me suis senti·e AVANT le match ?", ""],
+  ["pendant", "Comment je me suis senti·e PENDANT le match ?", ""],
+  ["apres", "Comment je me suis senti·e APRÈS le match ?", ""],
+  ["different", "Qu'est-ce qui était différent de ce que j'avais pensé ?", ""],
+  ["retour_coach", "Quel est le retour de mon entraîneur ?", ""],
+  ["appris", "Qu'est-ce que j'ai appris pendant ce match ?", ""],
+];
 
+// Sélecteur de joueur (parent avec plusieurs enfants joueurs) + choix par défaut.
+const playerPick = (cur) => (cur && PLAYERS.some((p) => p.person_id === cur)) ? cur
+  : (selYouth !== "all" && PLAYERS.some((p) => p.person_id === selYouth)) ? selYouth : PLAYERS[0].person_id;
+const playerSelHtml = (cur) => PLAYERS.length > 1
+  ? `<div class="mrp-players">${PLAYERS.map((p) => `<button class="mrp-player ${p.person_id === cur ? "sel" : ""}" data-id="${p.person_id}">${escHtml(p.first_name)}</button>`).join("")}</div>` : "";
+
+// ---------- Onglet « Saison » : la frise de saison seule (la feuille de match a son propre onglet) ----------
 let mrpSel = null;
 function renderMatchs() {
   const host = $("view-matchs");
-  if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>La feuille de match est réservée aux joueurs de compétition.</p></div>`; return; }
-  if (!mrpSel || !PLAYERS.some((p) => p.person_id === mrpSel))
-    mrpSel = (selYouth !== "all" && PLAYERS.some((p) => p.person_id === selYouth)) ? selYouth : PLAYERS[0].person_id;
+  if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>La saison est réservée aux joueurs de compétition.</p></div>`; return; }
+  mrpSel = playerPick(mrpSel);
   const player = PLAYERS.find((p) => p.person_id === mrpSel);
-  const fem = player.gender === "F";
-  const selHtml = PLAYERS.length > 1
-    ? `<div class="mrp-players">${PLAYERS.map((p) => `<button class="mrp-player ${p.person_id === mrpSel ? "sel" : ""}" data-id="${p.person_id}">${escHtml(p.first_name)}</button>`).join("")}</div>` : "";
-  const rankOpts = MRP_RANKINGS.map((r) => `<option value="${r}">${r === "autre" ? "Autre" : r.toUpperCase()}</option>`).join("");
-  const L = mrpLabels("joueur", player.gender);
-  host.innerHTML = `
-    ${selHtml}
-    <div id="mrp-season"></div>
-    <div class="mrp-card">
-      <h2 class="mrp-h">Remplir en tant que ${fem ? "joueuse" : "joueur"}</h2>
-      <div class="mrp-grid">
-        <label>Date du match<input type="date" id="mrp-date"></label>
-        <label>Adversaire<input type="text" id="mrp-opponent"></label>
-        <label>Classement adversaire<select id="mrp-rank"><option value="">—</option>${rankOpts}</select></label>
-        <label>Résultat<select id="mrp-result"><option value="gagne">Gagné</option><option value="perdu">Perdu</option></select></label>
-        <label>Score<input type="text" id="mrp-score" placeholder="ex. 6-3 6-4"></label>
-      </div>
-      <div class="mrp-texts">${MR_KEYS.map((k) => `<label>${escHtml(L[k])}<textarea id="mrp-${k}" rows="2"></textarea></label>`).join("")}</div>
-      <div class="mrp-ratings">${MRP_RATINGS.map(([k, l]) => `<div class="mrp-rate"><span>${escHtml(l)}</span><div class="mrp-stars" data-k="${k}">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="mrp-star" data-v="${n}">${n}</button>`).join("")}</div></div>`).join("")}</div>
-      <label class="mrp-comment">Commentaire<textarea id="mrp-comment" rows="2"></textarea></label>
-      <div class="mrp-actions"><button type="button" id="mrp-save">Enregistrer ma feuille</button><span id="mrp-status" class="muted"></span></div>
-    </div>
-    <div id="mrp-hist"><p class="muted" style="text-align:center;padding:12px">Chargement…</p></div>`;
-  $("mrp-date").value = isoLocal(new Date());
+  host.innerHTML = `${playerSelHtml(mrpSel)}<div id="mrp-season"><p class="muted" style="text-align:center;padding:12px">Chargement…</p></div>`;
   host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { mrpSel = b.dataset.id; renderMatchs(); }));
-  host.querySelectorAll(".mrp-stars").forEach((box) => box.querySelectorAll(".mrp-star").forEach((b) => b.addEventListener("click", () => {
-    box.dataset.val = b.dataset.v;
-    box.querySelectorAll(".mrp-star").forEach((x) => x.classList.toggle("on", Number(x.dataset.v) <= Number(b.dataset.v)));
-  })));
-  $("mrp-save").addEventListener("click", () => saveMatchReportPortal(player));
-  loadPortalMatchHist(player);
   renderPortalSeason(player);
 }
 
@@ -866,29 +867,31 @@ async function renderPortalSeason(player) {
   });
 }
 
-async function saveMatchReportPortal(player) {
-  const rating = (k) => { const el = document.querySelector(`.mrp-stars[data-k="${k}"]`); return el && el.dataset.val ? Number(el.dataset.val) : null; };
-  const payload = {
-    match_date: $("mrp-date").value || null, opponent: $("mrp-opponent").value.trim(),
-    opponent_ranking: $("mrp-rank").value, result: $("mrp-result").value,
-    score: $("mrp-score").value.trim(), comment: $("mrp-comment").value.trim(),
-  };
-  for (const k of MR_KEYS) payload[k] = $("mrp-" + k).value.trim();
-  for (const [k] of MRP_RATINGS) payload[k] = rating(k);
-  $("mrp-status").textContent = "Enregistrement…";
-  const { error } = await sb.rpc("portal_save_match_report", { p_youth: player.person_id, p_data: payload });
-  if (error) { $("mrp-status").textContent = "Erreur : " + error.message; return; }
-  renderMatchs();
+/* ---------- Onglet « Feuille de match » (db/109) ----------
+   Deux temps : 1) AVANT le match (infos, stratégie, préparation mentale) → « Valider l'avant-match » : figé ;
+   2) APRÈS le match (résultat, analyse, ressentis, auto-évaluation) → « Envoyer la feuille » : figé pour de bon.
+   Une feuille envoyée se relit mais ne se modifie plus : pour un changement important, le secrétariat. */
+let mfSel = null, mfOpen = null, mfRows = [];
+const mfState = (r) => r.author_role !== "joueur" ? "coach" : r.sent_at || !r.pre_sent_at ? "sent" : "pre";
+const mfDate = (iso) => iso ? frShort(String(iso).slice(0, 10)) : "";
+async function renderFeuille() {
+  const host = $("view-feuille");
+  if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>La feuille de match est réservée aux joueurs de compétition.</p></div>`; return; }
+  mfSel = playerPick(mfSel);
+  host.innerHTML = `${playerSelHtml(mfSel)}<div id="mf-body"><p class="muted" style="text-align:center;padding:12px">Chargement…</p></div>`;
+  host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { mfSel = b.dataset.id; mfOpen = null; renderFeuille(); }));
+  const { data } = await sb.rpc("portal_match_reports", { p_youth: mfSel });
+  mfRows = data || [];
+  if (mfOpen && mfOpen !== "new" && !mfRows.some((r) => r.id === mfOpen)) mfOpen = null;
+  if (mfOpen) renderMfSheet(); else renderMfList();
 }
-
-async function loadPortalMatchHist(player) {
-  const host = $("mrp-hist"); if (!host) return;
-  const { data } = await sb.rpc("portal_match_reports", { p_youth: player.person_id });
-  const rows = data || [];
-  const wins = rows.filter((r) => r.result === "gagne").length, losses = rows.filter((r) => r.result === "perdu").length;
-  const cR = rows.filter((r) => r.author_role === "coach"), jR = rows.filter((r) => r.author_role === "joueur");
+function renderMfList() {
+  const body = $("mf-body"); if (!body) return;
+  const todo = mfRows.filter((r) => mfState(r) === "pre");
+  const done = mfRows.filter((r) => mfState(r) !== "pre");
+  const wins = done.filter((r) => r.result === "gagne").length, losses = done.filter((r) => r.result === "perdu").length;
+  const cR = done.filter((r) => r.author_role === "coach"), jR = done.filter((r) => r.author_role === "joueur");
   const avg = (list, k) => { const v = list.map((r) => r[k]).filter((x) => x != null); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length * 10) / 10 : null; };
-  const hasComp = cR.length && jR.length;
   const bar = (v, cls) => `<div class="mrp-bar"><div class="mrp-bar-fill ${cls}" style="width:${(v || 0) / 5 * 100}%"></div></div>`;
   const comp = MRP_RATINGS.map(([k, l]) => {
     const c = avg(cR, k), j = avg(jR, k);
@@ -896,80 +899,161 @@ async function loadPortalMatchHist(player) {
       <div class="mrp-comp-line"><span class="mrp-tag coach">Coach ${c ?? "—"}</span>${bar(c, "coach")}</div>
       <div class="mrp-comp-line"><span class="mrp-tag joueur">Moi ${j ?? "—"}</span>${bar(j, "joueur")}</div></div>`;
   }).join("");
-  host.innerHTML = `
-    <div class="mrp-stats"><div class="mrp-stat ok"><b>${wins}</b><span>gagnés</span></div><div class="mrp-stat no"><b>${losses}</b><span>perdus</span></div><div class="mrp-stat"><b>${rows.length}</b><span>feuilles</span></div></div>
-    ${hasComp ? `<h3 class="mrp-h2">Ma vision vs celle du coach</h3><div class="mrp-comp-wrap">${comp}</div>` : ""}
-    <h3 class="mrp-h2">Feuilles</h3>
-    ${rows.length ? rows.map((r) => mrpReportCard(r, player)).join("") : `<p class="muted" style="padding:4px 2px">Aucune feuille pour l'instant.</p>`}`;
+  const card = (r) => {
+    const st = mfState(r);
+    const res = r.result ? `<span class="${r.result === "gagne" ? "mrp-win" : "mrp-loss"}">${r.result === "gagne" ? "Gagné" : "Perdu"} ${escHtml(r.score || "")}</span>` : "";
+    return `<button type="button" class="mf-card${st === "pre" ? " mf-card-todo" : ""}" data-id="${r.id}">
+      <div class="mf-card-top"><span class="mrp-badge ${r.author_role}">${r.author_role === "coach" ? "Coach" : "Moi"}</span>
+        <b>${escHtml(r.competition || (r.opponent ? "vs " + r.opponent : "Match"))}</b><span class="muted">${mfDate(r.match_date)}</span></div>
+      <div class="mf-card-sub">${r.competition && r.opponent ? `vs ${escHtml(r.opponent)}${r.opponent_ranking ? ` (${escHtml(r.opponent_ranking.toUpperCase())})` : ""} · ` : ""}${st === "pre" ? '<span class="mf-todo-lbl">Après-match à remplir →</span>' : res}</div>
+    </button>`;
+  };
+  body.innerHTML = `
+    <button type="button" id="mf-new" class="comp-new">+ Nouvelle feuille de match</button>
+    <p class="muted" style="font-size:.82rem;margin:6px 2px 12px">Remplis l'<b>avant-match</b> avant de jouer et valide-le. Reviens après le match pour remplir l'<b>après-match</b> et envoyer ta feuille.</p>
+    ${todo.length ? `<h3 class="mrp-h2">À terminer</h3><div class="mf-list">${todo.map(card).join("")}</div>` : ""}
+    <h3 class="mrp-h2">Mes feuilles</h3>
+    ${done.length ? `<div class="mf-list">${done.map(card).join("")}</div>` : `<p class="muted" style="padding:4px 2px">Aucune feuille envoyée pour l'instant.</p>`}
+    ${done.length ? `<div class="mrp-stats"><div class="mrp-stat ok"><b>${wins}</b><span>gagnés</span></div><div class="mrp-stat no"><b>${losses}</b><span>perdus</span></div><div class="mrp-stat"><b>${done.length}</b><span>feuilles</span></div></div>` : ""}
+    ${cR.length && jR.length ? `<h3 class="mrp-h2">Ma vision vs celle du coach</h3><div class="mrp-comp-wrap">${comp}</div>` : ""}`;
+  $("mf-new").addEventListener("click", () => { mfOpen = "new"; renderMfSheet(); window.scrollTo(0, 0); });
+  body.querySelectorAll(".mf-card").forEach((b) => b.addEventListener("click", () => { mfOpen = b.dataset.id; renderMfSheet(); window.scrollTo(0, 0); }));
 }
-
-function mrpReportCard(r, player) {
-  const L = mrpLabels(r.author_role, player.gender);
-  const texts = MR_KEYS.filter((k) => r[k]).map((k) => `<div class="mrp-field"><b>${escHtml(L[k])}</b><p>${escHtml(r[k]).replace(/\n/g, "<br/>")}</p></div>`).join("");
-  return `<div class="mrp-report">
-    <div class="mrp-report-head">
-      <span class="mrp-badge ${r.author_role}">${r.author_role === "coach" ? "Coach" : "Moi"}</span>
-      <b>vs ${escHtml(r.opponent || "—")}</b>${r.opponent_ranking ? ` (${escHtml(r.opponent_ranking.toUpperCase())})` : ""}
-      <span class="${r.result === "gagne" ? "mrp-win" : "mrp-loss"}">${r.result === "gagne" ? "Gagné" : "Perdu"} ${escHtml(r.score || "")}</span>
-      <span class="muted">${r.match_date ? frShort(r.match_date.slice(0, 10)) : ""}</span>
+// Champ en lecture seule ; une réponse vide n'est pas affichée (feuille plus courte à relire).
+const mfRo = (label, val) => val ? `<div class="mf-ro"><b>${escHtml(label)}</b><p>${escHtml(val).replace(/\n/g, "<br/>")}</p></div>` : "";
+const mfTa = (id, label, hint = "") => `<label class="comp-f"><span>${escHtml(label)}</span>${hint ? `<small>${escHtml(hint)}</small>` : ""}<textarea id="${id}" rows="2"></textarea></label>`;
+function renderMfSheet() {
+  const body = $("mf-body"); if (!body) return;
+  const player = PLAYERS.find((p) => p.person_id === mfSel);
+  const r = mfOpen === "new" ? null : mfRows.find((x) => x.id === mfOpen);
+  const st = r ? mfState(r) : "new";
+  const L = mrpLabels(r?.author_role || "joueur", player.gender);
+  const back = `<button type="button" id="mf-back" class="comp-back">← Mes feuilles de match</button>`;
+  // Feuille remplie par un coach : lecture seule, présentation simple.
+  if (st === "coach") {
+    body.innerHTML = back + `<div class="mf-sheet"><div class="mf-sec"><div class="mf-sec-h"><span class="mrp-badge coach">Coach</span> Feuille de ${escHtml(r.author_name || "ton coach")}</div>
+      <p class="muted" style="margin:0 0 8px">${mfDate(r.match_date)} · vs <b>${escHtml(r.opponent || "—")}</b>${r.opponent_ranking ? ` (${escHtml(r.opponent_ranking.toUpperCase())})` : ""} · ${r.result === "gagne" ? "Gagné" : r.result === "perdu" ? "Perdu" : ""} ${escHtml(r.score || "")}</p>
+      ${MR_KEYS.filter((k) => r[k]).map((k) => mfRo(L[k], r[k])).join("")}${r.comment ? mfRo("Commentaire", r.comment) : ""}</div></div>`;
+    $("mf-back").addEventListener("click", () => { mfOpen = null; renderMfList(); });
+    return;
+  }
+  const rankOpts = MRP_RANKINGS.map((x) => `<option value="${x}">${x === "autre" ? "Autre" : x.toUpperCase()}</option>`).join("");
+  // --- 1. Avant le match ---
+  const pre = st === "new"
+    ? `<div class="mrp-grid">
+        <label>Date du match<input type="date" id="mf-date" value="${isoLocal(new Date())}"></label>
+        <label>Tournoi<input type="text" id="mf-competition" placeholder="ex. Tournoi de Nyon"></label>
+        <label>Adversaire<input type="text" id="mf-opponent" placeholder="si tu le connais"></label>
+        <label>Classement adversaire<select id="mf-rank"><option value="">—</option>${rankOpts}</select></label>
+      </div>
+      ${MR_PRE_KEYS.map((k) => mfTa("mf-" + k, L[k])).join("")}
+      <h4 class="mf-sub">Ma préparation</h4>
+      ${MF_PREP.map(([k, l, h]) => mfTa("mf-prep-" + k, l, h)).join("")}
+      <p class="mf-warn">Une fois validé, l'avant-match ne peut plus être modifié.</p>
+      <div class="comp-actions"><button type="button" id="mf-pre-ok">Valider l'avant-match</button><span id="mf-status" class="muted"></span></div>`
+    : `${mfRo("Date du match", mfDate(r.match_date))}${mfRo("Tournoi", r.competition)}${mfRo("Adversaire", r.opponent ? r.opponent + (r.opponent_ranking ? ` (${r.opponent_ranking.toUpperCase()})` : "") : "")}
+      ${MR_PRE_KEYS.map((k) => mfRo(L[k], r[k])).join("")}
+      ${Object.keys(r.prep || {}).length ? '<h4 class="mf-sub">Ma préparation</h4>' : ""}${MF_PREP.map(([k, l]) => mfRo(l, (r.prep || {})[k])).join("")}`;
+  // --- 2. Après le match ---
+  const stars = MRP_RATINGS.map(([k, l]) => `<div class="mrp-rate"><span>${escHtml(l)}</span><div class="mrp-stars" data-k="${k}">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="mrp-star" data-v="${n}">${n}</button>`).join("")}</div></div>`).join("");
+  let post;
+  if (st === "new") post = `<p class="muted" style="margin:0">Tu rempliras cette partie <b>après ton match</b>, une fois l'avant-match validé.</p>`;
+  else if (st === "pre") post = `<div class="mrp-grid">
+        <label>Résultat<select id="mf-result"><option value="">—</option><option value="gagne">Gagné</option><option value="perdu">Perdu</option></select></label>
+        <label>Score<input type="text" id="mf-score" placeholder="ex. 6-3 6-4"></label>
+        ${r.opponent ? "" : `<label>Adversaire<input type="text" id="mf-opponent2"></label><label>Classement adversaire<select id="mf-rank2"><option value="">—</option>${rankOpts}</select></label>`}
+      </div>
+      ${MR_POST_KEYS.map((k) => mfTa("mf-" + k, L[k])).join("")}
+      <h4 class="mf-sub">Mon analyse</h4>
+      ${MF_ANALYSE.map(([k, l, h]) => mfTa("mf-bilan-" + k, l, h)).join("")}
+      <h4 class="mf-sub">Mon auto-évaluation (1 à 5)</h4>
+      <div class="mrp-ratings">${stars}</div>
+      <label class="comp-f"><span>Commentaire</span><textarea id="mf-comment" rows="2"></textarea></label>
+      <p class="mf-warn">Une fois envoyée, tu pourras relire ta feuille mais plus la modifier.</p>
+      <div class="comp-actions"><button type="button" id="mf-post-ok">Envoyer la feuille</button><span id="mf-status" class="muted"></span></div>`;
+  else post = `${mfRo("Résultat", r.result === "gagne" ? `Gagné ${r.score || ""}` : r.result === "perdu" ? `Perdu ${r.score || ""}` : "")}
+      ${MR_POST_KEYS.map((k) => mfRo(L[k], r[k])).join("")}
+      ${Object.keys(r.bilan || {}).length ? '<h4 class="mf-sub">Mon analyse</h4>' : ""}${MF_ANALYSE.map(([k, l]) => mfRo(l, (r.bilan || {})[k])).join("")}
+      <h4 class="mf-sub">Mon auto-évaluation</h4>
+      <div class="mf-rates">${MRP_RATINGS.map(([k, l]) => `<div class="mf-rate"><span>${escHtml(l)}</span><b>${r[k] ? "★".repeat(r[k]) + "☆".repeat(5 - r[k]) : "—"}</b></div>`).join("")}</div>
+      ${r.comment ? mfRo("Commentaire", r.comment) : ""}`;
+  const stamp = (d) => d ? new Date(d).toLocaleString("fr-CH", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+  body.innerHTML = back + `<div class="mf-sheet">
+    ${st === "sent" ? `<div class="mf-locked">✓ Feuille envoyée le ${stamp(r.sent_at || r.created_at)}. Tu peux la relire, mais plus la modifier. Pour un changement important, contacte le secrétariat : <a href="tel:+41216461350">${SECRETARIAT_TEL}</a> ou via le <a href="contact.html">formulaire de contact</a>.</div>` : ""}
+    <div class="mf-sec${st === "new" ? " mf-sec-on" : ""}">
+      <div class="mf-sec-h"><span class="mf-step">1</span>Avant le match${st !== "new" ? `<span class="mf-done">Validé le ${stamp(r.pre_sent_at || r.created_at)}</span>` : ""}</div>
+      ${st === "pre" ? `<details class="mf-fold"><summary>Revoir mon avant-match</summary>${pre}</details>` : pre}
     </div>
-    ${texts}
-    ${r.comment ? `<div class="mrp-field"><b>Commentaire</b><p>${escHtml(r.comment).replace(/\n/g, "<br/>")}</p></div>` : ""}
+    <div class="mf-sec${st === "pre" ? " mf-sec-on" : ""}${st === "new" ? " mf-sec-off" : ""}">
+      <div class="mf-sec-h"><span class="mf-step">2</span>Après le match${st === "sent" ? `<span class="mf-done">Envoyé le ${stamp(r.sent_at || r.created_at)}</span>` : ""}</div>
+      ${post}
+    </div>
   </div>`;
+  $("mf-back").addEventListener("click", () => { mfOpen = null; renderMfList(); });
+  body.querySelectorAll(".mrp-stars").forEach((box) => box.querySelectorAll(".mrp-star").forEach((b) => b.addEventListener("click", () => {
+    box.dataset.val = b.dataset.v;
+    box.querySelectorAll(".mrp-star").forEach((x) => x.classList.toggle("on", Number(x.dataset.v) <= Number(b.dataset.v)));
+  })));
+  // Après-match rouvert par le secrétariat : on repart de ce que le jeune avait envoyé.
+  if (st === "pre") {
+    const put = (id, v) => { const el = $(id); if (el && v != null) el.value = v; };
+    put("mf-result", r.result); put("mf-score", r.score); put("mf-comment", r.comment);
+    for (const k of MR_POST_KEYS) put("mf-" + k, r[k]);
+    for (const [k] of MF_ANALYSE) put("mf-bilan-" + k, (r.bilan || {})[k]);
+    for (const [k] of MRP_RATINGS) if (r[k]) body.querySelector(`.mrp-stars[data-k="${k}"] .mrp-star[data-v="${r[k]}"]`)?.click();
+  }
+  const val = (id) => ($(id)?.value || "").trim();
+  if (st === "new") $("mf-pre-ok").addEventListener("click", async (e) => {
+    if (!val("mf-date")) { $("mf-status").textContent = "Indique la date du match."; return; }
+    if (!confirm("Valider l'avant-match ? Tu ne pourras plus le modifier.")) return;
+    const data = { match_date: val("mf-date"), competition: val("mf-competition"), opponent: val("mf-opponent"), opponent_ranking: val("mf-rank"), prep: {} };
+    for (const k of MR_PRE_KEYS) data[k] = val("mf-" + k);
+    for (const [k] of MF_PREP) data.prep[k] = val("mf-prep-" + k);
+    e.currentTarget.disabled = true; $("mf-status").textContent = "Enregistrement…";
+    const { data: id, error } = await sb.rpc("portal_mr_pre", { p_youth: mfSel, p_data: data });
+    if (error) { $("mf-status").textContent = "Erreur : " + error.message; e.currentTarget.disabled = false; return; }
+    mfOpen = id; renderFeuille();
+  });
+  if (st === "pre") $("mf-post-ok").addEventListener("click", async (e) => {
+    if (!val("mf-result")) { $("mf-status").textContent = "Indique le résultat du match."; return; }
+    if (!confirm("Envoyer la feuille ? Tu pourras la relire, mais plus la modifier.")) return;
+    const rating = (k) => body.querySelector(`.mrp-stars[data-k="${k}"]`)?.dataset.val || null;
+    const data = { result: val("mf-result"), score: val("mf-score"), opponent: val("mf-opponent2"), opponent_ranking: val("mf-rank2"), comment: val("mf-comment"), bilan: {} };
+    for (const k of MR_POST_KEYS) data[k] = val("mf-" + k);
+    for (const [k] of MF_ANALYSE) data.bilan[k] = val("mf-bilan-" + k);
+    for (const [k] of MRP_RATINGS) data[k] = rating(k);
+    e.currentTarget.disabled = true; $("mf-status").textContent = "Envoi…";
+    const { error } = await sb.rpc("portal_mr_post", { p_youth: mfSel, p_id: r.id, p_data: data });
+    if (error) { $("mf-status").textContent = "Erreur : " + error.message; e.currentTarget.disabled = false; return; }
+    renderFeuille();
+  });
 }
 
-/* ---------- Compétition : préparation (avant) + analyse (après) ---------- */
-let compSel = null, compList = [], compEditId = null, compTab = "prep";
-const COMP_PREP = [
-  ["horaires", "Horaires et routines de préparation", "Réveil, repas, échauffement, trajet…"],
-  ["specifique", "Qu'est-ce qui est spécifique à cette compétition ? Qu'est-ce qui peut être différent ?", "L'horaire, l'entourage, le bruit, l'enchaînement des matchs…"],
-  ["represente", "Qu'est-ce que cette compétition représente pour moi ?", ""],
-  ["objectifs", "Quels sont mes objectifs ?", ""],
-  ["tester", "Qu'est-ce que je vais tester de nouveau ?", "Un autre échauffement, un mindset… ou rien"],
-  ["sentir", "Comment je veux me sentir pendant la compétition ?", "Confiant·e, puissant·e…"],
-];
-const COMP_ANALYSE = [
-  ["highlight", "Mon highlight", ""],
-  ["avant", "Comment tu t'es senti·e AVANT la compétition ?", ""],
-  ["pendant", "Comment tu t'es senti·e PENDANT la compétition ?", ""],
-  ["apres", "Comment tu t'es senti·e APRÈS la compétition ?", ""],
-  ["satisfait", "De quoi es-tu satisfait·e ? Qu'est-ce qui est bien allé ?", ""],
-  ["mieux", "Qu'est-ce qui pourrait être mieux ?", ""],
-  ["different", "Qu'est-ce qui était différent de ce que tu avais pensé ?", ""],
-  ["retour_coach", "Quel est le retour de ton entraîneur ?", ""],
-  ["appris", "Qu'est-ce que tu as appris pendant cette compétition ?", ""],
-];
-
+let compSel = null;
 let compSub = "messages";
+// Onglet Mental : « Messages » (discussion avec le coach mental) et « Après séance » (3 fiertés).
+// Les questions d'avant / après compétition sont dans l'onglet « Feuille de match » (27.09.2026).
 function renderComp() {
   const host = $("view-comp");
   if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>Réservé aux joueurs de compétition.</p></div>`; return; }
-  if (!compSel || !PLAYERS.some((p) => p.person_id === compSel))
-    compSel = (selYouth !== "all" && PLAYERS.some((p) => p.person_id === selYouth)) ? selYouth : PLAYERS[0].person_id;
-  const selHtml = PLAYERS.length > 1
-    ? `<div class="mrp-players">${PLAYERS.map((p) => `<button class="mrp-player ${p.person_id === compSel ? "sel" : ""}" data-id="${p.person_id}">${escHtml(p.first_name)}</button>`).join("")}</div>` : "";
-  host.innerHTML = selHtml + `
+  compSel = playerPick(compSel);
+  if (!["messages", "proud"].includes(compSub)) compSub = "messages";
+  host.innerHTML = playerSelHtml(compSel) + `
     <div class="comp-subtabs">
       <button type="button" class="comp-subtab ${compSub === "messages" ? "on" : ""}" data-s="messages">Messages</button>
-      <button type="button" class="comp-subtab ${compSub === "competitions" ? "on" : ""}" data-s="competitions">Compétitions</button>
       <button type="button" class="comp-subtab ${compSub === "proud" ? "on" : ""}" data-s="proud">Après séance</button>
     </div>
     <div id="comp-sub"></div>`;
-  host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { compSel = b.dataset.id; compEditId = null; renderComp(); }));
-  host.querySelectorAll(".comp-subtab").forEach((b) => b.addEventListener("click", () => { compSub = b.dataset.s; renderCompSub(); }));
+  host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { compSel = b.dataset.id; renderComp(); }));
+  host.querySelectorAll(".comp-subtab").forEach((b) => b.addEventListener("click", () => {
+    compSub = b.dataset.s;
+    host.querySelectorAll(".comp-subtab").forEach((x) => x.classList.toggle("on", x === b));
+    renderCompSub();
+  }));
   renderCompSub();
 }
 function renderCompSub() {
-  if (compSub === "messages") renderCompMessages();
-  else if (compSub === "proud") renderCompProud();
-  else renderCompComps();
-}
-async function renderCompComps() {
-  const sub = $("comp-sub"); if (!sub) return;
-  sub.innerHTML = `<div id="comp-body"><p class="muted" style="text-align:center;padding:12px">Chargement…</p></div>`;
-  const { data } = await sb.rpc("portal_comp_forms", { p_youth: compSel });
-  compList = data || [];
-  if (compEditId) renderCompEditor(); else renderCompList();
+  if (compSub === "proud") renderCompProud(); else renderCompMessages();
 }
 // --- Messages (discussion avec l'encadrement) ---
 async function renderCompMessages() {
@@ -1048,71 +1132,4 @@ async function saveProud() {
   const { error } = await sb.rpc("portal_proud_save", { p_youth: compSel, p_id: null, p_date: $("proud-date").value || null, p1: $("proud-p1").value.trim(), p2: $("proud-p2").value.trim(), p3: $("proud-p3").value.trim() });
   if (error) { if (st) st.textContent = "Erreur : " + error.message; return; }
   renderCompProud();
-}
-function renderCompList() {
-  const body = $("comp-body"); if (!body) return;
-  const cards = compList.map((c) => {
-    const prepN = Object.values(c.prep || {}).filter((v) => (v || "").trim()).length;
-    const bilN = Object.values(c.bilan || {}).filter((v) => (v || "").trim()).length;
-    return `<button type="button" class="comp-card" data-id="${c.id}">
-      <div class="comp-card-top"><b>${escHtml(c.competition || "Compétition")}</b><span class="muted">${c.comp_date ? frShort(c.comp_date) : ""}</span></div>
-      ${c.lieu ? `<div class="comp-card-sub">📍 ${escHtml(c.lieu)}</div>` : ""}
-      <div class="comp-badges"><span class="comp-badge ${prepN ? "on" : ""}">Préparation ${prepN ? "✓" : "·"}</span><span class="comp-badge ${bilN ? "on" : ""}">Analyse ${bilN ? "✓" : "·"}</span></div>
-    </button>`;
-  }).join("");
-  body.innerHTML = `<button type="button" id="comp-new" class="comp-new">+ Nouvelle compétition</button>
-    ${compList.length ? `<div class="comp-list">${cards}</div>` : `<p class="muted" style="text-align:center;padding:16px">Aucune compétition pour l'instant.<br>Crée-en une avant ton prochain tournoi 💪</p>`}`;
-  $("comp-new").addEventListener("click", () => { compEditId = "new"; compTab = "prep"; renderCompEditor(); });
-  body.querySelectorAll(".comp-card").forEach((b) => b.addEventListener("click", () => { compEditId = b.dataset.id; compTab = "prep"; renderCompEditor(); }));
-}
-function renderCompEditor() {
-  const body = $("comp-body"); if (!body) return;
-  const c = compEditId === "new" ? { prep: {}, bilan: {} } : (compList.find((x) => x.id === compEditId) || { prep: {}, bilan: {} });
-  const fld = (arr, obj, pfx) => arr.map(([k, label, hint]) =>
-    `<label class="comp-f"><span>${escHtml(label)}</span>${hint ? `<small>${escHtml(hint)}</small>` : ""}
-      <textarea id="${pfx}-${k}" rows="2">${escHtml((obj || {})[k] || "")}</textarea></label>`).join("");
-  body.innerHTML = `
-    <button type="button" id="comp-back" class="comp-back">← Mes compétitions</button>
-    <div class="comp-head">
-      <label class="comp-f"><span>Compétition</span><input id="comp-name" type="text" value="${escHtml(c.competition || "")}" placeholder="Nom du tournoi"></label>
-      <div class="comp-head-row">
-        <label class="comp-f"><span>Date</span><input id="comp-date" type="date" value="${c.comp_date || ""}"></label>
-        <label class="comp-f"><span>Lieu</span><input id="comp-lieu" type="text" value="${escHtml(c.lieu || "")}" placeholder="Où ?"></label>
-      </div>
-    </div>
-    <div class="comp-tabs">
-      <button type="button" class="comp-tab ${compTab === "prep" ? "on" : ""}" data-t="prep">Avant · Préparation</button>
-      <button type="button" class="comp-tab ${compTab === "bilan" ? "on" : ""}" data-t="bilan">Après · Analyse</button>
-    </div>
-    <div class="comp-pane" id="comp-pane-prep" ${compTab === "prep" ? "" : "hidden"}>${fld(COMP_PREP, c.prep, "prep")}</div>
-    <div class="comp-pane" id="comp-pane-bilan" ${compTab === "bilan" ? "" : "hidden"}>${fld(COMP_ANALYSE, c.bilan, "bilan")}</div>
-    <div class="comp-actions">
-      <button type="button" id="comp-save">Enregistrer</button>
-      ${compEditId !== "new" ? `<button type="button" id="comp-del" class="comp-del">Supprimer</button>` : ""}
-      <span id="comp-status" class="muted"></span>
-    </div>`;
-  $("comp-back").addEventListener("click", () => { compEditId = null; renderCompList(); });
-  body.querySelectorAll(".comp-tab").forEach((b) => b.addEventListener("click", () => {
-    compTab = b.dataset.t;
-    body.querySelectorAll(".comp-tab").forEach((x) => x.classList.toggle("on", x.dataset.t === compTab));
-    $("comp-pane-prep").hidden = compTab !== "prep"; $("comp-pane-bilan").hidden = compTab !== "bilan";
-  }));
-  $("comp-save").addEventListener("click", saveComp);
-  if ($("comp-del")) $("comp-del").addEventListener("click", deleteComp);
-}
-async function saveComp() {
-  const gather = (arr, pfx) => { const o = {}; for (const [k] of arr) { const v = $(`${pfx}-${k}`).value.trim(); if (v) o[k] = v; } return o; };
-  const payload = {
-    competition: $("comp-name").value.trim(), comp_date: $("comp-date").value || null, lieu: $("comp-lieu").value.trim(),
-    prep: gather(COMP_PREP, "prep"), bilan: gather(COMP_ANALYSE, "bilan"),
-  };
-  $("comp-status").textContent = "Enregistrement…";
-  const { error } = await sb.rpc("portal_save_comp_form", { p_youth: compSel, p_id: compEditId === "new" ? null : compEditId, p_data: payload });
-  if (error) { $("comp-status").textContent = "Erreur : " + error.message; return; }
-  compEditId = null; renderComp();
-}
-async function deleteComp() {
-  if (!confirm("Supprimer cette compétition ?")) return;
-  await sb.rpc("portal_delete_comp_form", { p_youth: compSel, p_id: compEditId });
-  compEditId = null; renderComp();
 }

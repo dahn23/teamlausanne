@@ -215,14 +215,14 @@ async function saveMyProfile() {
 const DEFAULT_TAB_ACCESS = {
   superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
   admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "resa", "winter", "lockers", "cours", "caisse", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats"],
   head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "mental", "stages", "prospects", "heures"],
   coach:      ["cours", "matchs", "lastscores", "plantournois", "phystests", "heures"],
   coach_physique: ["cours", "phystests", "heures"],
   moniteur:   ["cours", "heures"],
   affichage:  ["resa"],                      // ecran du club : grille des courts, lecture seule
   prof:       ["etudes"],
-  coach_mental: ["mental"],   // pas d'onglet Heures (décision Dan, 21.09.2026)
+  coach_mental: ["mental", "matchs"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
@@ -1695,7 +1695,7 @@ function openPerson(p) {
   loadPersonSeasons(p ? p.id : null);
   loadPersonPhysNotes(p ? p.id : null, !!p && canPhysNotes() && PHYS_NOTE_ROLES.some((r) => roles.includes(r)));   // fil « Physique » (sport-études / pro / pro U18)
   if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonTennis(p.id, tennisByRole); loadPersonMental(p.id, mentalTabRole); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
-  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("ptn-body").innerHTML = ""; $("pm-comp").innerHTML = ""; $("pc-body").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
+  else { $("resa-list").innerHTML = ""; $("resa-stats").innerHTML = ""; $("cours-content").innerHTML = ""; $("pp-results").innerHTML = ""; $("pe-stats").innerHTML = ""; $("ps-chan").innerHTML = ""; $("ptn-body").innerHTML = ""; $("pc-body").innerHTML = ""; $("mrf-mount").innerHTML = ""; $("ps-participations").innerHTML = ""; }
   $("people-list-wrap").classList.add("hidden");
   $("people-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -11859,10 +11859,11 @@ function mrTextLabels(mode, gender) {
   };
   if (mode === "joueur") return {
     ...base,
+    strategy_pre: "Ma stratégie pour ce match",
     how_won: "Comment j'ai gagné la majorité des points",
     how_lost: "Comment j'ai perdu la majorité des points",
-    did_well: "Ce que j'ai bien réussi à faire",
-    to_improve: "Ce que je dois améliorer",
+    did_well: "Ce que j'ai bien réussi à faire, ce dont je suis satisfait·e",
+    to_improve: "Ce que je dois améliorer, ce qui pourrait être mieux",
   };
   return {
     ...base,
@@ -11873,13 +11874,22 @@ function mrTextLabels(mode, gender) {
   };
 }
 
+// Feuille du jeune en deux temps (db/109) : questions de préparation (avant) et d'analyse (après) — ex-formulaires
+// « Compétition » du Mental. État : « pre » = avant-match validé, après-match pas encore envoyé.
+const MR_PRE_TEXTS = ["strategy_pre", "opp_sw", "opp_style"];
+const MR_POST_TEXTS = ["how_won", "how_lost", "did_well", "to_improve", "three_positives"];
+const MR_PREP = [["horaires", "Horaires et routines de préparation"], ["specifique", "Ce qui est spécifique à ce match / ce tournoi, ce qui peut être différent"], ["represente", "Ce que ce match représente pour moi"], ["objectifs", "Mes objectifs"], ["tester", "Ce que je vais tester de nouveau"], ["sentir", "Comment je veux me sentir pendant le match"]];
+const MR_BILAN = [["highlight", "Mon highlight du match"], ["avant", "Ressenti AVANT le match"], ["pendant", "Ressenti PENDANT le match"], ["apres", "Ressenti APRÈS le match"], ["different", "Ce qui était différent de ce que j'avais pensé"], ["retour_coach", "Le retour de mon entraîneur"], ["appris", "Ce que j'ai appris"]];
+const mrIsPending = (r) => r.author_role === "joueur" && r.pre_sent_at && !r.sent_at;
+const mrResult = (r) => r.result === "gagne" ? '<span class="mr-win">Gagné</span>' : r.result === "perdu" ? '<span class="mr-loss">Perdu</span>' : mrIsPending(r) ? '<span class="mr-pending">Après-match en attente</span>' : "—";
 function initMatchs(roles) {
   // Remplir/lister = coachs & admin ; valider les correspondances = admin/superadmin/secrétariat
   const canFill = hasAny(roles || [], ["coach", "head_coach", "admin", "superadmin"]);
   const canValidate = hasAny(roles || [], ["admin", "superadmin", "secretaire"]);
   const showSub = (sub, ok) => document.querySelector(`#view-matchs .mr-subtab[data-sub="${sub}"]`)?.classList.toggle("hidden", !ok);
-  // Vue d'ensemble de TOUTES les feuilles (coachs et joueurs) : head coach, admin, superadmin seulement.
-  const canSeeAll = hasAny(roles || [], ["head_coach", "admin", "superadmin"]);
+  // Vue d'ensemble de TOUTES les feuilles (coachs et joueurs) : head coach, admin, superadmin, et le coach mental
+  // (lecture seule : les questions d'avant / après match du jeune remplacent ses anciens formulaires, 27.09.2026).
+  const canSeeAll = hasAny(roles || [], ["head_coach", "admin", "superadmin", "coach_mental", "secretaire"]);
   showSub("new", canFill); showSub("list", canFill); showSub("all", canSeeAll); showSub("links", canValidate);
   document.querySelectorAll("#view-matchs .mr-subtab").forEach((b) =>
     b.addEventListener("click", () => {
@@ -11895,7 +11905,7 @@ function initMatchs(roles) {
 let mrAllRows = [], mrAllFilter = "";
 async function loadMatchListAll() {
   const cont = $("mr-all"); if (!cont) return;
-  if (!hasAny(myAppRoles, ["head_coach", "admin", "superadmin"])) { cont.innerHTML = ""; return; }
+  if (!hasAny(myAppRoles, ["head_coach", "admin", "superadmin", "coach_mental", "secretaire"])) { cont.innerHTML = ""; return; }
   cont.innerHTML = '<p class="muted" style="font-size:.85rem">Chargement…</p>';
   const { data, error } = await sb.from("match_reports").select("*").order("created_at", { ascending: false }).limit(1000);
   if (error) { cont.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
@@ -11915,8 +11925,8 @@ function renderMatchListAll() {
         + rows.map((r) => `<tr class="mr-row" data-id="${r.id}"><td>${frDateTime(r.created_at)}</td><td>${r.match_date ? frDate(r.match_date) : "—"}</td>
           <td><b>${esc(mrName(r.youth_person_id))}</b></td>
           <td>${author(r)} <span class="mr-role ${r.author_role === "coach" ? "mr-role-coach" : "mr-role-joueur"}">${r.author_role === "coach" ? "coach" : "joueur"}</span></td>
-          <td>${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td>
-          <td>${r.result === "gagne" ? '<span class="mr-win">Gagné</span>' : '<span class="mr-loss">Perdu</span>'} ${esc(r.score || "")}</td></tr>`).join("")
+          <td>${r.competition ? `<span class="muted">${esc(r.competition)} · </span>` : ""}${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td>
+          <td>${mrResult(r)} ${esc(r.score || "")}</td></tr>`).join("")
         + "</tbody></table></div>"
       : '<p class="muted" style="font-size:.85rem">Aucune feuille de match pour le moment.</p>');
   cont.querySelectorAll(".mr-all-bar .mr-all-f").forEach((b) => b.addEventListener("click", () => { mrAllFilter = b.dataset.f; renderMatchListAll(); }));
@@ -12010,7 +12020,7 @@ async function loadMatchLinks() {
   const pairs = [];
   for (const yid in byYouth) {
     const coaches = byYouth[yid].filter((r) => r.author_role === "coach");
-    const joueurs = byYouth[yid].filter((r) => r.author_role === "joueur");
+    const joueurs = byYouth[yid].filter((r) => r.author_role === "joueur" && !mrIsPending(r));
     for (const c of coaches) for (const j of joueurs) {
       if (c.match_group_id && c.match_group_id === j.match_group_id) continue;
       const key = [c.id, j.id].sort().join("|");
@@ -12054,7 +12064,7 @@ async function loadMatchList() {
     ? '<table class="crm-table"><thead><tr><th>Date / heure</th><th>Jeune</th><th>Adversaire</th><th>Résultat</th></tr></thead><tbody>'
       + rows.map((r) => `<tr class="mr-row" data-id="${r.id}"><td>${frDateTime(r.created_at)}</td><td><b>${esc(mrName(r.youth_person_id))}</b></td>
         <td>${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td>
-        <td>${r.result === "gagne" ? '<span class="mr-win">Gagné</span>' : '<span class="mr-loss">Perdu</span>'} ${esc(r.score || "")}</td></tr>`).join("")
+        <td>${mrResult(r)} ${esc(r.score || "")}</td></tr>`).join("")
       + "</tbody></table>"
     : '<p class="muted" style="font-size:.85rem">Tu n\'as pas encore rempli de feuille de match.</p>';
   cont.querySelectorAll(".mr-row").forEach((tr) => tr.addEventListener("click", () => openMatchReport(tr.dataset.id)));
@@ -12067,17 +12077,41 @@ async function openMatchReport(id, contId = "mr-list", back = loadMatchList) {
   if (!r) return;
   const labels = mrTextLabels(r.author_role, mrGenderOf(r.youth_person_id));
   const cont = $(contId);
+  const fld = (l, v) => v ? `<div class="mr-field"><b>${esc(l)}</b><p>${esc(v).replace(/\n/g, "<br/>")}</p></div>` : "";
+  // Supprimer : le personnel seulement (le coach mental lit sans modifier).
+  const canDel = hasAny(myAppRoles, ["superadmin", "admin", "head_coach", "coach", "secretaire"]);
+  const canReopen = r.author_role === "joueur" && r.sent_at && r.pre_sent_at && hasAny(myAppRoles, ["superadmin", "admin", "secretaire"]);
+  const head = `<h2 style="margin-top:0">${esc(mrName(r.youth_person_id))} <span class="mr-badge ${r.author_role}">${r.author_role}</span></h2>
+      <p class="muted">${r.match_date ? frDate(r.match_date) : ""}${r.competition ? ` · ${esc(r.competition)}` : ""} · vs <b>${esc(r.opponent || "—")}</b>${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""} · ${mrResult(r)} ${esc(r.score || "")} · rempli par ${esc(r.author_name || "—")} le ${frDateTime(r.created_at)}</p>`;
+  let body;
+  if (r.author_role === "joueur" && r.pre_sent_at) {
+    // Feuille du jeune en deux temps : avant le match / après le match.
+    const pre = MR_PRE_TEXTS.map((k) => fld(labels[k], r[k])).join("") + MR_PREP.map(([k, l]) => fld(l, (r.prep || {})[k])).join("");
+    const post = r.sent_at
+      ? MR_POST_TEXTS.map((k) => fld(labels[k], r[k])).join("") + MR_BILAN.map(([k, l]) => fld(l, (r.bilan || {})[k])).join("")
+        + `<div class="mr-ratings-view">${MR_RATINGS.map(([k, l]) => `<div class="mr-rv"><span>${esc(l)}</span><b>${mrStars(r[k])}</b></div>`).join("")}</div>${fld("Commentaire", r.comment)}`
+      : '<p class="muted" style="margin:0">Le jeune n\'a pas encore rempli l\'après-match.</p>';
+    body = `<h3 class="mr-part">1 · Avant le match <span class="muted">validé le ${frDateTime(r.pre_sent_at)}</span></h3>${pre || '<p class="muted" style="margin:0">Rien de rempli.</p>'}
+      <h3 class="mr-part">2 · Après le match ${r.sent_at ? `<span class="muted">envoyé le ${frDateTime(r.sent_at)}</span>` : ""}</h3>${post}`;
+  } else {
+    body = MR_TEXTS.filter(([k]) => r[k]).map(([k]) => fld(labels[k], r[k])).join("")
+      + `<div class="mr-ratings-view">${MR_RATINGS.map(([k, l]) => `<div class="mr-rv"><span>${esc(l)}</span><b>${mrStars(r[k])}</b></div>`).join("")}</div>${fld("Commentaire", r.comment)}`;
+  }
   cont.innerHTML = `<button type="button" class="ghost stg-back" id="mr-back">← Retour à la liste</button>
-    <div class="rg-card" style="margin-top:10px">
-      <h2 style="margin-top:0">${esc(mrName(r.youth_person_id))} <span class="mr-badge ${r.author_role}">${r.author_role}</span></h2>
-      <p class="muted">${r.match_date ? frDate(r.match_date) : ""} · vs <b>${esc(r.opponent || "—")}</b>${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""} · ${r.result === "gagne" ? "Gagné" : "Perdu"} ${esc(r.score || "")} · rempli par ${esc(r.author_name || "—")} le ${frDateTime(r.created_at)}</p>
-      ${MR_TEXTS.filter(([k]) => r[k]).map(([k]) => `<div class="mr-field"><b>${esc(labels[k])}</b><p>${esc(r[k])}</p></div>`).join("")}
-      <div class="mr-ratings-view">${MR_RATINGS.map(([k, l]) => `<div class="mr-rv"><span>${esc(l)}</span><b>${mrStars(r[k])}</b></div>`).join("")}</div>
-      ${r.comment ? `<div class="mr-field"><b>Commentaire</b><p>${esc(r.comment)}</p></div>` : ""}
-      <button type="button" class="fam-del" id="mr-del" style="margin-top:14px">Supprimer cette feuille</button>
+    <div class="rg-card" style="margin-top:10px">${head}${body}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      ${canReopen ? '<button type="button" class="ghost" id="mr-reopen" title="Le jeune pourra corriger son après-match puis le renvoyer">Rouvrir l\'après-match au jeune</button>' : ""}
+      ${canDel ? '<button type="button" class="fam-del" id="mr-del">Supprimer cette feuille</button>' : ""}</div>
     </div>`;
+  // Le jeune a écrit au secrétariat pour un changement important : on lui rouvre l'après-match (déjà prérempli).
+  $("mr-reopen")?.addEventListener("click", async () => {
+    if (!await uiConfirm("Rouvrir l'après-match ? Le jeune pourra le corriger dans Mon espace puis le renvoyer.")) return;
+    const { error } = await sb.from("match_reports").update({ sent_at: null }).eq("id", id);
+    if (error) { uiAlert(error.message); return; }
+    openMatchReport(id, contId, back);
+  });
   $("mr-back").addEventListener("click", () => back());
-  $("mr-del").addEventListener("click", async () => { if (!await uiConfirm("Supprimer cette feuille ?")) return; await sb.from("match_reports").delete().eq("id", id); back(); });
+  $("mr-del")?.addEventListener("click", async () => { if (!await uiConfirm("Supprimer cette feuille ?")) return; await sb.from("match_reports").delete().eq("id", id); back(); });
 }
 
 async function loadPersonMatchs(personId, byRole) {
@@ -12108,7 +12142,7 @@ async function loadPersonMatchs(personId, byRole) {
       <div class="mr-comp-wrap">${comp}</div>` : ""}
     <h3 style="margin:16px 0 8px">Feuilles de match</h3>
     ${rows.length ? '<div class="table-wrap"><table class="crm-table"><thead><tr><th>Date</th><th>Adversaire</th><th>Résultat</th><th>Par</th></tr></thead><tbody>'
-      + rows.map((r) => `<tr><td>${r.match_date ? frDate(r.match_date) : "—"}</td><td>${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td><td>${r.result === "gagne" ? "Gagné" : "Perdu"} ${esc(r.score || "")}</td><td><span class="mr-badge ${r.author_role}">${r.author_role}</span></td></tr>`).join("")
+      + rows.map((r) => `<tr><td>${r.match_date ? frDate(r.match_date) : "—"}</td><td>${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td><td>${mrResult(r)} ${esc(r.score || "")}</td><td><span class="mr-badge ${r.author_role}">${r.author_role}</span></td></tr>`).join("")
       + "</tbody></table></div>" : '<p class="muted" style="font-size:.85rem">Aucune feuille de match.</p>'}
     <div id="pm-hist"></div>`;
   renderPmHistory(personId, rows);
@@ -12454,7 +12488,6 @@ function initMental() {
       document.querySelectorAll("#view-mental .mn-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "mn-sub-" + b.dataset.sub));
       if (b.dataset.sub === "calendrier") loadMentalCalendar();
       if (b.dataset.sub === "participants") loadMentalParticipants();
-      if (b.dataset.sub === "formulaire") loadMentalForms();
     }));
   $("mn-season").addEventListener("change", loadMentalCalendar);
   $("mn-season2").addEventListener("change", loadMentalParticipants);
@@ -12550,77 +12583,12 @@ function openMentalParticipant(yid) {
   $("mn-part-name").textContent = p ? `${p.last_name} ${p.first_name}` : "—";
   loadMnComments(yid);
   mentalThread("mn-thread", yid);
-  renderMnCompForms(yid);
   mproudFetch(yid).then((r) => renderProudInto($("mn-proud"), r));
   $("mn-part-list").classList.add("hidden");
   $("mn-part-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
 }
 function loadMnComments(yid) { mnYouthId = yid; youthNotes("mn-chan", yid); }
-
-// ---- Formulaires « Compétition » remplis par le jeune (lecture seule, console) ----
-const MCF_PREP = [["horaires", "Horaires et routines de préparation"], ["specifique", "Spécifique à cette compétition / ce qui peut être différent"], ["represente", "Ce que cette compétition représente pour moi"], ["objectifs", "Mes objectifs"], ["tester", "Ce que je vais tester de nouveau"], ["sentir", "Comment je veux me sentir"]];
-const MCF_ANALYSE = [["highlight", "Mon highlight"], ["avant", "Ressenti avant"], ["pendant", "Ressenti pendant"], ["apres", "Ressenti après"], ["satisfait", "Satisfait·e de / ce qui est bien allé"], ["mieux", "Ce qui pourrait être mieux"], ["different", "Différent de ce que j'avais pensé"], ["retour_coach", "Retour de l'entraîneur"], ["appris", "Ce que j'ai appris"]];
-async function mcfFetch(yid) {
-  const { data } = await sb.from("mental_comp_forms").select("*").eq("youth_person_id", yid).order("comp_date", { ascending: false, nullsFirst: false });
-  return data || [];
-}
-function renderMcfInto(host, rows) {
-  if (!host) return;
-  if (!rows.length) { host.innerHTML = '<p class="obj-empty">Aucun formulaire rempli pour l\'instant.</p>'; return; }
-  const block = (title, arr, obj) => {
-    const items = arr.filter(([k]) => (obj || {})[k]).map(([k, l]) => `<div class="mcf-field"><b>${esc(l)}</b><p>${esc(obj[k]).replace(/\n/g, "<br/>")}</p></div>`).join("");
-    return items ? `<div class="mcf-block"><h4>${esc(title)}</h4>${items}</div>` : "";
-  };
-  host.innerHTML = rows.map((c) => {
-    const prep = block("Préparation (avant)", MCF_PREP, c.prep);
-    const bil = block("Analyse (après)", MCF_ANALYSE, c.bilan);
-    return `<div class="mcf-card"><div class="mcf-head"><b>${esc(c.competition || "Compétition")}</b>${c.comp_date ? ` <span class="muted">${frDate(c.comp_date)}</span>` : ""}${c.lieu ? ` · ${esc(c.lieu)}` : ""}</div>${prep || '<p class="obj-empty">Préparation non remplie.</p>'}${bil}</div>`;
-  }).join("");
-}
-async function renderMnCompForms(yid) {
-  const host = $("mn-comp"); if (!host) return;
-  if (!yid) { host.innerHTML = ""; return; }
-  renderMcfInto(host, await mcfFetch(yid));
-}
-// Ouvre la fiche du jeune directement sur l'onglet Mental (formulaires compétition).
-function openPersonToMental(pid) {
-  const p = people.find((x) => x.id === pid); if (!p) return;
-  showView("membres"); openPerson(p); setPersonTab("mental");
-}
-// Sous-onglet « Formulaire » du menu Mental : aperçu des 2 formulaires + derniers remplis.
-async function loadMentalForms() {
-  const host = $("mn-forms"); if (!host) return;
-  host.innerHTML = '<p class="muted">Chargement…</p>';
-  const { data } = await sb.from("mental_comp_forms").select("id,youth_person_id,competition,comp_date,prep,bilan")
-    .order("comp_date", { ascending: false, nullsFirst: false }).limit(100);
-  const rows = data || [];
-  const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.first_name} ${p.last_name}` : "—"; };
-  const preview = (title, arr) => `<div class="mcf-block"><h4>${esc(title)}</h4>${arr.map(([, l]) => `<div class="mcf-field"><b>${esc(l)}</b></div>`).join("")}</div>`;
-  const subs = rows.length ? rows.map((c) => {
-    const prepN = Object.values(c.prep || {}).filter((v) => (v || "").trim()).length;
-    const bilN = Object.values(c.bilan || {}).filter((v) => (v || "").trim()).length;
-    return `<button type="button" class="mnf-row" data-y="${c.youth_person_id}">
-      <span class="mnf-who"><b>${esc(nameOf(c.youth_person_id))}</b> · ${esc(c.competition || "Compétition")}</span>
-      <span class="muted">${c.comp_date ? frDate(c.comp_date) : ""}</span>
-      <span class="mnf-badges"><span class="comp-badge ${prepN ? "on" : ""}">Prép ${prepN ? "✓" : "·"}</span><span class="comp-badge ${bilN ? "on" : ""}">Analyse ${bilN ? "✓" : "·"}</span></span></button>`;
-  }).join("") : '<p class="obj-empty">Aucun formulaire rempli pour l\'instant.</p>';
-  host.innerHTML = `
-    <div class="rg-card">
-      <h3 style="margin-top:0">Formulaires « Compétition »</h3>
-      <p class="muted" style="font-size:.9rem;margin:0">Les jeunes de compétition remplissent ces 2 formulaires dans leur portail <b>« Mon espace » → Compét.</b> Les réponses apparaissent dans la <b>fiche du jeune → onglet Mental</b> et dans <b>Participants</b>.</p>
-    </div>
-    <div class="rg-card">
-      <h3 style="margin-top:0">Derniers formulaires remplis</h3>
-      <div class="mnf-list">${subs}</div>
-    </div>
-    <div class="rg-card">
-      <h3 style="margin-top:0">Aperçu des 2 formulaires (ce que remplit le jeune)</h3>
-      ${preview("Préparation — avant la compétition", MCF_PREP)}
-      ${preview("Analyse — après la compétition", MCF_ANALYSE)}
-    </div>`;
-  host.querySelectorAll(".mnf-row").forEach((b) => b.addEventListener("click", () => openPersonToMental(b.dataset.y)));
-}
 
 // ---- Commentaires mental (partagés participants / fiche) ----
 async function renderMentalComments(youthId, listId, refresh) {
@@ -12719,13 +12687,12 @@ async function mtOpenFile(path) {
   window.open(data.signedUrl, "_blank");
 }
 
-// Sous-onglet « Mental » de la fiche : discussion + formulaires compétition + 3 fiertés.
+// Sous-onglet « Mental » de la fiche : discussion + 3 fiertés (les questions de match sont dans la feuille de match).
 async function loadPersonMental(personId, show) {
-  const ids = ["pm-thread", "pm-comp", "pm-proud"];
+  const ids = ["pm-thread", "pm-proud"];
   if (!personId || !show) { showPersonTab("mental", false); ids.forEach((id) => { const e = $(id); if (e) e.innerHTML = ""; }); return; }
   showPersonTab("mental", true);
   mentalThread("pm-thread", personId);
-  renderMcfInto($("pm-comp"), await mcfFetch(personId));
   renderProudInto($("pm-proud"), await mproudFetch(personId));
 }
 

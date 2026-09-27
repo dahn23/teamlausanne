@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=264" />
+  <link rel="stylesheet" href="style.css?v=265" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -970,7 +970,6 @@
           <div class="subnav">
             <button class="subtab mn-subtab active" data-sub="calendrier">Calendrier</button>
             <button class="subtab mn-subtab" data-sub="participants">Participants</button>
-            <button class="subtab mn-subtab" data-sub="formulaire">Formulaire</button>
           </div>
 
           <div id="mn-sub-calendrier" class="mn-sub">
@@ -999,19 +998,12 @@
                 <div id="mn-thread"></div>
               </div>
               <div class="rg-card" style="margin-top:10px">
-                <h3 style="margin:0 0 8px">Compétitions (formulaires remplis par le jeune)</h3>
-                <div id="mn-comp"></div>
-              </div>
-              <div class="rg-card" style="margin-top:10px">
                 <h3 style="margin:0 0 8px">Après l'entraînement — 3 fiertés</h3>
                 <div id="mn-proud"></div>
               </div>
             </div>
           </div>
 
-          <div id="mn-sub-formulaire" class="mn-sub hidden">
-            <div id="mn-forms"></div>
-          </div>
         </div>
 
         <!-- ---- Vue GameZone ---- -->
@@ -2032,8 +2024,6 @@ Team Lausanne Tennis</textarea></label>
       <div id="ptab-mental" class="ptab-panel hidden">
         <h3 style="margin:0 0 8px">Discussion mentale <span class="muted" style="font-weight:400;font-size:.85rem">— avec le jeune (message, lien, document)</span></h3>
         <div id="pm-thread"></div>
-        <h3 style="margin:18px 0 8px">Compétitions — formulaires remplis par le jeune</h3>
-        <div id="pm-comp"></div>
         <h3 style="margin:18px 0 8px">Après l'entraînement — 3 fiertés</h3>
         <div id="pm-proud"></div>
       </div>
