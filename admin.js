@@ -2383,13 +2383,13 @@ function plOpenWeekend(pid, ws) {
       plTours = plTours.filter((t) => t.id !== b.dataset.id); draw();
     }));
     const add = async () => {
-      const name = $("pl-wt-new").value.trim(); if (name.length < 2) return;
+      const name = ov.querySelector("#pl-wt-new").value.trim(); if (name.length < 2) return;
       const { data, error } = await sb.from("plan_tournaments").insert({ person_id: pid, week_start: ws, name, source: "staff" }).select().single();
       if (error) { uiAlert(error.message); return; }
       plTours.push(data); draw();
     };
-    $("pl-wt-add").addEventListener("click", add);
-    $("pl-wt-new").addEventListener("keydown", (e) => { if (e.key === "Enter") add(); });
+    ov.querySelector("#pl-wt-add").addEventListener("click", add);
+    ov.querySelector("#pl-wt-new").addEventListener("keydown", (e) => { if (e.key === "Enter") add(); });
     ov.querySelector(".ui-no").addEventListener("click", () => { ov.remove(); plRender(); });
   };
   ov.addEventListener("click", (e) => { if (e.target === ov) { ov.remove(); plRender(); } });
