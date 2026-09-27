@@ -781,13 +781,17 @@ async function renderPortalSeason(player) {
   if (!s) { host.innerHTML = ""; return; }
   const weeks = []; for (let i = 0; i < s.weeks; i++) weeks.push(isoLocal(psDay(s.start_monday, 7 * i)));
   const a = weeks[0], z = isoLocal(psDay(weeks[weeks.length - 1], 6));
-  const [{ data: w }, { data: t }, { data: u }] = await Promise.all([
+  const [{ data: w }, { data: t }, { data: offRows }, { data: u }] = await Promise.all([
     sb.from("plan_weeks").select("week_start,kind").eq("person_id", player.person_id).gte("week_start", a).lte("week_start", z),
     sb.from("plan_tournaments").select("id,week_start,start_date,end_date,name,source,created_by").eq("person_id", player.person_id).gte("week_start", isoLocal(psDay(a, -49))).lte("week_start", z).order("start_date"),
+    sb.from("plan_days_off").select("day,label").gte("day", a).lte("day", z).order("day"),
     sb.auth.getUser(),
   ]);
   if ($("mrp-season") !== host) return;   // l'onglet a été redessiné entre-temps
   const kinds = {}; for (const r of w || []) kinds[r.week_start] = r.kind;
+  // Jours fériés / sans entraînement (db/110) de la semaine.
+  const PS_DOW = ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"];
+  const offIn = (ws) => { const we = isoLocal(psDay(ws, 6)); return (offRows || []).filter((d) => d.day >= ws && d.day <= we); };
   const all = t || [], me = u?.user?.id;
   const planned = (ws) => all.filter((x) => x.source === "staff" && x.week_start === ws);
   const regsIn = (ws) => { const we = isoLocal(psDay(ws, 6)); return all.filter((x) => x.source === "joueur" && x.start_date <= we && x.end_date >= ws); };
@@ -802,7 +806,7 @@ async function renderPortalSeason(player) {
   const mosaic = window.matchMedia("(max-width: 1024px), (pointer: coarse)").matches;   // téléphone et tablette
   const cellArr = weeks.map((ws, i) => {
     const k = kinds[ws] || "", pl = planned(ws), rg = regsIn(ws), hors = rg.some(regHors);
-    return `<div class="pl-col ps-col${ws === thisMonday ? " pl-now" : ""}" data-i="${i}"><div class="pl-top pl-k-${k || "none"}">${mosaic ? `<span class="pl-day">${psDay(ws, 0).getDate()}</span>` : ""}</div><div class="pl-we${pl.length ? " pl-we-on" : ""}"></div><div class="pl-reg${rg.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}"></div></div>`;
+    return `<div class="pl-col ps-col${ws === thisMonday ? " pl-now" : ""}" data-i="${i}"><div class="pl-top pl-k-${k || "none"}${offIn(ws).length ? " pl-off" : ""}">${mosaic ? `<span class="pl-day">${psDay(ws, 0).getDate()}</span>` : ""}</div><div class="pl-we${pl.length ? " pl-we-on" : ""}"></div><div class="pl-reg${rg.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}"></div></div>`;
   });
   const rowsM = [];
   weeks.forEach((ws, i) => { const m = psDay(ws, 3).getMonth(); const last = rowsM[rowsM.length - 1]; if (last && last.m === m) last.idx.push(i); else rowsM.push({ m, idx: [i] }); });
@@ -814,7 +818,7 @@ async function renderPortalSeason(player) {
   // Week-ends en zone tournoi, à venir, sans aucune inscription cette semaine-là.
   const todo = weeks.filter((ws) => isoLocal(psDay(ws, 6)) >= today && planned(ws).length && !regsIn(ws).length);
   const legend = Object.entries(PS_KINDS).map(([k, l]) => `<span><i class="pl-k-${k}"></i>${l}</span>`).join("")
-    + '<span><i class="pl-we-on pl-bar"></i>Zone tournoi : inscris-toi à un tournoi</span><span><i class="pl-reg-on pl-bar"></i>Mes inscriptions</span><span><i class="pl-reg-hors pl-bar"></i>Inscription hors planification</span>';
+    + '<span><i class="pl-we-on pl-bar"></i>Zone tournoi : inscris-toi à un tournoi</span><span><i class="pl-reg-on pl-bar"></i>Mes inscriptions</span><span><i class="pl-reg-hors pl-bar"></i>Inscription hors planification</span><span><i class="pl-k-none pl-off"></i>Jour sans entraînement</span>';
   host.innerHTML = `<div class="mrp-card ps-card">
     <h2 class="mrp-h">Ma saison ${escHtml(s.label)}</h2>
     <div class="pl-legend">${legend}</div>
@@ -839,6 +843,7 @@ async function renderPortalSeason(player) {
     host.querySelectorAll(".ps-col").forEach((c) => c.classList.toggle("ps-col-sel", +c.dataset.i === i));
     $("ps-week").innerHTML = `<b>Semaine du ${psRange(ws, isoLocal(psDay(ws, 6)))}</b>
       <div>Programme : <b>${escHtml(PS_KINDS[k] || "rien de prévu")}</b></div>
+      ${offIn(ws).length ? `<div>Pas d'entraînement : <b>${offIn(ws).map((d) => `${PS_DOW[psDay(d.day, 0).getDay()]} ${psD(d.day)} (${escHtml(d.label)})`).join(", ")}</b></div>` : ""}
       <div>Week-end (${psWe(ws)}) : ${pl.length ? `<b>zone tournoi</b>${rg.length ? "" : " — inscris-toi à un tournoi ce week-end"}` : "pas de zone tournoi"}</div>
       <div>Mes inscriptions : ${rg.length ? rg.map((x) => `${escHtml(x.name)} (${psRange(x.start_date, x.end_date)})`).join(", ") : "aucune"}</div>
       ${rg.some(regHors) ? '<div class="ps-hors" style="margin-top:4px">Cette inscription tombe hors de la planification des coachs : parles-en avec ton coach.</div>' : ""}`;

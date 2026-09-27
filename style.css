@@ -3728,7 +3728,7 @@ tr.enc-ok td{background:#f4fbf6}
 .dc-mut{background:#eef1f7;color:var(--muted)}
 
 /* ===== Planning tournois (db/106) : frise de saison en double case (semaine + week-end) ===== */
-.pl-k-prepa{background:#f0997b}.pl-k-entrainement{background:#85b7eb}.pl-k-option{background:#9fe1cb}
+.pl-k-prepa{background:#e58fb8}.pl-k-entrainement{background:#85b7eb}.pl-k-option{background:#9fe1cb}
 .pl-k-vacances{background:#d3d1c7}.pl-k-etranger{background:#b39ddb}.pl-k-none{background:#eef1f6}
 .pl-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);margin:6px 0 12px}
 .pl-legend span,.pl-brush{display:inline-flex;align-items:center;gap:6px}
@@ -3860,3 +3860,9 @@ tr.enc-ok td{background:#f4fbf6}
 .mr-part .muted{font-size:.8rem;font-weight:400}
 .mf-fold summary{cursor:pointer;color:var(--blue);font-weight:700;font-size:.9rem;padding:2px 0}
 .mf-fold[open] summary{margin-bottom:8px}
+/* Planning : encoche = semaine avec un jour férié / sans entraînement (db/110) */
+.pl-top{position:relative}
+.pl-top.pl-off::after{content:"";position:absolute;top:0;right:0;width:0;height:0;border-style:solid;border-width:0 7px 7px 0;border-color:transparent #1f2a4d transparent transparent;pointer-events:none}
+.pl-frise-big .pl-top.pl-off::after,.pl-mosaic .pl-top.pl-off::after{border-width:0 11px 11px 0}
+.pl-legend i.pl-off{position:relative;overflow:hidden}
+.pl-legend i.pl-off::after{border-width:0 7px 7px 0}

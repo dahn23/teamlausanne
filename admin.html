@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=265" />
+  <link rel="stylesheet" href="style.css?v=266" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -546,7 +546,7 @@
         <div id="view-plantournois" class="view hidden">
           <div class="crm-head">
             <h1>Planning tournois</h1>
-            <div class="crm-actions"><select id="pl-season" title="Saison de planning (52 semaines)"></select></div>
+            <div class="crm-actions"><button type="button" class="ghost" id="pl-off-btn" title="Jours fériés et jours sans entraînement de la saison">Jours sans entraînement</button><select id="pl-season" title="Saison de planning (52 semaines)"></select></div>
           </div>
           <div class="subnav" id="pl-subnav">
             <button class="subtab pl-subtab active" data-plsub="tournois">Prochains tournois</button>
