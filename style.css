@@ -3811,3 +3811,15 @@ tr.enc-ok td{background:#f4fbf6}
 .pl-mosaic .ps-col-sel .pl-top{outline:none}
 /* Mosaïque sur tablette (plus large qu'un téléphone) : deux mois côte à côte */
 @media (min-width:640px){.pl-frise.pl-mosaic{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:22px;row-gap:8px}}
+/* Planning : zone tournoi du week-end (sélection au glisser), rappel « pas encore inscrit », ajout d'inscription par le coach */
+.pl-we.pl-sel{outline:2px solid #ef9f27;outline-offset:-1px;background:#f8d9a8}
+.pl-todo{background:#fff8ee;border:1px solid #f5d3a0;border-radius:12px;padding:10px 12px;margin:0 0 12px}
+.pl-todo-row{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:4px 0}
+.pl-todo-d{font-size:.8rem;font-weight:700;color:#633806;min-width:120px}
+.pl-reg-add{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.pl-reg-add input[type=text]{flex:1 1 100%}
+.pl-reg-add label{display:flex;flex-direction:column;font-size:.78rem;color:var(--muted,#667);gap:2px;flex:1 1 130px}
+.pl-reg-add button{flex:0 0 auto}
+.ps-todo{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.ps-todo-b{background:#fff8ee;border:1px solid #ef9f27;color:#633806;border-radius:999px;padding:5px 12px;font-size:.8rem;font-weight:700;cursor:pointer}
+.ps-todo-b:hover{background:#fdebd0}

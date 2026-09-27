@@ -776,13 +776,18 @@ async function renderPortalSeason(player) {
     : `<div class="pl-months" style="grid-template-columns:repeat(${weeks.length},minmax(0,1fr))">${months}</div>
     <div class="pl-frise ps-frise" style="grid-template-columns:repeat(${weeks.length},minmax(0,1fr))">${cellArr.join("")}</div>`;
   const mine = all.filter((x) => x.source === "joueur" && x.end_date >= today);
+  // Week-ends en zone tournoi, à venir, sans aucune inscription cette semaine-là.
+  const todo = weeks.filter((ws) => isoLocal(psDay(ws, 6)) >= today && planned(ws).length && !regsIn(ws).length);
   const legend = Object.entries(PS_KINDS).map(([k, l]) => `<span><i class="pl-k-${k}"></i>${l}</span>`).join("")
-    + '<span><i class="pl-we-on pl-bar"></i>Tournoi prévu par les coachs</span><span><i class="pl-reg-on pl-bar"></i>Mes inscriptions</span><span><i class="pl-reg-hors pl-bar"></i>Inscription hors planification</span>';
+    + '<span><i class="pl-we-on pl-bar"></i>Zone tournoi : inscris-toi à un tournoi</span><span><i class="pl-reg-on pl-bar"></i>Mes inscriptions</span><span><i class="pl-reg-hors pl-bar"></i>Inscription hors planification</span>';
   host.innerHTML = `<div class="mrp-card ps-card">
     <h2 class="mrp-h">Ma saison ${escHtml(s.label)}</h2>
     <div class="pl-legend">${legend}</div>
     ${friseHtml}
     <div id="ps-week" class="ps-week"><span class="muted">Touche une semaine pour voir son programme.</span></div>
+    ${todo.length ? `<h3 class="ps-h">Zones tournoi : à toi de t'inscrire</h3>
+    <p class="muted" style="margin:0 0 4px;font-size:.8rem">Tes coachs ont prévu un tournoi ces week-ends. Touche une date pour la reporter dans le formulaire.</p>
+    <div class="ps-todo">${todo.map((ws) => `<button type="button" class="ps-todo-b" data-ws="${ws}">${psWe(ws)}</button>`).join("")}</div>` : ""}
     <h3 class="ps-h">Mes inscriptions à venir</h3>
     ${mine.length ? mine.map((x) => `<div class="pl-wt"><span><b>${psRange(x.start_date, x.end_date)}</b> · ${escHtml(x.name)}${regHors(x) ? ' <span class="ps-hors">hors planification</span>' : ""}</span>${x.created_by === me ? `<button type="button" class="ps-del" data-id="${x.id}" aria-label="Retirer">✕</button>` : ""}</div>`).join("") : '<p class="muted" style="margin:4px 0">Aucune inscription pour l\'instant.</p>'}
     <div class="ps-add">
@@ -799,7 +804,7 @@ async function renderPortalSeason(player) {
     host.querySelectorAll(".ps-col").forEach((c) => c.classList.toggle("ps-col-sel", +c.dataset.i === i));
     $("ps-week").innerHTML = `<b>Semaine du ${psRange(ws, isoLocal(psDay(ws, 6)))}</b>
       <div>Programme : <b>${escHtml(PS_KINDS[k] || "rien de prévu")}</b></div>
-      <div>Week-end (${psWe(ws)}) : ${pl.length ? "tournoi prévu — " + pl.map((x) => escHtml(x.name)).join(", ") : "pas de tournoi prévu"}</div>
+      <div>Week-end (${psWe(ws)}) : ${pl.length ? `<b>zone tournoi</b>${rg.length ? "" : " — inscris-toi à un tournoi ce week-end"}` : "pas de zone tournoi"}</div>
       <div>Mes inscriptions : ${rg.length ? rg.map((x) => `${escHtml(x.name)} (${psRange(x.start_date, x.end_date)})`).join(", ") : "aucune"}</div>
       ${rg.some(regHors) ? '<div class="ps-hors" style="margin-top:4px">Cette inscription tombe hors de la planification des coachs : parles-en avec ton coach.</div>' : ""}`;
     const f = $("ps-from"); if (f && !f.value && ws >= today) { f.value = isoLocal(psDay(ws, 5)); $("ps-to").value = isoLocal(psDay(ws, 6)); }
@@ -807,6 +812,11 @@ async function renderPortalSeason(player) {
   host.querySelectorAll(".ps-col").forEach((c) => c.addEventListener("click", () => showWeek(+c.dataset.i)));
   const cur = weeks.indexOf(thisMonday); if (cur >= 0) showWeek(cur);
   $("ps-from").addEventListener("change", () => { if (!$("ps-to").value || $("ps-to").value < $("ps-from").value) $("ps-to").value = $("ps-from").value; });
+  host.querySelectorAll(".ps-todo-b").forEach((b) => b.addEventListener("click", () => {
+    const i = weeks.indexOf(b.dataset.ws); if (i >= 0) showWeek(i);
+    $("ps-from").value = isoLocal(psDay(b.dataset.ws, 5)); $("ps-to").value = isoLocal(psDay(b.dataset.ws, 6));
+    $("ps-from").dispatchEvent(new Event("change")); $("ps-name").focus();
+  }));
   host.querySelectorAll(".ps-del").forEach((b) => b.addEventListener("click", async () => {
     const { error } = await sb.from("plan_tournaments").delete().eq("id", b.dataset.id);
     if (error) { $("ps-msg").textContent = "Impossible : " + error.message; return; }
