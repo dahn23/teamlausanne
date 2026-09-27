@@ -5895,16 +5895,30 @@ function gzWkLabel(w) {
   const s = new Date(w.weekend_start + "T12:00:00"), e = new Date(s); e.setDate(s.getDate() + 1);
   return `Week-end du ${s.getDate()}–${e.getDate()}.${String(e.getMonth() + 1).padStart(2, "0")}.${e.getFullYear()}`;
 }
+let gzWkShowDone = false;
 function renderWeekends(sid) {
   const box = $("gz-fin-weekends"); if (!box) return;
   const today = new Date().toISOString().slice(0, 10);
   const list = gzWeekends.filter((w) => w.weekend_start <= today && (!sid || w.season_id === sid || !w.season_id)
     && (Number(w.cash) + Number(w.twint) + Number(w.carte) > 0 || w.cash_validated_at || w.card_validated_at || w.twint_validated_at));   // un relevé seul (sans vente) ne fait pas un week-end
   if (!list.length) { box.innerHTML = '<p class="muted" style="margin:0;font-size:.88rem">Aucun week-end encaissé sur cette saison.</p>'; return; }
+  // Week-end entièrement validé (cash, carte et Twint ; un moyen sans aucune vente ni relevé compte comme fait) :
+  // masqué, avec un lien pour le réafficher (décision Dan 28.09.2026).
+  const wkDone = (w) => (w.cash_validated_at || (Number(w.cash) === 0 && w.till_counted == null))
+    && (w.card_validated_at || (Number(w.carte) === 0 && w.card_gross == null))
+    && (w.twint_validated_at || (Number(w.twint) === 0 && w.twint_gross == null));
+  const nDone = list.filter(wkDone).length;
+  const shown = gzWkShowDone ? list : list.filter((w) => !wkDone(w));
+  const toggle = nDone ? `<button type="button" class="ghost gz-wk-toggle">${gzWkShowDone ? "Masquer les week-ends validés" : `Afficher ${nDone === 1 ? "le week-end validé" : `les ${nDone} week-ends validés`}`}</button>` : "";
+  if (!shown.length) {
+    box.innerHTML = `<p class="muted" style="margin:0 0 8px;font-size:.88rem">✓ Tous les week-ends sont validés.</p>${toggle}`;
+    box.querySelector(".gz-wk-toggle")?.addEventListener("click", () => { gzWkShowDone = !gzWkShowDone; renderWeekends(sid); });
+    return;
+  }
   const canEdit = hasAny(meRoles, ["superadmin", "admin", "secretaire"]);
   const who = (by, at) => `<span class="gz-wk-okv">✓ validé</span> <span class="muted" style="font-size:.8rem">${esc(by || "")}${at ? " · " + frDate(at.slice(0, 10)) : ""}</span>`;
   const btn = (act, w, label) => canEdit ? `<button type="button" class="ghost gz-wk-act" data-act="${act}" data-wk="${w.weekend_start}">${label}</button>` : "";
-  box.innerHTML = list.map((w) => {
+  box.innerHTML = shown.map((w) => {
     const cashCons = Number(w.cash), carteCons = Number(w.carte), twintCons = Number(w.twint);
     // Cash
     // Cash : on contrôle le FOND DE CAISSE (caisse entière après la clôture du dimanche), pas les seules rentrées.
@@ -5933,8 +5947,9 @@ function renderWeekends(sid) {
       <div class="gz-wk-line"><span class="gz-wk-lbl">Cash</span><span class="gz-wk-val">${cash}</span></div>
       <div class="gz-wk-line"><span class="gz-wk-lbl">Carte</span><span class="gz-wk-val">${carte}</span></div>
       <div class="gz-wk-line"><span class="gz-wk-lbl">Twint</span><span class="gz-wk-val">${twint}</span></div></div>`;
-  }).join("");
+  }).join("") + toggle;
   box.querySelectorAll(".gz-wk-act").forEach((b) => b.addEventListener("click", () => gzWeekendAction(b.dataset.act, b.dataset.wk)));
+  box.querySelector(".gz-wk-toggle")?.addEventListener("click", () => { gzWkShowDone = !gzWkShowDone; renderWeekends(sid); });
 }
 
 async function gzWeekendAction(act, wk) {
