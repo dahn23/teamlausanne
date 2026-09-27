@@ -308,6 +308,19 @@ async function renderAccueil() {
       </div>
     </article>`).join("");
 }
+// Petite fenêtre de confirmation (message en HTML déjà échappé) → Promise<boolean>.
+function ptConfirm(html, okLabel = "Oui") {
+  return new Promise((resolve) => {
+    const ov = document.createElement("div"); ov.className = "ui-modal";
+    ov.innerHTML = `<div class="ui-box pt-notice-box"><p style="margin:0 0 4px;line-height:1.45">${html}</p>
+      <div class="ui-actions"><button type="button" class="ghost pt-c-no">Annuler</button><button type="button" class="primary pt-c-ok">${escHtml(okLabel)}</button></div></div>`;
+    const done = (v) => { ov.remove(); resolve(v); };
+    ov.addEventListener("click", (e) => { if (e.target === ov) done(false); });
+    ov.querySelector(".pt-c-no").addEventListener("click", () => done(false));
+    ov.querySelector(".pt-c-ok").addEventListener("click", () => done(true));
+    document.body.appendChild(ov);
+  });
+}
 function escHtml(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
 /* ============================================================
@@ -858,6 +871,8 @@ async function renderPortalSeason(player) {
     $("ps-from").dispatchEvent(new Event("change")); $("ps-name").focus();
   }));
   host.querySelectorAll(".ps-del").forEach((b) => b.addEventListener("click", async () => {
+    const x = mine.find((m) => m.id === b.dataset.id);
+    if (!await ptConfirm(`Es-tu sûr·e de vouloir retirer ton inscription${x ? ` à <b>${escHtml(x.name)}</b> (${psRange(x.start_date, x.end_date)})` : ""} ?`, "Oui, retirer")) return;
     const { error } = await sb.from("plan_tournaments").delete().eq("id", b.dataset.id);
     if (error) { $("ps-msg").textContent = "Impossible : " + error.message; return; }
     renderPortalSeason(player);
