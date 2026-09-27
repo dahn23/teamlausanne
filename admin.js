@@ -12541,9 +12541,12 @@ async function loadPersonMatchs(personId, byRole) {
       <div class="mr-comp-wrap">${comp}</div>` : ""}
     <h3 style="margin:16px 0 8px">Feuilles de match</h3>
     ${rows.length ? '<div class="table-wrap"><table class="crm-table"><thead><tr><th>Date</th><th>Adversaire</th><th>Résultat</th><th>Par</th></tr></thead><tbody>'
-      + rows.map((r) => `<tr><td>${r.match_date ? frDate(r.match_date) : "—"}</td><td>${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td><td>${mrResult(r)} ${esc(r.score || "")}</td><td><span class="mr-badge ${r.author_role}">${r.author_role}</span></td></tr>`).join("")
+      + rows.map((r) => `<tr class="mr-row" data-id="${r.id}" title="Ouvrir la feuille"><td>${r.match_date ? frDate(r.match_date) : "—"}</td><td>${r.competition ? `<span class="muted">${esc(r.competition)} · </span>` : ""}${esc(r.opponent || "—")}${r.opponent_ranking ? " (" + esc(r.opponent_ranking.toUpperCase()) + ")" : ""}</td><td>${mrResult(r)} ${esc(r.score || "")}</td><td><span class="mr-badge ${r.author_role}">${r.author_role}</span> <span class="muted">${esc(r.author_name || "")}</span></td></tr>`).join("")
       + "</tbody></table></div>" : '<p class="muted" style="font-size:.85rem">Aucune feuille de match.</p>'}
     <div id="pm-hist"></div>`;
+  // Clic sur une feuille : elle s'ouvre en entier dans la fiche (avant / après match), « Retour » revient à la liste.
+  mount.querySelectorAll(".mr-row").forEach((tr) => tr.addEventListener("click", () =>
+    openMatchReport(tr.dataset.id, "mrf-mount", () => loadPersonMatchs(personId, true))));
   renderPmHistory(personId, rows);
 }
 
