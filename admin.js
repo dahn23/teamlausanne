@@ -2400,6 +2400,12 @@ async function plPaintWeekends(pid, weeks, on) {
       plTours.push(...(data || []));
     }
   } else {
+    const hit = weeks.filter((ws) => plPlanned(pid, ws).length);
+    if (!hit.length) return;
+    const msg = hit.length === 1
+      ? `Es-tu sûr de vouloir retirer la zone tournoi du week-end ${plWeLabel(hit[0])} pour ${plName(pid)} ?`
+      : `Es-tu sûr de vouloir retirer les ${hit.length} zones tournoi (du week-end ${plWeLabel(hit[0])} à celui ${plWeLabel(hit[hit.length - 1])}) pour ${plName(pid)} ?`;
+    if (!await uiConfirm(msg)) { plRenderCal(); return; }
     const { error } = await sb.from("plan_tournaments").delete().eq("person_id", pid).eq("source", "staff").in("week_start", weeks);
     if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
     plTours = plTours.filter((t) => !(t.person_id === pid && t.source === "staff" && weeks.includes(t.week_start)));
@@ -2423,6 +2429,8 @@ function plOpenRegs(pid, ws) {
         <button type="button" class="primary" id="pl-wt-add">Ajouter</button></div>
       <div class="ui-actions"><button type="button" class="ghost ui-no">Fermer</button></div></div>`;
     ov.querySelectorAll(".pl-wt-del").forEach((b) => b.addEventListener("click", async () => {
+      const x = plTours.find((t) => t.id === b.dataset.id);
+      if (!await uiConfirm(`Es-tu sûr de vouloir retirer l'inscription${x ? ` à « ${x.name} » (${plRange(x.start_date, x.end_date)})` : ""} de ${plName(pid)} ?`)) return;
       const { error } = await sb.from("plan_tournaments").delete().eq("id", b.dataset.id);
       if (error) { uiAlert(error.message); return; }
       plTours = plTours.filter((t) => t.id !== b.dataset.id); draw();
