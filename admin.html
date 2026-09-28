@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=275" />
+  <link rel="stylesheet" href="style.css?v=276" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -997,7 +997,10 @@
           <div class="subnav">
             <button class="subtab mn-subtab active" data-sub="calendrier">Calendrier</button>
             <button class="subtab mn-subtab" data-sub="participants">Participants</button>
+            <button class="subtab mn-subtab hidden" data-sub="routines" id="mn-tab-routines">Routines</button>
           </div>
+
+          <div id="mn-sub-routines" class="mn-sub hidden"><div id="mnr-body"></div></div>
 
           <div id="mn-sub-calendrier" class="mn-sub">
             <div class="crm-actions" style="margin-bottom:10px;flex-wrap:wrap">

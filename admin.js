@@ -13123,7 +13123,9 @@ function initMental() {
       document.querySelectorAll("#view-mental .mn-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "mn-sub-" + b.dataset.sub));
       if (b.dataset.sub === "calendrier") loadMentalCalendar();
       if (b.dataset.sub === "participants") loadMentalParticipants();
+      if (b.dataset.sub === "routines") loadMentalRoutines();
     }));
+  $("mn-tab-routines").classList.toggle("hidden", !canMentalEdit());
   $("mn-season").addEventListener("change", loadMentalCalendar);
   $("mn-season2").addEventListener("change", loadMentalParticipants);
   $("mn-add-session").addEventListener("click", addMentalSession);
@@ -13180,6 +13182,137 @@ async function delMentalSession(id) {
   const { error } = await sb.from("mental_sessions").delete().eq("id", id);
   if (error) { alert(error.message); return; }
   loadMentalCalendar();
+}
+
+// ---- Routines mentales (db/119) : conseils éditables, attribués jeune par jeune, affichés dans Mon espace › Mental ----
+// Éditées par le coach mental (Fred), le head coach, l'admin et le superadmin. Compétition et performance ne voient
+// que ces routines dans Mon espace › Mental ; pro, pro U18 et sport-études les ont en plus de Messages / Après séance.
+const MNR_KINDS = [["avant", "Avant le match"], ["pendant", "Pendant le match"], ["apres", "Après le match"], ["autre", "Autre"]];
+const MNR_KIND = Object.fromEntries(MNR_KINDS);
+const MNR_FIL = { "sport-etudes": "Sport-études", pro: "Pro", "pro-u18": "Pro U18", competition: "Compétition", performance: "Performance" };
+const canMentalEdit = () => hasAny(myAppRoles, ["coach_mental", "head_coach", "admin", "superadmin"]);
+let mnrRoutines = [], mnrAssign = [], mnrYouths = [];
+const mnrName = (pid) => { const y = mnrYouths.find((x) => x.person_id === pid); return y ? `${y.first_name} ${y.last_name}` : null; };
+async function loadMentalRoutines() {
+  const box = $("mnr-body"); box.innerHTML = '<p class="muted">Chargement…</p>';
+  const [{ data: r, error }, { data: a }, { data: y }] = await Promise.all([
+    sb.from("mental_routines").select("*").order("created_at"),
+    fetchAllRows(() => sb.from("mental_routine_assign").select("routine_id,person_id")),
+    sb.rpc("mental_routine_youths"),
+  ]);
+  if (error) { box.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  const ord = { avant: 1, pendant: 2, apres: 3, autre: 4 };
+  mnrRoutines = (r || []).sort((p, q) => (ord[p.kind] || 9) - (ord[q.kind] || 9) || p.title.localeCompare(q.title));
+  mnrAssign = a || [];
+  mnrYouths = (y || []).sort((p, q) => (p.last_name || "").localeCompare(q.last_name || "") || (p.first_name || "").localeCompare(q.first_name || ""));
+  mnrRender();
+}
+function mnrRender() {
+  const box = $("mnr-body");
+  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">
+      <p class="muted" style="font-size:.85rem;margin:0;max-width:640px">Les conseils que les jeunes lisent dans Mon espace › Mental. Chaque routine s'attribue jeune par jeune : duplique-la pour en faire une version pour un seul joueur.</p>
+      <button type="button" class="primary" id="mnr-new">+ Nouvelle routine</button></div>
+    ${mnrRoutines.length ? mnrRoutines.map((r) => {
+      const who = mnrAssign.filter((x) => x.routine_id === r.id).map((x) => mnrName(x.person_id) || "(hors filières)").sort((p, q) => p.localeCompare(q));
+      const n = (r.items || []).length;
+      return `<div class="rg-card phx-rcard" data-id="${r.id}">
+        <div class="phx-rcard-h"><div><span class="phx-kind mnr-k-${esc(r.kind)}">${esc(MNR_KIND[r.kind] || "Autre")}</span> <b>${esc(r.title)}</b>
+          <div class="muted" style="font-size:.82rem;margin-top:2px">${n} conseil${n > 1 ? "s" : ""} · <b>${who.length}</b> jeune${who.length > 1 ? "s" : ""}</div></div>
+          <div class="phx-racts"><button type="button" class="ghost mnr-as">Attribuer…</button><button type="button" class="ghost mnr-ed">Modifier</button><button type="button" class="ghost mnr-dup">Dupliquer</button><button type="button" class="fam-del mnr-del" title="Supprimer">✕</button></div></div>
+        <div class="mnr-who">${who.length ? who.map((w) => `<span class="pl-chip">${esc(w)}</span>`).join("") : '<span class="muted" style="font-size:.85rem">Attribuée à personne.</span>'}</div>
+        <details class="phx-rt"><summary><span class="muted">Voir les conseils</span></summary>
+          ${r.intro ? `<p class="phx-intro">${esc(r.intro)}</p>` : ""}
+          <ol class="mnr-ol">${(r.items || []).map((x) => `<li><b>${esc(x.title || "")}</b>${x.text ? `<span>${esc(x.text)}</span>` : ""}</li>`).join("")}</ol></details></div>`;
+    }).join("") : '<p class="muted">Aucune routine.</p>'}`;
+  $("mnr-new").addEventListener("click", () => mnrEdit(null));
+  box.querySelectorAll(".phx-rcard").forEach((c) => {
+    const r = mnrRoutines.find((x) => x.id === c.dataset.id);
+    c.querySelector(".mnr-ed").addEventListener("click", () => mnrEdit(r));
+    c.querySelector(".mnr-dup").addEventListener("click", () => mnrEdit({ ...r, id: null, title: `${r.title} (copie)` }));
+    c.querySelector(".mnr-as").addEventListener("click", () => mnrAssignOpen(r));
+    c.querySelector(".mnr-del").addEventListener("click", async () => {
+      const n = mnrAssign.filter((x) => x.routine_id === r.id).length;
+      if (!await uiConfirm(`Supprimer la routine « ${r.title} » ?${n ? ` Elle disparaîtra de Mon espace pour ${n} jeune${n > 1 ? "s" : ""}.` : ""}`)) return;
+      const { error } = await sb.from("mental_routines").delete().eq("id", r.id);
+      if (error) { uiAlert(error.message); return; }
+      loadMentalRoutines();
+    });
+  });
+}
+// Création / modification (ou copie : r sans id) : titre, moment, consigne, conseils (titre + explication).
+function mnrEdit(r) {
+  const it = (r?.items || []).map((x) => ({ ...x }));
+  if (!it.length) it.push({ title: "", text: "" });
+  const ov = document.createElement("div"); ov.className = "ui-modal";
+  const draw = () => {
+    ov.innerHTML = `<div class="ui-box phx-editor" style="max-width:640px;text-align:left">
+      <h3 style="margin:0 0 10px">${r?.id ? "Modifier la routine" : r ? "Copie de la routine" : "Nouvelle routine"}</h3>
+      <div class="phx-ed-grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">
+        <label>Titre<input type="text" id="mnr-t" maxlength="120" /></label>
+        <label>Moment<select id="mnr-k">${MNR_KINDS.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("")}</select></label>
+      </div>
+      <label class="phx-full">Phrase d'introduction<textarea id="mnr-i" rows="2" placeholder="ex. Cinq conseils à relire la veille et le jour J."></textarea></label>
+      <div class="phx-h" style="margin:12px 0 6px">Conseils</div>
+      <div>${it.map((x, i) => `<div class="phx-exrow mnr-row" data-i="${i}">
+        <span class="phx-exn">${i + 1}</span>
+        <div class="phx-exf"><input type="text" class="mnr-it" placeholder="Conseil (en quelques mots)" value="${esc(x.title || "")}" />
+          <textarea class="mnr-ix" rows="2" placeholder="Explication">${esc(x.text || "")}</textarea></div>
+        <div class="phx-exa"><button type="button" class="ghost mnr-up" title="Monter">↑</button><button type="button" class="ghost mnr-down" title="Descendre">↓</button><button type="button" class="fam-del mnr-rm" title="Retirer">✕</button></div></div>`).join("")}</div>
+      <button type="button" class="ghost" id="mnr-add" style="margin-top:6px">+ Ajouter un conseil</button>
+      <div class="ui-actions"><button type="button" class="ghost ui-no">Annuler</button><button type="button" class="primary" id="mnr-save">Enregistrer</button></div></div>`;
+    // La fenêtre n'est pas encore dans la page au premier dessin : chercher les champs dans ov, pas avec $().
+    ov.querySelector("#mnr-t").value = ov._t ?? (r?.title || ""); ov.querySelector("#mnr-k").value = ov._k ?? (r?.kind || "autre"); ov.querySelector("#mnr-i").value = ov._i ?? (r?.intro || "");
+    const grab = () => {
+      ov._t = ov.querySelector("#mnr-t").value; ov._k = ov.querySelector("#mnr-k").value; ov._i = ov.querySelector("#mnr-i").value;
+      ov.querySelectorAll(".mnr-row").forEach((row) => { it[+row.dataset.i] = { title: row.querySelector(".mnr-it").value, text: row.querySelector(".mnr-ix").value }; });
+    };
+    ov.querySelector("#mnr-add").addEventListener("click", () => { grab(); it.push({ title: "", text: "" }); draw(); });
+    ov.querySelectorAll(".mnr-row").forEach((row) => {
+      const i = +row.dataset.i;
+      row.querySelector(".mnr-rm").addEventListener("click", () => { grab(); it.splice(i, 1); if (!it.length) it.push({ title: "", text: "" }); draw(); });
+      row.querySelector(".mnr-up").addEventListener("click", () => { grab(); if (i > 0) [it[i - 1], it[i]] = [it[i], it[i - 1]]; draw(); });
+      row.querySelector(".mnr-down").addEventListener("click", () => { grab(); if (i < it.length - 1) [it[i + 1], it[i]] = [it[i], it[i + 1]]; draw(); });
+    });
+    ov.querySelector(".ui-no").addEventListener("click", () => ov.remove());
+    ov.querySelector("#mnr-save").addEventListener("click", async () => {
+      grab();
+      const row = { title: ov._t.trim(), kind: ov._k, intro: ov._i.trim() || null,
+        items: it.map((x) => ({ title: (x.title || "").trim(), text: (x.text || "").trim() })).filter((x) => x.title), updated_at: new Date().toISOString() };
+      if (row.title.length < 2) { uiAlert("Donne un titre à la routine."); return; }
+      if (!row.items.length) { uiAlert("Ajoute au moins un conseil."); return; }
+      const { data, error } = r?.id
+        ? await sb.from("mental_routines").update(row).eq("id", r.id).select().single()
+        : await sb.from("mental_routines").insert({ ...row, created_by: meId }).select().single();
+      if (error) { uiAlert(error.message); return; }
+      ov.remove(); await loadMentalRoutines();
+      if (!r?.id) mnrAssignOpen(data);   // nouvelle routine : on propose tout de suite de l'attribuer
+    });
+  };
+  draw(); document.body.appendChild(ov);
+}
+// Attribuer une routine jeune par jeune (cases groupées par filière de la saison en cours, « tout cocher » par filière).
+function mnrAssignOpen(r) {
+  const ov = document.createElement("div"); ov.className = "ui-modal";
+  const has = new Set(mnrAssign.filter((x) => x.routine_id === r.id).map((x) => x.person_id));
+  ov.innerHTML = `<div class="ui-box" style="max-width:560px;text-align:left">
+    <h3 style="margin:0 0 4px">Attribuer « ${esc(r.title)} »</h3>
+    <p class="muted" style="margin:0 0 10px;font-size:.85rem">Coche les jeunes qui verront cette routine dans Mon espace › Mental.</p>
+    <div class="pl-cp-list">${Object.keys(MNR_FIL).map((f) => {
+      const ps = mnrYouths.filter((y) => y.fil === f); if (!ps.length) return "";
+      return `<div class="pl-cp-grp"><label class="rg-check"><b><input type="checkbox" class="mnr-all" data-f="${f}" /> ${esc(MNR_FIL[f])}</b></label>
+        ${ps.map((y) => `<label class="rg-check"><input type="checkbox" class="mnr-y" data-f="${f}" value="${y.person_id}"${has.has(y.person_id) ? " checked" : ""} /> ${esc(y.first_name)} ${esc(y.last_name)}</label>`).join("")}</div>`;
+    }).join("")}</div>
+    <div class="ui-actions"><button type="button" class="ghost ui-no">Annuler</button><button type="button" class="primary" id="mnr-as-go">Enregistrer</button></div></div>`;
+  ov.querySelectorAll(".mnr-all").forEach((c) => c.addEventListener("change", () => ov.querySelectorAll(`.mnr-y[data-f="${c.dataset.f}"]`).forEach((x) => (x.checked = c.checked))));
+  ov.querySelector(".ui-no").addEventListener("click", () => ov.remove());
+  ov.querySelector("#mnr-as-go").addEventListener("click", async () => {
+    const want = new Set([...ov.querySelectorAll(".mnr-y:checked")].map((x) => x.value));
+    const add = [...want].filter((id) => !has.has(id)), del = [...has].filter((id) => !want.has(id) && mnrYouths.some((y) => y.person_id === id));
+    if (add.length) { const { error } = await sb.from("mental_routine_assign").insert(add.map((id) => ({ routine_id: r.id, person_id: id, assigned_by: meId }))); if (error) { uiAlert(error.message); return; } }
+    if (del.length) { const { error } = await sb.from("mental_routine_assign").delete().eq("routine_id", r.id).in("person_id", del); if (error) { uiAlert(error.message); return; } }
+    ov.remove(); loadMentalRoutines();
+  });
+  document.body.appendChild(ov);
 }
 
 // ---- Participants ----

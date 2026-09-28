@@ -1240,17 +1240,19 @@ function renderComp() {
   const host = $("view-comp");
   if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>Réservé aux joueurs de compétition.</p></div>`; return; }
   compSel = playerPick(compSel);
-  // Compétition et performance : pas de Messages ni d'Après séance, des conseils de gestion du match (28.09.2026).
+  // Compétition et performance : pas de Messages ni d'Après séance, seulement les routines mentales (db/119),
+  // conseils rédigés et attribués par le coach mental dans la console (Mental › Routines).
   if (!ELITE.has(compSel)) {
-    host.innerHTML = playerSelHtml(compSel) + renderCompTips();
+    host.innerHTML = playerSelHtml(compSel) + `<div id="comp-sub"></div>`;
     host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { compSel = b.dataset.id; renderComp(); }));
-    return;
+    renderCompRoutines(); return;
   }
-  if (!["messages", "proud"].includes(compSub)) compSub = "messages";
+  if (!["messages", "proud", "routines"].includes(compSub)) compSub = "messages";
   host.innerHTML = playerSelHtml(compSel) + `
     <div class="comp-subtabs">
       <button type="button" class="comp-subtab ${compSub === "messages" ? "on" : ""}" data-s="messages">Messages</button>
       <button type="button" class="comp-subtab ${compSub === "proud" ? "on" : ""}" data-s="proud">Après séance</button>
+      <button type="button" class="comp-subtab ${compSub === "routines" ? "on" : ""}" data-s="routines">Routines</button>
     </div>
     <div id="comp-sub"></div>`;
   host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { compSel = b.dataset.id; renderComp(); }));
@@ -1261,38 +1263,23 @@ function renderComp() {
   }));
   renderCompSub();
 }
-const COMP_TIPS = [
-  ["Avant le match", "🎯", [
-    ["Prépare ton sac la veille", "Deux raquettes cordées, grips, bouteille, en-cas, tenue de rechange. Le jour J, ta tête est libre pour le tennis."],
-    ["Fixe-toi un objectif de jeu", "Un ou deux objectifs que tu contrôles (« jouer long croisé », « avancer sur les balles courtes ») plutôt que « gagner »."],
-    ["Échauffe-toi vraiment", "Ta routine de 10 minutes (onglet Physique) puis quelques frappes. Un corps chaud, c'est une tête plus calme."],
-    ["Accueille le trac", "Le stress est normal, c'est de l'énergie. Avant d'entrer sur le court, respire lentement quelques fois : 4 secondes pour inspirer, 6 pour expirer."],
-    ["Oublie le classement de l'autre", "Il ne joue pas à ta place. Concentre-toi sur ton jeu et sur ce que tu as prévu."],
-  ]],
-  ["Pendant le match", "🔥", [
-    ["Une routine entre les points", "Tourne le dos au filet, arrange tes cordes, respire, puis décide de ton prochain point. Toujours la même, même quand tout va bien."],
-    ["Un point à la fois", "Le point perdu est terminé. Le seul qui compte, c'est le suivant."],
-    ["Parle-toi comme un coach", "« Allez, bouge tes pieds » plutôt que « t'es nul ». Tu joues mieux avec un allié dans la tête qu'avec un juge."],
-    ["Profite des changements de côté", "Bois, mange un peu si le match est long, et fais le point : qu'est-ce qui marche ? qu'est-ce que je change ?"],
-    ["Quand ça va mal, simplifie", "Plus de marge, balles hautes et au centre, jusqu'à retrouver ton rythme. Garde la tête haute, même mené au score."],
-  ]],
-  ["Après le match", "🤝", [
-    ["Fair-play d'abord", "Serre la main et remercie ton adversaire et l'arbitre, quel que soit le résultat."],
-    ["Récupère", "Décrassage de 10 minutes (onglet Physique), bois, et mange dans l'heure qui suit."],
-    ["Laisse retomber les émotions", "On analyse un match à froid, pas à chaud. Prends un moment avant de le juger."],
-    ["Remplis ta feuille de match", "Onglet Match : deux choses réussies et une chose à travailler, c'est déjà beaucoup."],
-    ["Parles-en, puis passe à la suite", "Discutes-en avec ton coach au prochain entraînement. Une défaite est une information, une victoire aussi."],
-  ]],
-];
-function renderCompTips() {
-  return `<p class="muted" style="margin:0 0 12px;font-size:.9rem">Cinq conseils pour chaque moment du match. Relis-les la veille et le jour J&nbsp;!</p>`
-    + COMP_TIPS.map(([title, icon, tips]) => `<div class="mrp-card tips-card">
-      <h2 class="mrp-h">${icon} ${escHtml(title)}</h2>
-      <ol class="tips-ol">${tips.map(([t, d]) => `<li><b>${escHtml(t)}</b><span>${escHtml(d)}</span></li>`).join("")}</ol>
+// Routines mentales attribuées au jeune : une carte par routine (moment, introduction, conseils numérotés).
+const MNR_ICON = { avant: "🎯", pendant: "🔥", apres: "🤝", autre: "💡" };
+async function renderCompRoutines() {
+  const host = $("comp-sub"); if (!host) return;
+  host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
+  const { data, error } = await sb.rpc("portal_mental_routines", { p_youth: compSel });
+  if ($("comp-sub") !== host) return;
+  const rows = error ? [] : (data || []);
+  if (!rows.length) { host.innerHTML = `<div class="pt-empty"><p>Pas encore de routine mentale pour toi. Ton coach t'en attribuera bientôt.</p></div>`; return; }
+  host.innerHTML = rows.map((r) => `<div class="mrp-card tips-card">
+      <h2 class="mrp-h">${MNR_ICON[r.kind] || "💡"} ${escHtml(r.title)}</h2>
+      ${r.intro ? `<p class="muted tips-intro">${escHtml(r.intro)}</p>` : ""}
+      <ol class="tips-ol">${(r.items || []).map((x) => `<li><b>${escHtml(x.title || "")}</b>${x.text ? `<span>${escHtml(x.text)}</span>` : ""}</li>`).join("")}</ol>
     </div>`).join("");
 }
 function renderCompSub() {
-  if (compSub === "proud") renderCompProud(); else renderCompMessages();
+  if (compSub === "proud") renderCompProud(); else if (compSub === "routines") renderCompRoutines(); else renderCompMessages();
 }
 // --- Messages (discussion avec l'encadrement) ---
 async function renderCompMessages() {

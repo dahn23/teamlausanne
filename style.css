@@ -4061,3 +4061,9 @@ tr.enc-ok td{background:#f4fbf6}
 .tips-ol li b{display:block;color:var(--ink);font-size:.93rem}
 .ph-hint{margin:0 0 10px;font-size:.85rem;text-align:center}
 .pt-news-link{color:var(--blue);font-weight:700;word-break:break-word}
+/* Routines mentales (db/119) : Mon espace › Mental et console › Mental › Routines */
+.tips-intro{margin:-4px 0 10px;font-size:.86rem}
+.mnr-who{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 4px}
+.mnr-ol{margin:0 14px 12px;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:.88rem}
+.mnr-ol li span{display:block;color:var(--muted)}
+.phx-kind.mnr-k-avant{background:#fff0e0;color:#8a4b08}.phx-kind.mnr-k-pendant{background:#fde8e8;color:#9b1c1c}.phx-kind.mnr-k-apres{background:#e3f4ea;color:#0b6b3a}
