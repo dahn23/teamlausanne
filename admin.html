@@ -1596,37 +1596,14 @@
             <button type="button" id="nl-close" class="modal-close" aria-label="Fermer">×</button>
             <h2 style="margin:0" id="nl-title">Nouvelle newsletter</h2>
 
-            <div class="nl-haut">
-              <span class="nl-sect-t">Modèles</span>
-              <div id="nl-gabarits" class="nl-gabarits"></div>
-            </div>
-
-            <!-- Rédaction assistée : on décrit l'envoi, la mise en page arrive
-                 en blocs modifiables. Repliée par défaut — elle propose un
-                 point de départ, elle ne remplace pas l'éditeur. -->
-            <details class="nl-ia">
-              <summary><span class="nl-ia-ico" aria-hidden="true">✨</span>Proposer une mise en page</summary>
-              <div class="nl-ia-corps">
-                <label class="mailc-f">Que voulez-vous annoncer&nbsp;?
-                  <textarea id="nl-ia-brief" rows="4" placeholder="ex. Nos stages de février : trois semaines du 8 au 26, de 9h à 16h, pour les 6-14 ans. 320.– la semaine, repas compris. Inscription par mail, places limitées."></textarea></label>
-                <p class="muted nl-ia-aide">Donnez les faits : dates, heures, prix, public visé. Ce qui manque reviendra marqué <b>[entre crochets]</b> — rien ne sera inventé.</p>
-                <div class="nl-ia-pied">
-                  <button type="button" id="nl-ia-go">Proposer</button>
-                  <span id="nl-ia-etat" class="muted"></span>
-                </div>
-              </div>
-            </details>
-            <div class="nl-reglages">
-              <label class="mailc-f nl-r-objet">Objet<input id="nl-subject" type="text" placeholder="Objet de la newsletter" autocomplete="off" /></label>
-              <label class="mailc-f">Nom d'expéditeur<input id="nl-from-name" type="text" value="Team Lausanne Academy" /></label>
-              <label class="mailc-f">Adresse d'envoi<input id="nl-from-email" type="email" value="newsletter@teamlausanne.ch" /></label>
-              <label class="mailc-f">Répondre à<input id="nl-reply" type="email" value="info@teamlausanne.ch" /></label>
-            </div>
-
-            <!-- Deux panneaux seulement : la toile occupe tout le centre, les
-                 reglages sont a droite. Les blocs ne s'ajoutent plus depuis une
-                 colonne de gauche mais par les « + » qui apparaissent entre
-                 deux blocs — la place gagnee revient a la composition. -->
+            <!-- DEUX COLONNES. La toile prend toute la hauteur à gauche ; tout
+                 le reste — modèles, assistant, réglages, inspecteur,
+                 destinataires, test — vit dans une colonne qui défile à droite.
+                 Empilées au-dessus et au-dessous, ces bandes ne laissaient que
+                 467 px de toile sur 940 : on compose une mise en page, il faut
+                 pouvoir la voir en entier.
+                 Les blocs s'ajoutent par les « + » de la toile, pas depuis une
+                 colonne d'outils : la place gagnée revient à la composition. -->
             <div class="nl-atelier">
               <div class="nl-scene">
                 <div class="nl-scene-barre">
@@ -1635,7 +1612,74 @@
                 </div>
                 <div id="nl-toile" class="nl-toile"></div>
               </div>
-              <div id="nl-insp" class="nl-insp"></div>
+
+              <div class="nl-cote">
+                <div class="nl-haut">
+                  <span class="nl-sect-t">Modèles</span>
+                  <div id="nl-gabarits" class="nl-gabarits"></div>
+                </div>
+
+                <!-- Rédaction assistée : on décrit l'envoi, la mise en page
+                     arrive en blocs modifiables. Repliée par défaut — elle
+                     propose un point de départ, pas un remplacement. -->
+                <details class="nl-ia">
+                  <summary><span class="nl-ia-ico" aria-hidden="true">✨</span>Proposer une mise en page</summary>
+                  <div class="nl-ia-corps">
+                    <label class="mailc-f">Que voulez-vous annoncer&nbsp;?
+                      <textarea id="nl-ia-brief" rows="4" placeholder="ex. Nos stages de février : trois semaines du 8 au 26, de 9h à 16h, pour les 6-14 ans. 320.– la semaine, repas compris."></textarea></label>
+                    <p class="muted nl-ia-aide">Donnez les faits : dates, heures, prix, public visé. Ce qui manque reviendra marqué <b>[entre crochets]</b> — rien ne sera inventé.</p>
+                    <div class="nl-ia-pied">
+                      <button type="button" id="nl-ia-go">Proposer</button>
+                      <span id="nl-ia-etat" class="muted"></span>
+                    </div>
+                  </div>
+                </details>
+
+                <details class="nl-reg">
+                  <summary>Objet et expéditeur</summary>
+                  <div class="nl-reglages">
+                    <label class="mailc-f nl-r-objet">Objet<input id="nl-subject" type="text" placeholder="Objet de la newsletter" autocomplete="off" /></label>
+                    <label class="mailc-f">Nom d'expéditeur<input id="nl-from-name" type="text" value="Team Lausanne Academy" /></label>
+                    <label class="mailc-f">Adresse d'envoi<input id="nl-from-email" type="email" value="newsletter@teamlausanne.ch" /></label>
+                    <label class="mailc-f">Répondre à<input id="nl-reply" type="email" value="info@teamlausanne.ch" /></label>
+                  </div>
+                </details>
+
+                <div id="nl-insp" class="nl-insp"></div>
+
+                <details class="nl-dest">
+                  <summary>Destinataires <span id="nl-dest-resume" class="muted"></span></summary>
+                  <div class="nl-dest-corps">
+                    <div>
+                      <label class="check"><input type="checkbox" id="nl-all" /> Tout le répertoire (toute personne avec un e-mail)</label>
+                      <div class="muted" style="font-size:.8rem;margin:6px 0 4px">Ou par filière / tag (saison en cours) :</div>
+                      <div id="nl-roles" class="nl-roles"></div>
+                    </div>
+                    <div>
+                      <div class="muted" style="font-size:.8rem;margin:0 0 4px">Participants GameZone :</div>
+                      <label class="check"><input type="checkbox" id="nl-gz-all" /> Tous les participants GameZone</label>
+                      <label class="check" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="nl-gz-season-on" /> Saison <select id="nl-gz-season" style="max-width:170px"></select></label>
+                      <label class="mailc-f" style="margin-top:8px">E-mails supplémentaires <span class="muted" style="font-weight:400">(un par ligne)</span><textarea id="nl-extra" rows="3"></textarea></label>
+                      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+                        <button type="button" id="nl-count" class="ghost">Calculer les destinataires</button>
+                        <span id="nl-count-res" class="muted" style="font-size:.85rem"></span>
+                      </div>
+                      <div id="nl-preview" class="nl-preview"></div>
+                    </div>
+                  </div>
+                </details>
+
+                <!-- Le test part où on le décide : à soi pour se relire, à un
+                     collègue pour faire valider, à une autre boîte pour
+                     vérifier le rendu. -->
+                <div class="nl-essai">
+                  <label class="mailc-f nl-essai-f">Envoyer un test à
+                    <input id="nl-test-to" type="text" autocomplete="off"
+                      placeholder="prenom@exemple.ch — séparées par une virgule" /></label>
+                  <div id="nl-test-vite" class="nl-test-vite"></div>
+                  <button type="button" id="nl-test" class="ghost">Envoyer le test</button>
+                </div>
+              </div>
             </div>
 
             <!-- Palette flottante, ouverte par un « + » de la toile. -->
@@ -1656,39 +1700,6 @@
             <!-- Le HTML compilé vit ici, caché : l'envoi et l'enregistrement
                  continuent de lire ce champ sans rien savoir des blocs. -->
             <div id="nl-body" hidden></div>
-
-            <details class="nl-dest">
-              <summary>Destinataires <span id="nl-dest-resume" class="muted"></span></summary>
-              <div class="nl-dest-corps">
-                <div>
-                  <label class="check"><input type="checkbox" id="nl-all" /> Tout le répertoire (toute personne avec un e-mail)</label>
-                  <div class="muted" style="font-size:.8rem;margin:6px 0 4px">Ou par filière / tag (saison en cours) :</div>
-                  <div id="nl-roles" class="nl-roles"></div>
-                </div>
-                <div>
-                  <div class="muted" style="font-size:.8rem;margin:0 0 4px">Participants GameZone :</div>
-                  <label class="check"><input type="checkbox" id="nl-gz-all" /> Tous les participants GameZone</label>
-                  <label class="check" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="nl-gz-season-on" /> Saison <select id="nl-gz-season" style="max-width:170px"></select></label>
-                  <label class="mailc-f" style="margin-top:8px">E-mails supplémentaires <span class="muted" style="font-weight:400">(un par ligne)</span><textarea id="nl-extra" rows="3"></textarea></label>
-                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-                    <button type="button" id="nl-count" class="ghost">Calculer les destinataires</button>
-                    <span id="nl-count-res" class="muted" style="font-size:.85rem"></span>
-                  </div>
-                  <div id="nl-preview" class="nl-preview"></div>
-                </div>
-              </div>
-            </details>
-
-            <!-- Le test part où on le décide : à soi pour se relire, à un
-                 collègue pour faire valider, à une autre boîte pour vérifier le
-                 rendu. Les raccourcis évitent de retaper une adresse connue. -->
-            <div class="nl-essai">
-              <label class="mailc-f nl-essai-f">Envoyer un test à
-                <input id="nl-test-to" type="text" autocomplete="off"
-                  placeholder="prenom@exemple.ch — plusieurs adresses séparées par une virgule" /></label>
-              <div id="nl-test-vite" class="nl-test-vite"></div>
-              <button type="button" id="nl-test" class="ghost">Envoyer le test</button>
-            </div>
 
             <div class="form-foot"><span id="nl-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span>
               <button type="button" id="nl-save" class="ghost">Enregistrer le brouillon</button>

@@ -3210,9 +3210,33 @@ tr.rm-loss td{background:#fde8e8}
 
 /* Deux panneaux : la toile prend tout le centre, les reglages sont a droite.
    Les blocs s'ajoutent par les « + » de la toile, pas depuis une colonne. */
-.nl-atelier{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;
+.nl-atelier{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;
   flex:1;min-height:0}
-@media(max-width:980px){.nl-atelier{grid-template-columns:1fr;overflow-y:auto}}
+/* La colonne de droite porte TOUT le secondaire et defile seule. C'est ce qui
+   rend sa hauteur a la toile : empilees au-dessus et au-dessous, ces memes
+   bandes lui laissaient moins de la moitie de la fenetre. */
+.nl-cote{display:flex;flex-direction:column;gap:10px;overflow-y:auto;min-height:0;padding-right:2px}
+.nl-cote>*{flex-shrink:0}
+/* Dans une colonne etroite, les reglages s'empilent au lieu de se serrer. */
+.nl-cote .nl-reglages{grid-template-columns:1fr}
+/* Les destinataires tenaient sur deux colonnes en pleine largeur ; ici, une. */
+.nl-cote .nl-dest-corps{grid-template-columns:1fr}
+.nl-cote .nl-essai{flex-direction:column;align-items:stretch}
+/* En colonne, le « flex:1 » du champ le fait grandir en HAUTEUR et etirait la
+   boite sur 170 px de vide. Ici chaque element prend sa taille naturelle. */
+.nl-cote .nl-essai>*{flex:0 0 auto}
+.nl-cote .nl-essai>button{width:100%}
+.nl-reg,.nl-dest{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--card)}
+.nl-reg>summary{cursor:pointer;font-weight:700;font-size:.9rem;color:var(--blue-ink)}
+@media(max-width:980px){
+  /* En etroit les deux colonnes s'empilent ; sans plancher, la toile tombait
+     a 325 px, soit moins qu'un seul bloc et demi. */
+  .nl-atelier{grid-template-columns:1fr;overflow-y:auto}
+  /* Selecteur en deux classes : la regle de base .nl-scene est declaree PLUS
+     BAS dans le fichier avec min-height:0, et l'emportait a specificite egale. */
+  .nl-atelier .nl-scene{min-height:min(60vh,460px)}
+  .nl-cote{overflow:visible}
+}
 
 /* La scene imite le fond d'une boite mail ; la toile fait la largeur reelle
    d'un e-mail, donc ce qu'on voit est ce qui part. */
