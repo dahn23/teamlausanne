@@ -2989,6 +2989,10 @@ tr.rm-loss td{background:#fde8e8}
 .crm-table tr.cong-hors b{font-weight:600;color:var(--muted)}
 .cong-suivi{display:inline-flex;align-items:center;cursor:pointer}
 .cong-suivi input{margin:0;cursor:pointer}
+/* Jauge glissee dans une ligne du tableau de bord : elle vit dans le texte de
+   la ligne, il lui faut donc redevenir un bloc, et rester courte pour ne pas
+   ecraser le nom. */
+.cong-jauge-d{display:flex;max-width:240px;margin:6px 0 0;height:7px}
 .cong-aide{font-size:.8rem;margin:0}
 /* Decompte affiche dans la fenetre de demande. */
 .cal-decompte{margin:-2px 0 0;font-size:.85rem;font-weight:700;color:var(--blue-ink);

@@ -3200,7 +3200,7 @@ async function loadDashboard() {
   // Les appels partent ensemble : le tableau de bord ne doit pas s'afficher en
   // plusieurs temps. Une alerte qui échoue ne doit pas emporter le reste, d'où
   // les listes vides par défaut.
-  const [{ data, error }, abs, rel, nts, fac, wks, eff, sem, arg] = await Promise.all([
+  const [{ data, error }, abs, rel, nts, fac, wks, eff, sem, arg, cong] = await Promise.all([
     sb.rpc("dashboard_data"),
     sb.rpc("absences_a_signaler"),
     sb.rpc("contacts_a_relancer"),
@@ -3210,6 +3210,10 @@ async function loadDashboard() {
     dashEffectifs().catch(() => null),
     dashSemaine().catch(() => null),
     dashArgent().catch(() => null),
+    // Soldes de conges : seuls ceux qui valident en voient le tableau, mais
+    // l'appel est sans risque pour les autres — la fonction ne rend que sa
+    // propre ligne a qui ne valide pas.
+    canCalValider() ? sb.rpc("conges_soldes", { p_annee: new Date().getFullYear() }) : Promise.resolve({ data: [] }),
   ]);
   if (error) { body.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
   const D = data || {};
@@ -3232,6 +3236,7 @@ async function loadDashboard() {
       dashAlertes({ nSansCoach, nNonValides, nAbsences: absences.length, nRelances, nProspects,
                     nMail: mail.a_traiter || 0, arg })
     + dashChiffres(eff, sem, g, mail, absences, nSansCoach, nNonValides, nRelances, nProspects)
+    + dashConges(cong?.error ? [] : (cong?.data || []))
     + (arg ? dashArgentPanneau(arg, eff) : "")
     + `<section class="dsec"><h2 class="dsec-h">Le détail</h2>
        <p class="dsec-s">Tout ce qui nourrit les chiffres ci-dessus, bloc par bloc.</p>
@@ -3332,6 +3337,50 @@ function dashChiffres(eff, sem, g, mail, absences, nSansCoach, nNonValides, nRel
         ${dashStat({ label: "Délai moyen", value: mail.avg_all_h != null ? mail.avg_all_h + " h" : "—", sub: "d'« à traiter » à « traité »", tone: "ocean" })}
         ${dashStat({ label: "Prospects à relancer", value: nProspects, sub: "échéance atteinte", tone: nProspects ? "warn" : "ok", view: "prospects" })}</div>
        ${(mail.boxes || []).length ? `<div class="dcard"><h3 class="dcard-h">Reçus par boîte (7 jours)</h3>${dashBars((mail.boxes || []).map((b) => ({ label: b.label, n: b.recv7 || 0 })))}</div>` : ""}`);
+}
+
+// ---- Congés de l'équipe, sur le tableau de bord -------------------------
+// Réservé à ceux qui valident (Raphael, Dan) : c'est eux qui accordent les
+// jours, ils doivent voir l'état de chacun sans ouvrir le calendrier.
+// Les personnes hors comptabilité — la direction — ne figurent pas : elles
+// n'ont pas de droit à tenir, une ligne vide n'apprendrait rien.
+function dashConges(lignes) {
+  const suivis = (lignes || []).filter((r) => r.suivi !== false);
+  if (!suivis.length) return "";
+  const annee = new Date().getFullYear();
+  const attente = suivis.reduce((t, r) => t + Number(r.en_attente || 0), 0);
+  const aDefinir = suivis.filter((r) => r.droit == null).length;
+
+  const rangs = suivis.map((r) => {
+    const droit = r.droit == null ? null : Number(r.droit);
+    const pris = Number(r.pris), att = Number(r.en_attente);
+    const reste = r.restant == null ? null : Number(r.restant);
+    const pc = (n) => (droit > 0 ? Math.min(100, Math.max(0, (n / droit) * 100)) : 0);
+    const droite = droit == null
+      ? dChip("droit à définir", "warn")
+      : reste < 0 ? dChip(`− ${congJ(-reste)}`, "bad")
+      : dChip(`${congJ(reste)} restants`, reste <= 3 ? "warn" : "ok");
+    const jauge = droit == null ? "" : `<span class="cong-jauge cong-jauge-d"
+        title="Pris ${congJ(pris)} · en attente ${congJ(att)} · droit ${congJ(droit)}">
+        <i class="cj-pris" style="width:${pc(pris)}%"></i>
+        <i class="cj-att" style="width:${pc(att)}%"></i></span>`;
+    return dPer(r.nom,
+      `${droit == null ? "Pas de droit saisi" : `${congJ(pris)} pris`}`
+      + `${att ? ` · <b class="cong-att">${congJ(att)} en attente</b>` : ""}`
+      + jauge, droite);
+  }).join("");
+
+  return dashSection("L'équipe", `Congés ${annee} — jours ouvrables, fériés vaudois déduits.`,
+    `<div class="dgrid" style="margin-bottom:14px">
+      ${dashStat({ label: "Demandes en attente", value: congJ(attente),
+        sub: attente ? "à accorder ou refuser" : "rien à trancher",
+        tone: attente ? "warn" : "ok", view: "calendrier", icon: "🏖" })}
+      ${dashStat({ label: "Droits à définir", value: aDefinir,
+        sub: aDefinir ? "personne(s) sans droit annuel" : "tous renseignés",
+        tone: aDefinir ? "warn" : "ok", view: "calendrier" })}
+    </div>
+    ${dCard("Solde de chacun", rangs, { n: suivis.length,
+      sous: "Le droit se règle dans l'onglet Calendrier." })}`);
 }
 
 // L'argent, sur fond sombre : c'est le bloc qu'on vient chercher, il doit se
