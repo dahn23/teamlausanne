@@ -2643,10 +2643,12 @@ function initCalendrier() {
   $("cal-new-abs").addEventListener("click", () => calOuvrir(null, "absence"));
   $("cal-close").addEventListener("click", () => $("cal-modal").classList.add("hidden"));
   $("cal-form").addEventListener("submit", calEnregistrer);
+  ["cal-start", "cal-end"].forEach((id) => $(id).addEventListener("change", calDecompte));
   $("cal-del").addEventListener("click", calSupprimer);
   // Le choix « qui » n'a de sens que pour ce qui vise une personne.
   $("cal-kind").addEventListener("change", () => {
     const k = $("cal-kind").value;
+    calDecompte();
     $("cal-membre-wrap").classList.toggle("hidden", !calVeutQui(k));
     // Le titre par défaut suit le type tant que personne ne l'a retouché.
     const t = $("cal-titre");
@@ -2669,6 +2671,7 @@ async function loadCalendrier() {
   const att0 = await sb.from("cal_events").select("*, pm_members(name,initials,color)")
     .eq("status", "demande").order("start_date");
   calRenderAttente(att0.error ? [] : (att0.data || []));
+  congCharger();
   if (calVue === "mois") return calRenderMois();
 
   const z = $("cal-semaines");
@@ -2853,6 +2856,127 @@ function calRaisonFige(ev) {
   return "Seul l'auteur de cet élément (ou un responsable) peut le modifier.";
 }
 
+// Décompte d'une demande de congé, dit AVANT l'envoi. Le calcul est le même
+// que celui de la base (jours ouvrables, fériés vaudois retirés) : on appelle
+// la fonction SQL plutôt que de la réécrire ici, sinon les deux finiraient par
+// diverger et l'écran annoncerait un chiffre que le solde contredirait.
+let calDecompteJeton = 0;
+async function calDecompte() {
+  const z = $("cal-decompte"); if (!z) return;
+  const kind = $("cal-kind").value, d = $("cal-start").value, f = $("cal-end").value;
+  if (kind !== "vacances" || !d || !f || f < d) { z.hidden = true; return; }
+  const jeton = ++calDecompteJeton;
+  const { data, error } = await sb.rpc("jours_ouvrables", { p_debut: d, p_fin: f, p_annee: null });
+  if (jeton !== calDecompteJeton) return;   // une saisie plus recente a pris la main
+  if (error) { z.hidden = true; return; }
+  const n = Number(data || 0);
+  z.hidden = false;
+  z.textContent = n === 0
+    ? "Aucun jour ouvrable sur cette période : rien ne sera décompté."
+    : `Décompté : ${n.toLocaleString("fr-CH")} jour${n > 1 ? "s" : ""} ouvrable${n > 1 ? "s" : ""}`
+      + " (week-ends et jours fériés vaudois exclus).";
+}
+
+// ===================================================================
+//  Congés : droit annuel, pris, en attente, restant
+// ===================================================================
+// Deux lectures du même calcul. Chacun voit SON solde ; seuls ceux qui
+// valident (Raphael, Dan) voient le tableau de l'équipe et fixent les droits.
+// La fonction SQL renvoie tout le monde — c'est l'écran qui filtre — parce
+// qu'un solde se calcule sur l'ensemble des lignes du calendrier.
+let congAnnee = new Date().getFullYear(), congInit = false;
+const congJ = (n) => n == null ? "—" : `${Number(n).toLocaleString("fr-CH")} j`;
+
+async function congCharger() {
+  const moi = $("cong-moi"), equipe = $("cong-equipe");
+  if (!moi || !equipe) return;
+  if (!congInit) {
+    congInit = true;
+    const a = new Date().getFullYear();
+    $("cong-annee").innerHTML = [a - 1, a, a + 1]
+      .map((y) => `<option value="${y}"${y === congAnnee ? " selected" : ""}>${y}</option>`).join("");
+    $("cong-annee").value = String(congAnnee);
+    $("cong-annee").addEventListener("change", () => {
+      congAnnee = Number($("cong-annee").value); congCharger();
+    });
+  }
+  const { data, error } = await sb.rpc("conges_soldes", { p_annee: congAnnee });
+  if (error) { moi.classList.add("hidden"); equipe.classList.add("hidden"); return; }
+  const lignes = data || [];
+
+  // ---- Mon solde ----
+  const mien = lignes.find((r) => r.person_id && r.person_id === myPersonId);
+  moi.classList.toggle("hidden", !mien);
+  if (mien) moi.innerHTML = congCarte(mien);
+
+  // ---- L'équipe (valideurs seulement) ----
+  equipe.classList.toggle("hidden", !canCalValider());
+  if (canCalValider()) congRenderEquipe(lignes);
+}
+
+// Une barre plutôt qu'une simple soustraction : ce qui est pris et ce qui est
+// seulement demandé n'ont pas le même poids, et on doit voir les deux d'un
+// coup avant d'accorder une journée de plus.
+function congCarte(r) {
+  const droit = r.droit == null ? null : Number(r.droit);
+  if (droit == null) {
+    return `<div class="cong-bloc cong-vide"><b>Mes congés ${congAnnee}</b>
+      <span class="muted">Droit annuel pas encore défini — Raphael ou Dan peuvent le renseigner.
+      ${Number(r.pris) || Number(r.en_attente) ? `Déjà posés : ${congJ(Number(r.pris) + Number(r.en_attente))}.` : ""}</span></div>`;
+  }
+  const pris = Number(r.pris), att = Number(r.en_attente), reste = Number(r.restant);
+  const pc = (n) => droit > 0 ? Math.min(100, Math.max(0, (n / droit) * 100)) : 0;
+  return `<div class="cong-bloc${reste < 0 ? " cong-depasse" : ""}">
+    <div class="cong-tete"><b>Mes congés ${congAnnee}</b>
+      <span class="cong-reste">${reste < 0 ? "Dépassement de " + congJ(-reste) : congJ(reste) + " restants"}</span></div>
+    <div class="cong-jauge" title="Pris ${congJ(pris)} · en attente ${congJ(att)} · droit ${congJ(droit)}">
+      <i class="cj-pris" style="width:${pc(pris)}%"></i>
+      <i class="cj-att" style="width:${pc(att)}%"></i>
+    </div>
+    <div class="cong-legende">
+      <span><i class="cp cp-pris"></i>Pris ${congJ(pris)}</span>
+      <span><i class="cp cp-att"></i>En attente ${congJ(att)}</span>
+      <span><i class="cp cp-libre"></i>Droit ${congJ(droit)}</span>
+    </div></div>`;
+}
+
+function congRenderEquipe(lignes) {
+  const nAtt = lignes.reduce((t, r) => t + Number(r.en_attente || 0), 0);
+  const sans = lignes.filter((r) => r.droit == null).length;
+  $("cong-resume").textContent = [
+    nAtt ? `${congJ(nAtt)} en attente` : "",
+    sans ? `${sans} droit(s) à définir` : "",
+  ].filter(Boolean).join(" · ");
+  $("cong-table").innerHTML = `<table class="crm-table"><thead><tr>
+      <th>Personne</th><th>Droit ${congAnnee}</th><th>Pris</th><th>En attente</th><th>Restant</th></tr></thead><tbody>
+    ${lignes.map((r) => {
+      const reste = r.restant == null ? null : Number(r.restant);
+      return `<tr${reste != null && reste < 0 ? ' class="cong-depasse-l"' : ""}>
+        <td>${dAvatar(r.nom)} <b>${esc(r.nom)}</b></td>
+        <td><input class="cong-droit" data-m="${r.member_id}" type="number" min="0" max="366" step="0.5"
+              value="${r.droit == null ? "" : Number(r.droit)}" placeholder="à définir" /></td>
+        <td>${congJ(r.pris)}</td>
+        <td>${Number(r.en_attente) ? `<b class="cong-att">${congJ(r.en_attente)}</b>` : congJ(0)}</td>
+        <td>${reste == null ? '<span class="muted">—</span>'
+             : reste < 0 ? `<b class="cong-neg">− ${congJ(-reste)}</b>` : `<b>${congJ(reste)}</b>`}</td></tr>`;
+    }).join("")}</tbody></table>`;
+  $("cong-table").querySelectorAll(".cong-droit").forEach((i) => i.addEventListener("change", async () => {
+    const v = i.value.trim();
+    const { data: sess } = await sb.auth.getSession();
+    // Vider le champ efface le droit : « pas de droit saisi » doit rester
+    // possible, sinon on ne peut plus revenir en arriere apres une faute.
+    const { error } = v === ""
+      ? await sb.from("staff_leave_allowance").delete()
+          .eq("member_id", i.dataset.m).eq("year", congAnnee)
+      : await sb.from("staff_leave_allowance").upsert({
+          member_id: i.dataset.m, year: congAnnee, days: Number(v),
+          updated_at: new Date().toISOString(), updated_by: sess?.session?.user?.id || null,
+        }, { onConflict: "member_id,year" });
+    if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
+    congCharger();
+  }));
+}
+
 function calOuvrir(ev, kind, lundi, fin) {
   initCalendrier();
   $("cal-err").hidden = true;
@@ -2877,6 +3001,7 @@ function calOuvrir(ev, kind, lundi, fin) {
     if (moi) $("cal-membre").value = moi.id;
   }
   $("cal-membre-wrap").classList.toggle("hidden", !calVeutQui($("cal-kind").value));
+  calDecompte();
   // Qui peut toucher à cette ligne. On reprend mot pour mot la règle de la
   // base (policy cal_modif) : sans cela le bouton resterait actif et
   // l'enregistrement ne modifierait aucune ligne — sans erreur, sans rien dire.

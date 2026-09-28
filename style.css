@@ -2911,6 +2911,41 @@ tr.rm-loss td{background:#fde8e8}
 .cal-chip[data-ev]:hover{filter:brightness(.94)}
 
 /* Demandes en attente, en tête de page. */
+/* ---- Conges : solde personnel et tableau de l'equipe (v272) ----
+   « Mes conges » est vu par tout le monde ; le tableau ne l'est que par ceux
+   qui valident. Les deux lisent le meme calcul. */
+.cong-moi{margin-bottom:12px}
+.cong-bloc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.cong-tete{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.cong-tete b{font-size:.95rem;color:var(--ink)}
+.cong-reste{margin-left:auto;font-weight:800;color:var(--blue-ink)}
+/* Jauge en deux segments : ce qui est acquis, puis ce qui n'est que demande.
+   Les empiler dit d'un coup d'oeil ce qui reste vraiment disponible. */
+.cong-jauge{display:flex;height:9px;border-radius:999px;background:#e8ebf2;overflow:hidden;margin:9px 0 7px}
+.cong-jauge i{display:block;height:100%}
+.cj-pris{background:var(--blue)}
+.cj-att{background:repeating-linear-gradient(-45deg,#e08c00 0 5px,#f6c76a 5px 10px)}
+.cong-legende{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
+.cp{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.cp-pris{background:var(--blue)} .cp-att{background:#e08c00} .cp-libre{background:#e8ebf2}
+/* Depassement : le solde negatif doit se voir, pas se deviner. */
+.cong-depasse{border-color:#e7b4b0;background:#fdf3f2}
+.cong-depasse .cong-reste{color:#b3261e}
+.cong-vide{display:flex;flex-direction:column;gap:3px}
+.cong-vide .muted{font-size:.85rem}
+
+.cong-equipe{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:12px;background:var(--card)}
+.cong-equipe>summary{cursor:pointer;font-weight:700;font-size:.9rem;color:var(--blue-ink)}
+.cong-corps{padding:10px 0 4px;display:flex;flex-direction:column;gap:10px}
+.cong-droit{width:100px;font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:8px}
+.cong-att{color:#a35f00}
+.cong-neg{color:#b3261e}
+.crm-table tr.cong-depasse-l td{background:#fdf3f2}
+.cong-aide{font-size:.8rem;margin:0}
+/* Decompte affiche dans la fenetre de demande. */
+.cal-decompte{margin:-2px 0 0;font-size:.85rem;font-weight:700;color:var(--blue-ink);
+  background:#eef2fb;border-radius:8px;padding:7px 10px}
+
 .cal-attente{background:#fff8e6;border:1px solid #f0d89a;border-radius:12px;padding:12px 14px;margin-bottom:12px}
 .cal-att-t{font-weight:800;color:#8a6116;font-size:.9rem;margin-bottom:8px}
 .cal-att-l{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.86rem;

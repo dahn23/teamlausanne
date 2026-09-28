@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=272" />
+  <link rel="stylesheet" href="style.css?v=273" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -734,6 +734,19 @@
           <!-- Demandes en attente : visible seulement pour ceux qui valident. -->
           <div id="cal-attente" class="cal-attente hidden"></div>
 
+          <!-- Solde de congés. « Mes congés » pour tout le monde ; le tableau
+               de l'équipe seulement pour ceux qui valident (Raphael, Dan). -->
+          <div id="cong-moi" class="cong-moi hidden"></div>
+          <details id="cong-equipe" class="cong-equipe hidden">
+            <summary>Congés de l'équipe <span id="cong-resume" class="muted"></span></summary>
+            <div class="cong-corps">
+              <label class="cal-per">Année
+                <select id="cong-annee"></select></label>
+              <div id="cong-table" class="table-wrap"></div>
+              <p class="muted cong-aide">Un jour = un jour ouvrable : les samedis, dimanches et jours fériés vaudois ne sont pas décomptés. Le droit vaut pour l'année civile. Une demande à cheval sur deux années est répartie entre elles.</p>
+            </div>
+          </details>
+
           <div class="cal-barre">
             <!-- Deux lectures du même calendrier : la liste pour embrasser la
                  saison entière, le mois pour situer les jours. -->
@@ -796,6 +809,9 @@
                 <input type="time" id="cal-h2" /></label>
             </div>
             <p class="muted cal-aide">Sans heure, l'élément couvre toute la journée.</p>
+            <!-- Décompte, pour les congés : on doit voir ce qu'on dépense
+                 avant d'envoyer, pas après validation. -->
+            <p id="cal-decompte" class="cal-decompte" hidden></p>
             <label class="mailc-f">Remarque <span class="muted" style="font-weight:400">(facultatif)</span>
               <textarea id="cal-note" rows="2"></textarea></label>
             <p id="cal-fige" class="muted cal-fige" hidden></p>
