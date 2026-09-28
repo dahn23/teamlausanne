@@ -299,6 +299,11 @@ const DETAILS = {
             photo: "assets/photos/eleve-hektor-vitone.jpg",
             mytennis: "19874388",
             mot: "En sport-études et en filière Performance au Lausanne-Sports, classé R4. Sa présentation arrive prochainement." },
+          // Identifiant myTennis encore inconnu : sans lui, la carte s'affiche
+          // simplement sans le lien vers le profil (le gabarit le prevoit).
+          { nom: "Isabella Stadelmann", age: "14 ans", classement: "R5",
+            photo: "assets/photos/eleve-isabella-stadelmann.jpg",
+            mot: "En sport-études au Lausanne-Sports, classée R5. Sa présentation arrive prochainement." },
         ]},
       { type: "brochure", anchor: "brochure",
         eyebrow: "Brochure 2026", title: "Le programme en détail, dans votre boîte mail",
