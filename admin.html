@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=273" />
+  <link rel="stylesheet" href="style.css?v=274" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1570,6 +1570,24 @@
              centre à sa largeur réelle d'e-mail (600 px), les réglages du bloc
              sélectionné à droite. La fenêtre occupe presque tout l'écran : on
              compose une mise en page, il faut la voir en entier. -->
+        <!-- Aperçu d'une newsletter partie : on retrouve du premier coup d'œil
+             laquelle est laquelle. Rendu dans une iframe « sandbox » vide :
+             aucun script, aucune navigation — c'est du HTML stocké qu'on
+             réaffiche, il n'a rien à exécuter. -->
+        <div id="nlap-modal" class="modal hidden">
+          <div class="card nlap-card">
+            <button type="button" id="nlap-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin:0 0 2px" id="nlap-titre"></h2>
+            <p id="nlap-meta" class="muted" style="margin:0 0 12px;font-size:.85rem"></p>
+            <div class="nlap-cadre"><iframe id="nlap-frame" sandbox="" title="Aperçu de la newsletter"></iframe></div>
+            <div class="form-foot">
+              <span class="muted" style="font-size:.8rem">Tel que l'ont reçu les destinataires, en-tête et pied compris.</span>
+              <span class="spacer"></span>
+              <button type="button" id="nlap-dup" class="ghost">Réutiliser comme brouillon</button>
+            </div>
+          </div>
+        </div>
+
         <div id="nl-modal" class="modal hidden">
           <div class="card nl-modal-card">
             <button type="button" id="nl-close" class="modal-close" aria-label="Fermer">×</button>

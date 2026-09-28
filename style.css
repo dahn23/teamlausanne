@@ -2672,10 +2672,31 @@ tr.rm-loss td{background:#fde8e8}
 .nl-list{display:flex;flex-direction:column;gap:12px}
 /* Carte d'un envoi : meme matiere que les cartes du tableau de bord (fond,
    rayon, ombre), et un leger relevement au survol pour dire qu'on peut ouvrir. */
-.nl-card{display:grid;grid-template-columns:minmax(220px,1.2fr) auto auto;gap:18px;align-items:center;
+.nl-card{display:grid;grid-template-columns:auto minmax(200px,1.2fr) auto auto;gap:18px;align-items:center;
   background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
   box-shadow:var(--shadow);padding:16px 20px;
   transition:transform .12s ease,box-shadow .12s ease}
+/* Vignette : la premiere image du message. C'est ce qu'on reconnait d'un coup
+   d'oeil — une miniature du texte serait illisible a cette taille. */
+.nl-vign{position:relative;flex:0 0 auto;width:86px;height:64px;padding:0;cursor:pointer;
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#eef1f7;
+  display:flex;align-items:center;justify-content:center;transition:border-color .12s ease}
+.nl-vign img{width:100%;height:100%;object-fit:cover;display:block}
+.nl-vign-vide{font-family:var(--font-accent,inherit);font-weight:800;font-size:1.3rem;color:#8b93ab;letter-spacing:.04em}
+.nl-vign-loupe{position:absolute;right:4px;bottom:3px;font-size:.7rem;color:#fff;
+  background:rgba(20,26,46,.62);border-radius:5px;padding:1px 4px;opacity:0;transition:opacity .12s ease}
+.nl-vign:hover{border-color:var(--blue)}
+.nl-vign:hover .nl-vign-loupe,.nl-vign:focus-visible .nl-vign-loupe{opacity:1}
+.nl-vign:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+/* Apercu en grand : le message tel qu'il est parti, enveloppe comprise.
+   Selecteur en deux classes pour passer devant « .modal .card », qui plafonne
+   a 420 px — un e-mail fait 600 px de large, il serait retreci et on ne verrait
+   pas la mise en page reelle. */
+.modal .nlap-card{max-width:700px;width:min(96vw,700px);
+  display:flex;flex-direction:column;max-height:calc(100vh - 40px);overflow:hidden}
+.nlap-cadre{flex:1;min-height:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#f3f5fa}
+#nlap-frame{width:100%;height:min(62vh,640px);border:0;display:block;background:#f3f5fa}
 .nl-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(20,26,46,.13)}
 .nl-card-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:1rem}
 .nl-card-meta{color:#6b7280;font-size:.82rem;margin-top:3px}
@@ -2688,7 +2709,13 @@ tr.rm-loss td{background:#fde8e8}
 .nl-stat-bad{background:#fde8e8}.nl-stat-bad b{color:#b91c1c}
 .nl-stat-muted b{color:#9ca3af}
 .nl-card-acts{display:flex;gap:6px;justify-content:flex-end}
-@media(max-width:900px){.nl-card{grid-template-columns:1fr}.nl-card-stats,.nl-card-acts{justify-content:flex-start}}
+/* En etroit : vignette et titre restent cote a cote — les separer ferait
+   perdre le lien entre l'image et l'objet — les chiffres et les boutons
+   passent dessous, sur toute la largeur. */
+@media(max-width:900px){
+  .nl-card{grid-template-columns:auto 1fr}
+  .nl-card-stats,.nl-card-acts{grid-column:1 / -1;justify-content:flex-start}
+}
 .nl-roles{display:flex;flex-wrap:wrap;gap:6px}
 .nl-roles label{font-size:.82rem;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
 .nl-preview{margin-top:8px;max-height:180px;overflow:auto;font-size:.8rem;color:#555}

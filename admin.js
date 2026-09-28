@@ -8412,6 +8412,7 @@ function initNewsletter() {
   if (nlInit) return; nlInit = true;
   $("nl-new").addEventListener("click", () => nlOpen(null));
   $("nl-refresh").addEventListener("click", loadNewsletters);
+  $("nlap-close").addEventListener("click", () => $("nlap-modal").classList.add("hidden"));
   $("nl-close").addEventListener("click", () => $("nl-modal").classList.add("hidden"));
   $("nl-count").addEventListener("click", nlComputeAudience);
   $("nl-save").addEventListener("click", async () => { const id = await nlSave(); if (id) { $("nl-status").textContent = "✓ Brouillon enregistré."; loadNewsletters(); } });
@@ -8473,7 +8474,7 @@ function renderNewsletters() {
     const m = nlMetrics[n.id] || {};
     const acts = n.status === "brouillon"
       ? `<button class="ghost nl-edit" data-id="${n.id}">Modifier</button><button class="ghost nl-del" data-id="${n.id}" title="Supprimer">✕</button>`
-      : `<button class="ghost nl-view" data-id="${n.id}">Voir</button><button class="ghost nl-dup" data-id="${n.id}" title="Réutiliser comme brouillon">Dupliquer</button><button class="ghost nl-copy" data-id="${n.id}" title="Envoie un exemplaire à une ou quelques adresses (toi, un collègue), sans toucher aux destinataires ni aux statistiques">✉ Exemplaire</button>`
+      : `<button class="ghost nl-ap" data-ap="${n.id}">👁 Aperçu</button><button class="ghost nl-view" data-id="${n.id}">Chiffres</button><button class="ghost nl-dup" data-id="${n.id}" title="Réutiliser comme brouillon">Dupliquer</button><button class="ghost nl-copy" data-id="${n.id}" title="Envoie un exemplaire à une ou quelques adresses (toi, un collègue), sans toucher aux destinataires ni aux statistiques">✉ Exemplaire</button>`
         + ((n.status === "envoyee" || n.status === "erreur") && (nlPending[n.id] || 0) > 0
           ? `<button class="primary nl-retry" data-id="${n.id}" title="Renvoie seulement aux destinataires pas encore servis (erreur ou en attente, ex. quota Resend dépassé) ; ceux qui l'ont reçue ne la reçoivent pas une 2e fois">Relancer les ${nlPending[n.id]} envoi(s) manquant(s)</button>` : "");
     // Carte par newsletter : titre + contexte à gauche, chiffres au milieu, actions à droite.
@@ -8489,7 +8490,13 @@ function renderNewsletters() {
     const tx = m.n_sent ? Math.round(((m.n_opened || 0) / m.n_sent) * 100) : 0;
     const jauge = draft ? "" : `<div class="nl-jauge" title="Taux d'ouverture : ${tx} %">
       <i style="width:${Math.min(100, tx)}%"></i></div>`;
+    const vign = nlVignette(n);
     return `<article class="nl-card${draft ? " nl-card-draft" : ""}">
+      <button type="button" class="nl-vign" data-ap="${n.id}" title="Voir à quoi ressemblait cette newsletter">
+        ${vign ? `<img src="${esc(vign)}" alt="" loading="lazy" />`
+               : `<span class="nl-vign-vide">${esc((n.subject || "?").trim().slice(0, 2).toUpperCase())}</span>`}
+        <span class="nl-vign-loupe" aria-hidden="true">⤢</span>
+      </button>
       <div class="nl-card-main">
         <div class="nl-card-title"><b>${esc(n.subject || "(sans objet)")}</b><span class="nl-st ${n.status}">${NL_ST[n.status] || n.status}</span></div>
         <div class="nl-card-meta">${draft ? "Créée le " : "Envoyée le "}${frDateTime(n.sent_at || n.created_at)} · ${esc(nlAudLabel(n.audience) || "ciblage non défini")}</div>
@@ -8503,6 +8510,7 @@ function renderNewsletters() {
   const R = $("nl-rows");
   R.querySelectorAll(".nl-edit").forEach((b) => b.addEventListener("click", () => nlOpen(nlList.find((x) => x.id === b.dataset.id))));
   R.querySelectorAll(".nl-view").forEach((b) => b.addEventListener("click", () => nlShowDetail(b.dataset.id)));
+  R.querySelectorAll("[data-ap]").forEach((b) => b.addEventListener("click", () => nlApercu(b.dataset.ap)));
   R.querySelectorAll(".nl-dup").forEach((b) => b.addEventListener("click", () => { const n = nlList.find((x) => x.id === b.dataset.id); nlOpen({ ...n, id: null, status: "brouillon" }); }));
   R.querySelectorAll(".nl-retry").forEach((b) => b.addEventListener("click", () => nlRetryFailed(b.dataset.id, b)));
   R.querySelectorAll(".nl-copy").forEach((b) => b.addEventListener("click", () => nlSendCopy(b.dataset.id, b)));
@@ -8541,6 +8549,48 @@ async function nlRetryFailed(id, btn) {
   if (error) { if (btn) btn.disabled = false; uiAlert("Relance impossible : " + error.message); return; }
   if (!nb) { if (btn) btn.disabled = false; uiAlert("Aucun envoi en erreur à relancer."); loadNewsletters(); return; }
   return nlLancerEnvoi(id, nb, btn);
+}
+
+// ---- Aperçu d'une newsletter -------------------------------------------
+// « Laquelle était-ce ? » : au bout de quelques envois, un objet ne suffit
+// plus. D'où une vignette sur la carte et un aperçu en grand.
+//
+// La vignette reprend la PREMIÈRE IMAGE du message. C'est ce qu'on reconnaît :
+// une miniature du texte serait illisible à cette taille, et fabriquer une
+// vraie capture demanderait une librairie de rendu pour un gain nul.
+const nlVignette = (n) => (String(n.html || "").match(/<img[^>]+src="([^"]+)"/i) || [])[1] || null;
+
+// L'enveloppe d'envoi, recopiée de la fonction newsletter-send : sans elle,
+// l'aperçu montrerait le contenu nu, sans l'en-tête bleu ni le pied — donc
+// pas ce qu'ont reçu les gens. Les deux doivent rester d'accord ; si le
+// gabarit d'envoi change, celui-ci doit suivre.
+function nlEnveloppe(inner, fromName) {
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f3f5fa;font-family:Helvetica,Arial,sans-serif;color:#1a1f36">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f5fa"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:14px;overflow:hidden">
+<tr><td style="background:#1e3ad1;padding:16px 24px;color:#ffffff;font-weight:700;font-size:16px">${esc(fromName || "Team Lausanne Academy")}</td></tr>
+<tr><td style="padding:24px;font-size:15px;line-height:1.55">${inner || ""}</td></tr>
+<tr><td style="padding:16px 24px;background:#f7f8fc;color:#6b7280;font-size:12px;line-height:1.5">
+TC Lausanne-Sports · Team Lausanne Academy · Route des Plaines-du-Loup 7, 1018 Lausanne<br>
+Vous recevez ce message parce que vous êtes en contact avec Team Lausanne. <a href="#" style="color:#1e3ad1">Se désinscrire</a>
+</td></tr></table></td></tr></table></body></html>`;
+}
+
+function nlApercu(id) {
+  const n = nlList.find((x) => x.id === id); if (!n) return;
+  $("nlap-titre").textContent = n.subject || "(sans objet)";
+  const m = nlMetrics[id] || {};
+  $("nlap-meta").textContent = n.sent_at
+    ? `Envoyée le ${frDateTime(n.sent_at)} · ${dashNum(m.n_sent || 0)} destinataire(s)`
+    : (NL_ST[n.status] || n.status);
+  $("nlap-frame").srcdoc = nlEnveloppe(n.html, n.from_name);
+  $("nlap-dup").onclick = () => {
+    $("nlap-modal").classList.add("hidden");
+    nlOpen({ ...n, id: null, status: "brouillon" });
+  };
+  $("nlap-modal").classList.remove("hidden");
 }
 
 // ---- Détail d'un envoi : les chiffres mènent aux personnes ---------------
