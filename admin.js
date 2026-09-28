@@ -7939,7 +7939,7 @@ async function phxRenderYouth() {
       <p class="muted" style="margin:0 0 12px;font-size:.85rem">Ce que ${esc(y?.first_name || "le jeune")} voit dans Mon espace › Physique.</p>
       <h3 class="phx-h">Routine</h3>
       <div class="phx-assign">${phxRoutines.map((r) => `<label class="rg-check"><input type="checkbox" class="phx-as" value="${r.id}"${mine.some((m) => m.id === r.id) ? " checked" : ""} /> ${esc(r.title)}</label>`).join("") || '<span class="muted">Aucune routine : crée-en une dans « Routines ».</span>'}</div>
-      <div id="phx-preview">${mine.length ? mine.map((r, i) => phxRoutineHtml(r, i === 0)).join("") : '<p class="muted" style="margin:6px 0 0">Aucune routine attribuée : le jeune voit « Pas encore de routine ».</p>'}</div>
+      <div id="phx-preview">${mine.length ? mine.map((r) => phxRoutineHtml(r, false)).join("") : '<p class="muted" style="margin:6px 0 0">Aucune routine attribuée : le jeune voit « Pas encore de routine ».</p>'}</div>
       <h3 class="phx-h" style="margin-top:18px">Prépa physique <span class="muted" style="font-weight:400;font-size:.8rem">— discussion avec le jeune</span></h3>
       <div id="phx-thread"></div>
     </div>`;
@@ -7962,8 +7962,11 @@ const pxIsVid = (n) => /\.(mp4|mov|m4v|webm)$/i.test(n || "");
 async function physThread(mountId, youthId) {
   const el = $(mountId); if (!el) return;
   if (!youthId) { el.innerHTML = ""; return; }
-  const { data } = await sb.rpc("phys_thread_list", { p_youth: youthId });
+  // Discussion réservée à pro, pro U18 et sport-études (db/118) : compétition et performance n'ont que les routines.
+  const [{ data }, { data: elite }] = await Promise.all([
+    sb.rpc("phys_thread_list", { p_youth: youthId }), sb.rpc("is_elite_youth", { p: youthId })]);
   if ($(mountId) !== el) return;
+  if (elite === false) { el.innerHTML = '<p class="muted" style="margin:4px 0">Pas de discussion pour les filières compétition et performance : réservée à pro, pro U18 et sport-études.</p>'; return; }
   const rows = data || [];
   const msg = (m) => {
     const side = m.author_is_staff ? "staff" : "youth";

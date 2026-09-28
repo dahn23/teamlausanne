@@ -52,6 +52,7 @@ function mascot(size = 88) {
 let YOUTHS = [];        // jeunes liés au compte
 let selYouth = "all";   // "all" ou person_id
 let PLAYERS = [];       // jeunes "joueurs" (filières élite) → onglet Feuille de match
+let ELITE = new Set();  // parmi eux : pro, pro U18, sport-études (db/118) → chat Prépa physique, Mental complet, pas de Stages
 let weekStart = mondayOf(new Date());
 let coursesCache = [];  // dernier chargement de la semaine
 let etudesCache = [];   // jours d'études de la semaine (13h-17h)
@@ -134,6 +135,10 @@ async function startApp() {
   $("pt-nav-comp").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-feuille").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-physique").classList.toggle("hidden", PLAYERS.length === 0);
+  const { data: el } = await sb.rpc("portal_elite_youths");
+  ELITE = new Set((el || []).map((x) => (typeof x === "string" ? x : x.portal_elite_youths)));
+  // Stages : pas pour pro, pro U18 et sport-études (seulement si tous les jeunes du compte en sont).
+  document.querySelector('.pt-nav-item[data-view="stages"]')?.classList.toggle("hidden", YOUTHS.length > 0 && YOUTHS.every((y) => ELITE.has(y.person_id)));
   arrangeNav();
   renderYouthSelector();
   bindNav();
@@ -323,10 +328,12 @@ async function renderAccueil() {
       <div class="pt-news-body">
         <h3>${escHtml(n.title)}</h3>
         <div class="pt-news-date">${frShort((n.published_at || "").slice(0, 10))}</div>
-        ${n.body ? `<p>${escHtml(n.body).replace(/\n/g, "<br/>")}</p>` : ""}
+        ${n.body ? `<p>${newsLinks(escHtml(n.body)).replace(/\n/g, "<br/>")}</p>` : ""}
       </div>
     </article>`).join("");
 }
+// Liens https:// d'un message (texte déjà échappé) → cliquables, ouverts dans un nouvel onglet.
+const newsLinks = (html) => html.replace(/https:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) => `<a href="${u}" target="_blank" rel="noopener" class="pt-news-link">${u.replace(/^https:\/\/(www\.)?/, "")}</a>`);
 // Petite fenêtre de confirmation (message en HTML déjà échappé) → Promise<boolean>.
 function ptConfirm(html, okLabel = "Oui") {
   return new Promise((resolve) => {
@@ -849,11 +856,28 @@ async function renderPortalSeason(player) {
   const mine = all.filter((x) => x.source === "joueur" && x.end_date >= today);
   // Week-ends en zone tournoi, à venir, sans aucune inscription cette semaine-là.
   const todo = weeks.filter((ws) => isoLocal(psDay(ws, 6)) >= today && planned(ws).length && !regsIn(ws).length);
-  const legend = Object.entries(PS_KINDS).map(([k, l]) => `<span><i class="pl-k-${k}"></i>${l}</span>`).join("")
-    + '<span><i class="pl-we-on pl-bar"></i>Zone tournoi : inscris-toi à un tournoi</span><span><i class="pl-reg-on pl-bar"></i>Mes inscriptions</span><span><i class="pl-reg-hors pl-bar"></i>Inscription hors planification</span><span><i class="pl-k-none pl-off"></i>Jour sans entraînement</span>';
+  // Mode d'emploi de la frise (28.09.2026) : une case expliquée étage par étage, repliable (choix mémorisé).
+  let guideClosed = false; try { guideClosed = localStorage.getItem("ps-guide-closed") === "1"; } catch { /* stockage indisponible */ }
+  const kindsChips = Object.entries(PS_KINDS).map(([k, l]) => `<span class="ps-g-chip"><i class="pl-k-${k}"></i>${l}</span>`).join("")
+    + '<span class="ps-g-chip"><i class="pl-k-none"></i>Rien de prévu</span>';
+  const guide = `<details class="ps-guide"${guideClosed ? "" : " open"}>
+    <summary><span>Comment lire ma saison&nbsp;?</span><span class="ps-g-tog"></span></summary>
+    <p class="ps-g-intro">Chaque case est <b>une semaine</b> (le chiffre = la date du lundi). Elle se lit de haut en bas :</p>
+    <div class="ps-g-body">
+      <div class="ps-g-tile" aria-hidden="true"><div class="t pl-k-entrainement pl-off">7</div><i>1</i><div class="w pl-we-on"></div><i>2</i><div class="r pl-reg-on"></div><i>3</i></div>
+      <ol class="ps-g-steps">
+        <li><b>Le grand carré : ton programme de la semaine</b>, prévu par tes coachs. Sa couleur :
+          <div class="ps-g-chips">${kindsChips}</div>
+          <span class="ps-g-note">Un <b>petit coin noir</b> en haut à droite = un jour férié ou sans entraînement cette semaine-là.</span></li>
+        <li><b>La barre orange : zone tournoi.</b> Tes coachs veulent que tu joues un tournoi ce week-end. À toi de t'inscrire à un tournoi, puis de l'ajouter en bas de cette page.</li>
+        <li><b>La barre du bas : tes inscriptions.</b> <span class="ps-g-dot" style="background:#1e3ad1"></span>Bleu = tu es inscrit·e à un tournoi. <span class="ps-g-dot" style="background:#d6453d"></span>Rouge = ce tournoi tombe hors du planning de tes coachs : parles-en avec eux.</li>
+      </ol>
+    </div>
+    <p class="ps-g-intro" style="margin:8px 0 0">Touche une semaine pour voir son détail juste sous le calendrier.</p>
+  </details>`;
   host.innerHTML = `<div class="mrp-card ps-card">
     <h2 class="mrp-h">Ma saison ${escHtml(s.label)}</h2>
-    <div class="pl-legend">${legend}</div>
+    ${guide}
     ${friseHtml}
     <div id="ps-week" class="ps-week"><span class="muted">Touche une semaine pour voir son programme.</span></div>
     ${todo.length ? `<h3 class="ps-h">Zones tournoi : à toi de t'inscrire</h3>
@@ -881,6 +905,9 @@ async function renderPortalSeason(player) {
       ${rg.some(regHors) ? '<div class="ps-hors" style="margin-top:4px">Cette inscription tombe hors de la planification des coachs : parles-en avec ton coach.</div>' : ""}`;
     const f = $("ps-from"); if (f && !f.value && ws >= today) { f.value = isoLocal(psDay(ws, 5)); $("ps-to").value = isoLocal(psDay(ws, 6)); }
   };
+  host.querySelector(".ps-guide").addEventListener("toggle", (e) => {
+    try { localStorage.setItem("ps-guide-closed", e.currentTarget.open ? "0" : "1"); } catch { /* stockage indisponible */ }
+  });
   host.querySelectorAll(".ps-col").forEach((c) => c.addEventListener("click", () => showWeek(+c.dataset.i)));
   const cur = weeks.indexOf(thisMonday); if (cur >= 0) showWeek(cur);
   $("ps-from").addEventListener("change", () => { if (!$("ps-to").value || $("ps-to").value < $("ps-from").value) $("ps-to").value = $("ps-from").value; });
@@ -1077,6 +1104,13 @@ function renderPhysique() {
   const host = $("view-physique");
   if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>Réservé aux joueurs de compétition.</p></div>`; return; }
   phSel = playerPick(phSel);
+  // Compétition et performance : routines seules, pas de discussion Prépa physique (db/118).
+  if (!ELITE.has(phSel)) {
+    phSub = "routine";
+    host.innerHTML = playerSelHtml(phSel) + `<div id="ph-sub"></div>`;
+    host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { phSel = b.dataset.id; renderPhysique(); }));
+    renderPhRoutines(); return;
+  }
   host.innerHTML = playerSelHtml(phSel) + `
     <div class="comp-subtabs">
       <button type="button" class="comp-subtab ${phSub === "routine" ? "on" : ""}" data-s="routine">Routine</button>
@@ -1105,7 +1139,8 @@ async function renderPhRoutines() {
   if ($("ph-sub") !== host) return;
   const rows = error ? [] : (data || []);
   if (!rows.length) { host.innerHTML = `<div class="pt-empty"><p>Pas encore de routine pour toi. Ton coach t'en attribuera bientôt.</p></div>`; return; }
-  host.innerHTML = rows.map((r, i) => `<details class="ph-rt ph-k-${escHtml(r.kind)}"${i === 0 ? " open" : ""}>
+  // Toutes fermées à l'arrivée : on voit d'un coup d'œil qu'il y a plusieurs routines.
+  host.innerHTML = `<p class="muted ph-hint">Touche une routine pour l'ouvrir.</p>` + rows.map((r) => `<details class="ph-rt ph-k-${escHtml(r.kind)}">
       <summary><span class="ph-kind">${escHtml(PH_KIND[r.kind] || "Programme")}</span><b>${escHtml(r.title)}</b>${r.duration ? `<span class="ph-dur">⏱ ${escHtml(r.duration)}</span>` : ""}</summary>
       ${r.intro ? `<p class="ph-intro">${escHtml(r.intro).replace(/\n/g, "<br/>")}</p>` : ""}
       <div class="ph-cards">${(r.exercises || []).map(phExCard).join("")}</div>
@@ -1205,6 +1240,12 @@ function renderComp() {
   const host = $("view-comp");
   if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>Réservé aux joueurs de compétition.</p></div>`; return; }
   compSel = playerPick(compSel);
+  // Compétition et performance : pas de Messages ni d'Après séance, des conseils de gestion du match (28.09.2026).
+  if (!ELITE.has(compSel)) {
+    host.innerHTML = playerSelHtml(compSel) + renderCompTips();
+    host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { compSel = b.dataset.id; renderComp(); }));
+    return;
+  }
   if (!["messages", "proud"].includes(compSub)) compSub = "messages";
   host.innerHTML = playerSelHtml(compSel) + `
     <div class="comp-subtabs">
@@ -1219,6 +1260,36 @@ function renderComp() {
     renderCompSub();
   }));
   renderCompSub();
+}
+const COMP_TIPS = [
+  ["Avant le match", "🎯", [
+    ["Prépare ton sac la veille", "Deux raquettes cordées, grips, bouteille, en-cas, tenue de rechange. Le jour J, ta tête est libre pour le tennis."],
+    ["Fixe-toi un objectif de jeu", "Un ou deux objectifs que tu contrôles (« jouer long croisé », « avancer sur les balles courtes ») plutôt que « gagner »."],
+    ["Échauffe-toi vraiment", "Ta routine de 10 minutes (onglet Physique) puis quelques frappes. Un corps chaud, c'est une tête plus calme."],
+    ["Accueille le trac", "Le stress est normal, c'est de l'énergie. Avant d'entrer sur le court, respire lentement quelques fois : 4 secondes pour inspirer, 6 pour expirer."],
+    ["Oublie le classement de l'autre", "Il ne joue pas à ta place. Concentre-toi sur ton jeu et sur ce que tu as prévu."],
+  ]],
+  ["Pendant le match", "🔥", [
+    ["Une routine entre les points", "Tourne le dos au filet, arrange tes cordes, respire, puis décide de ton prochain point. Toujours la même, même quand tout va bien."],
+    ["Un point à la fois", "Le point perdu est terminé. Le seul qui compte, c'est le suivant."],
+    ["Parle-toi comme un coach", "« Allez, bouge tes pieds » plutôt que « t'es nul ». Tu joues mieux avec un allié dans la tête qu'avec un juge."],
+    ["Profite des changements de côté", "Bois, mange un peu si le match est long, et fais le point : qu'est-ce qui marche ? qu'est-ce que je change ?"],
+    ["Quand ça va mal, simplifie", "Plus de marge, balles hautes et au centre, jusqu'à retrouver ton rythme. Garde la tête haute, même mené au score."],
+  ]],
+  ["Après le match", "🤝", [
+    ["Fair-play d'abord", "Serre la main et remercie ton adversaire et l'arbitre, quel que soit le résultat."],
+    ["Récupère", "Décrassage de 10 minutes (onglet Physique), bois, et mange dans l'heure qui suit."],
+    ["Laisse retomber les émotions", "On analyse un match à froid, pas à chaud. Prends un moment avant de le juger."],
+    ["Remplis ta feuille de match", "Onglet Match : deux choses réussies et une chose à travailler, c'est déjà beaucoup."],
+    ["Parles-en, puis passe à la suite", "Discutes-en avec ton coach au prochain entraînement. Une défaite est une information, une victoire aussi."],
+  ]],
+];
+function renderCompTips() {
+  return `<p class="muted" style="margin:0 0 12px;font-size:.9rem">Cinq conseils pour chaque moment du match. Relis-les la veille et le jour J&nbsp;!</p>`
+    + COMP_TIPS.map(([title, icon, tips]) => `<div class="mrp-card tips-card">
+      <h2 class="mrp-h">${icon} ${escHtml(title)}</h2>
+      <ol class="tips-ol">${tips.map(([t, d]) => `<li><b>${escHtml(t)}</b><span>${escHtml(d)}</span></li>`).join("")}</ol>
+    </div>`).join("");
 }
 function renderCompSub() {
   if (compSub === "proud") renderCompProud(); else renderCompMessages();

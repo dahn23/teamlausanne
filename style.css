@@ -3954,3 +3954,33 @@ tr.enc-ok td{background:#f4fbf6}
 .ph-card p{margin:6px 0 0;font-size:.8rem;line-height:1.4;color:#3b4560}
 .phx-pic-l{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:700}
 .phx-pic-l select{flex:1;min-width:0}
+/* Mon espace › Saison : mode d'emploi de la frise, repliable (28.09.2026) */
+.ps-guide{background:#f6f8fd;border:1px solid var(--line);border-radius:14px;padding:0 12px;margin:6px 0 12px}
+.ps-guide summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;font-weight:800;color:var(--blue-ink,#0f1f6e);font-size:.92rem}
+.ps-guide summary::-webkit-details-marker{display:none}
+.ps-g-tog{font-size:.78rem;font-weight:700;color:var(--blue)}
+.ps-g-tog::after{content:"Afficher ▾"}
+.ps-guide[open] .ps-g-tog::after{content:"Masquer ▴"}
+.ps-guide[open]{padding-bottom:12px}
+.ps-g-intro{margin:0 0 10px;font-size:.85rem;color:#3b4560;line-height:1.45}
+.ps-g-body{display:grid;grid-template-columns:62px minmax(0,1fr);gap:12px;align-items:start}
+.ps-g-tile{display:grid;grid-template-columns:48px 14px;gap:3px 0;align-items:center;position:sticky;top:8px}
+.ps-g-tile>div{border-radius:6px}
+.ps-g-tile .t{height:48px;position:relative;display:flex;align-items:center;justify-content:center;font-weight:800;color:#1b2f7a;font-size:.9rem}
+.ps-g-tile .t.pl-off::after{content:"";position:absolute;top:0;right:0;border-style:solid;border-width:0 12px 12px 0;border-color:transparent #1f2a4d transparent transparent;border-top-right-radius:6px}
+.ps-g-tile .w,.ps-g-tile .r{height:12px}
+.ps-g-tile i{font-style:normal;font-size:.66rem;font-weight:800;color:#fff;background:var(--blue-ink,#0f1f6e);border-radius:999px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;margin-left:3px}
+.ps-g-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;font-size:.85rem;line-height:1.45;color:#3b4560}
+.ps-g-steps b{color:var(--ink)}
+.ps-g-chips{display:flex;flex-wrap:wrap;gap:5px 10px;margin:6px 0}
+.ps-g-chip{display:inline-flex;align-items:center;gap:5px;font-size:.8rem}
+.ps-g-chip i{width:13px;height:13px;border-radius:4px;display:inline-block}
+.ps-g-note{display:block;font-size:.8rem;color:var(--muted)}
+.ps-g-dot{display:inline-block;width:14px;height:6px;border-radius:3px;margin:0 4px 1px 2px;vertical-align:middle}
+/* Mon espace › Mental (compétition, performance) : conseils de match */
+.tips-card{margin-bottom:12px}
+.tips-ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:9px}
+.tips-ol li{font-size:.88rem;line-height:1.4;color:#3b4560}
+.tips-ol li b{display:block;color:var(--ink);font-size:.93rem}
+.ph-hint{margin:0 0 10px;font-size:.85rem;text-align:center}
+.pt-news-link{color:var(--blue);font-weight:700;word-break:break-word}
