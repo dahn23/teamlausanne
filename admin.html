@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=276" />
+  <link rel="stylesheet" href="style.css?v=278" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1594,7 +1594,14 @@
         <div id="nl-modal" class="modal hidden">
           <div class="card nl-modal-card">
             <button type="button" id="nl-close" class="modal-close" aria-label="Fermer">×</button>
-            <h2 style="margin:0" id="nl-title">Nouvelle newsletter</h2>
+            <!-- Titre et commande d'agrandissement sur la MÊME ligne : le
+                 titre occupait une bande à lui seul, prise sur la toile. -->
+            <div class="nl-entete">
+              <h2 style="margin:0" id="nl-title">Nouvelle newsletter</h2>
+              <span class="spacer"></span>
+              <button type="button" id="nl-plein" class="ghost"
+                title="Masquer la colonne de droite et occuper tout l'écran">⛶ Plein écran</button>
+            </div>
 
             <!-- DEUX COLONNES. La toile prend toute la hauteur à gauche ; tout
                  le reste — modèles, assistant, réglages, inspecteur,

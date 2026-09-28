@@ -2905,7 +2905,9 @@ async function congCharger() {
   const lignes = data || [];
 
   // ---- Mon solde ----
-  const mien = lignes.find((r) => r.person_id && r.person_id === myPersonId);
+  // Qui n'est pas suivi n'a pas de carte : lui montrer « droit à définir »
+  // serait un rappel pour une chose qui ne sera jamais faite.
+  const mien = lignes.find((r) => r.person_id && r.person_id === myPersonId && r.suivi);
   moi.classList.toggle("hidden", !mien);
   if (mien) moi.innerHTML = congCarte(mien);
 
@@ -2942,24 +2944,42 @@ function congCarte(r) {
 
 function congRenderEquipe(lignes) {
   const nAtt = lignes.reduce((t, r) => t + Number(r.en_attente || 0), 0);
-  const sans = lignes.filter((r) => r.droit == null).length;
+  // Les non suivis ne comptent pas dans « droits à définir » : sans cela le
+  // récapitulatif réclamerait en permanence un droit qu'on ne veut pas tenir.
+  const sans = lignes.filter((r) => r.suivi && r.droit == null).length;
   $("cong-resume").textContent = [
     nAtt ? `${congJ(nAtt)} en attente` : "",
     sans ? `${sans} droit(s) à définir` : "",
   ].filter(Boolean).join(" · ");
   $("cong-table").innerHTML = `<table class="crm-table"><thead><tr>
-      <th>Personne</th><th>Droit ${congAnnee}</th><th>Pris</th><th>En attente</th><th>Restant</th></tr></thead><tbody>
+      <th>Personne</th><th>Suivi</th><th>Droit ${congAnnee}</th><th>Pris</th><th>En attente</th><th>Restant</th></tr></thead><tbody>
     ${lignes.map((r) => {
       const reste = r.restant == null ? null : Number(r.restant);
-      return `<tr${reste != null && reste < 0 ? ' class="cong-depasse-l"' : ""}>
+      const suivi = r.suivi !== false;
+      // La ligne non suivie RESTE affichée, grisée : une ligne qui disparaît
+      // quand on décoche est une ligne qu'on ne peut plus recocher. Ses jours
+      // posés restent visibles — ils comptent pour le calendrier, pas pour un
+      // solde.
+      return `<tr class="${reste != null && reste < 0 ? "cong-depasse-l" : ""}${suivi ? "" : " cong-hors"}">
         <td>${dAvatar(r.nom)} <b>${esc(r.nom)}</b></td>
-        <td><input class="cong-droit" data-m="${r.member_id}" type="number" min="0" max="366" step="0.5"
-              value="${r.droit == null ? "" : Number(r.droit)}" placeholder="à définir" /></td>
+        <td><label class="cong-suivi" title="Décoché : cette personne n'a pas de droit à tenir. Ses vacances restent au calendrier mais ne sont comptées nulle part.">
+          <input type="checkbox" class="cong-suivi-c" data-m="${r.member_id}"${suivi ? " checked" : ""} /></label></td>
+        <td>${suivi
+          ? `<input class="cong-droit" data-m="${r.member_id}" type="number" min="0" max="366" step="0.5"
+              value="${r.droit == null ? "" : Number(r.droit)}" placeholder="à définir" />`
+          : '<span class="muted">—</span>'}</td>
         <td>${congJ(r.pris)}</td>
         <td>${Number(r.en_attente) ? `<b class="cong-att">${congJ(r.en_attente)}</b>` : congJ(0)}</td>
-        <td>${reste == null ? '<span class="muted">—</span>'
+        <td>${!suivi ? '<span class="muted">non suivi</span>'
+             : reste == null ? '<span class="muted">—</span>'
              : reste < 0 ? `<b class="cong-neg">− ${congJ(-reste)}</b>` : `<b>${congJ(reste)}</b>`}</td></tr>`;
     }).join("")}</tbody></table>`;
+  $("cong-table").querySelectorAll(".cong-suivi-c").forEach((c) => c.addEventListener("change", async () => {
+    const { error } = await sb.from("pm_members")
+      .update({ leave_tracked: c.checked }).eq("id", c.dataset.m);
+    if (error) { uiAlert("Enregistrement impossible : " + error.message); c.checked = !c.checked; return; }
+    congCharger();
+  }));
   $("cong-table").querySelectorAll(".cong-droit").forEach((i) => i.addEventListener("change", async () => {
     const v = i.value.trim();
     const { data: sess } = await sb.auth.getSession();
@@ -8414,6 +8434,16 @@ function initNewsletter() {
   $("nl-refresh").addEventListener("click", loadNewsletters);
   $("nlap-close").addEventListener("click", () => $("nlap-modal").classList.add("hidden"));
   $("nl-ia-go").addEventListener("click", nlIaProposer);
+  // Plein ecran : on masque la colonne de droite et on occupe tout l'ecran.
+  // Le libelle dit dans quel etat on VA, pas celui ou l'on est.
+  $("nl-plein").addEventListener("click", () => {
+    const c = $("nl-modal").querySelector(".nl-modal-card");
+    const plein = c.classList.toggle("plein");
+    $("nl-plein").textContent = plein ? "⛶ Quitter le plein écran" : "⛶ Plein écran";
+    $("nl-plein").title = plein
+      ? "Revenir a la fenetre, avec la colonne de reglages"
+      : "Masquer la colonne de droite et occuper tout l'ecran";
+  });
   $("nl-close").addEventListener("click", () => $("nl-modal").classList.add("hidden"));
   $("nl-count").addEventListener("click", nlComputeAudience);
   $("nl-save").addEventListener("click", async () => { const id = await nlSave(); if (id) { $("nl-status").textContent = "✓ Brouillon enregistré."; loadNewsletters(); } });
