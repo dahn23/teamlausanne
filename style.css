@@ -2476,6 +2476,12 @@ td.he-acts{display:table-cell;vertical-align:middle;white-space:nowrap}
 /* Coach « sur facture » (indépendant) : ligne rose dans Heures */
 .crm-table tr.he-inv td{background:#fdeef5}
 .he-inv-badge{display:inline-block;font-size:.7rem;font-weight:800;color:#a8175d;background:#fbd5e6;border-radius:6px;padding:2px 7px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em;vertical-align:middle}
+/* Travail compensé sur sa propre facture : ligne violette dans Heures. Teinte
+   distincte du rose « sur facture » — les deux sortent du decompte fiduciaire,
+   mais l'un nous envoie une facture et l'autre ne doit jamais le faire. */
+.crm-table tr.he-kind td{background:#f2eefb}
+.he-kind-badge{display:inline-block;font-size:.7rem;font-weight:800;color:#4b2e83;background:#e6e0f5;border-radius:6px;padding:2px 7px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em;vertical-align:middle}
+.he-kind-t{font-weight:800;color:#4b2e83}
 .sal-unmatched td{background:#fff6e5}
 #sal-rows select{max-width:220px}
 .psal-add{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}

@@ -1689,6 +1689,7 @@ function openPerson(p) {
   $("p-salary-from").value = p?.salary_from || "";
   $("p-standing").value = p?.standing_order != null ? p.standing_order : "";
   $("p-byinv").checked = !!p?.pays_by_invoice;
+  $("p-inkind").checked = !!p?.pays_in_kind;
   loadCoachRates(p ? p.id : null);
   loadPersonPay(p ? p.id : null, staffPayRole && canSalaries());
   setPersonTab("info");
@@ -6696,6 +6697,7 @@ async function savePerson(e) {
     salary_from: $("p-salary-from").value || null,
     standing_order: $("p-standing").value.trim() === "" ? null : Number($("p-standing").value),
     pays_by_invoice: $("p-byinv").checked,
+    pays_in_kind: $("p-inkind").checked,
     emails: lines("p-emails"),
     phones: lines("p-phones"),
     photo_url: personPhotoUrl,
@@ -7614,7 +7616,8 @@ async function loadPaieMois() {
 // Ce qui empêche de clôturer, dit en clair plutôt qu'en bouton grisé.
 function paieBlocages() {
   const c = heuresData.coaches || [], p = heuresData.profs || [];
-  const sansTarif = c.filter((x) => x.rate == null && x.salary == null && !x.by_invoice && Number(x.hours) > 0);
+  const sansTarif = c.filter((x) => x.rate == null && x.salary == null && !x.by_invoice
+    && !x.in_kind && Number(x.hours) > 0);
   const nonValides = [...c.filter((x) => x.total_courses > 0 && x.courses < x.total_courses),
                       ...p.filter((x) => x.total_days > 0 && x.days < x.total_days)];
   return { sansTarif, nonValides };
@@ -7732,10 +7735,11 @@ function renderHeures() {
     const { base, extra, total } = heAmount(x);
     const allVal = x.total_courses > 0 && x.courses === x.total_courses;
     const extraTxt = extra ? ` <span class="muted" style="font-size:.78rem">(dont ${extra.toLocaleString("fr-CH")} extra)</span>` : "";
-    return `<tr${x.by_invoice ? ' class="he-inv" title="Sur facture : payé sur sa propre facture (montant attendu ci-contre), exclu du décompte fiduciaire et du paiement automatique"' : ""}>
-      <td><b>${esc(x.name)}</b>${x.by_invoice ? ' <span class="he-inv-badge">sur facture</span>' : ""}</td><td>${x.total_courses}</td><td>${x.hours} h</td>
-      <td>${salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
-      <td>${salaried ? `<b>${total.toLocaleString("fr-CH")} CHF</b> <span class="muted" style="font-size:.78rem">brut / mois</span>${extraTxt}` : (base != null || extra ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—")}</td>
+    return `<tr${x.in_kind ? ' class="he-kind" title="Compensé : son travail est déduit de sa propre facture. Heures suivies, jamais payées — exclue du décompte fiduciaire et du paiement."'
+      : x.by_invoice ? ' class="he-inv" title="Sur facture : payé sur sa propre facture (montant attendu ci-contre), exclu du décompte fiduciaire et du paiement automatique"' : ""}>
+      <td><b>${esc(x.name)}</b>${x.in_kind ? ' <span class="he-kind-badge">compensé</span>' : x.by_invoice ? ' <span class="he-inv-badge">sur facture</span>' : ""}</td><td>${x.total_courses}</td><td>${x.hours} h</td>
+      <td>${x.in_kind ? '<span class="he-kind-t">Compensé</span>' : salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
+      <td>${x.in_kind ? '<span class="muted">déduit de sa facture</span>' : salaried ? `<b>${total.toLocaleString("fr-CH")} CHF</b> <span class="muted" style="font-size:.78rem">brut / mois</span>${extraTxt}` : (base != null || extra ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—")}</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.courses + "/" + x.total_courses + "</span>" : '<span class="muted">' + x.courses + "/" + x.total_courses + "</span>"}</td>
       ${salExtraCell(x.person_id, x.extra)}
@@ -7780,7 +7784,7 @@ async function coachDetail(personId, name) {
 function exportHeures() {
   const c = heuresData.coaches || [], p = heuresData.profs || [];
   const lines = [["Type", "Nom", "Cours/AM", "Heures", "Tarif", "Extra", "Montant", "IBAN", "Valide"]];
-  for (const x of c) { const { base, extra, total } = heAmount(x); lines.push([x.by_invoice ? "Coach (sur facture)" : "Coach", x.name, x.courses, x.hours, x.salary != null ? "salarié" : (x.rate ?? ""), extra || "", (base != null || extra) ? total : "", x.iban ?? "", x.total_courses > 0 && x.courses === x.total_courses ? "oui" : "non"]); }
+  for (const x of c) { const { base, extra, total } = heAmount(x); lines.push([x.in_kind ? "Coach (compensé sur facture élève)" : x.by_invoice ? "Coach (sur facture)" : "Coach", x.name, x.courses, x.hours, x.salary != null ? "salarié" : (x.rate ?? ""), extra || "", (base != null || extra) ? total : "", x.iban ?? "", x.total_courses > 0 && x.courses === x.total_courses ? "oui" : "non"]); }
   for (const x of p) lines.push(["Prof", x.name, x.days, x.hours, "", x.extra ?? "", "", x.iban ?? "", x.total_days > 0 && x.days === x.total_days ? "oui" : "non"]);
   const csv = lines.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
   const a = document.createElement("a");
@@ -7795,8 +7799,11 @@ async function buildHeuresPdf() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   // Les personnes « sur facture » (indépendants) ne figurent PAS dans le décompte fiduciaire.
-  const c = (heuresData.coaches || []).filter((x) => !x.by_invoice), p = (heuresData.profs || []).filter((x) => !x.by_invoice);
-  const nInv = (heuresData.coaches || []).filter((x) => x.by_invoice).length + (heuresData.profs || []).filter((x) => x.by_invoice).length;
+  // « Sur facture » et « compensé » sortent tous deux du décompte fiduciaire :
+  // dans les deux cas aucun salaire ne part de chez nous.
+  const hors = (x) => x.by_invoice || x.in_kind;
+  const c = (heuresData.coaches || []).filter((x) => !hors(x)), p = (heuresData.profs || []).filter((x) => !hors(x));
+  const nInv = (heuresData.coaches || []).filter(hors).length + (heuresData.profs || []).filter(hors).length;
   const chf = (n) => (Math.round(Number(n) * 100) / 100).toLocaleString("fr-CH") + " CHF";
   doc.setFontSize(15); doc.text(`Décompte mensuel — ${heuresMoisLbl()}`, 14, 14);
   doc.setFontSize(9); doc.setTextColor(110); doc.text(`Team Lausanne · généré le ${frDate(new Date())}${nInv ? ` · ${nInv} intervenant(s) sur facture non inclus` : ""}`, 14, 20); doc.setTextColor(0);
@@ -8930,7 +8937,7 @@ function salCouverture() {
   // de montant attendu, seulement des heures.
   const snap = paieMois?.snapshot;
   const base = [...(snap?.coaches || heuresData.coaches || []),
-                ...(snap?.profs   || heuresData.profs   || [])].filter((x) => !x.by_invoice);
+                ...(snap?.profs   || heuresData.profs   || [])].filter((x) => !x.by_invoice && !x.in_kind);
   if (!base.length) return null;
   const brutAttendu = (x) => {
     const b = x.salary != null ? Number(x.salary)
