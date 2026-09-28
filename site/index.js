@@ -2424,23 +2424,97 @@ function carrMaj(shell) {
 // 320 px pour une course maximale de 420). Le calage a donc ete retire : sur
 // un carrousel de cartes, le defilement libre est la norme et supprime d'un
 // coup toute cette classe d'ennuis. Reste une animation maison, qui marche.
-function carrGlisser(piste, delta) {
+function carrGlisser(piste, delta, duree = 380) {
   const max = piste.scrollWidth - piste.clientWidth;
   const depart = piste.scrollLeft;
   const cible = Math.max(0, Math.min(max, depart + delta));
   if (Math.abs(cible - depart) < 1) return;
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) { piste.scrollLeft = cible; return; }
-  const t0 = performance.now(), duree = 380;
+  // Drapeau le temps du trajet : les evenements « scroll » que NOUS provoquons
+  // ne doivent pas etre pris pour un geste de l'utilisateur, sans quoi le
+  // defilement automatique se ferait taire a chaque pas.
+  piste.dataset.anime = "1";
+  const t0 = performance.now();
   const pas = (t) => {
     const k = Math.min(1, (t - t0) / duree);
     // Adoucissement aux deux bouts, pour que le depart et l'arret ne soient
     // pas secs.
     piste.scrollLeft = depart + (cible - depart) * (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
     if (k < 1) requestAnimationFrame(pas);
+    // Un cran de retard avant de baisser le drapeau : l'evenement « scroll »
+    // de la derniere image arrive apres elle.
+    else setTimeout(() => { delete piste.dataset.anime; }, 120);
   };
   requestAnimationFrame(pas);
 }
+// Un pas = une carte, en reprenant sa largeur reelle (elle depend de la
+// fenetre) plutot qu'une valeur ecrite en dur.
+function carrPas(piste) {
+  const carte = piste.querySelector(".eleve");
+  return carte ? carte.getBoundingClientRect().width + 18 : piste.clientWidth * 0.8;
+}
+
+// Defilement automatique. Le principe : il ne doit JAMAIS bouger sous le nez
+// de quelqu'un qui regarde. D'ou quatre arrets francs — survol, carte ouverte,
+// hors de l'ecran, onglet en arriere-plan — et une mise en sourdine de neuf
+// secondes des qu'on touche a quoi que ce soit (fleche, doigt, molette,
+// clavier) : on reprend la main, le carrousel se tait.
+// Minuteurs et observateurs en cours, pour pouvoir les arreter. Chaque
+// changement de page remplace tout le contenu de #world-main : sans ce
+// menage, un minuteur restait a tourner sur une piste detachee du document, et
+// il s'en ajoutait un a chaque navigation.
+//
+// En `var` a dessein : le module amorce la page (route(), plus haut) AVANT
+// d'atteindre cette ligne. Un `let` serait alors encore dans sa zone morte et
+// le premier rendu echouait sur un ReferenceError.
+var carrMinuteurs, carrObservateurs;
+function carrArreter() {
+  (carrMinuteurs || []).forEach(clearInterval);
+  (carrObservateurs || []).forEach((o) => o.disconnect());
+  carrMinuteurs = []; carrObservateurs = [];
+}
+
+function carrAutomatique(shell, piste) {
+  // Qui a demande moins d'animations n'aura pas de defilement du tout : ce
+  // n'est pas un reglage de confort, c'est un besoin.
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const CARR_DELAI = 4200;   // temps de lecture entre deux glissements
+  const CARR_REPRISE = 9000; // silence apres une action de l'utilisateur
+
+  let survol = false, aLEcran = false, silenceJusqua = 0;
+  const enPause = () => survol || document.hidden || !aLEcran
+    || Date.now() < silenceJusqua
+    || !!piste.querySelector(".eleve.ouvert")        // on lit une fiche
+    || shell.contains(document.activeElement);       // on navigue au clavier
+  const taire = () => { silenceJusqua = Date.now() + CARR_REPRISE; };
+
+  const avancer = () => {
+    if (enPause()) return;
+    const max = piste.scrollWidth - piste.clientWidth;
+    if (max <= 4) return;                            // tout tient a l'ecran
+    // Arrive au bout, on revient au debut. Le retour est un peu plus long que
+    // le pas normal : sur toute la largeur, la meme duree paraitrait brutale.
+    if (piste.scrollLeft >= max - 4) carrGlisser(piste, -max, 700);
+    else carrGlisser(piste, carrPas(piste));
+  };
+  carrMinuteurs.push(setInterval(avancer, CARR_DELAI));
+
+  shell.addEventListener("pointerenter", () => { survol = true; });
+  shell.addEventListener("pointerleave", () => { survol = false; });
+  // Le doigt ne survole pas : un appui vaut prise en main.
+  shell.addEventListener("pointerdown", taire);
+  shell.addEventListener("focusin", taire);
+  // Un defilement a la molette ou au doigt : meme chose. On ne peut pas
+  // distinguer ici notre propre animation d'un geste, d'ou le drapeau.
+  piste.addEventListener("scroll", () => { if (!piste.dataset.anime) taire(); }, { passive: true });
+
+  const oeil = new IntersectionObserver((e) => { aLEcran = e[0].isIntersecting; }, { threshold: 0.35 });
+  oeil.observe(shell);
+  carrObservateurs.push(oeil);
+}
+
 function carrInit() {
+  carrArreter();
   document.querySelectorAll("[data-carrousel]").forEach((shell) => {
     if (shell.dataset.pret) return;
     shell.dataset.pret = "1";
@@ -2448,13 +2522,10 @@ function carrInit() {
     if (!piste) return;
     piste.addEventListener("scroll", () => carrMaj(shell), { passive: true });
     shell.querySelectorAll("[data-carr]").forEach((b) => b.addEventListener("click", () => {
-      // Un pas = une carte, en reprenant sa largeur reelle (elle depend de la
-      // fenetre) plutot qu'une valeur ecrite en dur.
-      const carte = piste.querySelector(".eleve");
-      const pas = carte ? carte.getBoundingClientRect().width + 18 : piste.clientWidth * 0.8;
-      carrGlisser(piste, Number(b.dataset.carr) * pas);
+      carrGlisser(piste, Number(b.dataset.carr) * carrPas(piste));
     }));
     carrMaj(shell);
+    carrAutomatique(shell, piste);
   });
 }
 window.addEventListener("resize", () => document.querySelectorAll("[data-carrousel]").forEach(carrMaj));
