@@ -288,17 +288,19 @@ const DETAILS = {
             mytennis: "19764390",
             mot: "Cinq ans de sport-études au Lausanne-Sports, et le bac en ligne de mire. Revers à une main, faible avoué pour l'ambiance des interclubs. Il enseigne depuis deux ans, en cours comme en stage : patient, et autant motivé par transmettre que par jouer.",
             tags: ["J+S continue 1", "J+S continue 2", "Official Swiss Tennis"] },
-          // Portraits a completer : le texte ci-dessous ne dit que ce qu'on sait
-          // de source sure (filiere et classement Swiss Tennis). A remplacer par
-          // leur vraie presentation des qu'on l'a.
+          // Nadia et Isabella : texte encore provisoire, il ne dit que ce qu'on
+          // sait de source sure (filiere et classement Swiss Tennis). A
+          // remplacer par leur vraie presentation des qu'on l'a.
           { nom: "Nadia Dévaud", age: "15 ans", classement: "R5",
             photo: "assets/photos/eleve-nadia-devaud.jpg",
             mytennis: "19822148",
             mot: "En sport-études au Lausanne-Sports, classée R5. Sa présentation arrive prochainement." },
+          // Propos recueillis aupres de Hektor, remis a la 3e personne comme
+          // les autres portraits.
           { nom: "Hektor Vitone", age: "13 ans", classement: "R4",
             photo: "assets/photos/eleve-hektor-vitone.jpg",
             mytennis: "19874388",
-            mot: "En sport-études et en filière Performance au Lausanne-Sports, classé R4. Sa présentation arrive prochainement." },
+            mot: "Treize ans, classé R4, et une première année au Lausanne-Sports. Plutôt joueur de fond de court. Son rêve : vivre de son tennis et intégrer le top 100 mondial." },
           { nom: "Isabella Stadelmann", age: "14 ans", classement: "R5",
             photo: "assets/photos/eleve-isabella-stadelmann.jpg",
             mytennis: "19803666",
