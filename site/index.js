@@ -299,10 +299,9 @@ const DETAILS = {
             photo: "assets/photos/eleve-hektor-vitone.jpg",
             mytennis: "19874388",
             mot: "En sport-études et en filière Performance au Lausanne-Sports, classé R4. Sa présentation arrive prochainement." },
-          // Identifiant myTennis encore inconnu : sans lui, la carte s'affiche
-          // simplement sans le lien vers le profil (le gabarit le prevoit).
           { nom: "Isabella Stadelmann", age: "14 ans", classement: "R5",
             photo: "assets/photos/eleve-isabella-stadelmann.jpg",
+            mytennis: "19803666",
             mot: "En sport-études au Lausanne-Sports, classée R5. Sa présentation arrive prochainement." },
         ]},
       { type: "brochure", anchor: "brochure",
@@ -1330,7 +1329,9 @@ function sectionHTML(sec) {
           <h2>${esc(sec.title)}</h2>
           ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
         </div>
-        <div class="eleve-grid">${sec.items.map((e) => {
+        <div class="eleve-carrousel" data-carrousel>
+        <button type="button" class="carr-nav carr-prec" data-carr="-1" aria-label="Athlètes précédents" hidden></button>
+        <div class="eleve-piste" tabindex="0" role="group" aria-label="Nos athlètes, liste défilante">${sec.items.map((e) => {
           // Identifiant de profil myTennis — celui qui figure dans l'adresse,
           // et NON le numero de licence : les deux sont differents, et une
           // adresse batie sur la licence ne mene nulle part. Une adresse
@@ -1358,6 +1359,8 @@ function sectionHTML(sec) {
              title="Profil myTennis de ${esc(e.nom)}">myTennis<span aria-hidden="true"> ↗</span></a>` : ""}
         </article>`;
         }).join("")}</div>
+        <button type="button" class="carr-nav carr-suiv" data-carr="1" aria-label="Athlètes suivants" hidden></button>
+        </div>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
 
     // ---- Brochure contre une adresse e-mail ----
@@ -1778,6 +1781,7 @@ function renderWorld(key) {
   animate();
   demarrerScrollers();
   lancerCarrousel();
+  carrInit();
   animerChiffres();
   poserPartenaires();
   majPartenairesBas();
@@ -1802,6 +1806,7 @@ function renderDetail(id) {
   animate();
   demarrerScrollers();
   lancerCarrousel();
+  carrInit();
   animerChiffres();
   poserPartenaires();
   majPartenairesBas();
@@ -2384,6 +2389,75 @@ document.addEventListener("click", (e) => {
   const ouvert = bouton.closest(".eleve").classList.toggle("ouvert");
   bouton.setAttribute("aria-expanded", ouvert ? "true" : "false");
 });
+
+// ---- Carrousel des portraits ----
+// Une seule ligne qui defile, plutot qu'une grille qui s'empile : avec cinq
+// athletes et d'autres a venir, la grille poussait le reste de la page
+// toujours plus bas. Le defilement est celui du navigateur (overflow-x +
+// scroll-snap) : le doigt et le trackpad marchent tout seuls, le clavier aussi
+// puisque la piste est focalisable. Les fleches ne font qu'appeler scrollBy.
+//
+// Pas de glisser-deposer a la souris : il faudrait distinguer un glissement
+// d'un clic, et un faux positif retournerait une carte sans qu'on l'ait
+// demande. Les fleches, la molette et le doigt suffisent.
+function carrMaj(shell) {
+  const piste = shell.querySelector(".eleve-piste");
+  if (!piste) return;
+  // Marge d'un pixel : les navigateurs arrondissent scrollLeft, et sans elle
+  // la fleche de droite reste active alors qu'on est deja au bout.
+  const reste = piste.scrollWidth - piste.clientWidth;
+  const rien = reste <= 4;
+  // Tolerance large : au repos scrollLeft vaut 2 et non 0, a cause du retrait
+  // interieur de la piste et du calage (scroll-snap). Avec un seuil a 1, la
+  // fleche de gauche restait active alors qu'on etait deja au debut.
+  const prec = shell.querySelector(".carr-prec"), suiv = shell.querySelector(".carr-suiv");
+  if (prec) { prec.hidden = rien; prec.disabled = piste.scrollLeft <= 4; }
+  if (suiv) { suiv.hidden = rien; suiv.disabled = piste.scrollLeft >= reste - 4; }
+}
+
+// Defilement anime « a la main ».
+//
+// Pourquoi pas scrollBy({behavior:"smooth"}) : mesure faite, il ne produit
+// RIEN sur cette piste. La piste a d'abord porte un calage (scroll-snap) ; le
+// calage annulait le defilement programme, puis, une fois contourne, rendait
+// les dernieres cartes inatteignables (les points de calage tombaient tous les
+// 320 px pour une course maximale de 420). Le calage a donc ete retire : sur
+// un carrousel de cartes, le defilement libre est la norme et supprime d'un
+// coup toute cette classe d'ennuis. Reste une animation maison, qui marche.
+function carrGlisser(piste, delta) {
+  const max = piste.scrollWidth - piste.clientWidth;
+  const depart = piste.scrollLeft;
+  const cible = Math.max(0, Math.min(max, depart + delta));
+  if (Math.abs(cible - depart) < 1) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { piste.scrollLeft = cible; return; }
+  const t0 = performance.now(), duree = 380;
+  const pas = (t) => {
+    const k = Math.min(1, (t - t0) / duree);
+    // Adoucissement aux deux bouts, pour que le depart et l'arret ne soient
+    // pas secs.
+    piste.scrollLeft = depart + (cible - depart) * (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
+    if (k < 1) requestAnimationFrame(pas);
+  };
+  requestAnimationFrame(pas);
+}
+function carrInit() {
+  document.querySelectorAll("[data-carrousel]").forEach((shell) => {
+    if (shell.dataset.pret) return;
+    shell.dataset.pret = "1";
+    const piste = shell.querySelector(".eleve-piste");
+    if (!piste) return;
+    piste.addEventListener("scroll", () => carrMaj(shell), { passive: true });
+    shell.querySelectorAll("[data-carr]").forEach((b) => b.addEventListener("click", () => {
+      // Un pas = une carte, en reprenant sa largeur reelle (elle depend de la
+      // fenetre) plutot qu'une valeur ecrite en dur.
+      const carte = piste.querySelector(".eleve");
+      const pas = carte ? carte.getBoundingClientRect().width + 18 : piste.clientWidth * 0.8;
+      carrGlisser(piste, Number(b.dataset.carr) * pas);
+    }));
+    carrMaj(shell);
+  });
+}
+window.addEventListener("resize", () => document.querySelectorAll("[data-carrousel]").forEach(carrMaj));
 
 // ---- Brochure contre une adresse e-mail ----
 // La demande est enregistree dans contact_messages : elle arrive ainsi dans la

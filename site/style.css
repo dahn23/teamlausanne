@@ -2611,8 +2611,45 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 .film-note{max-width:980px;margin:16px auto 0;text-align:center;
   color:rgba(255,255,255,.72);font-size:.92rem}
 
-/* Portraits d'eleves : la photo d'abord, le texte au survol ou au clic. */
-.eleve-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+/* Portraits d'eleves : la photo d'abord, le texte au survol ou au clic.
+   Une seule ligne qui defile : avec cinq athletes et d'autres a venir, la
+   grille s'empilait et repoussait tout le reste de la page vers le bas. */
+.eleve-carrousel{position:relative}
+.eleve-piste{
+  display:flex;gap:18px;overflow-x:auto;overscroll-behavior-x:contain;
+  /* Le survol souleve la carte de 6 px et son ombre deborde : sans cette
+     marge interieure, la piste montrerait une barre verticale parasite. */
+  padding:10px 2px 16px;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.eleve-piste::-webkit-scrollbar{display:none}
+.eleve-piste:focus-visible{outline:3px solid var(--fluo);outline-offset:4px;border-radius:var(--radius)}
+/* Largeur par carte : on en montre trois entieres et un morceau de la
+   quatrieme, pour qu'on voie tout de suite qu'il y a une suite. */
+.eleve-piste>.eleve{flex:0 0 clamp(228px,28%,300px)}
+
+/* Fleches : posees par-dessus les bords de la piste. Masquees quand tout
+   tient a l'ecran (l'attribut hidden est mis par le script). */
+.carr-nav{position:absolute;top:50%;z-index:3;width:44px;height:44px;border-radius:50%;
+  border:1px solid var(--line);background:rgba(255,255,255,.94);color:var(--blue-ink);
+  cursor:pointer;box-shadow:0 6px 18px rgba(20,26,46,.16);
+  transform:translateY(-50%);transition:background .15s ease,opacity .15s ease,transform .15s ease}
+.carr-nav::before{content:"";position:absolute;top:50%;left:52%;width:11px;height:11px;
+  border-right:2.5px solid currentColor;border-bottom:2.5px solid currentColor}
+.carr-prec{left:-10px}
+.carr-prec::before{transform:translate(-40%,-50%) rotate(135deg)}
+.carr-suiv{right:-10px}
+.carr-suiv::before{transform:translate(-60%,-50%) rotate(-45deg)}
+.carr-nav:hover{background:var(--fluo);color:var(--fluo-ink)}
+.carr-nav:focus-visible{outline:3px solid var(--fluo);outline-offset:3px}
+.carr-nav[disabled]{opacity:.32;cursor:default;box-shadow:none}
+.carr-nav[disabled]:hover{background:rgba(255,255,255,.94);color:var(--blue-ink)}
+@media(max-width:720px){
+  /* Au doigt, on fait glisser : les fleches ne servent plus et mangeraient
+     de la place sur les bords. Les cartes s'elargissent en consequence. */
+  .carr-nav{display:none}
+  .eleve-piste>.eleve{flex:0 0 min(74%,300px)}
+}
 .eleve{position:relative;
   aspect-ratio:3/4;border-radius:var(--radius);overflow:hidden;background:var(--blue-ink);
   box-shadow:var(--shadow);transition:transform .3s ease,box-shadow .3s ease}
