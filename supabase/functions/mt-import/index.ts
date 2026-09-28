@@ -24,13 +24,27 @@ Deno.serve(async (req) => {
   const { data: cfg } = await svc.from("gz_config").select("import_key").eq("id", 1).single();
   if (!key || !cfg || key !== cfg.import_key) return json({ error: "Cle d'import invalide." }, 403);
 
-  // 1) Liste des licences du repertoire (pour que le bookmarklet sache quoi chercher)
+  // 1) Liste des licences a importer (pour que le bookmarklet sache quoi chercher).
+  // v11 (28.09.2026, decision Dan) : seulement les jeunes des filieres suivies — sport-etudes, pro, pro U18, club,
+  // competition, performance, prive — d'apres la saison juniors en cours (role_periods) ou les tags de la fiche.
+  // Plus tout le repertoire : depuis db/101, plus de 600 fiches GameZone ont une licence.
   if (action === "licenses") {
+    const ROLES = ["sport-etudes", "pro", "pro-u18", "club", "competition", "performance", "prive"];
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: seas } = await svc.from("seasons").select("id").eq("kind", "juniors").lte("start_date", today).gte("end_date", today);
+    const sids = (seas ?? []).map((s: { id: string }) => s.id);
+    const keep = new Set<string>();
+    if (sids.length) {
+      const { data: rp } = await svc.from("role_periods").select("person_id").in("season_id", sids).in("role", ROLES);
+      for (const r of rp ?? []) keep.add(r.person_id);
+    }
+    const { data: pr } = await svc.from("person_roles").select("person_id").in("role", ROLES);
+    for (const r of pr ?? []) keep.add(r.person_id);
     const { data } = await svc.from("people")
       .select("id, first_name, last_name, license_no")
       .not("license_no", "is", null);
     const players = (data ?? [])
-      .filter((p: { license_no: string | null }) => p.license_no && p.license_no.trim())
+      .filter((p: { id: string; license_no: string | null }) => keep.has(p.id) && p.license_no && p.license_no.trim())
       .map((p: { id: string; first_name: string; last_name: string; license_no: string }) =>
         ({ person_id: p.id, name: `${p.first_name} ${p.last_name}`, license: p.license_no.trim() }));
     return json({ ok: true, players });

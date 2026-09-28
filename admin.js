@@ -237,7 +237,7 @@ const PERSON_ROLES = [
   ["membre", "Membre"], ["client", "Client"], ["coach", "Coach"], ["coach-prive", "Coach avec autorisation"],
   ["head-coach", "Head coach"], ["official", "Official"], ["responsable-tournoi", "Responsable de tournoi"],
   ["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"],
-  ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"],
+  ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"], ["prive", "Privé"],
   ["prof", "Prof"], ["coach-mental", "Coach mental"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
   ["concierge", "Concierge"],   // salarié sans aucun accès à l'app (fiche + salaire seulement)
   ["gamezone", "GameZone"],     // joueur de tournoi GameZone relié automatiquement (db/101) ; aucun accès à l'app
@@ -247,7 +247,7 @@ const roleLabel = (r) => (PERSON_ROLES.find(([v]) => v === r) || [r, r])[1];
 
 // ---- Rôles saisonniers (source de vérité = table role_periods, par saison) ----
 const SEASONAL_COTISATION = ["membre"];
-const SEASONAL_JUNIORS = ["kidstennis", "club", "competition", "performance", "sport-etudes", "pro-u18", "pro"];
+const SEASONAL_JUNIORS = ["kidstennis", "club", "competition", "performance", "sport-etudes", "pro-u18", "pro", "prive"];   // « prive » : jeunes en cours privés (28.09.2026)
 const SEASONAL_ROLES = [...SEASONAL_COTISATION, ...SEASONAL_JUNIORS];
 const seasonTypeOf = (role) => SEASONAL_COTISATION.includes(role) ? "cotisation" : SEASONAL_JUNIORS.includes(role) ? "juniors" : null;
 const INTENTS = [["reste", "Reste"], ["monte", "Monte"], ["descend", "Descend"], ["part", "Part"], ["a-decider", "À décider"]];
@@ -1813,7 +1813,7 @@ function openGzReview() {
 }
 
 // Rôles qui font apparaître l'onglet Cours
-const COURSE_ROLES = ["kidstennis", "club", "competition", "performance", "sport-etudes", "pro-u18", "pro", "adultes"];
+const COURSE_ROLES = ["kidstennis", "club", "competition", "performance", "sport-etudes", "pro-u18", "pro", "prive", "adultes"];
 const COACH_ROLES = ["coach", "head-coach", "coach-prive", "coach_physique", "moniteur"];
 const hasRoleIn = (pid, list) => (peopleRoles[pid] || []).some((r) => list.includes(r));
 
