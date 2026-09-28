@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=274" />
+  <link rel="stylesheet" href="style.css?v=275" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -1597,6 +1597,22 @@
               <span class="nl-sect-t">Modèles</span>
               <div id="nl-gabarits" class="nl-gabarits"></div>
             </div>
+
+            <!-- Rédaction assistée : on décrit l'envoi, la mise en page arrive
+                 en blocs modifiables. Repliée par défaut — elle propose un
+                 point de départ, elle ne remplace pas l'éditeur. -->
+            <details class="nl-ia">
+              <summary><span class="nl-ia-ico" aria-hidden="true">✨</span>Proposer une mise en page</summary>
+              <div class="nl-ia-corps">
+                <label class="mailc-f">Que voulez-vous annoncer&nbsp;?
+                  <textarea id="nl-ia-brief" rows="4" placeholder="ex. Nos stages de février : trois semaines du 8 au 26, de 9h à 16h, pour les 6-14 ans. 320.– la semaine, repas compris. Inscription par mail, places limitées."></textarea></label>
+                <p class="muted nl-ia-aide">Donnez les faits : dates, heures, prix, public visé. Ce qui manque reviendra marqué <b>[entre crochets]</b> — rien ne sera inventé.</p>
+                <div class="nl-ia-pied">
+                  <button type="button" id="nl-ia-go">Proposer</button>
+                  <span id="nl-ia-etat" class="muted"></span>
+                </div>
+              </div>
+            </details>
             <div class="nl-reglages">
               <label class="mailc-f nl-r-objet">Objet<input id="nl-subject" type="text" placeholder="Objet de la newsletter" autocomplete="off" /></label>
               <label class="mailc-f">Nom d'expéditeur<input id="nl-from-name" type="text" value="Team Lausanne Academy" /></label>

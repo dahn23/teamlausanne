@@ -8413,6 +8413,7 @@ function initNewsletter() {
   $("nl-new").addEventListener("click", () => nlOpen(null));
   $("nl-refresh").addEventListener("click", loadNewsletters);
   $("nlap-close").addEventListener("click", () => $("nlap-modal").classList.add("hidden"));
+  $("nl-ia-go").addEventListener("click", nlIaProposer);
   $("nl-close").addEventListener("click", () => $("nl-modal").classList.add("hidden"));
   $("nl-count").addEventListener("click", nlComputeAudience);
   $("nl-save").addEventListener("click", async () => { const id = await nlSave(); if (id) { $("nl-status").textContent = "✓ Brouillon enregistré."; loadNewsletters(); } });
@@ -8549,6 +8550,53 @@ async function nlRetryFailed(id, btn) {
   if (error) { if (btn) btn.disabled = false; uiAlert("Relance impossible : " + error.message); return; }
   if (!nb) { if (btn) btn.disabled = false; uiAlert("Aucun envoi en erreur à relancer."); loadNewsletters(); return; }
   return nlLancerEnvoi(id, nb, btn);
+}
+
+// ---- Rédaction assistée -------------------------------------------------
+// L'IA rend du CONTENU et une STRUCTURE ; le style vient d'ici. Chaque bloc
+// reçu est fusionné avec le gabarit maison : la charte est donc appliquée par
+// construction, et un champ oublié par le modèle prend sa valeur habituelle
+// au lieu de rendre un bloc cassé.
+function nlIaFusionner(blocs) {
+  return (blocs || []).map((b) => {
+    const modele = NL_MODELES[b.t];
+    if (!modele) return null;                       // type inconnu : jeté
+    return { ...JSON.parse(JSON.stringify(modele)), ...b };
+  }).filter(Boolean);
+}
+
+async function nlIaProposer() {
+  const brief = $("nl-ia-brief").value.trim();
+  const etat = $("nl-ia-etat"), btn = $("nl-ia-go");
+  if (brief.length < 10) { etat.textContent = "Décris en une phrase ce que tu veux annoncer."; return; }
+  // Une proposition REMPLACE la mise en page en cours : on prévient, plutôt
+  // que d'effacer en silence un travail déjà commencé.
+  const dejaEcrit = nlBlocs.some((b) => !["entete", "pied", "sep", "espace"].includes(b.t));
+  if (dejaEcrit && !(await uiConfirm(
+    "Remplacer la mise en page actuelle par la proposition ?\n\nCe qui est déjà écrit sera perdu."))) return;
+
+  btn.disabled = true;
+  etat.textContent = "Rédaction en cours… (une trentaine de secondes)";
+  const { data, error } = await sb.functions.invoke("newsletter-ia", { body: { brief } });
+  btn.disabled = false;
+  if (error) {
+    let m = error.message;
+    try { m = (await error.context.json())?.error || m; } catch (_) {}
+    etat.textContent = "Échec : " + m; return;
+  }
+  if (data?.error) { etat.textContent = "Échec : " + data.error; return; }
+
+  const blocs = nlIaFusionner(data.blocs);
+  if (!blocs.length) { etat.textContent = "Rien d'exploitable n'est revenu. Reformule."; return; }
+  nlBlocs = blocs;
+  nlSel = 0;
+  if (data.subject && !$("nl-subject").value.trim()) $("nl-subject").value = data.subject;
+  nlRender();
+  // Les emplacements d'image reviennent vides par dessein : on le dit, sinon
+  // on croirait à un bug en voyant des blocs sans visuel.
+  const nImg = blocs.filter((b) => (b.t === "image" || b.t === "duo") && !b.src).length;
+  etat.textContent = `✓ ${blocs.length} blocs proposés — à relire et retoucher.`
+    + (nImg ? ` ${nImg} emplacement(s) d'image à remplir.` : "");
 }
 
 // ---- Aperçu d'une newsletter -------------------------------------------
