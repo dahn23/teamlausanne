@@ -213,20 +213,20 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats"],
-  head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "heures"],
-  coach:      ["cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "heures"],
-  coach_physique: ["cours", "phystests", "physique", "heures"],
-  moniteur:   ["cours", "heures"],
+  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "social", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "social", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
+  secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "social", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats"],
+  head_coach: ["dashboard", "calendrier", "anniv", "social", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "heures"],
+  coach:      ["cours", "social", "matchs", "lastscores", "plantournois", "phystests", "physique", "heures"],
+  coach_physique: ["cours", "social", "phystests", "physique", "heures"],
+  moniteur:   ["cours", "social", "heures"],
   affichage:  ["resa"],                      // ecran du club : grille des courts, lecture seule
-  prof:       ["etudes"],
-  coach_mental: ["mental", "matchs"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
+  prof:       ["etudes", "social"],
+  coach_mental: ["mental", "matchs", "social"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
 };
-const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["acces", "Accès Mon espace"], ["prospects", "Prospects"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["acces", "Accès Mon espace"], ["prospects", "Prospects"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["social", "Réseaux sociaux"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -453,6 +453,7 @@ function showView(view) {
   if (view === "pm") loadPM();
   if (view === "calendrier") loadCalendrier();
   if (view === "newsletter") loadNewsletters();
+  if (view === "social") loadSocial();
   if (view === "locks") loadLocks();
   if (view === "irrigation") loadIrrigation();
 }
@@ -17461,4 +17462,414 @@ function nlChargerBlocs(n) {
   else nlBlocs = [];
   nlSel = nlBlocs.length ? 0 : -1;
   nlRender();
+}
+
+// ===================================================================
+//  Réseaux sociaux — préparer et planifier les contenus
+// ===================================================================
+// Inspiré de Planable : un calendrier où l'on voit le mois d'un coup d'œil,
+// un tableau par étape de production, et une fiche par publication.
+//
+// La taxonomie vient du document éditorial de l'académie : UN pilier
+// principal par publication, PLUSIEURS étiquettes transversales. Les niveaux
+// (Kids, Club, Compétition…) sont des étiquettes, pas des piliers — sans quoi
+// il aurait fallu une catégorie par croisement de sujets.
+//
+// Ce que l'outil ne fait PAS : publier. Instagram et TikTok demandent un
+// compte professionnel, une application validée par Meta et l'API TikTok —
+// un chantier à part. Ici on prépare tout, on copie la légende, on publie
+// depuis le téléphone, puis on colle le lien.
+
+const SOC_STATUTS = [
+  ["idee",            "Idée",             "#69708a"],
+  ["a_filmer",        "À filmer",         "#c2560d"],
+  ["montage",         "Montage",          "#9c6500"],
+  ["texte_a_valider", "Texte à valider",  "#b0329a"],
+  ["programme",       "Programmé",        "#073eb5"],
+  ["publie",          "Publié",           "#1c7d38"],
+];
+const SOC_CANAUX = { instagram: "Instagram", tiktok: "TikTok", newsletter: "Newsletter" };
+const socStatutNom = (s) => (SOC_STATUTS.find(([k]) => k === s) || [s, s])[1];
+const socStatutCoul = (s) => (SOC_STATUTS.find(([k]) => k === s) || [0, 0, "#69708a"])[2];
+
+let socPiliers = [], socTags = [], socPosts = [], socMois = null, socVue = "mois",
+    socInit = false, socEditId = null, socEditMedias = [], socPeutEcrire = false;
+
+const socISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const socPilier = (n) => socPiliers.find((p) => p.n === n) || null;
+
+async function loadSocial() {
+  if (!socMois) { const n = new Date(); socMois = new Date(n.getFullYear(), n.getMonth(), 1); }
+  if (!socInit) {
+    socInit = true;
+    socPeutEcrire = hasAny(myAppRoles, ["superadmin", "admin", "secretaire"]);
+    $("soc-refresh").addEventListener("click", loadSocial);
+    $("soc-new").addEventListener("click", () => socOuvrir(null));
+    $("soc-close").addEventListener("click", () => $("soc-modal").classList.add("hidden"));
+    $("soc-save").addEventListener("click", socEnregistrer);
+    $("soc-suppr").addEventListener("click", socSupprimer);
+    $("soc-copier").addEventListener("click", socCopierLegende);
+    $("soc-fichier").addEventListener("change", socAjouterImages);
+    $("soc-prec").addEventListener("click", () => socDecaler(-1));
+    $("soc-suiv").addEventListener("click", () => socDecaler(1));
+    $("soc-auj").addEventListener("click", () => {
+      const n = new Date(); socMois = new Date(n.getFullYear(), n.getMonth(), 1); socRendre(); socCouverture();
+    });
+    document.querySelectorAll("[data-sv]").forEach((b) => b.addEventListener("click", () => {
+      socVue = b.dataset.sv;
+      document.querySelectorAll("[data-sv]").forEach((x) => x.classList.toggle("on", x === b));
+      socRendre();
+    }));
+    ["soc-f-pilier", "soc-f-canal", "soc-f-statut"].forEach((id) =>
+      $(id).addEventListener("change", socRendre));
+    // Sans droit d'écriture on regarde : le planning reste lisible par toute
+    // l'équipe, c'est tout l'intérêt qu'un coach sache ce qui se tourne.
+    if (!socPeutEcrire) $("soc-new").classList.add("hidden");
+  }
+
+  const [pil, tag, pos, mem] = await Promise.all([
+    sb.from("social_pillars").select("*").eq("actif", true).order("n"),
+    sb.from("social_tags").select("*").eq("actif", true).order("famille").order("ordre"),
+    sb.from("social_posts").select("*, social_post_tags(tag_id)").order("date_publication", { nullsFirst: false }),
+    pmMembers.length ? Promise.resolve({ data: pmMembers })
+      : sb.from("pm_members").select("*").eq("active", true).order("sort_order"),
+  ]);
+  socPiliers = pil.data || [];
+  socTags = tag.data || [];
+  socPosts = pos.data || [];
+  if (!pmMembers.length) pmMembers = mem.data || [];
+
+  if (!$("soc-f-pilier").options.length) {
+    $("soc-f-pilier").innerHTML = '<option value="">Tous les piliers</option>'
+      + socPiliers.map((p) => `<option value="${p.n}">${p.n}. ${esc(p.name)}</option>`).join("");
+    $("soc-f-statut").innerHTML = '<option value="">Tous les statuts</option>'
+      + SOC_STATUTS.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("");
+  }
+  socRendre();
+  socCouverture();
+}
+
+function socDecaler(n) {
+  socMois = new Date(socMois.getFullYear(), socMois.getMonth() + n, 1);
+  socRendre(); socCouverture();
+}
+
+// Ce que les filtres laissent passer.
+function socFiltrees() {
+  const p = $("soc-f-pilier").value, c = $("soc-f-canal").value, s = $("soc-f-statut").value;
+  return socPosts.filter((x) =>
+    (!p || String(x.pillar_n) === p)
+    && (!c || (x.canaux || []).includes(c))
+    && (!s || x.statut === s));
+}
+
+function socRendre() {
+  const mois = socMois.toLocaleDateString("fr-CH", { month: "long", year: "numeric" });
+  $("soc-periode").textContent = mois.charAt(0).toUpperCase() + mois.slice(1);
+  $("soc-mois").classList.toggle("hidden", socVue !== "mois");
+  $("soc-tableau").classList.toggle("hidden", socVue !== "tableau");
+  if (socVue === "mois") socRendreMois(); else socRendreTableau();
+}
+
+// ---- Vue calendrier ----
+// Les vacances scolaires teintent le fond et les camps s'affichent en clair :
+// la règle éditoriale dit de caler les publications sur les dates fixes,
+// encore faut-il les avoir sous les yeux.
+async function socRendreMois() {
+  const z = $("soc-mois");
+  const jours = calGrille(socMois);
+  const d0 = socISO(jours[0]), d1 = socISO(jours[jours.length - 1]);
+  const [sc, ev] = await Promise.all([
+    sb.from("school_holidays").select("label,start_date,end_date").eq("canton", "VD").lte("start_date", d1).gte("end_date", d0),
+    sb.from("cal_events").select("title,kind,start_date,end_date").in("kind", ["camp", "evenement", "fermeture"]).lte("start_date", d1).gte("end_date", d0),
+  ]);
+  const scs = sc.data || [], evs = ev.data || [];
+  const dans = (x, j) => j >= x.start_date && j <= x.end_date;
+  const posts = socFiltrees();
+  const auj = socISO(new Date());
+
+  z.innerHTML = `<div class="cal-grille">`
+    + CAL_JOURS.map((j) => `<div class="cal-entete">${j}</div>`).join("")
+    + jours.map((d) => {
+        const j = socISO(d);
+        const hors = d.getMonth() !== socMois.getMonth();
+        const vac = scs.find((x) => dans(x, j));
+        const dujour = posts.filter((p) => p.date_publication === j);
+        const contexte = evs.filter((x) => dans(x, j));
+        return `<div class="cal-jour soc-jour${hors ? " cal-hors" : ""}${vac ? " cal-jour-scol" : ""}${j === auj ? " cal-auj" : ""}"
+             data-jour="${j}" title="${vac ? esc(vac.label) : ""}">
+          <span class="cal-num">${d.getDate()}</span>
+          ${contexte.map((x) => `<span class="soc-ctx" title="${esc(x.title)}">${esc(x.title)}</span>`).join("")}
+          ${dujour.map((p) => socPuce(p)).join("")}
+          ${socPeutEcrire ? `<button type="button" class="soc-plus" data-neuf="${j}" title="Ajouter une publication ce jour">＋</button>` : ""}
+        </div>`;
+      }).join("")
+    + `</div>`;
+  socBrancherPuces(z);
+}
+
+// Une puce : la couleur dit le pilier, les pastilles les canaux, le liseré de
+// gauche le statut. Trois informations sans lire une ligne de texte.
+function socPuce(p) {
+  const pil = socPilier(p.pillar_n);
+  const canaux = (p.canaux || []).map((c) => `<i class="soc-c soc-c-${c}" title="${SOC_CANAUX[c] || c}"></i>`).join("");
+  return `<button type="button" class="soc-puce" data-post="${p.id}"
+      style="--pc:${esc(pil?.couleur || "#69708a")};--sc:${esc(socStatutCoul(p.statut))}"
+      title="${esc(p.titre)} — ${esc(pil?.name || "sans pilier")} · ${esc(socStatutNom(p.statut))}">
+    <span class="soc-puce-c">${canaux}</span><span class="soc-puce-t">${esc(p.titre)}</span></button>`;
+}
+
+function socBrancherPuces(z) {
+  z.querySelectorAll("[data-post]").forEach((b) =>
+    b.addEventListener("click", (e) => { e.stopPropagation(); socOuvrirId(b.dataset.post); }));
+  z.querySelectorAll("[data-neuf]").forEach((b) =>
+    b.addEventListener("click", (e) => { e.stopPropagation(); socOuvrir(null, b.dataset.neuf); }));
+}
+
+// ---- Vue tableau : une colonne par étape de production ----
+function socRendreTableau() {
+  const posts = socFiltrees();
+  $("soc-tableau").innerHTML = `<div class="soc-cols">${SOC_STATUTS.map(([k, lbl, c]) => {
+    const l = posts.filter((p) => p.statut === k);
+    return `<section class="soc-col" style="--sc:${c}">
+      <header class="soc-col-h"><b>${esc(lbl)}</b><span class="soc-col-n">${l.length}</span></header>
+      <div class="soc-col-b">${l.length
+        ? l.map((p) => socCarte(p)).join("")
+        : '<p class="soc-col-vide">—</p>'}</div></section>`;
+  }).join("")}</div>`;
+  socBrancherPuces($("soc-tableau"));
+}
+
+function socCarte(p) {
+  const pil = socPilier(p.pillar_n);
+  const canaux = (p.canaux || []).map((c) => `<i class="soc-c soc-c-${c}" title="${SOC_CANAUX[c] || c}"></i>`).join("");
+  const resp = pmMembers.find((m) => m.id === p.responsable_id);
+  return `<button type="button" class="soc-carte" data-post="${p.id}" style="--pc:${esc(pil?.couleur || "#69708a")}">
+    <span class="soc-carte-h">${canaux}${p.date_publication ? `<span class="soc-carte-d">${frDate(p.date_publication)}</span>` : '<span class="soc-carte-d muted">sans date</span>'}</span>
+    <b class="soc-carte-t">${esc(p.titre)}</b>
+    ${pil ? `<span class="soc-carte-p">${esc(pil.name)}</span>` : ""}
+    ${resp ? `<span class="soc-carte-r">${dAvatar(resp.name)}</span>` : ""}
+    ${!p.accord_personnes && p.a_filmer ? '<span class="soc-carte-w" title="Accord des personnes filmées pas encore obtenu">⚠ accord</span>' : ""}
+  </button>`;
+}
+
+// ---- Couverture des piliers, sur le trimestre en cours ----
+// La règle éditoriale demande de couvrir les 14 piliers à l'échelle d'un
+// trimestre. La rendre mesurable, c'est la rendre tenable.
+async function socCouverture() {
+  const t = Math.floor(socMois.getMonth() / 3);
+  const debut = new Date(socMois.getFullYear(), t * 3, 1);
+  const fin = new Date(socMois.getFullYear(), t * 3 + 3, 0);
+  const { data, error } = await sb.rpc("social_couverture",
+    { p_debut: socISO(debut), p_fin: socISO(fin) });
+  if (error) return;
+  const l = data || [];
+  const vides = l.filter((x) => !Number(x.publications)).length;
+  $("soc-couv-resume").textContent =
+    `T${t + 1} ${debut.getFullYear()} · ${l.reduce((s, x) => s + Number(x.publications), 0)} publication(s)`
+    + (vides ? ` · ${vides} pilier(s) sans contenu` : " · tous les piliers couverts");
+  const max = Math.max(1, ...l.map((x) => Number(x.publications)));
+  $("soc-couv").innerHTML = l.map((x) => {
+    const n = Number(x.publications);
+    return `<div class="soc-cv${n ? "" : " soc-cv-vide"}" style="--pc:${esc(x.couleur)}">
+      <span class="soc-cv-n">${x.n}</span>
+      <span class="soc-cv-t">${esc(x.name)}</span>
+      <span class="soc-cv-b"><i style="width:${Math.round((n / max) * 100)}%"></i></span>
+      <span class="soc-cv-v">${n}</span></div>`;
+  }).join("");
+}
+
+// ---- La fiche d'une publication ----
+async function socOuvrirId(id) {
+  const p = socPosts.find((x) => x.id === id);
+  if (p) socOuvrir(p);
+}
+
+async function socOuvrir(p, jour) {
+  socEditId = p?.id || null;
+  $("soc-err").hidden = true;
+  $("soc-etat").textContent = "";
+  $("soc-titre-modal").textContent = p ? "Modifier la publication" : "Nouvelle publication";
+  $("soc-titre").value = p?.titre || "";
+  $("soc-pilier").innerHTML = '<option value="">— à choisir —</option>'
+    + socPiliers.map((x) => `<option value="${x.n}"${p?.pillar_n === x.n ? " selected" : ""}>${x.n}. ${esc(x.name)}</option>`).join("");
+  $("soc-statut").innerHTML = SOC_STATUTS.map(([k, l]) =>
+    `<option value="${k}"${(p?.statut || "idee") === k ? " selected" : ""}>${esc(l)}</option>`).join("");
+  $("soc-date").value = p?.date_publication || jour || "";
+  $("soc-date-ev").value = p?.date_evenement || "";
+  document.querySelectorAll(".soc-canal").forEach((c) => { c.checked = (p?.canaux || []).includes(c.value); });
+  $("soc-angle").value = p?.angle || "";
+  $("soc-texte").value = p?.texte || "";
+  $("soc-hashtags").value = p?.hashtags || "";
+  $("soc-cta").value = p?.cta || "";
+  $("soc-responsable").innerHTML = '<option value="">—</option>'
+    + pmMembers.map((m) => `<option value="${m.id}"${p?.responsable_id === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("");
+  $("soc-a-filmer").value = p?.a_filmer || "";
+  $("soc-lieu").value = p?.lieu || "";
+  $("soc-partenaire").value = p?.partenaire || "";
+  $("soc-accord").checked = !!p?.accord_personnes;
+  $("soc-lien").value = p?.lien_publie || "";
+  $("soc-bilan").value = p?.bilan || "";
+
+  // Étiquettes, par famille.
+  const choisies = new Set((p?.social_post_tags || []).map((t) => t.tag_id));
+  const familles = [["programme", "Programme"], ["evenement", "Événement"],
+                    ["public", "Public visé"], ["objectif", "Objectif"], ["format", "Format"]];
+  $("soc-tags").innerHTML = familles.map(([f, lbl]) => {
+    const l = socTags.filter((t) => t.famille === f);
+    if (!l.length) return "";
+    return `<div class="soc-tagf"><span class="soc-tagf-t">${esc(lbl)}</span>
+      <div class="soc-tagf-l">${l.map((t) =>
+        `<label class="soc-tag"><input type="checkbox" class="soc-tag-c" value="${t.id}"${choisies.has(t.id) ? " checked" : ""} /><span>${esc(t.nom)}</span></label>`).join("")}</div></div>`;
+  }).join("");
+
+  // Images déjà attachées.
+  socEditMedias = [];
+  $("soc-media-etat").textContent = "";
+  if (socEditId) {
+    const { data } = await sb.from("social_post_media").select("*").eq("post_id", socEditId).order("ordre");
+    socEditMedias = data || [];
+  }
+  await socRendreMedias();
+
+  // Lecture seule pour qui n'écrit pas : on voit tout, on ne modifie rien.
+  const ro = !socPeutEcrire;
+  $("soc-modal").querySelectorAll("input, textarea, select").forEach((el) => { el.disabled = ro; });
+  $("soc-save").classList.toggle("hidden", ro);
+  $("soc-suppr").classList.toggle("hidden", ro || !socEditId);
+  $("soc-fichier").disabled = ro;
+  $("soc-modal").classList.remove("hidden");
+}
+
+// Les images vivent dans un bucket PRIVÉ (des mineurs, avant publication) :
+// on ne peut pas y pointer par une URL publique, il faut un lien signé.
+async function socRendreMedias() {
+  const z = $("soc-medias");
+  if (!socEditMedias.length) { z.innerHTML = '<p class="muted soc-med-vide">Aucune image pour l\'instant.</p>'; return; }
+  const liens = await Promise.all(socEditMedias.map(async (m) => {
+    const { data } = await sb.storage.from("social").createSignedUrl(m.chemin, 3600);
+    return data?.signedUrl || "";
+  }));
+  z.innerHTML = socEditMedias.map((m, i) => `<div class="soc-med">
+    ${liens[i] ? `<img src="${esc(liens[i])}" alt="${esc(m.nom || "")}" loading="lazy" />` : '<span class="soc-med-ko">?</span>'}
+    ${socPeutEcrire ? `<button type="button" class="soc-med-x" data-med="${m.id}" title="Retirer">×</button>` : ""}
+  </div>`).join("");
+  z.querySelectorAll("[data-med]").forEach((b) => b.addEventListener("click", async () => {
+    const m = socEditMedias.find((x) => x.id === b.dataset.med); if (!m) return;
+    if (!(await uiConfirm("Retirer cette image ?"))) return;
+    await sb.storage.from("social").remove([m.chemin]);
+    await sb.from("social_post_media").delete().eq("id", m.id);
+    socEditMedias = socEditMedias.filter((x) => x.id !== m.id);
+    socRendreMedias();
+  }));
+}
+
+async function socAjouterImages(e) {
+  const fichiers = [...(e.target.files || [])];
+  e.target.value = "";
+  if (!fichiers.length) return;
+  // Il faut une publication enregistrée pour y rattacher une image : on
+  // enregistre d'abord, sinon le fichier partirait dans le vide.
+  if (!socEditId) {
+    const id = await socEnregistrer(true);
+    if (!id) return;
+  }
+  $("soc-media-etat").textContent = `Envoi de ${fichiers.length} image(s)…`;
+  for (const f of fichiers) {
+    const ext = (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const chemin = `${socEditId}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await sb.storage.from("social").upload(chemin, f, { contentType: f.type || "image/jpeg" });
+    if (error) { $("soc-media-etat").textContent = "Échec : " + error.message; return; }
+    const { data } = await sb.from("social_post_media")
+      .insert({ post_id: socEditId, chemin, nom: f.name, ordre: socEditMedias.length })
+      .select("*").single();
+    if (data) socEditMedias.push(data);
+  }
+  $("soc-media-etat").textContent = `✓ ${fichiers.length} image(s) ajoutée(s).`;
+  socRendreMedias();
+}
+
+async function socEnregistrer(silencieux) {
+  const err = $("soc-err"); err.hidden = true;
+  const titre = $("soc-titre").value.trim();
+  if (!titre) { err.textContent = "Il faut au moins un titre."; err.hidden = false; return null; }
+  const statut = $("soc-statut").value;
+  const aFilmer = $("soc-a-filmer").value.trim();
+  // Garde-fou : on ne programme pas une publication montrant quelqu'un sans
+  // son accord. Beaucoup des personnes filmées sont mineures.
+  if (["programme", "publie"].includes(statut) && aFilmer && !$("soc-accord").checked) {
+    err.textContent = "Accord des personnes filmées non coché : impossible de passer en « "
+      + socStatutNom(statut) + " » tant que quelqu'un est à filmer.";
+    err.hidden = false; return null;
+  }
+  const canaux = [...document.querySelectorAll(".soc-canal:checked")].map((c) => c.value);
+  const { data: sess } = await sb.auth.getSession();
+  const uid = sess?.session?.user?.id || null;
+  const row = {
+    titre,
+    pillar_n: $("soc-pilier").value ? Number($("soc-pilier").value) : null,
+    statut, canaux,
+    date_publication: $("soc-date").value || null,
+    date_evenement: $("soc-date-ev").value || null,
+    angle: $("soc-angle").value.trim() || null,
+    texte: $("soc-texte").value.trim() || null,
+    hashtags: $("soc-hashtags").value.trim() || null,
+    cta: $("soc-cta").value.trim() || null,
+    responsable_id: $("soc-responsable").value || null,
+    a_filmer: aFilmer || null,
+    lieu: $("soc-lieu").value.trim() || null,
+    partenaire: $("soc-partenaire").value.trim() || null,
+    accord_personnes: $("soc-accord").checked,
+    lien_publie: $("soc-lien").value.trim() || null,
+    bilan: $("soc-bilan").value.trim() || null,
+    updated_at: new Date().toISOString(), updated_by: uid,
+  };
+  const res = socEditId
+    ? await sb.from("social_posts").update(row).eq("id", socEditId).select("id").single()
+    : await sb.from("social_posts").insert({ ...row, created_by: uid }).select("id").single();
+  if (res.error) { err.textContent = res.error.message; err.hidden = false; return null; }
+  socEditId = res.data.id;
+
+  // Étiquettes : on remplace le jeu entier, plus simple et sans dérive qu'un
+  // calcul de différences.
+  const voulues = [...document.querySelectorAll(".soc-tag-c:checked")].map((c) => Number(c.value));
+  await sb.from("social_post_tags").delete().eq("post_id", socEditId);
+  if (voulues.length) {
+    await sb.from("social_post_tags").insert(voulues.map((t) => ({ post_id: socEditId, tag_id: t })));
+  }
+  if (!silencieux) {
+    $("soc-modal").classList.add("hidden");
+    loadSocial();
+  } else {
+    $("soc-etat").textContent = "Brouillon enregistré.";
+  }
+  return socEditId;
+}
+
+async function socSupprimer() {
+  if (!socEditId) return;
+  if (!(await uiConfirm("Supprimer cette publication ? Les images attachées partent avec."))) return;
+  const chemins = socEditMedias.map((m) => m.chemin);
+  if (chemins.length) await sb.storage.from("social").remove(chemins);
+  const { error } = await sb.from("social_posts").delete().eq("id", socEditId);
+  if (error) { uiAlert("Suppression impossible : " + error.message); return; }
+  $("soc-modal").classList.add("hidden");
+  loadSocial();
+}
+
+// Copier la légende prête à coller : texte, appel à l'action, hashtags.
+// C'est le geste réel — on publie depuis le téléphone, pas depuis la console.
+async function socCopierLegende() {
+  const bouts = [$("soc-texte").value.trim(), $("soc-cta").value.trim(), $("soc-hashtags").value.trim()]
+    .filter(Boolean);
+  if (!bouts.length) { $("soc-etat").textContent = "Rien à copier."; return; }
+  const texte = bouts.join("\n\n");
+  try {
+    await navigator.clipboard.writeText(texte);
+    $("soc-etat").textContent = "✓ Légende copiée.";
+  } catch (_) {
+    // Le presse-papiers est refusé hors HTTPS ou sans geste : on montre le
+    // texte plutôt que d'échouer en silence.
+    $("soc-etat").textContent = "Copie refusée par le navigateur — sélectionne le texte à la main.";
+  }
 }

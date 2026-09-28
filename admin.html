@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=279" />
+  <link rel="stylesheet" href="style.css?v=280" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -37,6 +37,7 @@
         <div class="side-block">
           <button class="side-item" data-view="mail"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6 8.5-6"/></svg><span class="side-label">Messagerie</span></button>
           <button class="side-item" data-view="newsletter"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H4z"/><path d="M4 8l8 5 8-5"/><path d="M8 20h8"/></svg><span class="side-label">Newsletter</span></button>
+          <button class="side-item" data-view="social"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.2" fill="currentColor" stroke="none"/></svg><span class="side-label">Réseaux sociaux</span></button>
           <button class="side-item" data-view="dashboard"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="10" rx="1"/><rect x="13" y="3" width="8" height="6" rx="1"/><rect x="13" y="11" width="8" height="10" rx="1"/><rect x="3" y="15" width="8" height="6" rx="1"/></svg><span class="side-label">Dashboard</span></button>
           <button class="side-item" data-view="pm"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="9.5" y="4" width="5" height="11" rx="1"/><rect x="16" y="4" width="5" height="7" rx="1"/></svg><span class="side-label">Project Manager</span></button>
           <button class="side-item" data-view="calendrier"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v4M16 3v4"/><path d="M7 13h3v3H7z"/></svg><span class="side-label">Calendrier</span></button>
@@ -874,6 +875,132 @@
           <div id="nl-rows" class="nl-list"></div>
           <p id="nl-empty" class="muted" hidden>Aucune newsletter pour l'instant.</p>
           <div id="nl-detail" class="hidden" style="margin-top:18px"></div>
+        </div>
+
+        <!-- ---- Réseaux sociaux : préparer et planifier les contenus ----
+             Toute l'équipe voit le planning ; le secrétariat et la direction
+             écrivent. La taxonomie (14 piliers, étiquettes par famille) vient
+             du document éditorial de l'académie. -->
+        <div id="view-social" class="view hidden">
+          <header class="dash-hero">
+            <div class="dash-hero-t">
+              <p class="dash-eyebrow">Contenus — Instagram · TikTok · Newsletter</p>
+              <h1 class="dash-title">Réseaux sociaux</h1>
+              <p class="dash-lede">Ce qu'on raconte, quand, et sur quel pilier. Les dates fixes d'abord, le reste vient se caler autour.</p>
+            </div>
+            <div class="dash-hero-a">
+              <button type="button" id="soc-refresh" class="ghost">↻ Actualiser</button>
+              <button type="button" id="soc-new">＋ Nouvelle publication</button>
+            </div>
+          </header>
+
+          <!-- Couverture des piliers : la règle éditoriale dit de couvrir les
+               14 sur un trimestre. Sans mesure, on s'en aperçoit trop tard. -->
+          <details id="soc-couv-box" class="soc-couv-box">
+            <summary>Couverture des piliers <span id="soc-couv-resume" class="muted"></span></summary>
+            <div id="soc-couv" class="soc-couv"></div>
+          </details>
+
+          <div class="soc-barre">
+            <div class="cal-vues">
+              <button type="button" class="soc-vue on" data-sv="mois">Calendrier</button>
+              <button type="button" class="soc-vue" data-sv="tableau">Tableau</button>
+            </div>
+            <div class="cal-nav">
+              <button type="button" id="soc-prec" class="ghost" aria-label="Période précédente">‹</button>
+              <b id="soc-periode"></b>
+              <button type="button" id="soc-suiv" class="ghost" aria-label="Période suivante">›</button>
+              <button type="button" id="soc-auj" class="ghost">Aujourd'hui</button>
+            </div>
+            <span class="spacer"></span>
+            <label class="cal-per">Pilier <select id="soc-f-pilier"></select></label>
+            <label class="cal-per">Canal <select id="soc-f-canal">
+              <option value="">Tous</option>
+              <option value="instagram">Instagram</option>
+              <option value="tiktok">TikTok</option>
+              <option value="newsletter">Newsletter</option>
+            </select></label>
+            <label class="cal-per">Statut <select id="soc-f-statut"></select></label>
+          </div>
+
+          <div id="soc-mois" class="soc-mois"></div>
+          <div id="soc-tableau" class="soc-tableau hidden"></div>
+        </div>
+
+        <!-- Fenêtre : rédaction d'une publication -->
+        <div id="soc-modal" class="modal hidden">
+          <div class="card soc-card">
+            <button type="button" id="soc-close" class="modal-close" aria-label="Fermer">×</button>
+            <div class="nl-entete">
+              <h2 style="margin:0" id="soc-titre-modal">Nouvelle publication</h2>
+            </div>
+            <div class="soc-corps">
+              <div class="soc-gauche">
+                <label class="mailc-f">Titre ou angle
+                  <input type="text" id="soc-titre" placeholder="ex. Le premier GameZone de Léa" /></label>
+                <div class="soc-duo">
+                  <label class="mailc-f">Pilier principal<select id="soc-pilier"></select></label>
+                  <label class="mailc-f">Statut<select id="soc-statut"></select></label>
+                </div>
+                <div class="soc-duo">
+                  <label class="mailc-f">Date de publication<input type="date" id="soc-date" /></label>
+                  <label class="mailc-f">Date de l'événement <span class="muted" style="font-weight:400">(facultatif)</span><input type="date" id="soc-date-ev" /></label>
+                </div>
+                <div class="mailc-f"><span class="soc-lab">Canaux</span>
+                  <div class="soc-canaux">
+                    <label class="check"><input type="checkbox" class="soc-canal" value="instagram" /> Instagram</label>
+                    <label class="check"><input type="checkbox" class="soc-canal" value="tiktok" /> TikTok</label>
+                    <label class="check"><input type="checkbox" class="soc-canal" value="newsletter" /> Newsletter</label>
+                  </div>
+                </div>
+                <label class="mailc-f">Angle <span class="muted" style="font-weight:400">(ce qu'on raconte, en une phrase)</span>
+                  <textarea id="soc-angle" rows="2"></textarea></label>
+                <label class="mailc-f">Texte / légende
+                  <textarea id="soc-texte" rows="6"></textarea></label>
+                <div class="soc-duo">
+                  <label class="mailc-f">Hashtags<textarea id="soc-hashtags" rows="2" placeholder="#teamlausanne #tennis"></textarea></label>
+                  <label class="mailc-f">Appel à l'action<input type="text" id="soc-cta" placeholder="ex. Découvrir les prochaines dates" /></label>
+                </div>
+                <div class="mailc-f"><span class="soc-lab">Images</span>
+                  <div id="soc-medias" class="soc-medias"></div>
+                  <label class="btnlike" style="cursor:pointer">＋ Ajouter des images<input id="soc-fichier" type="file" accept="image/*" multiple hidden /></label>
+                  <span id="soc-media-etat" class="muted" style="font-size:.82rem"></span>
+                </div>
+              </div>
+
+              <div class="soc-droite">
+                <div class="soc-bloc">
+                  <span class="soc-lab">Étiquettes</span>
+                  <div id="soc-tags"></div>
+                </div>
+                <div class="soc-bloc">
+                  <span class="soc-lab">Production</span>
+                  <label class="mailc-f">Responsable<select id="soc-responsable"></select></label>
+                  <label class="mailc-f">Personne à filmer<input type="text" id="soc-a-filmer" /></label>
+                  <label class="mailc-f">Lieu<input type="text" id="soc-lieu" /></label>
+                  <label class="mailc-f">Partenaire concerné<input type="text" id="soc-partenaire" /></label>
+                  <!-- On filme des mineurs : l'accord n'est pas un detail, et
+                       il bloque le passage en « Programmé ». -->
+                  <label class="check soc-accord"><input type="checkbox" id="soc-accord" />
+                    <b>Accord des personnes filmées obtenu</b></label>
+                  <p class="muted soc-accord-aide">Obligatoire pour passer en « Programmé ». Beaucoup des personnes filmées sont mineures.</p>
+                </div>
+                <div class="soc-bloc">
+                  <span class="soc-lab">Après publication</span>
+                  <label class="mailc-f">Lien publié<input type="url" id="soc-lien" placeholder="https://…" /></label>
+                  <label class="mailc-f">Résultat et enseignement<textarea id="soc-bilan" rows="3"></textarea></label>
+                </div>
+              </div>
+            </div>
+            <p id="soc-err" class="error" hidden></p>
+            <div class="form-foot">
+              <button type="button" id="soc-suppr" class="danger hidden">Supprimer</button>
+              <button type="button" id="soc-copier" class="ghost">⧉ Copier la légende</button>
+              <span class="spacer"></span>
+              <span id="soc-etat" class="muted" style="font-size:.85rem"></span>
+              <button type="button" id="soc-save">Enregistrer</button>
+            </div>
+          </div>
         </div>
 
         <!-- ---- Vue Mental (préparation mentale) ---- -->
