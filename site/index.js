@@ -288,9 +288,9 @@ const DETAILS = {
             mytennis: "19764390",
             mot: "Cinq ans de sport-études au Lausanne-Sports, et le bac en ligne de mire. Revers à une main, faible avoué pour l'ambiance des interclubs. Il enseigne depuis deux ans, en cours comme en stage : patient, et autant motivé par transmettre que par jouer.",
             tags: ["J+S continue 1", "J+S continue 2", "Official Swiss Tennis"] },
-          // Nadia et Isabella : texte encore provisoire, il ne dit que ce qu'on
-          // sait de source sure (filiere et classement Swiss Tennis). A
-          // remplacer par leur vraie presentation des qu'on l'a.
+          // Nadia, Isabella, Yuma et Ylan : texte encore provisoire, il ne dit
+          // que ce qu'on sait de source sure (filiere et classement Swiss
+          // Tennis). A remplacer par leur vraie presentation des qu'on l'a.
           { nom: "Nadia Dévaud", age: "15 ans", classement: "R5",
             photo: "assets/photos/eleve-nadia-devaud.jpg",
             mytennis: "19822148",
@@ -305,6 +305,14 @@ const DETAILS = {
             photo: "assets/photos/eleve-isabella-stadelmann.jpg",
             mytennis: "19803666",
             mot: "En sport-études au Lausanne-Sports, classée R5. Sa présentation arrive prochainement." },
+          { nom: "Yuma Olgiati", age: "17 ans", classement: "R4",
+            photo: "assets/photos/eleve-yuma-olgiati.jpg",
+            mytennis: "19800610",
+            mot: "En sport-études au Lausanne-Sports, classé R4. Sa présentation arrive prochainement." },
+          { nom: "Ylan Allenspach", age: "16 ans", classement: "R5",
+            photo: "assets/photos/eleve-ylan-allenspach.jpg",
+            mytennis: "19796976",
+            mot: "En sport-études au Lausanne-Sports, classé R5. Sa présentation arrive prochainement." },
         ]},
       { type: "brochure", anchor: "brochure",
         eyebrow: "Brochure 2026", title: "Le programme en détail, dans votre boîte mail",
