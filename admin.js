@@ -3177,7 +3177,10 @@ async function dashSemaine() {
 async function dashArgent() {
   if (!canFactures()) return null;
   const sea = currentSeason("juniors");
-  let q = sb.from("out_invoices").select("amount,status,issue_date,due_date");
+  // Les factures annulées ne comptent ni au total facturé ni au reste à
+  // encaisser : sans ce filtre, un contrat résilié en cours d'année laisse
+  // toutes ses échéances annulées dans les chiffres de la saison.
+  let q = sb.from("out_invoices").select("amount,status,issue_date,due_date").neq("status", "annulee");
   if (sea) q = q.eq("season_id", sea.id);
   const { data, error } = await q;
   if (error) return null;
