@@ -42,6 +42,23 @@ const ICO_STAT = {
   billet: '<path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4z"/><path d="M13 7v2M13 13v2"/>',
   ecusson: '<path d="M12 2l8 3v6c0 5-3.4 9-8 11-4.6-2-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/>',
 };
+// Ateliers des rendez-vous de saison : une icone par theme, au trait comme le
+// reste des pictogrammes du site (24x24, 1.7, bouts ronds).
+const ICO_ATELIER = {
+  balle: '<circle cx="12" cy="12" r="9"/><path d="M6.5 4.9a9 9 0 0 1 0 14.2M17.5 4.9a9 9 0 0 0 0 14.2"/>',
+  haltere: '<path d="M3.5 9.5v5M6.5 7.5v9M6.5 12h11M17.5 7.5v9M20.5 9.5v5"/>',
+  cerveau: '<path d="M12 5.6a2.9 2.9 0 0 0-5.5-1.3A2.7 2.7 0 0 0 3.9 7.9c0 .6.2 1.2.6 1.7A2.8 2.8 0 0 0 3.2 12c0 1.1.6 2 1.5 2.5a2.7 2.7 0 0 0 2.1 4.3c.5.9 1.5 1.5 2.6 1.5 1.4 0 2.6-1 2.6-2.5"/>'
+    + '<path d="M12 5.6a2.9 2.9 0 0 1 5.5-1.3A2.7 2.7 0 0 1 20.1 7.9c0 .6-.2 1.2-.6 1.7A2.8 2.8 0 0 1 20.8 12c0 1.1-.6 2-1.5 2.5a2.7 2.7 0 0 1-2.1 4.3c-.5.9-1.5 1.5-2.6 1.5-1.4 0-2.6-1-2.6-2.5"/>'
+    + '<path d="M12 5.6v12.2"/>',
+  equipe: '<circle cx="12" cy="7.2" r="2.9"/><path d="M7.3 19.6a4.7 4.7 0 0 1 9.4 0"/>'
+    + '<circle cx="4.9" cy="11.2" r="2.1"/><path d="M1.6 19.6a3.4 3.4 0 0 1 3.8-3"/>'
+    + '<circle cx="19.1" cy="11.2" r="2.1"/><path d="M22.4 19.6a3.4 3.4 0 0 0-3.8-3"/>',
+};
+const icoAtelier = (k) => ICO_ATELIER[k]
+  ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO_ATELIER[k]}</svg>`
+  : "";
+
 // Un vainqueur : drapeau et nom dans un meme bloc insecable, sinon le retour a
 // la ligne peut tomber entre les deux.
 const palmJoueurs = (liste) => [].concat(liste)
@@ -363,7 +380,7 @@ const DETAILS = {
       { type: "rdv", eyebrow: "En plus de la semaine",
         title: "Les rendez-vous de la saison",
         lead: "Trois après-midis réservés aux joueuses et joueurs de la filière. Chaque rendez-vous s'ouvre sur un temps commun, puis se poursuit en ateliers avec nos coachs. Des joueurs de l'Académie viennent partager leur expérience.",
-        ateliers: [["Tennis", "fluo"], ["Préparation physique", "blue"], ["Mental", "ocean"], ["Esprit d'équipe", "prussian"]],
+        ateliers: [["Tennis", "balle", "fluo"], ["Préparation physique", "haltere", "blue"], ["Mental", "cerveau", "ocean"], ["Esprit d'équipe", "equipe", "prussian"]],
         items: [
           { jour: "Mercredi", date: "7 octobre", an: "2026", heures: "16 h 00 – 18 h 30" },
           { jour: "Samedi", date: "20 février", an: "2027" },
@@ -426,7 +443,7 @@ const DETAILS = {
       { type: "rdv", eyebrow: "En plus de la semaine",
         title: "Les rendez-vous de la saison",
         lead: "Six après-midis réservés aux joueuses et joueurs de la filière. Chaque rendez-vous s'ouvre sur un temps d'accueil, puis se poursuit en ateliers avec nos coachs, aux côtés de joueurs de l'Académie.",
-        ateliers: [["Tennis", "fluo"], ["Préparation physique", "blue"], ["Mental", "ocean"], ["Esprit d'équipe", "prussian"]],
+        ateliers: [["Tennis", "balle", "fluo"], ["Préparation physique", "haltere", "blue"], ["Mental", "cerveau", "ocean"], ["Esprit d'équipe", "equipe", "prussian"]],
         items: [
           { jour: "Mercredi", date: "7 octobre", an: "2026", heures: "16 h 00 – 18 h 30" },
           { jour: "Samedi", date: "16 janvier", an: "2027" },
@@ -1307,10 +1324,11 @@ function sectionHTML(sec) {
           ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
         </div>
         ${sec.ateliers ? `<ul class="rdv-ateliers">${sec.ateliers.map((a) => {
-          // Chaque atelier porte sa couleur de charte, nommee dans les donnees
-          // plutot que deduite du rang : reordonner la liste ne melange rien.
-          const [nom, ton] = Array.isArray(a) ? a : [a, "blue"];
-          return `<li class="rdv-atelier rdv-t-${esc(ton)}">${BALLE}${esc(nom)}</li>`;
+          // Icone et couleur nommees dans les donnees plutot que deduites du
+          // rang : reordonner ou ajouter un atelier ne melange rien.
+          const [nom, ico, ton] = Array.isArray(a) ? a : [a, "balle", "blue"];
+          return `<li class="rdv-atelier rdv-t-${esc(ton)}">
+            <span class="rdv-ico">${icoAtelier(ico)}</span>${esc(nom)}</li>`;
         }).join("")}</ul>` : ""}
         <ol class="rdv-grid">${sec.items.map((d) =>
           `<li class="rdv-date${d.heures ? " rdv-date-ok" : ""}">

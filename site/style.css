@@ -2889,19 +2889,21 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 .rdv-atelier{display:inline-flex;align-items:center;gap:8px;
   font-family:var(--font-accent);font-weight:700;text-transform:uppercase;
   letter-spacing:-.01em;font-size:.95rem}
-.rdv-atelier svg{flex:0 0 auto}
 
-/* Une balle par atelier, dans les quatre couleurs de la charte 2026. La balle
-   prend son fond de `color` et ses coutures de --kw-fond ; on pose les deux
-   sur le SVG et non sur la puce, sinon le libelle se colorerait aussi. */
-.rdv-t-blue .kw-balle{color:var(--blue);--kw-fond:#fff}
-.rdv-t-ocean .kw-balle{color:var(--ocean);--kw-fond:#fff}
-.rdv-t-prussian .kw-balle{color:var(--prussian);--kw-fond:#fff}
-/* Le vert de la charte ne tient pas seul sur le fond clair de la page : 1,16:1
-   contre #f5f7fb, la balle s'effacerait. Un cerne de la meme famille la pose,
-   et les coutures passent en fonce puisque le blanc n'y ressortirait pas. */
-.rdv-t-fluo .kw-balle{color:var(--fluo);--kw-fond:var(--fluo-ink)}
-.rdv-t-fluo .kw-balle circle{stroke:var(--fluo-ink);stroke-width:1.6}
+/* Une icone par atelier, posee sur une pastille teintee. La pastille n'est pas
+   un ornement : au trait, le vert de la charte ne tient pas sur le fond clair
+   de la page (1,16:1 contre #f5f7fb) et l'icone Tennis disparaitrait. Sur sa
+   pastille pleine avec un trait fonce elle monte a 11,6:1, et les trois bleus
+   se detachent a ~7:1 sur leur teinte claire. Teintes ecrites en hexadecimal
+   plutot qu'en color-mix, absent du reste de cette feuille. */
+.rdv-ico{display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;flex:0 0 auto;border-radius:10px;
+  background:var(--at-fond);color:var(--at-trait)}
+.rdv-ico svg{width:19px;height:19px;display:block}
+.rdv-t-blue{--at-trait:var(--blue);--at-fond:#dce4f5}
+.rdv-t-ocean{--at-trait:var(--ocean);--at-fond:#deebf0}
+.rdv-t-prussian{--at-trait:var(--prussian);--at-fond:#dbe3e7}
+.rdv-t-fluo{--at-trait:var(--fluo-ink);--at-fond:var(--fluo)}
 
 /* Trois colonnes, pas un auto-fit : les deux filieres ont 3 et 6 rendez-vous,
    et un multiple de trois ne laisse jamais une carte seule en fin de ligne.
