@@ -1007,8 +1007,8 @@ html{-webkit-tap-highlight-color:transparent}
 .mt-role.youth{background:#1c7d38;color:#fff}
 .mt-text{white-space:pre-wrap;font-size:.9rem}
 .mt-linkout{display:inline-block;margin-top:4px;font-size:.85rem;word-break:break-all}
-.mt-file-dl{display:inline-block;margin-top:4px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:.82rem;cursor:pointer}
-.mt-file-dl:hover{background:#f0f3f8}
+.mt-file-dl{display:inline-block;margin-top:4px;background:#fff;color:var(--blue-ink,#0f1f6e);font-weight:600;border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:.82rem;cursor:pointer;max-width:100%;text-align:left;overflow-wrap:anywhere}
+.mt-file-dl:hover{background:#f0f3f8;color:var(--blue-ink,#0f1f6e)}
 .mt-del{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:.8rem;margin-left:auto}
 .mt-composer{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
 .mt-composer .mt-body,.mt-composer .mt-link{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;box-sizing:border-box}
