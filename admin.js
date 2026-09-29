@@ -10805,6 +10805,7 @@ async function oiSendGo() {
   $("oi-send-modal").classList.add("hidden");
   await loadOutInvoices();
   if (stgCurrent) loadRegistrations();   // facture de stage : la liste des inscrits montre le nouveau statut
+  else refreshStagesBadge();              // pastille Stages rouge tant qu'une facture de stage n'est pas envoyée
   uiAlert(`✓ ${ok} facture(s) envoyée(s) depuis ${OI_FROM}.${errs.length ? "\n\nErreurs :\n" + errs.join("\n") : ""}`);
 }
 
@@ -11611,8 +11612,13 @@ async function refreshStagesBadge() {
   const { data: ss } = await sb.from("stage_sessions").select("id").gte("end_date", today);
   const ids = (ss || []).map((s) => s.id);
   if (!ids.length) { setSideBadge("stages", 0); return; }
-  const { count } = await sb.from("stage_registrations").select("id", { count: "exact", head: true }).in("stage_id", ids);
-  setSideBadge("stages", count || 0);
+  const { data: regs } = await sb.from("stage_registrations").select("paid, out_invoices(status)").in("stage_id", ids);
+  // Pastille ROUGE (29.09.2026) dès qu'un inscrit n'a pas de facture ENVOYÉE : pas encore de facture (et pas
+  // marqué payé à la main) ou facture encore « à envoyer ».
+  const todo = (regs || []).filter((r) => (r.out_invoices ? r.out_invoices.status === "a_envoyer" : !r.paid)).length;
+  setSideBadge("stages", (regs || []).length, todo ? "side-badge-red" : "");
+  const b = document.querySelector('.side-item[data-view="stages"] .side-badge');
+  if (b) b.title = todo ? `${todo} facture${todo > 1 ? "s" : ""} pas encore envoyée${todo > 1 ? "s" : ""}` : "";
 }
 
 // ---- Catégories ----
@@ -11870,6 +11876,7 @@ async function loadRegistrations() {
     for (const f of invs || []) stgInv[f.id] = f;
   }
   renderRegistrants();
+  refreshStagesBadge();   // facture créée / envoyée / payé coché : la pastille du menu suit
 }
 let stgInv = {};
 
