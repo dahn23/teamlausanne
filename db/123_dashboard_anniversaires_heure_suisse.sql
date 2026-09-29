@@ -1,3 +1,4 @@
+-- (Fichier renuméroté 113 → 123 le 30.09.2026 : le numéro 113 était aussi pris par 113_social_v2.sql. Contenu appliqué le 28.09.2026.)
 -- 28.09.2026 : le bloc « Anniversaires » du tableau de bord ne correspondait pas à l'onglet Anniversaires.
 --  1) Année bissextile : la date d'anniversaire était recalculée par « nombre de jours depuis le 1er janvier » ;
 --     pour une personne née une année bissextile, elle tombait un jour trop tard (après le 28 février).

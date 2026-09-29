@@ -13484,7 +13484,7 @@ async function mentalDelComment(id, refresh) {
   await sb.from("mental_comments").delete().eq("id", id);
   refresh();
 }
-// ---- « Focus de la semaine » (db/120) : rempli par le jeune dans Mon espace, un par semaine ----
+// ---- « Focus de la semaine » (db/122) : rempli par le jeune dans Mon espace, un par semaine ----
 // Coach mental, head coach, coach, admin, superadmin peuvent le modifier / supprimer (la base le vérifie aussi).
 const canFocusEdit = () => hasAny(myAppRoles, ["coach_mental", "head_coach", "coach", "admin", "superadmin"]);
 const fcWeekLbl = (ws) => { const a = new Date(ws + "T12:00:00"), b = new Date(a); b.setDate(a.getDate() + 6); return `Semaine du ${frDate(ws)} au ${frDate(b.toISOString().slice(0, 10))}`; };

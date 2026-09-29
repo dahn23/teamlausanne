@@ -1,3 +1,4 @@
+-- (Fichier renuméroté 120 → 122 le 30.09.2026 : le numéro 120 était aussi pris par 120_berti_murina_sortie.sql.)
 -- 29.09.2026 (décision Dan) : « Le focus de la semaine » remplace « Après séance — 3 fiertés » dans Mental.
 --  • Le jeune (ou son parent) le remplit dans Mon espace › Mental : UN focus par semaine (lundi → dimanche, heure suisse),
 --    daté. Une fois rempli, la semaine est bloquée (« tu as déjà rempli ton focus »).

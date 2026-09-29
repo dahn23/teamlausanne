@@ -1234,7 +1234,7 @@ async function renderContact() {
 
 let compSel = null;
 let compSub = "messages";
-// Onglet Mental : « Messages » (discussion avec le coach mental), « Focus de la semaine » (db/120) et « Routines ».
+// Onglet Mental : « Messages » (discussion avec le coach mental), « Focus de la semaine » (db/122) et « Routines ».
 // Les questions d'avant / après compétition sont dans l'onglet « Feuille de match » (27.09.2026).
 function renderComp() {
   const host = $("view-comp");
@@ -1330,7 +1330,7 @@ async function ptMtOpen(path) {
   if (error || !data) { alert("Impossible d'ouvrir le fichier."); return; }
   window.open(data.signedUrl, "_blank");
 }
-// --- Le focus de la semaine (db/120) : UN focus par semaine (lundi → dimanche), modifiable 24 h, puis figé ---
+// --- Le focus de la semaine (db/122) : UN focus par semaine (lundi → dimanche), modifiable 24 h, puis figé ---
 const fcWeek = (ws) => `semaine du ${frShort(ws)} au ${frShort(isoLocal(addDays(new Date(ws + "T12:00:00"), 6)))}`;
 const fcUntil = (ts) => { const d = new Date(new Date(ts).getTime() + 24 * 3600 * 1000); return `${DOW[d.getDay()]} ${frShort(isoLocal(d))} à ${String(d.getHours()).padStart(2, "0")}h${String(d.getMinutes()).padStart(2, "0")}`; };
 async function renderCompFocus(editId) {
