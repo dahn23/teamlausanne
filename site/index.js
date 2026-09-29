@@ -355,8 +355,22 @@ const DETAILS = {
           ["Environ 10 à 13 ans", "Une filière sélective, seize places par sélection."],
           ["Groupes de niveau", "Des entraînements réguliers, encadrés, en tout petits groupes homogènes."],
           ["Tournois et GameZone", "La compétition tout au long de la saison, préparée avec les coachs."],
+          ["Trois rendez-vous", "Des après-midis réservés à la filière, en plus de la semaine : tennis, physique, mental et esprit d'équipe."],
           ["Une passerelle", "La suite naturelle du parcours est la filière Performance."],
         ]},
+      // Dates annoncees aux familles par la newsletter du 28 septembre 2026.
+      // Seul le 7 octobre a un horaire communique.
+      { type: "rdv", eyebrow: "En plus de la semaine",
+        title: "Les rendez-vous de la saison",
+        lead: "Trois après-midis réservés aux joueuses et joueurs de la filière. Chaque rendez-vous s'ouvre sur un temps commun, puis se poursuit en ateliers avec nos coachs. Des joueurs de l'Académie viennent partager leur expérience.",
+        ateliers: ["Tennis", "Préparation physique", "Mental", "Esprit d'équipe"],
+        items: [
+          { jour: "Mercredi", date: "7 octobre", an: "2026", heures: "16 h 00 – 18 h 30" },
+          { jour: "Samedi", date: "20 février", an: "2027" },
+          { jour: "Samedi", date: "17 avril", an: "2027" },
+        ],
+        note: "Participation sur inscription. Les horaires et les informations pratiques sont communiqués avant chaque rendez-vous.",
+        link: { label: "S'inscrire à un rendez-vous", contact: "Rendez-vous Compétition" } },
       { type: "slots", eyebrow: "La semaine type",
         title: "Entraînements et tarif",
         lead: "Deux rendez-vous par semaine : deux heures de tennis et une heure de préparation physique.", items: [
@@ -404,8 +418,25 @@ const DETAILS = {
           ["Environ 12 à 15 ans", "Une filière sélective, huit places par sélection."],
           ["Volume renforcé", "Une charge d'entraînement plus élevée, avec le physique intégré à la semaine."],
           ["Suivi rapproché", "Un encadrement de proximité et une planification individualisée."],
+          ["Six rendez-vous", "Des après-midis réservés à la filière, en plus de la semaine : tennis, physique, mental et esprit d'équipe."],
           ["La suite du parcours", "L'accès au Sport-études, puis à la voie Pro U18."],
         ]},
+      // Dates annoncees aux familles par la newsletter du 28 septembre 2026.
+      // Seul le 7 octobre a un horaire communique.
+      { type: "rdv", eyebrow: "En plus de la semaine",
+        title: "Les rendez-vous de la saison",
+        lead: "Six après-midis réservés aux joueuses et joueurs de la filière. Chaque rendez-vous s'ouvre sur un temps d'accueil, puis se poursuit en ateliers avec nos coachs, aux côtés de joueurs de l'Académie.",
+        ateliers: ["Tennis", "Préparation physique", "Mental", "Esprit d'équipe"],
+        items: [
+          { jour: "Mercredi", date: "7 octobre", an: "2026", heures: "16 h 00 – 18 h 30" },
+          { jour: "Samedi", date: "16 janvier", an: "2027" },
+          { jour: "Samedi", date: "20 février", an: "2027" },
+          { jour: "Samedi", date: "20 mars", an: "2027" },
+          { jour: "Samedi", date: "17 avril", an: "2027" },
+          { jour: "Samedi", date: "15 mai", an: "2027" },
+        ],
+        note: "Participation sur inscription. Les horaires et les informations pratiques sont communiqués avant chaque rendez-vous.",
+        link: { label: "S'inscrire à un rendez-vous", contact: "Rendez-vous Performance" } },
       { type: "slots", eyebrow: "La semaine type",
         title: "Entraînements et tarif",
         lead: "Quatre rendez-vous par semaine : cinq heures de tennis et une heure de préparation physique.", items: [
@@ -1261,6 +1292,29 @@ function sectionHTML(sec) {
         <div class="perk-grid">${sec.items.map(([h, t], k) =>
           `<article class="perk"><span class="perk-num" aria-hidden="true">${String(k + 1).padStart(2, "0")}</span>
             <h3>${esc(h)}</h3><p>${esc(t)}</p></article>`).join("")}</div>
+        ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}
+        ${linkHTML(sec.link)}</section>`;
+
+    // ---- Rendez-vous de la saison ----
+    // Les dates annoncees par newsletter, reprises ici pour que les parents
+    // les retrouvent sans rouvrir leur boite mail. Une date sans horaire
+    // affiche « horaire a venir » : on n'invente pas ce qui n'a pas ete dit.
+    case "rdv":
+      return `<section class="wsec rdv">
+        <div class="perks-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
+        </div>
+        ${sec.ateliers ? `<ul class="rdv-ateliers">${sec.ateliers.map((a) =>
+          `<li class="rdv-atelier">${BALLE}${esc(a)}</li>`).join("")}</ul>` : ""}
+        <ol class="rdv-grid">${sec.items.map((d) =>
+          `<li class="rdv-date${d.heures ? " rdv-date-ok" : ""}">
+            <span class="rdv-jour">${esc(d.jour)}</span>
+            <span class="rdv-num">${esc(d.date)}</span>
+            <span class="rdv-an">${esc(d.an)}</span>
+            <span class="rdv-h">${d.heures ? esc(d.heures) : "horaire à venir"}</span>
+          </li>`).join("")}</ol>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}
         ${linkHTML(sec.link)}</section>`;
 

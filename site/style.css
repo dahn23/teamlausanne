@@ -2879,3 +2879,48 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.55)}
 .split-film .film-media{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
 @media(max-width:760px){ .split-film{margin-inline:0} }
+
+/* ---- Rendez-vous de la saison (Compétition et Performance) ----
+   Les dates ont d'abord circulé par newsletter, en pastilles claires sur fond
+   bleu. On garde cette lecture : une pastille par date, alignées, le premier
+   rendez-vous se distinguant parce qu'il est le seul dont l'horaire est connu. */
+.rdv-ateliers{list-style:none;display:flex;flex-wrap:wrap;gap:10px 18px;
+  margin:0 0 22px;padding:0}
+.rdv-atelier{display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--font-accent);font-weight:700;text-transform:uppercase;
+  letter-spacing:-.01em;font-size:.95rem}
+.rdv-atelier svg{flex:0 0 auto}
+
+/* Trois colonnes, pas un auto-fit : les deux filieres ont 3 et 6 rendez-vous,
+   et un multiple de trois ne laisse jamais une carte seule en fin de ligne.
+   En dessous, une colonne pleine largeur plutot que deux et un orphelin. */
+.rdv-grid{list-style:none;margin:0;padding:0;display:grid;gap:14px;
+  grid-template-columns:1fr}
+@media(min-width:520px){ .rdv-grid{grid-template-columns:repeat(3,1fr)} }
+.rdv-date{display:flex;flex-direction:column;gap:2px;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 20px 18px;box-shadow:var(--shadow);
+  transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}
+.rdv-date:hover{transform:translateY(-4px);border-color:var(--fluo);
+  box-shadow:0 14px 30px rgba(20,26,46,.16)}
+.rdv-jour{font-size:.8rem;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.06em;font-weight:700}
+.rdv-num{font-family:var(--font-accent);font-weight:700;line-height:1.05;
+  font-size:clamp(1.25rem,2.4vw,1.6rem);letter-spacing:-.02em}
+.rdv-an{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.rdv-h{margin-top:10px;font-size:.85rem;font-weight:700;color:var(--muted)}
+/* Le rendez-vous dont l'horaire est connu porte le liseré fluo. */
+.rdv-date-ok{border-color:var(--fluo)}
+.rdv-date-ok .rdv-h{color:var(--fluo-ink);background:var(--fluo);
+  align-self:flex-start;border-radius:999px;padding:3px 11px}
+
+/* Une colonne : la carte devient une bande, la date a gauche et l'horaire a
+   droite, pour ne pas etaler quatre lignes sur toute la largeur du telephone. */
+@media(max-width:519px){
+  .rdv-date{display:grid;grid-template-columns:1fr auto;align-items:center;
+    column-gap:12px;padding:15px 17px;border-radius:var(--radius-lg)}
+  .rdv-jour{grid-column:1}
+  .rdv-num{grid-column:1}
+  .rdv-an{grid-column:1}
+  .rdv-h{grid-column:2;grid-row:1/4;margin-top:0;text-align:right}
+}
