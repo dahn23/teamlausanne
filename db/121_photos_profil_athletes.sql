@@ -40,3 +40,28 @@ where p.photo_url like 'https://teamlausanne.ch/assets/photos/profil/%'
   and not exists (select 1 from person_media m where m.person_id = p.id and m.is_profile);
 
 commit;
+
+-- ---------------------------------------------------------------------------
+-- Ajout : l'encadrement. Recadrés depuis les portraits de la charte
+-- (Brand Guidelines/Photos/Portraits), originaux de 3392×5088 à 7927×5287.
+
+begin;
+
+with v(nom, prenom, fichier) as (values
+  ('Rivaroli','Séline','seline-rivaroli'),
+  ('Gander','Loris','loris-gander'),
+  ('Palena','Mariano','mariano-palena'),
+  ('Perez','Yann','yann-perez')                 -- et pas Babic ni Blomert
+)
+update people p
+   set photo_url = 'https://teamlausanne.ch/assets/photos/profil/'||v.fichier||'.jpg'
+  from v
+ where p.last_name = v.nom and p.first_name = v.prenom;
+
+insert into person_media (person_id, url, storage_path, kind, is_profile, comment)
+select p.id, p.photo_url, null, 'image', true, 'Photo de profil'
+from people p
+where p.photo_url like 'https://teamlausanne.ch/assets/photos/profil/%'
+  and not exists (select 1 from person_media m where m.person_id = p.id and m.is_profile);
+
+commit;
