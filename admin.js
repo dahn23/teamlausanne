@@ -13441,7 +13441,7 @@ function openMentalParticipant(yid) {
   $("mn-part-name").textContent = p ? `${p.last_name} ${p.first_name}` : "—";
   loadMnComments(yid);
   mentalThread("mn-thread", yid);
-  mproudFetch(yid).then((r) => renderProudInto($("mn-proud"), r));
+  renderFocusInto("mn-focus", yid);
   $("mn-part-list").classList.add("hidden");
   $("mn-part-detail").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -13484,13 +13484,42 @@ async function mentalDelComment(id, refresh) {
   await sb.from("mental_comments").delete().eq("id", id);
   refresh();
 }
-// ---- « 3 fiertés après l'entraînement » (lecture seule côté console) ----
-async function mproudFetch(yid) { const { data } = await sb.rpc("portal_proud_list", { p_youth: yid }); return data || []; }
-function renderProudInto(host, rows) {
-  if (!host) return;
-  if (!rows.length) { host.innerHTML = '<p class="obj-empty">Aucune fierté notée pour l\'instant.</p>'; return; }
-  host.innerHTML = rows.map((r) => `<div class="mcf-card"><div class="mcf-head"><b>${frDate(r.entry_date)}</b></div>
-    <ol class="proud-ol">${[r.p1, r.p2, r.p3].filter(Boolean).map((p) => `<li>${esc(p)}</li>`).join("") || "<li class='muted'>—</li>"}</ol></div>`).join("");
+// ---- « Focus de la semaine » (db/120) : rempli par le jeune dans Mon espace, un par semaine ----
+// Coach mental, head coach, coach, admin, superadmin peuvent le modifier / supprimer (la base le vérifie aussi).
+const canFocusEdit = () => hasAny(myAppRoles, ["coach_mental", "head_coach", "coach", "admin", "superadmin"]);
+const fcWeekLbl = (ws) => { const a = new Date(ws + "T12:00:00"), b = new Date(a); b.setDate(a.getDate() + 6); return `Semaine du ${frDate(ws)} au ${frDate(b.toISOString().slice(0, 10))}`; };
+async function renderFocusInto(mountId, yid, editId) {
+  const host = $(mountId); if (!host) return;
+  if (!yid) { host.innerHTML = ""; return; }
+  const { data, error } = await sb.rpc("portal_focus_list", { p_youth: yid });
+  if ($(mountId) !== host) return;
+  if (error) { host.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  const rows = data || [], ed = canFocusEdit();
+  if (!rows.length) { host.innerHTML = '<p class="obj-empty">Aucun focus rempli pour l\'instant.</p>'; return; }
+  host.innerHTML = rows.map((r) => `<div class="mcf-card" data-id="${r.id}">
+      <div class="mcf-head"><b>${fcWeekLbl(r.week_start)}</b>${r.is_current ? ' <span class="ss-tag ss-ok">cette semaine</span>' : ""}
+        <span class="muted" style="font-size:.78rem">noté le ${frDateTime(r.created_at)}${r.updated_at ? ` · modifié le ${frDateTime(r.updated_at)}` : ""}</span>
+        ${ed && r.id !== editId ? `<span class="spacer"></span><button type="button" class="ghost fc-ed">Modifier</button><button type="button" class="fam-del fc-del" title="Supprimer">✕</button>` : ""}</div>
+      ${r.id === editId
+        ? `<textarea class="fc-txt" rows="3" maxlength="4000">${esc(r.body)}</textarea><div style="display:flex;gap:8px;margin-top:6px"><button type="button" class="primary fc-ok">Enregistrer</button><button type="button" class="ghost fc-no">Annuler</button></div>`
+        : `<div class="obj-body">${esc(r.body)}</div>`}</div>`).join("");
+  host.querySelectorAll(".mcf-card").forEach((c) => {
+    const id = c.dataset.id;
+    c.querySelector(".fc-ed")?.addEventListener("click", () => renderFocusInto(mountId, yid, id));
+    c.querySelector(".fc-no")?.addEventListener("click", () => renderFocusInto(mountId, yid));
+    c.querySelector(".fc-ok")?.addEventListener("click", async () => {
+      const body = c.querySelector(".fc-txt").value.trim(); if (!body) { uiAlert("Le focus ne peut pas être vide."); return; }
+      const { error: e } = await sb.rpc("portal_focus_save", { p_youth: yid, p_id: id, p_body: body });
+      if (e) { uiAlert(e.message); return; }
+      renderFocusInto(mountId, yid);
+    });
+    c.querySelector(".fc-del")?.addEventListener("click", async () => {
+      if (!await uiConfirm("Supprimer ce focus ? Le jeune pourra en remplir un nouveau si c'est celui de la semaine en cours.")) return;
+      const { error: e } = await sb.rpc("portal_focus_delete", { p_youth: yid, p_id: id });
+      if (e) { uiAlert(e.message); return; }
+      renderFocusInto(mountId, yid);
+    });
+  });
 }
 
 // ---- Canal de discussion mental (jeune <-> encadrement) : message / lien / document ----
@@ -13545,13 +13574,13 @@ async function mtOpenFile(path) {
   window.open(data.signedUrl, "_blank");
 }
 
-// Sous-onglet « Mental » de la fiche : discussion + 3 fiertés (les questions de match sont dans la feuille de match).
+// Sous-onglet « Mental » de la fiche : discussion + focus de la semaine (les questions de match sont dans la feuille de match).
 async function loadPersonMental(personId, show) {
-  const ids = ["pm-thread", "pm-proud"];
+  const ids = ["pm-thread", "pm-focus"];
   if (!personId || !show) { showPersonTab("mental", false); ids.forEach((id) => { const e = $(id); if (e) e.innerHTML = ""; }); return; }
   showPersonTab("mental", true);
   mentalThread("pm-thread", personId);
-  renderProudInto($("pm-proud"), await mproudFetch(personId));
+  renderFocusInto("pm-focus", personId);
 }
 
 // ===================================================================

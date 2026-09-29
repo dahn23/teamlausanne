@@ -1234,7 +1234,7 @@ async function renderContact() {
 
 let compSel = null;
 let compSub = "messages";
-// Onglet Mental : « Messages » (discussion avec le coach mental) et « Après séance » (3 fiertés).
+// Onglet Mental : « Messages » (discussion avec le coach mental), « Focus de la semaine » (db/120) et « Routines ».
 // Les questions d'avant / après compétition sont dans l'onglet « Feuille de match » (27.09.2026).
 function renderComp() {
   const host = $("view-comp");
@@ -1247,11 +1247,11 @@ function renderComp() {
     host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { compSel = b.dataset.id; renderComp(); }));
     renderCompRoutines(); return;
   }
-  if (!["messages", "proud", "routines"].includes(compSub)) compSub = "messages";
+  if (!["messages", "focus", "routines"].includes(compSub)) compSub = "messages";
   host.innerHTML = playerSelHtml(compSel) + `
     <div class="comp-subtabs">
       <button type="button" class="comp-subtab ${compSub === "messages" ? "on" : ""}" data-s="messages">Messages</button>
-      <button type="button" class="comp-subtab ${compSub === "proud" ? "on" : ""}" data-s="proud">Après séance</button>
+      <button type="button" class="comp-subtab ${compSub === "focus" ? "on" : ""}" data-s="focus">Focus de la semaine</button>
       <button type="button" class="comp-subtab ${compSub === "routines" ? "on" : ""}" data-s="routines">Routines</button>
     </div>
     <div id="comp-sub"></div>`;
@@ -1279,7 +1279,7 @@ async function renderCompRoutines() {
     </div>`).join("");
 }
 function renderCompSub() {
-  if (compSub === "proud") renderCompProud(); else if (compSub === "routines") renderCompRoutines(); else renderCompMessages();
+  if (compSub === "focus") renderCompFocus(); else if (compSub === "routines") renderCompRoutines(); else renderCompMessages();
 }
 // --- Messages (discussion avec l'encadrement) ---
 async function renderCompMessages() {
@@ -1330,32 +1330,55 @@ async function ptMtOpen(path) {
   if (error || !data) { alert("Impossible d'ouvrir le fichier."); return; }
   window.open(data.signedUrl, "_blank");
 }
-// --- Après séance : 3 fiertés ---
-async function renderCompProud() {
+// --- Le focus de la semaine (db/120) : UN focus par semaine (lundi → dimanche), modifiable 24 h, puis figé ---
+const fcWeek = (ws) => `semaine du ${frShort(ws)} au ${frShort(isoLocal(addDays(new Date(ws + "T12:00:00"), 6)))}`;
+const fcUntil = (ts) => { const d = new Date(new Date(ts).getTime() + 24 * 3600 * 1000); return `${DOW[d.getDay()]} ${frShort(isoLocal(d))} à ${String(d.getHours()).padStart(2, "0")}h${String(d.getMinutes()).padStart(2, "0")}`; };
+async function renderCompFocus(editId) {
   const host = $("comp-sub"); if (!host) return;
   host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
-  const { data } = await sb.rpc("portal_proud_list", { p_youth: compSel });
-  const rows = data || [];
-  const list = rows.map((r) => `<div class="comp-card" style="cursor:default">
-      <div class="comp-card-top"><b>${frShort((r.entry_date || "").slice(0, 10))}</b><button type="button" class="proud-del" data-id="${r.id}" title="Supprimer">✕</button></div>
-      <ol class="proud-ol">${[r.p1, r.p2, r.p3].filter(Boolean).map((p) => `<li>${escHtml(p)}</li>`).join("") || "<li class='muted'>—</li>"}</ol></div>`).join("");
-  host.innerHTML = `
-    <div class="comp-head">
-      <p class="muted" style="margin:0 0 8px">Après ta séance, note <b>3 points dont tu es fier·ère</b> 💪</p>
-      <label class="comp-f"><span>Date</span><input id="proud-date" type="date" value="${isoLocal(new Date())}"></label>
-      <label class="comp-f"><span>1.</span><input id="proud-p1" type="text" placeholder="Premier point"></label>
-      <label class="comp-f"><span>2.</span><input id="proud-p2" type="text" placeholder="Deuxième point"></label>
-      <label class="comp-f"><span>3.</span><input id="proud-p3" type="text" placeholder="Troisième point"></label>
-      <div class="comp-actions"><button type="button" id="proud-save">Enregistrer</button><span id="proud-status" class="muted"></span></div>
-    </div>
-    <h3 class="mrp-h2" style="margin-top:4px">Mes fiertés</h3>
-    ${rows.length ? `<div class="comp-list">${list}</div>` : `<p class="muted" style="text-align:center;padding:8px">Rien encore.</p>`}`;
-  $("proud-save").addEventListener("click", saveProud);
-  host.querySelectorAll(".proud-del").forEach((b) => b.addEventListener("click", async () => { if (!confirm("Supprimer ?")) return; await sb.rpc("portal_proud_delete", { p_youth: compSel, p_id: b.dataset.id }); renderCompProud(); }));
-}
-async function saveProud() {
-  const st = $("proud-status"); if (st) st.textContent = "Enregistrement…";
-  const { error } = await sb.rpc("portal_proud_save", { p_youth: compSel, p_id: null, p_date: $("proud-date").value || null, p1: $("proud-p1").value.trim(), p2: $("proud-p2").value.trim(), p3: $("proud-p3").value.trim() });
-  if (error) { if (st) st.textContent = "Erreur : " + error.message; return; }
-  renderCompProud();
+  const { data, error } = await sb.rpc("portal_focus_list", { p_youth: compSel });
+  if ($("comp-sub") !== host) return;
+  if (error) { host.innerHTML = `<p class="error">${escHtml(error.message)}</p>`; return; }
+  const rows = data || [], cur = rows.find((r) => r.is_current), past = rows.filter((r) => !r.is_current);
+  const editing = editId ? rows.find((r) => r.id === editId) : null;
+  const form = (val) => `<label class="comp-f"><span>Mon focus</span><textarea id="fc-body" rows="3" maxlength="4000" placeholder="ex. Rester calme et respirer entre les points quand je suis mené·e.">${escHtml(val || "")}</textarea></label>
+      <div class="comp-actions"><button type="button" id="fc-save">${editing ? "Enregistrer" : "Valider mon focus"}</button>${editing ? '<button type="button" class="ghost" id="fc-cancel">Annuler</button>' : ""}<span id="fc-status" class="muted"></span></div>`;
+  let top;
+  if (!cur) {
+    top = `<div class="comp-head fc-card">
+      <h3 class="mrp-h2" style="margin:0 0 4px">Mon focus de la ${fcWeek(isoLocal(addDays(new Date(), -((new Date().getDay() + 6) % 7))))}</h3>
+      <p class="muted" style="margin:0 0 10px;font-size:.88rem">Choisis <b>un seul point</b> sur lequel tu veux te concentrer cette semaine, à l'entraînement comme en match. Tu pourras le modifier pendant 24 h, ensuite il est enregistré pour la semaine.</p>
+      ${form("")}</div>`;
+  } else if (editing && editing.id === cur.id) {
+    top = `<div class="comp-head fc-card"><h3 class="mrp-h2" style="margin:0 0 8px">Modifier mon focus · ${fcWeek(cur.week_start)}</h3>${form(cur.body)}</div>`;
+  } else {
+    top = `<div class="comp-head fc-card fc-done">
+      <div class="fc-done-h">✓ Tu as déjà rempli ton focus cette semaine</div>
+      <div class="muted" style="font-size:.8rem;margin:0 0 6px">${fcWeek(cur.week_start)} · noté le ${frShort(isoLocal(new Date(cur.created_at)))}</div>
+      <p class="fc-body">${escHtml(cur.body).replace(/\n/g, "<br/>")}</p>
+      ${cur.can_edit ? `<div class="comp-actions" style="padding-bottom:0"><button type="button" class="ghost fc-edit" data-id="${cur.id}">Modifier</button><button type="button" class="ghost fc-del" data-id="${cur.id}">Supprimer</button><span class="muted" style="font-size:.78rem">possible jusqu'à ${fcUntil(cur.created_at)}</span></div>`
+        : '<p class="muted" style="margin:6px 0 0;font-size:.8rem">Prochain focus à remplir dès lundi.</p>'}
+    </div>`;
+  }
+  host.innerHTML = top + `<h3 class="mrp-h2" style="margin-top:4px">Mes focus précédents</h3>
+    ${past.length ? `<div class="comp-list">${past.map((r) => `<div class="comp-card" style="cursor:default">
+      <div class="comp-card-top"><b>${escHtml(fcWeek(r.week_start))}</b></div>
+      <p class="fc-body">${escHtml(r.body).replace(/\n/g, "<br/>")}</p></div>`).join("")}</div>`
+      : '<p class="muted" style="text-align:center;padding:8px">Rien encore.</p>'}`;
+  host.querySelectorAll(".fc-edit").forEach((b) => b.addEventListener("click", () => renderCompFocus(b.dataset.id)));
+  host.querySelectorAll(".fc-del").forEach((b) => b.addEventListener("click", async () => {
+    if (!await ptConfirm("Es-tu sûr·e de vouloir supprimer ton focus de la semaine ?", "Oui, supprimer")) return;
+    const { error: e } = await sb.rpc("portal_focus_delete", { p_youth: compSel, p_id: b.dataset.id });
+    if (e) { alert(e.message); return; }
+    renderCompFocus();
+  }));
+  $("fc-cancel")?.addEventListener("click", () => renderCompFocus());
+  $("fc-save")?.addEventListener("click", async (e) => {
+    const body = $("fc-body").value.trim(), st = $("fc-status");
+    if (!body) { st.textContent = "Écris ton focus."; return; }
+    e.currentTarget.disabled = true; st.textContent = "Enregistrement…";
+    const { error: er } = await sb.rpc("portal_focus_save", { p_youth: compSel, p_id: editing?.id || null, p_body: body });
+    if (er) { st.textContent = "Erreur : " + er.message; e.currentTarget.disabled = false; return; }
+    renderCompFocus();
+  });
 }

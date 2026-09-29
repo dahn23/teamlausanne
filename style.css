@@ -4314,3 +4314,10 @@ tr.enc-ok td{background:#f4fbf6}
 .soc-puce{cursor:grab}
 .soc-puce-drag{opacity:.4;cursor:grabbing}
 .soc-jour-cible{outline:2px dashed var(--blue);outline-offset:-3px;background:#eef2fb}
+/* Focus de la semaine (db/120) : Mon espace › Mental et console */
+.fc-card .comp-f textarea{min-height:76px}
+.fc-done{border-left:4px solid #1d9e75}
+.fc-done-h{font-weight:800;color:#0b6b3a;margin:0 0 2px}
+.fc-body{margin:4px 0 0;font-size:.92rem;line-height:1.45;white-space:normal}
+.mcf-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.mcf-card .fc-txt{width:100%;margin-top:6px}
