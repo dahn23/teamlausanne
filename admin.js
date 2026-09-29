@@ -13689,13 +13689,16 @@ async function mailFetchMsgs() {
   const base = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(MAIL_LOAD_ALL);
   const qs = [base];
   if (mailFilterAddr) qs.push(sb.from("mail_messages").select(MAIL_COLS).eq("account_address", mailFilterAddr).order("received_at", { ascending: false }).limit(MAIL_LOAD_BOX));
-  const badgeQ = sb.from("mail_messages").select("id,account_address,direction,status,is_read,assigned_user")
+  // Mails EN ATTENTE (à traiter, attribués, non lus), quel que soit leur âge : ils servent aux pastilles ET sont
+  // ajoutés à la liste. Avant (29.09.2026), seules les pastilles les voyaient : « Attribué 20 » mais 9 dans la liste,
+  // les 11 plus anciens étant au-delà des 250 derniers mails chargés.
+  const badgeQ = sb.from("mail_messages").select(MAIL_COLS)
     .or("direction.is.null,direction.eq.in").or("status.in.(a_traiter,en_cours),is_read.eq.false").limit(1000);
   const [badges, ...res] = await Promise.all([badgeQ, ...qs]);
   if (res.some((r) => r.error)) return null;
   if (!badges.error) mailBadgeRows = badges.data || [];
   const seen = new Set(), out = [];
-  for (const r of res) for (const m of (r.data || [])) { if (!seen.has(m.id)) { seen.add(m.id); out.push(m); } }
+  for (const r of [...res, badges]) for (const m of (r.data || [])) { if (!seen.has(m.id)) { seen.add(m.id); out.push(m); } }
   out.sort((a, b) => String(b.received_at).localeCompare(String(a.received_at)));
   return out;
 }
