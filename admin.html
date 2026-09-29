@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=280" />
+  <link rel="stylesheet" href="style.css?v=281" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -905,6 +905,7 @@
             <div class="cal-vues">
               <button type="button" class="soc-vue on" data-sv="mois">Calendrier</button>
               <button type="button" class="soc-vue" data-sv="tableau">Tableau</button>
+              <button type="button" class="soc-vue" data-sv="grille" title="Aperçu du fil Instagram">Grille</button>
             </div>
             <div class="cal-nav">
               <button type="button" id="soc-prec" class="ghost" aria-label="Période précédente">‹</button>
@@ -921,10 +922,16 @@
               <option value="newsletter">Newsletter</option>
             </select></label>
             <label class="cal-per">Statut <select id="soc-f-statut"></select></label>
+            <label class="cal-per" id="soc-mode-box" hidden>Approbation <select id="soc-mode">
+              <option value="aucun">Aucune</option>
+              <option value="facultatif">Facultative</option>
+              <option value="obligatoire">Obligatoire</option>
+            </select></label>
           </div>
 
           <div id="soc-mois" class="soc-mois"></div>
           <div id="soc-tableau" class="soc-tableau hidden"></div>
+          <div id="soc-grille" class="soc-grille hidden"></div>
         </div>
 
         <!-- Fenêtre : rédaction d'une publication -->
@@ -955,12 +962,26 @@
                 </div>
                 <label class="mailc-f">Angle <span class="muted" style="font-weight:400">(ce qu'on raconte, en une phrase)</span>
                   <textarea id="soc-angle" rows="2"></textarea></label>
-                <label class="mailc-f">Texte / légende
-                  <textarea id="soc-texte" rows="6"></textarea></label>
-                <div class="soc-duo">
-                  <label class="mailc-f">Hashtags<textarea id="soc-hashtags" rows="2" placeholder="#teamlausanne #tennis"></textarea></label>
-                  <label class="mailc-f">Appel à l'action<input type="text" id="soc-cta" placeholder="ex. Découvrir les prochaines dates" /></label>
+                <!-- Un texte commun, ou un par canal. Une légende Instagram et
+                     un bloc de newsletter ne s'écrivent pas pareil ; mais tant
+                     qu'on rédige, écrire trois fois la même chose est une
+                     perte de temps. D'où l'interrupteur. -->
+                <div class="soc-sync">
+                  <label class="check"><input type="checkbox" id="soc-sync" checked />
+                    <b>Même texte sur tous les canaux</b></label>
+                  <span class="muted soc-sync-aide">Décochez pour écrire une version par canal.</span>
                 </div>
+
+                <div id="soc-commun">
+                  <label class="mailc-f">Texte / légende
+                    <textarea id="soc-texte" rows="6"></textarea></label>
+                  <div class="soc-duo">
+                    <label class="mailc-f">Hashtags<textarea id="soc-hashtags" rows="2" placeholder="#teamlausanne #tennis"></textarea></label>
+                    <label class="mailc-f">Appel à l'action<input type="text" id="soc-cta" placeholder="ex. Découvrir les prochaines dates" /></label>
+                  </div>
+                </div>
+
+                <div id="soc-variantes" class="soc-variantes hidden"></div>
                 <div class="mailc-f"><span class="soc-lab">Images</span>
                   <div id="soc-medias" class="soc-medias"></div>
                   <label class="btnlike" style="cursor:pointer">＋ Ajouter des images<input id="soc-fichier" type="file" accept="image/*" multiple hidden /></label>
@@ -985,11 +1006,36 @@
                     <b>Accord des personnes filmées obtenu</b></label>
                   <p class="muted soc-accord-aide">Obligatoire pour passer en « Programmé ». Beaucoup des personnes filmées sont mineures.</p>
                 </div>
+                <!-- Approbation. Réservée à la direction ; le bandeau dit
+                     l'état en clair plutôt que de laisser deviner. -->
+                <div class="soc-bloc" id="soc-appr-box">
+                  <span class="soc-lab">Approbation</span>
+                  <div id="soc-appr-etat" class="soc-appr-etat"></div>
+                  <div id="soc-appr-acts" class="soc-appr-acts hidden">
+                    <button type="button" id="soc-approuver" class="ghost">✓ Approuver</button>
+                    <button type="button" id="soc-refuser" class="ghost">✕ Demander une reprise</button>
+                  </div>
+                </div>
+
+                <div class="soc-bloc">
+                  <span class="soc-lab">Commentaires</span>
+                  <div id="soc-coms" class="soc-coms"></div>
+                  <div class="soc-com-neuf">
+                    <textarea id="soc-com-txt" rows="2" placeholder="Une remarque, une correction…"></textarea>
+                    <button type="button" id="soc-com-add" class="ghost">Ajouter</button>
+                  </div>
+                </div>
+
                 <div class="soc-bloc">
                   <span class="soc-lab">Après publication</span>
                   <label class="mailc-f">Lien publié<input type="url" id="soc-lien" placeholder="https://…" /></label>
                   <label class="mailc-f">Résultat et enseignement<textarea id="soc-bilan" rows="3"></textarea></label>
                 </div>
+
+                <details class="soc-bloc soc-hist">
+                  <summary>Historique</summary>
+                  <div id="soc-hist"></div>
+                </details>
               </div>
             </div>
             <p id="soc-err" class="error" hidden></p>

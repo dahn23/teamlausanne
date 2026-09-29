@@ -4233,3 +4233,82 @@ tr.enc-ok td{background:#f4fbf6}
   .soc-gauche,.soc-droite{overflow:visible}
   .soc-duo{grid-template-columns:1fr}
 }
+
+/* ---- Reseaux sociaux v2 (v281) ---- */
+
+/* Variantes par canal : un texte commun, ou un par canal. */
+.soc-sync{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:#f4f6fb;border:1px solid var(--line);border-radius:9px;padding:8px 11px}
+.soc-sync-aide{font-size:.8rem}
+.soc-variantes{display:flex;flex-direction:column;gap:10px}
+.soc-var{border:1px solid var(--line);border-left:3px solid var(--blue);
+  border-radius:10px;padding:10px 12px;background:var(--card)}
+.soc-var-h{display:flex;align-items:center;gap:7px;margin-bottom:8px;font-size:.9rem}
+.soc-var-aide{font-size:.76rem;flex:1;min-width:0}
+.soc-var .mailc-f{margin:0 0 8px}
+.soc-var-copie{font-size:.8rem}
+
+/* Approbation : l'etat se lit, il ne se devine pas. */
+.soc-appr-etat{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;font-size:.84rem}
+.soc-appr{display:inline-block;font-weight:800;font-size:.78rem;border-radius:6px;
+  padding:2px 9px;text-transform:uppercase;letter-spacing:.03em;align-self:flex-start}
+.soc-appr.ok{background:#e3f6ea;color:#0b6b3a}
+.soc-appr.ko{background:#fde8e8;color:#b3261e}
+.soc-appr.att{background:#fff4e5;color:#b45309}
+.soc-appr-motif{background:#fdf3f2;border:1px solid #e7b4b0;border-radius:8px;
+  padding:7px 10px;font-size:.82rem;color:#7a1f1a}
+.soc-appr-acts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Commentaires. Tout le monde peut en laisser un, meme sans droit d'ecriture :
+   c'est le « collaborator » du brief — il signale, il ne modifie pas. */
+.soc-coms{display:flex;flex-direction:column;gap:7px;margin-bottom:9px;max-height:260px;overflow-y:auto}
+.soc-com{border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:var(--card)}
+.soc-com-h{display:flex;align-items:center;gap:7px;font-size:.78rem;margin-bottom:3px}
+.soc-com-h .muted{margin-left:auto;font-size:.74rem}
+.soc-com-r{border:0;background:transparent;cursor:pointer;color:var(--muted);
+  font-size:.85rem;line-height:1;padding:2px 5px;border-radius:5px}
+.soc-com-r:hover{background:#eef1f7;color:var(--blue-ink)}
+.soc-com-b{font-size:.85rem;line-height:1.45;white-space:pre-wrap}
+/* Un fil regle reste lisible mais sort du premier plan. */
+.soc-com-ok{opacity:.55}
+.soc-com-ok .soc-com-b{text-decoration:line-through}
+.soc-com-vide{margin:0 0 8px;font-size:.82rem}
+.soc-com-neuf{display:flex;gap:7px;align-items:flex-start}
+.soc-com-neuf textarea{flex:1;min-width:0;font:inherit;padding:7px 9px;
+  border:1px solid var(--line);border-radius:8px;resize:vertical}
+
+/* Historique des statuts. */
+.soc-hist>summary{cursor:pointer;font-weight:700;font-size:.82rem;color:var(--blue-ink)}
+.soc-h{display:flex;gap:9px;font-size:.78rem;padding:4px 0;border-bottom:1px dashed var(--line)}
+.soc-h:last-child{border-bottom:0}
+.soc-h-d{flex:0 0 108px;color:var(--muted);font-variant-numeric:tabular-nums}
+.soc-h-t{flex:1;min-width:0}
+
+/* Vue grille : l'apercu du fil Instagram, dans un cadre de telephone. */
+.soc-grille{display:flex;justify-content:center;padding:6px 0 14px}
+.soc-gr-tel{width:min(100%,430px);background:var(--card);border:1px solid var(--line);
+  border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+.soc-gr-tete{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid var(--line)}
+.soc-gr-av{width:38px;height:38px;border-radius:50%;flex:0 0 auto;
+  background:conic-gradient(from 30deg,#d6249f,#fd5949,#fdcb5c,#d6249f)}
+.soc-gr-tete b{display:block;font-size:.86rem}
+.soc-gr-tete .muted{font-size:.74rem}
+/* Trois colonnes, sans interstice : c'est ainsi que le fil se presente. */
+.soc-gr-cases{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.soc-gr-c{position:relative;aspect-ratio:1;padding:0;border:0;cursor:pointer;overflow:hidden;
+  background:color-mix(in srgb, var(--pc) 18%, #eef1f7);display:block}
+.soc-gr-c img{width:100%;height:100%;object-fit:cover;display:block}
+.soc-gr-c:hover{filter:brightness(.92)}
+.soc-gr-vide{display:flex;align-items:center;justify-content:center;height:100%;padding:8px;
+  font-size:.7rem;font-weight:700;color:var(--pc);text-align:center;line-height:1.3}
+.soc-gr-d{position:absolute;left:4px;bottom:4px;background:rgba(20,26,46,.66);color:#fff;
+  border-radius:5px;padding:1px 5px;font-size:.64rem;font-weight:700}
+/* Pastille de statut : ce qui n'est pas encore publie se repere d'un regard. */
+.soc-gr-st{position:absolute;right:5px;top:5px;width:8px;height:8px;border-radius:50%;
+  box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+.soc-grille-vide{text-align:center;padding:30px 16px;max-width:420px}
+
+/* Glisser-deposer sur le calendrier. */
+.soc-puce{cursor:grab}
+.soc-puce-drag{opacity:.4;cursor:grabbing}
+.soc-jour-cible{outline:2px dashed var(--blue);outline-offset:-3px;background:#eef2fb}

@@ -17525,15 +17525,31 @@ async function loadSocial() {
     // Sans droit d'écriture on regarde : le planning reste lisible par toute
     // l'équipe, c'est tout l'intérêt qu'un coach sache ce qui se tourne.
     if (!socPeutEcrire) $("soc-new").classList.add("hidden");
+    // v2 : variantes par canal, commentaires, approbation, mode.
+    $("soc-sync").addEventListener("change", socRendreVariantes);
+    document.querySelectorAll(".soc-canal").forEach((c) =>
+      c.addEventListener("change", socRendreVariantes));
+    $("soc-com-add").addEventListener("click", socAjouterCom);
+    $("soc-approuver").addEventListener("click", () => socDecider(true));
+    $("soc-refuser").addEventListener("click", () => socDecider(false));
+    $("soc-mode").addEventListener("change", socEnregistrerMode);
   }
 
-  const [pil, tag, pos, mem] = await Promise.all([
+  // Approuver est réservé à la direction, comme pour les congés : le
+  // secrétariat prépare et demande, il ne s'approuve pas lui-même.
+  socPeutValider = hasAny(myAppRoles, ["superadmin", "admin"]);
+  $("soc-mode-box").hidden = !socPeutValider;
+
+  const [pil, tag, pos, mem, reg] = await Promise.all([
     sb.from("social_pillars").select("*").eq("actif", true).order("n"),
     sb.from("social_tags").select("*").eq("actif", true).order("famille").order("ordre"),
     sb.from("social_posts").select("*, social_post_tags(tag_id)").order("date_publication", { nullsFirst: false }),
     pmMembers.length ? Promise.resolve({ data: pmMembers })
       : sb.from("pm_members").select("*").eq("active", true).order("sort_order"),
+    sb.from("social_settings").select("mode_approbation").eq("id", 1).maybeSingle(),
   ]);
+  socMode = reg.data?.mode_approbation || "facultatif";
+  $("soc-mode").value = socMode;
   socPiliers = pil.data || [];
   socTags = tag.data || [];
   socPosts = pos.data || [];
@@ -17568,7 +17584,10 @@ function socRendre() {
   $("soc-periode").textContent = mois.charAt(0).toUpperCase() + mois.slice(1);
   $("soc-mois").classList.toggle("hidden", socVue !== "mois");
   $("soc-tableau").classList.toggle("hidden", socVue !== "tableau");
-  if (socVue === "mois") socRendreMois(); else socRendreTableau();
+  $("soc-grille").classList.toggle("hidden", socVue !== "grille");
+  if (socVue === "mois") socRendreMois();
+  else if (socVue === "tableau") socRendreTableau();
+  else socRendreGrille();
 }
 
 // ---- Vue calendrier ----
@@ -17606,6 +17625,7 @@ async function socRendreMois() {
       }).join("")
     + `</div>`;
   socBrancherPuces(z);
+  socBrancherGlisser(z);
 }
 
 // Une puce : la couleur dit le pilier, les pastilles les canaux, le liseré de
@@ -17727,14 +17747,39 @@ async function socOuvrir(p, jour) {
   socEditMedias = [];
   $("soc-media-etat").textContent = "";
   if (socEditId) {
-    const { data } = await sb.from("social_post_media").select("*").eq("post_id", socEditId).order("ordre");
-    socEditMedias = data || [];
+    // Les images passent par la médiathèque : la table de liaison porte
+    // l'ordre, le fichier lui-même vit dans social_media.
+    const { data } = await sb.from("social_post_media")
+      .select("media_id, ordre, social_media(id, chemin, nom)")
+      .eq("post_id", socEditId).order("ordre");
+    socEditMedias = (data || []).map((m) => ({
+      id: m.social_media?.id, chemin: m.social_media?.chemin, nom: m.social_media?.nom, ordre: m.ordre,
+    })).filter((m) => m.id);
   }
   await socRendreMedias();
 
+  // Variantes par canal.
+  socEditVariantes = {};
+  if (socEditId) {
+    const { data } = await sb.from("social_post_variants").select("*").eq("post_id", socEditId);
+    for (const v of data || []) socEditVariantes[v.canal] = v;
+  }
+  $("soc-sync").checked = p ? p.sync_canaux !== false : true;
+  socRendreVariantes();
+
+  // Approbation, commentaires, historique.
+  socRendreApprobation(p);
+  await socChargerComs();
+  await socChargerHist();
+
   // Lecture seule pour qui n'écrit pas : on voit tout, on ne modifie rien.
+  // Le champ de commentaire reste ouvert — commenter n'est pas modifier, et
+  // c'est précisément ce que le brief attend d'un « collaborator ».
   const ro = !socPeutEcrire;
   $("soc-modal").querySelectorAll("input, textarea, select").forEach((el) => { el.disabled = ro; });
+  $("soc-com-txt").disabled = false;
+  $("soc-com-add").disabled = false;
+  $("soc-mode").disabled = !socPeutValider;
   $("soc-save").classList.toggle("hidden", ro);
   $("soc-suppr").classList.toggle("hidden", ro || !socEditId);
   $("soc-fichier").disabled = ro;
@@ -17756,9 +17801,12 @@ async function socRendreMedias() {
   </div>`).join("");
   z.querySelectorAll("[data-med]").forEach((b) => b.addEventListener("click", async () => {
     const m = socEditMedias.find((x) => x.id === b.dataset.med); if (!m) return;
-    if (!(await uiConfirm("Retirer cette image ?"))) return;
-    await sb.storage.from("social").remove([m.chemin]);
-    await sb.from("social_post_media").delete().eq("id", m.id);
+    if (!(await uiConfirm("Retirer cette image de la publication ?\n\nElle reste dans la médiathèque et peut resservir ailleurs."))) return;
+    // On détache, on n'efface pas : l'image appartient à la médiathèque et
+    // peut servir à d'autres publications. La supprimer ici les casserait.
+    const { error } = await sb.from("social_post_media").delete()
+      .eq("post_id", socEditId).eq("media_id", m.id);
+    if (error) { uiAlert(error.message); return; }
     socEditMedias = socEditMedias.filter((x) => x.id !== m.id);
     socRendreMedias();
   }));
@@ -17775,18 +17823,37 @@ async function socAjouterImages(e) {
     if (!id) return;
   }
   $("soc-media-etat").textContent = `Envoi de ${fichiers.length} image(s)…`;
+  const { data: sess } = await sb.auth.getSession();
   for (const f of fichiers) {
     const ext = (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const chemin = `${socEditId}/${crypto.randomUUID()}.${ext}`;
+    // Le chemin ne porte plus l'identifiant de la publication : une image de
+    // la médiathèque peut servir à plusieurs, elle n'appartient à aucune.
+    const chemin = `bibliotheque/${crypto.randomUUID()}.${ext}`;
     const { error } = await sb.storage.from("social").upload(chemin, f, { contentType: f.type || "image/jpeg" });
     if (error) { $("soc-media-etat").textContent = "Échec : " + error.message; return; }
-    const { data } = await sb.from("social_post_media")
-      .insert({ post_id: socEditId, chemin, nom: f.name, ordre: socEditMedias.length })
+    const { data: media, error: e2 } = await sb.from("social_media")
+      .insert({ chemin, nom: f.name, type_mime: f.type || null, taille: f.size,
+                created_by: sess?.session?.user?.id || null })
       .select("*").single();
-    if (data) socEditMedias.push(data);
+    if (e2) { $("soc-media-etat").textContent = "Échec : " + e2.message; return; }
+    const { error: e3 } = await sb.from("social_post_media")
+      .insert({ post_id: socEditId, media_id: media.id, ordre: socEditMedias.length });
+    if (e3) { $("soc-media-etat").textContent = "Échec : " + e3.message; return; }
+    socEditMedias.push({ id: media.id, chemin, nom: f.name, ordre: socEditMedias.length });
   }
   $("soc-media-etat").textContent = `✓ ${fichiers.length} image(s) ajoutée(s).`;
   socRendreMedias();
+}
+
+// Le mode d'approbation est un réglage d'organisation : il vit en base, pas
+// dans le code, et seule la direction le change.
+async function socEnregistrerMode() {
+  const { error } = await sb.from("social_settings")
+    .update({ mode_approbation: $("soc-mode").value, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+  if (error) { uiAlert("Réglage impossible : " + error.message); $("soc-mode").value = socMode; return; }
+  socMode = $("soc-mode").value;
+  if (socEditId) socRendreApprobation(socPosts.find((x) => x.id === socEditId));
 }
 
 async function socEnregistrer(silencieux) {
@@ -17820,6 +17887,7 @@ async function socEnregistrer(silencieux) {
     lieu: $("soc-lieu").value.trim() || null,
     partenaire: $("soc-partenaire").value.trim() || null,
     accord_personnes: $("soc-accord").checked,
+    sync_canaux: $("soc-sync").checked,
     lien_publie: $("soc-lien").value.trim() || null,
     bilan: $("soc-bilan").value.trim() || null,
     updated_at: new Date().toISOString(), updated_by: uid,
@@ -17837,6 +17905,19 @@ async function socEnregistrer(silencieux) {
   if (voulues.length) {
     await sb.from("social_post_tags").insert(voulues.map((t) => ({ post_id: socEditId, tag_id: t })));
   }
+
+  // Variantes : même principe, on repose le jeu entier. Celles des canaux
+  // décochés disparaissent — garder la variante TikTok d'un post qui ne part
+  // plus sur TikTok ferait réapparaître un texte oublié le jour où on le
+  // recoche.
+  await sb.from("social_post_variants").delete().eq("post_id", socEditId);
+  if (!$("soc-sync").checked) {
+    const vars = socLireVariantes();
+    const lignes = Object.entries(vars)
+      .filter(([c, v]) => canaux.includes(c) && (v.texte || v.hashtags || v.cta))
+      .map(([c, v]) => ({ post_id: socEditId, canal: c, ...v }));
+    if (lignes.length) await sb.from("social_post_variants").insert(lignes);
+  }
   if (!silencieux) {
     $("soc-modal").classList.add("hidden");
     loadSocial();
@@ -17848,9 +17929,10 @@ async function socEnregistrer(silencieux) {
 
 async function socSupprimer() {
   if (!socEditId) return;
-  if (!(await uiConfirm("Supprimer cette publication ? Les images attachées partent avec."))) return;
-  const chemins = socEditMedias.map((m) => m.chemin);
-  if (chemins.length) await sb.storage.from("social").remove(chemins);
+  // Les images NE partent PAS avec : elles vivent dans la médiathèque et
+  // peuvent servir ailleurs. Supprimer une publication ne doit pas vider
+  // silencieusement la bibliothèque d'une autre.
+  if (!(await uiConfirm("Supprimer cette publication ?\n\nLes images restent dans la médiathèque."))) return;
   const { error } = await sb.from("social_posts").delete().eq("id", socEditId);
   if (error) { uiAlert("Suppression impossible : " + error.message); return; }
   $("soc-modal").classList.add("hidden");
@@ -17872,4 +17954,268 @@ async function socCopierLegende() {
     // texte plutôt que d'échouer en silence.
     $("soc-etat").textContent = "Copie refusée par le navigateur — sélectionne le texte à la main.";
   }
+}
+
+// ===================================================================
+//  Réseaux sociaux v2 — d'après le brief « Planable »
+// ===================================================================
+// Ce qui a été repris du brief et pourquoi, en un mot : variantes par canal
+// (une légende Instagram n'est pas un bloc de newsletter), mode d'approbation
+// configurable (la question laissée ouverte en v1), journal des statuts, fil
+// de commentaires, médiathèque réutilisable, vue grille et déplacement des
+// publications à la souris.
+//
+// Ce qui a été écarté : espaces de travail (une seule organisation), liens
+// d'approbation externes (pas de client), publication automatique et
+// analytique tirée des API (Instagram et TikTok demandent une application
+// validée — des semaines de démarches, souvent refusées).
+
+let socMode = "facultatif", socPeutValider = false;
+let socEditVariantes = {}, socEditComs = [], socEditHist = [], socLib = [];
+
+// ---- Vue grille : l'aperçu du fil Instagram ----
+// Le brief la classe parmi les trois vues à livrer d'emblée, et il a raison :
+// c'est la seule qui dit à quoi ressemblera le profil. On n'y montre donc que
+// ce qui part sur Instagram, dans l'ordre de publication, les plus récentes
+// d'abord — comme le fil réel.
+async function socRendreGrille() {
+  const z = $("soc-grille");
+  const posts = socFiltrees()
+    .filter((p) => (p.canaux || []).includes("instagram"))
+    .filter((p) => p.date_publication)
+    .sort((a, b) => b.date_publication.localeCompare(a.date_publication));
+  if (!posts.length) {
+    z.innerHTML = `<p class="muted soc-grille-vide">Aucune publication Instagram datée
+      ${$("soc-f-pilier").value || $("soc-f-statut").value ? "avec ces filtres" : ""}.
+      La grille montre le fil tel qu'il se présentera.</p>`;
+    return;
+  }
+  // Les vignettes viennent de la médiathèque : un lien signé par image, le
+  // bucket étant privé.
+  const ids = posts.map((p) => p.id);
+  const { data: liens } = await sb.from("social_post_media")
+    .select("post_id, ordre, social_media(chemin)").in("post_id", ids).order("ordre");
+  const premiere = {};
+  for (const l of liens || []) if (!premiere[l.post_id]) premiere[l.post_id] = l.social_media?.chemin;
+  const urls = {};
+  await Promise.all(Object.entries(premiere).map(async ([pid, chemin]) => {
+    if (!chemin) return;
+    const { data } = await sb.storage.from("social").createSignedUrl(chemin, 3600);
+    urls[pid] = data?.signedUrl || "";
+  }));
+
+  z.innerHTML = `<div class="soc-gr-tel">
+    <div class="soc-gr-tete">
+      <span class="soc-gr-av"></span>
+      <div><b>@teamlausanneacademy</b><span class="muted">aperçu du fil</span></div>
+    </div>
+    <div class="soc-gr-cases">${posts.map((p) => {
+      const pil = socPilier(p.pillar_n);
+      return `<button type="button" class="soc-gr-c" data-post="${p.id}"
+          style="--pc:${esc(pil?.couleur || "#69708a")}"
+          title="${esc(p.titre)} — ${frDate(p.date_publication)}">
+        ${urls[p.id] ? `<img src="${esc(urls[p.id])}" alt="" loading="lazy" />`
+                     : `<span class="soc-gr-vide">${esc(p.titre.slice(0, 40))}</span>`}
+        <span class="soc-gr-d">${frDate(p.date_publication).slice(0, 5)}</span>
+        ${p.statut !== "publie" ? `<span class="soc-gr-st" style="background:${socStatutCoul(p.statut)}"></span>` : ""}
+      </button>`;
+    }).join("")}</div></div>`;
+  socBrancherPuces(z);
+}
+
+// ---- Déplacer une publication à la souris ----
+// Le brief demande le glisser-déposer sur le calendrier. Ici il ne porte QUE
+// sur la date : c'est le geste utile (repousser un post de deux jours), et
+// c'est le seul qui n'a pas besoin d'un modèle de position dans la journée.
+function socBrancherGlisser(z) {
+  if (!socPeutEcrire) return;
+  z.querySelectorAll(".soc-puce").forEach((b) => {
+    b.draggable = true;
+    b.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", b.dataset.post);
+      e.dataTransfer.effectAllowed = "move";
+      b.classList.add("soc-puce-drag");
+    });
+    b.addEventListener("dragend", () => b.classList.remove("soc-puce-drag"));
+  });
+  z.querySelectorAll(".soc-jour[data-jour]").forEach((c) => {
+    c.addEventListener("dragover", (e) => { e.preventDefault(); c.classList.add("soc-jour-cible"); });
+    c.addEventListener("dragleave", () => c.classList.remove("soc-jour-cible"));
+    c.addEventListener("drop", async (e) => {
+      e.preventDefault(); c.classList.remove("soc-jour-cible");
+      const id = e.dataTransfer.getData("text/plain");
+      const post = socPosts.find((p) => p.id === id);
+      if (!post || post.date_publication === c.dataset.jour) return;
+      const { error } = await sb.from("social_posts")
+        .update({ date_publication: c.dataset.jour, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) { uiAlert("Déplacement impossible : " + error.message); return; }
+      post.date_publication = c.dataset.jour;
+      socRendre(); socCouverture();
+    });
+  });
+}
+
+// ---- Variantes par canal ----
+const SOC_VAR_AIDE = {
+  instagram: "Légende Instagram — les premières lignes comptent, le reste est replié.",
+  tiktok: "TikTok — une accroche courte, le texte s'affiche par-dessus la vidéo.",
+  newsletter: "Bloc de newsletter — on peut développer, le lecteur est venu pour lire.",
+};
+function socRendreVariantes() {
+  const sync = $("soc-sync").checked;
+  $("soc-commun").classList.toggle("hidden", !sync);
+  $("soc-variantes").classList.toggle("hidden", sync);
+  if (sync) return;
+  const canaux = [...document.querySelectorAll(".soc-canal:checked")].map((c) => c.value);
+  if (!canaux.length) {
+    $("soc-variantes").innerHTML = '<p class="muted">Cochez d\'abord un canal ci-dessus.</p>';
+    return;
+  }
+  $("soc-variantes").innerHTML = canaux.map((c) => {
+    const v = socEditVariantes[c] || {};
+    return `<div class="soc-var" data-canal="${c}">
+      <div class="soc-var-h"><i class="soc-c soc-c-${c}"></i><b>${esc(SOC_CANAUX[c])}</b>
+        <span class="muted soc-var-aide">${esc(SOC_VAR_AIDE[c] || "")}</span></div>
+      <label class="mailc-f">Texte<textarea class="soc-var-t" rows="4">${esc(v.texte || "")}</textarea></label>
+      <div class="soc-duo">
+        <label class="mailc-f">Hashtags<textarea class="soc-var-h2" rows="2">${esc(v.hashtags || "")}</textarea></label>
+        <label class="mailc-f">Appel à l'action<input type="text" class="soc-var-c" value="${esc(v.cta || "")}" /></label>
+      </div>
+      <button type="button" class="ghost soc-var-copie" data-c="${c}">⧉ Copier pour ${esc(SOC_CANAUX[c])}</button>
+    </div>`;
+  }).join("");
+  $("soc-variantes").querySelectorAll(".soc-var-copie").forEach((b) =>
+    b.addEventListener("click", () => socCopierCanal(b.dataset.c)));
+}
+
+function socLireVariantes() {
+  const out = {};
+  document.querySelectorAll("#soc-variantes .soc-var").forEach((d) => {
+    out[d.dataset.canal] = {
+      texte: d.querySelector(".soc-var-t").value.trim() || null,
+      hashtags: d.querySelector(".soc-var-h2").value.trim() || null,
+      cta: d.querySelector(".soc-var-c").value.trim() || null,
+    };
+  });
+  return out;
+}
+
+// Copier ce qui part vraiment sur ce canal : sa variante si elle existe,
+// le texte commun sinon.
+async function socCopierCanal(canal) {
+  const v = $("soc-sync").checked ? null : socLireVariantes()[canal];
+  const bouts = v
+    ? [v.texte, v.cta, v.hashtags]
+    : [$("soc-texte").value.trim(), $("soc-cta").value.trim(), $("soc-hashtags").value.trim()];
+  const texte = bouts.filter(Boolean).join("\n\n");
+  if (!texte) { $("soc-etat").textContent = "Rien à copier pour ce canal."; return; }
+  try {
+    await navigator.clipboard.writeText(texte);
+    $("soc-etat").textContent = `✓ Texte ${SOC_CANAUX[canal]} copié.`;
+  } catch (_) {
+    $("soc-etat").textContent = "Copie refusée par le navigateur — sélectionne le texte à la main.";
+  }
+}
+
+// ---- Approbation ----
+function socRendreApprobation(p) {
+  const box = $("soc-appr-etat"), acts = $("soc-appr-acts");
+  if (!p) {
+    box.innerHTML = '<span class="muted">Enregistrez d\'abord la publication.</span>';
+    acts.classList.add("hidden"); return;
+  }
+  if (p.approuve_at) {
+    box.innerHTML = `<span class="soc-appr ok">✓ Approuvée</span>
+      <span class="muted">${frDateTime(p.approuve_at)}</span>`;
+  } else if (p.refus_motif) {
+    box.innerHTML = `<span class="soc-appr ko">Reprise demandée</span>
+      <div class="soc-appr-motif">${esc(p.refus_motif)}</div>`;
+  } else {
+    box.innerHTML = socMode === "obligatoire"
+      ? '<span class="soc-appr att">En attente d\'approbation</span><span class="muted">Obligatoire avant de programmer.</span>'
+      : socMode === "facultatif"
+      ? '<span class="soc-appr att">Pas encore approuvée</span><span class="muted">Facultatif : on peut programmer sans.</span>'
+      : '<span class="muted">Approbation désactivée pour l\'espace.</span>';
+  }
+  acts.classList.toggle("hidden", !socPeutValider || socMode === "aucun");
+}
+
+async function socDecider(ok) {
+  if (!socEditId) return;
+  let motif = null;
+  if (!ok) {
+    motif = await uiPrompt("Que faut-il reprendre ?", "");
+    if (motif === null) return;
+  }
+  const { data, error } = await sb.rpc("social_decider",
+    { p_id: socEditId, p_ok: ok, p_motif: motif || null });
+  if (error) { uiAlert("Échec : " + error.message); return; }
+  if (!data?.ok) {
+    uiAlert(data?.raison === "droits"
+      ? "Seules la direction peut approuver une publication."
+      : "Publication introuvable.");
+    return;
+  }
+  await loadSocial();
+  const p = socPosts.find((x) => x.id === socEditId);
+  if (p) socOuvrir(p);
+}
+
+// ---- Commentaires ----
+function socRendreComs() {
+  const z = $("soc-coms");
+  if (!socEditComs.length) { z.innerHTML = '<p class="muted soc-com-vide">Aucun commentaire.</p>'; return; }
+  z.innerHTML = socEditComs.map((c) => `<div class="soc-com${c.resolu ? " soc-com-ok" : ""}">
+    <div class="soc-com-h"><b>${esc(c.nom_auteur || "—")}</b>
+      <span class="muted">${frDateTime(c.created_at)}</span>
+      <button type="button" class="soc-com-r" data-com="${c.id}"
+        title="${c.resolu ? "Rouvrir" : "Marquer comme réglé"}">${c.resolu ? "↩" : "✓"}</button></div>
+    <div class="soc-com-b">${esc(c.corps)}</div></div>`).join("");
+  z.querySelectorAll("[data-com]").forEach((b) => b.addEventListener("click", async () => {
+    const c = socEditComs.find((x) => x.id === b.dataset.com); if (!c) return;
+    const { data: sess } = await sb.auth.getSession();
+    const { error } = await sb.from("social_comments").update({
+      resolu: !c.resolu,
+      resolu_par: !c.resolu ? (sess?.session?.user?.id || null) : null,
+      resolu_at: !c.resolu ? new Date().toISOString() : null,
+    }).eq("id", c.id);
+    if (error) { uiAlert(error.message); return; }
+    c.resolu = !c.resolu; socRendreComs();
+  }));
+}
+
+async function socChargerComs() {
+  if (!socEditId) { socEditComs = []; socRendreComs(); return; }
+  // Les noms sont resolus cote base : profiles n'est lisible que par un
+  // admin, une secretaire ne verrait sinon que des identifiants.
+  const { data } = await sb.rpc("social_commentaires", { p_post: socEditId });
+  socEditComs = data || [];
+  socRendreComs();
+}
+
+async function socAjouterCom() {
+  const t = $("soc-com-txt").value.trim();
+  if (!t) return;
+  if (!socEditId) { const id = await socEnregistrer(true); if (!id) return; }
+  const { data: sess } = await sb.auth.getSession();
+  const { error } = await sb.from("social_comments")
+    .insert({ post_id: socEditId, corps: t, auteur: sess?.session?.user?.id || null });
+  if (error) { uiAlert("Commentaire impossible : " + error.message); return; }
+  $("soc-com-txt").value = "";
+  socChargerComs();
+}
+
+// ---- Historique des statuts ----
+async function socChargerHist() {
+  const z = $("soc-hist");
+  if (!socEditId) { z.innerHTML = '<p class="muted">—</p>'; return; }
+  const { data } = await sb.rpc("social_historique", { p_post: socEditId });
+  socEditHist = data || [];
+  z.innerHTML = socEditHist.length
+    ? socEditHist.map((h) => `<div class="soc-h">
+        <span class="soc-h-d">${frDateTime(h.created_at)}</span>
+        <span class="soc-h-t">${h.de ? `${esc(socStatutNom(h.de))} → ` : "Créée en "}<b>${esc(socStatutNom(h.vers))}</b>${h.commentaire ? ` · ${esc(h.commentaire)}` : ""}${h.nom_par && h.nom_par !== "—" ? ` <span class="muted">par ${esc(h.nom_par)}</span>` : ""}</span>
+      </div>`).join("")
+    : '<p class="muted">—</p>';
 }
