@@ -363,7 +363,7 @@ const DETAILS = {
       { type: "rdv", eyebrow: "En plus de la semaine",
         title: "Les rendez-vous de la saison",
         lead: "Trois après-midis réservés aux joueuses et joueurs de la filière. Chaque rendez-vous s'ouvre sur un temps commun, puis se poursuit en ateliers avec nos coachs. Des joueurs de l'Académie viennent partager leur expérience.",
-        ateliers: ["Tennis", "Préparation physique", "Mental", "Esprit d'équipe"],
+        ateliers: [["Tennis", "fluo"], ["Préparation physique", "blue"], ["Mental", "ocean"], ["Esprit d'équipe", "prussian"]],
         items: [
           { jour: "Mercredi", date: "7 octobre", an: "2026", heures: "16 h 00 – 18 h 30" },
           { jour: "Samedi", date: "20 février", an: "2027" },
@@ -426,7 +426,7 @@ const DETAILS = {
       { type: "rdv", eyebrow: "En plus de la semaine",
         title: "Les rendez-vous de la saison",
         lead: "Six après-midis réservés aux joueuses et joueurs de la filière. Chaque rendez-vous s'ouvre sur un temps d'accueil, puis se poursuit en ateliers avec nos coachs, aux côtés de joueurs de l'Académie.",
-        ateliers: ["Tennis", "Préparation physique", "Mental", "Esprit d'équipe"],
+        ateliers: [["Tennis", "fluo"], ["Préparation physique", "blue"], ["Mental", "ocean"], ["Esprit d'équipe", "prussian"]],
         items: [
           { jour: "Mercredi", date: "7 octobre", an: "2026", heures: "16 h 00 – 18 h 30" },
           { jour: "Samedi", date: "16 janvier", an: "2027" },
@@ -1306,8 +1306,12 @@ function sectionHTML(sec) {
           <h2>${esc(sec.title)}</h2>
           ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
         </div>
-        ${sec.ateliers ? `<ul class="rdv-ateliers">${sec.ateliers.map((a) =>
-          `<li class="rdv-atelier">${BALLE}${esc(a)}</li>`).join("")}</ul>` : ""}
+        ${sec.ateliers ? `<ul class="rdv-ateliers">${sec.ateliers.map((a) => {
+          // Chaque atelier porte sa couleur de charte, nommee dans les donnees
+          // plutot que deduite du rang : reordonner la liste ne melange rien.
+          const [nom, ton] = Array.isArray(a) ? a : [a, "blue"];
+          return `<li class="rdv-atelier rdv-t-${esc(ton)}">${BALLE}${esc(nom)}</li>`;
+        }).join("")}</ul>` : ""}
         <ol class="rdv-grid">${sec.items.map((d) =>
           `<li class="rdv-date${d.heures ? " rdv-date-ok" : ""}">
             <span class="rdv-jour">${esc(d.jour)}</span>

@@ -2891,6 +2891,18 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
   letter-spacing:-.01em;font-size:.95rem}
 .rdv-atelier svg{flex:0 0 auto}
 
+/* Une balle par atelier, dans les quatre couleurs de la charte 2026. La balle
+   prend son fond de `color` et ses coutures de --kw-fond ; on pose les deux
+   sur le SVG et non sur la puce, sinon le libelle se colorerait aussi. */
+.rdv-t-blue .kw-balle{color:var(--blue);--kw-fond:#fff}
+.rdv-t-ocean .kw-balle{color:var(--ocean);--kw-fond:#fff}
+.rdv-t-prussian .kw-balle{color:var(--prussian);--kw-fond:#fff}
+/* Le vert de la charte ne tient pas seul sur le fond clair de la page : 1,16:1
+   contre #f5f7fb, la balle s'effacerait. Un cerne de la meme famille la pose,
+   et les coutures passent en fonce puisque le blanc n'y ressortirait pas. */
+.rdv-t-fluo .kw-balle{color:var(--fluo);--kw-fond:var(--fluo-ink)}
+.rdv-t-fluo .kw-balle circle{stroke:var(--fluo-ink);stroke-width:1.6}
+
 /* Trois colonnes, pas un auto-fit : les deux filieres ont 3 et 6 rendez-vous,
    et un multiple de trois ne laisse jamais une carte seule en fin de ligne.
    En dessous, une colonne pleine largeur plutot que deux et un orphelin. */
