@@ -13825,8 +13825,16 @@ function renderMailToolbar() {
   $("mail-assignee-btns").classList.toggle("hidden", !showAssignee);
   if (showAssignee) {
     const ids = [...new Set(mailMsgs.filter((m) => m.status === "en_cours" && m.assigned_user).map((m) => m.assigned_user))];
-    $("mail-assignee-btns").innerHTML = `<span class="mail-fbtn-lbl">Attribué à :</span><button type="button" class="mail-fbtn${mailAssigneeF === "" ? " sel" : ""}" data-as="">Tous</button>`
-      + ids.map((pid) => `<button type="button" class="mail-fbtn${mailAssigneeF === pid ? " sel" : ""}" data-as="${pid}">${esc(pShort(pid))}</button>`).join("");
+    // Pastille par personne (29.09.2026) : ses mails attribués dans la boîte affichée (hors spam), comme la liste.
+    const nAs = {}; let nAll = 0;
+    for (const m of mailMsgs) {
+      if (m.status !== "en_cours" || m.is_spam || (m.direction || "in") !== "in") continue;
+      if (mailFilterAddr && m.account_address !== mailFilterAddr) continue;
+      nAll++; if (m.assigned_user) nAs[m.assigned_user] = (nAs[m.assigned_user] || 0) + 1;
+    }
+    const pill = (n) => (n ? ` <span class="mail-badge mail-badge-blue">${n}</span>` : "");
+    $("mail-assignee-btns").innerHTML = `<span class="mail-fbtn-lbl">Attribué à :</span><button type="button" class="mail-fbtn${mailAssigneeF === "" ? " sel" : ""}" data-as="">Tous${pill(nAll)}</button>`
+      + ids.map((pid) => `<button type="button" class="mail-fbtn${mailAssigneeF === pid ? " sel" : ""}" data-as="${pid}">${esc(pShort(pid))}${pill(nAs[pid])}</button>`).join("");
     $("mail-assignee-btns").querySelectorAll(".mail-fbtn[data-as]").forEach((b) => b.addEventListener("click", () => { mailAssigneeF = b.dataset.as; mailMineF = false; renderMailToolbar(); refreshMailView(); }));
   } else { $("mail-assignee-btns").classList.add("hidden"); }
 }
