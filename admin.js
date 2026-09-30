@@ -3725,9 +3725,10 @@ async function loadMedia(personId) {
 async function uploadMedia(fileInput) {
   const id = $("p-id").value;
   if (!id || !fileInput.files || !fileInput.files[0]) return;
-  const f = fileInput.files[0];
+  let f = fileInput.files[0];
   const kind = f.type.startsWith("video") ? "video" : "image";
   $("media-status").textContent = "Envoi…";
+  try { f = await webImage(f, 2000); } catch (e) { $("media-status").textContent = "Format illisible : " + (e?.message || e); return; }
   const path = `people/${id}/media/${Date.now()}-${f.name.replace(/[^\w.\-]/g, "_")}`;
   const up = await sb.storage.from("gz-photos").upload(path, f, { upsert: true, contentType: f.type });
   if (up.error) { $("media-status").textContent = "Erreur : " + up.error.message; return; }
@@ -4139,9 +4140,35 @@ function renderPersonRoles(roles) {
     b.classList.toggle("sel");
   }));
 }
+// Photo prête pour le web (30.09.2026) : une photo d'iPhone arrive en HEIC, format que Chrome et Windows n'affichent
+// pas (photo de Logan Damasio envoyée 5 fois, jamais visible). HEIC → JPEG (bibliothèque heic-to chargée à la
+// demande), puis réduction à maxPx de côté. Une vidéo, un GIF ou une image déjà petite passent tels quels.
+const isHeic = (f) => /image\/hei[cf]/i.test(f.type || "") || /\.hei[cf]$/i.test(f.name || "");
+async function webImage(f, maxPx) {
+  if (!f || (f.type || "").startsWith("video") || /gif$/i.test(f.type || "")) return f;
+  let blob = f;
+  if (isHeic(f)) {
+    // heic-to (libheif récent) : heic2any ne lit pas les HEIC des iPhone récents (ERR_LIBHEIF, testé le 30.09.2026).
+    if (!window.HeicTo) await facLoadScript("https://cdn.jsdelivr.net/npm/heic-to@1.5.2/dist/iife/heic-to.js");
+    blob = await window.HeicTo({ blob: f, type: "image/jpeg", quality: 0.88 });
+  } else if (!/^image\/(jpeg|png|webp)$/i.test(f.type || "")) return f;
+  try {
+    const bmp = await createImageBitmap(blob);
+    const k = Math.min(1, maxPx / Math.max(bmp.width, bmp.height));
+    if (k >= 1 && !isHeic(f)) { bmp.close?.(); return f; }   // déjà assez petite : on garde l'original
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height); bmp.close?.();
+    const type = /png$/i.test(blob.type) ? "image/png" : "image/jpeg";
+    blob = await new Promise((res) => c.toBlob(res, type, 0.88)) || blob;
+  } catch (_) { /* navigateur sans createImageBitmap : on envoie le JPEG converti tel quel */ }
+  const name = (f.name || "photo").replace(/\.[^.]+$/, "") + (/png$/i.test(blob.type) ? ".png" : ".jpg");
+  return new File([blob], name, { type: blob.type || "image/jpeg" });
+}
 async function uploadPersonPhoto(file) {
   if (!file.files || !file.files[0]) return;
-  const f = file.files[0];
+  let f = file.files[0];
+  try { f = await webImage(f, 800); } catch (e) { alert("Photo : format illisible (" + (e?.message || e) + "). Essaie en JPEG."); return; }
   const path = `people/${$("p-id").value || "new"}-${Date.now()}`;
   const { error } = await sb.storage.from("gz-photos").upload(path, f, { upsert: true, contentType: f.type });
   if (error) { alert("Photo : " + error.message); return; }
