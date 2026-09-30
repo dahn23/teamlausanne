@@ -17,6 +17,8 @@ const tournoiUrl = (t: { registration_url?: string | null; swiss_id?: string | n
   (t.registration_url && t.registration_url.trim()) ||
   (t.swiss_id ? `https://www.mytennis.ch/fr/tournois/${String(t.swiss_id).replace(/\D/g, "")}` : GZ_LIST);
 const BATCH = 30;
+// Mails qui ont une version « autre » pour les tournois non cochés GameZone (modèles <clé>_autre, db/124).
+const AUTRE_KEYS = ["non_selection", "annulation", "remerciement"];
 // Serveurs par boîte (18.09.2026) : les adresses @teamlausanne.ch sont chez Hostpoint (Cloud Office),
 // les autres boîtes restent chez Gmail. Un mot de passe d'application Gmail s'écrit avec des espaces ;
 // un mot de passe Hostpoint se prend tel quel.
@@ -63,9 +65,10 @@ function recipientIds(key: string, entries: any[], status: any[], epreuve: strin
 async function sendForTournament(supa: any, tx: any, tId: string, key: string, origin: string, surveyId: string, limit: number, epreuve: string | null, preview: { to: string; pid: string } | null = null) {
   const { data: t } = await supa.from("gz_tournaments").select("id,name,registration_url,is_gamezone,swiss_id").eq("id", tId).maybeSingle();
   if (!t) return { sent: 0, remaining: 0 };
-  // Le remerciement ne part que pour les tournois GameZone (les autres tableaux n'ont pas de suivi GameZone).
-  if (key === "remerciement" && !t.is_gamezone) return { sent: 0, remaining: 0 };
-  const { data: tpl } = await supa.from("gz_email_templates").select("*").eq("key", key).maybeSingle();
+  // Tournoi NON GameZone (30.09.2026) : non-sélection, annulation et remerciement prennent le modèle « <clé>_autre »
+  // (même texte sans le lien vers les tournois GameZone). L'envoi reste noté sous la clé de base (compteurs console).
+  const tplKey = (!t.is_gamezone && AUTRE_KEYS.includes(key)) ? `${key}_autre` : key;
+  const { data: tpl } = await supa.from("gz_email_templates").select("*").eq("key", tplKey).maybeSingle();
   if (!tpl) return { sent: 0, remaining: 0, error: "modele introuvable" };
   // Case « Actif » décochée dans Communication : ce mail ne part pas (ni en automatique, ni à la main).
   if (tpl.enabled === false) return { sent: 0, remaining: 0, error: "modèle désactivé (case « Actif » décochée)" };
@@ -182,10 +185,11 @@ Deno.serve(async (req) => {
     if (isCron || payload.cron) {
       const since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
       const today = new Date().toISOString().slice(0, 10);
-      const { data: ts } = await supa.from("gz_tournaments").select("id").eq("is_gamezone", true).gte("tournament_date", since).lt("tournament_date", today);
+      // Remerciement : tous les tournois (modèle « autre » pour les non GameZone, 30.09.2026) ; Vainqueur : GameZone seulement.
+      const { data: ts } = await supa.from("gz_tournaments").select("id,is_gamezone").gte("tournament_date", since).lt("tournament_date", today);
       let sent = 0;
       for (const t of (ts || [])) {
-        for (const k of ["remerciement", "vainqueur"]) {
+        for (const k of (t.is_gamezone ? ["remerciement", "vainqueur"] : ["remerciement"])) {
           const r = await sendForTournament(supa, tx, t.id, k, origin, surveyId, BATCH, null);
           sent += r.sent || 0;
         }
