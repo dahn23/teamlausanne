@@ -1955,6 +1955,69 @@ function route() {
   else if (WORLDS[h] && !LO_ONLY) { renderWorld(h); setTitle(h); }
   else { renderWorld(DEFAULT_WORLD); setTitle(DEFAULT_WORLD); }
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+  annonceAccueil();
+}
+
+// ---- Annonce temporaire sur l'accueil ----
+// Un encart daté : passé `au`, il ne s'affiche plus de lui-même, rien à aller
+// débrancher. Les dates sont celles du calendrier de la console (fermeture du
+// 5 au 11 octobre, camps d'automne les deux semaines suivantes).
+// La précision sur le mercredi 7 n'est pas un détail : ce rendez-vous tombe
+// pendant la fermeture et les familles viennent de confirmer leur présence par
+// retour de mail. Sans cette ligne, « fermé » le ferait passer pour annulé.
+const ANNONCE = {
+  cle: "tla-annonce-automne-2026",        // mémoire du ✕, propre à cette annonce
+  du: "2026-10-01", au: "2026-10-04",     // bornes incluses
+  oeil: "Information",
+  titre: "École de Tennis fermée du 5 au 11 octobre",
+  corps: "Pas de cours de l'École de Tennis la semaine prochaine. Les stages d'automne prennent le relais :",
+  dates: ["Semaine 1 — du 12 au 16 octobre", "Semaine 2 — du 19 au 23 octobre"],
+  precision: "Les cours privés et le rendez-vous Compétition / Performance du mercredi 7 octobre sont maintenus.",
+  bouton: "Voir les stages d'automne",
+  cible: "stages",
+};
+// Date du jour côté visiteur, en heure locale : toISOString() renvoie l'UTC et
+// ferait apparaître ou disparaître l'encart une heure trop tôt.
+const jourLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+function annonceFermee() {
+  // localStorage jette dans certains contextes (navigation privée verrouillée) :
+  // en cas de doute, on montre l'annonce plutôt que de la perdre.
+  try { return localStorage.getItem(ANNONCE.cle) === "1"; } catch (e) { return false; }
+}
+function annonceAccueil() {
+  const deja = document.getElementById("annonce");
+  const j = jourLocal();
+  const montrer = !LO_ONLY
+    && (!location.hash || location.hash === "#academie")
+    && j >= ANNONCE.du && j <= ANNONCE.au
+    && !annonceFermee();
+  if (!montrer) { deja?.remove(); return; }
+  if (deja) return;
+
+  const el = document.createElement("aside");
+  el.id = "annonce"; el.className = "annonce"; el.setAttribute("role", "status");
+  el.setAttribute("aria-labelledby", "annonce-t");
+  el.innerHTML = `
+    <button type="button" class="annonce-x" aria-label="Fermer cette annonce">✕</button>
+    <span class="annonce-oeil">${esc(ANNONCE.oeil)}</span>
+    <h2 id="annonce-t" class="annonce-t">${esc(ANNONCE.titre)}</h2>
+    <p class="annonce-corps">${esc(ANNONCE.corps)}</p>
+    <ul class="annonce-dates">${ANNONCE.dates.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>
+    <p class="annonce-prec">${esc(ANNONCE.precision)}</p>
+    <button type="button" class="contact-cta annonce-cta">${esc(ANNONCE.bouton)}</button>`;
+  document.body.appendChild(el);
+
+  el.querySelector(".annonce-x").addEventListener("click", () => {
+    el.remove();
+    try { localStorage.setItem(ANNONCE.cle, "1"); } catch (e) {}
+  });
+  el.querySelector(".annonce-cta").addEventListener("click", () => {
+    el.remove();                       // on ne la referme pas définitivement :
+    location.hash = ANNONCE.cible;     // elle a fait son travail pour cette fois.
+  });
 }
 
 // ---- Contact : le formulaire « Nous écrire » en bas de page ----
