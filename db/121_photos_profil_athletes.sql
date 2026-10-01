@@ -65,3 +65,20 @@ where p.photo_url like 'https://teamlausanne.ch/assets/photos/profil/%'
   and not exists (select 1 from person_media m where m.person_id = p.id and m.is_profile);
 
 commit;
+
+-- ---------------------------------------------------------------------------
+-- Ajout du 01.10.2026 : Max Marten, recadré depuis sa photo Sport-études.
+
+begin;
+
+update people
+   set photo_url = 'https://teamlausanne.ch/assets/photos/profil/max-marten.jpg'
+ where id = 'bf1ca04a-c994-4e0c-b391-10e144d3ac78';   -- Max Marten
+
+insert into person_media (person_id, url, storage_path, kind, is_profile, comment)
+select p.id, p.photo_url, null, 'image', true, 'Photo de profil'
+from people p
+where p.photo_url like 'https://teamlausanne.ch/assets/photos/profil/%'
+  and not exists (select 1 from person_media m where m.person_id = p.id and m.is_profile);
+
+commit;
