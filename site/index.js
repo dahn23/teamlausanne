@@ -305,7 +305,7 @@ const DETAILS = {
             mytennis: "19764390",
             mot: "Cinq ans de sport-études au Lausanne-Sports, et le bac en ligne de mire. Revers à une main, faible avoué pour l'ambiance des interclubs. Il enseigne depuis deux ans, en cours comme en stage : patient, et autant motivé par transmettre que par jouer.",
             tags: ["J+S continue 1", "J+S continue 2", "Official Swiss Tennis"] },
-          // Nadia, Isabella, Yuma, Ylan et Max : texte encore provisoire, il ne dit
+          // Nadia, Isabella, Yuma et Ylan : texte encore provisoire, il ne dit
           // que ce qu'on sait de source sure (filiere et classement Swiss
           // Tennis). A remplacer par leur vraie presentation des qu'on l'a.
           { nom: "Nadia Dévaud", age: "15 ans", classement: "R5",
@@ -330,10 +330,13 @@ const DETAILS = {
             photo: "assets/photos/eleve-ylan-allenspach.jpg",
             mytennis: "19796976",
             mot: "En sport-études au Lausanne-Sports, classé R5. Sa présentation arrive prochainement." },
+          // Propos recueillis aupres de Max, remis a la 3e personne comme les
+          // autres portraits. Sa formule sur l'equipe est gardee telle quelle :
+          // c'est la plus parlante des siennes.
           { nom: "Max Marten", age: "16 ans", classement: "R3",
             photo: "assets/photos/eleve-max-marten.jpg",
             mytennis: "19781973",
-            mot: "En sport-études au Lausanne-Sports, classé R3. Sa présentation arrive prochainement." },
+            mot: "Seize ans, classé R3. Il se dépasse chaque jour à l'entraînement pour aller chercher son objectif, et aime repousser ses limites. Surtout, il adore jouer en équipe : c'est ensemble qu'on va le plus loin. Motivé, travailleur, toujours prêt à progresser." },
         ]},
       { type: "brochure", anchor: "brochure",
         eyebrow: "Brochure 2026", title: "Le programme en détail, dans votre boîte mail",
