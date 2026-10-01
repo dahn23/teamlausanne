@@ -9,6 +9,8 @@
 // v28 (24.09.2026) : le contrôle des doublons tient compte du sens (voir isDupMsg) — un mail
 //                    envoyé depuis la console vers une de nos propres boîtes arrive maintenant
 //                    bien dans la Messagerie au lieu d'être pris pour un doublon de l'envoi.
+// v29 (24.09.2026) : info@lausanneopen.ch chez Hostpoint (relevée directement, plus par redirection Gmail).
+// v30 (01.10.2026) : les pièces jointes d'Apple Mail ne disparaissent plus (voir processAtt).
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -43,8 +45,19 @@ function processAtt(p: any, htmlIn: string | null) {
       const u8: Uint8Array = a.content instanceof Uint8Array ? a.content : new Uint8Array(a.content || []);
       const cid = String(a.cid || a.contentId || "").replace(/[<>]/g, "");
       const tooBig = u8.length > MAXB;
-      const isInline = (a.contentDisposition === "inline") || (!!cid && !!html && html.includes("cid:" + cid));
-      if (isInline && cid && html && !tooBig) {
+      // Une pièce n'est « intégrée » que si le HTML la réclame vraiment par son
+      // cid : on la fond alors dans le corps (logo de signature, image citée) et
+      // elle n'a pas à figurer dans la liste des pièces jointes.
+      //
+      // Se fier à Content-Disposition menait à perdre des fichiers. Apple Mail
+      // envoie en « inline », avec un Content-ID, tout fichier déposé dans le
+      // corps du message — y compris un PDF que le HTML ne cite nulle part.
+      // L'ancienne condition les prenait pour des images de signature : le
+      // remplacement ne trouvait aucun « cid: » à substituer, et le « continue »
+      // sautait la création de la ligne. Le fichier disparaissait sans trace ni
+      // erreur. Dix-sept messages reçus étaient dans ce cas.
+      const citeeDansHtml = !!cid && !!html && html.includes("cid:" + cid);
+      if (citeeDansHtml && !tooBig) {
         html = html.split("cid:" + cid).join(`data:${a.contentType || "image/png"};base64,${b64(u8)}`);
         continue;
       }
