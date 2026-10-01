@@ -305,13 +305,14 @@ const DETAILS = {
             mytennis: "19764390",
             mot: "Cinq ans de sport-études au Lausanne-Sports, et le bac en ligne de mire. Revers à une main, faible avoué pour l'ambiance des interclubs. Il enseigne depuis deux ans, en cours comme en stage : patient, et autant motivé par transmettre que par jouer.",
             tags: ["J+S continue 1", "J+S continue 2", "Official Swiss Tennis"] },
-          // Nadia, Isabella, Yuma et Ylan : texte encore provisoire, il ne dit
-          // que ce qu'on sait de source sure (filiere et classement Swiss
-          // Tennis). A remplacer par leur vraie presentation des qu'on l'a.
+          // Isabella, Yuma et Ylan : texte encore provisoire, il ne dit que ce
+          // qu'on sait de source sure (filiere et classement Swiss Tennis).
+          // A remplacer par leur vraie presentation des qu'on l'a.
+          // Propos recueillis aupres de Nadia, remis a la 3e personne.
           { nom: "Nadia Dévaud", age: "15 ans", classement: "R5",
             photo: "assets/photos/eleve-nadia-devaud.jpg",
             mytennis: "19822148",
-            mot: "En sport-études au Lausanne-Sports, classée R5. Sa présentation arrive prochainement." },
+            mot: "Quinze ans, classée R5, et un an de sport-études au Lausanne-Sports. Un jeu offensif, porté par son coup droit. Son but : atteindre le niveau professionnel." },
           // Propos recueillis aupres de Hektor, remis a la 3e personne comme
           // les autres portraits.
           { nom: "Hektor Vitone", age: "13 ans", classement: "R4",
