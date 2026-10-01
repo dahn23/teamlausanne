@@ -44,3 +44,22 @@ commit;
 -- À faire à la main, hors SQL : la 2026-0019 (4 150.–) était déjà partie chez
 -- Stéphanie le 24.09 et reste impayée. Si le père doit la recevoir, il faut la
 -- renvoyer depuis la console — le PDF se refabriquera à son nom.
+
+-- ---------------------------------------------------------------------------
+-- Rectification, après retour de Raphael : la 2026-0019 reste au nom de la
+-- mère. Elle lui est partie le 24.09 et c'est elle qui la règle ; le dossier
+-- doit dire ce qui a réellement été envoyé. La bascule au père commence donc
+-- à la 2026-0020. Son PDF se refabriquera à son nom d'origine.
+
+begin;
+
+update out_invoices
+   set debtor_name  = 'Stéphanie Bauen',
+       debtor_email = 'bauenstephanie@bluewin.ch',
+       pdf_path     = null,
+       note = 'Envoyée à Stéphanie Bauen le 24.09.2026 et laissée à son nom : '
+           || 'le dossier doit dire ce qui est réellement parti. À partir de la '
+           || '2026-0020, la facturation passe à Sylvain Gander.'
+ where number = '2026-0019';
+
+commit;
