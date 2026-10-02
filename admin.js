@@ -7861,7 +7861,10 @@ async function loadPaieMois() {
 // Ce qui empêche de clôturer, dit en clair plutôt qu'en bouton grisé.
 function paieBlocages() {
   const c = heuresData.coaches || [], p = heuresData.profs || [];
-  const sansTarif = c.filter((x) => x.rate == null && x.salary == null && !x.by_invoice
+  // Profs compris : ils sont payés à l'heure comme les coachs, et payroll_close
+  // les refuse désormais sans tarif. Si l'écran ne les signalait pas, la clôture
+  // échouerait sans qu'on sache pourquoi.
+  const sansTarif = [...c, ...p].filter((x) => x.rate == null && x.salary == null && !x.by_invoice
     && !x.in_kind && Number(x.hours) > 0);
   const nonValides = [...c.filter((x) => x.total_courses > 0 && x.courses < x.total_courses),
                       ...p.filter((x) => x.total_days > 0 && x.days < x.total_days)];
@@ -7993,8 +7996,14 @@ function renderHeures() {
   }).join("");
   $("heures-profs").innerHTML = p.map((x) => {
     const allVal = x.total_days > 0 && x.days === x.total_days;
+    // Même règle que pour les coachs : salarié → brut mensuel, sinon tarif × heures.
+    const salaried = x.salary != null;
+    const { base, extra, total } = heAmount(x);
+    const extraTxt = extra ? ` <span class="muted" style="font-size:.78rem">(dont ${extra.toLocaleString("fr-CH")} extra)</span>` : "";
     return `<tr${x.by_invoice ? ' class="he-inv" title="Sur facture : payé sur sa propre facture, exclu du décompte fiduciaire et du paiement automatique"' : ""}>
       <td><b>${esc(x.name)}</b>${x.by_invoice ? ' <span class="he-inv-badge">sur facture</span>' : ""}</td><td>${x.total_days}</td><td>${x.hours} h</td>
+      <td>${salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
+      <td>${base != null || extra ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—"}</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.days + "/" + x.total_days + "</span>" : '<span class="muted">' + x.days + "/" + x.total_days + "</span>"}</td>
       ${salExtraCell(x.person_id, x.extra)}
@@ -8030,7 +8039,7 @@ function exportHeures() {
   const c = heuresData.coaches || [], p = heuresData.profs || [];
   const lines = [["Type", "Nom", "Cours/AM", "Heures", "Tarif", "Extra", "Montant", "IBAN", "Valide"]];
   for (const x of c) { const { base, extra, total } = heAmount(x); lines.push([x.in_kind ? "Coach (compensé sur facture élève)" : x.by_invoice ? "Coach (sur facture)" : "Coach", x.name, x.courses, x.hours, x.salary != null ? "salarié" : (x.rate ?? ""), extra || "", (base != null || extra) ? total : "", x.iban ?? "", x.total_courses > 0 && x.courses === x.total_courses ? "oui" : "non"]); }
-  for (const x of p) lines.push(["Prof", x.name, x.days, x.hours, "", x.extra ?? "", "", x.iban ?? "", x.total_days > 0 && x.days === x.total_days ? "oui" : "non"]);
+  for (const x of p) { const { base, extra, total } = heAmount(x); lines.push(["Prof", x.name, x.days, x.hours, x.salary != null ? "salarié" : (x.rate ?? ""), extra || "", (base != null || extra) ? total : "", x.iban ?? "", x.total_days > 0 && x.days === x.total_days ? "oui" : "non"]); }
   const csv = lines.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
@@ -8071,11 +8080,26 @@ async function buildHeuresPdf() {
   });
   doc.autoTable({ startY: 26, head: [["Coach", "Cours validés", "Heures", "Tarif", "Extra (brut)", "Montant", "IBAN"]], body: coachRows.length ? coachRows : [["—", "", "", "", "", "", ""]],
     styles: { fontSize: 9 }, headStyles: { fillColor: [18, 60, 196] }, columnStyles: { 6: { fontSize: 8 } } });
-  const profRows = p.map((x) => [x.name, `${x.days}/${x.total_days}`, `${x.hours} h`, x.extra ? chf(x.extra) : "—", x.iban || "—"]);
+  // Les profs d'études sont payés à l'heure : ils ont donc tarif et montant,
+  // comme les coachs, et leur part entre dans le total. Sans cela le décompte
+  // partait chez la fiduciaire avec leurs heures et pas un franc en face.
+  let totalProfs = 0;
+  const profRows = p.map((x) => {
+    const sal = x.salary != null, { base, extra, total: t } = heAmount(x);
+    if (base != null || extra) totalProfs += t;
+    return [x.name, `${x.days}/${x.total_days}`, `${x.hours} h`, sal ? "Salarié" : (x.rate != null ? x.rate + ".–/h" : "—"),
+            extra ? chf(extra) : "—", (base != null || extra) ? (sal ? chf(t) + " brut" : chf(t)) : "—", x.iban || "—"];
+  });
   doc.setFontSize(12); doc.text("Profs — études", 14, doc.lastAutoTable.finalY + 10);
-  doc.autoTable({ startY: doc.lastAutoTable.finalY + 13, head: [["Prof", "Après-midis validés", "Heures", "Extra (brut)", "IBAN"]], body: profRows.length ? profRows : [["—", "", "", "", ""]],
-    styles: { fontSize: 9 }, headStyles: { fillColor: [18, 60, 196] }, columnStyles: { 4: { fontSize: 8 } } });
-  doc.setFontSize(10); doc.text(`Total coachs (montants + salaires bruts + extras) : ${chf(total)}`, 14, doc.lastAutoTable.finalY + 10);
+  doc.autoTable({ startY: doc.lastAutoTable.finalY + 13, head: [["Prof", "Après-midis validés", "Heures", "Tarif", "Extra (brut)", "Montant", "IBAN"]], body: profRows.length ? profRows : [["—", "", "", "", "", "", ""]],
+    styles: { fontSize: 9 }, headStyles: { fillColor: [18, 60, 196] }, columnStyles: { 6: { fontSize: 8 } } });
+  const y = doc.lastAutoTable.finalY + 10;
+  doc.setFontSize(10);
+  doc.text(`Coachs : ${chf(total)}`, 14, y);
+  doc.text(`Profs — études : ${chf(totalProfs)}`, 14, y + 5);
+  doc.setFont(undefined, "bold");
+  doc.text(`Total (montants + salaires bruts + extras) : ${chf(total + totalProfs)}`, 14, y + 11);
+  doc.setFont(undefined, "normal");
   return doc;
 }
 async function exportHeuresPdf() {
