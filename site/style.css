@@ -2981,3 +2981,80 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
   .annonce-x{top:7px;right:7px;width:40px;height:40px}
   .annonce-t{padding-right:34px}
 }
+
+/* ---- Calendrier public de la saison ----
+   Une grille de mois, puis la liste de ce que le mois contient. La grille
+   donne le coup d'oeil, la liste donne les mots : sur telephone une case de
+   40 px ne peut rien dire, c'est la liste qu'on lit. */
+.calp-barre{display:flex;align-items:center;justify-content:center;gap:18px;margin:0 0 14px}
+.calp-mois{font-family:var(--font-accent);font-size:clamp(1.1rem,2.4vw,1.4rem);
+  text-transform:capitalize;min-width:9.5em;text-align:center;letter-spacing:-.02em}
+.calp-nav{width:40px;height:40px;flex:0 0 auto;border:1px solid var(--line);
+  background:var(--card);border-radius:50%;cursor:pointer;font-size:1.3rem;line-height:1;
+  color:var(--blue);display:flex;align-items:center;justify-content:center}
+.calp-nav:hover:not(:disabled){background:var(--blue);color:#fff;border-color:var(--blue)}
+.calp-nav:disabled{opacity:.3;cursor:default}
+.calp-nav:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+.calp-jours{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.calp-jours span{text-align:center;font-size:.72rem;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.05em}
+.calp-grille{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.calp-vide{aspect-ratio:1}
+.calp-c{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;border:1px solid var(--line);border-radius:10px;
+  background:var(--card);font:inherit;color:var(--ink);padding:0}
+button.calp-c{cursor:pointer;transition:transform .12s,box-shadow .12s}
+button.calp-c:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(20,26,46,.14)}
+button.calp-c:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.calp-c b{font-weight:700;font-size:clamp(.78rem,1.7vw,.95rem);font-variant-numeric:tabular-nums}
+.calp-pts{display:flex;gap:3px;height:6px}
+.calp-pt{width:6px;height:6px;border-radius:50%;background:var(--calp-c,var(--blue))}
+/* Aujourd'hui : un cerne, pas une couleur — la couleur dit deja autre chose. */
+.calp-auj{box-shadow:inset 0 0 0 2px var(--blue)}
+.calp-sel{background:var(--blue);border-color:var(--blue);color:#fff}
+.calp-sel b{color:#fff}
+.calp-sel .calp-pt{background:#fff}
+
+/* Les vacances scolaires teintent le fond de la case : elles durent, elles ne
+   se pointent pas. Les autres genres se lisent sur les pastilles. */
+.calp-c.calp-g-vacances-scolaires{background:#e9eff4;border-color:#d4e0e8}
+.calp-c.calp-g-fermeture{background:#fdecea;border-color:#f3c9c4}
+.calp-c.calp-g-stage{background:#f2ffd6;border-color:#dff5a8}
+.calp-sel.calp-c{background:var(--blue);border-color:var(--blue)}
+
+/* Couleur par genre, pour les pastilles, la legende et les items. */
+.calp-g-stage{--calp-c:#6f9c04}
+.calp-g-fermeture{--calp-c:#b3261e}
+.calp-g-vacances-scolaires{--calp-c:#5d7f91}
+.calp-g-ferie{--calp-c:var(--ocean)}
+.calp-g-evenement{--calp-c:var(--blue)}
+
+.calp-liste{margin-top:22px}
+.calp-liste-t{margin:0 0 12px;font-size:1.05rem;text-transform:capitalize}
+.calp-rien{margin:18px 0 0;color:var(--muted);font-size:.9rem}
+.calp-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.calp-item{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;align-items:baseline;
+  background:var(--card);border:1px solid var(--line);border-left:4px solid var(--calp-c);
+  border-radius:12px;padding:11px 14px}
+.calp-quand{grid-row:1/3;font-size:.8rem;font-weight:700;color:var(--calp-c);
+  min-width:9.5em;line-height:1.35}
+.calp-titre{font-size:.95rem;line-height:1.3}
+.calp-detail{font-size:.82rem;color:var(--muted);line-height:1.4}
+.calp-lien{grid-column:2;justify-self:start;margin-top:6px;border:0;cursor:pointer;
+  background:var(--blue);color:#fff;font:inherit;font-size:.78rem;font-weight:700;
+  padding:6px 14px;border-radius:999px}
+.calp-lien:hover{background:var(--blue-d)}
+
+.calp-legende{list-style:none;display:flex;flex-wrap:wrap;gap:8px 20px;
+  margin:22px 0 0;padding:16px 0 0;border-top:1px solid var(--line)}
+.calp-lg{display:inline-flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted)}
+.calp-lg i{width:10px;height:10px;border-radius:50%;background:var(--calp-c);flex:0 0 auto}
+
+@media(max-width:560px){
+  .calp-grille,.calp-jours{gap:3px}
+  .calp-c{border-radius:8px}
+  .calp-pt{width:5px;height:5px}
+  .calp-item{grid-template-columns:1fr}
+  .calp-quand{grid-row:auto;min-width:0}
+}

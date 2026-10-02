@@ -2651,6 +2651,7 @@ function initCalendrier() {
     const k = $("cal-kind").value;
     calDecompte();
     $("cal-membre-wrap").classList.toggle("hidden", !calVeutQui(k));
+    calMajPublic();
     // Le titre par défaut suit le type tant que personne ne l'a retouché.
     const t = $("cal-titre");
     if (!t.value.trim() || Object.values(CAL_KIND).includes(t.value.trim()))
@@ -3022,6 +3023,11 @@ function calOuvrir(ev, kind, lundi, fin) {
     if (moi) $("cal-membre").value = moi.id;
   }
   $("cal-membre-wrap").classList.toggle("hidden", !calVeutQui($("cal-kind").value));
+  // Fermetures et camps sont publics d'office (agenda_public les prend par leur
+  // genre). La case ne concerne donc que les événements, dont la table mêle le
+  // Lausanne Open et des rendez-vous nominatifs : à cocher un par un.
+  $("cal-public").checked = !!ev?.public_site;
+  calMajPublic();
   calDecompte();
   // Qui peut toucher à cette ligne. On reprend mot pour mot la règle de la
   // base (policy cal_modif) : sans cela le bouton resterait actif et
@@ -3037,6 +3043,16 @@ function calOuvrir(ev, kind, lundi, fin) {
 }
 
 const calPlus = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
+
+// La case « afficher sur le site » n'a de sens que pour un événement : une
+// fermeture et un camp sont publiés d'office par leur genre, et vacances comme
+// absences ne sortent jamais.
+function calMajPublic() {
+  const k = $("cal-kind").value;
+  const w = $("cal-pub-wrap"); if (!w) return;
+  w.classList.toggle("hidden", k !== "evenement");
+  if (k !== "evenement") $("cal-public").checked = false;
+}
 
 async function calOuvrirId(id) {
   const { data } = await sb.from("cal_events").select("*").eq("id", id).single();
@@ -3067,6 +3083,10 @@ async function calEnregistrer(e) {
     // refuse, autant ne pas l'envoyer.
     end_time: ($("cal-h1").value && $("cal-h2").value) || null,
     note: $("cal-note").value.trim() || null,
+    // Seuls les événements portent le drapeau ; les autres genres sont publics
+    // ou privés par nature, et laisser un drapeau traîner sur des vacances
+    // serait un piège si agenda_public venait à évoluer.
+    public_site: kind === "evenement" ? $("cal-public").checked : false,
     created_by: sess?.session?.user?.id || null,
   };
   // Une demande de vacances naît « à valider » — sauf posée par un valideur,

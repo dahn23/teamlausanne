@@ -128,6 +128,9 @@ const WORLDS = {
           { name: "Stages", photo: "assets/photos/stages-2026.jpg", href: "#stages" },
           { name: "Adultes et privés", photo: "assets/photos/adultes-2026.jpg", href: "#adultes" },
         ]},
+      { type: "calendrier", anchor: "calendrier", eyebrow: "Agenda",
+        title: "Le calendrier de la saison",
+        lead: "Vacances scolaires, jours fériés, fermetures de l'académie et stages : les dates à retenir, au même endroit." },
     ],
   },
 
@@ -1320,6 +1323,29 @@ function sectionHTML(sec) {
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}
         ${linkHTML(sec.link)}</section>`;
 
+    // ---- Calendrier public de la saison ----
+    // La coquille seulement : les dates arrivent par agenda_public() une fois
+    // la page montée (voir calPubCharger).
+    case "calendrier":
+      return `<section class="wsec calp"${sec.anchor ? ` id="${esc(sec.anchor)}" data-anchor="${esc(sec.anchor)}"` : ""}>
+        <div class="perks-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
+        </div>
+        <div class="calp-barre">
+          <button type="button" class="calp-nav" data-calp="-1" aria-label="Mois précédent">‹</button>
+          <strong class="calp-mois" id="calp-mois" aria-live="polite">…</strong>
+          <button type="button" class="calp-nav" data-calp="1" aria-label="Mois suivant">›</button>
+        </div>
+        <div class="calp-jours" aria-hidden="true">${
+          ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"].map((j) => `<span>${j}</span>`).join("")}</div>
+        <div class="calp-grille" id="calp-grille"></div>
+        <div class="calp-liste" id="calp-liste"></div>
+        <ul class="calp-legende">${CALP_GENRES.map(([g, lbl]) =>
+          `<li class="calp-lg calp-g-${g}"><i aria-hidden="true"></i>${esc(lbl)}</li>`).join("")}</ul>
+      </section>`;
+
     // ---- Rendez-vous de la saison ----
     // Les dates annoncees par newsletter, reprises ici pour que les parents
     // les retrouvent sans rouvrir leur boite mail. Une date sans horaire
@@ -1881,6 +1907,8 @@ function renderWorld(key) {
   majPartenairesBas();
   visioGlisser();
   calerBandeaux();
+  calpDates = null; calpJourVu = null;   // on change de monde : on repart propre
+  calPubCharger();
 }
 
 function renderDetail(id) {
@@ -1960,6 +1988,143 @@ function route() {
   else { renderWorld(DEFAULT_WORLD); setTitle(DEFAULT_WORLD); }
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   annonceAccueil();
+}
+
+// ---- Calendrier public de la saison ----
+// Les dates viennent d'agenda_public(), une fonction SECURITY DEFINER qui ne
+// renvoie QUE le public. Le site ne lit jamais cal_events : cette table
+// contient les vacances de l'équipe et des rendez-vous nominatifs avec des
+// familles. Le tri est fait en base, pas ici.
+var CALP_GENRES = [
+  ["stage", "Stage"],
+  ["fermeture", "Académie fermée"],
+  ["vacances-scolaires", "Vacances scolaires"],
+  ["ferie", "Jour férié"],
+  ["evenement", "Événement"],
+];
+var CALP_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+var calpDates = null, calpMois = null, calpMin = null, calpMax = null, calpJourVu = null;
+
+// Dates manipulées en texte « AAAA-MM-JJ » et jamais en objet Date : une borne
+// de vacances comparée en UTC se décale d'un jour pour qui lit depuis Lausanne.
+const calpISO = (a, m, j) =>
+  `${a}-${String(m + 1).padStart(2, "0")}-${String(j).padStart(2, "0")}`;
+const calpAujourdHui = () => { const d = new Date(); return calpISO(d.getFullYear(), d.getMonth(), d.getDate()); };
+const calpJoursDansMois = (a, m) => new Date(a, m + 1, 0).getDate();
+// JS compte la semaine à partir de dimanche ; en Suisse elle commence lundi.
+const calpPremierCase = (a, m) => (new Date(a, m, 1).getDay() + 6) % 7;
+const calpFrDate = (iso) => {
+  const [a, m, j] = iso.split("-").map(Number);
+  return `${j} ${CALP_MOIS[m - 1]} ${a}`;
+};
+// « Du 5 au 11 octobre 2026 » plutôt que de répéter le mois et l'année des deux
+// côtés ; on ne les redit que lorsqu'ils changent.
+const calpPeriode = (d, f) => {
+  if (d === f) return calpFrDate(d);
+  const [a1, m1, j1] = d.split("-").map(Number);
+  const [a2, m2] = f.split("-").map(Number);
+  if (a1 === a2 && m1 === m2) return `Du ${j1} au ${calpFrDate(f)}`;
+  if (a1 === a2) return `Du ${j1} ${CALP_MOIS[m1 - 1]} au ${calpFrDate(f)}`;
+  return `Du ${calpFrDate(d)} au ${calpFrDate(f)}`;
+};
+
+async function calPubCharger() {
+  if (!document.getElementById("calp-grille")) return;
+  if (calpDates) { calpRendre(); return; }
+  const d = new Date();
+  const du = calpISO(d.getFullYear(), d.getMonth(), 1);
+  const au = calpISO(d.getFullYear() + 1, d.getMonth(), calpJoursDansMois(d.getFullYear() + 1, d.getMonth()));
+  const { data, error } = await sb.rpc("agenda_public", { p_du: du, p_au: au });
+  if (error) {
+    document.getElementById("calp-liste").innerHTML =
+      '<p class="muted">Le calendrier n\'a pas pu être chargé. Réessayez plus tard.</p>';
+    return;
+  }
+  calpDates = data || [];
+  calpMin = du.slice(0, 7);
+  calpMax = au.slice(0, 7);
+  calpMois = calpMin;
+  calpRendre();
+}
+
+// Entrées couvrant un jour donné, dans l'ordre de la légende : ce qui demande
+// une action (stage, fermeture) passe avant le décor (vacances, férié).
+function calpDuJour(iso) {
+  const rang = (g) => CALP_GENRES.findIndex(([k]) => k === g);
+  return (calpDates || []).filter((e) => e.debut <= iso && iso <= e.fin)
+    .sort((a, b) => rang(a.genre) - rang(b.genre));
+}
+
+function calpRendre() {
+  const grille = document.getElementById("calp-grille"); if (!grille) return;
+  const [a, m] = calpMois.split("-").map(Number);
+  const an = a, mois = m - 1;
+  document.getElementById("calp-mois").textContent = `${CALP_MOIS[mois]} ${an}`;
+  document.querySelectorAll("[data-calp]").forEach((b) => {
+    const cible = calpDecaler(calpMois, Number(b.dataset.calp));
+    b.disabled = cible < calpMin || cible > calpMax;
+  });
+
+  const auj = calpAujourdHui();
+  let html = "";
+  for (let i = 0; i < calpPremierCase(an, mois); i++) html += '<span class="calp-vide"></span>';
+  for (let j = 1; j <= calpJoursDansMois(an, mois); j++) {
+    const iso = calpISO(an, mois, j);
+    const evs = calpDuJour(iso);
+    const cls = ["calp-c"].concat(evs.map((e) => "calp-g-" + e.genre));
+    if (iso === auj) cls.push("calp-auj");
+    if (iso === calpJourVu) cls.push("calp-sel");
+    if (!evs.length) {
+      html += `<span class="${cls.join(" ")}"><b>${j}</b></span>`;
+    } else {
+      const quoi = evs.map((e) => e.titre).join(", ");
+      html += `<button type="button" class="${cls.join(" ")}" data-calp-jour="${iso}"
+        aria-label="${esc(calpFrDate(iso))} — ${esc(quoi)}"><b>${j}</b>
+        <span class="calp-pts" aria-hidden="true">${evs.slice(0, 3).map((e) =>
+          `<i class="calp-pt calp-g-${e.genre}"></i>`).join("")}</span></button>`;
+    }
+  }
+  grille.innerHTML = html;
+  calpListe();
+}
+
+const calpDecaler = (ym, n) => {
+  const [a, m] = ym.split("-").map(Number);
+  const d = new Date(a, m - 1 + n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+// Sous la grille : le détail. Un jour choisi prend toute la place, sinon on
+// liste le mois — sur téléphone, c'est cette liste qui se lit vraiment.
+function calpListe() {
+  const L = document.getElementById("calp-liste"); if (!L) return;
+  let titre, lot;
+  if (calpJourVu && calpJourVu.slice(0, 7) === calpMois) {
+    titre = calpFrDate(calpJourVu);
+    lot = calpDuJour(calpJourVu);
+  } else {
+    const [a, m] = calpMois.split("-").map(Number);
+    const fin = calpISO(a, m - 1, calpJoursDansMois(a, m - 1));
+    titre = `${CALP_MOIS[m - 1]} ${a}`;
+    const rang = (g) => CALP_GENRES.findIndex(([k]) => k === g);
+    lot = (calpDates || []).filter((e) => e.debut <= fin && e.fin >= `${calpMois}-01`)
+      .sort((x, y) => x.debut.localeCompare(y.debut) || rang(x.genre) - rang(y.genre));
+  }
+  if (!lot.length) {
+    L.innerHTML = `<p class="calp-rien">Rien de particulier en ${esc(titre.toLowerCase())}.</p>`;
+    return;
+  }
+  L.innerHTML = `<h3 class="calp-liste-t">${esc(titre)}</h3>
+    <ul class="calp-items">${lot.map((e) => {
+      const quand = calpPeriode(e.debut, e.fin);
+      const lien = e.genre === "stage"
+        ? ' <button type="button" class="calp-lien" data-scroll-page="stages">Voir les stages</button>' : "";
+      return `<li class="calp-item calp-g-${e.genre}">
+        <span class="calp-quand">${esc(quand)}</span>
+        <b class="calp-titre">${esc(e.titre)}</b>
+        ${e.detail ? `<span class="calp-detail">${esc(e.detail)}</span>` : ""}${lien}</li>`;
+    }).join("")}</ul>`;
 }
 
 // ---- Annonce temporaire sur l'accueil ----
@@ -2247,6 +2412,17 @@ document.addEventListener("click", (e) => {
   // Tap ailleurs : referme les listes ouvertes (les liens de la liste naviguent normalement).
   if (!e.target.closest(".sw-wrap")) document.querySelectorAll(".sw-wrap.open").forEach((w) => w.classList.remove("open"));
   else if (e.target.closest(".sw-menu a")) setTimeout(() => document.querySelectorAll(".sw-wrap.open").forEach((w) => w.classList.remove("open")), 50);
+  // Calendrier : navigation de mois, choix d'un jour, renvoi vers les stages.
+  const cnav = e.target.closest("[data-calp]");
+  if (cnav) { calpJourVu = null; calpMois = calpDecaler(calpMois, Number(cnav.dataset.calp)); calpRendre(); return; }
+  const cjour = e.target.closest("[data-calp-jour]");
+  if (cjour) {
+    // Recliquer le même jour revient au mois entier : pas de cul-de-sac.
+    calpJourVu = calpJourVu === cjour.dataset.calpJour ? null : cjour.dataset.calpJour;
+    calpRendre(); return;
+  }
+  const cpage = e.target.closest("[data-scroll-page]");
+  if (cpage) { location.hash = cpage.dataset.scrollPage; return; }
   const contact = e.target.closest("[data-contact]");
   if (contact) { openContact(contact.dataset.contact); return; }
   const cta = e.target.closest("[data-cta]");

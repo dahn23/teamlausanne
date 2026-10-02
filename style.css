@@ -4321,3 +4321,12 @@ tr.enc-ok td{background:#f4fbf6}
 .fc-body{margin:4px 0 0;font-size:.92rem;line-height:1.45;white-space:normal}
 .mcf-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
 .mcf-card .fc-txt{width:100%;margin-top:6px}
+
+/* ---- Calendrier : publication d'un événement sur le site ----
+   Encadrée, parce que cocher cette case rend un titre lisible par tout le
+   monde et que le calendrier contient des rendez-vous nominatifs. */
+.cal-pub{display:flex;gap:10px;align-items:flex-start;cursor:pointer;
+  background:#eef2fb;border:1px solid #d3ddf3;border-radius:10px;padding:10px 12px}
+.cal-pub input{margin:2px 0 0;flex:0 0 auto;width:17px;height:17px;accent-color:var(--blue)}
+.cal-pub b{display:block;font-size:.88rem;font-weight:700}
+.cal-pub em{display:block;font-style:normal;font-size:.78rem;color:var(--muted);margin-top:2px}

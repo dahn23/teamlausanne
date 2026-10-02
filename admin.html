@@ -17,7 +17,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=284" />
+  <link rel="stylesheet" href="style.css?v=285" />
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 </head>
@@ -815,6 +815,13 @@
             <p id="cal-decompte" class="cal-decompte" hidden></p>
             <label class="mailc-f">Remarque <span class="muted" style="font-weight:400">(facultatif)</span>
               <textarea id="cal-note" rows="2"></textarea></label>
+            <!-- Publication sur le site. Décochée par défaut : le calendrier
+                 contient des rendez-vous nominatifs avec des familles. -->
+            <label class="cal-pub hidden" id="cal-pub-wrap">
+              <input type="checkbox" id="cal-public" />
+              <span><b>Afficher sur le calendrier public du site</b>
+                <em>Le titre et la remarque seront lisibles par tout le monde.</em></span>
+            </label>
             <p id="cal-fige" class="muted cal-fige" hidden></p>
             <p id="cal-err" class="error" hidden></p>
             <div class="form-foot">
