@@ -1241,7 +1241,26 @@ html{-webkit-tap-highlight-color:transparent}
 .cnx-card button{background:var(--blue);color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800;font-size:1rem;cursor:pointer;margin-top:6px}
 .cnx-card button:disabled{opacity:.6}
 .cnx-error{color:#c0392b;font-size:.85rem;margin:2px 0 0}
-.rt-edit{min-height:90px;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:.92rem;color:#000;outline:none;overflow-y:auto;max-height:260px;box-sizing:border-box}
+/* La poignée de redimensionnement marche sur un contenteditable tant que son
+   overflow n'est pas « visible » — il est à auto, elle apparaît donc en bas à
+   droite. Utile partout où l'on écrit. */
+.rt-edit{min-height:90px;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:.92rem;color:#000;outline:none;overflow-y:auto;max-height:260px;box-sizing:border-box;resize:vertical}
+
+/* Les deux zones où l'on rédige un vrai courrier — nouveau message et réponse.
+   Elles étaient plafonnées à 260 px comme un champ de formulaire : on écrivait
+   un mail de dix lignes dans une meurtrière, en faisant défiler deux fois (dans
+   la zone, puis dans la fenêtre). Hauteur de départ triplée, plus de plafond,
+   et la poignée laisse agrandir autant qu'on veut. Les blocs de newsletter
+   gardent leur plafond : ce sont des fragments, pas des lettres. */
+/* flex-shrink:0 n'est pas un détail : la carte est un conteneur flex en
+   colonne plafonné à la hauteur de l'écran. Sans ça, dès que la fenêtre
+   manquait de place, elle écrasait la zone de texte — on tirait la poignée
+   vers le bas et rien ne bougeait. Maintenant la hauteur demandée est tenue
+   et c'est la carte qui défile. */
+#mailc-body, #mail-d-replyhtml{min-height:300px;max-height:none;flex-shrink:0}
+/* Fenêtre de rédaction plus large : des lignes trop courtes obligent à faire
+   défiler là où l'on veut relire d'un coup d'œil. */
+#mailc-modal .card{max-width:860px}
 .rt-edit:empty:before{content:attr(data-ph);color:#9aa6c4}
 .rt-edit:focus{border-color:var(--blue)}
 .rt-files{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
