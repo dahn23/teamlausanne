@@ -1,4 +1,5 @@
 -- 127 — Yann Perez, septembre 2026 : deux saisies de segments manquantes.
+--       APPLIQUÉ le 02.10.2026 sur accord de Raphael. Résultat : 104 h, 58/58.
 --
 -- Le décompte affichait 101 h alors que ses 58 cours du mois totalisent
 -- exactement 104 h de créneaux planifiés. Les 3 heures manquantes se
