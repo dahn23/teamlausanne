@@ -8049,7 +8049,17 @@ async function buildHeuresPdf() {
   const hors = (x) => x.by_invoice || x.in_kind;
   const c = (heuresData.coaches || []).filter((x) => !hors(x)), p = (heuresData.profs || []).filter((x) => !hors(x));
   const nInv = (heuresData.coaches || []).filter(hors).length + (heuresData.profs || []).filter(hors).length;
-  const chf = (n) => (Math.round(Number(n) * 100) / 100).toLocaleString("fr-CH") + " CHF";
+  // Séparateur de milliers posé à la main. toLocaleString("fr-CH") rend une
+  // apostrophe typographique (U+2019) absente de l'Helvetica standard de
+  // jsPDF : 7916 sortait « 7/916 » sur le décompte. L'apostrophe droite, elle,
+  // fait partie du jeu de base et s'imprime. Les décimales ne s'affichent que
+  // si elles existent, comme le faisait toLocaleString.
+  const nb = (n) => {
+    const v = Math.round(Number(n) * 100) / 100;
+    const [ent, dec] = Math.abs(v).toFixed(2).split(".");
+    return (v < 0 ? "-" : "") + ent.replace(/\B(?=(\d{3})+(?!\d))/g, "'") + (dec === "00" ? "" : "." + dec);
+  };
+  const chf = (n) => nb(n) + " CHF";
   doc.setFontSize(15); doc.text(`Décompte mensuel — ${heuresMoisLbl()}`, 14, 14);
   doc.setFontSize(9); doc.setTextColor(110); doc.text(`Team Lausanne · généré le ${frDate(new Date())}${nInv ? ` · ${nInv} intervenant(s) sur facture non inclus` : ""}`, 14, 20); doc.setTextColor(0);
   let total = 0;
