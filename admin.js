@@ -9842,6 +9842,49 @@ const encNum = (s) => {
 };
 // Référence SCOR telle qu'on la compare : sans espaces, en majuscules.
 const encRef = (s) => String(s || "").replace(/\s+/g, "").toUpperCase();
+
+// Une référence SCOR se contrôle elle-même (ISO 11649, mod 97-10) : on décale
+// « RF » + les 2 chiffres de contrôle à la fin, les lettres valent leur rang
+// + 9, et le reste modulo 97 doit faire 1. C'est ce qui permet de ramasser une
+// référence écrite dans un texte libre sans ramasser n'importe quoi.
+function encRfValide(ref) {
+  const r = encRef(ref);
+  if (!/^RF\d{2}[A-Z0-9]{1,21}$/.test(r)) return false;
+  const s = (r.slice(4) + r.slice(0, 4)).replace(/[A-Z]/g, (ch) => String(ch.charCodeAt(0) - 55));
+  let m = 0; for (const ch of s) m = (m * 10 + Number(ch)) % 97;
+  return m === 1;
+}
+
+// Référence cachée dans la communication.
+//
+// Un virement depuis une banque étrangère (ou saisi à la main) arrive parfois
+// sans le champ structuré CdtrRefInf : la référence est alors recopiée dans le
+// texte libre. Elle est là, lisible, mais le rapprochement la manquait et la
+// ligne partait en « à vérifier à la main » — c'est ce qui est arrivé aux
+// virements Zwang Siarnowski de mai 2026, références exactes et montant au
+// centime.
+//
+// On ne prend que ce qui passe le mod 97 : la référence d'un assureur comme
+// « RF458615 » y échoue, et n'est donc pas prise pour une des nôtres.
+//
+// La longueur, elle, ne se devine pas : nos références de console font 8
+// caractères après les chiffres de contrôle (RF23 20260048), celles d'avant en
+// faisaient 21 (RF27 0000…0172 0), et dans un texte libre le mot suivant colle
+// à la référence. On ramasse donc jusqu'à 21 caractères, puis on essaie du plus
+// long au plus court et on garde le premier qui se contrôle — sinon
+// « RF23 20260048 MERCI » ne vaudrait rien.
+function encRefDansTexte(txt) {
+  const T = String(txt || "").toUpperCase();
+  for (const m of T.matchAll(/RF\s*(\d{2})((?:\s*[A-Z0-9]){1,30})/g)) {
+    const cc = m[1];
+    const pool = m[2].replace(/\s+/g, "").slice(0, 21);
+    for (let n = pool.length; n >= 1; n--) {
+      const cand = "RF" + cc + pool.slice(0, n);
+      if (encRfValide(cand)) return cand;
+    }
+  }
+  return "";
+}
 const encDate = (s) => {
   const m = String(s || "").match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
   if (!m) return null;
@@ -9866,14 +9909,18 @@ function encLireCamt(texte) {
     for (const d of sources) {
       const montant = encNum(txt(d, "Amt") || txt(ntry, "Amt"));
       if (montant == null || montant <= 0) continue;
+      const comm = txt(d, "Ustrd") || txt(ntry, "AddtlNtryInf");
+      // Le champ structuré d'abord ; à défaut, la référence écrite dans le
+      // texte libre, si elle passe son propre contrôle.
+      const refStruct = encRef(txt(d, "CdtrRefInf Ref"));
       lignes.push({
         value_date: dateN || null,
         amount: montant,
         currency: (d.querySelector("Amt") || ntry.querySelector("Amt"))?.getAttribute("Ccy") || "CHF",
-        reference: encRef(txt(d, "CdtrRefInf Ref")),
+        reference: refStruct || encRefDansTexte(comm),
         debtor_name: txt(d, "RltdPties Dbtr Nm") || txt(ntry, "RltdPties Dbtr Nm"),
-        communication: txt(d, "Ustrd") || txt(ntry, "AddtlNtryInf"),
-        raw: (txt(d, "Ustrd") || txt(ntry, "AddtlNtryInf") || "").slice(0, 300),
+        communication: comm,
+        raw: (comm || "").slice(0, 300),
       });
     }
   }
@@ -9956,37 +10003,102 @@ function encRapprocher(lignes, factures) {
   return lignes;
 }
 
-async function encImporter(file) {
-  const st = $("enc-status");
-  st.textContent = "Lecture du relevé…";
-  try {
-    const estXml = /\.xml$/i.test(file.name) || /xml/.test(file.type || "");
-    let lignes, format;
-    if (estXml) { lignes = encLireCamt(await file.text()); format = "camt053"; }
-    else { lignes = await encLirePdf(new Uint8Array(await file.arrayBuffer())); format = "pdf"; }
-    if (!lignes.length) throw new Error("Aucun versement trouvé dans ce fichier.");
+// Un fichier → ses versements. Le format se devine sur l'extension.
+async function encLireFichier(file) {
+  const estXml = /\.xml$/i.test(file.name) || /xml/.test(file.type || "");
+  if (estXml) return { lignes: encLireCamt(await file.text()), format: "camt053" };
+  return { lignes: await encLirePdf(new Uint8Array(await file.arrayBuffer())), format: "pdf" };
+}
 
+// Import d'un ou de plusieurs relevés d'un coup.
+//
+// PostFinance propose le camt.053 au jour ou au mois. Au jour, une année fait
+// 260 fichiers : les prendre un par un n'était pas tenable. On les lit donc en
+// lot, et le dédoublonnage par empreinte fait le reste — on peut sélectionner
+// large, retélécharger un mois déjà importé, mélanger les périodes : rien ne
+// sera compté deux fois.
+//
+// Deux dédoublonnages, pas un : les empreintes déjà en base, et celles vues
+// plus tôt dans le même lot (deux fichiers qui se recouvrent, ou le même
+// fichier sélectionné deux fois).
+async function encImporter(files) {
+  const liste = [...(files?.length ? files : [files])].filter(Boolean)
+    .sort((a, b) => a.name.localeCompare(b.name));  // les noms portent la date
+  if (!liste.length) return;
+  const st = $("enc-status");
+  const multi = liste.length > 1;
+  st.textContent = multi ? `Lecture de ${liste.length} fichiers…` : "Lecture du relevé…";
+  try {
+    // Les factures une seule fois pour tout le lot : les relire à chaque
+    // fichier, c'est 260 requêtes pour une réponse identique.
     // On rapproche sur TOUTES les factures émises, pas seulement la saison en
     // cours : un paiement peut arriver en retard sur une facture ancienne.
     const { data: fact, error: e1 } = await sb.from("out_invoices")
       .select("id,number,reference,amount,status,debtor_name,person_id,filiere");
     if (e1) throw new Error(e1.message);
-    encRapprocher(lignes, fact || []);
 
-    // Doublons : on ne réimporte pas un versement déjà connu.
-    const empreintes = lignes.map(encEmpreinte);
-    const { data: deja } = await sb.from("bank_entries").select("fingerprint").in("fingerprint", empreintes);
-    const connues = new Set((deja || []).map((r) => r.fingerprint));
-    const neuves = lignes.filter((l) => !connues.has(encEmpreinte(l)));
+    const vues = new Set();          // empreintes déjà rencontrées dans ce lot
+    const neuves = [];               // versements à insérer
+    const formats = new Set();
+    const illisibles = [];           // fichiers refusés, nommés dans le bilan
+    let nLues = 0, nConnues = 0;
+
+    for (let i = 0; i < liste.length; i++) {
+      const file = liste[i];
+      if (multi) st.textContent = `Lecture ${i + 1} / ${liste.length} — ${file.name}`;
+      let lignes, format;
+      try {
+        ({ lignes, format } = await encLireFichier(file));
+      } catch (e) {
+        // Un fichier abîmé ne doit pas faire perdre les 260 autres.
+        illisibles.push(`${file.name} — ${e?.message || e}`);
+        continue;
+      }
+      if (!lignes.length) { illisibles.push(`${file.name} — aucun versement`); continue; }
+      formats.add(format);
+      nLues += lignes.length;
+
+      // Doublons internes au lot : pas besoin d'interroger la base.
+      const candidates = [];
+      for (const l of lignes) {
+        const emp = encEmpreinte(l);
+        if (vues.has(emp)) { nConnues++; continue; }
+        vues.add(emp);
+        candidates.push(l);
+      }
+      if (!candidates.length) continue;
+
+      // Doublons déjà en base.
+      const { data: deja } = await sb.from("bank_entries")
+        .select("fingerprint").in("fingerprint", candidates.map(encEmpreinte));
+      const connues = new Set((deja || []).map((r) => r.fingerprint));
+      for (const l of candidates) {
+        if (connues.has(encEmpreinte(l))) { nConnues++; continue; }
+        neuves.push(l);
+      }
+    }
+
     if (!neuves.length) {
       st.textContent = "";
-      uiAlert(`Tous les versements de ce fichier (${lignes.length}) sont déjà importés. Rien n'a été ajouté.`);
+      uiAlert(nLues
+        ? `Tous les versements lus (${nLues}) sont déjà importés. Rien n'a été ajouté.`
+        : "Aucun versement trouvé dans ces fichiers."
+        + (illisibles.length ? `\n\nNon lus :\n• ${illisibles.join("\n• ")}` : ""));
       return;
     }
 
+    st.textContent = `Rapprochement de ${neuves.length} versement(s)…`;
+    encRapprocher(neuves, fact || []);
+
+    // Un seul relevé pour tout le lot : 260 lignes d'historique pour un même
+    // import ne se relisent pas. Les dates et les empreintes gardent la trace.
     const dates = neuves.map((l) => l.value_date).filter(Boolean).sort();
+    const format = formats.size === 1 ? [...formats][0] : "camt053";
+    const nom = multi
+      ? `${liste.length} fichiers : ${liste[0].name} … ${liste[liste.length - 1].name}`
+      : liste[0].name;
     const { data: stmt, error: e2 } = await sb.from("bank_statements").insert({
-      source: "postfinance", format, filename: file.name,
+      source: "postfinance", format, filename: nom.slice(0, 300),
       period_from: dates[0] || null, period_to: dates[dates.length - 1] || null,
       n_entries: neuves.length,
       total_credit: neuves.reduce((a, l) => a + l.amount, 0),
@@ -9994,20 +10106,27 @@ async function encImporter(file) {
     }).select("id").single();
     if (e2) throw new Error(e2.message);
 
-    const { error: e3 } = await sb.from("bank_entries").insert(neuves.map((l) => ({
+    // Par paquets : une seule requête de 900 lignes passe mal.
+    const rows = neuves.map((l) => ({
       statement_id: stmt.id, value_date: l.value_date, amount: l.amount, currency: l.currency,
       reference: l.reference || null, debtor_name: l.debtor_name || null,
       communication: l.communication || null, raw: l.raw || null,
       fingerprint: encEmpreinte(l), invoice_id: l.invoice_id || null, match_kind: l.match_kind || null,
-    })));
-    if (e3) throw new Error(e3.message);
+    }));
+    for (let i = 0; i < rows.length; i += 200) {
+      st.textContent = `Enregistrement ${Math.min(i + 200, rows.length)} / ${rows.length}…`;
+      const { error: e3 } = await sb.from("bank_entries").insert(rows.slice(i, i + 200));
+      if (e3) throw new Error(e3.message);
+    }
 
     st.textContent = "";
     const srs = neuves.filter((l) => l.match_kind === "reference").length;
-    uiAlert(`${neuves.length} versement(s) importé(s)${connues.size ? ` · ${connues.size} déjà connu(s), ignoré(s)` : ""}.\n\n`
+    uiAlert(`${neuves.length} versement(s) importé(s)${nConnues ? ` · ${nConnues} déjà connu(s), ignoré(s)` : ""}`
+      + `${multi ? ` · ${liste.length} fichiers lus` : ""}.\n\n`
       + `${srs} rapproché(s) par la référence QR — à valider d'un clic.\n`
       + `${neuves.length - srs} à vérifier à la main.`
-      + (format === "pdf" ? "\n\nLe PDF ne porte pas toujours la référence : le camt.053 de l'e-banking donne un rapprochement exact." : ""));
+      + (formats.has("pdf") ? "\n\nLe PDF ne porte pas toujours la référence : le camt.053 de l'e-banking donne un rapprochement exact." : "")
+      + (illisibles.length ? `\n\nNon lus (${illisibles.length}) :\n• ${illisibles.slice(0, 8).join("\n• ")}${illisibles.length > 8 ? "\n• …" : ""}` : ""));
     await loadEncaissements();
   } catch (e) {
     st.textContent = "";
@@ -10242,8 +10361,8 @@ async function impRelancer(ids) {
 function initEncaissements() {
   if (encInit) return; encInit = true;
   $("enc-file").addEventListener("change", (ev) => {
-    const f = ev.target.files?.[0]; ev.target.value = "";
-    if (f) encImporter(f);
+    const fs = [...(ev.target.files || [])]; ev.target.value = "";
+    if (fs.length) encImporter(fs);
   });
   $("enc-valider-tout").addEventListener("click", async () => {
     const surs = encList.filter((e) => e.status === "a_valider" && e.match_kind === "reference");

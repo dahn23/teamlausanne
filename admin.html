@@ -1697,12 +1697,12 @@
           <!-- ---- Encaissements : import du relevé bancaire et rapprochement ---- -->
           <div id="fac-sub-encaiss" class="fac-sub hidden">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-              <label class="btnlike" style="cursor:pointer">📥 Importer un relevé
-                <input id="enc-file" type="file" accept="application/pdf,.xml,text/xml,application/xml" hidden /></label>
+              <label class="btnlike" style="cursor:pointer">📥 Importer des relevés
+                <input id="enc-file" type="file" multiple accept="application/pdf,.xml,text/xml,application/xml" hidden /></label>
               <button id="enc-valider-tout" type="button" class="ghost" title="Valide tous les versements rapprochés par la référence QR">✓ Valider les rapprochements sûrs</button>
               <span id="enc-status" class="muted" style="font-size:.86rem"></span>
             </div>
-            <p class="muted" style="margin-top:0;font-size:.88rem">Dépose le relevé PostFinance — <b>PDF</b> ou, bien mieux, le fichier <b>camt.053 (XML)</b> proposé par l'e-banking : il contient la référence QR de chaque versement, donc le rapprochement est exact. Rien n'est encaissé à l'import : chaque ligne se valide, et c'est la validation qui marque la facture payée.</p>
+            <p class="muted" style="margin-top:0;font-size:.88rem">Dépose les relevés PostFinance — <b>PDF</b> ou, bien mieux, les fichiers <b>camt.053 (XML)</b> proposés par l'e-banking : ils contiennent la référence QR de chaque versement, donc le rapprochement est exact. <b>Plusieurs fichiers à la fois</b> : les relevés journaliers se sélectionnent en bloc, et un versement déjà importé est reconnu et ignoré — on peut donc prendre large sans rien compter deux fois. Rien n'est encaissé à l'import : chaque ligne se valide, et c'est la validation qui marque la facture payée.</p>
             <div id="enc-recap" class="enc-recap"></div>
             <div class="table-wrap">
               <table class="crm-table fac-table"><thead><tr>
