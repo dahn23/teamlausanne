@@ -7739,16 +7739,107 @@ async function loadHeures() {
 //
 // On ne demande qu'une fois le mois arrêté : demander sur des heures qui
 // bougent encore, c'est annoncer un montant qu'on devra corriger.
-let sfDemandes = [];
+let sfDemandes = [], sfFactures = [], sfPrises = new Set();
 
 async function loadSurFacture() {
-  if (!canSalaries()) { sfDemandes = []; return; }
-  const { data } = await sb.from("coach_invoice_requests").select("*").eq("ym", heuresYm);
-  sfDemandes = data || [];
+  if (!canSalaries()) { sfDemandes = []; sfFactures = []; sfPrises = new Set(); return; }
+  // La facture liée porte l'état du paiement : on la lit avec la demande
+  // plutôt que de recopier son statut ici (deux copies finissent par diverger).
+  const [{ data: dem }, { data: fac }, { data: liees }] = await Promise.all([
+    sb.from("coach_invoice_requests")
+      .select("*, invoices(id,status,amount,paid_at,filename,creditor_name)").eq("ym", heuresYm),
+    // Candidates au rattachement : l'expéditeur du mail nous dit de qui elle vient.
+    sb.from("invoices").select("id,status,amount,creditor_name,paid_at,filename,created_at,mail_messages(from_address)")
+      .order("created_at", { ascending: false }).limit(200),
+    // Une facture déjà rattachée à un mois ne doit pas être proposée pour un autre.
+    sb.from("coach_invoice_requests").select("invoice_id").not("invoice_id", "is", null),
+  ]);
+  sfDemandes = dem || [];
+  sfFactures = fac || [];
+  sfPrises = new Set((liees || []).map((r) => r.invoice_id));
 }
 const sfGens = () => [...(heuresData.coaches || []), ...(heuresData.profs || [])].filter((x) => x.by_invoice);
 const sfMontant = (x) => (x.rate != null ? Math.round(Number(x.hours) * Number(x.rate) * 100) / 100 : null);
 const sfDe = (pid) => sfDemandes.find((d) => d.person_id === pid);
+
+// Payé : soit on l'a noté ici, soit la facture liée est passée « payee ».
+// Les deux sont posés ensemble quand une facture est liée, mais un paiement
+// peut aussi se noter sans facture captée (reçue sur papier, en main propre).
+const sfEstPaye = (d) => !!(d?.paid_at || d?.invoices?.status === "payee");
+
+// La facture de ce coach qui n'est rattachée à aucun mois, s'il y en a une.
+// On compare sur l'adresse de l'expéditeur : c'est ce qui l'identifie.
+function sfCandidate(x) {
+  const mail = String(x.email || "").trim().toLowerCase();
+  if (!mail) return null;
+  return sfFactures.find((f) => !sfPrises.has(f.id)
+    && String(f.mail_messages?.from_address || "").trim().toLowerCase() === mail) || null;
+}
+
+// Rattacher une facture reçue à un coach et à un mois. On profite du geste
+// pour renseigner le créancier et le montant si la facture est arrivée nue —
+// c'est le cas de toutes celles que le scan des mails dépose.
+async function sfLier(pid, invId) {
+  const x = sfGens().find((g) => g.person_id === pid);
+  const f = sfFactures.find((i) => i.id === invId);
+  if (!x || !f) return;
+  const mt = sfMontant(x);
+  if (!(await uiConfirm(`Rattacher « ${f.filename || "facture"} » à ${x.name} pour ${heuresYm} ?\n\n`
+    + `Montant attendu d'après ses heures : ${mt != null ? oiChf(mt) : "inconnu"}.`
+    + (f.amount != null ? `\nMontant lu sur la facture : ${oiChf(f.amount)}.` : "")))) return;
+  const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
+  const patch = {};
+  if (!f.creditor_name) patch.creditor_name = x.name;
+  if (f.amount == null && mt != null) patch.amount = mt;
+  if (Object.keys(patch).length) await sb.from("invoices").update(patch).eq("id", invId);
+  const { error } = await sb.from("coach_invoice_requests").upsert({
+    person_id: pid, ym: heuresYm, hours: x.hours, rate: x.rate, amount: mt,
+    invoice_id: invId, received_at: f.created_at || new Date().toISOString(),
+    sent_by: sfDe(pid)?.sent_by ?? uid, updated_at: new Date().toISOString(),
+  }, { onConflict: "person_id,ym" });
+  if (error) { uiAlert("Rattachement impossible : " + error.message); return; }
+  await loadSurFacture(); renderSurFacture();
+}
+
+// Marquer payé. Si une facture est liée, elle passe « payee » en même temps :
+// c'est elle qui alimente « Reçues — à payer », et la laisser en attente
+// afficherait une facture à payer déjà payée.
+async function sfPayer(pid) {
+  const x = sfGens().find((g) => g.person_id === pid); if (!x) return;
+  const d = sfDe(pid), mt = sfMontant(x);
+  const f = d?.invoices;
+  if (!(await uiConfirm(`Noter ${x.name} comme payé pour ${heuresYm} ?\n\n`
+    + `${f?.amount != null ? oiChf(f.amount) + " (montant de sa facture)" : mt != null ? oiChf(mt) + " (d'après ses heures)" : "montant inconnu"}.`
+    + (f ? `\n\nSa facture « ${f.filename || ""} » passera « payée » dans Reçues — à payer.`
+         : `\n\nAucune facture rattachée : le paiement est noté ici seulement.`)))) return;
+  const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
+  const now = new Date().toISOString();
+  if (f?.id) {
+    const { error } = await sb.from("invoices").update({ status: "payee", paid_at: now }).eq("id", f.id);
+    if (error) { uiAlert("Impossible de passer sa facture à payée : " + error.message); return; }
+  }
+  const { error } = await sb.from("coach_invoice_requests").upsert({
+    person_id: pid, ym: heuresYm, hours: x.hours, rate: x.rate, amount: d?.amount ?? mt,
+    invoice_id: d?.invoice_id ?? null, received_at: d?.received_at ?? null,
+    paid_at: now, paid_by: uid, updated_at: now,
+  }, { onConflict: "person_id,ym" });
+  if (error) { uiAlert("Impossible de noter le paiement : " + error.message); return; }
+  await loadSurFacture(); renderSurFacture();
+}
+
+// Se tromper de ligne arrive ; on doit pouvoir revenir en arrière.
+async function sfDepayer(pid) {
+  const x = sfGens().find((g) => g.person_id === pid); if (!x) return;
+  const d = sfDe(pid); if (!d) return;
+  if (!(await uiConfirm(`Annuler le paiement de ${x.name} pour ${heuresYm} ?`
+    + (d.invoices ? `\n\nSa facture repassera « à valider » dans Reçues — à payer.` : "")))) return;
+  if (d.invoices?.id) await sb.from("invoices").update({ status: "a_valider", paid_at: null }).eq("id", d.invoices.id);
+  const { error } = await sb.from("coach_invoice_requests")
+    .update({ paid_at: null, paid_by: null, updated_at: new Date().toISOString() })
+    .eq("person_id", pid).eq("ym", heuresYm);
+  if (error) { uiAlert("Annulation impossible : " + error.message); return; }
+  await loadSurFacture(); renderSurFacture();
+}
 
 function renderSurFacture() {
   const host = $("heures-surfacture"); if (!host) return;
@@ -7758,22 +7849,54 @@ function renderSurFacture() {
 
   const lignes = gens.map((x) => {
     const d = sfDe(x.person_id), mt = sfMontant(x);
-    const etat = d?.received_at
-      ? `<span class="dchip dc-ok">facture reçue</span>`
-      : d?.sent_at ? `<span class="dchip dc-warn">demandée le ${dFD(d.sent_at)}</span>`
+    const f = d?.invoices, paye = sfEstPaye(d), cand = f ? null : sfCandidate(x);
+
+    // L'état suit le cycle réel de la facture : demandée → reçue → validée →
+    // en paiement → payée. Sans facture liée, on s'arrête à ce qu'on sait.
+    const etat = paye
+      ? `<span class="dchip dc-ok">payée${d?.paid_at ? " le " + dFD(d.paid_at) : f?.paid_at ? " le " + dFD(f.paid_at) : ""}</span>`
+      : f?.status === "en_paiement" ? `<span class="dchip dc-warn">en paiement</span>`
+      : f?.status === "validee" ? `<span class="dchip dc-warn">validée, à payer</span>`
+      : f ? `<span class="dchip dc-warn">facture reçue${d?.received_at ? " le " + dFD(d.received_at) : ""}</span>`
+      : cand ? `<span class="dchip dc-warn">facture arrivée, à rattacher</span>`
+      : d?.sent_at ? `<span class="dchip dc-mut">demandée le ${dFD(d.sent_at)}</span>`
       : `<span class="dchip dc-mut">à demander</span>`;
-    return `<tr>
+
+    // Un écart entre le montant attendu et celui de la facture se voit tout de
+    // suite : c'est le seul moment où on peut encore le discuter.
+    const ecart = f?.amount != null && mt != null && Math.abs(Number(f.amount) - mt) >= 0.01
+      ? `<br><span class="he-ecart" title="Montant facturé différent de ses heures">facturé ${oiChf(f.amount)}</span>` : "";
+
+    const actes = [];
+    if (!paye && !f && !cand && x.email && mt != null)
+      actes.push(`<button type="button" class="ghost sf-ask" data-pid="${x.person_id}">${d?.sent_at ? "↻ Relancer" : "✉ Demander"}</button>`);
+    if (cand)
+      actes.push(`<button type="button" class="ghost sf-link" data-pid="${x.person_id}" data-inv="${cand.id}"
+        title="${esc(cand.filename || "")}">🔗 Rattacher sa facture</button>`);
+    if (!paye) actes.push(`<button type="button" class="sf-pay" data-pid="${x.person_id}">✓ Payé</button>`);
+    else actes.push(`<button type="button" class="ghost sf-unpay" data-pid="${x.person_id}">↩︎ Annuler</button>`);
+
+    return `<tr${paye ? ' class="sf-done"' : ""}>
       <td><b>${esc(x.name)}</b><br><span class="muted" style="font-size:.78rem">${esc(x.email || "pas d'e-mail")}</span></td>
       <td>${x.hours} h</td>
       <td>${x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>'}</td>
-      <td><b>${mt != null ? oiChf(mt) : "—"}</b></td>
-      <td>${etat}</td>
-      <td class="he-acts">${x.email && mt != null && !d?.received_at
-        ? `<button type="button" class="ghost sf-ask" data-pid="${x.person_id}">${d?.sent_at ? "↻ Relancer" : "✉ Demander"}</button>` : ""}</td>
+      <td><b>${mt != null ? oiChf(mt) : "—"}</b>${ecart}</td>
+      <td>${etat}${f?.filename ? `<br><span class="muted" style="font-size:.76rem">${esc(f.filename)}</span>` : ""}</td>
+      <td class="he-acts">${actes.join(" ")}</td>
     </tr>`;
   }).join("");
 
-  const aDemander = gens.filter((x) => x.email && sfMontant(x) != null && !sfDe(x.person_id)?.sent_at);
+  const aDemander = gens.filter((x) => x.email && sfMontant(x) != null
+    && !sfDe(x.person_id)?.sent_at && !sfDe(x.person_id)?.invoices && !sfCandidate(x));
+
+  // Ce qui reste à payer : la seule question qu'on se pose devant cet encadré.
+  const impayes = gens.filter((x) => !sfEstPaye(sfDe(x.person_id)));
+  const reste = impayes.length;
+  const resteMt = impayes.reduce((a, x) => {
+    const f = sfDe(x.person_id)?.invoices;
+    return a + Number(f?.amount ?? sfMontant(x) ?? 0);
+  }, 0);
+
   host.innerHTML = `<div class="sf-box">
     <div class="sf-h"><b>Sur facture</b> — ${gens.length} indépendant(s), hors décompte fiduciaire.
       <span class="muted">Ils nous facturent ; on leur écrit le montant une fois le mois arrêté.</span></div>
@@ -7783,15 +7906,18 @@ function renderSurFacture() {
     <div class="sf-a">
       <button type="button" id="sf-ask-all"${clos && aDemander.length ? "" : " disabled"}>
         ✉ Demander les factures${aDemander.length ? ` (${aDemander.length})` : ""}</button>
-      <span class="muted" style="font-size:.82rem">${clos
-        ? "Leur facture arrivera dans « Reçues — à payer » dès qu'ils répondront."
-        : "Arrête d'abord le mois : sur des heures qui bougent encore, le montant annoncé devrait être corrigé."}</span>
+      <span class="muted" style="font-size:.82rem">${reste
+        ? `${reste} à payer pour ${oiChf(resteMt)}.`
+        : "Tout le monde est payé pour ce mois."}${clos ? "" : " Le mois n'est pas encore arrêté."}</span>
     </div></div>`;
 
   host.querySelectorAll(".sf-ask").forEach((b) => b.addEventListener("click", () => {
     if (!clos) { uiAlert("Arrête d'abord le mois : le montant annoncé doit être définitif."); return; }
     sfDemander([b.dataset.pid]);
   }));
+  host.querySelectorAll(".sf-link").forEach((b) => b.addEventListener("click", () => sfLier(b.dataset.pid, b.dataset.inv)));
+  host.querySelectorAll(".sf-pay").forEach((b) => b.addEventListener("click", () => sfPayer(b.dataset.pid)));
+  host.querySelectorAll(".sf-unpay").forEach((b) => b.addEventListener("click", () => sfDepayer(b.dataset.pid)));
   $("sf-ask-all").addEventListener("click", () => sfDemander(aDemander.map((x) => x.person_id)));
 }
 
@@ -9707,7 +9833,10 @@ async function renderMySalaires() {
 // ===================================================================
 //  Factures (à payer) — upload PDF, validation, export fiduciaire
 // ===================================================================
-let facList = [], facAccts = [], facFilter = "", facInit = false, facEditId = null;
+// Le filtre par défaut est « à traiter », pas « toutes » : cet onglet sert à
+// savoir ce qu'il reste à payer. Une facture payée n'a plus rien à y faire —
+// elle reste consultable sous « Payées », mais elle sort de la pile de travail.
+let facList = [], facAccts = [], facFilter = "ouvert", facInit = false, facEditId = null;
 const FAC_ST = { a_valider: ["À valider", "fac-todo"], validee: ["Validée", "fac-done"], en_paiement: ["Paiement généré", "fac-pay"], payee: ["Payée", "fac-paid"] };
 const FAC_ORDER = ["a_valider", "validee", "en_paiement", "payee"];
 function initFactures() {
@@ -11227,16 +11356,25 @@ async function facAutoScanQR() {
   facScanning = false;
   if (changed && !$("view-factures").classList.contains("hidden")) loadFactures();  // recharge → traite le lot suivant
 }
+// « ouvert » = tout ce qui n'est pas payé. Ce n'est pas un statut en base,
+// juste la pile de travail : à valider + validées + paiement généré.
+const facOuvert = (f) => f.status !== "payee";
+
 function renderFacFilters() {
-  const counts = { "": facList.length };
+  const counts = { "": facList.length, ouvert: facList.filter(facOuvert).length };
   for (const f of facList) counts[f.status] = (counts[f.status] || 0) + 1;
   const chip = (v, l) => `<button type="button" class="chip filt${facFilter === v ? " sel" : ""}" data-st="${v}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
-  $("fac-filters").innerHTML = chip("", "Toutes") + FAC_ORDER.map((s) => chip(s, FAC_ST[s][0])).join("");
+  $("fac-filters").innerHTML = chip("ouvert", "À traiter")
+    + FAC_ORDER.map((s) => chip(s, FAC_ST[s][0])).join("") + chip("", "Toutes");
   $("fac-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { facFilter = b.dataset.st; renderFacFilters(); renderFactures(); }));
 }
 function renderFactures() {
-  const rows = facList.filter((f) => !facFilter || f.status === facFilter);
+  const rows = facList.filter((f) => !facFilter || (facFilter === "ouvert" ? facOuvert(f) : f.status === facFilter));
   $("fac-empty").hidden = rows.length > 0;
+  // Pile vide : le dire franchement, c'est une bonne nouvelle, pas une absence.
+  $("fac-empty").textContent = rows.length ? "" : facFilter === "ouvert"
+    ? (facList.length ? "Rien à payer : tout est réglé." : "Aucune facture reçue.")
+    : "Aucune facture dans ce filtre.";
   $("fac-rows").innerHTML = rows.map((f) => {
     const [lbl, cls] = FAC_ST[f.status] || [f.status, ""];
     const amt = f.amount != null ? Number(f.amount).toFixed(2) + " CHF" : '<span class="muted">?</span>';

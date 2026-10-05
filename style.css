@@ -3883,6 +3883,12 @@ tr.enc-ok td{background:#f4fbf6}
 .sf-h{font-size:.92rem;color:var(--ink);margin-bottom:10px}
 .sf-a{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .dc-mut{background:#eef1f7;color:var(--muted)}
+/* Ligne payée : on la met en retrait sans la cacher — elle reste la preuve. */
+.sf-done{opacity:.62}
+.sf-done td{background:#f6faf2}
+/* Montant facturé qui ne colle pas aux heures : à voir, pas à rater. */
+.he-ecart{display:inline-block;font-size:.76rem;font-weight:700;color:#8a4b00;background:#ffeccc;
+  border-radius:6px;padding:1px 6px;margin-top:3px}
 
 /* ===== Planning tournois (db/106) : frise de saison en double case (semaine + week-end) ===== */
 .pl-k-prepa{background:#e58fb8}.pl-k-entrainement{background:#85b7eb}.pl-k-option{background:#9fe1cb}
