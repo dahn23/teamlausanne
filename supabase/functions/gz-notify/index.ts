@@ -190,8 +190,13 @@ Deno.serve(async (req) => {
       let sent = 0;
       for (const t of (ts || [])) {
         for (const k of (t.is_gamezone ? ["remerciement", "vainqueur"] : ["remerciement"])) {
-          const r = await sendForTournament(supa, tx, t.id, k, origin, surveyId, BATCH, null);
-          sent += r.sent || 0;
+          // Plusieurs lots jusqu'à épuisement (06.10.2026) : un seul lot de 30 laissait les suivants de côté
+          // (GameZone du 04.10 : 32 présents, 30 remerciés, 2 oubliés — le cron ne repasse que la semaine suivante).
+          for (let pass = 0; pass < 10; pass++) {
+            const r = await sendForTournament(supa, tx, t.id, k, origin, surveyId, BATCH, null);
+            sent += r.sent || 0;
+            if (!r.sent || !r.remaining) break;
+          }
         }
       }
       return json({ ok: true, sent });
