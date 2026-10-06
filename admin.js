@@ -55,7 +55,7 @@ const pad2 = (n) => String(n).padStart(2, "0");
 // Rôles qui donnent accès à la console (staff + rôles à onglet dédié).
 // Un responsable de tournoi (rôle « responsable ») n'est pas staff mais a droit
 // à l'onglet GameZone (limité à ses tournois — voir RLS gz_manages).
-const CONSOLE_ROLES = [...STAFF_ROLES, "prof", "coach_mental", "organisateur", "responsable", "affichage"];
+const CONSOLE_ROLES = [...STAFF_ROLES, "prof", "coach_mental", "organisateur", "responsable", "affichage", "gz_lecture"];
 
 // ---- Garde d'accès : connecté + rôle staff ----
 // Accès direct à /admin sans session → on affiche un formulaire de connexion
@@ -331,7 +331,14 @@ function applyTabAccess(roles) {
   // On restaure le dernier onglet vu (si toujours autorisé), sinon le 1er.
   let saved = null; try { saved = localStorage.getItem("tl-view"); } catch (_) {}
   const target = (saved && allowedSet.has(saved)) ? saved : first;
-  if (target) showView(target);
+  // showView ouvre l'onglet ET lance son chargement : si quoi que ce soit y
+  // casse, le menu ne doit pas rester invisible. Sans ce filet, une erreur
+  // dans UN onglet laissait `.side` et `.admin-main` à opacity 0 — console
+  // vide, aucun onglet cliquable, et rien pour comprendre pourquoi.
+  if (target) {
+    try { showView(target); }
+    catch (e) { console.error("Ouverture de l'onglet « " + target + " » impossible :", e); }
+  }
   document.querySelector(".side")?.classList.add("ready");
   document.querySelector(".admin-main")?.classList.add("ready");
 }
@@ -399,8 +406,13 @@ async function init(roles) {
   $("p-photo-file").addEventListener("change", () => uploadPersonPhoto($("p-photo-file")));
   $("search").addEventListener("input", () => { $("search-clear").hidden = !$("search").value; renderRows(); });
   $("search-clear").addEventListener("click", () => { $("search").value = ""; $("search-clear").hidden = true; renderRows(); $("search").focus(); });
+  // Même filet au clic : un onglet qui casse ne doit pas rendre tous les
+  // autres inertes — l'erreur part dans la console, la navigation survit.
   document.querySelectorAll(".side-item[data-view]").forEach((b) =>
-    b.addEventListener("click", () => showView(b.dataset.view)));
+    b.addEventListener("click", () => {
+      try { showView(b.dataset.view); }
+      catch (e) { console.error("Onglet « " + b.dataset.view + " » :", e); }
+    }));
   $("rg-save").addEventListener("click", saveSettings);
   $("gz-mov-add").addEventListener("click", addMovement);
   initNews();
