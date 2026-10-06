@@ -7719,11 +7719,12 @@ async function loadHeures() {
   const isManager = hasAny(myAppRoles, ["superadmin", "admin", "secretaire", "head_coach"]);
   applyHeuresSub();
   if (isManager) {
-    const [{ data, error }, pa] = await Promise.all([sb.rpc("staff_hours_month", { p_ym: heuresYm }), sb.rpc("prive_adultes_month", { p_ym: heuresYm }), loadSalSlips(), loadPaieMois(), loadSurFacture()]);
+    const [{ data, error }, pa] = await Promise.all([sb.rpc("staff_hours_month", { p_ym: heuresYm }), sb.rpc("prive_adultes_month", { p_ym: heuresYm }), loadSalSlips(), loadPaieMois(), loadSurFacture(), loadPaiements()]);
     heuresData = error ? { coaches: [], profs: [] } : (data || { coaches: [], profs: [] });
     heuresPa = pa.error ? [] : (pa.data || []);
     renderHeures();
     renderCloture();
+    renderPaiements();
     renderSurFacture();
     renderSalBox();
     renderPriveAdultes();
@@ -7762,10 +7763,9 @@ const sfGens = () => [...(heuresData.coaches || []), ...(heuresData.profs || [])
 const sfMontant = (x) => (x.rate != null ? Math.round(Number(x.hours) * Number(x.rate) * 100) / 100 : null);
 const sfDe = (pid) => sfDemandes.find((d) => d.person_id === pid);
 
-// Payé : soit on l'a noté ici, soit la facture liée est passée « payee ».
-// Les deux sont posés ensemble quand une facture est liée, mais un paiement
-// peut aussi se noter sans facture captée (reçue sur papier, en main propre).
-const sfEstPaye = (d) => !!(d?.paid_at || d?.invoices?.status === "payee");
+// Payé : une seule définition pour toute la page — payEstPaye (db/134), qui
+// lit payroll_payments ou la facture liée encaissée. Un coach coché depuis le
+// tableau des heures doit apparaître payé ici aussi.
 
 // La facture de ce coach qui n'est rattachée à aucun mois, s'il y en a une.
 // On compare sur l'adresse de l'expéditeur : c'est ce qui l'identifie.
@@ -7818,27 +7818,30 @@ async function sfPayer(pid) {
     const { error } = await sb.from("invoices").update({ status: "payee", paid_at: now }).eq("id", f.id);
     if (error) { uiAlert("Impossible de passer sa facture à payée : " + error.message); return; }
   }
-  const { error } = await sb.from("coach_invoice_requests").upsert({
-    person_id: pid, ym: heuresYm, hours: x.hours, rate: x.rate, amount: d?.amount ?? mt,
-    invoice_id: d?.invoice_id ?? null, received_at: d?.received_at ?? null,
-    paid_at: now, paid_by: uid, updated_at: now,
+  // Le paiement va dans payroll_payments : même table que pour les salariés,
+  // pour que le bandeau « X/Y payés » compte tout le monde (db/134).
+  const { error } = await sb.from("payroll_payments").upsert({
+    person_id: pid, ym: heuresYm, paid_at: now, paid_by: uid,
+    amount: f?.amount ?? mt, updated_at: now,
   }, { onConflict: "person_id,ym" });
   if (error) { uiAlert("Impossible de noter le paiement : " + error.message); return; }
-  await loadSurFacture(); renderSurFacture();
+  await Promise.all([loadSurFacture(), loadPaiements()]);
+  renderSurFacture(); renderHeures(); renderPaiements();
 }
 
 // Se tromper de ligne arrive ; on doit pouvoir revenir en arrière.
 async function sfDepayer(pid) {
   const x = sfGens().find((g) => g.person_id === pid); if (!x) return;
-  const d = sfDe(pid); if (!d) return;
+  // Pas de demande enregistrée n'empêche rien : on peut avoir payé quelqu'un
+  // dont la facture n'est jamais passée par la console.
+  const d = sfDe(pid);
   if (!(await uiConfirm(`Annuler le paiement de ${x.name} pour ${heuresYm} ?`
-    + (d.invoices ? `\n\nSa facture repassera « à valider » dans Reçues — à payer.` : "")))) return;
-  if (d.invoices?.id) await sb.from("invoices").update({ status: "a_valider", paid_at: null }).eq("id", d.invoices.id);
-  const { error } = await sb.from("coach_invoice_requests")
-    .update({ paid_at: null, paid_by: null, updated_at: new Date().toISOString() })
-    .eq("person_id", pid).eq("ym", heuresYm);
+    + (d?.invoices ? `\n\nSa facture repassera « à valider » dans Reçues — à payer.` : "")))) return;
+  if (d?.invoices?.id) await sb.from("invoices").update({ status: "a_valider", paid_at: null }).eq("id", d.invoices.id);
+  const { error } = await sb.from("payroll_payments").delete().eq("person_id", pid).eq("ym", heuresYm);
   if (error) { uiAlert("Annulation impossible : " + error.message); return; }
-  await loadSurFacture(); renderSurFacture();
+  await Promise.all([loadSurFacture(), loadPaiements()]);
+  renderSurFacture(); renderHeures(); renderPaiements();
 }
 
 function renderSurFacture() {
@@ -7849,12 +7852,15 @@ function renderSurFacture() {
 
   const lignes = gens.map((x) => {
     const d = sfDe(x.person_id), mt = sfMontant(x);
-    const f = d?.invoices, paye = sfEstPaye(d), cand = f ? null : sfCandidate(x);
+    const f = d?.invoices, paye = payEstPaye(x.person_id), cand = f ? null : sfCandidate(x);
 
     // L'état suit le cycle réel de la facture : demandée → reçue → validée →
     // en paiement → payée. Sans facture liée, on s'arrête à ce qu'on sait.
     const etat = paye
-      ? `<span class="dchip dc-ok">payée${d?.paid_at ? " le " + dFD(d.paid_at) : f?.paid_at ? " le " + dFD(f.paid_at) : ""}</span>`
+      ? `<span class="dchip dc-ok">payée${(() => {
+          const q = payDe(x.person_id)?.paid_at || f?.paid_at;
+          return q ? " le " + dFD(q) : "";
+        })()}</span>`
       : f?.status === "en_paiement" ? `<span class="dchip dc-warn">en paiement</span>`
       : f?.status === "validee" ? `<span class="dchip dc-warn">validée, à payer</span>`
       : f ? `<span class="dchip dc-warn">facture reçue${d?.received_at ? " le " + dFD(d.received_at) : ""}</span>`
@@ -7890,7 +7896,7 @@ function renderSurFacture() {
     && !sfDe(x.person_id)?.sent_at && !sfDe(x.person_id)?.invoices && !sfCandidate(x));
 
   // Ce qui reste à payer : la seule question qu'on se pose devant cet encadré.
-  const impayes = gens.filter((x) => !sfEstPaye(sfDe(x.person_id)));
+  const impayes = gens.filter((x) => !payEstPaye(x.person_id));
   const reste = impayes.length;
   const resteMt = impayes.reduce((a, x) => {
     const f = sfDe(x.person_id)?.invoices;
@@ -7962,6 +7968,148 @@ async function sfDemander(pids) {
   await loadSurFacture();
   renderSurFacture();
 }
+// ---- Paiement du mois, personne par personne (db/134) ------------------
+// « Le mois est payé » ne dit pas s'il manque quelqu'un : les virements ne
+// partent pas le même jour, et c'est justement la question qu'on se pose en
+// fin de mois. L'état est donc par personne et par mois, et le bandeau
+// répond d'un coup d'œil : combien reste-t-il à payer, et à qui.
+//
+// Les compensés (pays_in_kind) n'attendent aucun virement : leur travail est
+// déduit de leur propre facture. Ils sont hors décompte, pas en dette.
+let payList = [];
+
+async function loadPaiements() {
+  if (!canSalaries()) { payList = []; return; }
+  const { data } = await sb.from("payroll_payments").select("*").eq("ym", heuresYm);
+  payList = data || [];
+}
+const payDe = (pid) => payList.find((r) => r.person_id === pid);
+const payDus = () => [...(heuresData.coaches || []), ...(heuresData.profs || [])].filter((x) => !x.in_kind);
+
+// Payé : la ligne existe, ou — pour un indépendant — sa facture est encaissée.
+const payEstPaye = (pid) => !!payDe(pid) || (heByInv(pid) && sfDe(pid)?.invoices?.status === "payee");
+
+// Ce qui reste à verser, ou null quand on ne le sait pas encore : sans le net
+// de la fiduciaire, annoncer un montant serait inventer. Mieux vaut l'avouer.
+function payMontant(x) {
+  if (x.in_kind) return 0;
+  if (x.by_invoice) {
+    const d = sfDe(x.person_id);
+    const m = d?.invoices?.amount ?? d?.amount ?? sfMontant(x);
+    return m != null ? Number(m) : null;
+  }
+  const s = salSlipOf(x.person_id);
+  if (!s || s.net == null) return null;
+  return salToPay(s);   // ordre permanent déduit : la banque a déjà fait sa part
+}
+
+// Rien à virer ce mois-ci : soit l'ordre permanent couvre tout le net, soit le
+// net est nul. Demander une coche chaque mois pour un virement que la banque
+// fait seule, c'est fabriquer du travail — et noyer ceux qu'il faut vraiment
+// payer. On les compte réglés, en le disant.
+const payRien = (x) => !x.in_kind && !x.by_invoice && payMontant(x) === 0;
+
+function payCell(x) {
+  if (x.in_kind) return `<td class="sal-col"><span class="muted" style="font-size:.78rem" title="Compensé : aucun virement attendu">—</span></td>`;
+  if (payRien(x) && !payDe(x.person_id)) {
+    const so = heSO(x.person_id);
+    return `<td class="sal-col"><span class="pay-auto" title="${so != null
+      ? "Ordre permanent de " + oiChf(so) + " : la banque a déjà tout versé, rien à virer."
+      : "Net nul ce mois-ci : rien à virer."}">${so != null ? "✓ ordre perm." : "✓ rien à virer"}</span></td>`;
+  }
+  const p = payDe(x.person_id), paye = payEstPaye(x.person_id), mt = payMontant(x);
+  if (paye) {
+    const quand = p?.paid_at ? " le " + dFD(p.paid_at) : "";
+    const combien = p?.amount != null ? " · " + oiChf(p.amount) : "";
+    return `<td class="sal-col"><button type="button" class="pay-on pay-tog" data-pid="${x.person_id}"
+      title="Payé${quand}${combien} — cliquer pour annuler">✓ payé</button></td>`;
+  }
+  return `<td class="sal-col"><button type="button" class="ghost pay-tog" data-pid="${x.person_id}"
+    title="${mt != null ? "Noter " + oiChf(mt) + " comme payé" : "Noter comme payé — montant pas encore connu"}">payer</button></td>`;
+}
+
+async function payToggle(pid) {
+  const x = payDus().find((r) => r.person_id === pid); if (!x) return;
+  // Un indépendant passe par sfPayer / sfDepayer : sa facture doit suivre,
+  // sinon elle resterait « à payer » dans Factures alors qu'elle est réglée.
+  // On teste l'état affiché, pas seulement la ligne : une facture encaissée
+  // vaut payé même sans ligne de paiement.
+  if (x.by_invoice) { await (payEstPaye(pid) ? sfDepayer(pid) : sfPayer(pid)); return; }
+
+  const p = payDe(pid);
+  const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
+  if (p) {
+    if (!(await uiConfirm(`Annuler le paiement de ${x.name} pour ${heuresYm} ?`))) return;
+    const { error } = await sb.from("payroll_payments").delete().eq("person_id", pid).eq("ym", heuresYm);
+    if (error) { uiAlert("Annulation impossible : " + error.message); return; }
+  } else {
+    const mt = payMontant(x), so = heSO(pid);
+    if (!(await uiConfirm(`Noter ${x.name} comme payé pour ${heuresYm} ?\n\n`
+      + (mt != null
+          ? oiChf(mt) + (so != null ? " — complément, l'ordre permanent de " + oiChf(so) + " étant déjà versé par la banque." : " (net).")
+          : "Le net de la fiduciaire n'est pas encore arrivé : le montant ne sera pas enregistré.")))) return;
+    const { error } = await sb.from("payroll_payments").upsert({
+      person_id: pid, ym: heuresYm, paid_at: new Date().toISOString(), paid_by: uid,
+      amount: mt, updated_at: new Date().toISOString(),
+    }, { onConflict: "person_id,ym" });
+    if (error) { uiAlert("Impossible de noter le paiement : " + error.message); return; }
+  }
+  await loadPaiements(); renderHeures(); renderPaiements(); renderSurFacture();
+}
+
+function renderPaiements() {
+  const host = $("heures-paiement"); if (!host) return;
+  if (!canSalaries()) { host.innerHTML = ""; return; }
+  const dus = payDus();
+  if (!dus.length) { host.innerHTML = ""; return; }
+
+  const reste = dus.filter((x) => !payEstPaye(x.person_id) && !payRien(x));
+  const payes = dus.length - reste.length;
+  // Ceux dont on ignore encore le montant : on les compte comme à payer, mais
+  // on le dit — « reste 0.– » sur trois personnes serait un faux apaisement.
+  const inconnus = reste.filter((x) => payMontant(x) == null);
+  const resteMt = reste.reduce((a, x) => a + Number(payMontant(x) ?? 0), 0);
+
+  const tout = reste.filter((x) => payMontant(x) != null && !x.by_invoice);
+  // « Réglé » et pas « payé » : certains le sont par la banque, pas par nous.
+  const autos = dus.filter((x) => payRien(x) && !payDe(x.person_id)).length;
+
+  host.innerHTML = `<div class="paie-bar${reste.length ? "" : " paie-close"}">
+    <div class="paie-t"><b>Paiements de ${esc(heuresYm)}</b> — ${payes}/${dus.length} réglé(s)${autos
+      ? ` <span class="muted">(dont ${autos} par ordre permanent ou sans net à verser)</span>` : ""}${reste.length
+      ? ` · reste ${oiChf(resteMt)} pour ${reste.length} personne(s)`
+      : " · tout le monde est à jour."}</div>
+    ${reste.length ? `<ul class="paie-l"><li>${reste.map((x) => {
+        const mt = payMontant(x);
+        return `${esc(x.name)} <span class="muted">(${mt != null ? oiChf(mt) : "montant inconnu"})</span>`;
+      }).join(", ")}</li>${inconnus.length
+        ? `<li><b>${inconnus.length} sans net de la fiduciaire</b> : on ne sait pas encore combien leur verser.</li>` : ""}</ul>` : ""}
+    ${tout.length ? `<div class="paie-a">
+      <button type="button" id="pay-all" class="ghost">✓ Marquer les ${tout.length} restant(s) comme payés</button>
+      <span class="muted" style="font-size:.82rem">Les indépendants sur facture se cochent sur leur ligne : leur facture doit suivre.</span>
+    </div>` : ""}</div>`;
+
+  if (tout.length) $("pay-all").addEventListener("click", () => payTous(tout.map((x) => x.person_id)));
+}
+
+// Marquer tout le monde d'un coup : fin de mois, un seul lot de virements.
+async function payTous(pids) {
+  const gens = payDus().filter((x) => pids.includes(x.person_id));
+  if (!gens.length) return;
+  const tot = gens.reduce((a, x) => a + Number(payMontant(x) ?? 0), 0);
+  if (!(await uiConfirm(`Noter ${gens.length} personne(s) comme payées pour ${heuresYm} ?\n\n`
+    + gens.map((x) => `· ${x.name} — ${oiChf(payMontant(x))}`).join("\n")
+    + `\n\nTotal ${oiChf(tot)}.`))) return;
+  const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
+  const now = new Date().toISOString();
+  const { error } = await sb.from("payroll_payments").upsert(gens.map((x) => ({
+    person_id: x.person_id, ym: heuresYm, paid_at: now, paid_by: uid,
+    amount: payMontant(x), updated_at: now,
+  })), { onConflict: "person_id,ym" });
+  if (error) { uiAlert("Impossible de noter les paiements : " + error.message); return; }
+  await loadPaiements(); renderHeures(); renderPaiements(); renderSurFacture();
+}
+
 // ---- Clôture du mois de paie -------------------------------------------
 // Un mois arrêté est la pièce qui tient tout le circuit : le décompte part de
 // l'instantané, le retour de la fiduciaire s'y compare, et le paiement s'y
@@ -8118,6 +8266,7 @@ function renderHeures() {
       <td>${allVal ? '<span class="he-val">✓ ' + x.courses + "/" + x.total_courses + "</span>" : '<span class="muted">' + x.courses + "/" + x.total_courses + "</span>"}</td>
       ${salExtraCell(x.person_id, x.extra)}
       ${salNetCell(x.person_id)}
+      ${payCell(x)}
       <td class="he-acts"><button class="ghost he-detail" data-id="${x.person_id}" data-name="${esc(x.name)}">Détail</button></td></tr>`;
   }).join("");
   $("heures-profs").innerHTML = p.map((x) => {
@@ -8134,9 +8283,11 @@ function renderHeures() {
       <td>${allVal ? '<span class="he-val">✓ ' + x.days + "/" + x.total_days + "</span>" : '<span class="muted">' + x.days + "/" + x.total_days + "</span>"}</td>
       ${salExtraCell(x.person_id, x.extra)}
       ${salNetCell(x.person_id)}
+      ${payCell(x)}
       <td></td></tr>`;
   }).join("");
   document.querySelectorAll("#heures-coaches .he-detail").forEach((b) => b.addEventListener("click", () => coachDetail(b.dataset.id, b.dataset.name)));
+  document.querySelectorAll("#view-heures .pay-tog").forEach((b) => b.addEventListener("click", () => payToggle(b.dataset.pid)));
   document.querySelectorAll("#view-heures .sal-col").forEach((el) => el.classList.toggle("hidden", !canSalaries()));
   bindSalCells();
 }

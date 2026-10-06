@@ -3889,6 +3889,15 @@ tr.enc-ok td{background:#f4fbf6}
 /* Montant facturé qui ne colle pas aux heures : à voir, pas à rater. */
 .he-ecart{display:inline-block;font-size:.76rem;font-weight:700;color:#8a4b00;background:#ffeccc;
   border-radius:6px;padding:1px 6px;margin-top:3px}
+/* « Payé » : lisible d'un coup d'œil en descendant la colonne, et toujours
+   cliquable — c'est le bouton qui annule. */
+.pay-on{font-size:.78rem;font-weight:800;color:#1c6b3a;background:#d8f3e3;border:1px solid #9bd9b7;
+  border-radius:7px;padding:3px 9px;cursor:pointer;white-space:nowrap}
+.pay-on:hover{background:#c4ecd4}
+/* Réglé sans nous : la banque s'en charge. Même famille de vert, plus discret,
+   et pas un bouton — il n'y a rien à faire. */
+.pay-auto{font-size:.76rem;font-weight:700;color:#4a6b57;background:#eef6f1;border:1px solid #d3e6da;
+  border-radius:7px;padding:3px 8px;white-space:nowrap}
 
 /* ===== Planning tournois (db/106) : frise de saison en double case (semaine + week-end) ===== */
 .pl-k-prepa{background:#e58fb8}.pl-k-entrainement{background:#85b7eb}.pl-k-option{background:#9fe1cb}
