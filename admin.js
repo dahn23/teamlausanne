@@ -225,13 +225,20 @@ const DEFAULT_TAB_ACCESS = {
   coach_mental: ["mental", "matchs", "social"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
+  // GameZone en lecture seule (db/135) : tout l'onglet visible, aucune
+  // commande d'écriture. Garde-fou d'interface et non verrou — la RLS des
+  // tables gz_* reste ouverte à is_staff() en écriture.
+  gz_lecture:   ["gamezone"],
 };
 const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["acces", "Accès Mon espace"], ["prospects", "Prospects"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["social", "Réseaux sociaux"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
-const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["prof", "Prof"], ["coach_mental", "Coach mental"], ["organisateur", "Official"]];
-const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "coach_physique", "moniteur", "prof", "coach_mental", "membre", "organisateur"];
+// gz_lecture doit figurer ici : la matrice de Réglages n'affiche que ROLE_LIST,
+// et un « Enregistrer » écrirait une matrice sans lui — l'accès de Séline
+// disparaîtrait sans que personne ne comprenne pourquoi.
+const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["prof", "Prof"], ["coach_mental", "Coach mental"], ["organisateur", "Official"], ["gz_lecture", "GameZone (lecture)"]];
+const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "coach_physique", "moniteur", "prof", "coach_mental", "membre", "organisateur", "gz_lecture"];
 // Rôles/tags d'une personne (cumulables) — pilotent filtres + onglets de la fiche.
 const PERSON_ROLES = [
   ["membre", "Membre"], ["client", "Client"], ["coach", "Coach"], ["coach-prive", "Coach avec autorisation"],
@@ -241,6 +248,7 @@ const PERSON_ROLES = [
   ["prof", "Prof"], ["coach-mental", "Coach mental"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
   ["concierge", "Concierge"],   // salarié sans aucun accès à l'app (fiche + salaire seulement)
   ["gamezone", "GameZone"],     // joueur de tournoi GameZone relié automatiquement (db/101) ; aucun accès à l'app
+  ["gz-lecture", "GameZone (lecture)"],  // voit l'onglet GameZone sans rien pouvoir y changer (db/135)
   ["stage", "Stage"],           // inscrit à un stage relié automatiquement (db/103) ; aucun accès à l'app
 ];
 const roleLabel = (r) => (PERSON_ROLES.find(([v]) => v === r) || [r, r])[1];
@@ -4872,14 +4880,82 @@ async function markAtt(personId, status, isCoach) {
 // ===================================================================
 //  GameZone — saisons + catégories de tarifs (Phase 1)
 // ===================================================================
-let gzRoles = [], gzPersonId = null, gzIsOfficial = false;
+let gzRoles = [], gzPersonId = null, gzIsOfficial = false, gzLecture = false;
+
+// ---- GameZone en lecture seule (db/135) --------------------------------
+// gz_lecture voit tout l'onglet — tournois, participants, vainqueurs, caisse,
+// sondages — et ne peut rien y changer. Les sous-onglets restent donc ouverts,
+// contrairement au cas « responsable » qui n'en voit qu'un.
+//
+// Le blocage se fait en UN endroit, par un écouteur en phase de capture sur
+// la section : GameZone compte trente-quatre écritures et plusieurs RPC
+// répartis sur des dizaines de rendus JS, et désarmer chaque bouton un par un
+// serait à refaire à chaque évolution du module. Ici, tout clic sur une
+// commande est intercepté avant d'atteindre son gestionnaire.
+//
+// Ce qu'on laisse passer : la navigation et la consultation — sous-onglets,
+// sélecteurs de saison et de tournoi, recherche, tri, exports, retour, fermer.
+// Tout le reste est refusé avec un mot d'explication.
+//
+// Rappel : garde-fou, pas verrou. La RLS laisse écrire tout is_staff().
+const GZ_RO_OK = [".subtab", "#gz-detail-back", "#gz-part-search", "#gz-fin-season",
+  "[data-sort]", ".modal-close", "[data-gz-ro-ok]"];
+
+function gzRoGarde() {
+  const vue = $("view-gamezone"); if (!vue) return;
+  vue.classList.add("gz-ro");
+
+  vue.addEventListener("click", (ev) => {
+    const el = ev.target.closest("button, input[type=checkbox], input[type=radio], a[href]");
+    if (!el) return;
+    if (GZ_RO_OK.some((s) => el.matches(s) || el.closest(s))) return;
+    // Un lien qui sort de la console (site public, PDF) reste légitime.
+    if (el.tagName === "A" && /^https?:/.test(el.getAttribute("href") || "")) return;
+    ev.preventDefault(); ev.stopImmediatePropagation();
+    uiAlert("Accès GameZone en lecture : tu peux tout consulter, mais pas modifier.\n\n"
+      + "Pour une correction, passe par un organisateur (Dan ou Raphael).");
+  }, true);
+
+  // Le dire avant qu'elle ne clique : un bouton qui refuse sans prévenir
+  // passe pour une panne.
+  if (!$("gz-ro-note")) {
+    const note = document.createElement("div");
+    note.id = "gz-ro-note";
+    note.className = "gz-ro-note";
+    note.innerHTML = "👁 <b>Accès en lecture</b> — tu vois tout GameZone : tournois, "
+      + "participants, vainqueurs, caisse. Les modifications passent par un organisateur.";
+    vue.prepend(note);
+  }
+
+  // Les champs de saisie deviennent non modifiables, sauf la recherche et les
+  // sélecteurs de consultation : taper dans un champ pour voir le texte
+  // disparaître au rendu suivant serait pire que de ne pas pouvoir taper.
+  // Les boutons d'action sont grisés — le clic est déjà intercepté, mais un
+  // bouton d'aplomb qui ne fait rien use la patience.
+  const geler = () => {
+    vue.querySelectorAll("input, select, textarea").forEach((f) => {
+      if (GZ_RO_OK.some((s) => f.matches(s) || f.closest(s))) return;
+      if (f.tagName === "SELECT") f.disabled = true; else f.readOnly = true;
+    });
+    vue.querySelectorAll("button").forEach((b) => {
+      if (GZ_RO_OK.some((s) => b.matches(s) || b.closest(s))) return;
+      b.classList.add("gz-ro-off");
+    });
+  };
+  geler();
+  new MutationObserver(geler).observe(vue, { childList: true, subtree: true });
+}
 
 async function initGameZone(roles) {
   gzRoles = roles || [];
   gzIsOfficial = gzRoles.some((r) => ["superadmin", "admin", "organisateur"].includes(r));
+  gzLecture = !gzIsOfficial && gzRoles.includes("gz_lecture");
   const { data: prof } = await sb.from("profiles").select("person_id").eq("user_id", meId).maybeSingle();
   gzPersonId = prof?.person_id || null;
-  if (!gzIsOfficial) {
+  if (gzLecture) gzRoGarde();
+  // En lecture, on garde tous les sous-onglets : le but est justement de tout
+  // voir. Seul le « responsable » nommé sur ses tournois reste restreint.
+  if (!gzIsOfficial && !gzLecture) {
     document.querySelector('#view-gamezone .subtab[data-sub="reglages"]')?.classList.add("hidden");
     document.querySelector('#view-gamezone .subtab[data-sub="participants"]')?.classList.add("hidden");
     document.querySelector('#view-gamezone .subtab[data-sub="financier"]')?.classList.add("hidden");
@@ -6993,9 +7069,9 @@ async function savePerson(e) {
 // Rôles d'accès pilotant la console/RLS. Miroir fiche -> user_roles (uniquement
 // pour une personne AYANT un compte). On ne touche PAS membre/junior/parent
 // (saisonniers, gérés dans role_periods). Écriture réservée aux admins (RLS is_admin).
-const ACCESS_SYNC_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "coach_physique", "moniteur", "prof", "coach_mental", "organisateur"];
+const ACCESS_SYNC_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "coach_physique", "moniteur", "prof", "coach_mental", "organisateur", "gz_lecture"];
 // Correspondance chip répertoire (person_roles) -> rôle d'accès (user_roles) quand les libellés diffèrent.
-const CHIP_TO_ACCESS = { official: "organisateur", "head-coach": "head_coach", "coach-mental": "coach_mental" };
+const CHIP_TO_ACCESS = { official: "organisateur", "head-coach": "head_coach", "coach-mental": "coach_mental", "gz-lecture": "gz_lecture" };
 async function syncAccessRoles(personId, rolesSet) {
   const { data: prof } = await sb.from("profiles").select("user_id").eq("person_id", personId).maybeSingle();
   if (!prof?.user_id) return true;                       // pas de compte -> rien à synchroniser

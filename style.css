@@ -3899,6 +3899,13 @@ tr.enc-ok td{background:#f4fbf6}
 .pay-auto{font-size:.76rem;font-weight:700;color:#4a6b57;background:#eef6f1;border:1px solid #d3e6da;
   border-radius:7px;padding:3px 8px;white-space:nowrap}
 
+/* ---- GameZone en lecture seule (db/135) --------------------------------- */
+.gz-ro-note{background:#eef4fb;border:1px solid #c9dcf0;border-left:4px solid #5b8fc7;
+  border-radius:var(--radius);padding:10px 14px;margin:0 0 14px;font-size:.9rem;color:var(--ink)}
+/* Grisé, pas caché : elle doit voir qu'une action existe, et qu'elle n'est
+   pas pour elle. Le clic est déjà intercepté côté JS. */
+.gz-ro .gz-ro-off{opacity:.45;cursor:not-allowed}
+
 /* ===== Planning tournois (db/106) : frise de saison en double case (semaine + week-end) ===== */
 .pl-k-prepa{background:#e58fb8}.pl-k-entrainement{background:#85b7eb}.pl-k-option{background:#9fe1cb}
 .pl-k-vacances{background:#d3d1c7}.pl-k-etranger{background:#b39ddb}.pl-k-none{background:#eef1f6}
