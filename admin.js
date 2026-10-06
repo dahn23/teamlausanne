@@ -9885,11 +9885,18 @@ function salMatch(row, people) {
 }
 // Mois lu dans le nom du fichier : « 2026-09 », « 09_2026 », « 09.2026 ».
 // Le mois vient d'abord du contenu du PDF ; celui du nom ne sert qu'à croiser.
+//
+// ⚠️ Pas de lookbehind ici — (?<!\d) est une ERREUR DE SYNTAXE dans Safari
+// avant la 16.4, et une seule erreur de syntaxe empêche TOUT admin.js d'être
+// analysé : plus un seul gestionnaire d'événement, menu invisible, console
+// morte. C'est ce qui bloquait Séline sur son MacBook. On consomme donc le
+// caractère précédent (début de chaîne ou non-chiffre) au lieu de le regarder
+// derrière soi — même résultat, compris partout.
 function salMoisDuNom(nom) {
   const s = String(nom || "");
   let m = s.match(/(20\d{2})[-_.](0[1-9]|1[0-2])(?!\d)/);
   if (m) return `${m[1]}-${m[2]}`;
-  m = s.match(/(?<!\d)(0[1-9]|1[0-2])[-_.](20\d{2})/);
+  m = s.match(/(?:^|[^\d])(0[1-9]|1[0-2])[-_.](20\d{2})/);
   if (m) return `${m[2]}-${m[1]}`;
   return null;
 }
