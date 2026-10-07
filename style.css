@@ -4589,14 +4589,23 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   font-size:.85rem;right:14px;bottom:14px}
 .dstat-go:hover .dstat-go-i{background:var(--blue);color:#fff}
 
+
 /* ---- Pastilles de filtre ------------------------------------------------ */
 /* Celles des maquettes : contour léger au repos, pleines une fois choisies,
-   avec leur compte entre parenthèses. */
-.chip{border-radius:999px;padding:7px 15px;font-weight:600;font-size:.86rem;
+   avec leur compte entre parenthèses.
+
+   ⚠️ Portée limitée aux trois conteneurs de filtres, comme le fait déjà la
+   règle de réinitialisation plus haut : « .chip » désigne AUSSI la pastille
+   de couleur 14×14 de la légende des réservations (collision de noms
+   ancienne). Une règle non portée repeignait ces carrés en blanc. */
+.people-filters .chip,.fac-filters .chip,.chip-select .chip{
+  border-radius:999px;padding:7px 15px;font-weight:600;font-size:.86rem;
   background:#fff;border:1px solid var(--line);color:var(--muted);
   transition:background .14s ease,color .14s ease,border-color .14s ease}
-.chip:hover{border-color:#c6d5ec;color:var(--blue-ink)}
-.chip.sel{background:var(--ocean);border-color:var(--ocean);color:#fff}
+.people-filters .chip:hover,.fac-filters .chip:hover,.chip-select .chip:hover{
+  border-color:#c6d5ec;color:var(--blue-ink)}
+.people-filters .chip.sel,.fac-filters .chip.sel,.chip-select .chip.sel{
+  background:var(--ocean);border-color:var(--ocean);color:#fff}
 
 /* ---- Encadré « À ton attention » ---------------------------------------- */
 /* Crème et ambre comme dans les maquettes : on voit qu'il faut lire, sans
