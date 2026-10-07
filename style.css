@@ -4440,3 +4440,102 @@ tr.enc-ok td{background:#f4fbf6}
 .cay-barres em{flex:1;height:2px;border-radius:2px;font-style:normal}
 
 @media (max-width:600px){ .cal-annee{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))} }
+
+/* =====================================================================
+   REVAMP 2026 — la console aux couleurs de la charte
+   =====================================================================
+   Posée en fin de feuille : elle surcharge sans qu'on ait à retoucher
+   quatre mille lignes, et tout ce qui la concerne tient en un seul bloc.
+
+   Le constat de départ : la console était propre mais fade, et surtout
+   générique — un gris bleuté passe-partout, des survols verdâtres hérités
+   de PandaFit, et la charte réduite à un bleu de bouton. Les couleurs
+   existaient dans les variables ; elles ne servaient à rien.
+
+   Le parti pris : rendre au Prussian Blue son rôle de structure et au
+   Mint son rôle d'accent. Le rail passe en bleu profond, le contenu
+   paraît plus clair par contraste, et le vert fluo trouve enfin sa place
+   — sur fond sombre, là où il est lisible. Sur blanc il plafonne à
+   1.16:1, autant dire invisible : c'est pour ça qu'il ne servait nulle
+   part. ===================================================================== */
+:root{
+  /* Neutres teintés de Prussian plutôt que gris d'usine : à l'œil c'est
+     ce qui fait qu'une interface « appartient » à une marque. */
+  --bg:#eef2f8;
+  --line:#dde5f0;
+  --ink:#10203a;
+  --muted:#5f6b85;
+
+  /* Le rail et ses états. */
+  --rail:#003652;                     /* Prussian Blue */
+  --rail-2:#00293f;                   /* bas du dégradé */
+  --rail-txt:rgba(255,255,255,.84);
+  --rail-ico:#9db0ba;                 /* 5.67:1 sur le Prussian : lisible sans crier */
+  --rail-hover:rgba(255,255,255,.09);
+  --rail-sep:rgba(255,255,255,.11);
+
+  /* Deux niveaux d'élévation, teintés de bleu : une ombre grise sur un
+     fond bleuté fait sale. */
+  --shadow:0 1px 2px rgba(0,54,82,.05), 0 4px 16px rgba(0,54,82,.07);
+  --shadow-lg:0 2px 6px rgba(0,54,82,.07), 0 16px 40px rgba(0,54,82,.11);
+
+  /* 24 px d'arrondi sur des tableaux denses, c'est mou. On resserre. */
+  --radius:14px;
+}
+
+/* ---- Fond : un dégradé très lent, pour que la page ne soit pas un aplat --- */
+body{background:linear-gradient(180deg,#f3f6fb 0%,var(--bg) 60%)}
+
+/* ---- Le rail ------------------------------------------------------------ */
+.side{background:linear-gradient(180deg,var(--rail) 0%,var(--rail-2) 100%);
+  border-right:0;color:var(--rail-txt);padding:14px 12px}
+.side-block+.side-block{border-top:1px solid var(--rail-sep);margin-top:6px;padding-top:10px}
+.side-item{color:var(--rail-txt);font-weight:500;border-radius:10px;padding:9px 11px;
+  transition:background .14s ease,color .14s ease}
+.side-item .ico{color:var(--rail-ico);transition:color .14s ease}
+.side-item:hover{background:var(--rail-hover);color:#fff}
+.side-item:hover .ico{color:#fff}
+/* L'onglet courant en Mint : une seule chose est active à la fois, et sur ce
+   bleu profond le vert est franchement lisible — l'inverse exact du blanc. */
+.side-item.active{background:var(--fluo);color:#04222f;font-weight:800;box-shadow:0 2px 10px rgba(178,253,19,.22)}
+.side-item.active .ico{color:#04222f}
+.side-item:disabled{color:rgba(255,255,255,.3)}
+.side-item:disabled .ico{color:rgba(255,255,255,.22)}
+.side-toggle{color:rgba(255,255,255,.6);border-radius:9px}
+.side-toggle:hover{background:var(--rail-hover);color:#fff}
+/* Les pastilles doivent ressortir sur le bleu, pas s'y fondre. */
+.side-badge{background:rgba(255,255,255,.16);color:#fff}
+.side-item.active .side-badge{background:rgba(0,0,0,.16);color:#04222f}
+.side-badge-red{background:#cc3028;color:#fff}   /* 5.2:1 : une alerte doit se lire */
+.side-badge-gold{background:var(--fluo);color:#14300a}
+
+/* ---- Barre du haut ------------------------------------------------------ */
+/* Translucide et floutée : le contenu qui défile dessous rappelle qu'on est
+   dans une application, pas sur une page imprimée. */
+.topbar{background:rgba(255,255,255,.82);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);padding:11px 16px}
+
+/* ---- Surfaces ----------------------------------------------------------- */
+.table-wrap{border-color:var(--line);box-shadow:var(--shadow)}
+.crm-table th{background:#f6f9fd;color:var(--muted);font-weight:700;
+  font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;
+  border-bottom:1px solid var(--line)}
+/* Le survol prend le bleu de la marque, pas le vert d'eau hérité d'un autre
+   projet. */
+.crm-table tbody tr:hover{background:#f2f6fd}
+.crm-table td{border-bottom:1px solid #eef2f8}
+
+/* ---- Boutons ------------------------------------------------------------ */
+button{border-radius:10px;font-weight:650;letter-spacing:-.005em;
+  transition:background .14s ease,box-shadow .14s ease,transform .06s ease}
+button:not(.ghost):not(.nav):not(.chip){box-shadow:0 1px 2px rgba(7,62,181,.18)}
+button:active{transform:translateY(1px)}
+button.ghost{border-radius:9px}
+button.ghost:hover{background:rgba(7,62,181,.07);color:var(--blue-ink)}
+button.nav:hover{background:#f2f6fd;border-color:#c6d5ec}
+
+/* ---- Accessibilité : un anneau de focus visible partout ----------------- */
+/* Il n'y en avait aucun sur les boutons : on naviguait au clavier à l'aveugle. */
+button:focus-visible,.side-item:focus-visible,.chip:focus-visible,a:focus-visible{
+  outline:3px solid rgba(7,62,181,.45);outline-offset:2px}
+.side-item:focus-visible{outline-color:var(--fluo);outline-offset:-2px}
