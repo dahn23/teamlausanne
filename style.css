@@ -4621,3 +4621,15 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .crm-ttl{flex:1 1 320px;min-width:0}
 .crm-ttl h1{margin:0}
 .crm-ttl .crm-eyebrow{margin-bottom:3px}
+
+/* ---- Intitulés de groupe du rail ---------------------------------------- */
+/* Trente-trois onglets séparés par de simples filets, c'était une liste, pas
+   un classement : on lisait les trente-trois à chaque fois. Nommer les groupes
+   permet de viser directement la bonne famille. */
+.side-group{display:block;font-size:.63rem;font-weight:700;letter-spacing:.13em;
+  text-transform:uppercase;color:rgba(255,255,255,.42);padding:0 11px;margin:0 0 5px}
+/* Rail replié : plus de place pour un intitulé, et les filets suffisent à
+   garder les familles distinctes. */
+.side.collapsed .side-group{display:none}
+.side-block+.side-block{margin-top:12px;padding-top:11px}
+.side.collapsed .side-block+.side-block{margin-top:6px;padding-top:8px}
