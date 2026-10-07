@@ -88,7 +88,7 @@
       return out;
     }
     // Rapport de demarrage, disponible a la demande (Ctrl+Alt+D) et affiche
-    // tout seul si le menu n'est pas pret au bout de 8 s.
+    // tout seul si le menu n'est pas pret au bout de 30 s.
     function rapport(force) {
       var side = document.querySelector(".side");
       var pret = !!(side && side.className.indexOf("ready") !== -1);
@@ -101,7 +101,10 @@
       boite(pret && bl.length ? "Un calque bloque les clics" : "La console ne s'est pas chargee",
         d + "\n\nCapture d'ecran de cet encadre a envoyer a Raphael.");
     }
-    window.setTimeout(function () { rapport(false); }, 8000);
+    // 30 s et non 8 (07.10.2026) : le menu n'apparait qu'apres le chargement du repertoire (loadPeople), qui
+    // depasse 8 s sur une connexion moyenne — chez Dan (Firefox) l'encadre sortait alors que tout se chargeait.
+    // Une vraie erreur JavaScript, elle, s'affiche tout de suite (ecouteurs error / unhandledrejection ci-dessus).
+    window.setTimeout(function () { rapport(false); }, 30000);
     window.addEventListener("keydown", function (ev) {
       if (ev.ctrlKey && ev.altKey && (ev.key === "d" || ev.key === "D")) rapport(true);
     });
