@@ -211,8 +211,8 @@ const MENTION_IMAGE = {
   type: "mention", title: "Droit à l'image",
   body: "Dans le cadre des cours, stages, tournois et événements, Team Lausanne Academy "
     + "réalise des photographies et des vidéos, susceptibles d'être utilisées pour sa "
-    + "communication : site internet, réseaux sociaux, newsletter, supports imprimés et "
-    + "relations presse. Ces images ne sont ni vendues ni cédées à des tiers à des fins "
+    + "communication : site internet, réseaux sociaux, newsletter et supports imprimés. "
+    + "Ces images ne sont ni vendues ni cédées à des tiers à des fins "
     + "commerciales, et les mineurs n'y sont jamais identifiés au-delà de leur prénom. "
     + "Le représentant légal peut s'opposer à cette utilisation à tout moment, sans "
     + "justification et sans conséquence sur la participation, et demander le retrait "
