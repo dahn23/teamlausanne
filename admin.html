@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=295" />
+  <link rel="stylesheet" href="style.css?v=296" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -262,15 +262,16 @@
 
         <!-- ---- Vue Inscriptions ---- -->
         <div id="view-inscriptions" class="view hidden">
-          <div class="crm-head"><h1>Demandes d'inscription</h1></div>
-          <p class="muted" style="margin:-6px 0 12px">Les demandes envoyées depuis les pages de filière du site (Compétition, Performance, Club, KidsTennis).</p>
+          <div class="crm-head"><div class="crm-ttl"><span class="crm-eyebrow">Venues du site public</span><h1>Demandes d'inscription</h1></div></div>
+          <p class="crm-lead">Les demandes envoyées depuis les pages de filière du site (Compétition, Performance, Club, KidsTennis).</p>
           <div id="insc-list"></div>
         </div>
 
         <!-- ---- Vue Prospects ---- -->
         <div id="view-prospects" class="view hidden">
           <div id="prosp-list-wrap">
-          <div class="crm-head"><h1>Prospects</h1></div>
+          <div class="crm-head"><div class="crm-ttl"><span class="crm-eyebrow">Détection</span><h1>Prospects</h1></div></div>
+          <p class="crm-lead">Les joueuses et joueurs repérés en tournoi ou signalés, avant toute inscription. On y suit les échanges jusqu'à la décision.</p>
           <div class="prosp-subtabs">
             <button type="button" class="prosp-subtab active" data-psub="liste">Liste</button>
             <button type="button" class="prosp-subtab" data-psub="suivi">Suivi</button>
@@ -454,7 +455,8 @@
 
         <!-- ---- Vue Réservations (staff) ---- -->
         <div id="view-resa" class="view hidden">
-          <div class="crm-head"><h1>Réservations</h1></div>
+          <div class="crm-head"><div class="crm-ttl"><span class="crm-eyebrow">Courts et planning</span><h1>Réservations</h1></div></div>
+          <p class="crm-lead">La grille des courts, jour par jour. Les cours y bloquent leurs courts automatiquement ; le reste se réserve à la main. Les courts affichés suivent la saison.</p>
           <div class="subnav">
             <button class="subtab resa-subtab active" data-sub="jour">Jour</button>
             <button class="subtab resa-subtab" data-sub="reglages">Réglages</button>
@@ -574,7 +576,8 @@
 
         <!-- ---- Vue Cours ---- -->
         <div id="view-cours" class="view hidden">
-          <div class="crm-head"><h1>Cours</h1></div>
+          <div class="crm-head"><div class="crm-ttl"><span class="crm-eyebrow">Planning et types de cours</span><h1>Cours</h1></div></div>
+          <p class="crm-lead">Le planning de la semaine et les types de cours. Une leçon bloque son court, et l'appel s'ouvre 25 minutes avant le début.</p>
           <div class="subnav">
             <button class="subtab cours-subtab active" data-sub="planning">Planning</button>
             <button class="subtab cours-subtab" data-sub="types" id="cours-subtab-types">Types de cours</button>
@@ -819,12 +822,13 @@
         <!-- ---- Project Manager : tableau facon Trello ---- -->
         <!-- ---- Calendrier d'équipe ---- -->
         <div id="view-calendrier" class="view hidden">
-          <div class="crm-head"><h1>Calendrier</h1>
+          <div class="crm-head"><div class="crm-ttl"><span class="crm-eyebrow">Saison, vacances et fermetures</span><h1>Calendrier</h1></div>
             <span class="spacer"></span>
             <button type="button" id="cal-new-vac" class="ghost">🏖 Demander des vacances</button>
             <button type="button" id="cal-new-abs" class="ghost">🤒 Déclarer une absence</button>
             <button type="button" id="cal-new-ev">＋ Ajouter un événement</button>
           </div>
+          <p class="crm-lead">Vacances scolaires vaudoises, jours fériés, fermetures, stages et événements — et les vacances de l'équipe, qui ne sortent jamais sur le site public.</p>
 
           <!-- Demandes en attente : visible seulement pour ceux qui valident. -->
           <div id="cal-attente" class="cal-attente hidden"></div>

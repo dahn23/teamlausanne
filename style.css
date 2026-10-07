@@ -4614,3 +4614,10 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   padding:14px 18px;margin:0 0 16px;color:#7a5a16}
 .notice b,.notice strong{color:#6b4c0c}
 .notice a{color:#8a5a00;font-weight:600}
+
+/* Surtitre + titre dans un entête à boutons : le bloc de texte devient un seul
+   élément flex, sinon le surtitre se range À CÔTÉ du titre au lieu d'être
+   au-dessus. Même rendu que le « dash-hero » des vues qui l'avaient déjà. */
+.crm-ttl{flex:1 1 320px;min-width:0}
+.crm-ttl h1{margin:0}
+.crm-ttl .crm-eyebrow{margin-bottom:3px}
