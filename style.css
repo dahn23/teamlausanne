@@ -4539,3 +4539,69 @@ button.nav:hover{background:#f2f6fd;border-color:#c6d5ec}
 button:focus-visible,.side-item:focus-visible,.chip:focus-visible,a:focus-visible{
   outline:3px solid rgba(7,62,181,.45);outline-offset:2px}
 .side-item:focus-visible{outline-color:var(--fluo);outline-offset:-2px}
+
+/* =====================================================================
+   REVAMP 2026 — II. Poppins, et les cartes de chiffres
+   =====================================================================
+   Poppins remplace Acumin Pro et Circe dans l'interface. C'est une
+   géométrique à grande hauteur d'x : les chiffres et les libellés courts
+   — l'essentiel d'une console — s'y lisent vite, et son dessin rond la
+   rend plus accueillante que l'Acumin, qui faisait sérieux et froid.
+   La charte reste servie sur le site public, où Circe garde sa place.
+   Noto Sans demeure le repli officiel.
+   ===================================================================== */
+:root{
+  --font-body:"Poppins","Noto Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-accent:"Poppins","Noto Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+/* Poppins est large : sans resserrer l'interlettrage, les gros titres
+   paraissent distendus. */
+h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
+.crm-head h1{font-size:1.85rem;font-weight:700;letter-spacing:-.03em;color:var(--blue-ink)}
+/* Le surtitre et le chapô des maquettes : petites capitales espacées au-dessus
+   du titre, puis une phrase qui dit à quoi sert la page. Un écran qui
+   s'explique en une ligne s'apprend sans qu'on vienne la demander par mail. */
+.crm-eyebrow{display:block;font-size:.7rem;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ocean);margin:0 0 4px}
+.crm-lead{margin:-8px 0 18px;max-width:72ch;color:var(--muted);font-size:.95rem;line-height:1.55}
+
+/* ---- Cartes de chiffres ------------------------------------------------- */
+/* Les maquettes posent chaque chiffre sur une carte teintée, avec sa pastille
+   d'icône ronde : la couleur dit la nature de l'information avant qu'on ait
+   lu le libellé. On remplace le filet de gauche, qui ne se voyait pas. */
+.dstat{border-left:1px solid var(--line);padding:16px 18px 18px;gap:3px;
+  background:var(--tint,#fff);border-color:var(--edge,var(--line))}
+.dstat-i{position:static;align-self:flex-start;display:flex;align-items:center;justify-content:center;
+  width:38px;height:38px;border-radius:12px;font-size:1.05rem;opacity:1;margin-bottom:9px;
+  background:var(--chip,#eef2f8)}
+.dstat-l{font-size:.68rem;letter-spacing:.1em;color:var(--muted)}
+.dstat-v{font-size:2.15rem;font-weight:700;letter-spacing:-.035em}
+.dstat.st-blue  {--tint:#eef3fd;--edge:#d8e4fa;--chip:#dbe6fb}
+.dstat.st-ocean {--tint:#eaf5f9;--edge:#cfe6ef;--chip:#d6ecf4}
+.dstat.st-mint  {--tint:#f2fae4;--edge:#dcefc0;--chip:#e6f6cd}
+.dstat.st-ok    {--tint:#ecf8f1;--edge:#cfe9da;--chip:#d9f0e4}
+.dstat.st-warn  {--tint:#fdf4e3;--edge:#f2e0bd;--chip:#f9ebd0}
+.dstat.st-bad   {--tint:#fdeeec;--edge:#f4d4cf;--chip:#fadfdb}
+/* La flèche devient un vrai bouton rond, visible en permanence : cachée
+   jusqu'au survol, personne ne devinait que la carte était cliquable. */
+.dstat-go-i{opacity:1;transform:none;display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,54,82,.14);
+  font-size:.85rem;right:14px;bottom:14px}
+.dstat-go:hover .dstat-go-i{background:var(--blue);color:#fff}
+
+/* ---- Pastilles de filtre ------------------------------------------------ */
+/* Celles des maquettes : contour léger au repos, pleines une fois choisies,
+   avec leur compte entre parenthèses. */
+.chip{border-radius:999px;padding:7px 15px;font-weight:600;font-size:.86rem;
+  background:#fff;border:1px solid var(--line);color:var(--muted);
+  transition:background .14s ease,color .14s ease,border-color .14s ease}
+.chip:hover{border-color:#c6d5ec;color:var(--blue-ink)}
+.chip.sel{background:var(--ocean);border-color:var(--ocean);color:#fff}
+
+/* ---- Encadré « À ton attention » ---------------------------------------- */
+/* Crème et ambre comme dans les maquettes : on voit qu'il faut lire, sans
+   l'alarme rouge qu'on finit par ignorer. */
+.notice{background:#fdf7e8;border:1px solid #f0e2bd;border-radius:var(--radius);
+  padding:14px 18px;margin:0 0 16px;color:#7a5a16}
+.notice b,.notice strong{color:#6b4c0c}
+.notice a{color:#8a5a00;font-weight:600}
