@@ -4405,13 +4405,22 @@ tr.enc-ok td{background:#f4fbf6}
 .cay-qui.on{background:var(--c,#8d93a8);color:#fff}
 .cay-qui-tous{width:auto;padding:0 10px;border-color:var(--line);color:var(--muted)}
 
-.cal-annee{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.cay-mois{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px 14px}
-.cay-mois h3{margin:0 0 10px;font-size:.98rem;color:var(--blue-ink)}
-.cay-grille{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.cay-h{font-size:.64rem;font-weight:700;color:var(--muted);text-align:center;font-style:normal;padding-bottom:3px}
+/* Les mois ne s'étirent pas avec la fenêtre : une largeur plafonnée, et autant
+   de colonnes que l'écran en accepte. Sur un grand moniteur, quatre colonnes
+   étirées donnaient des cases énormes — on zoomait sur la saison au lieu de
+   l'embrasser. Entre 168 et 200 px, un mois reste lisible et il en tient cinq
+   ou six de front. */
+/* Plafonnée à six colonnes (6 × 200 px + 5 × 10 px de gouttière) : au-delà, un
+   écran large donnait sept colonnes et une seconde rangée bancale de cinq. Six
+   et six se lisent comme deux semestres. */
+.cal-annee{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,200px));
+  justify-content:center;gap:10px;max-width:1250px;margin-inline:auto}
+.cay-mois{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:9px 10px 10px}
+.cay-mois h3{margin:0 0 7px;font-size:.82rem;color:var(--blue-ink)}
+.cay-grille{display:grid;grid-template-columns:repeat(7,1fr);gap:1px}
+.cay-h{font-size:.56rem;font-weight:700;color:var(--muted);text-align:center;font-style:normal;padding-bottom:2px}
 .cay-j{position:relative;font-style:normal;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-  font-size:.74rem;color:var(--ink);border-radius:6px;cursor:pointer}
+  font-size:.64rem;color:var(--ink);border-radius:5px;cursor:pointer}
 .cay-j:hover{outline:2px solid var(--blue);outline-offset:-2px}
 .cay-vide{visibility:hidden;cursor:default}
 .cay-auj{font-weight:800;text-decoration:underline}
@@ -4421,15 +4430,13 @@ tr.enc-ok td{background:#f4fbf6}
 .cay-f-fermeture{background:#fadcdc;color:#9e2b2b}
 /* Anneau : un rendez-vous ponctuel. */
 .cay-a-evenement>span,.cay-a-test>span,.cay-a-ferie>span{
-  display:flex;align-items:center;justify-content:center;width:21px;height:21px;border-radius:50%;border:2px solid}
+  display:flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;border:1.5px solid}
 .cay-a-evenement>span{border-color:#3a6fd8}
 .cay-a-test>span{border-color:#7a5bbf}
 .cay-a-ferie>span{border-color:#8a6bcf}
 /* Barres : une par personne absente, à sa couleur. Elles s'empilent, c'est
    précisément ce qu'on veut voir. */
-.cay-barres{position:absolute;left:2px;right:2px;bottom:1px;display:flex;gap:1px;font-style:normal}
-.cay-barres em{flex:1;height:3px;border-radius:2px;font-style:normal}
+.cay-barres{position:absolute;left:1px;right:1px;bottom:1px;display:flex;gap:1px;font-style:normal}
+.cay-barres em{flex:1;height:2px;border-radius:2px;font-style:normal}
 
-@media (max-width:1200px){ .cal-annee{grid-template-columns:repeat(3,1fr)} }
-@media (max-width:900px) { .cal-annee{grid-template-columns:repeat(2,1fr)} }
-@media (max-width:600px) { .cal-annee{grid-template-columns:1fr} }
+@media (max-width:600px){ .cal-annee{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))} }
