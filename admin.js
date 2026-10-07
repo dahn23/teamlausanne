@@ -599,17 +599,41 @@ async function initResa(roles) {
     .map((h) => `<option value="${h}">${pad2(h)}:15</option>`).join("");
   await loadResaLabels();
 
-  $("resa-date").value = isoA(new Date());
-  $("resa-date").addEventListener("change", loadResaDay);
+  // On rouvre sur le jour qu'on était en train de travailler, pas sur aujourd'hui.
+  $("resa-date").value = resaMemoLue() || isoA(new Date());
+  $("resa-date").addEventListener("change", () => allerAuJour($("resa-date").value));
   $("resa-prev").addEventListener("click", () => shiftResa(-1));
   $("resa-next").addEventListener("click", () => shiftResa(1));
-  $("resa-today").addEventListener("click", () => { $("resa-date").value = isoA(new Date()); loadResaDay(); });
+  $("resa-today").addEventListener("click", () => allerAuJour(isoA(new Date())));
   $("resa-close").addEventListener("click", closeResa);
   $("resa-modal").addEventListener("click", (e) => { if (e.target === $("resa-modal")) closeResa(); });
   $("resa-form").addEventListener("submit", saveResa);
   $("r-del-occ").addEventListener("click", deleteOccurrence);
   $("r-del-series").addEventListener("click", deleteSeries);
   document.addEventListener("mouseup", endDrag);
+  loadResaDay();
+}
+
+// Le jour affiché survit au rechargement. On travaille souvent une journée
+// précise un bon moment — changer un coach, vérifier, recharger — et retomber
+// sur aujourd'hui à chaque fois oblige à refaire le chemin. Mémorisé par
+// appareil, comme l'onglet courant (tl-view).
+//
+// Aucun garde-fou de péremption : la date est affichée en grand dans l'entête,
+// avec le bouton « Aujourd'hui » juste à côté. On voit donc toujours quel jour
+// on manipule, et une date qui changerait toute seule serait exactement ce
+// qu'on cherche à éviter.
+const RESA_MEMO = "tl-resa-date";
+function resaMemoLue() {
+  try {
+    const v = localStorage.getItem(RESA_MEMO);
+    return /^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v : null;
+  } catch (_) { return null; }
+}
+// Un seul chemin pour changer de jour : pose la date, la retient, recharge.
+function allerAuJour(iso) {
+  $("resa-date").value = iso;
+  try { localStorage.setItem(RESA_MEMO, iso); } catch (_) {}
   loadResaDay();
 }
 
@@ -622,8 +646,7 @@ async function loadResaLabels() {
 function shiftResa(delta) {
   const d = new Date($("resa-date").value + "T00:00:00");
   d.setDate(d.getDate() + delta);
-  $("resa-date").value = isoA(d);
-  loadResaDay();
+  allerAuJour(isoA(d));
 }
 
 async function loadResaDay() {
