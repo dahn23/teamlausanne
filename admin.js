@@ -4939,23 +4939,23 @@ function gzRoGarde() {
     vue.prepend(note);
   }
 
-  // Les champs de saisie deviennent non modifiables, sauf la recherche et les
-  // sélecteurs de consultation : taper dans un champ pour voir le texte
-  // disparaître au rendu suivant serait pire que de ne pas pouvoir taper.
-  // Les boutons d'action sont grisés — le clic est déjà intercepté, mais un
-  // bouton d'aplomb qui ne fait rien use la patience.
-  const geler = () => {
-    vue.querySelectorAll("input, select, textarea").forEach((f) => {
-      if (GZ_RO_OK.some((s) => f.matches(s) || f.closest(s))) return;
-      if (f.tagName === "SELECT") f.disabled = true; else f.readOnly = true;
-    });
-    vue.querySelectorAll("button").forEach((b) => {
-      if (GZ_RO_OK.some((s) => b.matches(s) || b.closest(s))) return;
-      b.classList.add("gz-ro-off");
-    });
-  };
-  geler();
-  new MutationObserver(geler).observe(vue, { childList: true, subtree: true });
+  // Le reste — champs non modifiables, boutons grisés — est fait en CSS, par
+  // la seule classe « gz-ro » posée ci-dessus.
+  //
+  // Il y avait ici un MutationObserver qui désarmait les champs à chaque
+  // rendu. Il a bloqué la console de Séline pendant deux jours, et la boucle
+  // méritait d'être écrite noir sur blanc : pretty-select.js place sur chaque
+  // <select> un observateur de l'attribut `disabled` (pretty-select.js:125).
+  // Poser `disabled` déclenchait donc son renderTrigger(), qui reconstruit le
+  // DOM du sélecteur — une mutation childList à l'intérieur de #view-gamezone,
+  // précisément ce que mon observateur surveillait. Il se rappelait, reposait
+  // `disabled`, et ainsi de suite : boucle infinie, fil principal saturé. La
+  // page s'affichait normalement et ne répondait plus à aucun clic — « je vois
+  // les onglets, je ne peux pas cliquer ». Et seulement pour un porteur du
+  // rôle gz_lecture, c'est-à-dire elle seule.
+  //
+  // Le CSS n'a pas ce défaut : il ne mute rien, donc il ne se déclenche pas
+  // lui-même, et il s'applique aussi aux éléments rendus plus tard.
 }
 
 async function initGameZone(roles) {

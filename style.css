@@ -3902,9 +3902,18 @@ tr.enc-ok td{background:#f4fbf6}
 /* ---- GameZone en lecture seule (db/135) --------------------------------- */
 .gz-ro-note{background:#eef4fb;border:1px solid #c9dcf0;border-left:4px solid #5b8fc7;
   border-radius:var(--radius);padding:10px 14px;margin:0 0 14px;font-size:.9rem;color:var(--ink)}
+/* Tout se joue en CSS, sans toucher au DOM : la version JS posait l'attribut
+   `disabled`, ce que pretty-select.js surveille — d'où une boucle infinie qui
+   figeait la console (voir gzRoGarde dans admin.js). Le CSS ne mute rien,
+   donc ne se rappelle pas, et couvre aussi ce qui est rendu plus tard. */
+.gz-ro input,.gz-ro select,.gz-ro textarea{pointer-events:none;background:#f6f7f9;color:var(--muted)}
 /* Grisé, pas caché : elle doit voir qu'une action existe, et qu'elle n'est
    pas pour elle. Le clic est déjà intercepté côté JS. */
-.gz-ro .gz-ro-off{opacity:.45;cursor:not-allowed}
+.gz-ro button{opacity:.45;cursor:not-allowed}
+/* Consultation et navigation restent vivantes — même liste que GZ_RO_OK. */
+.gz-ro .subtab,.gz-ro #gz-detail-back,.gz-ro .modal-close,.gz-ro [data-gz-ro-ok],
+.gz-ro th[data-sort]{opacity:1;cursor:pointer;pointer-events:auto}
+.gz-ro #gz-part-search,.gz-ro #gz-fin-season{pointer-events:auto;background:#fff;color:var(--ink)}
 
 /* ===== Planning tournois (db/106) : frise de saison en double case (semaine + week-end) ===== */
 .pl-k-prepa{background:#e58fb8}.pl-k-entrainement{background:#85b7eb}.pl-k-option{background:#9fe1cb}
