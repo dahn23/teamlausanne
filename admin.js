@@ -2680,9 +2680,16 @@ function initCalendrier() {
     document.querySelectorAll("[data-vue]").forEach((x) => x.classList.toggle("on", x === b));
     calBasculer();
   }));
-  $("cal-prec").addEventListener("click", () => calMoisDecaler(-1));
-  $("cal-suiv").addEventListener("click", () => calMoisDecaler(1));
-  $("cal-auj").addEventListener("click", () => { const n = new Date(); calMois = new Date(n.getFullYear(), n.getMonth(), 1); loadCalendrier(); });
+  // En vue année, les mêmes flèches changent de saison : un seul jeu de
+  // boutons, dont le pas suit ce qu'on regarde.
+  $("cal-prec").addEventListener("click", () => calDecaler(-1));
+  $("cal-suiv").addEventListener("click", () => calDecaler(1));
+  $("cal-auj").addEventListener("click", () => {
+    const n = new Date();
+    calMois = new Date(n.getFullYear(), n.getMonth(), 1);
+    calAn = calSaisonCourante();
+    loadCalendrier();
+  });
   $("cal-new-vac").addEventListener("click", () => calOuvrir(null, "vacances"));
   $("cal-new-abs").addEventListener("click", () => calOuvrir(null, "absence"));
   $("cal-close").addEventListener("click", () => $("cal-modal").classList.add("hidden"));
@@ -2718,6 +2725,7 @@ async function loadCalendrier() {
   calRenderAttente(att0.error ? [] : (att0.data || []));
   congCharger();
   if (calVue === "mois") return calRenderMois();
+  if (calVue === "annee") return calRenderAnnee();
 
   const z = $("cal-semaines");
   const [{ data, error }, att] = await Promise.all([
@@ -2773,14 +2781,24 @@ function calMoisDecaler(n) {
   loadCalendrier();
 }
 
+// Le pas des flèches dépend de la vue : un mois en vue mois, une saison en
+// vue année.
+function calDecaler(n) {
+  if (calVue === "annee") { calAn = (calAn ?? calSaisonCourante()) + n; loadCalendrier(); return; }
+  calMoisDecaler(n);
+}
+
 // Ce qui est visible dépend de la vue : la liste suit les dates choisies, le
 // mois suit la navigation. Inutile de charger l'un quand on regarde l'autre.
 function calBasculer() {
-  const mois = calVue === "mois";
+  const mois = calVue === "mois", annee = calVue === "annee";
   $("cal-mois").classList.toggle("hidden", !mois);
-  $("cal-semaines").classList.toggle("hidden", mois);
-  $("cal-nav").classList.toggle("hidden", !mois);
-  document.querySelectorAll(".cal-periode").forEach((e) => e.classList.toggle("hidden", mois));
+  $("cal-annee").classList.toggle("hidden", !annee);
+  $("cal-filtres").classList.toggle("hidden", !annee);
+  $("cal-semaines").classList.toggle("hidden", mois || annee);
+  // Les flèches servent aux deux vues datées : de mois en mois, d'année en année.
+  $("cal-nav").classList.toggle("hidden", !mois && !annee);
+  document.querySelectorAll(".cal-periode").forEach((e) => e.classList.toggle("hidden", mois || annee));
   loadCalendrier();
 }
 
@@ -2845,6 +2863,178 @@ async function calRenderMois() {
   // Cliquer un jour vide ouvre la création sur ce jour.
   z.querySelectorAll(".cal-jour").forEach((c) =>
     c.addEventListener("click", () => calOuvrir(null, "evenement", c.dataset.jour, c.dataset.jour)));
+}
+
+// --- Vue année ---
+// Douze mois d'un coup. Ce qu'on cherche ici n'est pas le détail d'un jour
+// mais la forme de la saison : où sont les trous, où s'empilent les stages,
+// quand la moitié de l'équipe est en vacances en même temps. D'où des cases
+// minuscules, une couleur par famille, et le détail renvoyé à l'infobulle.
+//
+// Trois registres superposés, parce qu'ils ne répondent pas à la même question :
+//   · le FOND dit l'état de l'académie ce jour-là (fermée, stage, vacances
+//     scolaires) — c'est ce qu'on lit en diagonale ;
+//   · un ANNEAU autour du numéro marque un rendez-vous ponctuel (événement,
+//     férié, session de test) ;
+//   · des BARRES en bas nomment les personnes absentes, une par personne, à sa
+//     couleur — elles s'empilent, c'est tout l'intérêt.
+const CAY_CATS = [
+  ["scolaire",  "Vacances scolaires", "fond"],
+  ["ferie",     "Jours fériés",       "anneau"],
+  ["fermeture", "Académie fermée",    "fond"],
+  ["camp",      "Stages et camps",    "fond"],
+  ["evenement", "Événements",         "anneau"],
+  ["test",      "Sessions de test",   "anneau"],
+  ["vacances",  "Vacances équipe",    "barre"],
+  ["absence",   "Absences",           "barre"],
+];
+// Le fond ne peut afficher qu'une couleur : la plus lourde de conséquence
+// gagne. Une académie fermée prime sur un stage, qui prime sur les vacances
+// scolaires — l'inverse cacherait l'information la plus importante.
+const CAY_FOND_ORDRE = ["fermeture", "camp", "scolaire"];
+
+let calAn = null;                                     // année d'août de la saison affichée
+let calAnJours = null;                                // index jour ISO → éléments
+const calFiltres = new Set(CAY_CATS.map((c) => c[0]));
+const calFiltreQui = new Set();                       // vide = toute l'équipe
+
+const calSaisonCourante = () => {
+  const n = new Date();
+  return n.getMonth() >= 7 ? n.getFullYear() : n.getFullYear() - 1;   // août = 7
+};
+
+async function calChargerAnnee() {
+  const d0 = `${calAn}-08-01`, d1 = calISO(new Date(calAn + 1, 7, 0));   // 31 juillet
+  const [ev, sc, fe, st] = await Promise.all([
+    sb.from("cal_events").select("*, pm_members(name,initials,color)")
+      .eq("status", "valide").lte("start_date", d1).gte("end_date", d0),
+    sb.from("school_holidays").select("label,start_date,end_date")
+      .eq("canton", "VD").lte("start_date", d1).gte("end_date", d0),
+    sb.from("public_holidays").select("label,day").eq("canton", "VD").gte("day", d0).lte("day", d1),
+    sb.from("stage_sessions").select("id,title,start_date,end_date")
+      .lte("start_date", d1).gte("end_date", d0),
+  ]);
+
+  // Un index par jour plutôt qu'un balayage de toutes les plages pour chacune
+  // des ~370 cases : on parcourt chaque plage une fois, et le rendu n'a plus
+  // qu'à lire une case de table.
+  const jours = new Map();
+  const poser = (iso, item) => {
+    if (iso < d0 || iso > d1) return;
+    if (!jours.has(iso)) jours.set(iso, []);
+    jours.get(iso).push(item);
+  };
+  const etaler = (debut, fin, item) => {
+    for (const d = new Date(debut + "T00:00:00"); calISO(d) <= fin; d.setDate(d.getDate() + 1)) poser(calISO(d), item);
+  };
+
+  for (const h of (sc.error ? [] : sc.data || [])) etaler(h.start_date, h.end_date, { cat: "scolaire", titre: h.label });
+  for (const f of (fe.error ? [] : fe.data || [])) poser(f.day, { cat: "ferie", titre: f.label });
+  for (const s of (st.error ? [] : st.data || [])) etaler(s.start_date, s.end_date, { cat: "camp", titre: s.title || "Stage" });
+  for (const e of (ev.error ? [] : ev.data || [])) {
+    const cat = e.kind === "camp" ? "camp" : e.kind;
+    if (!CAY_CATS.some(([c]) => c === cat)) continue;
+    etaler(e.start_date, e.end_date, {
+      cat, titre: e.title || CAL_KIND[e.kind] || "", id: e.id,
+      qui: e.member_id || null,
+      nom: e.pm_members?.name || "", ini: e.pm_members?.initials || "",
+      couleur: e.pm_members?.color || "#8d93a8",
+    });
+  }
+  calAnJours = jours;
+}
+
+// Les pastilles. Elles comptent ce qu'elles filtrent : « Stages et camps (3) »
+// vaut mieux qu'une pastille qu'on active pour découvrir qu'il n'y a rien.
+function calRenderFiltres() {
+  const z = $("cal-filtres"); if (!z) return;
+  const compte = {};
+  const gens = new Map();
+  for (const items of (calAnJours || new Map()).values()) {
+    for (const it of items) {
+      compte[it.cat] = (compte[it.cat] || 0) + 1;
+      if (it.qui && !gens.has(it.qui)) gens.set(it.qui, { nom: it.nom, ini: it.ini, couleur: it.couleur });
+    }
+  }
+  const pastille = ([cat, label]) => `<button type="button" class="cay-pill${calFiltres.has(cat) ? " on" : ""}"
+      data-cat="${cat}"><i class="cay-pt cay-c-${cat}"></i>${esc(label)}${compte[cat] ? ` <span class="muted">${compte[cat]}</span>` : ""}</button>`;
+
+  const qui = [...gens.entries()].map(([id, m]) => `<button type="button" class="cay-qui${calFiltreQui.size === 0 || calFiltreQui.has(id) ? " on" : ""}"
+      data-qui="${id}" title="${esc(m.nom)}" style="--c:${esc(m.couleur)}">${esc(m.ini || "?")}</button>`).join("");
+
+  z.innerHTML = `<div class="cay-pills">${CAY_CATS.map(pastille).join("")}
+      <button type="button" class="cay-pill cay-tout">Tout afficher</button></div>`
+    + (qui ? `<div class="cay-quis"><span class="muted">Qui :</span>${qui}
+        <button type="button" class="cay-qui cay-qui-tous${calFiltreQui.size === 0 ? " on" : ""}" data-qui="">Tous</button></div>` : "");
+
+  z.querySelectorAll(".cay-pill[data-cat]").forEach((b) => b.addEventListener("click", () => {
+    const c = b.dataset.cat;
+    if (calFiltres.has(c)) calFiltres.delete(c); else calFiltres.add(c);
+    calRenderFiltres(); calDessinerAnnee();
+  }));
+  z.querySelector(".cay-tout")?.addEventListener("click", () => {
+    CAY_CATS.forEach(([c]) => calFiltres.add(c)); calFiltreQui.clear();
+    calRenderFiltres(); calDessinerAnnee();
+  });
+  z.querySelectorAll(".cay-qui[data-qui]").forEach((b) => b.addEventListener("click", () => {
+    const id = b.dataset.qui;
+    if (!id) calFiltreQui.clear();
+    else if (calFiltreQui.has(id)) calFiltreQui.delete(id);
+    else calFiltreQui.add(id);
+    calRenderFiltres(); calDessinerAnnee();
+  }));
+}
+
+const calVisible = (it) => calFiltres.has(it.cat)
+  && !(it.qui && calFiltreQui.size && !calFiltreQui.has(it.qui));
+
+function calDessinerAnnee() {
+  const z = $("cal-annee"); if (!z) return;
+  const auj = calISO(new Date());
+  const mois = [];
+  for (let i = 0; i < 12; i++) mois.push(new Date(calAn, 7 + i, 1));
+
+  z.innerHTML = mois.map((m) => {
+    const grille = calGrille(m);
+    const cases = grille.map((d) => {
+      const iso = calISO(d);
+      if (d.getMonth() !== m.getMonth()) return `<i class="cay-j cay-vide"></i>`;
+      const items = (calAnJours?.get(iso) || []).filter(calVisible);
+      const fond = CAY_FOND_ORDRE.find((c) => items.some((it) => it.cat === c));
+      const anneau = ["evenement", "test", "ferie"].find((c) => items.some((it) => it.cat === c));
+      const barres = items.filter((it) => it.cat === "vacances" || it.cat === "absence");
+      const bulle = items.map((it) => (it.ini ? it.ini + " · " : "") + it.titre).join(" · ");
+      return `<i class="cay-j${fond ? " cay-f-" + fond : ""}${anneau ? " cay-a-" + anneau : ""}${iso === auj ? " cay-auj" : ""}"
+          data-jour="${iso}"${bulle ? ` title="${esc(frDate(iso))} — ${esc(bulle)}"` : ""}>
+        <span>${d.getDate()}</span>
+        ${barres.length ? `<em class="cay-barres">${barres.slice(0, 4).map((b) =>
+            `<em style="background:${esc(b.couleur)}"></em>`).join("")}</em>` : ""}
+      </i>`;
+    }).join("");
+    return `<section class="cay-mois">
+      <h3>${CAL_MOIS_NOMS[m.getMonth()].replace(/^./, (c) => c.toUpperCase())} ${m.getFullYear()}</h3>
+      <div class="cay-grille">${CAL_JOURS.map((j) => `<i class="cay-h">${j[0]}</i>`).join("")}${cases}</div>
+    </section>`;
+  }).join("");
+
+  // Un clic sur un jour ouvre le mois correspondant : la vue année sert à
+  // repérer, le mois à travailler.
+  z.querySelectorAll(".cay-j[data-jour]").forEach((c) => c.addEventListener("click", () => {
+    const [a, mo] = c.dataset.jour.split("-").map(Number);
+    calMois = new Date(a, mo - 1, 1);
+    calVue = "mois";
+    document.querySelectorAll("[data-vue]").forEach((x) => x.classList.toggle("on", x.dataset.vue === "mois"));
+    calBasculer();
+  }));
+}
+
+async function calRenderAnnee() {
+  if (calAn == null) calAn = calSaisonCourante();
+  $("cal-mois-nom").textContent = `Saison ${calAn}–${calAn + 1}`;
+  $("cal-annee").innerHTML = '<p class="muted">Chargement…</p>';
+  await calChargerAnnee();
+  calRenderFiltres();
+  calDessinerAnnee();
 }
 
 function calRenderSemaines() {

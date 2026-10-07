@@ -4380,3 +4380,56 @@ tr.enc-ok td{background:#f4fbf6}
 .cal-pub input{margin:2px 0 0;flex:0 0 auto;width:17px;height:17px;accent-color:var(--blue)}
 .cal-pub b{display:block;font-size:.88rem;font-weight:700}
 .cal-pub em{display:block;font-style:normal;font-size:.78rem;color:var(--muted);margin-top:2px}
+
+/* ---- Calendrier, vue année ---------------------------------------------- */
+/* Douze mois tiennent à l'écran : les cases sont donc minuscules et ne portent
+   qu'une couleur. Le détail est dans l'infobulle, et un clic ouvre le mois. */
+.cal-filtres{margin:0 0 12px}
+.cay-pills{display:flex;flex-wrap:wrap;gap:7px}
+.cay-pill{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);
+  border-radius:999px;padding:5px 12px;font-size:.84rem;font-weight:600;color:var(--muted);cursor:pointer}
+.cay-pill:hover{border-color:var(--blue)}
+/* Active = pastille pleine et texte net ; inactive = contour vide. On voit
+   d'un coup d'œil ce qui est masqué, sans relire les libellés. */
+.cay-pill.on{color:var(--ink);border-color:#c7d2e4;background:#f7f9fd}
+.cay-pt{width:10px;height:10px;border-radius:50%;border:2px solid currentColor;background:transparent;flex:none}
+.cay-pill.on .cay-pt{background:currentColor}
+.cay-c-scolaire {color:#d2ab3e}.cay-c-ferie    {color:#8a6bcf}
+.cay-c-fermeture{color:#d05858}.cay-c-camp     {color:#2f9d5b}
+.cay-c-evenement{color:#3a6fd8}.cay-c-test     {color:#7a5bbf}
+.cay-c-vacances {color:#5a8fa8}.cay-c-absence  {color:#9a7b4f}
+.cay-tout{color:var(--blue-ink)}
+.cay-quis{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:.84rem}
+.cay-qui{width:28px;height:28px;border-radius:50%;border:2px solid var(--c,#8d93a8);background:#fff;
+  color:var(--c,#8d93a8);font-size:.7rem;font-weight:800;cursor:pointer;padding:0}
+.cay-qui.on{background:var(--c,#8d93a8);color:#fff}
+.cay-qui-tous{width:auto;padding:0 10px;border-color:var(--line);color:var(--muted)}
+
+.cal-annee{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.cay-mois{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px 14px}
+.cay-mois h3{margin:0 0 10px;font-size:.98rem;color:var(--blue-ink)}
+.cay-grille{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cay-h{font-size:.64rem;font-weight:700;color:var(--muted);text-align:center;font-style:normal;padding-bottom:3px}
+.cay-j{position:relative;font-style:normal;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  font-size:.74rem;color:var(--ink);border-radius:6px;cursor:pointer}
+.cay-j:hover{outline:2px solid var(--blue);outline-offset:-2px}
+.cay-vide{visibility:hidden;cursor:default}
+.cay-auj{font-weight:800;text-decoration:underline}
+/* Fond : l'état de l'académie ce jour-là. */
+.cay-f-scolaire {background:#f0e3bd}
+.cay-f-camp     {background:#dcf6e4}
+.cay-f-fermeture{background:#fadcdc;color:#9e2b2b}
+/* Anneau : un rendez-vous ponctuel. */
+.cay-a-evenement>span,.cay-a-test>span,.cay-a-ferie>span{
+  display:flex;align-items:center;justify-content:center;width:21px;height:21px;border-radius:50%;border:2px solid}
+.cay-a-evenement>span{border-color:#3a6fd8}
+.cay-a-test>span{border-color:#7a5bbf}
+.cay-a-ferie>span{border-color:#8a6bcf}
+/* Barres : une par personne absente, à sa couleur. Elles s'empilent, c'est
+   précisément ce qu'on veut voir. */
+.cay-barres{position:absolute;left:2px;right:2px;bottom:1px;display:flex;gap:1px;font-style:normal}
+.cay-barres em{flex:1;height:3px;border-radius:2px;font-style:normal}
+
+@media (max-width:1200px){ .cal-annee{grid-template-columns:repeat(3,1fr)} }
+@media (max-width:900px) { .cal-annee{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:600px) { .cal-annee{grid-template-columns:1fr} }
