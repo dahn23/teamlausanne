@@ -194,6 +194,33 @@ const WORLDS = {
 
 };
 
+// Droit à l'image : même mention au bas des quatre filières sans contrat signé
+// — Kids Tennis, Club, Compétition, Performance. Sport-études, Pro U18 et Pro
+// ne l'ont pas : leur contrat traite déjà la question.
+//
+// Elle est écrite une fois et réutilisée : quatre copies finiraient par
+// diverger, et une mention légale qui ne dit pas la même chose d'une page à
+// l'autre ne vaut rien.
+//
+// ⚠️ Informer n'est pas obtenir un consentement. Pour l'image d'un mineur
+// utilisée en communication, la base solide reste l'accord explicite du
+// représentant légal, recueilli à l'inscription. Cette mention informe et
+// ouvre un droit d'opposition tracé — elle aide, elle ne remplace pas une case
+// à cocher dans le formulaire.
+const MENTION_IMAGE = {
+  type: "mention", title: "Droit à l'image",
+  body: "Dans le cadre des cours, stages, tournois et événements, Team Lausanne Academy "
+    + "réalise des photographies et des vidéos, susceptibles d'être utilisées pour sa "
+    + "communication : site internet, réseaux sociaux, newsletter, supports imprimés et "
+    + "relations presse. Ces images ne sont ni vendues ni cédées à des tiers à des fins "
+    + "commerciales, et les mineurs n'y sont jamais identifiés au-delà de leur prénom. "
+    + "Le représentant légal peut s'opposer à cette utilisation à tout moment, sans "
+    + "justification et sans conséquence sur la participation, et demander le retrait "
+    + "d'une image déjà publiée en écrivant à info@teamlausanne.ch : nous y donnons "
+    + "suite dans les meilleurs délais. Les données sont traitées conformément à la loi "
+    + "fédérale sur la protection des données (LPD).",
+};
+
 // ===================================================================
 //  PAGES DÉTAILLÉES
 // ===================================================================
@@ -420,6 +447,7 @@ const DETAILS = {
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "competition", ranking: true,
         lead: "Intéressé(e) par la filière Compétition ? Remplissez ce formulaire, le secrétariat vous recontacte." },
+      MENTION_IMAGE,
     ],
   },
   performance: {
@@ -488,6 +516,7 @@ const DETAILS = {
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "performance", ranking: true,
         lead: "Intéressé(e) par la filière Performance ? Remplissez ce formulaire, le secrétariat vous recontacte." },
+      MENTION_IMAGE,
     ],
   },
   "pro-u18": {
@@ -662,6 +691,7 @@ const DETAILS = {
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "kidstennis", ranking: false,
         lead: "Envie d'inscrire votre enfant à Kids Tennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
+      MENTION_IMAGE,
     ],
   },
   "club-academy": {
@@ -711,6 +741,7 @@ const DETAILS = {
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "club", ranking: false,
         lead: "Envie de rejoindre l'offre Club ? Remplissez ce formulaire, le secrétariat vous recontacte." },
+      MENTION_IMAGE,
     ],
   },
   adultes: {
@@ -897,6 +928,14 @@ function sectionHTML(sec) {
       return `<section class="wsec"><h2>${esc(sec.title)}</h2>
         <div class="rich">${sec.body.map((p) => `<p>${esc(p)}</p>`).join("")}</div>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}${linkHTML(sec.link)}</section>`;
+
+    // Mention legale en bas de page (petits caracteres). Volontairement lisible
+    // malgre sa taille : une mention qu'on ne peut pas lire ne protege personne,
+    // et c'est le genre de texte qu'un parent vient relire apres coup.
+    case "mention":
+      return `<section class="mention" aria-label="${esc(sec.title)}">
+        <h2>${esc(sec.title)}</h2>
+        <p>${esc(sec.body)}</p></section>`;
 
     // Deux presentations pour les memes donnees. Par defaut, des cartes claires
     // dans le fil de la page. Avec « board », un bandeau sombre pleine largeur :

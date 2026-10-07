@@ -3058,3 +3058,12 @@ button.calp-c:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
   .calp-item{grid-template-columns:1fr}
   .calp-quand{grid-row:auto;min-width:0}
 }
+
+/* ---- Mention légale de bas de page (droit à l'image) -------------------- */
+/* Petits caractères, mais lisibles : une mention illisible ne protège
+   personne, et c'est le texte qu'un parent vient relire après coup. Détachée
+   du contenu par un filet, pour qu'on voie qu'on change de registre. */
+.mention{margin:var(--sec-sm) 0 0;padding:16px 0 0;border-top:1px solid var(--line)}
+.mention>h2{font-size:.84rem;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted);margin:0 0 6px;font-weight:700}
+.mention>p{margin:0;max-width:72ch;font-size:.82rem;line-height:1.6;color:var(--muted)}
