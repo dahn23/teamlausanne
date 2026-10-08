@@ -245,7 +245,7 @@ const PERSON_ROLES = [
   ["head-coach", "Head coach"], ["official", "Official"], ["responsable-tournoi", "Responsable de tournoi"],
   ["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"],
   ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"], ["prive", "Privé"],
-  ["prof", "Prof"], ["coach-mental", "Coach mental"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["secretaire", "Secrétaire"], ["finance", "Finance"], ["admin", "Admin"], ["superadmin", "Superadmin"],
+  ["prof", "Prof"], ["coach-mental", "Coach mental"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["secretaire", "Secrétaire"], ["finance", "Finance (facturation)"], ["paie", "Paie (salaires)"], ["admin", "Admin"], ["superadmin", "Superadmin"],
   ["concierge", "Concierge"],   // salarié sans aucun accès à l'app (fiche + salaire seulement)
   ["gamezone", "GameZone"],     // joueur de tournoi GameZone relié automatiquement (db/101) ; aucun accès à l'app
   ["gz-lecture", "GameZone (lecture)"],  // voit l'onglet GameZone sans rien pouvoir y changer (db/135)
@@ -9824,7 +9824,10 @@ function renderLockers() {
 //  Salaires — PDF de la fiduciaire → net à payer (Heures) → fiche de salaire par personne → Factures
 // ===================================================================
 const SAL_SENDER = "@fimisa.ch";                       // la fiduciaire (Sara Ninetti)
-const canSalaries = () => hasAny(myAppRoles, ["admin", "superadmin"]);
+// Salaires : admins, ou le tag CRM « paie » (db/136, qui a separe la paie de la
+// facturation). Le tag « finance » ne donne PAS les salaires.
+const canSalaries = () => hasAny(myAppRoles, ["admin", "superadmin"])
+  || !!(myPersonId && (peopleRoles[myPersonId] || []).includes("paie"));
 let salSlips = [];                                     // salary_slips du mois affiché
 let salPeople = null;                                  // staff payable (attribution manuelle)
 let salParsed = null, salBytes = null, salMailId = null; // import en cours
