@@ -266,8 +266,8 @@
           </div>
         </div>
         <ul class="co-fiche-tags"><li>Sport Studies &amp; Pro</li><li>Competition</li><li>Performance</li></ul>
-        <img class="co-fiche-photo" src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a677a4da1b7ec8ea304896a_mariano-palena_compressed.jpg"
-             alt="Mariano Palena" loading="lazy" />
+        <img class="co-fiche-photo" data-src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a677a4da1b7ec8ea304896a_mariano-palena_compressed.jpg"
+             alt="Mariano Palena" />
       </div>
     </div>
   </div>
@@ -305,8 +305,8 @@
           </div>
         </div>
         <ul class="co-fiche-tags"><li>Sport Studies &amp; Pro</li></ul>
-        <img class="co-fiche-photo" src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a677a4330479d5321b82b8d_yann-perez_compressed.jpg"
-             alt="Yann Perez" loading="lazy" />
+        <img class="co-fiche-photo" data-src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a677a4330479d5321b82b8d_yann-perez_compressed.jpg"
+             alt="Yann Perez" />
       </div>
     </div>
   </div>
@@ -341,8 +341,8 @@
           </div>
         </div>
         <ul class="co-fiche-tags"><li>Kids Tennis</li><li>Club</li><li>Competition</li><li>Camps</li></ul>
-        <img class="co-fiche-photo" src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a677a3b9d27bcaa48232262_loris-gander_compressed.jpg"
-             alt="Loris Gander" loading="lazy" />
+        <img class="co-fiche-photo" data-src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a677a3b9d27bcaa48232262_loris-gander_compressed.jpg"
+             alt="Loris Gander" />
       </div>
     </div>
   </div>
@@ -379,8 +379,8 @@
           </div>
         </div>
         <ul class="co-fiche-tags"><li>Kids Tennis</li><li>Club</li></ul>
-        <img class="co-fiche-photo" src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a677a313628192ce9c11be2_seline-rivarolli_compressed.jpg"
-             alt="Séline Rivarolli" loading="lazy" />
+        <img class="co-fiche-photo" data-src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a677a313628192ce9c11be2_seline-rivarolli_compressed.jpg"
+             alt="Séline Rivarolli" />
       </div>
     </div>
   </div>
@@ -415,8 +415,8 @@
           </div>
         </div>
         <ul class="co-fiche-tags"><li>Kids Tennis</li><li>Club</li><li>Camps</li></ul>
-        <img class="co-fiche-photo" src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a677a28ee2caa73ca57ee00_talia-picci_compressed.jpg"
-             alt="Talia Picci" loading="lazy" />
+        <img class="co-fiche-photo" data-src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a677a28ee2caa73ca57ee00_talia-picci_compressed.jpg"
+             alt="Talia Picci" />
       </div>
     </div>
   </div>
@@ -434,6 +434,14 @@
         fermer();
         ouverte = f;
         f.classList.add("ouvert");
+        // La photo n'est demandee qu'a la premiere ouverture, et par le script.
+        // loading="lazy" ne marchait PAS ici : une image dont un parent est en
+        // display:none n'est jamais jugee « proche de la fenetre », et elle ne
+        // demarre toujours pas quand ce parent redevient visible. Verifie le
+        // 08.10.2026 sur la page deployee : currentSrc restait vide apres sept
+        // secondes, fiche ouverte.
+        var ph = f.querySelector(".co-fiche-photo[data-src]");
+        if (ph) { ph.src = ph.getAttribute("data-src"); ph.removeAttribute("data-src"); }
         // Le fond ne defile plus sous la fiche.
         document.documentElement.style.overflow = "hidden";
         var x = f.querySelector(".co-fermer");
