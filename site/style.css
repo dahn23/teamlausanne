@@ -2773,11 +2773,24 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 .eleve-nom{font-family:var(--font-accent);font-weight:700;text-transform:uppercase;
   letter-spacing:-.02em;font-size:1.15rem;color:#fff;line-height:1.1}
 .eleve-meta{color:var(--fluo);font-weight:700;font-size:.86rem}
-/* Le dos de la carte, revele au survol ou au clic. */
+/* Le dos de la carte, revele au survol ou au clic.
+   Le texte est cale en BAS tant qu'il tient, et defile des qu'il deborde.
+   « justify-content:flex-end » seul faisait sortir le contenu trop long par le
+   HAUT, ou la carte le coupait net : quatre portraits sur huit perdaient ainsi
+   leur nom et leurs premieres lignes (Ylan, 120 px coupes). Un flex ne defile
+   pas vers le haut, donc on remplace le calage par une marge automatique sur le
+   premier enfant : elle vaut zero des que la place manque, le contenu repart du
+   haut et overflow-y le rend atteignable. */
 .eleve-dos{position:absolute;inset:0;padding:22px;display:flex;flex-direction:column;
-  justify-content:flex-end;gap:6px;color:#fff;
+  justify-content:flex-start;overflow-y:auto;overscroll-behavior:contain;gap:6px;color:#fff;
   background:linear-gradient(180deg,rgba(4,32,94,.55),rgba(4,32,94,.95));
   opacity:0;transition:opacity .35s ease}
+.eleve-dos>:first-child{margin-top:auto}
+/* Une barre de defilement systeme sur un fond bleu nuit se voit trop. */
+.eleve-dos{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.35) transparent}
+.eleve-dos::-webkit-scrollbar{width:4px}
+.eleve-dos::-webkit-scrollbar-thumb{background:rgba(255,255,255,.35);border-radius:4px}
+.eleve-dos::-webkit-scrollbar-track{background:transparent}
 .eleve-dos-nom{font-family:var(--font-accent);font-weight:700;text-transform:uppercase;
   letter-spacing:-.02em;font-size:1.2rem;line-height:1.1}
 .eleve-dos-meta{color:var(--fluo);font-weight:700;font-size:.88rem;margin-bottom:4px}

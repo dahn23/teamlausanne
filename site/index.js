@@ -3003,14 +3003,32 @@ addEventListener("pageshow", (e) => {
 // ---- Portraits d'eleves : bascule au clic ----
 // Le survol suffit a la souris, mais pas au doigt ni au clavier : le clic
 // bascule donc l'etat, et aria-expanded le dit aux lecteurs d'ecran.
+// Une seule carte ouverte a la fois, et un clic ailleurs les referme toutes :
+// l'etat pose au clic survivait au depart de la souris, si bien qu'en parcourant
+// les autres portraits on laissait derriere soi des cartes retournees qui
+// avaient l'air bloquees.
+function eleveFermer(sauf) {
+  document.querySelectorAll(".eleve.ouvert").forEach((c) => {
+    if (c === sauf) return;
+    c.classList.remove("ouvert");
+    const b = c.querySelector("[data-eleve]");
+    if (b) b.setAttribute("aria-expanded", "false");
+  });
+}
+
 document.addEventListener("click", (e) => {
   const bouton = e.target.closest("[data-eleve]");
-  if (!bouton) return;
   // L'etat vit sur la carte : c'est elle que le CSS interroge, et le lien
   // myTennis est son frere, hors du bouton.
-  const ouvert = bouton.closest(".eleve").classList.toggle("ouvert");
+  const carte = bouton ? bouton.closest(".eleve") : null;
+  eleveFermer(carte);
+  if (!bouton) return;
+  const ouvert = carte.classList.toggle("ouvert");
   bouton.setAttribute("aria-expanded", ouvert ? "true" : "false");
 });
+
+// Echap referme la carte ouverte, comme partout ailleurs sur le site.
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") eleveFermer(null); });
 
 // ---- Carrousel des portraits ----
 // Une seule ligne qui defile, plutot qu'une grille qui s'empile : avec cinq
