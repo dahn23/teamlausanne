@@ -896,6 +896,29 @@ const DETAILS = {
               "Expérience de l'entraînement en académie.",
             ]},
 
+          // Propos recueillis aupres de Celyan. Sa photo de la page Sport-etudes
+          // est reprise en attendant une photo faite pour ce format : elle est en
+          // 3/4 vertical, le cadrage la recoupe mais tient.
+          { slug: "celyan-lorival", role: "Coach", nom: "Célyan Lorival",
+            photo: "assets/photos/eleve-celyan-lorival.jpg",
+            portrait: "assets/photos/eleve-celyan-lorival.jpg",
+            resume: "Joueur en sport-études et coach depuis deux ans, il transmet avec patience ce qu'il continue d'apprendre sur le court.",
+            tags: ["Sport-études", "Stages"],
+            bio: [
+              "Célyan Lorival est en sport-études au Lausanne-Sports depuis cinq ans, avec le bac en ligne de mire. Il enseigne depuis environ deux ans, en cours comme en stage.",
+              "Revers à une main, et un faible avoué pour l'ambiance des interclubs. Patient et motivé, il aime transmettre autant que jouer.",
+            ],
+            classement: ["Classement actuel et meilleur classement : R2."],
+            formations: [
+              "Jeunesse+Sport, formation continue 1.",
+              "Jeunesse+Sport, formation continue 2.",
+              "Official Swiss Tennis.",
+            ],
+            parcours: [
+              "Cinq ans de sport-études au Lausanne-Sports.",
+              "Enseigne depuis deux ans, en cours et en stage.",
+            ]},
+
           { slug: "talia-picci", role: "Coach junior", nom: "Talia Picci",
             resume: "Compétitrice R1 en activité, elle accompagne les jeunes dans des séances vivantes, détendues et motivantes, centrées sur l'engagement et le plaisir.",
             tags: ["Kids Tennis", "Club", "Stages"],
@@ -977,8 +1000,11 @@ const BALLE = `<svg class="kw-balle" viewBox="0 0 24 24" aria-hidden="true" focu
 // lecteur d'ecran annoncerait tout le bloc comme un seul libelle. Le clic sur la
 // carte reste un confort ; la commande est le bouton « En savoir plus », nomme
 // d'apres son coach, seul element atteignable au clavier.
-const coachPhoto = (c) => `assets/photos/coaches/${c.slug}.jpg`;
-const coachPortrait = (c) => `assets/photos/coaches/${c.slug}-large.jpg`;
+// Par defaut la photo suit le slug. « photo » et « portrait » permettent d'en
+// viser une autre : Celyan n'a pas encore de photo faite pour cette page, et
+// reutilise en attendant celle de son portrait d'eleve.
+const coachPhoto = (c) => c.photo || `assets/photos/coaches/${c.slug}.jpg`;
+const coachPortrait = (c) => c.portrait || `assets/photos/coaches/${c.slug}-large.jpg`;
 
 // Fleche du bouton, reprise de la page d'origine.
 const CCH_FLECHE = `<svg class="cch-fleche" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
