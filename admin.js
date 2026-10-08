@@ -12638,6 +12638,30 @@ async function deleteStage() {
   loadStagesTab();
 }
 
+// Repas de midi d'un inscrit (db/139). La catégorie donne la règle — journée
+// et pro mangent, les autres non — et la colonne « meal » de l'inscription la
+// contredit quand il le faut : le père de Joël Grumelli a demandé qu'il reste
+// manger alors qu'il est en Loisir matin.
+//
+// Trois états et non un booléen : NULL suit la catégorie, donc une catégorie
+// qui change d'avis entraîne tout le monde avec elle, sauf ceux pour qui on a
+// explicitement tranché.
+const stgMange = (r) => (r.meal === null || r.meal === undefined)
+  ? !!stgCatById(r.category_id).meal
+  : r.meal === true;
+
+async function stgBasculerRepas(id) {
+  const r = stgRegs.find((x) => x.id === id); if (!r) return;
+  const defaut = !!stgCatById(r.category_id).meal;
+  // On fait tourner les trois états, mais on repasse par « comme la
+  // catégorie » plutôt que de laisser une exception figée sans raison.
+  const suivant = (r.meal === null || r.meal === undefined) ? !defaut : null;
+  const { error } = await sb.from("stage_registrations").update({ meal: suivant }).eq("id", id);
+  if (error) { uiAlert("Changement impossible : " + error.message); return; }
+  r.meal = suivant;
+  renderRegistrants();
+}
+
 // ---- Envoi des mails de stage (db/138) ----------------------------------
 // Les quatre modèles étaient éditables depuis le début, mais rien ne les
 // envoyait : ni cron, ni trigger, ni bouton. Les délais en jours sont donc là
@@ -12845,8 +12869,16 @@ function renderRegistrants() {
 
   // --- Résumé financier ---
   const encaisse = stgRegs.filter((r) => r.paid).reduce((t, r) => t + stgRegPrice(r, days), 0);
-  const mealRegs = stgRegs.filter((r) => stgCatById(r.category_id).meal).length; // journée / pro
-  const repasCount = days * (stgStaff.length + mealRegs);
+  // Repas : la catégorie décide (journée, pro), sauf exception notée sur
+  // l'inscrit — un parent qui demande que son enfant reste manger, ou
+  // l'inverse. Voir stgMange et db/139.
+  const mangeurs = stgRegs.filter(stgMange);
+  const mealRegs = mangeurs.length;
+  const exceptions = mangeurs.filter((r) => r.meal === true).length;
+  // Un coach qui encadre deux catégories a deux lignes dans stage_staff mais
+  // ne mange qu'une fois : on compte les PERSONNES, pas les affectations.
+  const coachsRepas = new Set(stgStaff.map((x) => x.coach_person_id || x.name)).size;
+  const repasCount = days * (coachsRepas + mealRegs);
   const repasCost = repasCount * 15;
   const coachFees = stgStaff.reduce((t, x) => t + Number(x.fee || 0), 0);
   const solde = round2(encaisse - repasCost - coachFees);
@@ -12858,7 +12890,9 @@ function renderRegistrants() {
       <div class="stg-fin"><span>− Tarifs coachs</span><b>−${round2(coachFees)} CHF</b></div>
       <div class="stg-fin stg-fin-total"><span>Solde</span><b>${solde} CHF</b></div>
     </div>
-    <p class="muted" style="font-size:.78rem;margin:8px 0 0">Repas = 15 CHF × ${jours(days)} × (${stgStaff.length} coach(s) + ${mealRegs} inscrit(s) journée/pro).</p>`;
+    <p class="muted" style="font-size:.78rem;margin:8px 0 0">Repas = 15 CHF × ${jours(days)} × (${coachsRepas} coach(s) + ${mealRegs} inscrit(s)${
+      exceptions ? `, dont ${exceptions} par exception` : ""}) = <b>${coachsRepas + mealRegs} par jour</b>.
+      ${stgStaff.length > coachsRepas ? `<br>${stgStaff.length} affectation(s) de coach pour ${coachsRepas} personne(s) : qui encadre deux catégories ne mange qu'une fois.` : ""}</p>`;
 
   // --- Tuiles récap ---
   $("stg-cat-tiles").innerHTML = [`<div class="stg-tile"><b>${stgRegs.length}</b><span>participants</span></div>`]
@@ -12902,13 +12936,22 @@ function stgRegRow(r, cat, days) {
     r.birth_date ? `né(e) le ${frDate(r.birth_date)}` : "",
     r.email ? esc(r.email) : "",
     cat.tshirt && r.tshirt_size ? `T-shirt ${esc(r.tshirt_size)}` : "",
-    cat.meal && r.meal_restriction ? `Repas : ${esc(r.meal_restriction)}` : "",
+    stgMange(r) && r.meal_restriction ? `Repas : ${esc(r.meal_restriction)}` : "",
     r.ranking ? `<b>Classement ${esc(r.ranking)}</b>` : "",
   ].filter(Boolean).join(" · ");
   return `<div class="stg-reg" data-id="${r.id}">
     <div class="stg-reg-who">
       <div class="stg-reg-name"><b>${esc(r.first_name)} ${esc(r.last_name)}</b> ${r.person_id ? '<span class="stg-linked" title="Lié à une fiche du répertoire">✓ fiche</span>' : `<button type="button" class="ghost stg-link" data-id="${r.id}">Lier</button>`}${r.private_addon ? ' <span class="stg-tag">+3h privé</span>' : ""}</div>
       <div class="stg-reg-info">${infos || '<span class="muted">—</span>'}</div>
+      ${(() => {
+        // La pastille repas se clique : elle dit l'état et sert d'interrupteur.
+        const mange = stgMange(r), force = r.meal !== null && r.meal !== undefined;
+        return `<button type="button" class="stg-repas${mange ? " on" : ""}${force ? " forcee" : ""}"
+          data-repas="${r.id}" title="${force
+            ? "Exception posée à la main — cliquer pour revenir à la règle de la catégorie"
+            : "Suit la catégorie — cliquer pour faire une exception"}">${
+          mange ? "🍽 mange" : "sans repas"}${force ? " (exception)" : ""}</button>`;
+      })()}
       ${r.comment ? `<div class="stg-reg-cmt">💬 ${esc(r.comment)}</div>` : ""}
     </div>
     <div class="stg-reg-money">
@@ -12940,6 +12983,7 @@ function wireStageDetail() {
   D.querySelectorAll(".stg-inv-send").forEach((b) => b.addEventListener("click", () => stgSendInvoice(b.dataset.id)));
   D.querySelectorAll(".stg-inv-open").forEach((b) => b.addEventListener("click", () => stgOpenInvoiceTab(b.dataset.id)));
   D.querySelectorAll(".stg-paid").forEach((c) => c.addEventListener("change", () => togglePaid(c.dataset.id, c.checked)));
+  D.querySelectorAll(".stg-repas").forEach((b) => b.addEventListener("click", () => stgBasculerRepas(b.dataset.repas)));
   D.querySelectorAll(".stg-reg-del").forEach((b) => b.addEventListener("click", () => delRegistrant(b.dataset.id)));
   D.querySelectorAll(".stg-coach-add").forEach((b) => b.addEventListener("click", () => addStageStaff(b.dataset.cat)));
   D.querySelectorAll(".stg-coach-del").forEach((b) => b.addEventListener("click", () => delStageStaff(b.dataset.id)));

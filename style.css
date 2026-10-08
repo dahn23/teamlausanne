@@ -4639,3 +4639,12 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   padding:8px 0;border-top:1px solid var(--line);font-size:.9rem}
 .stg-mail-l:first-of-type{border-top:0}
 .stg-mail-n{font-weight:600;min-width:210px}
+
+/* Pastille repas d'un inscrit de stage (db/139) : état et interrupteur à la
+   fois. L'exception se distingue de la règle — sinon on ne sait plus si
+   quelqu'un mange parce que sa catégorie le veut ou parce qu'on l'a décidé. */
+.stg-repas{font-size:.72rem;font-weight:700;border-radius:999px;padding:2px 9px;margin-top:4px;
+  background:#eef2f8;color:var(--muted);border:1px solid var(--line);cursor:pointer}
+.stg-repas.on{background:#e8f6ec;color:#1c6b38;border-color:#c3e6ce}
+.stg-repas.forcee{border-style:dashed;border-width:1.5px}
+.stg-repas:hover{border-color:var(--blue)}
