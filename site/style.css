@@ -1467,6 +1467,28 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 .cch-grid{display:grid;gap:20px;
   grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr))}
 
+/* Carrousel de l'accueil. Meme mecanique que la piste des portraits d'eleves —
+   defilement libre, fleches .carr-nav deja stylees plus bas — mais sans depart
+   automatique (data-auto="0") : la bande sombre des programmes defile juste en
+   dessous, et deux mouvements l'un sur l'autre fatiguent la lecture. */
+.cch-carrousel{position:relative}
+.cch-piste{display:flex;gap:20px;overflow-x:auto;overscroll-behavior-x:contain;
+  /* Le survol souleve la carte de 4 px et son ombre deborde : sans cette marge
+     interieure, la piste montrerait une barre verticale parasite. */
+  padding:10px 2px 16px;
+  scrollbar-width:none;-ms-overflow-style:none}
+.cch-piste::-webkit-scrollbar{display:none}
+.cch-piste:focus-visible{outline:3px solid var(--fluo);outline-offset:4px;border-radius:var(--radius)}
+/* Trois cartes entieres et un morceau de la quatrieme : on voit tout de suite
+   qu'il y a une suite, sans avoir a deviner. */
+.cch-piste>.cch-carte{flex:0 0 clamp(260px,30%,330px)}
+.cch-tout{margin:16px 0 0}
+@media(max-width:720px){
+  /* Au doigt on fait glisser : les fleches disparaissent (regle commune plus
+     bas) et les cartes s'elargissent d'autant. */
+  .cch-piste>.cch-carte{flex:0 0 min(80%,320px)}
+}
+
 .cch-carte{display:flex;flex-direction:column;background:#ededed;
   border-radius:32px;overflow:hidden;cursor:pointer;
   transition:transform .22s ease,box-shadow .22s ease}

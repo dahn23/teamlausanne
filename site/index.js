@@ -87,6 +87,129 @@ const PARTENAIRES_ACADEMIE = ["garage-plaine", "bs-architectes"]
 // ===================================================================
 //  MONDES
 // ===================================================================
+// ---- L'equipe de coachs -------------------------------------------------
+// Liste unique : la page « Nos coachs » (DETAILS.coaches) et le carrousel de
+// l'accueil la lisent toutes deux. Une photo manquante se remplace ici, une
+// filiere change ici, et les deux endroits suivent.
+const COACHS = [
+  { slug: "mariano-palena", role: "Head coach", nom: "Mariano Palena",
+    resume: "Coach international, il accompagne des joueurs professionnels dans leur développement technique, mental et personnel.",
+    tags: ["Sport-études & Pro", "Compétition", "Performance"],
+    bio: [
+      "Argentin d'origine, Mariano Palena entraîne depuis ses 18 ans. Passionné de tennis et de transmission, il accompagne les jeunes joueurs dans leur développement sportif, mental et personnel.",
+    ],
+    citation: "Mon rôle est d'aider les jeunes à aimer le processus et à devenir autonomes. Avant d'être des joueurs de tennis, nous sommes des personnes. Les valeurs passent toujours en premier.",
+    classement: ["Niveau estimé N4/R1 en Suisse."],
+    formations: [
+      "Formation de l'Association argentine de tennis, niveaux 1 et 2.",
+      "ITF niveau III.",
+      "Formations complémentaires en biomécanique, préparation physique et psychologie du sport.",
+    ],
+    parcours: [
+      "Expérience auprès de juniors de tous âges, y compris sur le circuit ITF Junior.",
+      "A entraîné des joueurs professionnels classés jusqu'au top 350 ATP.",
+      "A accompagné des joueuses entrées dans le top 100 WTA, sur les tournois WTA et en Grand Chelem.",
+      "Expérience d'entraîneur en Argentine, en Italie, en Espagne et en Arabie saoudite.",
+      "Head coach des groupes Sport-études & Pro depuis plus de deux ans.",
+    ]},
+
+  { slug: "yann-perez", role: "Coach", nom: "Yann Perez",
+    resume: "Coach performance, il associe l'expérience de la compétition à une approche exigeante, intense et respectueuse.",
+    tags: ["Sport-études & Pro"],
+    bio: [
+      "Yann Perez a rejoint l'académie il y a cinq ans. En parallèle de son métier de coach, il a mené des études universitaires tout en continuant à jouer en compétition.",
+      "Discipline, intensité et respect sont au cœur de son approche sur le court.",
+    ],
+    classement: ["Classement actuel : R1 (290).", "Meilleur classement : R1 (189)."],
+    formations: [
+      "Entraîneur J+S.",
+      "Brevet d'enseignement pour joueurs avancés.",
+      "Coach Youth Sport.",
+      "Swiss Tennis Physis Coach.",
+    ],
+    parcours: [
+      "Deux fois champion vaudois.",
+      "Finaliste des interclubs juniors.",
+      "Sparring-partner de joueurs ATP.",
+      "Stages d'entraînement en Espagne.",
+    ]},
+
+  { slug: "loris-gander", role: "Coach", nom: "Loris Gander",
+    resume: "Joueur de compétition en activité et coach, il partage son expérience des tournois avec patience, enthousiasme et passion.",
+    tags: ["Kids Tennis", "Club", "Compétition", "Stages"],
+    bio: [
+      "Loris Gander a 19 ans et joue au tennis depuis l'âge de trois ans. Il s'entraîne quotidiennement dans la filière Pro de la Team Lausanne Academy, avec l'objectif de devenir joueur professionnel, tout en transmettant sa passion comme coach au sein de l'académie.",
+      "Patient et passionné, Loris aime partager son énergie et son goût du tennis avec les jeunes qu'il encadre.",
+    ],
+    classement: ["Classement actuel et meilleur classement : N4 (148)."],
+    formations: ["Formation Jeunesse+Sport en cours."],
+    parcours: [
+      "A disputé plusieurs tournois ITF juniors à l'étranger.",
+      "Expérience sur quelques tournois ITF adultes.",
+      "Coach à la Team Lausanne Academy depuis un an.",
+      "Accompagnement ponctuel sur les tournois.",
+    ]},
+
+  { slug: "seline-rivarolli", role: "Coach", nom: "Séline Rivarolli",
+    resume: "Coach des plus jeunes, elle construit des séances positives et motivantes, faites d'énergie, de plaisir et de goût du jeu.",
+    tags: ["Kids Tennis", "Club"],
+    bio: [
+      "Séline Rivarolli a 19 ans et joue au tennis depuis l'âge de quatre ans. Une blessure l'a empêchée de poursuivre en compétition, mais sa passion est restée intacte et elle la transmet aujourd'hui aux plus jeunes.",
+      "Séline transmet sa passion comme on la lui a transmise : avec motivation, énergie et le sourire.",
+    ],
+    classement: ["Classement actuel : R6.", "Meilleur classement : R3."],
+    formations: [
+      "Diplôme d'aide-monitrice de tennis.",
+      "Formation J+S prévue en août 2026.",
+    ],
+    parcours: [
+      "A disputé plusieurs championnats vaudois.",
+      "A participé aux championnats suisses.",
+      "Expérience de l'entraînement en académie.",
+    ]},
+
+  // Propos recueillis aupres de Celyan. Une seule photo pour les deux
+  // emplacements, faute d'une deuxieme : en carte (386/340) elle perd ses
+  // bords et garde toute sa hauteur, donc le visage tient. En bas de
+  // fiche (620/320) c'est le haut et le bas qui sautent, et un cadrage
+  // centre lui coupait la tete — d'ou portraitPos, qui remonte le cadre.
+  // Sport-etudes est SA filiere, pas celle qu'il encadre : il donne le
+  // Kids Tennis, le Club, la Competition et les stages.
+  { slug: "celyan-lorival", role: "Coach", nom: "Célyan Lorival",
+    portrait: "assets/photos/coaches/celyan-lorival.jpg", portraitPos: "center 24%",
+    resume: "Joueur en sport-études et coach depuis deux ans, il transmet avec patience ce qu'il continue d'apprendre sur le court.",
+    tags: ["Kids Tennis", "Club", "Compétition", "Stages"],
+    bio: [
+      "Célyan Lorival est en sport-études au Lausanne-Sports depuis cinq ans, avec le bac en ligne de mire. Il enseigne depuis environ deux ans, du Kids Tennis à la Compétition, en cours comme en stage.",
+      "Revers à une main, et un faible avoué pour l'ambiance des interclubs. Patient et motivé, il aime transmettre autant que jouer.",
+    ],
+    classement: ["Classement actuel et meilleur classement : R2."],
+    formations: [
+      "Jeunesse+Sport, formation continue 1.",
+      "Jeunesse+Sport, formation continue 2.",
+      "Official Swiss Tennis.",
+    ],
+    parcours: [
+      "Cinq ans de sport-études au Lausanne-Sports.",
+      "Enseigne depuis deux ans : Kids Tennis, Club, Compétition et stages.",
+    ]},
+
+  { slug: "talia-picci", role: "Coach junior", nom: "Talia Picci",
+    resume: "Compétitrice R1 en activité, elle accompagne les jeunes dans des séances vivantes, détendues et motivantes, centrées sur l'engagement et le plaisir.",
+    tags: ["Kids Tennis", "Club", "Stages"],
+    bio: [
+      "Talia Picci a 18 ans et vise une carrière professionnelle. Classée R1, elle dispute des tournois presque chaque week-end et aborde progressivement le circuit international.",
+      "Son entraînement repose sur l'engagement et le plaisir. Quand les joueurs fournissent de vrais efforts, elle aime les récompenser par des jeux, dans une ambiance détendue et motivante.",
+    ],
+    classement: ["Classement actuel : R1 (117).", "Meilleur classement : R1 (99)."],
+    formations: ["Certification Tennis loisir, niveau 1."],
+    parcours: [
+      "Compétitrice active sur le circuit national.",
+      "Débuts sur les tournois internationaux.",
+      "Intervient en Kids Tennis, dans les groupes Club et sur les stages.",
+    ]},
+];
+
 const WORLDS = {
   academie: {
     tag: "Academy", retour: "à l'Academy",
@@ -114,6 +237,16 @@ const WORLDS = {
           "Avec la possibilité de disputer quelques compétitions ponctuelles — dont les interclubs, pour les membres du club.",
         ]},
         note: "L'âge n'est qu'un repère : la progression s'adapte à chacun, à 1–2 ans près. Celles et ceux qui ne rejoignent pas une filière sélective poursuivent en Club." },
+      // Les coachs sur l'accueil : une pyramide de filieres ne dit pas QUI
+      // encadre. En carrousel plutot qu'en grille — six cartes en grille
+      // auraient repousse tout le bas de page — et SANS defilement automatique :
+      // la bande sombre « Un programme pour chaque niveau » defile juste en
+      // dessous, et deux mouvements l'un sur l'autre fatiguent.
+      { type: "coachs", piste: true, anchor: "coachs", eyebrow: "Celles et ceux qui encadrent",
+        title: "Nos coachs",
+        lead: "Du Kids Tennis au Pro, la même équipe et la même exigence. Cliquez sur une carte pour lire son parcours.",
+        lien: { label: "Voir toute l'équipe", href: "#coaches" },
+        items: COACHS },
       { type: "carousel", anchor: "programmes", eyebrow: "Cours pour tous", title: "Un programme pour chaque niveau",
         sub: "Du premier échange à la performance, un parcours clair pour progresser avec plaisir.",
         items: [
@@ -819,124 +952,9 @@ const DETAILS = {
       { type: "coachs", eyebrow: "Notre équipe de coachs",
         title: "Une équipe tournée vers la progression",
         lead: "Nos coachs travaillent ensemble, pour que l'encadrement reste cohérent à tous les niveaux — des premières balles jusqu'au Sport-études et au Pro.",
-        items: [
-          { slug: "mariano-palena", role: "Head coach", nom: "Mariano Palena",
-            resume: "Coach international, il accompagne des joueurs professionnels dans leur développement technique, mental et personnel.",
-            tags: ["Sport-études & Pro", "Compétition", "Performance"],
-            bio: [
-              "Argentin d'origine, Mariano Palena entraîne depuis ses 18 ans. Passionné de tennis et de transmission, il accompagne les jeunes joueurs dans leur développement sportif, mental et personnel.",
-            ],
-            citation: "Mon rôle est d'aider les jeunes à aimer le processus et à devenir autonomes. Avant d'être des joueurs de tennis, nous sommes des personnes. Les valeurs passent toujours en premier.",
-            classement: ["Niveau estimé N4/R1 en Suisse."],
-            formations: [
-              "Formation de l'Association argentine de tennis, niveaux 1 et 2.",
-              "ITF niveau III.",
-              "Formations complémentaires en biomécanique, préparation physique et psychologie du sport.",
-            ],
-            parcours: [
-              "Expérience auprès de juniors de tous âges, y compris sur le circuit ITF Junior.",
-              "A entraîné des joueurs professionnels classés jusqu'au top 350 ATP.",
-              "A accompagné des joueuses entrées dans le top 100 WTA, sur les tournois WTA et en Grand Chelem.",
-              "Expérience d'entraîneur en Argentine, en Italie, en Espagne et en Arabie saoudite.",
-              "Head coach des groupes Sport-études & Pro depuis plus de deux ans.",
-            ]},
-
-          { slug: "yann-perez", role: "Coach", nom: "Yann Perez",
-            resume: "Coach performance, il associe l'expérience de la compétition à une approche exigeante, intense et respectueuse.",
-            tags: ["Sport-études & Pro"],
-            bio: [
-              "Yann Perez a rejoint l'académie il y a cinq ans. En parallèle de son métier de coach, il a mené des études universitaires tout en continuant à jouer en compétition.",
-              "Discipline, intensité et respect sont au cœur de son approche sur le court.",
-            ],
-            classement: ["Classement actuel : R1 (290).", "Meilleur classement : R1 (189)."],
-            formations: [
-              "Entraîneur J+S.",
-              "Brevet d'enseignement pour joueurs avancés.",
-              "Coach Youth Sport.",
-              "Swiss Tennis Physis Coach.",
-            ],
-            parcours: [
-              "Deux fois champion vaudois.",
-              "Finaliste des interclubs juniors.",
-              "Sparring-partner de joueurs ATP.",
-              "Stages d'entraînement en Espagne.",
-            ]},
-
-          { slug: "loris-gander", role: "Coach", nom: "Loris Gander",
-            resume: "Joueur de compétition en activité et coach, il partage son expérience des tournois avec patience, enthousiasme et passion.",
-            tags: ["Kids Tennis", "Club", "Compétition", "Stages"],
-            bio: [
-              "Loris Gander a 19 ans et joue au tennis depuis l'âge de trois ans. Il s'entraîne quotidiennement dans la filière Pro de la Team Lausanne Academy, avec l'objectif de devenir joueur professionnel, tout en transmettant sa passion comme coach au sein de l'académie.",
-              "Patient et passionné, Loris aime partager son énergie et son goût du tennis avec les jeunes qu'il encadre.",
-            ],
-            classement: ["Classement actuel et meilleur classement : N4 (148)."],
-            formations: ["Formation Jeunesse+Sport en cours."],
-            parcours: [
-              "A disputé plusieurs tournois ITF juniors à l'étranger.",
-              "Expérience sur quelques tournois ITF adultes.",
-              "Coach à la Team Lausanne Academy depuis un an.",
-              "Accompagnement ponctuel sur les tournois.",
-            ]},
-
-          { slug: "seline-rivarolli", role: "Coach", nom: "Séline Rivarolli",
-            resume: "Coach des plus jeunes, elle construit des séances positives et motivantes, faites d'énergie, de plaisir et de goût du jeu.",
-            tags: ["Kids Tennis", "Club"],
-            bio: [
-              "Séline Rivarolli a 19 ans et joue au tennis depuis l'âge de quatre ans. Une blessure l'a empêchée de poursuivre en compétition, mais sa passion est restée intacte et elle la transmet aujourd'hui aux plus jeunes.",
-              "Séline transmet sa passion comme on la lui a transmise : avec motivation, énergie et le sourire.",
-            ],
-            classement: ["Classement actuel : R6.", "Meilleur classement : R3."],
-            formations: [
-              "Diplôme d'aide-monitrice de tennis.",
-              "Formation J+S prévue en août 2026.",
-            ],
-            parcours: [
-              "A disputé plusieurs championnats vaudois.",
-              "A participé aux championnats suisses.",
-              "Expérience de l'entraînement en académie.",
-            ]},
-
-          // Propos recueillis aupres de Celyan. Une seule photo pour les deux
-          // emplacements, faute d'une deuxieme : en carte (386/340) elle perd ses
-          // bords et garde toute sa hauteur, donc le visage tient. En bas de
-          // fiche (620/320) c'est le haut et le bas qui sautent, et un cadrage
-          // centre lui coupait la tete — d'ou portraitPos, qui remonte le cadre.
-          // Sport-etudes est SA filiere, pas celle qu'il encadre : il donne le
-          // Kids Tennis, le Club, la Competition et les stages.
-          { slug: "celyan-lorival", role: "Coach", nom: "Célyan Lorival",
-            portrait: "assets/photos/coaches/celyan-lorival.jpg", portraitPos: "center 24%",
-            resume: "Joueur en sport-études et coach depuis deux ans, il transmet avec patience ce qu'il continue d'apprendre sur le court.",
-            tags: ["Kids Tennis", "Club", "Compétition", "Stages"],
-            bio: [
-              "Célyan Lorival est en sport-études au Lausanne-Sports depuis cinq ans, avec le bac en ligne de mire. Il enseigne depuis environ deux ans, du Kids Tennis à la Compétition, en cours comme en stage.",
-              "Revers à une main, et un faible avoué pour l'ambiance des interclubs. Patient et motivé, il aime transmettre autant que jouer.",
-            ],
-            classement: ["Classement actuel et meilleur classement : R2."],
-            formations: [
-              "Jeunesse+Sport, formation continue 1.",
-              "Jeunesse+Sport, formation continue 2.",
-              "Official Swiss Tennis.",
-            ],
-            parcours: [
-              "Cinq ans de sport-études au Lausanne-Sports.",
-              "Enseigne depuis deux ans : Kids Tennis, Club, Compétition et stages.",
-            ]},
-
-          { slug: "talia-picci", role: "Coach junior", nom: "Talia Picci",
-            resume: "Compétitrice R1 en activité, elle accompagne les jeunes dans des séances vivantes, détendues et motivantes, centrées sur l'engagement et le plaisir.",
-            tags: ["Kids Tennis", "Club", "Stages"],
-            bio: [
-              "Talia Picci a 18 ans et vise une carrière professionnelle. Classée R1, elle dispute des tournois presque chaque week-end et aborde progressivement le circuit international.",
-              "Son entraînement repose sur l'engagement et le plaisir. Quand les joueurs fournissent de vrais efforts, elle aime les récompenser par des jeux, dans une ambiance détendue et motivante.",
-            ],
-            classement: ["Classement actuel : R1 (117).", "Meilleur classement : R1 (99)."],
-            formations: ["Certification Tennis loisir, niveau 1."],
-            parcours: [
-              "Compétitrice active sur le circuit national.",
-              "Débuts sur les tournois internationaux.",
-              "Intervient en Kids Tennis, dans les groupes Club et sur les stages.",
-            ]},
-        ]},
+        // La meme liste sert la page « Nos coachs » et le carrousel de
+        // l'accueil : une seule source, pas deux a tenir a jour.
+        items: COACHS },
       MENTION_IMAGE,
     ],
   },
@@ -1599,15 +1617,27 @@ function sectionHTML(sec) {
     // sont ecrites dans la page, cachees, et non fabriquees au clic : le
     // contenu existe pour les moteurs de recherche, et rien ne depend du
     // script pour etre present.
-    case "coachs":
+    case "coachs": {
+      // Deux mises en page pour les memes cartes : en grille sur la page qui
+      // leur est consacree, en piste sur l'accueil, ou six cartes empilees
+      // repousseraient tout le reste de la page vers le bas.
+      const corps = sec.piste
+        ? `<div class="cch-carrousel" data-carrousel data-auto="0">
+             <button type="button" class="carr-nav carr-prec" data-carr="-1" aria-label="Coachs précédents" hidden></button>
+             <div class="cch-piste" data-piste tabindex="0" role="group" aria-label="Nos coachs, liste défilante">${sec.items.map(coachCarte).join("")}</div>
+             <button type="button" class="carr-nav carr-suiv" data-carr="1" aria-label="Coachs suivants" hidden></button>
+           </div>`
+        : `<div class="cch-grid">${sec.items.map(coachCarte).join("")}</div>`;
       return `<section class="wsec coaches">
         <div class="perks-head">
           ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
           <h2>${esc(sec.title)}</h2>
           ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
         </div>
-        <div class="cch-grid">${sec.items.map(coachCarte).join("")}</div>
+        ${corps}
+        ${sec.lien ? `<p class="cch-tout"><a class="wsec-link" href="${esc(sec.lien.href)}">${esc(sec.lien.label)} →</a></p>` : ""}
         ${sec.items.map(coachFiche).join("")}</section>`;
+    }
 
     // ---- Atouts numerotes ----
     case "perks":
@@ -1751,7 +1781,7 @@ function sectionHTML(sec) {
         </div>
         <div class="eleve-carrousel" data-carrousel>
         <button type="button" class="carr-nav carr-prec" data-carr="-1" aria-label="Athlètes précédents" hidden></button>
-        <div class="eleve-piste" tabindex="0" role="group" aria-label="Nos athlètes, liste défilante">${sec.items.map((e) => {
+        <div class="eleve-piste" data-piste tabindex="0" role="group" aria-label="Nos athlètes, liste défilante">${sec.items.map((e) => {
           // Identifiant de profil myTennis — celui qui figure dans l'adresse,
           // et NON le numero de licence : les deux sont differents, et une
           // adresse batie sur la licence ne mene nulle part. Une adresse
@@ -3071,7 +3101,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") eleveFerme
 // d'un clic, et un faux positif retournerait une carte sans qu'on l'ait
 // demande. Les fleches, la molette et le doigt suffisent.
 function carrMaj(shell) {
-  const piste = shell.querySelector(".eleve-piste");
+  const piste = shell.querySelector("[data-piste]");
   if (!piste) return;
   // Marge d'un pixel : les navigateurs arrondissent scrollLeft, et sans elle
   // la fleche de droite reste active alors qu'on est deja au bout.
@@ -3120,7 +3150,9 @@ function carrGlisser(piste, delta, duree = 380) {
 // Un pas = une carte, en reprenant sa largeur reelle (elle depend de la
 // fenetre) plutot qu'une valeur ecrite en dur.
 function carrPas(piste) {
-  const carte = piste.querySelector(".eleve");
+  // La premiere carte, quelle que soit sa classe : la meme piste sert les
+  // portraits d'eleves et les coachs.
+  const carte = piste.firstElementChild;
   return carte ? carte.getBoundingClientRect().width + 18 : piste.clientWidth * 0.8;
 }
 
@@ -3154,7 +3186,7 @@ function carrAutomatique(shell, piste) {
   let survol = false, aLEcran = false, silenceJusqua = 0;
   const enPause = () => survol || document.hidden || !aLEcran
     || Date.now() < silenceJusqua
-    || !!piste.querySelector(".eleve.ouvert")        // on lit une fiche
+    || !!piste.querySelector(".ouvert")              // on lit une fiche
     || shell.contains(document.activeElement);       // on navigue au clavier
   const taire = () => { silenceJusqua = Date.now() + CARR_REPRISE; };
 
@@ -3188,14 +3220,17 @@ function carrInit() {
   document.querySelectorAll("[data-carrousel]").forEach((shell) => {
     if (shell.dataset.pret) return;
     shell.dataset.pret = "1";
-    const piste = shell.querySelector(".eleve-piste");
+    const piste = shell.querySelector("[data-piste]");
     if (!piste) return;
     piste.addEventListener("scroll", () => carrMaj(shell), { passive: true });
     shell.querySelectorAll("[data-carr]").forEach((b) => b.addEventListener("click", () => {
       carrGlisser(piste, Number(b.dataset.carr) * carrPas(piste));
     }));
     carrMaj(shell);
-    carrAutomatique(shell, piste);
+    // data-auto="0" : carrousel qui ne part jamais tout seul. Le carrousel des
+    // coachs est juste au-dessus de la bande sombre des programmes, qui defile
+    // deja : deux mouvements l'un sur l'autre fatiguent la lecture.
+    if (shell.dataset.auto !== "0") carrAutomatique(shell, piste);
   });
 }
 window.addEventListener("resize", () => document.querySelectorAll("[data-carrousel]").forEach(carrMaj));
