@@ -353,17 +353,20 @@ const DETAILS = {
             photo: "assets/photos/eleve-isabella-stadelmann.jpg",
             mytennis: "19803666",
             mot: "Quatorze ans, classée R4, et une deuxième année de sport-études au Lausanne-Sports. Un jeu agressif, porté vers l'avant. Ambitieuse et perfectionniste, toujours en quête du meilleur d'elle-même." },
-          // Yuma et Ylan : texte encore provisoire, il ne dit que ce qu'on sait
-          // de source sure (filiere et classement Swiss Tennis). A remplacer par
-          // leur vraie presentation des qu'on l'a.
+          // Yuma : texte encore provisoire, il ne dit que ce qu'on sait de source
+          // sure (filiere et classement Swiss Tennis). A remplacer des qu'on a sa
+          // vraie presentation — il est le dernier.
           { nom: "Yuma Olgiati", age: "17 ans", classement: "R4",
             photo: "assets/photos/eleve-yuma-olgiati.jpg",
             mytennis: "19800610",
             mot: "En sport-études au Lausanne-Sports, classé R4. Sa présentation arrive prochainement." },
+          // Propos recueillis aupres d'Ylan, remis a la 3e personne comme les
+          // autres portraits. ATTENTION : son objectif est date (« d'ici Noel »).
+          // A relire apres les fetes, sinon la phrase vieillira mal.
           { nom: "Ylan Allenspach", age: "16 ans", classement: "R5",
             photo: "assets/photos/eleve-ylan-allenspach.jpg",
             mytennis: "19796976",
-            mot: "En sport-études au Lausanne-Sports, classé R5. Sa présentation arrive prochainement." },
+            mot: "Seize ans, classé R5, et une première année au Lausanne-Sports. Joueur offensif, il aime prendre le jeu à son compte et s'appuie sur son coup droit pour faire la différence. Entraînements et tournois occupent une grande place dans son quotidien, avec l'envie de se mesurer à des joueurs toujours plus forts. Son objectif est clair : passer R3 d'ici Noël, et continuer à repousser ses limites." },
           // Propos recueillis aupres de Max, remis a la 3e personne comme les
           // autres portraits. Sa formule sur l'equipe est gardee telle quelle :
           // c'est la plus parlante des siennes.
