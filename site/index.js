@@ -8,11 +8,6 @@ import "./pretty-date.js";
 
 const $ = (id) => document.getElementById(id);
 const CONTACT_TARGET = "info@teamlausanne.ch"; // destinataire de tous les formulaires
-const FLAG_CH = '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="Suisse"><rect width="16" height="16" fill="#d52b1e"/><rect x="6.6" y="3" width="2.8" height="10" fill="#fff"/><rect x="3" y="6.6" width="10" height="2.8" fill="#fff"/></svg>';
-const FLAG_IE = '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="Irlande"><rect width="16" height="16" fill="#fff"/><rect width="5.33" height="16" fill="#169b62"/><rect x="10.67" width="5.33" height="16" fill="#ff883e"/></svg>';
-const FLAG_FR = '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="France"><rect width="16" height="16" fill="#fff"/><rect width="5.33" height="16" fill="#0055a4"/><rect x="10.67" width="5.33" height="16" fill="#ef4135"/></svg>';
-const ITF_URL = "https://www.itftennis.com/en/tournament/m25-lausanne/sui/2026/m-itf-sui-2026-004/";
-const GAMEZONE_URL = "https://www.mytennis.ch/fr/tournois?keyword=gamezone";
 
 // Partenaires : une seule liste, lue a la fois par la section du tournoi et par
 // le bandeau « Nos partenaires officiels » du bas de page. Les logos sont noirs
@@ -96,15 +91,29 @@ const MENTION_IMAGE = CONTENU.mention_image;
 const COACHS = CONTENU.coachs;
 
 // contenu.js n'a pas le droit aux références croisées — sans quoi le bot
-// devrait exécuter notre code pour le relire. Les deux renvois dont le site a
-// besoin y sont donc écrits en texte, et résolus ici, à la lecture.
+// devrait exécuter notre code pour le relire. Les renvois dont le site a besoin
+// y sont donc écrits en texte, « @clé », et résolus ici à la lecture.
+//
+// La liste est fermée exprès : une valeur commençant par @ qui ne serait pas
+// prévue reste telle quelle plutôt que d'aller chercher une clé au hasard dans
+// le fichier. Une faute de frappe se voit alors à l'écran, au lieu de faire
+// apparaître silencieusement autre chose.
+const RENVOIS = {
+  "@coachs": () => COACHS,
+  "@flag_ch": () => CONTENU.flag_ch,
+  "@flag_ie": () => CONTENU.flag_ie,
+  "@flag_fr": () => CONTENU.flag_fr,
+  "@itf_url": () => CONTENU.itf_url,
+  "@gamezone_url": () => CONTENU.gamezone_url,
+};
 function resoudre(o) {
+  if (typeof o === "string") return RENVOIS[o] ? RENVOIS[o]() : o;
   if (Array.isArray(o)) return o.map(resoudre);
   if (o && typeof o === "object") {
     // { type: "mention" } sans titre = la mention « droit à l'image » commune.
     if (o.type === "mention" && !o.title) return { ...MENTION_IMAGE };
     const r = {};
-    for (const [k, v] of Object.entries(o)) r[k] = (v === "@coachs") ? COACHS : resoudre(v);
+    for (const [k, v] of Object.entries(o)) r[k] = resoudre(v);
     return r;
   }
   return o;

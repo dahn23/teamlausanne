@@ -22,6 +22,16 @@
 
 export const CONTENU = {
 
+// ---- Petits éléments repris dans les données ci-dessous -------------------
+// Drapeaux des vainqueurs et deux adresses externes. Les données les citent
+// par un marqueur en texte ("@flag_ch"…), résolu par index.js : contenu.js ne
+// doit contenir aucune référence croisée (voir l'entête).
+flag_ch: '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="Suisse"><rect width="16" height="16" fill="#d52b1e"/><rect x="6.6" y="3" width="2.8" height="10" fill="#fff"/><rect x="3" y="6.6" width="10" height="2.8" fill="#fff"/></svg>',
+flag_ie: '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="Irlande"><rect width="16" height="16" fill="#fff"/><rect width="5.33" height="16" fill="#169b62"/><rect x="10.67" width="5.33" height="16" fill="#ff883e"/></svg>',
+flag_fr: '<svg class="flag" viewBox="0 0 16 16" width="15" height="15" aria-label="France"><rect width="16" height="16" fill="#fff"/><rect width="5.33" height="16" fill="#0055a4"/><rect x="10.67" width="5.33" height="16" fill="#ef4135"/></svg>',
+itf_url: "https://www.itftennis.com/en/tournament/m25-lausanne/sui/2026/m-itf-sui-2026-004/",
+gamezone_url: "https://www.mytennis.ch/fr/tournois?keyword=gamezone",
+
 // ---- L'équipe de coachs ---------------------------------------------------
 // Liste unique : la page « Nos coachs » (details.coaches) et le carrousel de
 // l'accueil la lisent toutes deux. Une photo manquante se remplace ici, une
@@ -248,7 +258,7 @@ worlds:
         { v: "Août 2027", l: "prochaine édition", ico: "date",     scroll: "infos" },
         { v: "30 000 $",  l: "dotation",          ico: "coupe" },
         { v: "Gratuit",   l: "entrée libre",      ico: "billet",   scroll: "infos" },
-        { v: "ITF M25",   l: "catégorie",         ico: "ecusson",  href: ITF_URL },
+        { v: "ITF M25",   l: "catégorie",         ico: "ecusson",  href: "@itf_url" },
       ] },
       // Video YouTube « Lausanne Open 2026 — les meilleurs moments ». L'affiche
       // est servie par le site : rien n'est demande a YouTube tant qu'on ne
@@ -257,7 +267,7 @@ worlds:
         video: "S1kulGoQPNM", poster: "assets/video/lausanne-open-2026-film.jpg", body: [
         "Le Lausanne Open réunit chaque année plusieurs dizaines de joueurs de toutes nationalités, pour la plupart classés à l'ATP, sur les courts de la Pontaise.",
         "L'accès est entièrement gratuit, toute la semaine.",
-      ], link: { label: "Site & résultats ITF ↗", href: ITF_URL } },
+      ], link: { label: "Site & résultats ITF ↗", href: "@itf_url" } },
       { type: "carousel", eyebrow: "Lausanne Open", title: "Une semaine d'événements",
         sub: "Entrée libre toute la semaine, animations grand public et hospitalité.",
         items: [
@@ -270,10 +280,10 @@ worlds:
       { type: "palmares", anchor: "palmares", title: "Palmarès",
         sub: "Les vainqueurs du Lausanne Open, édition après édition.",
         editions: [
-          { an: "2026", simple: { f: FLAG_CH, n: "Henry Bernet" },
-            double: [{ f: FLAG_CH, n: "Johan Niklès" }, { f: FLAG_CH, n: "Adrien Burdet" }] },
-          { an: "2025", simple: { f: FLAG_CH, n: "Henry Bernet" },
-            double: [{ f: FLAG_IE, n: "Charles Barry" }, { f: FLAG_FR, n: "Max Westphal" }] },
+          { an: "2026", simple: { f: "@flag_ch", n: "Henry Bernet" },
+            double: [{ f: "@flag_ch", n: "Johan Niklès" }, { f: "@flag_ch", n: "Adrien Burdet" }] },
+          { an: "2025", simple: { f: "@flag_ch", n: "Henry Bernet" },
+            double: [{ f: "@flag_ie", n: "Charles Barry" }, { f: "@flag_fr", n: "Max Westphal" }] },
         ] },
       { type: "gallery", anchor: "photos", items: [
         "assets/photos/open-2026-1.jpg",
@@ -866,7 +876,7 @@ details:
       { type: "rich", title: "Le concept", body: [
         "Presque tous les week-ends, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant.",
         "Le format idéal pour se lancer en compétition et cumuler de l'expérience — et aller décrocher la grande coupe à la 10ᵉ victoire ! Une petite coupe est déjà remise dès 5 victoires, et une médaille à chaque victoire.",
-      ], link: { label: "Consulter les prochains tournois ↗", href: GAMEZONE_URL } },
+      ], link: { label: "Consulter les prochains tournois ↗", href: "@gamezone_url" } },
       { type: "gzphotos" },
       { type: "gzwinners", title: "Nos vainqueurs de la saison" },
     ],
