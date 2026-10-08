@@ -152,7 +152,7 @@ const COACHS = [
 
   { slug: "seline-rivarolli", role: "Coach", nom: "Séline Rivarolli",
     resume: "Coach des plus jeunes, elle construit des séances positives et motivantes, faites d'énergie, de plaisir et de goût du jeu.",
-    tags: ["Kids Tennis", "Club"],
+    tags: ["Kids Tennis", "Club", "Stages"],
     bio: [
       "Séline Rivarolli a 19 ans et joue au tennis depuis l'âge de quatre ans. Une blessure l'a empêchée de poursuivre en compétition, mais sa passion est restée intacte et elle la transmet aujourd'hui aux plus jeunes.",
       "Séline transmet sa passion comme on la lui a transmise : avec motivation, énergie et le sourire.",
