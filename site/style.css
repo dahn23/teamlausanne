@@ -801,6 +801,13 @@ body[data-world="academie"] .sw.active{color:var(--fluo-ink)}
   opacity:0;visibility:hidden;transition:opacity .16s ease,transform .16s ease;z-index:40}
 .sw-menu::before{content:"";position:absolute;top:-10px;left:0;right:0;height:10px}
 .sw-wrap:hover .sw-menu,.sw-wrap:focus-within .sw-menu{opacity:1;visibility:visible;transform:translateX(-50%) translateY(4px)}
+/* Apres un choix, le menu doit disparaitre. Il s'ouvre au survol ET au focus :
+   une fois l'entree cliquee, le lien garde le focus et la souris n'a pas bouge,
+   donc aucune des deux conditions ne retombe et le deroulant restait pose sur la
+   page qu'on venait de demander. Le script pose cette classe au clic et la
+   retire des que le pointeur quitte ou revient. Specificite (0,3,0) : elle passe
+   devant les deux regles ci-dessus. */
+.sw-wrap.sw-ferme .sw-menu{opacity:0;visibility:hidden}
 .sw-menu a{padding:9px 12px;border-radius:8px;color:var(--ink);text-decoration:none;
   font-size:.92rem;font-weight:400;cursor:pointer;white-space:nowrap;text-transform:none;font-style:normal}
 .sw-menu a:hover{background:#eef1f7;color:var(--blue-ink)}

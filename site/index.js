@@ -2730,6 +2730,27 @@ async function loadGzWinners(seasonId) {
 // ===================================================================
 //  Interactions globales (délégation)
 // ===================================================================
+// Un choix dans le menu deroulant le referme. Il s'ouvre au survol ET au focus :
+// apres le clic, le lien garde le focus et la souris n'a pas bouge, donc le menu
+// restait pose sur la page qu'on venait de demander. On le neutralise par une
+// classe, levee des que le pointeur quitte le bloc ou y revient — au doigt,
+// aucun des deux n'arrive, et c'est tant mieux : il n'y a pas de survol a
+// annuler.
+document.addEventListener("click", (e) => {
+  const lien = e.target.closest(".sw-menu a");
+  const wrap = lien && lien.closest(".sw-wrap");
+  if (!wrap) return;
+  lien.blur();
+  wrap.classList.add("sw-ferme");
+  const rouvrir = () => {
+    wrap.classList.remove("sw-ferme");
+    wrap.removeEventListener("pointerleave", rouvrir);
+    wrap.removeEventListener("pointerenter", rouvrir);
+  };
+  wrap.addEventListener("pointerleave", rouvrir);
+  wrap.addEventListener("pointerenter", rouvrir);
+});
+
 document.addEventListener("click", (e) => {
   // Onglets du haut / étapes du pied de page : changement de monde (Academy ↔ Lausanne Open).
   const sw = e.target.closest(".sw[data-world], .flow-step[data-world]");
