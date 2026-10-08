@@ -104,6 +104,9 @@ const COACHS = [
       "Formation de l'Association argentine de tennis, niveaux 1 et 2.",
       "ITF niveau III.",
       "Formations complémentaires en biomécanique, préparation physique et psychologie du sport.",
+      // Meme tournure que pour Loris et Seline : « en cours » pour ce qui n'est
+      // pas encore acquis, pour ne pas laisser croire au diplome obtenu.
+      "Entraîneur B : formation en cours.",
     ],
     parcours: [
       "Expérience auprès de juniors de tous âges, y compris sur le circuit ITF Junior.",
