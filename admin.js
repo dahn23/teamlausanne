@@ -1730,6 +1730,7 @@ function openPerson(p) {
   loadPersonMeals(p ? p.id : null, isCoachPerson);
   $("p-iban").value = p?.iban || "";
   $("p-salary").value = p?.salary_monthly != null ? p.salary_monthly : "";
+  $("p-stage-fee").value = p?.stage_fee != null ? p.stage_fee : "";
   $("p-salary-from").value = p?.salary_from || "";
   $("p-standing").value = p?.standing_order != null ? p.standing_order : "";
   $("p-byinv").checked = !!p?.pays_by_invoice;
@@ -7240,6 +7241,7 @@ async function savePerson(e) {
     license_no: $("p-license").value.trim() || null,
     iban: $("p-iban").value.trim() || null,
     salary_monthly: $("p-salary").value.trim() === "" ? null : Number($("p-salary").value),
+    stage_fee: $("p-stage-fee").value.trim() === "" ? null : Number($("p-stage-fee").value),
     salary_from: $("p-salary-from").value || null,
     standing_order: $("p-standing").value.trim() === "" ? null : Number($("p-standing").value),
     pays_by_invoice: $("p-byinv").checked,
@@ -8555,14 +8557,19 @@ function renderHeures() {
   $("heures-profs-empty").hidden = p.length > 0;
   $("heures-coaches").innerHTML = c.map((x) => {
     const salaried = x.salary != null;   // salarié : on garde les heures, mais salaire brut à la place de tarif/montant
-    const { base, extra, total } = heAmount(x);
+    const { base, extra, stage, total } = heAmount(x);
     const allVal = x.total_courses > 0 && x.courses === x.total_courses;
-    const extraTxt = extra ? ` <span class="muted" style="font-size:.78rem">(dont ${extra.toLocaleString("fr-CH")} extra)</span>` : "";
+    // Ce qui ne vient pas des heures se dit, sinon le total paraît faux : un
+    // coach à 2 h de cours et 400.— de forfait de stage ne s'explique pas tout
+    // seul.
+    const detail = [extra ? `${extra.toLocaleString("fr-CH")} extra` : "",
+                    stage ? `${stage.toLocaleString("fr-CH")} de stage${x.stages > 1 ? ` · ${x.stages} camps` : ""}` : ""].filter(Boolean);
+    const extraTxt = detail.length ? ` <span class="muted" style="font-size:.78rem">(dont ${detail.join(" + ")})</span>` : "";
     return `<tr${x.in_kind ? ' class="he-kind" title="Compensé : son travail est déduit de sa propre facture. Heures suivies, jamais payées — exclue du décompte fiduciaire et du paiement."'
       : x.by_invoice ? ' class="he-inv" title="Sur facture : payé sur sa propre facture (montant attendu ci-contre), exclu du décompte fiduciaire et du paiement automatique"' : ""}>
       <td><b>${esc(x.name)}</b>${x.in_kind ? ' <span class="he-kind-badge">compensé</span>' : x.by_invoice ? ' <span class="he-inv-badge">sur facture</span>' : ""}</td><td>${x.total_courses}</td><td>${x.hours} h</td>
       <td>${x.in_kind ? '<span class="he-kind-t">Compensé</span>' : salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
-      <td>${x.in_kind ? '<span class="muted">déduit de sa facture</span>' : salaried ? `<b>${total.toLocaleString("fr-CH")} CHF</b> <span class="muted" style="font-size:.78rem">brut / mois</span>${extraTxt}` : (base != null || extra ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—")}</td>
+      <td>${x.in_kind ? '<span class="muted">déduit de sa facture</span>' : salaried ? `<b>${total.toLocaleString("fr-CH")} CHF</b> <span class="muted" style="font-size:.78rem">brut / mois</span>${extraTxt}` : (base != null || extra || stage ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—")}</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.courses + "/" + x.total_courses + "</span>" : '<span class="muted">' + x.courses + "/" + x.total_courses + "</span>"}</td>
       ${salExtraCell(x.person_id, x.extra)}
@@ -8574,12 +8581,14 @@ function renderHeures() {
     const allVal = x.total_days > 0 && x.days === x.total_days;
     // Même règle que pour les coachs : salarié → brut mensuel, sinon tarif × heures.
     const salaried = x.salary != null;
-    const { base, extra, total } = heAmount(x);
-    const extraTxt = extra ? ` <span class="muted" style="font-size:.78rem">(dont ${extra.toLocaleString("fr-CH")} extra)</span>` : "";
+    const { base, extra, stage, total } = heAmount(x);
+    const detail = [extra ? `${extra.toLocaleString("fr-CH")} extra` : "",
+                    stage ? `${stage.toLocaleString("fr-CH")} de stage` : ""].filter(Boolean);
+    const extraTxt = detail.length ? ` <span class="muted" style="font-size:.78rem">(dont ${detail.join(" + ")})</span>` : "";
     return `<tr${x.by_invoice ? ' class="he-inv" title="Sur facture : payé sur sa propre facture, exclu du décompte fiduciaire et du paiement automatique"' : ""}>
       <td><b>${esc(x.name)}</b>${x.by_invoice ? ' <span class="he-inv-badge">sur facture</span>' : ""}</td><td>${x.total_days}</td><td>${x.hours} h</td>
       <td>${salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
-      <td>${base != null || extra ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—"}</td>
+      <td>${base != null || extra || stage ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—"}</td>
       <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.days + "/" + x.total_days + "</span>" : '<span class="muted">' + x.days + "/" + x.total_days + "</span>"}</td>
       ${salExtraCell(x.person_id, x.extra)}
@@ -8616,8 +8625,8 @@ async function coachDetail(personId, name) {
 function exportHeures() {
   const c = heuresData.coaches || [], p = heuresData.profs || [];
   const lines = [["Type", "Nom", "Cours/AM", "Heures", "Tarif", "Extra", "Montant", "IBAN", "Valide"]];
-  for (const x of c) { const { base, extra, total } = heAmount(x); lines.push([x.in_kind ? "Coach (compensé sur facture élève)" : x.by_invoice ? "Coach (sur facture)" : "Coach", x.name, x.courses, x.hours, x.salary != null ? "salarié" : (x.rate ?? ""), extra || "", (base != null || extra) ? total : "", x.iban ?? "", x.total_courses > 0 && x.courses === x.total_courses ? "oui" : "non"]); }
-  for (const x of p) { const { base, extra, total } = heAmount(x); lines.push(["Prof", x.name, x.days, x.hours, x.salary != null ? "salarié" : (x.rate ?? ""), extra || "", (base != null || extra) ? total : "", x.iban ?? "", x.total_days > 0 && x.days === x.total_days ? "oui" : "non"]); }
+  for (const x of c) { const { base, extra, stage, total } = heAmount(x); lines.push([x.in_kind ? "Coach (compensé sur facture élève)" : x.by_invoice ? "Coach (sur facture)" : "Coach", x.name, x.courses, x.hours, x.salary != null ? "salarié" : (x.rate ?? ""), extra || "", (base != null || extra || stage) ? total : "", x.iban ?? "", x.total_courses > 0 && x.courses === x.total_courses ? "oui" : "non"]); }
+  for (const x of p) { const { base, extra, stage, total } = heAmount(x); lines.push(["Prof", x.name, x.days, x.hours, x.salary != null ? "salarié" : (x.rate ?? ""), extra || "", (base != null || extra || stage) ? total : "", x.iban ?? "", x.total_days > 0 && x.days === x.total_days ? "oui" : "non"]); }
   const csv = lines.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
@@ -8651,10 +8660,10 @@ async function buildHeuresPdf() {
   doc.setFontSize(9); doc.setTextColor(110); doc.text(`Team Lausanne · généré le ${frDate(new Date())}${nInv ? ` · ${nInv} intervenant(s) sur facture non inclus` : ""}`, 14, 20); doc.setTextColor(0);
   let total = 0;
   const coachRows = c.map((x) => {
-    const sal = x.salary != null, { base, extra, total: t } = heAmount(x);
-    if (base != null || extra) total += t;
+    const sal = x.salary != null, { base, extra, stage, total: t } = heAmount(x);
+    if (base != null || extra || stage) total += t;
     return [x.name, `${x.courses}/${x.total_courses}`, `${x.hours} h`, sal ? "Salarié" : (x.rate != null ? x.rate + ".–/h" : "—"),
-            extra ? chf(extra) : "—", (base != null || extra) ? (sal ? chf(t) + " brut" : chf(t)) : "—", x.iban || "—"];
+            extra ? chf(extra) : "—", (base != null || extra || stage) ? (sal ? chf(t) + " brut" : chf(t)) : "—", x.iban || "—"];
   });
   doc.autoTable({ startY: 26, head: [["Coach", "Cours validés", "Heures", "Tarif", "Extra (brut)", "Montant", "IBAN"]], body: coachRows.length ? coachRows : [["—", "", "", "", "", "", ""]],
     styles: { fontSize: 9 }, headStyles: { fillColor: [18, 60, 196] }, columnStyles: { 6: { fontSize: 8 } } });
@@ -8663,10 +8672,10 @@ async function buildHeuresPdf() {
   // partait chez la fiduciaire avec leurs heures et pas un franc en face.
   let totalProfs = 0;
   const profRows = p.map((x) => {
-    const sal = x.salary != null, { base, extra, total: t } = heAmount(x);
-    if (base != null || extra) totalProfs += t;
+    const sal = x.salary != null, { base, extra, stage, total: t } = heAmount(x);
+    if (base != null || extra || stage) totalProfs += t;
     return [x.name, `${x.days}/${x.total_days}`, `${x.hours} h`, sal ? "Salarié" : (x.rate != null ? x.rate + ".–/h" : "—"),
-            extra ? chf(extra) : "—", (base != null || extra) ? (sal ? chf(t) + " brut" : chf(t)) : "—", x.iban || "—"];
+            extra ? chf(extra) : "—", (base != null || extra || stage) ? (sal ? chf(t) + " brut" : chf(t)) : "—", x.iban || "—"];
   });
   doc.setFontSize(12); doc.text("Profs — études", 14, doc.lastAutoTable.finalY + 10);
   doc.autoTable({ startY: doc.lastAutoTable.finalY + 13, head: [["Prof", "Après-midis validés", "Heures", "Tarif", "Extra (brut)", "Montant", "IBAN"]], body: profRows.length ? profRows : [["—", "", "", "", "", "", ""]],
@@ -9842,7 +9851,11 @@ const salSlipOf = (pid) => salSlips.find((s) => s.person_id === pid);
 function heAmount(x) {
   const base = x.salary != null ? Number(x.salary) : (x.rate != null ? Math.round(x.hours * Number(x.rate) * 100) / 100 : null);
   const extra = x.extra != null ? Number(x.extra) : 0;
-  return { base, extra, total: Math.round(((base || 0) + extra) * 100) / 100 };
+  // Forfait de stage (db/140) : l'encadrement d'un camp se paie au forfait, pas
+  // à l'heure, et une semaine de stage ne produit aucun cours — sans cette
+  // ligne, un coach qui n'aurait fait qu'un camp dans le mois serait payé zéro.
+  const stage = x.stage_fee != null ? Number(x.stage_fee) : 0;
+  return { base, extra, stage, total: Math.round(((base || 0) + extra + stage) * 100) / 100 };
 }
 function salExtraCell(pid, extra) {
   return `<td class="sal-col"><input class="sal-net sal-extra" data-pid="${pid}" type="number" step="0.05" value="${extra != null ? Number(extra).toFixed(2) : ""}" placeholder="—" title="Montant brut ajouté au salaire / aux heures" /></td>`;
@@ -13072,10 +13085,16 @@ async function addStageStaff(catId) {
 async function saveStageStaff(id, row) {
   const cid = row.querySelector(".stg-coach-sel").value || null;
   const p = cid ? people.find((x) => x.id === cid) : null;
+  const champ = row.querySelector(".stg-coach-fee");
+  let fee = Number(champ.value) || 0;
+  // Le forfait d'un coach dépend de lui, pas du camp : on reprend celui de sa
+  // fiche dès qu'on le choisit, tant que rien n'a été saisi à la main. Le
+  // retaper à chaque camp, c'est se tromper un jour sur deux.
+  if (!fee && p && p.stage_fee != null) { fee = Number(p.stage_fee); champ.value = fee; }
   const patch = {
     coach_person_id: cid,
     name: p ? `${p.last_name} ${p.first_name}` : null,
-    fee: Number(row.querySelector(".stg-coach-fee").value) || 0,
+    fee,
     note: row.querySelector(".stg-coach-note").value.trim() || null,
   };
   const { error } = await sb.from("stage_staff").update(patch).eq("id", id);

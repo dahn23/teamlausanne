@@ -2477,6 +2477,7 @@ Team Lausanne Tennis</textarea></label>
           <label>IBAN<input id="p-iban" placeholder="CH00 0000 0000 0000 0000 0" /></label>
           <label>Salarié — salaire brut mensuel (CHF)<input id="p-salary" type="number" step="1" min="0" placeholder="vide = payé à l'heure" /></label>
           <label>Salarié dès (mois de début)<input id="p-salary-from" type="date" /></label>
+          <label>Forfait par semaine de stage (CHF)<input id="p-stage-fee" type="number" step="1" min="0" placeholder="vide = à saisir camp par camp" /></label>
           <label class="check" style="align-self:end"><input id="p-byinv" type="checkbox" /> <b>Sur facture</b> (indépendant) — envoie sa propre facture : ligne rose dans Heures (montant attendu = heures × tarif + extra), exclu du décompte envoyé à la fiduciaire et du paiement automatique</label>
           <label class="check" style="align-self:end"><input id="p-inkind" type="checkbox" /> <b>Compensé sur sa facture</b> — travaille pour l'académie mais n'est jamais payé : ses heures sont déduites de sa propre facture d'élève. Ligne violette dans Heures, heures suivies sans montant, exclu du décompte fiduciaire et du paiement.</label>
           <label>Ordre permanent — net mensuel versé par la banque (CHF)<input id="p-standing" type="number" step="0.05" min="0" placeholder="vide = payé via Factures" title="La validation des salaires ne crée une facture que pour le complément (net − ordre permanent), p. ex. un extra." /></label>
