@@ -10329,7 +10329,10 @@ function initFactures() {
     if (b.dataset.fsub === "emises") loadOutInvoices();
     if (b.dataset.fsub === "encaiss") loadEncaissements();
     if (b.dataset.fsub === "impayees") loadImpayees();
+    majScrollH();
   }));
+  // Les quatre listes de l'onglet recoivent leur barre de defilement collante.
+  document.querySelectorAll("#view-factures .fac-sub .table-wrap").forEach(brancherScrollH);
   initOutInvoices();
   initEncaissements();
   $("fac-refresh").addEventListener("click", () => loadFactures());
@@ -10375,12 +10378,71 @@ async function facChiffres() {
   return c;
 }
 
+// --- Défilement horizontal toujours à portée de main ---------------------
+// Les tableaux de factures sont plus larges que l'écran (1100 px au minimum
+// pour les émises). Leur barre de défilement vit au BAS du tableau : avec deux
+// cents lignes, il fallait descendre toute la page pour atteindre la colonne
+// Statut, puis remonter. On double donc chaque tableau d'une seconde barre,
+// collée en bas de la fenêtre, qui pilote le même défilement.
+//
+// Pourquoi un ResizeObserver et pas un appel après chaque rendu : la largeur
+// utile change à chaque fois qu'une ligne s'ajoute, qu'on change de
+// sous-onglet ou qu'on redimensionne la fenêtre. L'observateur ne surveille
+// que le conteneur et le tableau, alors qu'on ne modifie que la barre et sa
+// jauge — aucune boucle possible.
+function brancherScrollH(wrap) {
+  if (!wrap || wrap.dataset.hscroll) return;
+  wrap.dataset.hscroll = "1";
+  const barre = document.createElement("div");
+  barre.className = "hscroll";
+  barre.setAttribute("aria-hidden", "true");
+  const jauge = document.createElement("div");
+  barre.appendChild(jauge);
+  wrap.after(barre);
+  // Deux barres pour un seul défilement : chacune suit l'autre. Le drapeau
+  // coupe l'aller-retour (A pousse B, qui repousserait A).
+  let enCours = false;
+  const lier = (de, vers) => de.addEventListener("scroll", () => {
+    if (enCours) return;
+    enCours = true; vers.scrollLeft = de.scrollLeft; enCours = false;
+  }, { passive: true });
+  lier(barre, wrap); lier(wrap, barre);
+  wrap._majScrollH = () => {
+    const large = wrap.scrollWidth > wrap.clientWidth + 1;
+    barre.hidden = !large;            // rien à faire défiler : pas de barre
+    if (large) { jauge.style.width = wrap.scrollWidth + "px"; barre.scrollLeft = wrap.scrollLeft; }
+  };
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(() => wrap._majScrollH());
+    ro.observe(wrap);
+    const t = wrap.querySelector("table"); if (t) ro.observe(t);
+  }
+  wrap._majScrollH();
+}
+const majScrollH = () =>
+  document.querySelectorAll(".table-wrap[data-hscroll]").forEach((w) => w._majScrollH && w._majScrollH());
+window.addEventListener("resize", majScrollH);
+
+// Molette + Maj n'importe où dans l'onglet : la liste visible défile
+// latéralement. « Où qu'en soit le curseur » — sans avoir à viser le tableau.
+document.addEventListener("wheel", (e) => {
+  if (!e.shiftKey) return;
+  const vue = $("view-factures");
+  if (!vue || vue.classList.contains("hidden")) return;
+  const w = [...vue.querySelectorAll(".table-wrap[data-hscroll]")]
+    .find((x) => x.offsetParent && x.scrollWidth > x.clientWidth + 1);
+  if (!w) return;
+  const d = e.deltaY || e.deltaX; if (!d) return;
+  w.scrollLeft += d;
+  e.preventDefault();
+}, { passive: false });
+
 // Aller à un onglet de la section, en posant au passage le filtre qui va bien :
 // une tuile « en retard » doit ouvrir la liste des retards, pas la liste entière.
 function facAller(sub, filtre) {
   const b = document.querySelector(`#view-factures .fac-subtab[data-fsub="${sub}"]`);
   if (b) b.click();
-  if (sub === "emises" && filtre) { oiFilter = filtre; renderOiFilters(); renderOutInvoices(); }
+  if (sub === "emises" && filtre) { oiFiltres = new Set([filtre]); renderOiFilters(); renderOutInvoices(); }
 }
 
 function renderFacEntete(c) {
@@ -10991,7 +11053,11 @@ const OI_ORDER = ["a_envoyer", "envoyee", "payee", "annulee"];
 const OI_FILIERES = [["performance", "Performance"], ["competition", "Compétition"], ["club", "Club"], ["kidstennis", "KidsTennis"], ["adultes", "Adultes"]];
 const OI_FIL_ALL = [...OI_FILIERES, ["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"], ["stage", "Stages"]];
 const OI_FROM = "info@teamlausanne.ch";
-let oiList = [], oiFilter = "", oiFiliere = "", oiInit = false, oiPrep = [], oiSendIds = [], oiSel = new Set();
+// Les filtres sont des ENSEMBLES, pas des chaînes : on travaille filière par
+// filière, mais on veut aussi « Compétition + Club + KidsTennis » d'un coup.
+// Ensemble vide = aucun filtre, donc tout passe — ce qui garde « Toutes »
+// comme état par défaut sans cas particulier.
+let oiList = [], oiFiltres = new Set(), oiFilieres = new Set(), oiInit = false, oiPrep = [], oiSendIds = [], oiSel = new Set();
 let oieId = null, oieDebtorPid = null, oiePlayerPid = null, oieSeason = null, oieFiliere = null;
 const oiChf = (n) => Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ");   // 1 234.50 (format QR-facture)
 const oiFmt4 = (s) => String(s || "").replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
@@ -11089,10 +11155,27 @@ function oiCorrespond(f) {
   return mots.every((m) => foin.includes(m));
 }
 
+// Un filtre vaut pour l'ensemble : « Toutes » (valeur vide) vide l'ensemble,
+// un autre chip s'ajoute ou se retire. Rendu et liste se relisent ensuite.
+function oiBasculer(ens, v) {
+  if (!v) ens.clear();
+  else if (ens.has(v)) ens.delete(v);
+  else ens.add(v);
+  renderOiFilters(); renderOutInvoices();
+}
+// Une facture passe-t-elle le filtre de statut ? Les statuts sont exclusifs
+// entre eux, donc plusieurs chips cochés = une union.
+const oiStatutOk = (f) => {
+  if (!oiFiltres.size) return true;
+  for (const v of oiFiltres) if (v === "maintenant" ? oiAEnvoyerMaintenant(f) : f.status === v) return true;
+  return false;
+};
+const oiFiliereOk = (f) => !oiFilieres.size || oiFilieres.has(f.filiere);
+
 function renderOiFilters() {
   // Les compteurs suivent la recherche : chercher « Picci » doit montrer combien
   // de SES factures sont à envoyer, pas le total du club.
-  const vus = oiList.filter((f) => oiCorrespond(f) && (!oiFiliere || f.filiere === oiFiliere));
+  const vus = oiList.filter((f) => oiCorrespond(f) && oiFiliereOk(f));
   const counts = { "": vus.length };
   for (const f of vus) counts[f.status] = (counts[f.status] || 0) + 1;
   // Filières : une rangée à part. On facture des cursus très différents et on
@@ -11101,18 +11184,17 @@ function renderOiFilters() {
   const surRech = oiList.filter(oiCorrespond);
   const cf = { "": surRech.length };
   for (const f of surRech) cf[f.filiere] = (cf[f.filiere] || 0) + 1;
-  const cfil = (v, l) => `<button type="button" class="chip filt${oiFiliere === v ? " sel" : ""}" data-fil="${v}">${l} <span class="muted">(${cf[v] || 0})</span></button>`;
+  const sel = (ens, v) => (v ? ens.has(v) : !ens.size) ? " sel" : "";
+  const cfil = (v, l) => `<button type="button" class="chip filt${sel(oiFilieres, v)}" data-fil="${v}" aria-pressed="${v ? oiFilieres.has(v) : !oiFilieres.size}">${l} <span class="muted">(${cf[v] || 0})</span></button>`;
   $("oi-filieres").innerHTML = cfil("", "Toutes filières") + OI_FIL_ALL.map(([v, l]) => cfil(v, l)).join("");
-  $("oi-filieres").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => {
-    oiFiliere = b.dataset.fil; renderOiFilters(); renderOutInvoices();
-  }));
-  const chip = (v, l) => `<button type="button" class="chip filt${oiFilter === v ? " sel" : ""}" data-st="${v}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
+  $("oi-filieres").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => oiBasculer(oiFilieres, b.dataset.fil)));
+  const chip = (v, l) => `<button type="button" class="chip filt${sel(oiFiltres, v)}" data-st="${v}" aria-pressed="${v ? oiFiltres.has(v) : !oiFiltres.size}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
   const nMaintenant = vus.filter(oiAEnvoyerMaintenant).length;
   $("oi-filters").innerHTML = chip("", "Toutes")
-    + `<button type="button" class="chip filt oi-maintenant${oiFilter === "maintenant" ? " sel" : ""}" data-st="maintenant"
+    + `<button type="button" class="chip filt oi-maintenant${sel(oiFiltres, "maintenant")}" data-st="maintenant"
          title="Factures à envoyer dont la date d'émission est arrivée">À envoyer maintenant <span class="muted">(${nMaintenant})</span></button>`
     + OI_ORDER.map((s) => chip(s, OI_ST[s][0])).join("");
-  $("oi-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { oiFilter = b.dataset.st; renderOiFilters(); renderOutInvoices(); }));
+  $("oi-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => oiBasculer(oiFiltres, b.dataset.st)));
   // Le bouton porte sur ce qui est AFFICHÉ, pas sur toutes les factures à
   // envoyer : sinon un clic expédiait les douze échéances de chaque famille.
   const envoyables = oiList.filter((f) => oiDansLaListe(f) && f.status === "a_envoyer");
@@ -11127,10 +11209,7 @@ const oiAEnvoyerMaintenant = (f) =>
 
 // Le predicat de la liste, ecrit UNE fois : le bouton d'envoi s'en sert aussi,
 // donc il ne peut pas envoyer autre chose que ce qui est affiche.
-const oiDansLaListe = (f) =>
-  (oiFilter === "maintenant" ? oiAEnvoyerMaintenant(f) : (!oiFilter || f.status === oiFilter))
-  && (!oiFiliere || f.filiere === oiFiliere)
-  && oiCorrespond(f);
+const oiDansLaListe = (f) => oiStatutOk(f) && oiFiliereOk(f) && oiCorrespond(f);
 
 function renderOutInvoices() {
   const rows = oiList.filter(oiDansLaListe);

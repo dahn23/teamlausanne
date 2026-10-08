@@ -2032,6 +2032,15 @@ body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fl
 .crm-actions .pd-wrap{width:160px;flex:0 0 auto}
 .table-wrap{background:#fff;border:1px solid var(--line);border-radius:var(--radius);
   overflow:auto;box-shadow:var(--shadow)}
+/* Barre de défilement horizontal doublée, collée en bas de la fenêtre.
+   Celle du conteneur vit au bas du tableau : sur deux cents factures, elle est
+   hors de portée sans descendre toute la page. Celle-ci reste à vue tant que la
+   liste est à l'écran. Basse exprès : c'est une commande, pas un bloc. */
+.hscroll{position:sticky;bottom:0;z-index:3;overflow-x:auto;overflow-y:hidden;
+  height:15px;background:#fff;border:1px solid var(--line);border-top:0;
+  border-radius:0 0 var(--radius) var(--radius)}
+.hscroll[hidden]{display:none}
+.hscroll>div{height:1px}
 .crm-table{width:100%;border-collapse:collapse;font-size:.92rem}
 .crm-table th,.crm-table td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line)}
 .crm-table th{color:var(--muted);font-weight:600;background:#fafbfa;position:sticky;top:0}
