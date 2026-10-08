@@ -1,0 +1,149 @@
+/* ===========================================================================
+   Nos coachs — teamlausanne.ch/coaches
+   ---------------------------------------------------------------------------
+   Reprise de la page Webflow teamlausanne.webflow.io/coaches. Les valeurs
+   ci-dessous sont RELEVÉES sur cette page (polices, tailles, interlettrage,
+   rayons, gouttières), pas approximées : même système de design, même rendu.
+   Chiffres d'origine, pour mémoire :
+     h1 40px/500, interlettrage -1.6px, capitales   · h2 32px/500, -1.28px
+     nom de coach 24px/700, -0.96px, capitales      · corps 16px, hauteur 1.3
+     carte #ededed, rayon 32px, grille 3 × 386,67px, gouttière 20px
+     conteneur 1200px (= --container)               · surlignage 14px/600
+   Les couleurs viennent des variables de la charte déjà dans style.css
+   (--blue, --fluo…), que le site Webflow partage.
+
+   Feuille à part plutôt qu'un ajout à style.css : la page est autonome, et
+   style.css est servi à toutes les autres pages avec son propre cache-bust.
+   =========================================================================== */
+
+:root{
+  --co-encre:#141414;      /* le noir du site Webflow, plus doux que #000 */
+  --co-page:#fdfdfe;
+  --co-carte:#ededed;
+  --co-r-carte:32px;
+}
+
+body.coaches{background:var(--co-page);color:var(--co-encre);margin:0}
+.co-wrap{max-width:var(--container);margin:0 auto;padding:0 24px}
+
+/* ---- Bannière ----------------------------------------------------------- */
+/* Le fond mint reste visible derrière la photo : si l'image manque, la
+   bannière garde l'identité de marque au lieu d'un rectangle vide. */
+.co-hero{position:relative;display:flex;align-items:flex-end;
+  min-height:min(82vh,720px);background:var(--fluo);overflow:hidden;color:#fff}
+.co-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* Dégradé plutôt qu'un voile uniforme : le texte est en bas, c'est là qu'il
+   faut assombrir. */
+.co-hero-voile{position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(4,32,94,.25) 0%,rgba(4,32,94,.55) 55%,rgba(4,32,94,.88) 100%)}
+.co-hero-in{position:relative;padding:0 0 clamp(40px,7vw,88px)}
+.co-h1{margin:0 0 20px;font-family:var(--font-body);font-weight:500;text-transform:uppercase;
+  font-size:clamp(2rem,4.6vw,2.5rem);line-height:.9;letter-spacing:-.04em;
+  text-wrap:balance;color:#fff}
+.co-hero-txt{max-width:36rem;margin:0;font-size:1rem;line-height:1.5;color:rgba(255,255,255,.92)}
+
+/* ---- Surlignage de section ---------------------------------------------- */
+.co-eyebrow{display:flex;align-items:center;gap:8px;
+  font-size:.875rem;font-weight:600;text-transform:uppercase;letter-spacing:-.01em}
+.co-eyebrow::before{content:"";width:12px;height:12px;border-radius:999px;
+  background:var(--fluo);flex:0 0 auto}
+
+/* ---- Entête de l'équipe ------------------------------------------------- */
+.co-team{padding:clamp(56px,8vw,112px) 0}
+.co-entete{max-width:46rem;margin:0 0 clamp(32px,4vw,56px)}
+.co-h2{margin:18px 0 14px;font-family:var(--font-body);font-weight:500;
+  font-size:clamp(1.6rem,3.2vw,2rem);line-height:1.08;letter-spacing:-.04em;
+  text-wrap:balance}
+.co-entete p{margin:0;font-size:1.0625rem;line-height:1.5;color:var(--co-encre)}
+
+/* ---- Grille des cartes -------------------------------------------------- */
+/* auto-fit : trois colonnes à 1200px comme sur Webflow, puis deux, puis une,
+   sans point de rupture à maintenir. */
+.co-grille{display:grid;gap:20px;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr))}
+
+/* La carte est un <article>, pas un <button> : elle contient un titre, un
+   paragraphe et une liste, que la specification interdit dans un bouton — et
+   un lecteur d'ecran annoncerait tout le bloc comme un seul libelle. Le clic
+   sur la carte reste un confort ; la commande qui compte est le bouton
+   « Learn More », seul element atteignable au clavier. */
+.co-carte{display:flex;flex-direction:column;background:var(--co-carte);
+  border-radius:var(--co-r-carte);overflow:hidden;cursor:pointer;
+  transition:transform .22s ease,box-shadow .22s ease}
+.co-carte:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(20,20,20,.14)}
+/* Le contour suit le bouton, mais se dessine autour de la carte entiere :
+   c'est elle que l'oeil cherche. */
+.co-carte:focus-within{outline:3px solid var(--blue);outline-offset:3px}
+
+.co-carte-txt{display:flex;flex-direction:column;gap:28px;padding:28px 32px;flex:1 0 auto}
+.co-role{align-self:flex-start;padding:10px 16px;border-radius:999px;
+  background:var(--co-page);font-size:.875rem;font-weight:600;letter-spacing:-.02em;
+  white-space:nowrap}
+.co-nom{margin:0 0 10px;font-family:var(--font-body);font-weight:700;text-transform:uppercase;
+  font-size:1.5rem;line-height:1.1;letter-spacing:-.04em}
+.co-resume{margin:0 0 12px;font-size:1rem;line-height:1.3}
+/* Les filières, séparées par des virgules comme sur Webflow. */
+.co-tags{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;font-size:.875rem}
+.co-tags li:not(:last-child)::after{content:",\00a0"}
+
+/* L'image et son bouton. L'image ne rétrécit jamais : aspect-ratio relevé
+   sur Webflow (386/340). */
+.co-photo{position:relative;margin-top:auto;aspect-ratio:386/340;overflow:hidden}
+.co-photo img{width:100%;height:100%;object-fit:cover;display:block;
+  transition:transform .4s ease}
+.co-carte:hover .co-photo img{transform:scale(1.04)}
+.co-plus{position:absolute;left:20px;bottom:20px;display:inline-flex;align-items:center;gap:10px;
+  padding:11px 18px;border:0;border-radius:999px;background:var(--co-page);color:var(--co-encre);
+  font-family:inherit;font-size:.875rem;font-weight:600;letter-spacing:-.02em;cursor:pointer;
+  transition:background-color .2s ease,color .2s ease}
+.co-plus svg{width:16px;height:16px;flex:0 0 auto}
+.co-carte:hover .co-plus,.co-plus:focus-visible{background:var(--fluo);color:var(--fluo-ink)}
+/* Le contour est porte par la carte (focus-within) : inutile de le doubler. */
+.co-plus:focus-visible{outline:none}
+
+/* ---- Fiche détaillée ---------------------------------------------------- */
+.co-fiche{position:fixed;inset:0;z-index:999;display:none;
+  align-items:center;justify-content:center;padding:24px}
+.co-fiche.ouvert{display:flex}
+.co-fiche-voile{position:absolute;inset:0;background:rgba(4,32,94,.62)}
+.co-panneau{position:relative;width:min(620px,100%);max-height:calc(100vh - 48px);
+  display:flex;flex-direction:column;background:var(--co-page);
+  border-radius:var(--co-r-carte);overflow:hidden;box-shadow:0 24px 70px rgba(4,32,94,.32)}
+.co-panneau-def{overflow-y:auto;overscroll-behavior:contain}
+.co-fermer{position:absolute;top:16px;right:16px;z-index:2;width:40px;height:40px;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:0;border-radius:999px;background:var(--co-page);color:var(--co-encre);
+  cursor:pointer;box-shadow:0 2px 10px rgba(20,20,20,.18);transition:background-color .2s}
+.co-fermer:hover{background:var(--fluo);color:var(--fluo-ink)}
+.co-fermer svg{width:20px;height:20px}
+.co-fiche-haut{padding:28px 32px 24px}
+.co-fiche-haut .co-nom{margin:14px 0 18px}
+.co-bio{font-size:.9375rem;line-height:1.52}
+.co-bio p{margin:0 0 12px}
+.co-bio .co-cite{padding-left:16px;border-left:3px solid var(--fluo);font-style:italic;
+  color:#3a4152}
+.co-bio h4{margin:22px 0 8px;font-size:.8125rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--muted)}
+.co-bio ul{margin:0;padding-left:20px}
+.co-bio li{margin:0 0 6px}
+.co-fiche-tags{display:flex;flex-wrap:wrap;gap:8px;padding:0 32px 24px;margin:0;list-style:none}
+.co-fiche-tags li{padding:9px 16px;border-radius:999px;background:var(--co-carte);
+  font-size:.875rem;font-weight:600;letter-spacing:-.02em}
+.co-fiche-photo{display:block;width:100%;aspect-ratio:620/320;object-fit:cover;flex:0 0 auto}
+
+/* ---- Téléphone ---------------------------------------------------------- */
+@media (max-width:600px){
+  .co-wrap{padding:0 16px}
+  .co-carte-txt{padding:24px 22px;gap:22px}
+  .co-fiche{padding:0}
+  .co-panneau{width:100%;max-height:100vh;border-radius:0}
+  .co-fiche-haut{padding:24px 22px 20px}
+  .co-fiche-tags{padding:0 22px 20px}
+}
+
+/* Quand la machine demande moins d'animation, on la lui retire entièrement. */
+@media (prefers-reduced-motion:reduce){
+  .co-carte,.co-photo img,.co-plus,.co-fermer{transition:none}
+  .co-carte:hover{transform:none}
+  .co-carte:hover .co-photo img{transform:none}
+}
