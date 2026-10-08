@@ -37,8 +37,24 @@ body.coaches{background:var(--co-page);color:var(--co-encre);margin:0}
 .co-hero-voile{position:absolute;inset:0;
   background:linear-gradient(180deg,rgba(4,32,94,.25) 0%,rgba(4,32,94,.55) 55%,rgba(4,32,94,.88) 100%)}
 .co-hero-in{position:relative;padding:0 0 clamp(40px,7vw,88px)}
-.co-h1{margin:0 0 20px;font-family:var(--font-body);font-weight:500;text-transform:uppercase;
-  font-size:clamp(2rem,4.6vw,2.5rem);line-height:.9;letter-spacing:-.04em;
+/* ---- Titres : Acumin, comme sur Webflow --------------------------------
+   style.css impose « .public h1, .public h2, .public h3 » en Circe 700
+   capitales — c'est la regle du site, et sa specificite (0,1,1) bat une
+   simple classe. La page Webflow, elle, compose ses titres en Acumin Pro 500
+   (et son h2 n'est PAS en capitales). Pour rester fidele a l'original il faut
+   donc remonter la specificite avec body.coaches, et redire chaque propriete
+   que la regle du site avait posee : famille, graisse ET casse.
+   Le kit Adobe fournit bien Acumin en 400/500/600/700 — la mise en garde de
+   style.css sur les graisses manquantes ne concerne que Circe. */
+body.coaches .co-h1,
+body.coaches .co-h2,
+body.coaches .co-nom{font-family:var(--font-body);letter-spacing:-.04em}
+body.coaches .co-h1{font-weight:500;text-transform:uppercase}
+body.coaches .co-h2{font-weight:500;text-transform:none}
+body.coaches .co-nom{font-weight:700;text-transform:uppercase}
+
+.co-h1{margin:0 0 20px;
+  font-size:clamp(2rem,4.6vw,2.5rem);line-height:.9;
   text-wrap:balance;color:#fff}
 .co-hero-txt{max-width:36rem;margin:0;font-size:1rem;line-height:1.5;color:rgba(255,255,255,.92)}
 
@@ -51,8 +67,8 @@ body.coaches{background:var(--co-page);color:var(--co-encre);margin:0}
 /* ---- Entête de l'équipe ------------------------------------------------- */
 .co-team{padding:clamp(56px,8vw,112px) 0}
 .co-entete{max-width:46rem;margin:0 0 clamp(32px,4vw,56px)}
-.co-h2{margin:18px 0 14px;font-family:var(--font-body);font-weight:500;
-  font-size:clamp(1.6rem,3.2vw,2rem);line-height:1.08;letter-spacing:-.04em;
+.co-h2{margin:18px 0 14px;
+  font-size:clamp(1.6rem,3.2vw,2rem);line-height:1.08;
   text-wrap:balance}
 .co-entete p{margin:0;font-size:1.0625rem;line-height:1.5;color:var(--co-encre)}
 
@@ -79,8 +95,7 @@ body.coaches{background:var(--co-page);color:var(--co-encre);margin:0}
 .co-role{align-self:flex-start;padding:10px 16px;border-radius:999px;
   background:var(--co-page);font-size:.875rem;font-weight:600;letter-spacing:-.02em;
   white-space:nowrap}
-.co-nom{margin:0 0 10px;font-family:var(--font-body);font-weight:700;text-transform:uppercase;
-  font-size:1.5rem;line-height:1.1;letter-spacing:-.04em}
+.co-nom{margin:0 0 10px;font-size:1.5rem;line-height:1.1}
 .co-resume{margin:0 0 12px;font-size:1rem;line-height:1.3}
 /* Les filières, séparées par des virgules comme sur Webflow. */
 .co-tags{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;font-size:.875rem}
