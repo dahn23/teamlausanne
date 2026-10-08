@@ -95,7 +95,14 @@ $("stgp-form").addEventListener("submit", async (e) => {
   const btn = e.target.querySelector("button[type=submit]");
   btn.disabled = true; btn.textContent = "Envoi…";
   const { error } = await sb.from("stage_registrations").insert(row);
-  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer mon inscription"; return; }
+  if (error) {
+    // 23505 = l'index unique stage_registrations_pas_deux_fois (db/142). Un
+    // parent doit lire une phrase, pas le jargon de Postgres.
+    err.textContent = error.code === "23505"
+      ? "Cet enfant est déjà inscrit à ce stage dans cette catégorie. Si c'est une erreur, écrivez-nous à info@teamlausanne.ch."
+      : "Erreur : " + error.message;
+    err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer mon inscription"; return;
+  }
   $("stgp-form").classList.add("hidden");
   $("stgp-done").classList.remove("hidden");
 });

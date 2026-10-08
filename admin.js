@@ -13198,7 +13198,14 @@ async function saveReg(e) {
     birth_date: $("reg-f-birth").value || null,
     category_id: $("reg-f-cat").value || null,
   });
-  if (error) { err.textContent = error.message; err.hidden = false; return; }
+  if (error) {
+    // Le doublon vient presque toujours d'ici : l'inscrit est déjà arrivé par
+    // le formulaire public, et on l'ajoute à la main sans l'avoir vu (db/142).
+    err.textContent = error.code === "23505"
+      ? "Déjà inscrit à ce stage dans cette catégorie. Regarde la liste : l'inscription est peut-être arrivée par le formulaire public."
+      : error.message;
+    err.hidden = false; return;
+  }
   stgCounts[stgCurrent] = (stgCounts[stgCurrent] || 0) + 1; refreshStagesBadge();
   $("reg-modal").classList.add("hidden");
   loadRegistrations();
