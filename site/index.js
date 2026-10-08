@@ -896,16 +896,19 @@ const DETAILS = {
               "Expérience de l'entraînement en académie.",
             ]},
 
-          // Propos recueillis aupres de Celyan. Sa photo de la page Sport-etudes
-          // est reprise en attendant une photo faite pour ce format : elle est en
-          // 3/4 vertical, le cadrage la recoupe mais tient.
+          // Propos recueillis aupres de Celyan. Une seule photo pour les deux
+          // emplacements, faute d'une deuxieme : en carte (386/340) elle perd ses
+          // bords et garde toute sa hauteur, donc le visage tient. En bas de
+          // fiche (620/320) c'est le haut et le bas qui sautent, et un cadrage
+          // centre lui coupait la tete — d'ou portraitPos, qui remonte le cadre.
+          // Sport-etudes est SA filiere, pas celle qu'il encadre : il donne le
+          // Kids Tennis, le Club, la Competition et les stages.
           { slug: "celyan-lorival", role: "Coach", nom: "Célyan Lorival",
-            photo: "assets/photos/eleve-celyan-lorival.jpg",
-            portrait: "assets/photos/eleve-celyan-lorival.jpg",
+            portrait: "assets/photos/coaches/celyan-lorival.jpg", portraitPos: "center 24%",
             resume: "Joueur en sport-études et coach depuis deux ans, il transmet avec patience ce qu'il continue d'apprendre sur le court.",
-            tags: ["Sport-études", "Stages"],
+            tags: ["Kids Tennis", "Club", "Compétition", "Stages"],
             bio: [
-              "Célyan Lorival est en sport-études au Lausanne-Sports depuis cinq ans, avec le bac en ligne de mire. Il enseigne depuis environ deux ans, en cours comme en stage.",
+              "Célyan Lorival est en sport-études au Lausanne-Sports depuis cinq ans, avec le bac en ligne de mire. Il enseigne depuis environ deux ans, du Kids Tennis à la Compétition, en cours comme en stage.",
               "Revers à une main, et un faible avoué pour l'ambiance des interclubs. Patient et motivé, il aime transmettre autant que jouer.",
             ],
             classement: ["Classement actuel et meilleur classement : R2."],
@@ -916,7 +919,7 @@ const DETAILS = {
             ],
             parcours: [
               "Cinq ans de sport-études au Lausanne-Sports.",
-              "Enseigne depuis deux ans, en cours et en stage.",
+              "Enseigne depuis deux ans : Kids Tennis, Club, Compétition et stages.",
             ]},
 
           { slug: "talia-picci", role: "Coach junior", nom: "Talia Picci",
@@ -1055,7 +1058,8 @@ function coachFiche(c) {
           </div>
         </div>
         <ul class="cch-fiche-tags">${c.tags.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
-        <img class="cch-fiche-photo" data-src="${esc(coachPortrait(c))}" alt="${esc(c.nom)}" />
+        <img class="cch-fiche-photo" data-src="${esc(coachPortrait(c))}" alt="${esc(c.nom)}"
+          ${c.portraitPos ? `style="object-position:${esc(c.portraitPos)}"` : ""} />
       </div>
     </div>
   </div>`;
