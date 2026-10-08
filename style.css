@@ -4633,3 +4633,9 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .side.collapsed .side-group{display:none}
 .side-block+.side-block{margin-top:12px;padding-top:11px}
 .side.collapsed .side-block+.side-block{margin-top:6px;padding-top:8px}
+
+/* ---- Envoi des mails d'un stage ---------------------------------------- */
+.stg-mail-l{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:8px 0;border-top:1px solid var(--line);font-size:.9rem}
+.stg-mail-l:first-of-type{border-top:0}
+.stg-mail-n{font-weight:600;min-width:210px}

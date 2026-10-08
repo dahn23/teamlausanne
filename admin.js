@@ -12638,6 +12638,152 @@ async function deleteStage() {
   loadStagesTab();
 }
 
+// ---- Envoi des mails de stage (db/138) ----------------------------------
+// Les quatre modèles étaient éditables depuis le début, mais rien ne les
+// envoyait : ni cron, ni trigger, ni bouton. Les délais en jours sont donc là
+// à titre indicatif — l'envoi reste déclenché à la main, et c'est préférable
+// pour un stage : on part quand les groupes sont formés et le programme prêt,
+// pas à une date calculée d'avance.
+//
+// Un envoi par inscrit, car la pièce jointe dépend de sa catégorie : le
+// programme du KidsTennis n'est pas celui du Loisir journée.
+let stgEnvoyes = {};                       // "registration_id|type" -> date
+
+async function stgChargerEnvoyes() {
+  if (!stgRegs.length) { stgEnvoyes = {}; return; }
+  const { data } = await sb.from("stage_mail_sent").select("registration_id,type,sent_at")
+    .in("registration_id", stgRegs.map((r) => r.id));
+  stgEnvoyes = {};
+  for (const r of data || []) stgEnvoyes[r.registration_id + "|" + r.type] = r.sent_at;
+}
+
+// Le PDF est stocké une fois par catégorie : on le télécharge une seule fois
+// par envoi groupé, pas une fois par destinataire.
+const stgPjCache = {};
+async function stgPieceJointe(url) {
+  if (!url) return null;
+  if (stgPjCache[url] !== undefined) return stgPjCache[url];
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const buf = new Uint8Array(await r.arrayBuffer());
+    let bin = ""; for (let i = 0; i < buf.length; i += 8192)
+      bin += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+    const type = r.headers.get("content-type") || "application/pdf";
+    const ext = /pdf/i.test(type) ? "pdf" : (type.split("/")[1] || "bin").replace(/[^a-z0-9]/gi, "");
+    stgPjCache[url] = { filename: `programme-du-stage.${ext}`, content: btoa(bin), contentType: type };
+  } catch (e) {
+    console.warn("Pièce jointe illisible", url, e);
+    stgPjCache[url] = null;          // on n'empêche pas l'envoi pour autant
+  }
+  return stgPjCache[url];
+}
+
+const stgVars = (tpl, r, s) => String(tpl || "")
+  .replace(/\{prenom\}/g, r.first_name || "")
+  .replace(/\{nom\}/g, r.last_name || "")
+  .replace(/\{stage\}/g, s.title || "le stage")
+  .replace(/\{date_debut\}/g, frDate(s.start_date))
+  .replace(/\{date_fin\}/g, frDate(s.end_date))
+  .replace(/\{lien_sondage\}/g, "");
+
+async function stgEnvoyerMails(type) {
+  const s = stgSessions.find((x) => x.id === stgCurrent); if (!s) return;
+  const { data: tpls } = await sb.from("stage_email_templates").select("*").eq("type", type);
+  const parCat = {};
+  for (const t of tpls || []) parCat[t.category_id] = t;
+
+  // On écarte d'emblée ceux qui l'ont déjà reçu et ceux sans adresse : la
+  // confirmation doit annoncer le nombre réel, pas un total optimiste.
+  const cibles = stgRegs.filter((r) => r.email && !stgEnvoyes[r.id + "|" + type]);
+  const sansModele = cibles.filter((r) => !parCat[r.category_id]);
+  const envoyables = cibles.filter((r) => parCat[r.category_id]);
+  const dejaRecu = stgRegs.filter((r) => stgEnvoyes[r.id + "|" + type]).length;
+  const sansMail = stgRegs.filter((r) => !r.email).length;
+
+  if (!envoyables.length) {
+    uiAlert(`Rien à envoyer.\n\n${dejaRecu ? dejaRecu + " ont déjà reçu ce message.\n" : ""}`
+      + `${sansMail ? sansMail + " n'ont pas d'adresse e-mail.\n" : ""}`
+      + `${sansModele.length ? sansModele.length + " n'ont pas de modèle pour leur catégorie.\n" : ""}`);
+    return;
+  }
+
+  // On dit qui, avec quelle pièce jointe : une fois parti, c'est parti.
+  const parCatCompte = {};
+  for (const r of envoyables) {
+    const c = stgCatById(r.category_id), t = parCat[r.category_id];
+    const k = (c.name || "?") + (t.attachment_url ? " (avec PDF)" : " — SANS PIÈCE JOINTE");
+    parCatCompte[k] = (parCatCompte[k] || 0) + 1;
+  }
+  const objetEx = stgVars(parCat[envoyables[0].category_id].subject, envoyables[0], s);
+  if (!(await uiConfirm(
+      `Envoyer « ${STG_MAIL_TYPES.find((x) => x[0] === type)?.[1] || type} » à ${envoyables.length} personne(s) ?\n\n`
+    + Object.entries(parCatCompte).map(([k, n]) => `· ${n} × ${k}`).join("\n")
+    + `\n\nObjet : ${objetEx}\nDepuis : ${OI_FROM}\n`
+    + (dejaRecu ? `\n${dejaRecu} déjà servi(e)s, ils ne le recevront pas deux fois.` : "")
+    + (sansMail ? `\n${sansMail} sans adresse, ignoré(s).` : "")
+    + (sansModele.length ? `\n${sansModele.length} sans modèle pour leur catégorie, ignoré(s).` : "")))) return;
+
+  const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
+  const bouton = $("stg-mail-" + type);
+  let ok = 0; const erreurs = [];
+  for (let i = 0; i < envoyables.length; i++) {
+    const r = envoyables[i], t = parCat[r.category_id];
+    if (bouton) bouton.textContent = `Envoi ${i + 1}/${envoyables.length}…`;
+    try {
+      const pj = await stgPieceJointe(t.attachment_url);
+      const { data, error } = await sb.functions.invoke("mail-send", { body: {
+        account: OI_FROM, to: r.email,
+        subject: stgVars(t.subject, r, s),
+        text: stgVars(t.body, r, s),
+        attachments: pj ? [pj] : undefined } });
+      if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} throw new Error(m); }
+      if (data?.error) throw new Error(data.error);
+      // Noté APRÈS le départ : un échec ne doit pas bloquer une reprise.
+      await sb.from("stage_mail_sent").insert({ registration_id: r.id, type, sent_by: uid, to_email: r.email });
+      ok++;
+    } catch (e) { erreurs.push(`${r.first_name} ${r.last_name} : ${e?.message || e}`); }
+  }
+  uiAlert(`${ok} mail(s) envoyé(s).`
+    + (erreurs.length ? `\n\n${erreurs.length} en échec :\n` + erreurs.slice(0, 8).join("\n")
+        + (erreurs.length > 8 ? "\n…" : "") + `\n\nRelancer l'envoi ne renverra qu'aux non-servis.` : ""));
+  await stgChargerEnvoyes();
+  renderRegistrants();
+}
+
+// Un bouton par modèle, avec le nombre de personnes qui ne l'ont PAS encore
+// reçu : c'est ce chiffre qu'on veut voir avant de cliquer, pas le total des
+// inscrits. À zéro, le bouton se désactive et dit que tout le monde est servi.
+function stgRenderMails() {
+  const host = $("stg-mails"); if (!host) return;
+  const s = stgSessions.find((x) => x.id === stgCurrent);
+  if (!s || !stgRegs.length) { host.innerHTML = ""; return; }
+
+  const lignes = STG_MAIL_TYPES.map(([type, label]) => {
+    const reste = stgRegs.filter((r) => r.email && !stgEnvoyes[r.id + "|" + type]).length;
+    const faits = stgRegs.filter((r) => stgEnvoyes[r.id + "|" + type]).length;
+    return `<div class="stg-mail-l">
+      <span class="stg-mail-n">${esc(label)}</span>
+      <span class="muted">${faits ? `${faits} envoyé(s)` : "jamais envoyé"}${reste ? ` · ${reste} en attente` : ""}</span>
+      <span class="spacer"></span>
+      <button type="button" id="stg-mail-${type}" class="${reste ? "" : "ghost"}" ${reste ? "" : "disabled"}>
+        ${reste ? `✉ Envoyer (${reste})` : "✓ tout le monde est servi"}</button>
+    </div>`;
+  }).join("");
+
+  const sansMail = stgRegs.filter((r) => !r.email).length;
+  host.innerHTML = `<h3 style="margin:0 0 4px">Mails du stage</h3>
+    <p class="muted" style="font-size:.86rem;margin:0 0 10px">Le texte et la pièce jointe se règlent par catégorie dans Stages › Mails.
+      Chacun reçoit le programme de SA catégorie. Un même message ne part jamais deux fois à la même personne.
+      ${sansMail ? `<br><b>${sansMail} inscrit(s) sans adresse e-mail</b> — ils ne recevront rien.` : ""}</p>
+    ${lignes}`;
+
+  STG_MAIL_TYPES.forEach(([type]) => {
+    const b = $("stg-mail-" + type);
+    if (b && !b.disabled) b.addEventListener("click", () => stgEnvoyerMails(type));
+  });
+}
+
 // ---- Détail d'un stage : inscrits + programme ----
 async function openStage(id) {
   stgCurrent = id;
@@ -12668,6 +12814,7 @@ async function loadRegistrations() {
   ]);
   stgRegs = regs || [];
   stgStaff = staff || [];
+  await stgChargerEnvoyes();
   // Factures liées (onglet Factures, db/103) : numéro, statut, échéance.
   const invIds = stgRegs.map((r) => r.out_invoice_id).filter(Boolean);
   stgInv = {};
@@ -12694,6 +12841,7 @@ function renderRegistrants() {
   const days = stgDays(s.start_date, s.end_date);
   const openCats = (stgSessionCats[stgCurrent] || []).map((id) => stgCatById(id)).filter((c) => c.id);
   $("stg-reg-count").textContent = stgRegs.length;
+  stgRenderMails();
 
   // --- Résumé financier ---
   const encaisse = stgRegs.filter((r) => r.paid).reduce((t, r) => t + stgRegPrice(r, days), 0);
