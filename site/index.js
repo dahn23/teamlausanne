@@ -335,9 +335,6 @@ const DETAILS = {
             mytennis: "19764390",
             mot: "Cinq ans de sport-études au Lausanne-Sports, et le bac en ligne de mire. Revers à une main, faible avoué pour l'ambiance des interclubs. Il enseigne depuis deux ans, en cours comme en stage : patient, et autant motivé par transmettre que par jouer.",
             tags: ["J+S continue 1", "J+S continue 2", "Official Swiss Tennis"] },
-          // Isabella, Yuma et Ylan : texte encore provisoire, il ne dit que ce
-          // qu'on sait de source sure (filiere et classement Swiss Tennis).
-          // A remplacer par leur vraie presentation des qu'on l'a.
           // Propos recueillis aupres de Nadia, remis a la 3e personne.
           { nom: "Nadia Dévaud", age: "15 ans", classement: "R5",
             photo: "assets/photos/eleve-nadia-devaud.jpg",
@@ -349,10 +346,16 @@ const DETAILS = {
             photo: "assets/photos/eleve-hektor-vitone.jpg",
             mytennis: "19874388",
             mot: "Treize ans, classé R4, et une première année au Lausanne-Sports. Plutôt joueur de fond de court. Son rêve : vivre de son tennis et intégrer le top 100 mondial." },
-          { nom: "Isabella Stadelmann", age: "14 ans", classement: "R5",
+          // Propos recueillis aupres d'Isabella, remis a la 3e personne comme les
+          // autres portraits. Elle se donne R4 : son classement passe donc de R5
+          // a R4 ici aussi, sinon la pastille contredirait son texte.
+          { nom: "Isabella Stadelmann", age: "14 ans", classement: "R4",
             photo: "assets/photos/eleve-isabella-stadelmann.jpg",
             mytennis: "19803666",
-            mot: "En sport-études au Lausanne-Sports, classée R5. Sa présentation arrive prochainement." },
+            mot: "Quatorze ans, classée R4, et une deuxième année de sport-études au Lausanne-Sports. Un jeu agressif, porté vers l'avant. Ambitieuse et perfectionniste, toujours en quête du meilleur d'elle-même." },
+          // Yuma et Ylan : texte encore provisoire, il ne dit que ce qu'on sait
+          // de source sure (filiere et classement Swiss Tennis). A remplacer par
+          // leur vraie presentation des qu'on l'a.
           { nom: "Yuma Olgiati", age: "17 ans", classement: "R4",
             photo: "assets/photos/eleve-yuma-olgiati.jpg",
             mytennis: "19800610",
