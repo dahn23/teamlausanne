@@ -10412,11 +10412,11 @@ function brancherScrollH(wrap) {
     barre.hidden = !large;            // rien à faire défiler : pas de barre
     if (large) { jauge.style.width = wrap.scrollWidth + "px"; barre.scrollLeft = wrap.scrollLeft; }
   };
-  // L'observateur doit être RETENU. Contrairement à MutationObserver, un
-  // ResizeObserver que plus rien ne référence peut être ramassé par le GC même
-  // s'il observe encore des éléments : il cesse alors de prévenir, au hasard
-  // des collectes. Vérifié le 08.10.2026 — la barre ne réapparaissait qu'une
-  // fois sur deux. On l'accroche donc au conteneur.
+  // L'observateur est RETENU volontairement. Contrairement à MutationObserver,
+  // où les nœuds observés maintiennent l'observateur en vie, un ResizeObserver
+  // que plus rien ne référence peut être ramassé par le GC alors qu'il observe
+  // encore : il cesse alors de prévenir, au hasard des collectes. Le garder
+  // accroché au conteneur coûte un champ et supprime le risque.
   if (window.ResizeObserver) {
     wrap._ro = new ResizeObserver(() => wrap._majScrollH());
     wrap._ro.observe(wrap);
