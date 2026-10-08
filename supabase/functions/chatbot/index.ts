@@ -122,27 +122,53 @@ async function construireConnaissances(supa: ReturnType<typeof createClient>): P
     + `\nTout ce qui est daté avant aujourd'hui est PASSÉ : ne l'annonce jamais comme à venir.`);
 
   // --- Les stages, en entier, une ligne par catégorie ---------------------
+  //
+  // On recopie EXACTEMENT les règles du formulaire public (site/index.js) :
+  //   · un stage n'existe que s'il a au moins une catégorie ouverte, et ces
+  //     catégories viennent de stage_session_categories — pas de la liste de
+  //     toutes les catégories, sinon le bot annonce des formules qui ne sont
+  //     pas proposées cette semaine-là ;
+  //   · le prix est au PRORATA des jours, plafonné à cinq. Citer le tarif de
+  //     base sur une semaine écourtée, c'est annoncer un prix que le site ne
+  //     demande pas.
+  //
+  // stage_sessions n'a pas de colonne « published » — c'est « visible », et la
+  // page publique ne s'en sert même pas. Vérifié en base, pas supposé : une
+  // colonne inventée fait échouer toute la requête EN SILENCE, et le bot
+  // répond alors qu'il n'a aucun stage à proposer. C'est arrivé.
   const { data: sessions } = await supa.from("stage_sessions")
-    .select("id,title,start_date,end_date,published").gte("end_date", auj).order("start_date");
-  const { data: cats } = await supa.from("stage_categories")
-    .select("id,name,price,active,meal,description,age_min,age_max,private_addon_price").order("name");
+    .select("id,title,start_date,end_date,program").gte("end_date", auj).order("start_date");
+  const { data: cats } = await supa.from("stage_categories").select("*");
+  const { data: liens } = await supa.from("stage_session_categories").select("session_id,category_id");
   const { data: insc } = await supa.from("stage_registrations").select("stage_id,category_id");
 
-  const ouvertes = (cats || []).filter((c: Record<string, unknown>) => c.active !== false);
+  const parCat: Record<string, Record<string, unknown>> = {};
+  for (const c of (cats || []) as Record<string, unknown>[]) parCat[String(c.id)] = c;
+  const parSession: Record<string, string[]> = {};
+  for (const l of (liens || []) as Record<string, string>[]) {
+    (parSession[l.session_id] = parSession[l.session_id] || []).push(l.category_id);
+  }
+  const nbJours = (a: string, b: string) =>
+    Math.max(1, Math.round((+new Date(b) - +new Date(a)) / 86400000) + 1);
+  const auProrata = (p: number, d: number) => Math.round(Number(p) * Math.min(d, 5) / 5 * 100) / 100;
+
   const lignes: string[] = [];
   for (const s of (sessions || []) as Record<string, unknown>[]) {
-    if (s.published === false) continue;
-    for (const c of ouvertes as Record<string, unknown>[]) {
-      const n = (insc || []).filter((r: Record<string, unknown>) => r.stage_id === s.id && r.category_id === c.id).length;
+    const ids = parSession[String(s.id)] || [];
+    if (!ids.length) continue;
+    const d = nbJours(String(s.start_date), String(s.end_date));
+    for (const id of ids) {
+      const c = parCat[id];
+      if (!c || c.active === false) continue;
+      const n = (insc || []).filter((r: Record<string, unknown>) => r.stage_id === s.id && r.category_id === id).length;
       lignes.push(
-        `${s.title} · du ${frDate(String(s.start_date))} au ${frDate(String(s.end_date))}`
+        `${s.title} · du ${frDate(String(s.start_date))} au ${frDate(String(s.end_date))} (${d} jours)`
         + ` · ${c.name}`
-        + (c.age_min || c.age_max ? ` · ${c.age_min ?? "?"}–${c.age_max ?? "?"} ans` : "")
-        + ` · CHF ${c.price}.–`
+        + ` · CHF ${auProrata(Number(c.price) || 0, d)}.–`
         + (c.meal ? " · repas de midi compris" : " · sans repas")
         + (c.private_addon_price ? ` · option 3 h de privé : CHF ${c.private_addon_price}.–` : "")
         + (n ? ` · ${n} inscrit(s)` : "")
-        + (c.description ? ` · ${String(c.description).replace(/\s+/g, " ").slice(0, 160)}` : ""));
+        + (c.description ? ` · ${String(c.description).replace(/\s+/g, " ").slice(0, 200)}` : ""));
     }
   }
   bouts.push(`# Stages à venir (liste COMPLÈTE : ${lignes.length} lignes)\n`
@@ -156,9 +182,13 @@ async function construireConnaissances(supa: ReturnType<typeof createClient>): P
   const evts = (agenda || []) as Record<string, unknown>[];
   bouts.push(`# Calendrier de la saison (${evts.length} entrées, d'aujourd'hui au ${frDate(fin)})\n`
     + (evts.length
-      ? evts.map((e) => `- ${frDate(String(e.start_date))}`
-        + (e.end_date && e.end_date !== e.start_date ? ` au ${frDate(String(e.end_date))}` : "")
-        + ` · ${e.kind} · ${e.title}`).join("\n")
+      // agenda_public() renvoie debut / fin / titre / genre / detail — et non
+      // les noms de colonnes de la table. Vérifié, pas supposé : la première
+      // version lisait start_date et écrivait « undefined » dans le prompt.
+      ? evts.map((e) => `- ${frDate(String(e.debut))}`
+        + (e.fin && e.fin !== e.debut ? ` au ${frDate(String(e.fin))}` : "")
+        + ` · ${e.genre} · ${e.titre}`
+        + (e.detail ? ` — ${e.detail}` : "")).join("\n")
       : "- Rien d'annoncé sur cette période."));
 
   // --- Le contenu du site, page par page ----------------------------------
@@ -257,10 +287,15 @@ async function repondre(client: Anthropic, opts: {
   let refus = false;
 
   for (let tour = 0; tour < 4; tour++) {
+    // PAS de paramètre « effort » ici, bien qu'il soit réglable en console.
+    // Le SDK npm 0.126.0 le refuse : « effort: Extra inputs are not permitted »
+    // (constaté le 08.10.2026 sur claude-haiku-5-5). Le réglage est conservé en
+    // base et attend une montée de version du SDK ; d'ici là Haiku tourne à son
+    // effort par défaut, « medium ». La console le dit, pour ne pas laisser
+    // croire à un bouton qui agit.
     const r = await client.messages.create({
       model: opts.modele,
       max_tokens: 1500,
-      effort: opts.effort,
       system,
       tools: OUTILS,
       messages: messages as never,
