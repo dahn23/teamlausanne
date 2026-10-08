@@ -12711,6 +12711,92 @@ const stgVars = (tpl, r, s) => String(tpl || "")
   .replace(/\{date_fin\}/g, frDate(s.end_date))
   .replace(/\{lien_sondage\}/g, "");
 
+// Dernier regard avant l'envoi : le mail tel qu'il partira, une carte par
+// catégorie, avec son objet, son texte et sa pièce jointe.
+//
+// Une phrase de résumé ne suffisait pas : le texte et le PDF diffèrent d'une
+// catégorie à l'autre, les variables ({prenom}, {stage}, les dates) ne se
+// voient qu'une fois remplacées, et un mail parti ne se rattrape pas. On
+// montre donc le résultat, pas sa description — rempli avec un vrai
+// destinataire, nommé, pour qu'on sache sur quoi on juge.
+//
+// La pièce jointe est téléchargée pendant l'aperçu : ça met le cache en route
+// pour l'envoi, et surtout ça prouve que le fichier est lisible AVANT de
+// l'envoyer à quarante familles.
+function stgApercu(type, envoyables, parCat, s, info) {
+  return new Promise((resolve) => {
+    const label = STG_MAIL_TYPES.find((x) => x[0] === type)?.[1] || type;
+    const cats = [...new Set(envoyables.map((r) => r.category_id))];
+
+    const cartes = cats.map((cid) => {
+      const c = stgCatById(cid), t = parCat[cid];
+      const gens = envoyables.filter((r) => r.category_id === cid);
+      const ex = gens[0];
+      const corps = esc(stgVars(t.body, ex, s)).replace(/\n/g, "<br>");
+      return `<section class="stga-cat" data-cat="${cid}">
+        <header class="stga-h">
+          <b>${esc(c.name || "Catégorie")}</b>
+          <span class="muted">${gens.length} destinataire(s)</span>
+          <span class="spacer"></span>
+          <span class="muted stga-ex">aperçu pour ${esc(ex.first_name)} ${esc(ex.last_name)}</span>
+        </header>
+        <div class="stga-mail">
+          <div class="stga-ligne"><span>De</span><b>${esc(OI_FROM)}</b></div>
+          <div class="stga-ligne"><span>À</span><b>${esc(ex.email)}</b> <span class="muted">et ${gens.length - 1} autre(s)</span></div>
+          <div class="stga-ligne"><span>Objet</span><b>${esc(stgVars(t.subject, ex, s))}</b></div>
+          <div class="stga-corps">${corps}</div>
+          <div class="stga-pj" data-pj="${cid}">${t.attachment_url
+            ? `<span class="stga-chk">⏳ vérification de la pièce jointe…</span>
+               <a href="${esc(t.attachment_url)}" target="_blank" rel="noopener">ouvrir</a>`
+            : `<b class="stga-sans">⚠ aucune pièce jointe pour cette catégorie</b>`}</div>
+        </div>
+      </section>`;
+    }).join("");
+
+    const notes = [
+      info.dejaRecu ? `${info.dejaRecu} ont déjà reçu ce message et ne le recevront pas deux fois.` : "",
+      info.sansMail ? `${info.sansMail} inscrit(s) sans adresse e-mail, ignoré(s).` : "",
+      info.sansModele.length ? `${info.sansModele.length} sans modèle pour leur catégorie, ignoré(s).` : "",
+    ].filter(Boolean);
+
+    const ov = document.createElement("div");
+    ov.className = "ui-modal stga-ov";
+    ov.innerHTML = `<div class="stga-box">
+      <header class="stga-top">
+        <div><span class="crm-eyebrow">Dernier regard avant envoi</span>
+          <h2>${esc(label)}</h2></div>
+        <span class="spacer"></span>
+        <button type="button" class="modal-close stga-x" aria-label="Fermer">×</button>
+      </header>
+      ${notes.length ? `<ul class="stga-notes">${notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+      <div class="stga-corps-scroll">${cartes}</div>
+      <footer class="stga-pied">
+        <button type="button" class="ghost stga-no">Annuler</button>
+        <span class="spacer"></span>
+        <button type="button" class="stga-go">✉ Envoyer à ${envoyables.length} personne(s)</button>
+      </footer></div>`;
+    document.body.appendChild(ov);
+
+    const fin = (v) => { ov.remove(); resolve(v); };
+    ov.querySelector(".stga-go").addEventListener("click", () => fin(true));
+    ov.querySelector(".stga-no").addEventListener("click", () => fin(false));
+    ov.querySelector(".stga-x").addEventListener("click", () => fin(false));
+    ov.addEventListener("click", (e) => { if (e.target === ov) fin(false); });
+    ov.querySelector(".stga-go").focus();
+
+    // Contrôle des pièces jointes, après affichage : l'aperçu ne doit pas
+    // attendre trois mégaoctets pour s'ouvrir.
+    cats.forEach(async (cid) => {
+      const t = parCat[cid]; if (!t.attachment_url) return;
+      const zone = ov.querySelector(`.stga-pj[data-pj="${cid}"] .stga-chk`); if (!zone) return;
+      const pj = await stgPieceJointe(t.attachment_url);
+      if (!pj) { zone.innerHTML = `<b class="stga-sans">⚠ pièce jointe illisible — le mail partirait sans</b>`; return; }
+      const ko = Math.round(atob(pj.content).length / 1024);
+      zone.innerHTML = `📎 <b>${esc(pj.filename)}</b> <span class="muted">${ko} Ko · ${esc(pj.contentType)}</span> ✓`;
+    });
+  });
+}
+
 async function stgEnvoyerMails(type) {
   const s = stgSessions.find((x) => x.id === stgCurrent); if (!s) return;
   const { data: tpls } = await sb.from("stage_email_templates").select("*").eq("type", type);
@@ -12732,21 +12818,7 @@ async function stgEnvoyerMails(type) {
     return;
   }
 
-  // On dit qui, avec quelle pièce jointe : une fois parti, c'est parti.
-  const parCatCompte = {};
-  for (const r of envoyables) {
-    const c = stgCatById(r.category_id), t = parCat[r.category_id];
-    const k = (c.name || "?") + (t.attachment_url ? " (avec PDF)" : " — SANS PIÈCE JOINTE");
-    parCatCompte[k] = (parCatCompte[k] || 0) + 1;
-  }
-  const objetEx = stgVars(parCat[envoyables[0].category_id].subject, envoyables[0], s);
-  if (!(await uiConfirm(
-      `Envoyer « ${STG_MAIL_TYPES.find((x) => x[0] === type)?.[1] || type} » à ${envoyables.length} personne(s) ?\n\n`
-    + Object.entries(parCatCompte).map(([k, n]) => `· ${n} × ${k}`).join("\n")
-    + `\n\nObjet : ${objetEx}\nDepuis : ${OI_FROM}\n`
-    + (dejaRecu ? `\n${dejaRecu} déjà servi(e)s, ils ne le recevront pas deux fois.` : "")
-    + (sansMail ? `\n${sansMail} sans adresse, ignoré(s).` : "")
-    + (sansModele.length ? `\n${sansModele.length} sans modèle pour leur catégorie, ignoré(s).` : "")))) return;
+  if (!(await stgApercu(type, envoyables, parCat, s, { dejaRecu, sansMail, sansModele }))) return;
 
   const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
   const bouton = $("stg-mail-" + type);
