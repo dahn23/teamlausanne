@@ -18,6 +18,9 @@
 //        · { type: "mention" }  → le bloc mention_image ci-dessous
 //   2. Pas de virgule finale exotique ni de commentaire /* */ à l'intérieur
 //      des valeurs : les commentaires // en début de ligne sont admis.
+//   3. Pas de CONCATÉNATION. Une longue phrase s'écrit sur une seule ligne,
+//      jamais en "début " + "suite" : c'est un calcul, et le lecteur du bot
+//      s'arrête dessus. C'est l'erreur qui a cassé la première mise en service.
 // ===========================================================================
 
 export const CONTENU = {
@@ -175,16 +178,7 @@ coachs:
 mention_image:
 {
   type: "mention", title: "Droit à l'image",
-  body: "Dans le cadre des cours, stages, tournois et événements, Team Lausanne Academy "
-    + "réalise des photographies et des vidéos, susceptibles d'être utilisées pour sa "
-    + "communication : site internet, réseaux sociaux, newsletter et supports imprimés. "
-    + "Ces images ne sont ni vendues ni cédées à des tiers à des fins "
-    + "commerciales, et les mineurs n'y sont jamais identifiés au-delà de leur prénom. "
-    + "Le représentant légal peut s'opposer à cette utilisation à tout moment, sans "
-    + "justification et sans conséquence sur la participation, et demander le retrait "
-    + "d'une image déjà publiée en écrivant à info@teamlausanne.ch : nous y donnons "
-    + "suite dans les meilleurs délais. Les données sont traitées conformément à la loi "
-    + "fédérale sur la protection des données (LPD).",
+  body: "Dans le cadre des cours, stages, tournois et événements, Team Lausanne Academy réalise des photographies et des vidéos, susceptibles d'être utilisées pour sa communication : site internet, réseaux sociaux, newsletter et supports imprimés. Ces images ne sont ni vendues ni cédées à des tiers à des fins commerciales, et les mineurs n'y sont jamais identifiés au-delà de leur prénom. Le représentant légal peut s'opposer à cette utilisation à tout moment, sans justification et sans conséquence sur la participation, et demander le retrait d'une image déjà publiée en écrivant à info@teamlausanne.ch : nous y donnons suite dans les meilleurs délais. Les données sont traitées conformément à la loi fédérale sur la protection des données (LPD).",
 },
 
 // ---- Les trois mondes -----------------------------------------------------
