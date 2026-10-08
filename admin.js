@@ -17931,6 +17931,36 @@ const NL_POLICE_T = "Circe,'Noto Sans',Helvetica,Arial,sans-serif";
 
 const NL_LOGO = "https://teamlausanne.ch/assets/logo-academie-blanc.png";
 
+
+// --- Les quatre liens du pied de page ---
+// Rassemblés ici, et nulle part ailleurs : une adresse qui change ou un compte
+// qui bouge se corrige à un seul endroit, sans fouiller du HTML d'e-mail.
+//
+// « google » doit mener là où l'on peut DÉPOSER UN AVIS. Le lien direct
+// (search.google.com/local/writereview?placeid=...) demande l'identifiant Google
+// de la fiche, que nous n'avons pas : en attendant, une recherche Maps sur le nom
+// et l'adresse ouvre la fiche, où le bouton « Rédiger un avis » est à un clic.
+// Le jour où la fiche Google Business donne son lien court (g.page/r/.../review),
+// c'est cette ligne-là qu'on remplace.
+const NL_LIENS = {
+  google: "https://www.google.com/maps/search/?api=1&query=Team+Lausanne+Academy+Route+des+Plaines-du-Loup+7+1018+Lausanne",
+  site:   "https://teamlausanne.ch",
+  mail:   "mailto:info@teamlausanne.ch",
+  insta:  "https://www.instagram.com/lausanne_sports_tennis/",
+};
+
+// Le pied de page de toutes les newsletters. Deux lignes : l'identité et
+// l'adresse, puis les trois façons de nous joindre. Chaque libellé est
+// cliquable, et la couleur est posée en ligne sur chaque <a> — les clients
+// e-mail repeignent sinon les liens en bleu souligné.
+const nlLien = (href, texte) =>
+  `<a href="${href}" style="color:${NL_C.gris};text-decoration:underline">${texte}</a>`;
+const NL_PIED =
+  nlLien(NL_LIENS.google, "Team Lausanne Academy")
+  + " · Route des Plaines du Loup 7, 1018 Lausanne<br />"
+  + nlLien(NL_LIENS.site,  "teamlausanne.ch") + " · "
+  + nlLien(NL_LIENS.mail,  "info@teamlausanne.ch") + " · "
+  + nlLien(NL_LIENS.insta, "@lausanne_sports_tennis");
 const NL_MODELES = {
   entete: { t: "entete", logo: NL_LOGO, fond: NL_C.bleu, trait: true },
   titre:  { t: "titre", texte: "Votre titre", align: "left", couleur: NL_C.encre, taille: 24 },
@@ -17946,10 +17976,7 @@ const NL_MODELES = {
                                       { n: "1h", l: "de physique" } ] },
   sep:    { t: "sep" },
   espace: { t: "espace", h: 24 },
-  pied:   { t: "pied",
-            html: "Team Lausanne Academy · Chemin du Stade 3, 1007 Lausanne<br />"
-                + '<a href="https://teamlausanne.ch" style="color:#69708a">teamlausanne.ch</a> · '
-                + '<a href="mailto:info@teamlausanne.ch" style="color:#69708a">info@teamlausanne.ch</a>' },
+  pied:   { t: "pied", html: NL_PIED },
 };
 const NL_NOMS = { entete: "En-tête", titre: "Titre", texte: "Texte", image: "Image",
                   bouton: "Bouton", duo: "Image + texte", bandeau: "Bandeau",
