@@ -17736,12 +17736,36 @@ function nlBlocHtml(b) {
         ${pastille}</tr></table></td></tr></table>`;
     }
     case "duo": {
+      const droite = b.sens === "image-droite" || b.sens === "habille-droite";
+      const style = `font-family:${NL_POLICE};font-size:15px;line-height:1.6;color:${NL_C.texte}`;
+
+      // Habillage : le texte commence à côté de l'image et, s'il est plus long
+      // qu'elle, reprend toute la largeur en dessous. Deux colonnes ne savent
+      // pas faire ça — une cellule garde sa largeur jusqu'au bout, et un texte
+      // trop long s'étire en colonne étroite pendant que l'autre reste vide.
+      //
+      // align="left|right" sur la balise <img> n'est pas décoratif : c'est le
+      // seul habillage que comprenne le moteur Word d'Outlook pour Windows.
+      // Le float du style sert à tous les autres clients. On met les deux.
+      if (String(b.sens || "").indexOf("habille") === 0) {
+        const cote = droite ? "right" : "left";
+        const marge = droite ? "0 0 12px 18px" : "0 18px 12px 0";
+        const img = b.src
+          ? `<img src="${esc(b.src)}" alt="${esc(b.alt || "")}" width="220" align="${cote}"
+               style="float:${cote};width:220px;max-width:45%;height:auto;border:0;border-radius:8px;margin:${marge}" />`
+          : "";
+        // La barre de dégagement empêche le bloc suivant de remonter le long
+        // de l'image quand le texte est plus court qu'elle.
+        return `<div style="${style}">${img}<div data-nl-txt>${b.html || ""}</div>`
+          + `<div style="clear:both;font-size:1px;line-height:1px">&nbsp;</div></div>`;
+      }
+
       const img = b.src
         ? `<img src="${esc(b.src)}" alt="${esc(b.alt || "")}" width="256" style="display:block;width:100%;max-width:256px;height:auto;border:0;border-radius:8px" />`
         : "";
-      const txt = `<div style="font-family:${NL_POLICE};font-size:15px;line-height:1.6;color:${NL_C.texte}">${b.html || ""}</div>`;
-      const a = b.sens === "image-droite" ? txt : img;
-      const c = b.sens === "image-droite" ? img : txt;
+      const txt = `<div data-nl-txt style="${style}">${b.html || ""}</div>`;
+      const a = droite ? txt : img;
+      const c = droite ? img : txt;
       // width en pourcentage : les colonnes se serrent sur petit ecran plutot
       // que de deborder, sans dependre des media queries.
       return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
@@ -17953,7 +17977,10 @@ function nlChampsEditables(b, racine) {
     case "titre":  return [{ el: q("h2"), f: "texte" }];
     case "texte":  return [{ el: q("div"), f: "html", riche: true }];
     case "bouton": return [{ el: q("a"), f: "texte" }];
-    case "duo":    return [{ el: q("td div"), f: "html", riche: true }];
+    // Le texte porte data-nl-txt dans les deux dispositions (colonnes et
+    // habillage) : un selecteur unique, et l'edition sur la toile continue
+    // de fonctionner quand on bascule de l'une a l'autre.
+    case "duo":    return [{ el: q("[data-nl-txt]"), f: "html", riche: true }];
     case "pied":   return [{ el: q("td > div"), f: "html", riche: true }];
     case "bandeau": {
       const d = racine.querySelectorAll("td > div");
@@ -18027,8 +18054,10 @@ function nlRenderInspecteur() {
               <input type="file" id="nl-img-file" accept="image/*" hidden /></div>`)
          +  champ("Texte", `<div class="rt-edit nl-rich" contenteditable="true" data-f="html">${b.html || ""}</div>`)
          +  champ("Disposition", `<select data-f="sens">
-              <option value="image-gauche"${b.sens !== "image-droite" ? " selected" : ""}>Image à gauche</option>
-              <option value="image-droite"${b.sens === "image-droite" ? " selected" : ""}>Image à droite</option></select>`);
+              <option value="image-gauche"${b.sens !== "image-droite" && String(b.sens || "").indexOf("habille") !== 0 ? " selected" : ""}>Deux colonnes — image à gauche</option>
+              <option value="image-droite"${b.sens === "image-droite" ? " selected" : ""}>Deux colonnes — image à droite</option>
+              <option value="habille-gauche"${b.sens === "habille-gauche" ? " selected" : ""}>Texte autour — image à gauche</option>
+              <option value="habille-droite"${b.sens === "habille-droite" ? " selected" : ""}>Texte autour — image à droite</option></select>`);
   } else if (b.t === "espace") {
     html += champ("Hauteur (px)", `<input type="range" data-f="h" min="8" max="80" value="${+b.h || 24}" />`);
   } else if (b.t === "entete") {
