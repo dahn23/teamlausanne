@@ -10412,10 +10412,15 @@ function brancherScrollH(wrap) {
     barre.hidden = !large;            // rien à faire défiler : pas de barre
     if (large) { jauge.style.width = wrap.scrollWidth + "px"; barre.scrollLeft = wrap.scrollLeft; }
   };
+  // L'observateur doit être RETENU. Contrairement à MutationObserver, un
+  // ResizeObserver que plus rien ne référence peut être ramassé par le GC même
+  // s'il observe encore des éléments : il cesse alors de prévenir, au hasard
+  // des collectes. Vérifié le 08.10.2026 — la barre ne réapparaissait qu'une
+  // fois sur deux. On l'accroche donc au conteneur.
   if (window.ResizeObserver) {
-    const ro = new ResizeObserver(() => wrap._majScrollH());
-    ro.observe(wrap);
-    const t = wrap.querySelector("table"); if (t) ro.observe(t);
+    wrap._ro = new ResizeObserver(() => wrap._majScrollH());
+    wrap._ro.observe(wrap);
+    const t = wrap.querySelector("table"); if (t) wrap._ro.observe(t);
   }
   wrap._majScrollH();
 }
@@ -11265,6 +11270,9 @@ function renderOutInvoices() {
     if (!(await uiConfirm(`Annuler la facture ${f?.number} ? (elle reste dans la liste, statut « Annulée »)`))) return;
     await sb.from("out_invoices").update({ status: "annulee" }).eq("id", b.dataset.id); loadOutInvoices();
   }));
+  // Filet : la largeur utile vient de changer avec les lignes. L'observateur
+  // le verrait, mais l'affichage ne doit pas dépendre du ramasse-miettes.
+  majScrollH();
 }
 // ---- Préparation d'un lot ----
 async function oiOpenPrep() {
