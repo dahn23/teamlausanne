@@ -1489,7 +1489,15 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 /* Trois cartes entieres et un morceau de la quatrieme : on voit tout de suite
    qu'il y a une suite, sans avoir a deviner. */
 .cch-piste>.cch-carte{flex:0 0 clamp(260px,30%,330px)}
-.cch-tout{margin:16px 0 0}
+/* Le lien vers la page des coachs prend le bouton de la marque (.btn-cta) :
+   pilule blanche, pastille mint qui s'etale au survol. Il portait avant le
+   .wsec-link — italique, capitales et gros souligne mint — qui jure a cet
+   endroit et n'invite pas au clic. */
+.cch-tout{margin:22px 0 0}
+/* .btn-cta n'avait servi que sur des <button> : un <a> arrive avec son
+   soulignement et la couleur des liens, qu'il faut neutraliser. */
+a.btn-cta{text-decoration:none;color:var(--ink)}
+a.btn-cta:hover,a.btn-cta:focus-visible{color:var(--fluo-ink)}
 @media(max-width:720px){
   /* Au doigt on fait glisser : les fleches disparaissent (regle commune plus
      bas) et les cartes s'elargissent d'autant. */

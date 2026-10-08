@@ -1638,7 +1638,7 @@ function sectionHTML(sec) {
           ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
         </div>
         ${corps}
-        ${sec.lien ? `<p class="cch-tout"><a class="wsec-link" href="${esc(sec.lien.href)}">${esc(sec.lien.label)} →</a></p>` : ""}
+        ${sec.lien ? `<p class="cch-tout"><a class="btn-cta" href="${esc(sec.lien.href)}">${esc(sec.lien.label)}</a></p>` : ""}
         ${sec.items.map(coachFiche).join("")}</section>`;
     }
 
