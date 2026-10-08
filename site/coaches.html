@@ -102,9 +102,12 @@
                 <ul class="co-tags"><li>Sport Studies &amp; Pro</li><li>Competition</li><li>Performance</li></ul>
               </div>
             </div>
+            <!-- Pas de loading="lazy" sur les cinq photos de cartes : elles SONT le
+                 contenu de la page. Differer leur chargement ferait dependre
+                 l'essentiel d'un observateur d'intersection pour un gain nul. -->
             <div class="co-photo">
               <img src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a58fb304ecafb47d828f558_mariano_compressed.jpg"
-                   alt="Mariano Palena" loading="lazy" />
+                   alt="Mariano Palena" />
               <button type="button" class="co-plus" aria-haspopup="dialog" aria-label="Learn more about Mariano Palena">Learn More
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 7H17V17" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/><path d="M7 17L16.36 7.64" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/></svg>
               </button>
@@ -123,7 +126,7 @@
             </div>
             <div class="co-photo">
               <img src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a58fb37f06fddabdf6712fb_yann_compressed.jpg"
-                   alt="Yann Perez" loading="lazy" />
+                   alt="Yann Perez" />
               <button type="button" class="co-plus" aria-haspopup="dialog" aria-label="Learn more about Yann Perez">Learn More
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 7H17V17" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/><path d="M7 17L16.36 7.64" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/></svg>
               </button>
@@ -142,7 +145,7 @@
             </div>
             <div class="co-photo">
               <img src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a58fb46c66547847a0b5f5e_loris_compressed.jpg"
-                   alt="Loris Gander" loading="lazy" />
+                   alt="Loris Gander" />
               <button type="button" class="co-plus" aria-haspopup="dialog" aria-label="Learn more about Loris Gander">Learn More
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 7H17V17" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/><path d="M7 17L16.36 7.64" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/></svg>
               </button>
@@ -161,7 +164,7 @@
             </div>
             <div class="co-photo">
               <img src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a58fb71c66547847a0bbb4c_seline_compressed.jpg"
-                   alt="Séline Rivarolli" loading="lazy" />
+                   alt="Séline Rivarolli" />
               <button type="button" class="co-plus" aria-haspopup="dialog" aria-label="Learn more about Séline Rivarolli">Learn More
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 7H17V17" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/><path d="M7 17L16.36 7.64" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/></svg>
               </button>
@@ -180,7 +183,7 @@
             </div>
             <div class="co-photo">
               <img src="https://cdn.prod.website-files.com/69de0802a2f77d84f9a08f1f/6a677a9a15c715e3aeae583d_talia-picci_compressed.jpg"
-                   alt="Talia Picci" loading="lazy" />
+                   alt="Talia Picci" />
               <button type="button" class="co-plus" aria-haspopup="dialog" aria-label="Learn more about Talia Picci">Learn More
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 7H17V17" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/><path d="M7 17L16.36 7.64" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/></svg>
               </button>
@@ -435,11 +438,12 @@
         ouverte = f;
         f.classList.add("ouvert");
         // La photo n'est demandee qu'a la premiere ouverture, et par le script.
-        // loading="lazy" ne marchait PAS ici : une image dont un parent est en
-        // display:none n'est jamais jugee « proche de la fenetre », et elle ne
-        // demarre toujours pas quand ce parent redevient visible. Verifie le
-        // 08.10.2026 sur la page deployee : currentSrc restait vide apres sept
-        // secondes, fiche ouverte.
+        // Avec loading="lazy" elle ne partait pas : fiche ouverte, currentSrc
+        // restait vide apres sept secondes (08.10.2026). Le navigateur d'essai
+        // suspendait aussi ses observateurs, donc la cause exacte n'est pas
+        // etablie — mais poser src nous-memes ne depend plus d'une heuristique
+        // dont le comportement est de toute facon mal defini sur un element
+        // reste en display:none. Le report de chargement est conserve.
         var ph = f.querySelector(".co-fiche-photo[data-src]");
         if (ph) { ph.src = ph.getAttribute("data-src"); ph.removeAttribute("data-src"); }
         // Le fond ne defile plus sous la fiche.
