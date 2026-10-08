@@ -791,6 +791,123 @@ const DETAILS = {
       { type: "gzwinners", title: "Nos vainqueurs de la saison" },
     ],
   },
+  // ---- Nos coachs ----------------------------------------------------------
+  // Reprise de la page Webflow teamlausanne.webflow.io/coaches, traduite et
+  // remise au gabarit du site : meme banniere, meme bandeau de mots-cles, meme
+  // pied de page que Kids Tennis ou Competition. Les photos ont ete rapatriees
+  // dans assets/photos/coaches/ — elles vivaient sur le CDN de Webflow, qui
+  // disparaitra avec le projet.
+  //
+  // « Camps » devient « Stages » : c'est le mot employe partout ailleurs sur le
+  // site, et les familles cherchent celui-la.
+  coaches: {
+    world: "academie", title: "Nos coachs",
+    subtitle: "Notre équipe réunit des expériences qui couvrent le Kids Tennis, le Club, la Compétition, la Performance, le Sport-études et le Pro. Chaque coach construit un cadre où l'on progresse avec clarté, régularité et confiance.",
+    hero: "assets/photos/coaches-hero.webp", heroPos: "center 35%",
+    cta: { label: "Nous écrire", contact: "Nos coachs" },
+    sections: [
+      { type: "keywords", label: "Ce qui fait notre encadrement", items: [
+        "Du Kids Tennis au Pro", "Des coachs diplômés", "Un suivi individuel",
+        "Une équipe soudée", "De l'expérience internationale", "La progression avant tout",
+      ]},
+      { type: "coachs", eyebrow: "Notre équipe de coachs",
+        title: "Une équipe tournée vers la progression",
+        lead: "Nos coachs travaillent ensemble, pour que l'encadrement reste cohérent à tous les niveaux — des premières balles jusqu'au Sport-études et au Pro.",
+        items: [
+          { slug: "mariano-palena", role: "Head coach", nom: "Mariano Palena",
+            resume: "Coach international, il accompagne des joueurs professionnels dans leur développement technique, mental et personnel.",
+            tags: ["Sport-études & Pro", "Compétition", "Performance"],
+            bio: [
+              "Argentin d'origine, Mariano Palena entraîne depuis ses 18 ans. Passionné de tennis et de transmission, il accompagne les jeunes joueurs dans leur développement sportif, mental et personnel.",
+            ],
+            citation: "Mon rôle est d'aider les jeunes à aimer le processus et à devenir autonomes. Avant d'être des joueurs de tennis, nous sommes des personnes. Les valeurs passent toujours en premier.",
+            classement: ["Niveau estimé N4/R1 en Suisse."],
+            formations: [
+              "Formation de l'Association argentine de tennis, niveaux 1 et 2.",
+              "ITF niveau III.",
+              "Formations complémentaires en biomécanique, préparation physique et psychologie du sport.",
+            ],
+            parcours: [
+              "Expérience auprès de juniors de tous âges, y compris sur le circuit ITF Junior.",
+              "A entraîné des joueurs professionnels classés jusqu'au top 350 ATP.",
+              "A accompagné des joueuses entrées dans le top 100 WTA, sur les tournois WTA et en Grand Chelem.",
+              "Expérience d'entraîneur en Argentine, en Italie, en Espagne et en Arabie saoudite.",
+              "Head coach des groupes Sport-études & Pro depuis plus de deux ans.",
+            ]},
+
+          { slug: "yann-perez", role: "Coach", nom: "Yann Perez",
+            resume: "Coach performance, il associe l'expérience de la compétition à une approche exigeante, intense et respectueuse.",
+            tags: ["Sport-études & Pro"],
+            bio: [
+              "Yann Perez a rejoint l'académie il y a cinq ans. En parallèle de son métier de coach, il a mené des études universitaires tout en continuant à jouer en compétition.",
+              "Discipline, intensité et respect sont au cœur de son approche sur le court.",
+            ],
+            classement: ["Classement actuel : R1 (290).", "Meilleur classement : R1 (189)."],
+            formations: [
+              "Entraîneur J+S.",
+              "Brevet d'enseignement pour joueurs avancés.",
+              "Coach Youth Sport.",
+              "Swiss Tennis Physis Coach.",
+            ],
+            parcours: [
+              "Deux fois champion vaudois.",
+              "Finaliste des interclubs juniors.",
+              "Sparring-partner de joueurs ATP.",
+              "Stages d'entraînement en Espagne.",
+            ]},
+
+          { slug: "loris-gander", role: "Coach", nom: "Loris Gander",
+            resume: "Joueur de compétition en activité et coach, il partage son expérience des tournois avec patience, enthousiasme et passion.",
+            tags: ["Kids Tennis", "Club", "Compétition", "Stages"],
+            bio: [
+              "Loris Gander a 19 ans et joue au tennis depuis l'âge de trois ans. Il s'entraîne quotidiennement dans la filière Pro de la Team Lausanne Academy, avec l'objectif de devenir joueur professionnel, tout en transmettant sa passion comme coach au sein de l'académie.",
+              "Patient et passionné, Loris aime partager son énergie et son goût du tennis avec les jeunes qu'il encadre.",
+            ],
+            classement: ["Classement actuel et meilleur classement : N4 (148)."],
+            formations: ["Formation Jeunesse+Sport en cours."],
+            parcours: [
+              "A disputé plusieurs tournois ITF juniors à l'étranger.",
+              "Expérience sur quelques tournois ITF adultes.",
+              "Coach à la Team Lausanne Academy depuis un an.",
+              "Accompagnement ponctuel sur les tournois.",
+            ]},
+
+          { slug: "seline-rivarolli", role: "Coach", nom: "Séline Rivarolli",
+            resume: "Coach des plus jeunes, elle construit des séances positives et motivantes, faites d'énergie, de plaisir et de goût du jeu.",
+            tags: ["Kids Tennis", "Club"],
+            bio: [
+              "Séline Rivarolli a 19 ans et joue au tennis depuis l'âge de quatre ans. Une blessure l'a empêchée de poursuivre en compétition, mais sa passion est restée intacte et elle la transmet aujourd'hui aux plus jeunes.",
+              "Séline transmet sa passion comme on la lui a transmise : avec motivation, énergie et le sourire.",
+            ],
+            classement: ["Classement actuel : R6.", "Meilleur classement : R3."],
+            formations: [
+              "Diplôme d'aide-monitrice de tennis.",
+              "Formation J+S prévue en août 2026.",
+            ],
+            parcours: [
+              "A disputé plusieurs championnats vaudois.",
+              "A participé aux championnats suisses.",
+              "Expérience de l'entraînement en académie.",
+            ]},
+
+          { slug: "talia-picci", role: "Coach junior", nom: "Talia Picci",
+            resume: "Compétitrice R1 en activité, elle accompagne les jeunes dans des séances vivantes, détendues et motivantes, centrées sur l'engagement et le plaisir.",
+            tags: ["Kids Tennis", "Club", "Stages"],
+            bio: [
+              "Talia Picci a 18 ans et vise une carrière professionnelle. Classée R1, elle dispute des tournois presque chaque week-end et aborde progressivement le circuit international.",
+              "Son entraînement repose sur l'engagement et le plaisir. Quand les joueurs fournissent de vrais efforts, elle aime les récompenser par des jeux, dans une ambiance détendue et motivante.",
+            ],
+            classement: ["Classement actuel : R1 (117).", "Meilleur classement : R1 (99)."],
+            formations: ["Certification Tennis loisir, niveau 1."],
+            parcours: [
+              "Compétitrice active sur le circuit national.",
+              "Débuts sur les tournois internationaux.",
+              "Intervient en Kids Tennis, dans les groupes Club et sur les stages.",
+            ]},
+        ]},
+      MENTION_IMAGE,
+    ],
+  },
 };
 
 // ===================================================================
@@ -847,6 +964,99 @@ const BALLE = `<svg class="kw-balle" viewBox="0 0 24 24" aria-hidden="true" focu
   <path d="M4.7 5.1a9.4 9.4 0 0 1 3.1 6.9 9.4 9.4 0 0 1-3.1 6.9M19.3 5.1a9.4 9.4 0 0 0-3.1 6.9 9.4 9.4 0 0 0 3.1 6.9"
         fill="none" stroke="var(--kw-fond)" stroke-width="1.7" stroke-linecap="round"/>
 </svg>`;
+
+// ---- Cartes et fiches des coachs ------------------------------------------
+// La carte est un <article>, pas un <button> : elle contient un titre, un
+// paragraphe et une liste, que la specification interdit dans un bouton — et un
+// lecteur d'ecran annoncerait tout le bloc comme un seul libelle. Le clic sur la
+// carte reste un confort ; la commande est le bouton « En savoir plus », nomme
+// d'apres son coach, seul element atteignable au clavier.
+const coachPhoto = (c) => `assets/photos/coaches/${c.slug}.jpg`;
+const coachPortrait = (c) => `assets/photos/coaches/${c.slug}-large.jpg`;
+
+// Fleche du bouton, reprise de la page d'origine.
+const CCH_FLECHE = `<svg class="cch-fleche" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+  <path d="M7 7H17V17" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/>
+  <path d="M7 17L16.36 7.64" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/></svg>`;
+
+function coachCarte(c) {
+  return `<article class="cch-carte" data-cch="${esc(c.slug)}">
+    <div class="cch-txt">
+      <span class="cch-role">${esc(c.role)}</span>
+      <div>
+        <h3 class="cch-nom">${esc(c.nom)}</h3>
+        <p class="cch-resume">${esc(c.resume)}</p>
+        <ul class="cch-tags">${c.tags.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+      </div>
+    </div>
+    <div class="cch-photo">
+      <img src="${esc(coachPhoto(c))}" alt="${esc(c.nom)}" />
+      <button type="button" class="cch-plus" aria-haspopup="dialog"
+        aria-label="En savoir plus sur ${esc(c.nom)}">En savoir plus${CCH_FLECHE}</button>
+    </div>
+  </article>`;
+}
+
+// Un bloc de la fiche : un intertitre et sa liste. Rien n'est affiche si la
+// liste est vide, plutot qu'un titre orphelin.
+const coachBloc = (titre, items) => !items || !items.length ? ""
+  : `<h4>${esc(titre)}</h4><ul>${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>`;
+
+function coachFiche(c) {
+  return `<div class="cch-fiche" id="cch-${esc(c.slug)}" role="dialog" aria-modal="true"
+       aria-labelledby="cch-t-${esc(c.slug)}" hidden>
+    <div class="cch-voile" data-cch-fermer></div>
+    <div class="cch-panneau">
+      <button type="button" class="cch-fermer" data-cch-fermer aria-label="Fermer">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="cch-panneau-def">
+        <div class="cch-fiche-haut">
+          <span class="eyebrow">${esc(c.role)}</span>
+          <h3 class="cch-nom" id="cch-t-${esc(c.slug)}">${esc(c.nom)}</h3>
+          <div class="cch-bio">
+            ${c.bio.map((p) => `<p>${esc(p)}</p>`).join("")}
+            ${c.citation ? `<blockquote class="cch-cite">${esc(c.citation)}</blockquote>` : ""}
+            ${coachBloc("Classement", c.classement)}
+            ${coachBloc("Formations", c.formations)}
+            ${coachBloc("Parcours", c.parcours)}
+          </div>
+        </div>
+        <ul class="cch-fiche-tags">${c.tags.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+        <img class="cch-fiche-photo" data-src="${esc(coachPortrait(c))}" alt="${esc(c.nom)}" />
+      </div>
+    </div>
+  </div>`;
+}
+
+// Ouverture et fermeture. Un seul jeu de fonctions, appele depuis le gestionnaire
+// de clic general plus bas.
+let coachOuverte = null, coachAppelante = null;
+
+function coachOuvrir(slug) {
+  const f = document.getElementById("cch-" + slug);
+  if (!f) return;
+  coachFermer();
+  coachOuverte = f;
+  f.hidden = false;
+  document.documentElement.style.overflow = "hidden";
+  // La photo n'est demandee qu'a la premiere ouverture, et par le script : une
+  // image dont un parent est cache ne declenche pas le chargement differe natif.
+  const ph = f.querySelector(".cch-fiche-photo[data-src]");
+  if (ph) { ph.src = ph.getAttribute("data-src"); ph.removeAttribute("data-src"); }
+  const x = f.querySelector(".cch-fermer");
+  if (x) x.focus();
+}
+
+function coachFermer() {
+  if (!coachOuverte) return;
+  coachOuverte.hidden = true;
+  coachOuverte = null;
+  document.documentElement.style.overflow = "";
+  if (coachAppelante) { coachAppelante.focus(); coachAppelante = null; }
+}
+
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && coachOuverte) coachFermer(); });
 
 function sectionHTML(sec) {
   switch (sec.type) {
@@ -1347,6 +1557,21 @@ function sectionHTML(sec) {
           `<ul class="kw-serie"${copie ? ' aria-hidden="true"' : ""}>${sec.items.map((m) =>
             `<li class="kw">${BALLE}${esc(m)}</li>`).join("")}</ul>`).join("")}
         </div></section>`;
+
+    // ---- Les coachs ----
+    // Une grille de cartes, chacune ouvrant une fiche detaillee. Les fiches
+    // sont ecrites dans la page, cachees, et non fabriquees au clic : le
+    // contenu existe pour les moteurs de recherche, et rien ne depend du
+    // script pour etre present.
+    case "coachs":
+      return `<section class="wsec coaches">
+        <div class="perks-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
+        </div>
+        <div class="cch-grid">${sec.items.map(coachCarte).join("")}</div>
+        ${sec.items.map(coachFiche).join("")}</section>`;
 
     // ---- Atouts numerotes ----
     case "perks":
@@ -2469,6 +2694,18 @@ document.addEventListener("click", (e) => {
   }
   const cpage = e.target.closest("[data-scroll-page]");
   if (cpage) { location.hash = cpage.dataset.scrollPage; return; }
+  // Fiches des coachs. La fermeture passe avant l'ouverture : le voile couvre la
+  // page, et un clic dessus ne doit pas rouvrir la carte qui se trouve dessous.
+  if (e.target.closest("[data-cch-fermer]")) { coachFermer(); return; }
+  const carte = e.target.closest("[data-cch]");
+  if (carte) {
+    // On revient toujours sur le bouton, jamais sur la carte : c'est lui qui
+    // peut recevoir le focus.
+    coachAppelante = carte.querySelector(".cch-plus");
+    coachOuvrir(carte.dataset.cch);
+    return;
+  }
+
   const contact = e.target.closest("[data-contact]");
   if (contact) { openContact(contact.dataset.contact); return; }
   const cta = e.target.closest("[data-cta]");

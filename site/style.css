@@ -1457,6 +1457,101 @@ body[data-world="academie"] .pod-rank{color:var(--fluo-ink)}
 .coach figcaption{margin-top:10px;display:flex;flex-direction:column;gap:2px}
 .coach figcaption b{font-size:1rem}
 .coach figcaption span{color:var(--muted);font-size:.85rem}
+
+/* ---- Nos coachs (section « coachs ») ------------------------------------
+   Reprise de la page Webflow /coaches, remise aux couleurs du site. Les
+   proportions viennent de l'original : carte a rayon 32px, photo en 386/340,
+   pastille de role et bouton en gelule. Prefixe « cch- » et pas « coach- » :
+   .coach, .coach-grid et .coach-photo existent deja plus haut pour l'ancienne
+   grille de trombinoscope, et les deux se seraient repeints l'un l'autre. */
+.cch-grid{display:grid;gap:20px;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr))}
+
+.cch-carte{display:flex;flex-direction:column;background:#ededed;
+  border-radius:32px;overflow:hidden;cursor:pointer;
+  transition:transform .22s ease,box-shadow .22s ease}
+.cch-carte:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(20,26,46,.14)}
+/* Le contour suit le bouton mais se dessine autour de la carte : c'est elle
+   que l'oeil cherche. */
+.cch-carte:focus-within{outline:3px solid var(--blue);outline-offset:3px}
+
+.cch-txt{display:flex;flex-direction:column;gap:28px;padding:28px 32px;flex:1 0 auto}
+/* La pastille de role s'allume en meme temps que le bouton : les deux bouts de
+   la carte reagissent ensemble, et le survol se lit d'un coup d'oeil. */
+.cch-role{align-self:flex-start;padding:10px 16px;border-radius:999px;
+  background:#fff;font-size:.875rem;font-weight:700;letter-spacing:-.02em;
+  white-space:nowrap;transition:background-color .2s ease,color .2s ease}
+.cch-carte:hover .cch-role,
+.cch-carte:focus-within .cch-role{background:var(--fluo);color:var(--fluo-ink)}
+
+/* Acumin, et pas le Circe capitale de « .public h3 » : la page d'origine
+   compose les noms en Acumin 700. On redit donc famille, graisse et casse,
+   que la regle du site avait posees avec une specificite superieure. */
+.public .cch-nom{font-family:var(--font-body);font-weight:700;
+  text-transform:uppercase;letter-spacing:-.04em;
+  margin:0 0 10px;font-size:1.5rem;line-height:1.1;color:var(--ink)}
+.cch-resume{margin:0 0 12px;font-size:1rem;line-height:1.35;color:var(--ink)}
+/* Les filieres, separees par des virgules comme sur l'original. */
+.cch-tags{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;
+  font-size:.875rem;color:var(--ink)}
+.cch-tags li:not(:last-child)::after{content:",\00a0"}
+
+.cch-photo{position:relative;margin-top:auto;aspect-ratio:386/340;overflow:hidden}
+.cch-photo img{width:100%;height:100%;object-fit:cover;display:block;
+  transition:transform .4s ease}
+.cch-carte:hover .cch-photo img{transform:scale(1.04)}
+.cch-plus{position:absolute;left:20px;bottom:20px;display:inline-flex;align-items:center;gap:10px;
+  padding:11px 18px;border:0;border-radius:999px;background:#fff;color:var(--ink);
+  font-family:inherit;font-size:.875rem;font-weight:700;letter-spacing:-.02em;cursor:pointer;
+  transition:background-color .2s ease,color .2s ease}
+.cch-fleche{width:16px;height:16px;flex:0 0 auto}
+.cch-carte:hover .cch-plus,.cch-plus:focus-visible{background:var(--fluo);color:var(--fluo-ink)}
+/* Le contour est porte par la carte (focus-within) : inutile de le doubler. */
+.cch-plus:focus-visible{outline:none}
+
+/* ---- La fiche ---- */
+.cch-fiche{position:fixed;inset:0;z-index:999;display:flex;
+  align-items:center;justify-content:center;padding:24px}
+.cch-fiche[hidden]{display:none}
+.cch-voile{position:absolute;inset:0;background:rgba(4,32,94,.62)}
+.cch-panneau{position:relative;width:min(620px,100%);max-height:calc(100vh - 48px);
+  display:flex;flex-direction:column;background:#fff;
+  border-radius:32px;overflow:hidden;box-shadow:0 24px 70px rgba(4,32,94,.32)}
+.cch-panneau-def{overflow-y:auto;overscroll-behavior:contain}
+.cch-fermer{position:absolute;top:16px;right:16px;z-index:2;width:40px;height:40px;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:0;border-radius:999px;background:#fff;color:var(--ink);
+  cursor:pointer;box-shadow:0 2px 10px rgba(20,26,46,.18);transition:background-color .2s}
+.cch-fermer:hover{background:var(--fluo);color:var(--fluo-ink)}
+.cch-fermer svg{width:20px;height:20px}
+.cch-fiche-haut{padding:28px 32px 24px}
+.cch-fiche-haut .cch-nom{margin:14px 0 18px}
+.cch-bio{font-size:.9375rem;line-height:1.55;color:var(--ink)}
+.cch-bio p{margin:0 0 12px}
+.cch-cite{margin:0 0 12px;padding-left:16px;border-left:3px solid var(--fluo);
+  font-style:italic;color:var(--muted)}
+.cch-bio h4{margin:22px 0 8px;font-size:.8125rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--muted)}
+.cch-bio ul{margin:0;padding-left:20px}
+.cch-bio li{margin:0 0 6px}
+.cch-fiche-tags{display:flex;flex-wrap:wrap;gap:8px;padding:0 32px 24px;margin:0;list-style:none}
+.cch-fiche-tags li{padding:9px 16px;border-radius:999px;background:#ededed;
+  font-size:.875rem;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.cch-fiche-photo{display:block;width:100%;aspect-ratio:620/320;object-fit:cover;flex:0 0 auto}
+
+@media (max-width:600px){
+  .cch-txt{padding:24px 22px;gap:22px}
+  .cch-fiche{padding:0}
+  .cch-panneau{width:100%;max-height:100vh;border-radius:0}
+  .cch-fiche-haut{padding:24px 22px 20px}
+  .cch-fiche-tags{padding:0 22px 20px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .cch-carte,.cch-photo img,.cch-plus,.cch-role,.cch-fermer{transition:none}
+  .cch-carte:hover{transform:none}
+  .cch-carte:hover .cch-photo img{transform:none}
+}
 /* Révélation au défilement */
 .reveal{opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s cubic-bezier(.22,.61,.36,1)}
 .reveal.in{opacity:1;transform:none}

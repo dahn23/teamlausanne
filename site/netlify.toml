@@ -103,8 +103,8 @@
 
 [[redirects]]
   from = "/coaches"
-  to = "/coaches.html"
-  status = 200
+  to = "/#coaches"
+  status = 301
 # --- Anciennes adresses du site Wix : aucune ne doit tomber en 404 ---
 [[redirects]]
   from = "/partenariats"
