@@ -4790,3 +4790,28 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
    plus une proposition mais l'état courant — d'où le plein, et non le fantôme. */
 .ghost.oi-loupe-on{background:var(--blue);color:#fff;border-color:var(--blue)}
 .ghost.oi-loupe-on:hover{background:var(--blue-d);color:#fff}
+
+/* ---- Heures des coachs, sous la grille de réservation --------------------
+   Replié par défaut : le planning reste la vedette. */
+.rh-bloc{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:12px 16px;margin:0 0 14px}
+.rh-bloc > summary{cursor:pointer;font-size:.95rem;list-style:none;display:flex;
+  align-items:center;gap:8px}
+.rh-bloc > summary::-webkit-details-marker{display:none}
+.rh-bloc > summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+.rh-bloc[open] > summary::before{transform:rotate(90deg)}
+.rh-barre{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:14px 0 10px}
+.rh-liste{display:flex;flex-direction:column;gap:3px}
+.rh-ligne{display:grid;grid-template-columns:minmax(120px,1.4fr) 2fr auto auto;
+  gap:12px;align-items:center;padding:5px 0;font-size:.9rem}
+.rh-nom{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* La jauge compare les coachs entre eux : c'est tout ce qu'on lui demande. */
+.rh-jauge{height:8px;background:var(--bg);border-radius:999px;overflow:hidden}
+.rh-jauge i{display:block;height:100%;background:var(--blue);border-radius:999px}
+.rh-h{font-variant-numeric:tabular-nums;white-space:nowrap}
+.rh-n{font-size:.8rem;white-space:nowrap}
+.rh-total{margin:10px 0 0;font-size:.82rem;border-top:1px solid var(--line);padding-top:8px}
+@media(max-width:700px){
+  .rh-ligne{grid-template-columns:1fr auto auto;gap:8px}
+  .rh-jauge{display:none}
+}

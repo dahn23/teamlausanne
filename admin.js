@@ -603,6 +603,7 @@ async function initResa(roles) {
   // On rouvre sur le jour qu'on était en train de travailler, pas sur aujourd'hui.
   $("resa-date").value = resaMemoLue() || isoA(new Date());
   $("resa-date").addEventListener("change", () => allerAuJour($("resa-date").value));
+  initResaHeures();
   $("resa-prev").addEventListener("click", () => shiftResa(-1));
   $("resa-next").addEventListener("click", () => shiftResa(1));
   $("resa-today").addEventListener("click", () => allerAuJour(isoA(new Date())));
@@ -652,6 +653,9 @@ function shiftResa(delta) {
 
 async function loadResaDay() {
   const date = $("resa-date").value;
+  // Le bloc « heures des coachs » suit le jour affiché. Il ne recharge que s'il
+  // est ouvert — la fonction s'en assure elle-même.
+  loadResaHeures();
   const season = seasonA(date);
   const sunIco = '<svg class="season-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"/></svg>';
   const snowIco = '<svg class="season-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M3.4 7l17.2 10M20.6 7L3.4 17"/><path d="M12 5l-2.2 2.2M12 5l2.2 2.2M12 19l-2.2-2.2M12 19l2.2 2.2"/></svg>';
@@ -20094,4 +20098,101 @@ function botOuvrirEvalItem(id) {
     ${i.explication ? `<p style="margin:0 0 4px"><b>Verdict</b></p><p style="margin:0 0 14px">${esc(i.explication)}</p>` : ""}
     ${i.amelioration ? `<p style="margin:0 0 4px"><b>Ce qui aiderait</b></p><p class="muted" style="margin:0">${esc(i.amelioration)}</p>` : ""}
   `, "Question évaluée");
+}
+
+/* ---- Heures des coachs, sous la grille de réservation --------------------
+   « Combien d'heures je donne à chacun ? » — la question se pose en regardant
+   le planning, pas en ouvrant l'onglet Heures. D'où ce bloc ici, replié.
+
+   Ce sont les heures PROGRAMMÉES, pas la paie : tout ce qui est au planning
+   compte, qu'il soit validé ou non, cours privés compris. L'onglet Heures,
+   lui, ne compte que le validé et applique les règles de rémunération. Les
+   deux chiffres peuvent donc différer, et c'est voulu — celui-ci sert à doser
+   une charge, l'autre à payer.
+   ------------------------------------------------------------------------- */
+
+let rhPeriode = "semaine", rhLignes = [], rhRech = "";
+
+// Le lundi de la semaine qui contient cette date. En Suisse la semaine commence
+// lundi ; getDay() compte à partir de dimanche, d'où le décalage.
+function rhLundi(iso) {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return isoA(d);
+}
+function rhBornes(iso) {
+  if (rhPeriode === "jour") return [iso, iso, "le " + frDate(iso)];
+  if (rhPeriode === "mois") {
+    const [a, m] = iso.split("-").map(Number);
+    const fin = new Date(a, m, 0);
+    return [`${a}-${String(m).padStart(2, "0")}-01`, isoA(fin), "en " + MOIS_FR[m - 1] + " " + a];
+  }
+  const du = rhLundi(iso);
+  const d = new Date(du + "T00:00:00"); d.setDate(d.getDate() + 6);
+  return [du, isoA(d), `du ${frDate(du)} au ${frDate(isoA(d))}`];
+}
+// MOIS_FR est déjà déclaré plus haut dans ce fichier : le redéclarer ici
+// n'aurait pas été un doublon anodin mais une SyntaxError, et c'est TOUT
+// admin.js qui serait mort au chargement — console blanche.
+
+async function loadResaHeures() {
+  const bloc = $("resa-heures");
+  if (!bloc) return;
+  const [du, au, libelle] = rhBornes($("resa-date").value);
+  $("rh-quand").textContent = "— " + libelle;
+  // On ne charge que si le bloc est ouvert : personne ne paie une requête pour
+  // un panneau replié qu'il ne regarde pas.
+  if (!bloc.open) return;
+  const { data, error } = await sb.rpc("coach_heures_periode", { p_du: du, p_au: au });
+  if (error) {
+    $("rh-liste").innerHTML = `<p class="muted" style="margin:0">${esc(error.message)}</p>`;
+    rhLignes = []; return;
+  }
+  rhLignes = data || [];
+  renderResaHeures();
+}
+
+function renderResaHeures() {
+  const L = $("rh-liste");
+  if (!L) return;
+  const vus = rhLignes.filter((r) =>
+    !rhRech || String(r.nom).toLowerCase().includes(rhRech.toLowerCase()));
+  if (!vus.length) {
+    L.innerHTML = `<p class="muted" style="margin:0">${rhLignes.length
+      ? "Aucun coach ne correspond à cette recherche."
+      : "Aucun cours programmé sur cette période."}</p>`;
+    return;
+  }
+  // La barre se mesure sur le plus chargé de TOUS les coachs, pas du résultat
+  // filtré : sinon chercher un nom lui donnerait toujours une barre pleine, et
+  // on perdrait justement la comparaison qu'on venait chercher.
+  const max = Math.max(...rhLignes.map((r) => Number(r.heures) || 0), 1);
+  const total = rhLignes.reduce((a, r) => a + Number(r.heures || 0), 0);
+  L.innerHTML = vus.map((r) => {
+    const h = Number(r.heures) || 0;
+    return `<div class="rh-ligne">
+      <span class="rh-nom">${esc(r.nom)}</span>
+      <span class="rh-jauge"><i style="width:${Math.round((h / max) * 100)}%"></i></span>
+      <b class="rh-h">${h.toFixed(2).replace(/\.00$/, "")} h</b>
+      <span class="rh-n muted">${r.n_cours} cours</span>
+    </div>`;
+  }).join("")
+    + `<p class="rh-total muted">${rhLignes.length} coach(s) · ${total.toFixed(2).replace(/\.00$/, "")} h au total`
+    + (vus.length < rhLignes.length ? ` · ${vus.length} affiché(s)` : "") + "</p>";
+}
+
+function initResaHeures() {
+  const bloc = $("resa-heures");
+  if (!bloc) return;
+  bloc.addEventListener("toggle", () => { if (bloc.open) loadResaHeures(); });
+  $("rh-periode").querySelectorAll("[data-rh]").forEach((b) => b.addEventListener("click", () => {
+    rhPeriode = b.dataset.rh;
+    $("rh-periode").querySelectorAll("[data-rh]").forEach((x) => x.classList.toggle("sel", x === b));
+    loadResaHeures();
+  }));
+  let t;
+  $("rh-rech").addEventListener("input", (e) => {
+    clearTimeout(t);
+    t = setTimeout(() => { rhRech = e.target.value.trim(); renderResaHeures(); }, 200);
+  });
 }

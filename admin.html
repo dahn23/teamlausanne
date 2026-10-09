@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=306" />
+  <link rel="stylesheet" href="style.css?v=307" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -498,6 +498,24 @@
             <p class="muted" style="font-size:.86rem;margin:0 0 10px">
               Glissez sur la grille pour choisir un créneau, ou cliquez une case. Cliquez une réservation pour la modifier.
               <span class="sfc-legend"><span class="sfc-dot sfc-terre"></span>Terre battue <span class="sfc-dot sfc-gazon"></span>Gazon synthétique <span class="sfc-dot sfc-dur"></span>Dur (indoor)</span></p>
+            <!-- Combien d'heures chaque coach a-t-il sur la période affichée ?
+                 <details> natif : replié par défaut, il ne prend la place que
+                 si on le demande, et s'ouvre aussi bien au clic qu'au clavier. -->
+            <details id="resa-heures" class="rh-bloc">
+              <summary><b>Heures des coachs</b> <span id="rh-quand" class="muted"></span></summary>
+              <div class="rh-barre">
+                <label class="fac-rech">
+                  <span class="sr-only">Chercher un coach</span>
+                  <input type="search" id="rh-rech" placeholder="Chercher un coach — Gatiker, Palena…" autocomplete="off" />
+                </label>
+                <div class="fac-filters" id="rh-periode">
+                  <button type="button" class="chip filt sel" data-rh="semaine">La semaine</button>
+                  <button type="button" class="chip filt" data-rh="jour">Le jour affiché</button>
+                  <button type="button" class="chip filt" data-rh="mois">Le mois</button>
+                </div>
+              </div>
+              <div id="rh-liste" class="rh-liste"></div>
+            </details>
             <div class="grid-wrap"><div id="resa-grid" class="rgrid"></div></div>
           </div>
 
