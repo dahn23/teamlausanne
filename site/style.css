@@ -3212,3 +3212,123 @@ button.calp-c:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .mention>h2{font-size:.84rem;text-transform:uppercase;letter-spacing:.06em;
   color:var(--muted);margin:0 0 6px;font-weight:700}
 .mention>p{margin:0;max-width:72ch;font-size:.82rem;line-height:1.6;color:var(--muted)}
+
+/* ===========================================================================
+   Assistant (chatbot.js) — bouton flottant, bulle d'accueil, panneau
+   ---------------------------------------------------------------------------
+   Rien ici n'est chargé tant que l'assistant est éteint en console : le script
+   ne pose aucun élément. Les couleurs viennent de la charte, le bouton reprend
+   le bleu de marque et le mint pour l'action.
+   =========================================================================== */
+
+.bot-rond{position:fixed;right:18px;bottom:18px;z-index:60;
+  width:58px;height:58px;border:0;border-radius:50%;cursor:pointer;
+  background:var(--blue);box-shadow:0 8px 24px rgba(7,62,181,.34);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .16s ease,box-shadow .16s ease}
+.bot-rond img{width:34px;height:34px;object-fit:contain;pointer-events:none}
+.bot-rond:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 12px 30px rgba(7,62,181,.42)}
+.bot-rond:focus-visible{outline:3px solid var(--fluo);outline-offset:3px}
+
+/* Bulle d'accueil : elle arrive en douceur, une fois par visite. */
+.bot-bulle-accueil{position:fixed;right:88px;bottom:30px;z-index:60;max-width:270px;
+  display:flex;align-items:flex-start;gap:8px;cursor:pointer;
+  background:#fff;color:var(--ink);border-radius:16px 16px 4px 16px;
+  padding:12px 14px;box-shadow:0 10px 30px rgba(20,26,46,.18);
+  opacity:0;transform:translateY(6px);transition:opacity .35s ease,transform .35s ease}
+.bot-bulle-accueil.vu{opacity:1;transform:none}
+.bot-bulle-accueil p{margin:0;font-size:.9rem;line-height:1.45}
+.bot-bulle-accueil button{flex:0 0 auto;border:0;background:transparent;cursor:pointer;
+  color:var(--muted);padding:0;width:18px;height:18px}
+.bot-bulle-accueil button svg{width:14px;height:14px}
+
+/* Le panneau. */
+.bot-panneau{position:fixed;right:18px;bottom:86px;z-index:61;
+  width:min(390px,calc(100vw - 36px));height:min(620px,calc(100vh - 120px));
+  display:flex;flex-direction:column;overflow:hidden;
+  background:#fff;border-radius:20px;box-shadow:0 24px 64px rgba(20,26,46,.28)}
+.bot-panneau[hidden]{display:none}
+
+.bot-tete{display:flex;align-items:center;gap:10px;padding:12px 14px;
+  background:var(--blue);color:#fff;flex:0 0 auto}
+.bot-tete img{width:32px;height:32px;object-fit:contain}
+.bot-tete div{display:flex;flex-direction:column;line-height:1.15;flex:1}
+.bot-tete b{font-size:.95rem}
+/* « en ligne » : le point vert dit que ça répond, sans le mot « IA ». */
+.bot-tete span{font-size:.74rem;opacity:.85;display:flex;align-items:center;gap:5px}
+.bot-tete span::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--fluo)}
+.bot-x{border:0;background:transparent;color:#fff;cursor:pointer;padding:4px;opacity:.85}
+.bot-x svg{width:19px;height:19px;display:block}
+.bot-x:hover{opacity:1}
+
+.bot-fil{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px;
+  display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.bot-msg{display:flex;flex-direction:column;max-width:88%}
+.bot-moi{align-self:flex-end;align-items:flex-end}
+.bot-bot{align-self:flex-start}
+.bot-bulle{padding:10px 13px;border-radius:14px;font-size:.9rem;line-height:1.5;
+  background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,26,46,.10);
+  overflow-wrap:anywhere}
+.bot-moi .bot-bulle{background:var(--blue);color:#fff;border-bottom-right-radius:4px}
+.bot-bot .bot-bulle{border-bottom-left-radius:4px}
+.bot-bulle p{margin:0 0 7px}
+.bot-bulle p:last-child{margin:0}
+.bot-bulle ul{margin:4px 0 7px;padding-left:18px}
+.bot-bulle li{margin:0 0 4px}
+.bot-bulle a{color:var(--blue);font-weight:600}
+.bot-moi .bot-bulle a{color:#fff;text-decoration:underline}
+.bot-h{display:block;margin:9px 0 4px;font-size:.88rem}
+.bot-bulle > .bot-h:first-child{margin-top:0}
+
+/* Les trois points d'attente. */
+.bot-points{display:flex;gap:4px;align-items:center;padding:13px}
+.bot-points i{width:6px;height:6px;border-radius:50%;background:var(--muted);
+  animation:botpt 1.25s infinite ease-in-out}
+.bot-points i:nth-child(2){animation-delay:.16s}
+.bot-points i:nth-child(3){animation-delay:.32s}
+@keyframes botpt{0%,70%,100%{opacity:.28;transform:translateY(0)}35%{opacity:1;transform:translateY(-3px)}}
+
+.bot-pouces{display:flex;gap:4px;margin:3px 0 0 4px}
+.bot-pouce{border:0;background:transparent;cursor:pointer;padding:3px;
+  color:var(--muted);opacity:.55;transition:opacity .15s,color .15s}
+.bot-pouce svg{width:15px;height:15px;display:block}
+.bot-bas svg{transform:rotate(180deg)}
+.bot-pouce:hover{opacity:1}
+.bot-pouce.choisi{opacity:1;color:var(--blue)}
+
+.bot-sugg{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.bot-sugg button{border:1px solid var(--line);background:#fff;color:var(--blue-ink);
+  border-radius:999px;padding:7px 12px;font-family:inherit;font-size:.82rem;
+  cursor:pointer;text-align:left;transition:background .15s,border-color .15s}
+.bot-sugg button:hover{background:var(--fluo);border-color:var(--fluo);color:var(--fluo-ink)}
+
+.bot-pied{display:flex;gap:8px;align-items:flex-end;padding:10px 12px 6px;
+  background:#fff;border-top:1px solid var(--line);flex:0 0 auto}
+/* 16px : en dessous, iOS zoome sur le champ à la mise au point. */
+.bot-pied textarea{flex:1;border:1px solid var(--line);border-radius:14px;
+  padding:9px 12px;font-family:inherit;font-size:16px;line-height:1.4;
+  resize:none;max-height:120px;color:var(--ink)}
+.bot-pied textarea:focus{outline:none;border-color:var(--blue)}
+.bot-pied button{flex:0 0 auto;width:38px;height:38px;border:0;border-radius:50%;
+  background:var(--blue);color:#fff;font-size:1.1rem;cursor:pointer;
+  transition:background .15s}
+.bot-pied button:hover{background:var(--fluo);color:var(--fluo-ink)}
+.bot-note{margin:0;padding:0 12px 10px;background:#fff;flex:0 0 auto;
+  font-size:.7rem;line-height:1.4;color:var(--muted)}
+.bot-note a{color:var(--muted);text-decoration:underline}
+
+/* ---- Téléphone : plein écran ---------------------------------------------
+   Un panneau flottant de 390 px sur un écran de 375 px, c'est une fenêtre qui
+   déborde. On prend tout l'écran, et le fond cesse de défiler derrière. */
+@media (max-width:600px){
+  .bot-panneau{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}
+  .bot-bulle-accueil{right:88px;bottom:26px;max-width:min(260px,calc(100vw - 110px))}
+  .bot-msg{max-width:92%}
+}
+html.bot-ouvert{overflow:hidden}
+@media (min-width:601px){ html.bot-ouvert{overflow:auto} }
+
+@media (prefers-reduced-motion:reduce){
+  .bot-rond,.bot-bulle-accueil{transition:none}
+  .bot-points i{animation:none;opacity:.6}
+}
