@@ -809,6 +809,8 @@ input.pd-native{display:none}
 .ss-tag.ss-ok{background:#e3f6e8;color:#1c7d38}
 .ss-tag.ss-warn{background:#fdf2dc;color:#a9721a}
 .ss-tag.ss-role{background:#eef1f7;color:var(--blue-ink)}
+/* Rouge franc : une réponse fausse ne doit pas se confondre avec un avertissement. */
+.ss-tag.ss-err{background:#fbe4e2;color:#a3291f}
 .ss-intent{max-width:170px}
 .ss-add{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
 .rg-season-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
@@ -4780,3 +4782,6 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .bot-modal .bot-box{max-width:min(720px,94vw);width:100%;text-align:left;position:relative}
 
 @media (prefers-reduced-motion:reduce){ .bot-points i{animation:none;opacity:.6} }
+
+/* Lignes d'évaluation : cliquables, comme les conversations. */
+.bot-eval-row{cursor:pointer}

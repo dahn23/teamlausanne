@@ -19906,7 +19906,7 @@ function initAssistant() {
     document.querySelectorAll("#view-assistant .bot-subtab").forEach((x) => x.classList.toggle("active", x === b));
     document.querySelectorAll("#view-assistant .fac-sub").forEach((s) =>
       s.classList.toggle("hidden", s.id !== "bot-sub-" + b.dataset.bsub));
-    if (b.dataset.bsub === "eval") renderBotEval();
+    if (b.dataset.bsub === "eval") botChargerEval();
   }));
   $("bot-refresh").addEventListener("click", loadAssistant);
   $("bot-save").addEventListener("click", botSaveReglages);
@@ -19922,13 +19922,157 @@ function initAssistant() {
   });
 }
 
-// L'évaluation arrive à l'étape suivante : on le dit, plutôt que de laisser
-// un panneau vide qui a l'air cassé.
+
+/* ---- Évaluation (console) ------------------------------------------------
+   Un bouton, une cinquantaine de questions, et un verdict par réponse.
+
+   La console ne fait que LIRE les tables pendant que ça tourne : le travail
+   vit dans l'edge function, qui écrit ses résultats au fur et à mesure. Un
+   déploiement ou un rechargement de page n'interrompt donc rien, et à
+   l'inverse une évaluation tuée par un redémarrage est marquée « interrompue »
+   au démarrage suivant de la fonction — sans quoi le bouton resterait bloqué.
+   ------------------------------------------------------------------------- */
+
+let botEval = null, botEvalItems = [], botEvalFiltre = "", botEvalTimer = null;
+
+async function botChargerEval() {
+  const { data: evs } = await sb.from("bot_evals").select("*").order("started_at", { ascending: false }).limit(1);
+  botEval = (evs || [])[0] || null;
+  botEvalItems = [];
+  if (botEval) {
+    const { data: items } = await sb.from("bot_eval_items").select("*").eq("eval_id", botEval.id).order("id");
+    botEvalItems = items || [];
+  }
+  renderBotEval();
+  // Tant que ça tourne, on relit toutes les trois secondes. Pas de websocket :
+  // une évaluation dure quelques minutes, trois secondes suffisent largement.
+  clearTimeout(botEvalTimer);
+  if (botEval?.statut === "en_cours") botEvalTimer = setTimeout(botChargerEval, 3000);
+}
+
+async function botLancerEval() {
+  const modele = $("bot-modele").value || botCfg.modele;
+  if (!(await uiConfirm(
+    `Lancer une évaluation sur ${modele} ?\n\n`
+    + `Une cinquantaine de questions passent d'un coup. Les réponses chiffrées sont notées par le code ; `
+    + `le reste est jugé par Opus 5.5.\n\nCompte un à trois dollars, et quelques minutes.\n\n`
+    + `Ne déploie pas le site pendant ce temps : la tâche serait coupée.`))) return;
+  const btn = $("bot-eval-go");
+  if (btn) { btn.disabled = true; btn.textContent = "Lancement…"; }
+  try {
+    const jwt = (await sb.auth.getSession()).data?.session?.access_token || "";
+    const r = await fetch(`${BOT_API}/eval/start`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jwt: "Bearer " + jwt, modele }),
+    });
+    const d = await r.json();
+    if (!d?.ok) throw new Error(d?.error || "refus");
+    await botChargerEval();
+  } catch (e) {
+    uiAlert("Lancement impossible : " + (e?.message || e));
+    if (btn) { btn.disabled = false; btn.textContent = "Lancer une évaluation"; }
+  }
+}
+
+const BOT_VERDICTS = { correct: ["correct", "ss-ok"], partiel: ["partiel", "ss-warn"],
+                       faux: ["faux", "ss-err"], erreur: ["erreur", "ss-warn"] };
+
 function renderBotEval() {
   const z = $("bot-eval-zone");
-  if (z.dataset.pret) return;
-  z.innerHTML = `<div class="rg-card"><h3 style="margin:0 0 8px">Évaluation</h3>
-    <p class="muted" style="margin:0">Une cinquantaine de questions passées d'un coup, les réponses
-    sur les stages notées par le code et le reste jugé par un modèle plus fort. En cours de
-    construction — c'est elle qui dira si Haiku suffit ou s'il faut passer à Sonnet.</p></div>`;
+  const e = botEval;
+  if (!e) {
+    z.innerHTML = `<div class="rg-card"><h3 style="margin:0 0 8px">Évaluation</h3>
+      <p class="muted" style="margin:0 0 14px">Une cinquantaine de questions passées d'un coup.
+      Les horaires et les prix sont notés par le code, sans IA : on compare ce qui est cité à ce
+      qui est attendu, et une omission se voit. Le reste est jugé par Opus 5.5, qui reçoit tout le site.</p>
+      <button type="button" id="bot-eval-go">Lancer une évaluation</button></div>`;
+    $("bot-eval-go").addEventListener("click", botLancerEval);
+    return;
+  }
+
+  const s = e.score || {};
+  const fini = e.statut !== "en_cours";
+  const n = botEvalItems.length;
+  const pc = (x) => n ? Math.round((x / n) * 100) : 0;
+  const correct = botEvalItems.filter((i) => i.verdict === "correct").length;
+  const partiel = botEvalItems.filter((i) => i.verdict === "partiel").length;
+  const faux = botEvalItems.filter((i) => i.verdict === "faux" || i.verdict === "erreur").length;
+  const parCode = botEvalItems.filter((i) => i.par_code);
+  const parCodeOk = parCode.filter((i) => i.verdict === "correct").length;
+
+  const cats = [...new Set(botEvalItems.map((i) => i.categorie))].sort();
+  const vus = botEvalItems.filter((i) =>
+    botEvalFiltre === "" ? true
+    : botEvalFiltre === "revoir" ? (i.verdict !== "correct")
+    : i.categorie === botEvalFiltre);
+
+  z.innerHTML = `
+    <div class="rg-card" style="margin-bottom:18px">
+      <div class="stg-card-head">
+        <h3 style="margin:0">${fini ? "Dernière évaluation" : "Évaluation en cours"}
+          <span class="muted" style="font-weight:400">· ${esc(e.modele)} · jugé par ${esc(e.juge)}</span></h3>
+        ${fini ? '<button type="button" id="bot-eval-go">Relancer</button>'
+               : `<span class="ss-tag ss-warn">${e.n_faites}/${e.n_total || "?"} — ne déploie pas maintenant</span>`}
+      </div>
+      <p class="muted" style="margin:6px 0 14px;font-size:.86rem">
+        Lancée le ${frDate(String(e.started_at).slice(0, 10))} à ${String(e.started_at).slice(11, 16)}
+        · coût ${botChf(e.cost_usd)}
+        ${e.statut === "interrompue" ? ' · <b>interrompue</b> (déploiement ou redémarrage pendant le calcul)' : ""}</p>
+      <div class="dgrid">
+        ${dashStat({ label: "Correct", value: `${correct}/${n}`, tone: "ok", sub: pc(correct) + " %" })}
+        ${dashStat({ label: "Partiel", value: String(partiel), tone: partiel ? "warn" : "ok", sub: "il manque quelque chose" })}
+        ${dashStat({ label: "Faux", value: String(faux), tone: faux ? "warn" : "ok", sub: "à corriger" })}
+        ${dashStat({ label: "Chiffres (notés par le code)", value: `${parCodeOk}/${parCode.length}`,
+                     tone: parCode.length && parCodeOk === parCode.length ? "ok" : "warn",
+                     sub: "horaires et prix, sans IA" })}
+      </div>
+    </div>
+
+    <div class="fac-barre">
+      <div class="fac-filters" id="bot-eval-filtres">
+        <button type="button" class="chip filt${botEvalFiltre === "" ? " sel" : ""}" data-bef="">Toutes <span class="muted">(${n})</span></button>
+        <button type="button" class="chip filt${botEvalFiltre === "revoir" ? " sel" : ""}" data-bef="revoir">À revoir <span class="muted">(${partiel + faux})</span></button>
+        ${cats.map((c) => `<button type="button" class="chip filt${botEvalFiltre === c ? " sel" : ""}" data-bef="${esc(c)}">${esc(c)} <span class="muted">(${botEvalItems.filter((i) => i.categorie === c).length})</span></button>`).join("")}
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="crm-table fac-table"><thead><tr>
+        <th>Verdict</th><th>Catégorie</th><th>Question</th><th>Ce qui cloche</th>
+      </tr></thead><tbody>${vus.map((i) => {
+        const [lbl, cls] = BOT_VERDICTS[i.verdict] || [i.verdict || "?", ""];
+        return `<tr class="bot-eval-row" data-id="${i.id}">
+          <td><span class="ss-tag ${cls}">${lbl}</span>${i.par_code ? ' <span class="muted" style="font-size:.72rem">code</span>' : ""}</td>
+          <td>${esc(i.categorie)}</td>
+          <td>${esc(i.question.slice(0, 90))}</td>
+          <td>${esc((i.explication || "").slice(0, 120)) || '<span class="muted">—</span>'}</td></tr>`;
+      }).join("")}</tbody></table>
+    </div>
+    ${vus.length ? "" : '<p class="muted">Rien dans ce filtre.</p>'}`;
+
+  const go = $("bot-eval-go");
+  if (go) go.addEventListener("click", botLancerEval);
+  z.querySelectorAll("[data-bef]").forEach((b) =>
+    b.addEventListener("click", () => { botEvalFiltre = b.dataset.bef; renderBotEval(); }));
+  z.querySelectorAll(".bot-eval-row").forEach((tr) =>
+    tr.addEventListener("click", () => botOuvrirEvalItem(tr.dataset.id)));
+}
+
+function botOuvrirEvalItem(id) {
+  const i = botEvalItems.find((x) => String(x.id) === String(id));
+  if (!i) return;
+  const [lbl, cls] = BOT_VERDICTS[i.verdict] || [i.verdict, ""];
+  botModal(`
+    <p style="margin:0 0 12px"><span class="ss-tag ${cls}">${lbl}</span>
+      <span class="muted">${esc(i.categorie)}${i.par_code ? " · noté par le code" : " · jugé"}</span></p>
+    <p style="margin:0 0 4px"><b>Question</b></p>
+    <p style="margin:0 0 14px">${esc(i.question)}</p>
+    <p style="margin:0 0 4px"><b>Ce qu'on attendait</b></p>
+    <p class="muted" style="margin:0 0 14px">${esc(i.attendu || "—")}</p>
+    <p style="margin:0 0 4px"><b>Ce qu'il a répondu</b></p>
+    <div class="bot-msg bot-bot" style="max-width:100%;margin:0 0 14px">
+      <div class="bot-bulle">${botMd(i.reponse || "")}</div></div>
+    ${i.explication ? `<p style="margin:0 0 4px"><b>Verdict</b></p><p style="margin:0 0 14px">${esc(i.explication)}</p>` : ""}
+    ${i.amelioration ? `<p style="margin:0 0 4px"><b>Ce qui aiderait</b></p><p class="muted" style="margin:0">${esc(i.amelioration)}</p>` : ""}
+  `, "Question évaluée");
 }
