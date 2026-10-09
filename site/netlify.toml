@@ -1,4 +1,9 @@
 # Site statique — aucune étape de build (pages HTML/JS servies telles quelles).
+
+[[redirects]]
+  from = "/confidentialite"
+  to = "/confidentialite.html"
+  status = 200
 [build]
   publish = "."
   command = ""

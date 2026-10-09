@@ -161,8 +161,9 @@ function construire() {
       <textarea rows="1" placeholder="Pose ta question…" maxlength="800" aria-label="Votre question"></textarea>
       <button type="submit" aria-label="Envoyer">↑</button>
     </form>
-    <p class="bot-note">Assistant automatique — il peut se tromper. Pour une demande personnelle,
-      écris à <a href="mailto:info@teamlausanne.ch">info@teamlausanne.ch</a>.</p>
+    <p class="bot-note">Assistant automatique — il peut se tromper. N'y mets pas de données personnelles
+      (<a href="/confidentialite">pourquoi</a>). Pour une demande personnelle, écris à
+      <a href="mailto:info@teamlausanne.ch">info@teamlausanne.ch</a>.</p>
   </div>`);
 
   document.body.append(bouton, panneau);
