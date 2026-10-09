@@ -380,7 +380,11 @@ const EVAL_JUGE = "claude-opus-5-5";
 // « 13:30-14:15 » et « 13h30—14h15 » doivent se comparer.
 function evalCreneaux(t: string): string[] {
   const m = String(t || "").match(/\d{1,2}\s*[h:]\s*\d{2}\s*[–—\-]\s*\d{1,2}\s*[h:]\s*\d{2}/g) || [];
-  return m.map((s) => s.replace(/\s+/g, "").replace(/h/gi, ":").replace(/[–—]/g, "-")).sort();
+  // On DÉDOUBLONNE, au lieu d'un multi-ensemble strict. Le Club propose
+  // 17h15 – 19h15 du lundi au vendredi : une bonne réponse l'écrit une fois,
+  // « lundi à vendredi, 17h15 – 19h15 ». Compter les répétitions punirait la
+  // formulation la plus claire.
+  return [...new Set(m.map((s) => s.replace(/\s+/g, "").replace(/h/gi, ":").replace(/[–—]/g, "-")))].sort();
 }
 
 // Les montants cités. On écarte les années : « 2026 » n'est pas un prix.
@@ -430,13 +434,22 @@ async function evalQuestions(supa: ReturnType<typeof createClient>): Promise<{ c
     const slots = secs.find((s) => s.type === "slots");
     if (!slots) continue;
     const items = (slots.items || []) as Record<string, unknown>[];
-    const heures = items.flatMap((i) => (i.heures || []) as string[]);
-    if (heures.length) {
+    // L'heure n'est pas toujours dans « heures » : en Pro U18 c'est le TITRE
+    // qui porte « 09h00 – 10h00 », et « heures » décrit la séance. On ratisse
+    // donc les deux.
+    const brut = items.flatMap((i) => [String(i.titre || ""), ...((i.heures || []) as string[])]).join(" ");
+    const creneaux = evalCreneaux(brut);
+    // Et on ne pose la question QUE s'il y a de vrais horaires. En Compétition
+    // et en Performance, « heures » contient des durées — « 1 h de tennis » —
+    // et non des créneaux. Générer la question quand même reviendrait à exiger
+    // du bot qu'il ne cite aucune heure, et à compter faux toute réponse
+    // sensée. Un test qui invente ses propres échecs ne sert à rien.
+    if (creneaux.length) {
       code.push({
         categorie: "horaires",
         question: `Quels sont tous les horaires proposés en ${p.title} ?`,
         attendu: items.map((i) => `${i.titre} : ${((i.heures || []) as string[]).join(", ")}`).join(" · "),
-        creneaux: evalCreneaux(heures.join(" ")),
+        creneaux,
       });
     }
     const prixBloc = (slots.prix || {}) as Record<string, unknown>;
@@ -602,8 +615,12 @@ async function evalLancer(supa: ReturnType<typeof createClient>, client: Anthrop
         const vus = evalPrix(out.texte);
         const manque = q.prix.filter((x) => !vus.includes(x));
         const enTrop = vus.filter((x) => !q.prix!.includes(x));
+        // Un montant MANQUANT est une faute : la question portait dessus.
+        // Un montant en trop ne l'est pas forcément — citer le tarif d'une
+        // autre filière pour comparer reste utile — donc « partiel », pas
+        // « faux ». On ne note pas l'exhaustivité comme on note l'exactitude.
         if (manque.length || enTrop.length) {
-          verdict = manque.length && !enTrop.length ? "partiel" : "faux";
+          verdict = manque.length ? "faux" : "partiel";
           expl = `Attendu : ${q.prix.join(", ")}. Cité : ${vus.join(", ") || "aucun"}.`
             + (manque.length ? ` Manque : ${manque.join(", ")}.` : "")
             + (enTrop.length ? ` En trop : ${enTrop.join(", ")}.` : "");
