@@ -77,3 +77,20 @@ update out_invoices set status = 'annulee'
 -- Vérifié après coup :
 --   Kids Tennis   51 à envoyer → 29 · 37 annulées → 39 · 20 payées (9 800.–)
 --   Compétition   16 à envoyer → 10 ·  6 annulées →  7 ·  5 envoyées (9 950.–)
+
+-- ---------------------------------------------------------------------------
+-- 5. Les deux noms en suspens, tranchés par le secrétariat le 09.10.2026.
+--    Les factures existaient bien, mais en CLUB et non dans la filière
+--    annoncée. Confirmation obtenue avant de toucher quoi que ce soit : 2 445.–
+--    annulés, ce n'est pas le genre de raccourci qu'on prend tout seul.
+update out_invoices set status = 'annulee'
+ where filiere = 'club' and status = 'a_envoyer'
+   and number in (
+     '2026-0265',  -- Tchouaket Happi Enzo   (815.–) — annoncé en Kids Tennis
+     '2026-0220',  -- Dietvorst Adriaan      (815.–) \ annoncés en Compétition
+     '2026-0221'); -- Dietvorst Arthur       (815.–) /
+
+-- Note : Ayer et Mortezavi ont reçu un acompte. Rien ne l'enregistre — la table
+-- n'a pas d'état « partiellement payée », et la colonne `note` n'est affichée
+-- nulle part dans la console. Les deux restent « envoyée », et c'est le
+-- rapprochement bancaire qui portera le solde quand les montants seront connus.
