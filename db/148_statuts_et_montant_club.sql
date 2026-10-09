@@ -66,3 +66,12 @@ update out_invoices
 -- payée (300.– de solde) et « une autre à 815.– ». Jade Bouzerna n'a qu'UNE
 -- facture en base (2026-0216, Club, 815.–, désormais envoyée), et aucune autre
 -- fiche Bouzerna n'existe. Rien inventé : question posée.
+
+-- Bouzerna, tranché le 09.10.2026 : rien à corriger, finalement.
+--   · Le solde de 300.– porte sur la saison 2025/26. La plateforme ne contient
+--     que du 2026/27 (310 factures) : cette dette-là n'y a jamais eu de trace,
+--     et il n'y a donc pas de seconde facture à retrouver.
+--   · 2026-0216 (Club 2026/27, 815.–) est la NOUVELLE, impayée. Elle est passée
+--     « envoyée » au point 1, ce qui est exactement son état.
+-- Rien créé pour les 300.– : fabriquer une facture 2025/26 avec un numéro et
+-- une référence de la série 2026/27 produirait une pièce comptable fausse.
