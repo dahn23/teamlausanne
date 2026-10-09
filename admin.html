@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=302" />
+  <link rel="stylesheet" href="style.css?v=303" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2616,6 +2616,12 @@ Team Lausanne Tennis</textarea></label>
     <form id="reg-form" class="card wide">
       <button type="button" id="reg-close" class="modal-close" aria-label="Fermer">×</button>
       <h2>Nouvel inscrit</h2>
+      <!-- Affiché quand le stage n'a plus de catégorie cochée : on inscrit dans
+           un stage que le site ne montre plus, et il vaut mieux le dire. -->
+      <p id="reg-ferme" class="muted" hidden style="margin:-6px 0 14px">
+        Ce stage est <b>fermé aux inscriptions</b> sur le site. L'ajout reste possible ici,
+        et ne le rouvre pas au public.
+      </p>
       <div class="form-grid">
         <label>Prénom *<input id="reg-f-first" required /></label>
         <label>Nom *<input id="reg-f-last" required /></label>
@@ -2623,6 +2629,8 @@ Team Lausanne Tennis</textarea></label>
         <label>Naissance<input id="reg-f-birth" type="date" /></label>
         <label>Catégorie *<select id="reg-f-cat" required></select></label>
       </div>
+      <label class="stg-note-lbl">Note du secrétariat (interne, facultative)
+        <textarea id="reg-f-note" rows="2" placeholder="Allergie, parent à rappeler, arrive mardi…"></textarea></label>
       <div class="form-foot"><span class="spacer"></span><button type="submit">Ajouter</button></div>
       <p id="reg-error" class="error" hidden></p>
     </form>

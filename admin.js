@@ -13125,6 +13125,11 @@ function stgRegRow(r, cat, days) {
           mange ? "🍽 mange" : "sans repas"}${force ? " (exception)" : ""}</button>`;
       })()}
       ${r.comment ? `<div class="stg-reg-cmt">💬 ${esc(r.comment)}</div>` : ""}
+      ${/* Deux choses distinctes : au-dessus ce que la FAMILLE a écrit dans le
+            formulaire, en lecture seule ; ici la note du SECRÉTARIAT, modifiable.
+            Les confondre reviendrait à laisser effacer la phrase d'un parent. */ ""}
+      <textarea class="stg-reg-note" data-id="${r.id}" rows="1"
+        placeholder="Note interne…">${esc(r.staff_note || "")}</textarea>
     </div>
     <div class="stg-reg-money">
       ${rebate}
@@ -13162,6 +13167,22 @@ function wireStageDetail() {
   D.querySelectorAll(".stg-coach-row").forEach((row) => row.querySelectorAll("input,select").forEach((el) =>
     el.addEventListener("change", () => saveStageStaff(row.dataset.id, row))));
   D.querySelectorAll(".stg-link").forEach((b) => b.addEventListener("click", () => openStageLink(b.dataset.id)));
+  // Note du secrétariat : enregistrée à la sortie du champ, et seulement si
+  // elle a changé — sinon un simple clic de passage réécrirait la ligne.
+  D.querySelectorAll(".stg-reg-note").forEach((t) => {
+    const avant = t.value;
+    t.addEventListener("blur", () => { if (t.value !== avant) saveStageNote(t.dataset.id, t.value, t); });
+  });
+}
+
+async function saveStageNote(id, note, champ) {
+  const valeur = note.trim() || null;
+  const { error } = await sb.from("stage_registrations").update({ staff_note: valeur }).eq("id", id);
+  if (error) { uiAlert("Note non enregistrée : " + error.message); return; }
+  const r = stgRegs.find((x) => x.id === id);
+  if (r) r.staff_note = valeur;
+  // Un signe discret : la note est partie, sans redessiner toute la carte.
+  if (champ) { champ.classList.add("stg-note-ok"); setTimeout(() => champ.classList.remove("stg-note-ok"), 1200); }
 }
 
 async function addStageStaff(catId) {
@@ -13265,12 +13286,32 @@ async function loadPersonStages(personId) {
 }
 
 // ---- Modal ajout d'un inscrit ----
+// Ajout manuel d'un inscrit. Il marche AUSSI quand le stage est fermé.
+//
+// Fermer un stage, c'est décocher ses catégories : il disparaît alors du site.
+// Mais le secrétariat doit pouvoir inscrire quelqu'un après coup — un appel, un
+// retardataire, une place qui se libère — sans rouvrir le stage au public, ce
+// qui ferait réapparaître le formulaire pour tout le monde.
+//
+// On propose donc, dans l'ordre : les catégories cochées ; sinon celles où ce
+// stage a déjà des inscrits (le retardataire rejoint un groupe qui existe) ;
+// sinon toutes les catégories actives. L'inscription elle-même n'a jamais eu
+// besoin du lien : c'est l'affichage public qui le lit.
 function openRegModal() {
-  const openCats = (stgSessionCats[stgCurrent] || []).map((id) => stgCatById(id)).filter((c) => c.id);
-  if (!openCats.length) return alert("Ce stage n'a aucune catégorie ouverte. Ajoute-en via « Modifier le stage ».");
+  const cochees = (stgSessionCats[stgCurrent] || []).map((id) => stgCatById(id)).filter((c) => c.id);
+  const dejaUtilisees = [...new Set(stgRegs.map((r) => r.category_id))]
+    .map((id) => stgCatById(id)).filter((c) => c.id);
+  const cats = cochees.length ? cochees
+    : (dejaUtilisees.length ? dejaUtilisees : stgCats.filter((c) => c.active !== false));
+  if (!cats.length) return uiAlert("Aucune catégorie de stage n'est active. Crée-en une dans l'onglet Catégories.");
+
   $("reg-error").hidden = true;
   $("reg-f-first").value = ""; $("reg-f-last").value = ""; $("reg-f-email").value = ""; $("reg-f-birth").value = "";
-  $("reg-f-cat").innerHTML = openCats.map((c) => `<option value="${c.id}">${esc(c.name)} — ${c.price} CHF</option>`).join("");
+  $("reg-f-note").value = "";
+  $("reg-f-cat").innerHTML = cats.map((c) => `<option value="${c.id}">${esc(c.name)} — ${c.price} CHF</option>`).join("");
+  // Le dire franchement : on inscrit dans un stage que le site ne montre plus.
+  const avis = $("reg-ferme");
+  if (avis) avis.hidden = cochees.length > 0;
   $("reg-modal").classList.remove("hidden");
 }
 
@@ -13284,6 +13325,7 @@ async function saveReg(e) {
     email: $("reg-f-email").value.trim() || null,
     birth_date: $("reg-f-birth").value || null,
     category_id: $("reg-f-cat").value || null,
+    staff_note: $("reg-f-note").value.trim() || null,
   });
   if (error) {
     // Le doublon vient presque toujours d'ici : l'inscrit est déjà arrivé par
