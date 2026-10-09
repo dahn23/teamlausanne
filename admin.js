@@ -12480,6 +12480,7 @@ function initStages() {
   $("reg-close").addEventListener("click", () => $("reg-modal").classList.add("hidden"));
   $("reg-modal").addEventListener("click", (e) => { if (e.target === $("reg-modal")) $("reg-modal").classList.add("hidden"); });
   $("reg-form").addEventListener("submit", saveReg);
+  initRegRecherche();
   $("stlink-close").addEventListener("click", () => $("stlink-modal").classList.add("hidden"));
   $("stlink-modal").addEventListener("click", (e) => { if (e.target === $("stlink-modal")) $("stlink-modal").classList.add("hidden"); });
   $("stlink-create").addEventListener("click", createPersonFromReg);
@@ -13332,6 +13333,8 @@ function openRegModal() {
   $("reg-error").hidden = true;
   $("reg-f-first").value = ""; $("reg-f-last").value = ""; $("reg-f-email").value = ""; $("reg-f-birth").value = "";
   $("reg-f-note").value = "";
+  regDetacher();
+  $("reg-p-search").value = ""; $("reg-p-list").hidden = true;
   $("reg-f-cat").innerHTML = cats.map((c) => `<option value="${c.id}">${esc(c.name)} — ${c.price} CHF</option>`).join("");
   // Le dire franchement : on inscrit dans un stage que le site ne montre plus.
   const avis = $("reg-ferme");
@@ -13339,17 +13342,138 @@ function openRegModal() {
   $("reg-modal").classList.remove("hidden");
 }
 
+// ---- Recherche dans le répertoire, depuis le modal d'inscription ----
+// Inscrire à la main, c'est presque toujours inscrire quelqu'un qu'on connaît
+// déjà : un frère, un habitué, un enfant d'un cours. Retaper son nom, sa date
+// de naissance et l'e-mail du parent à la main, c'est long et c'est là que
+// naissent les doublons et les fautes de frappe.
+//
+// Choisir une fiche remplit les champs ET pose person_id : l'inscription part
+// déjà reliée au répertoire, sans repasser par le bouton « Lier » de la liste.
+// (Le déclencheur stage_link_one voit le lien, répond « deja » et ajoute le tag
+// « stage » à la fiche — db/103.)
+//
+// Les champs restent modifiables après : la fiche sert de point de départ, pas
+// de vérité figée. Un e-mail saisi ici ne touche pas la fiche.
+
+const regNomPersonne = (p) => `${p.last_name || ""} ${p.first_name || ""}`.trim();
+
+// L'e-mail utile pour un stage est souvent celui du parent : un gamin de 9 ans
+// n'en a pas, et c'est le parent qui reçoit la confirmation et la facture.
+// Même ordre que la facturation (db/100) : l'e-mail du jeune, sinon celui lu
+// dans les champs texte Parent 1 / Parent 2 de sa fiche.
+function regMailUtile(p) {
+  if (p.email) return { mail: p.email, de: null };
+  for (const champ of [p.parent1, p.parent2]) {
+    const pp = oiParseParent(champ);
+    if (pp?.email) return { mail: pp.email, de: pp.name || "un parent" };
+  }
+  return { mail: "", de: null };
+}
+
+function regDetacher() {
+  $("reg-f-person").value = "";
+  const l = $("reg-lie");
+  if (l) { l.hidden = true; l.innerHTML = ""; }
+}
+
+function regChoisir(p) {
+  const { mail, de } = regMailUtile(p);
+  $("reg-f-first").value = p.first_name || "";
+  $("reg-f-last").value = p.last_name || "";
+  $("reg-f-email").value = mail;
+  $("reg-f-birth").value = p.birthdate || "";
+  $("reg-f-person").value = p.id;
+  $("reg-p-search").value = "";
+  $("reg-p-list").hidden = true;
+
+  // Déjà dans ce stage ? On le dit sans bloquer : une 2e catégorie (une 2e
+  // semaine) est légitime, et c'est l'index unique qui tranche à l'envoi.
+  const deja = stgRegs.filter((r) => r.person_id === p.id
+    || (`${r.first_name} ${r.last_name}`.toLowerCase() === `${p.first_name} ${p.last_name}`.toLowerCase()));
+  const noms = deja.map((r) => stgCatById(r.category_id).name || "sans catégorie");
+
+  const l = $("reg-lie");
+  l.innerHTML = `<b>✓ Relié à la fiche de ${esc(regNomPersonne(p))}</b>`
+    + (de ? ` <span class="muted">· e-mail de ${esc(de)}</span>` : "")
+    + (mail ? "" : ' <span class="muted">· aucun e-mail connu</span>')
+    + ` <button type="button" class="reg-lie-x">détacher</button>`
+    + (noms.length ? `<span class="reg-lie-avis">Déjà inscrit à ce stage en « ${esc(noms.join(" », « "))} ».</span>` : "");
+  l.querySelector(".reg-lie-x").addEventListener("click", () => {
+    regDetacher();
+    $("reg-p-search").focus();
+  });
+  l.hidden = false;
+  // Reste à choisir la catégorie : on y amène le curseur. pretty-select cache
+  // le <select> natif (display:none), donc c'est son bouton qu'il faut viser.
+  const cat = $("reg-f-cat");
+  (cat.closest(".ps-wrap")?.querySelector(".ps-trigger") || cat).focus();
+}
+
+let regTrouves = [];
+function renderRegPersonList(q) {
+  q = (q || "").trim().toLowerCase();
+  regTrouves = !q ? [] : people
+    .filter((p) => `${regNomPersonne(p)} ${p.email || ""}`.toLowerCase().includes(q))
+    .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""))
+    .slice(0, 20);
+  const box = $("reg-p-list");
+  if (!q) { box.hidden = true; return; }
+  box.innerHTML = regTrouves.length
+    ? regTrouves.map((p) => {
+        const an = p.birthdate ? p.birthdate.slice(0, 4) : null;
+        const { mail } = regMailUtile(p);
+        return `<div class="combo-opt" data-id="${p.id}"><b>${esc(p.last_name || "")}</b> ${esc(p.first_name || "")}`
+          + `<span class="muted"> · ${an || "naissance ?"}${mail ? " · " + esc(mail) : ""}</span></div>`;
+      }).join("")
+    : '<div class="combo-empty">Aucune fiche. Remplis les champs à la main : la fiche sera créée au rapprochement.</div>';
+  box.querySelectorAll(".combo-opt").forEach((o) => o.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    const p = people.find((x) => x.id === o.dataset.id);
+    if (p) regChoisir(p);
+  }));
+  // Position fixe : la modale est en overflow:auto, une liste en absolute y
+  // serait rognée (même raison que le combo des tests physiques).
+  const r = $("reg-p-search").getBoundingClientRect();
+  box.style.left = r.left + "px";
+  box.style.top = (r.bottom + 4) + "px";
+  box.style.width = r.width + "px";
+  box.style.maxHeight = Math.max(120, Math.min(260, window.innerHeight - r.bottom - 10)) + "px";
+  box.hidden = false;
+}
+
+function initRegRecherche() {
+  const champ = $("reg-p-search");
+  if (!champ) return;
+  champ.addEventListener("input", () => renderRegPersonList(champ.value));
+  champ.addEventListener("focus", () => renderRegPersonList(champ.value));
+  // Entrée dans un champ de recherche enverrait le formulaire : on prend la
+  // première fiche à la place, ce qui est ce qu'on voulait dire.
+  champ.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { $("reg-p-list").hidden = true; return; }
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (regTrouves.length) regChoisir(regTrouves[0]);
+  });
+  document.addEventListener("pointerdown", (e) => {
+    if (!$("reg-p-combo").contains(e.target)) $("reg-p-list").hidden = true;
+  }, true);
+}
+
 async function saveReg(e) {
   e.preventDefault();
   const err = $("reg-error"); err.hidden = true;
   const first = $("reg-f-first").value.trim(), last = $("reg-f-last").value.trim();
   if (!first || !last) { err.textContent = "Prénom et nom obligatoires."; err.hidden = false; return; }
+  const lie = $("reg-f-person").value || null;
   const { error } = await sb.from("stage_registrations").insert({
     stage_id: stgCurrent, first_name: first, last_name: last,
     email: $("reg-f-email").value.trim() || null,
     birth_date: $("reg-f-birth").value || null,
     category_id: $("reg-f-cat").value || null,
     staff_note: $("reg-f-note").value.trim() || null,
+    // Choisi dans le répertoire : l'inscription part déjà reliée à la fiche.
+    person_id: lie,
   });
   if (error) {
     // Le doublon vient presque toujours d'ici : l'inscrit est déjà arrivé par
@@ -13361,6 +13485,10 @@ async function saveReg(e) {
   }
   stgCounts[stgCurrent] = (stgCounts[stgCurrent] || 0) + 1; refreshStagesBadge();
   $("reg-modal").classList.add("hidden");
+  // Fiche reliée : le déclencheur lui a posé le tag « stage » (db/103). On
+  // relit le répertoire pour que le tag soit visible tout de suite, comme le
+  // fait le bouton « Lier ». Sinon on s'en passe : c'est 1 000 fiches.
+  if (lie) await loadPeople();
   loadRegistrations();
 }
 

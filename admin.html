@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=307" />
+  <link rel="stylesheet" href="style.css?v=308" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2804,6 +2804,16 @@ Team Lausanne Tennis</textarea></label>
         Ce stage est <b>fermé aux inscriptions</b> sur le site. L'ajout reste possible ici,
         et ne le rouvre pas au public.
       </p>
+      <!-- Chercher dans le répertoire : remplit les champs d'un coup ET relie
+           l'inscription à la fiche tout de suite, sans repasser par « Lier ». -->
+      <label class="reg-rech">Chercher dans le répertoire <span class="muted">(facultatif)</span>
+        <div class="combo" id="reg-p-combo">
+          <input type="text" id="reg-p-search" autocomplete="off" placeholder="Nom ou prénom — Rossetti, Léa…" />
+          <div id="reg-p-list" class="combo-list" hidden></div>
+        </div>
+      </label>
+      <input type="hidden" id="reg-f-person" />
+      <p id="reg-lie" class="reg-lie" hidden></p>
       <div class="form-grid">
         <label>Prénom *<input id="reg-f-first" required /></label>
         <label>Nom *<input id="reg-f-last" required /></label>
