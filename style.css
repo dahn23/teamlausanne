@@ -517,6 +517,9 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .stg-cat-grid label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:700;color:var(--muted)}
 .stg-cat-grid .stg-cat-price{width:120px}
 .stg-card-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+/* Variante « le bouton appartient au titre » : collé juste après, au lieu d'être
+   repoussé au bord droit du panneau, où il flotte tout seul dans le vide. */
+.stg-card-head.serre{justify-content:flex-start;gap:14px}
 .stg-photo-preview{width:120px;height:80px;border-radius:10px;overflow:hidden;background:#eef1f7;
   flex-shrink:0;border:1px solid var(--line)}
 .stg-photo-preview img{width:100%;height:100%;object-fit:cover}
