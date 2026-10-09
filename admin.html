@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=305" />
+  <link rel="stylesheet" href="style.css?v=306" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -1963,6 +1963,9 @@
               <button id="oi-new" type="button">➕ Nouvelle facture</button>
               <button id="oi-prep" type="button" class="ghost" title="Un lot par filière (performance, compétition, club, KidsTennis, adultes) depuis la grille Tarifs">Lot par filière</button>
               <button id="oi-send-sel" type="button" class="ghost" title="Envoie par mail les factures cochées (PDF QR-facture joint)">✉ Envoyer la sélection</button>
+              <!-- Ne montrer que les lignes cochées, le temps de les relire. N'enlève
+                   rien, ne change rien : c'est une loupe, pas un filtre de plus. -->
+              <button id="oi-voir-sel" type="button" class="ghost" hidden>👁 Voir la sélection</button>
               <button id="oi-send-all" type="button" class="ghost" title="Envoie par mail les factures actuellement affichées — utilisez le filtre « À envoyer maintenant » pour ne pas expédier les échéances de toute l'année">✉ Envoyer les factures affichées</button>
             </div>
             <p class="muted" style="margin-top:0;font-size:.88rem"><b>Sport-études / pro</b> : les factures se génèrent depuis <b>Fiche › Contrat</b> (montant annuel découpé en n échéances). <b>Autres filières</b> : « Lot par filière » (grille Tarifs). <b>Facture personnelle ou blanche</b> : « Nouvelle facture » (choisir une personne ou écrire un nom, ajouter des articles). Chaque facture est éditable (dates, articles, destinataire) tant qu'elle n'est pas payée ; le PDF QR-facture est régénéré à chaque modification.</p>

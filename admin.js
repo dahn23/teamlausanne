@@ -11064,6 +11064,10 @@ const OI_FROM = "info@teamlausanne.ch";
 // Ensemble vide = aucun filtre, donc tout passe — ce qui garde « Toutes »
 // comme état par défaut sans cas particulier.
 let oiList = [], oiFiltres = new Set(), oiFilieres = new Set(), oiInit = false, oiPrep = [], oiSendIds = [], oiSel = new Set();
+// Loupe sur la sélection : on masque tout le reste le temps de relire les lignes
+// cochées. Ce n'est pas un filtre de plus — rien n'est modifié, la sélection ne
+// bouge pas, et un seul clic ramène la liste entière.
+let oiLoupe = false;
 let oieId = null, oieDebtorPid = null, oiePlayerPid = null, oieSeason = null, oieFiliere = null;
 const oiChf = (n) => Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ");   // 1 234.50 (format QR-facture)
 const oiFmt4 = (s) => String(s || "").replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
@@ -11079,6 +11083,7 @@ function initOutInvoices() {
   $("oi-send-all").addEventListener("click", () =>
     oiOpenSend(oiList.filter((f) => oiDansLaListe(f) && f.status === "a_envoyer").map((f) => f.id)));
   $("oi-send-sel").addEventListener("click", () => { if (!oiSel.size) { uiAlert("Coche d'abord les factures à envoyer."); return; } oiOpenSend([...oiSel]); });
+  $("oi-voir-sel").addEventListener("click", () => { oiLoupe = !oiLoupe; renderOiFilters(); renderOutInvoices(); });
   $("oi-sel-all").addEventListener("change", () => { const on = $("oi-sel-all").checked; $("oi-rows").querySelectorAll(".oi-chk").forEach((c) => { c.checked = on; if (on) oiSel.add(c.dataset.id); else oiSel.delete(c.dataset.id); }); oiUpdateSelBtn(); });
   $("oi-send-close").addEventListener("click", () => $("oi-send-modal").classList.add("hidden"));
   $("oi-send-go").addEventListener("click", oiSendGo);
@@ -11094,7 +11099,16 @@ function initOutInvoices() {
   $("oie-search").addEventListener("input", () => { clearTimeout(t); t = setTimeout(oieSearch, 250); });
   $("oie-search").addEventListener("blur", () => setTimeout(() => $("oie-results").classList.add("hidden"), 200));
 }
-function oiUpdateSelBtn() { $("oi-send-sel").textContent = `✉ Envoyer la sélection${oiSel.size ? ` (${oiSel.size})` : ""}`; }
+function oiUpdateSelBtn() {
+  $("oi-send-sel").textContent = `✉ Envoyer la sélection${oiSel.size ? ` (${oiSel.size})` : ""}`;
+  const b = $("oi-voir-sel");
+  if (!b) return;
+  // Il n'apparaît qu'une fois quelque chose coché — et reste visible tant que
+  // la loupe est active, sinon on n'aurait plus de quoi en sortir.
+  b.hidden = !oiSel.size && !oiLoupe;
+  b.textContent = oiLoupe ? "↩ Revoir toutes les factures" : `👁 Voir la sélection (${oiSel.size})`;
+  b.classList.toggle("oi-loupe-on", oiLoupe);
+}
 async function loadOutInvoices() {
   initOutInvoices();
   if (!facAccts.length) { const { data: acc } = await sb.from("finance_accounts").select("*").order("sort"); facAccts = acc || []; }
@@ -11215,13 +11229,18 @@ const oiAEnvoyerMaintenant = (f) =>
 
 // Le predicat de la liste, ecrit UNE fois : le bouton d'envoi s'en sert aussi,
 // donc il ne peut pas envoyer autre chose que ce qui est affiche.
-const oiDansLaListe = (f) => oiStatutOk(f) && oiFiliereOk(f) && oiCorrespond(f);
+const oiDansLaListe = (f) =>
+  (!oiLoupe || oiSel.has(f.id)) && oiStatutOk(f) && oiFiliereOk(f) && oiCorrespond(f);
 
 function renderOutInvoices() {
   const rows = oiList.filter(oiDansLaListe);
   $("oi-empty").hidden = rows.length > 0;
   if (!rows.length && oiRech) $("oi-empty").textContent = `Aucune facture ne correspond à « ${oiRech} ».`;
   for (const id of [...oiSel]) if (!oiList.find((x) => x.id === id && x.status !== "payee" && x.status !== "annulee")) oiSel.delete(id);
+  // Si la sélection s'est vidée pendant qu'on la regardait — une facture passée
+  // payée, par exemple — on sort de la loupe AVANT de filtrer. Sans ça l'écran
+  // resterait vide sans dire pourquoi.
+  if (oiLoupe && !oiSel.size) oiLoupe = false;
   $("oi-rows").innerHTML = rows.map((f) => {
     const [lbl, cls] = OI_ST[f.status] || [f.status, ""];
     const editable = f.status !== "payee" && f.status !== "annulee";

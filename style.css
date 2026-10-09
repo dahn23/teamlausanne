@@ -4785,3 +4785,8 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 
 /* Lignes d'évaluation : cliquables, comme les conversations. */
 .bot-eval-row{cursor:pointer}
+
+/* Loupe sur la sélection des factures : quand elle est active, le bouton n'est
+   plus une proposition mais l'état courant — d'où le plein, et non le fantôme. */
+.ghost.oi-loupe-on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.ghost.oi-loupe-on:hover{background:var(--blue-d);color:#fff}
