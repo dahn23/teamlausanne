@@ -4701,3 +4701,82 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .stga-pj{margin-top:10px;font-size:.84rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .stga-sans{color:#a3401c}
 .stga-pied{display:flex;align-items:center;gap:10px;padding:12px 20px;border-top:1px solid var(--line)}
+
+/* ===========================================================================
+   Assistant (console) — statistiques, conversations, réglages, test
+   ---------------------------------------------------------------------------
+   Les bulles reprennent volontairement l'allure du widget du site : relire une
+   conversation doit ressembler à la lire. Les classes .bot-msg / .bot-bulle /
+   .bot-points sont donc redéfinies ici — les deux sites sont déployés
+   séparément et ne partagent aucun fichier.
+   =========================================================================== */
+
+.bot-periodes{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.bot-deux{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:900px){.bot-deux{grid-template-columns:1fr}}
+
+/* Histogramme des questions par jour : des barres, pas de bibliothèque. */
+.bot-courbe{display:flex;align-items:flex-end;gap:2px;height:120px;padding:12px}
+.bot-barre{flex:1;min-width:2px;height:100%;display:flex;align-items:flex-end}
+.bot-barre > div{width:100%;background:var(--blue);border-radius:3px 3px 0 0;min-height:2px;
+  transition:background .15s}
+.bot-barre:hover > div{background:var(--fluo)}
+
+.bot-ligne{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.88rem}
+.bot-ligne:last-child{border-bottom:0}
+.bot-quand{flex:0 0 auto;color:var(--muted);font-size:.78rem;white-space:nowrap;padding-top:2px}
+
+.bot-conv-row{cursor:pointer}
+
+.bot-champ{display:block;margin:14px 0 0;font-size:.9rem;color:var(--muted)}
+.bot-champ textarea{display:block;width:100%;margin-top:5px;padding:10px 12px;
+  border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:.94rem;
+  color:var(--ink);resize:vertical}
+.bot-prompt{width:100%;padding:14px;border:1px solid var(--line);border-radius:12px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85rem;line-height:1.6;
+  color:var(--ink);resize:vertical}
+.bot-vsel{padding:7px 10px;border:1px solid var(--line);border-radius:9px;font-family:inherit;
+  font-size:.86rem;margin-right:8px}
+.bot-gardefous{margin:0;padding:14px;background:var(--bg);border-radius:10px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8rem;line-height:1.6;
+  color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}
+.bot-savoir{margin:0;max-height:62vh;overflow:auto;padding:14px;background:var(--bg);
+  border-radius:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:.78rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* ---- Bulles (test, et relecture d'une conversation) ---- */
+.bot-fil,.bot-test-fil{display:flex;flex-direction:column;gap:10px;padding:14px;
+  background:var(--bg);border-radius:12px;overflow-y:auto}
+.bot-test-fil{min-height:220px;max-height:46vh;margin-bottom:12px}
+.bot-fil-modal{max-height:62vh}
+.bot-msg{display:flex;flex-direction:column;max-width:86%}
+.bot-msg.bot-moi{align-self:flex-end;align-items:flex-end}
+.bot-msg.bot-bot{align-self:flex-start}
+.bot-msg .bot-bulle{padding:10px 13px;border-radius:14px;font-size:.9rem;line-height:1.5;
+  background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,26,46,.10);overflow-wrap:anywhere}
+.bot-msg.bot-moi .bot-bulle{background:var(--blue);color:#fff;border-bottom-right-radius:4px}
+.bot-msg .bot-bulle p{margin:0 0 7px}
+.bot-msg .bot-bulle p:last-child{margin:0}
+.bot-msg .bot-bulle ul{margin:4px 0 7px;padding-left:18px}
+.bot-msg .bot-bulle a{color:var(--blue);font-weight:600}
+.bot-msg.bot-moi .bot-bulle a{color:#fff}
+.bot-h{display:block;margin:9px 0 4px;font-size:.88rem}
+.bot-bulle > .bot-h:first-child{margin-top:0}
+.bot-meta{margin:3px 0 0 4px;font-size:.72rem;color:var(--muted)}
+
+.bot-points{display:flex;gap:4px;align-items:center;padding:13px}
+.bot-points i{width:6px;height:6px;border-radius:50%;background:var(--muted);
+  animation:botpt 1.25s infinite ease-in-out}
+.bot-points i:nth-child(2){animation-delay:.16s}
+.bot-points i:nth-child(3){animation-delay:.32s}
+@keyframes botpt{0%,70%,100%{opacity:.28;transform:translateY(0)}35%{opacity:1;transform:translateY(-3px)}}
+
+.bot-test-pied{display:flex;gap:8px}
+.bot-test-pied input{flex:1;padding:10px 13px;border:1px solid var(--line);border-radius:12px;
+  font-family:inherit;font-size:.94rem;color:var(--ink)}
+.bot-test-pied input:focus{outline:none;border-color:var(--blue)}
+
+/* La fenêtre de relecture : plus large que l'alerte standard. */
+.bot-modal .bot-box{max-width:min(720px,94vw);width:100%;text-align:left;position:relative}
+
+@media (prefers-reduced-motion:reduce){ .bot-points i{animation:none;opacity:.6} }

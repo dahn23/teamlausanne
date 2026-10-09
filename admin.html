@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=303" />
+  <link rel="stylesheet" href="style.css?v=304" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -148,6 +148,7 @@
             <button class="side-item" data-view="mail"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6 8.5-6"/></svg><span class="side-label">Messagerie</span></button>
             <button class="side-item" data-view="newsletter"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H4z"/><path d="M4 8l8 5 8-5"/><path d="M8 20h8"/></svg><span class="side-label">Newsletter</span></button>
             <button class="side-item" data-view="social"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.2" fill="currentColor" stroke="none"/></svg><span class="side-label">Social Media Planner</span></button>
+            <button class="side-item" data-view="assistant"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.3-3.9A8.4 8.4 0 1 1 21 11.5z"/><circle cx="8.5" cy="11.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.5" r="1" fill="currentColor" stroke="none"/></svg><span class="side-label">Assistant</span></button>
             <button class="side-item" data-view="news"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M14 8.5a4 4 0 0 1 0 7"/><path d="M16.5 5.5a7 7 0 0 1 0 13"/></svg><span class="side-label">Accueil espace privé</span></button>
           </div>
           <div class="side-block">
@@ -990,6 +991,166 @@
         </div>
 
         <!-- ---- Vue Newsletter (superadmin / admin / secrétaire) ---- -->
+        <!-- ===== Assistant (chatbot du site public) ===== -->
+        <div id="view-assistant" class="view hidden">
+          <div class="dash-hero">
+            <div>
+              <p class="dash-eyebrow" id="bot-eyebrow">Chatbot du site public</p>
+              <h1 class="dash-title">Assistant</h1>
+              <p class="dash-lead">Il répond aux visiteurs à partir du site, et de rien d'autre :
+                il ne voit aucun dossier, aucune facture, aucune inscription nominative.</p>
+            </div>
+            <div class="dash-hero-a"><button type="button" id="bot-refresh" class="ghost">↻ Actualiser</button></div>
+          </div>
+
+          <div id="bot-alerte"></div>
+          <div id="bot-chiffres" class="dgrid" style="margin-bottom:22px"></div>
+
+          <div class="fac-subtabs">
+            <button type="button" class="subtab bot-subtab active" data-bsub="stats">Statistiques</button>
+            <button type="button" class="subtab bot-subtab" data-bsub="convs">Conversations</button>
+            <button type="button" class="subtab bot-subtab" data-bsub="reglages">Réglages &amp; prompt</button>
+            <button type="button" class="subtab bot-subtab" data-bsub="test">Test</button>
+            <button type="button" class="subtab bot-subtab" data-bsub="eval">Évaluation</button>
+            <button type="button" class="subtab bot-subtab" data-bsub="savoir">Ce qu'il sait</button>
+          </div>
+
+          <!-- ---- Statistiques ---- -->
+          <div id="bot-sub-stats" class="fac-sub">
+            <div class="bot-periodes" id="bot-periodes"></div>
+            <div class="table-wrap" style="margin-bottom:18px">
+              <div id="bot-courbe" class="bot-courbe"></div>
+            </div>
+            <div class="bot-deux">
+              <div class="rg-card">
+                <h3 style="margin:0 0 8px">Questions restées sans réponse</h3>
+                <p class="muted" style="margin:0 0 10px;font-size:.86rem">Ce que le site ne dit pas.
+                  Chacune est une page à compléter, pas une erreur du bot.</p>
+                <div id="bot-sansrep"></div>
+              </div>
+              <div class="rg-card">
+                <h3 style="margin:0 0 8px">Dernières questions</h3>
+                <div id="bot-dernieres"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ---- Conversations ---- -->
+          <div id="bot-sub-convs" class="fac-sub hidden">
+            <div class="fac-barre">
+              <div id="bot-filtres" class="fac-filters"></div>
+              <label class="fac-rech">
+                <span class="sr-only">Rechercher dans les conversations</span>
+                <input type="search" id="bot-search" placeholder="Rechercher un mot dans les questions…" autocomplete="off" />
+              </label>
+            </div>
+            <div class="table-wrap">
+              <table class="crm-table fac-table"><thead><tr>
+                <th>Quand</th><th>Questions</th><th>Première question</th><th>Page</th><th>Signaux</th><th>Coût</th>
+              </tr></thead><tbody id="bot-conv-rows"></tbody></table>
+            </div>
+            <p id="bot-conv-vide" class="muted" hidden>Aucune conversation.</p>
+          </div>
+
+          <!-- ---- Réglages & prompt ---- -->
+          <div id="bot-sub-reglages" class="fac-sub hidden">
+            <div class="rg-card" style="margin-bottom:18px">
+              <h3 style="margin:0 0 12px">Réglages</h3>
+              <div class="form-grid">
+                <label>Afficher l'assistant sur le site
+                  <select id="bot-actif"><option value="0">Non — rien ne s'affiche</option><option value="1">Oui</option></select></label>
+                <label>Modèle
+                  <select id="bot-modele">
+                    <option value="claude-haiku-5-5">Haiku 5.5 — le moins cher</option>
+                    <option value="claude-sonnet-5-5">Sonnet 5.5 — 20× plus cher</option>
+                    <option value="claude-opus-5-5">Opus 5.5 — 40× plus cher</option>
+                  </select></label>
+                <label>Plafond de questions par jour<input id="bot-plafond" type="number" min="10" max="5000" /></label>
+              </div>
+              <label class="bot-champ">Message d'accueil
+                <textarea id="bot-accueil" rows="2"></textarea></label>
+              <label class="bot-champ">Questions suggérées — une par ligne, six au maximum
+                <textarea id="bot-suggestions" rows="5"></textarea></label>
+              <p class="muted" style="font-size:.84rem;margin:10px 0 0">
+                L'effort du modèle n'est pas réglable pour l'instant : la version du SDK installée sur
+                Supabase refuse ce paramètre. Le modèle tourne à son effort par défaut.</p>
+              <div class="form-foot" style="margin-top:14px">
+                <span class="spacer"></span><button type="button" id="bot-save">Enregistrer</button>
+              </div>
+            </div>
+
+            <div class="rg-card" style="margin-bottom:18px">
+              <div class="stg-card-head">
+                <h3 style="margin:0">Prompt — le ton et les consignes</h3>
+                <div>
+                  <select id="bot-versions" class="bot-vsel"></select>
+                  <button type="button" id="bot-defaut" class="ghost">↺ Rétablir le prompt d'origine</button>
+                </div>
+              </div>
+              <p class="muted" style="margin:6px 0 10px;font-size:.86rem">
+                Ce que tu écris ici règle le ton, la façon de conseiller et les cas particuliers.
+                Les trente dernières versions sont gardées.</p>
+              <textarea id="bot-prompt" rows="20" class="bot-prompt"></textarea>
+              <div class="form-foot" style="margin-top:12px">
+                <span class="spacer"></span><button type="button" id="bot-save-prompt">Enregistrer le prompt</button>
+              </div>
+            </div>
+
+            <div class="rg-card">
+              <h3 style="margin:0 0 8px">Garde-fous — non modifiables</h3>
+              <p class="muted" style="margin:0 0 10px;font-size:.86rem">
+                Écrits dans le code, ils passent avant ton prompt. Ils sont courts exprès :
+                y mettre des règles de forme les ferait contredire ce que tu écris au-dessus.</p>
+              <pre id="bot-gardefous" class="bot-gardefous"></pre>
+            </div>
+          </div>
+
+          <!-- ---- Test ---- -->
+          <div id="bot-sub-test" class="fac-sub hidden">
+            <div class="rg-card">
+              <div class="stg-card-head">
+                <h3 style="margin:0">Essayer l'assistant</h3>
+                <div>
+                  <select id="bot-test-modele" class="bot-vsel">
+                    <option value="">Modèle enregistré</option>
+                    <option value="claude-haiku-5-5">Haiku 5.5</option>
+                    <option value="claude-sonnet-5-5">Sonnet 5.5</option>
+                    <option value="claude-opus-5-5">Opus 5.5</option>
+                  </select>
+                  <button type="button" id="bot-test-vider" class="ghost">Nouvelle conversation</button>
+                </div>
+              </div>
+              <p class="muted" style="margin:6px 0 12px;font-size:.86rem">
+                L'assistant tel qu'il est enregistré. Ces échanges ne comptent pas dans les statistiques.
+                Pour changer le prompt, c'est dans Réglages.</p>
+              <div id="bot-test-fil" class="bot-test-fil"></div>
+              <form id="bot-test-form" class="bot-test-pied">
+                <input id="bot-test-champ" type="text" placeholder="Pose une question, comme un visiteur…" autocomplete="off" />
+                <button type="submit">Envoyer</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- ---- Évaluation ---- -->
+          <div id="bot-sub-eval" class="fac-sub hidden">
+            <div id="bot-eval-zone"></div>
+          </div>
+
+          <!-- ---- Ce qu'il sait ---- -->
+          <div id="bot-sub-savoir" class="fac-sub hidden">
+            <div class="rg-card">
+              <div class="stg-card-head">
+                <h3 style="margin:0">Ce que l'assistant reçoit à chaque question</h3>
+                <button type="button" id="bot-savoir-load" class="ghost">Charger</button>
+              </div>
+              <p class="muted" style="margin:6px 0 10px;font-size:.86rem">
+                Le texte exact, reconstruit à l'instant. S'il manque quelque chose ici,
+                le bot ne peut pas le savoir — et c'est au site qu'il faut l'ajouter.</p>
+              <p id="bot-savoir-meta" class="muted" style="font-size:.86rem"></p>
+              <pre id="bot-savoir" class="bot-savoir"></pre>
+            </div>
+          </div>
+        </div>
         <div id="view-newsletter" class="view hidden">
           <header class="dash-hero">
             <div class="dash-hero-t">
