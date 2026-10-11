@@ -6061,8 +6061,15 @@ async function closeTournament() {
     const played = Object.entries(tabs).filter(([, t]) => t.present > 0);
     const missing = played.filter(([, t]) => t.winners === 0).map(([k]) => k);
     if (missing.length) {
-      alert(`Il manque le vainqueur de ${missing.length} tableau(x) :\n• ${missing.join("\n• ")}\n\nCoche « Victoire » pour le vainqueur de chaque tableau joué, puis clôture. (${played.length} tableau(x) joué(s) ce jour.)`);
-      return;
+      const msg = `Il manque le vainqueur de ${missing.length} tableau(x) :\n• ${missing.join("\n• ")}`;
+      // Tableau annulé en cours de journée (pluie du 10.10.2026 : joueurs présents et payés, aucun vainqueur) :
+      // un admin / superadmin peut clôturer quand même. Le responsable reste bloqué (garde-fou du vainqueur oublié).
+      if (hasAny(myAppRoles, ["admin", "superadmin"])) {
+        if (!await uiConfirm(`${msg}\n\nSi ce(s) tableau(x) n'ont pas pu être joués (pluie, annulation), tu peux clôturer quand même. Clôturer sans vainqueur pour ce(s) tableau(x) ?`)) return;
+      } else {
+        alert(`${msg}\n\nCoche « Victoire » pour le vainqueur de chaque tableau joué, puis clôture. (${played.length} tableau(x) joué(s) ce jour.)\n\nTableau annulé (pluie) ? Demande à un admin de clôturer le tournoi.`);
+        return;
+      }
     }
     const double = played.filter(([, t]) => t.winners > 1).map(([k]) => k);
     if (double.length) warn += `\n• Plusieurs vainqueurs cochés dans : ${double.join(", ")}.`;
