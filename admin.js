@@ -18972,7 +18972,7 @@ const SOC_STATUTS = [
   ["programme",       "Programmé",        "#073eb5"],
   ["publie",          "Publié",           "#1c7d38"],
 ];
-const SOC_CANAUX = { instagram: "Instagram", tiktok: "TikTok", newsletter: "Newsletter" };
+const SOC_CANAUX = { instagram: "Instagram", tiktok: "TikTok", newsletter: "Newsletter", linkedin: "LinkedIn", youtube: "YouTube Shorts" };   // LinkedIn + YouTube : 12.10.2026 (rushes)
 const socStatutNom = (s) => (SOC_STATUTS.find(([k]) => k === s) || [s, s])[1];
 const socStatutCoul = (s) => (SOC_STATUTS.find(([k]) => k === s) || [0, 0, "#69708a"])[2];
 
@@ -19069,6 +19069,10 @@ function socRendre() {
   $("soc-mois").classList.toggle("hidden", socVue !== "mois");
   $("soc-tableau").classList.toggle("hidden", socVue !== "tableau");
   $("soc-grille").classList.toggle("hidden", socVue !== "grille");
+  $("soc-rushes").classList.toggle("hidden", socVue !== "rushes");
+  // Rushes : ni période ni filtres de publication.
+  document.querySelector("#view-social .cal-nav")?.classList.toggle("hidden", socVue === "rushes");
+  if (socVue === "rushes") { socRendreRushes(); return; }
   if (socVue === "mois") socRendreMois();
   else if (socVue === "tableau") socRendreTableau();
   else socRendreGrille();
@@ -19270,6 +19274,9 @@ async function socOuvrir(p, jour) {
   $("soc-modal").classList.remove("hidden");
 }
 
+// Vidéo (extrait découpé dans un rush, 12.10.2026) ou image : on le lit sur l'extension du fichier.
+const socEstVideo = (chemin) => /\.(mp4|mov|m4v|webm)$/i.test(chemin || "");
+
 // Les images vivent dans un bucket PRIVÉ (des mineurs, avant publication) :
 // on ne peut pas y pointer par une URL publique, il faut un lien signé.
 async function socRendreMedias() {
@@ -19280,7 +19287,9 @@ async function socRendreMedias() {
     return data?.signedUrl || "";
   }));
   z.innerHTML = socEditMedias.map((m, i) => `<div class="soc-med">
-    ${liens[i] ? `<img src="${esc(liens[i])}" alt="${esc(m.nom || "")}" loading="lazy" />` : '<span class="soc-med-ko">?</span>'}
+    ${!liens[i] ? '<span class="soc-med-ko">?</span>'
+      : socEstVideo(m.chemin) ? `<video src="${esc(liens[i])}" muted playsinline preload="metadata" controls title="${esc(m.nom || "")}"></video>`
+      : `<img src="${esc(liens[i])}" alt="${esc(m.nom || "")}" loading="lazy" />`}
     ${socPeutEcrire ? `<button type="button" class="soc-med-x" data-med="${m.id}" title="Retirer">×</button>` : ""}
   </div>`).join("");
   z.querySelectorAll("[data-med]").forEach((b) => b.addEventListener("click", async () => {
@@ -19498,13 +19507,96 @@ async function socRendreGrille() {
       return `<button type="button" class="soc-gr-c" data-post="${p.id}"
           style="--pc:${esc(pil?.couleur || "#69708a")}"
           title="${esc(p.titre)} — ${frDate(p.date_publication)}">
-        ${urls[p.id] ? `<img src="${esc(urls[p.id])}" alt="" loading="lazy" />`
+        ${urls[p.id] ? (socEstVideo(premiere[p.id]) ? `<video src="${esc(urls[p.id])}#t=0.5" muted playsinline preload="metadata"></video><span class="soc-gr-play">▶</span>` : `<img src="${esc(urls[p.id])}" alt="" loading="lazy" />`)
                      : `<span class="soc-gr-vide">${esc(p.titre.slice(0, 40))}</span>`}
         <span class="soc-gr-d">${frDate(p.date_publication).slice(0, 5)}</span>
         ${p.statut !== "publie" ? `<span class="soc-gr-st" style="background:${socStatutCoul(p.statut)}"></span>` : ""}
       </button>`;
     }).join("")}</div></div>`;
   socBrancherPuces(z);
+}
+
+// ---- Rushes (12.10.2026, db/149) ----
+// Une session = des vidéos brutes dans un dossier + des consignes. Le traitement se fait avec Claude sur le PC
+// (Whisper pour la transcription, ffmpeg pour découper / recadrer / sous-titrer) ; les extraits reviennent ici
+// comme brouillons de publications rattachés à la session (social_posts.rush_id), un texte par canal.
+const SOC_RUSH_ST = { a_traiter: ["À traiter", "#c2560d"], en_cours: ["En cours", "#9c6500"], traite: ["Traité", "#1c7d38"] };
+let socRushes = [];
+async function socRendreRushes() {
+  const z = $("soc-rushes");
+  z.innerHTML = '<p class="muted">Chargement…</p>';
+  const { data, error } = await sb.from("social_rushes").select("*").order("created_at", { ascending: false });
+  if (error) { z.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  socRushes = data || [];
+  const issus = (rid) => socPosts.filter((p) => p.rush_id === rid);
+  z.innerHTML = `<details class="soc-rush-aide"${socRushes.length ? "" : " open"}><summary>Comment ça marche ?</summary>
+      <ol>
+        <li><b>Dépose les rushes</b> dans un dossier (Google Drive, clé…), puis crée ici une session : titre, date du tournage, où sont les fichiers, ce que tu veux en tirer.</li>
+        <li><b>Dis à Claude « traite la session … »</b> dans Claude Code. Il transcrit, repère les meilleurs moments, découpe, recadre (vertical 9:16 pour Reels / TikTok / Shorts, 4:5 pour Instagram, 16:9 pour LinkedIn), ajoute les sous-titres et rédige un texte par réseau.</li>
+        <li><b>Les extraits arrivent comme brouillons</b> (statut « Texte à valider ») rattachés à la session : vidéo dans la médiathèque, texte par canal. Tu relis, tu ajustes, tu programmes.</li>
+      </ol>
+      <p class="muted">Idéal : interviews, coach qui explique, jeunes qui parlent, vlog de tournoi. Pour l'action pure (échanges), Claude propose et tu valides.</p>
+    </details>
+    ${socPeutEcrire ? '<div class="soc-rush-top"><button type="button" id="soc-rush-new">＋ Nouvelle session de rushes</button></div>' : ""}
+    ${socRushes.length ? socRushes.map((r) => {
+      const st = SOC_RUSH_ST[r.statut] || [r.statut, "#69708a"], posts = issus(r.id);
+      return `<div class="soc-rush" data-rush="${r.id}">
+        <div class="soc-rush-h"><b>${esc(r.titre)}</b><span class="soc-rush-st" style="background:${st[1]}">${esc(st[0])}</span>
+          ${r.date_tournage ? `<span class="muted">tourné le ${frDate(r.date_tournage)}</span>` : ""}<span class="spacer"></span>
+          ${socPeutEcrire ? '<button type="button" class="ghost soc-rush-ed">Modifier</button>' : ""}</div>
+        ${r.dossier ? `<div class="soc-rush-l"><span class="soc-lab">Fichiers</span> ${/^https?:\/\//.test(r.dossier) ? `<a href="${esc(r.dossier)}" target="_blank" rel="noopener">${esc(r.dossier)}</a>` : esc(r.dossier)}</div>` : ""}
+        <div class="soc-rush-l"><span class="soc-lab">Réseaux</span> ${(r.canaux || []).map((c) => `<span class="soc-rush-c"><i class="soc-c soc-c-${c}"></i>${esc(SOC_CANAUX[c] || c)}</span>`).join(" ") || '<span class="muted">—</span>'}</div>
+        ${r.consignes ? `<div class="soc-rush-l"><span class="soc-lab">Consignes</span> ${esc(r.consignes).replace(/\n/g, "<br/>")}</div>` : ""}
+        ${r.rapport ? `<details class="soc-rush-rap"><summary>Compte rendu du traitement</summary><div>${esc(r.rapport).replace(/\n/g, "<br/>")}</div></details>` : ""}
+        <div class="soc-rush-l"><span class="soc-lab">Contenus issus</span> ${posts.length
+          ? posts.map((p) => `<button type="button" class="soc-rush-p" data-post="${p.id}"><span class="soc-rush-pd" style="background:${socStatutCoul(p.statut)}"></span>${esc(p.format ? p.format + " · " : "")}${esc(p.titre)}</button>`).join("")
+          : '<span class="muted">aucun pour l\'instant</span>'}</div>
+      </div>`;
+    }).join("") : '<p class="muted" style="margin-top:10px">Aucune session de rushes pour l\'instant.</p>'}`;
+  $("soc-rush-new")?.addEventListener("click", () => socEditerRush(null));
+  z.querySelectorAll(".soc-rush").forEach((c) => {
+    c.querySelector(".soc-rush-ed")?.addEventListener("click", () => socEditerRush(socRushes.find((x) => x.id === c.dataset.rush)));
+  });
+  z.querySelectorAll(".soc-rush-p").forEach((b) => b.addEventListener("click", () => socOuvrirId(b.dataset.post)));
+}
+function socEditerRush(r) {
+  const ov = document.createElement("div"); ov.className = "ui-modal";
+  const canaux = r?.canaux || ["instagram", "tiktok"];
+  ov.innerHTML = `<div class="ui-box soc-rush-box" style="max-width:560px;text-align:left">
+    <h3 style="margin:0 0 10px">${r ? "Modifier la session" : "Nouvelle session de rushes"}</h3>
+    <label class="mailc-f">Titre<input type="text" class="sr-titre" maxlength="140" placeholder="ex. GameZone du 10 octobre — interviews et ambiance" /></label>
+    <div class="soc-duo">
+      <label class="mailc-f">Date du tournage<input type="date" class="sr-date" /></label>
+      <label class="mailc-f">Statut<select class="sr-statut">${Object.entries(SOC_RUSH_ST).map(([k, [l]]) => `<option value="${k}">${esc(l)}</option>`).join("")}</select></label>
+    </div>
+    <label class="mailc-f">Où sont les fichiers <span class="muted" style="font-weight:400">(dossier Google Drive, lien…)</span><input type="text" class="sr-dossier" placeholder="ex. Mon Drive › Team Lausanne › Rushes › 2026-10-10 GameZone" /></label>
+    <div class="mailc-f"><span class="soc-lab">Pour quels réseaux</span>
+      <div class="soc-canaux">${Object.entries(SOC_CANAUX).filter(([k]) => k !== "newsletter").map(([k, l]) => `<label class="check"><input type="checkbox" class="sr-canal" value="${k}"${canaux.includes(k) ? " checked" : ""} /> ${esc(l)}</label>`).join("")}</div></div>
+    <label class="mailc-f">Consignes <span class="muted" style="font-weight:400">(ce que tu veux en tirer, qui apparaît, ce qu'il faut éviter)</span><textarea class="sr-consignes" rows="4" placeholder="ex. 3 reels sur l'ambiance, 1 post LinkedIn sur le sport-études. Ne pas montrer les jeunes sans accord."></textarea></label>
+    ${r ? '<label class="mailc-f">Compte rendu du traitement<textarea class="sr-rapport" rows="3"></textarea></label>' : ""}
+    <div class="ui-actions">${r ? '<button type="button" class="ghost sr-del" style="margin-right:auto;color:#b3261e">Supprimer</button>' : ""}<button type="button" class="ghost ui-no">Annuler</button><button type="button" class="primary sr-ok">Enregistrer</button></div></div>`;
+  // Fenêtre construite en JS : chercher les champs dans ov (pas avec $(), elle n'est pas encore dans la page).
+  const q = (s) => ov.querySelector(s);
+  q(".sr-titre").value = r?.titre || ""; q(".sr-date").value = r?.date_tournage || ""; q(".sr-statut").value = r?.statut || "a_traiter";
+  q(".sr-dossier").value = r?.dossier || ""; q(".sr-consignes").value = r?.consignes || ""; if (r) q(".sr-rapport").value = r.rapport || "";
+  q(".ui-no").addEventListener("click", () => ov.remove());
+  q(".sr-del")?.addEventListener("click", async () => {
+    if (!await uiConfirm(`Supprimer la session « ${r.titre} » ?\n\nLes publications déjà créées restent dans le planner, simplement détachées de la session. Les fichiers vidéo du dossier ne sont pas touchés.`)) return;
+    const { error } = await sb.from("social_rushes").delete().eq("id", r.id);
+    if (error) { uiAlert(error.message); return; }
+    ov.remove(); socRendreRushes();
+  });
+  q(".sr-ok").addEventListener("click", async () => {
+    const row = { titre: q(".sr-titre").value.trim(), date_tournage: q(".sr-date").value || null, statut: q(".sr-statut").value,
+      dossier: q(".sr-dossier").value.trim() || null, consignes: q(".sr-consignes").value.trim() || null,
+      canaux: [...ov.querySelectorAll(".sr-canal:checked")].map((c) => c.value), updated_at: new Date().toISOString() };
+    if (r) row.rapport = q(".sr-rapport").value.trim() || null;
+    if (row.titre.length < 2) { uiAlert("Donne un titre à la session."); return; }
+    const { error } = r ? await sb.from("social_rushes").update(row).eq("id", r.id) : await sb.from("social_rushes").insert(row);
+    if (error) { uiAlert(error.message); return; }
+    ov.remove(); socRendreRushes();
+  });
+  document.body.appendChild(ov);
 }
 
 // ---- Déplacer une publication à la souris ----

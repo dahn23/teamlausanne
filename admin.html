@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=309" />
+  <link rel="stylesheet" href="style.css?v=310" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -1218,6 +1218,7 @@
               <button type="button" class="soc-vue on" data-sv="mois">Calendrier</button>
               <button type="button" class="soc-vue" data-sv="tableau">Tableau</button>
               <button type="button" class="soc-vue" data-sv="grille" title="Aperçu du fil Instagram">Grille</button>
+              <button type="button" class="soc-vue" data-sv="rushes" title="Vidéos brutes à découper en contenus">Rushes</button>
             </div>
             <div class="cal-nav">
               <button type="button" id="soc-prec" class="ghost" aria-label="Période précédente">‹</button>
@@ -1232,6 +1233,8 @@
               <option value="instagram">Instagram</option>
               <option value="tiktok">TikTok</option>
               <option value="newsletter">Newsletter</option>
+              <option value="linkedin">LinkedIn</option>
+              <option value="youtube">YouTube Shorts</option>
             </select></label>
             <label class="cal-per">Statut <select id="soc-f-statut"></select></label>
             <label class="cal-per" id="soc-mode-box" hidden>Approbation <select id="soc-mode">
@@ -1244,6 +1247,7 @@
           <div id="soc-mois" class="soc-mois"></div>
           <div id="soc-tableau" class="soc-tableau hidden"></div>
           <div id="soc-grille" class="soc-grille hidden"></div>
+          <div id="soc-rushes" class="soc-rushes hidden"></div>
         </div>
 
         <!-- Fenêtre : rédaction d'une publication -->
@@ -1270,6 +1274,8 @@
                     <label class="check"><input type="checkbox" class="soc-canal" value="instagram" /> Instagram</label>
                     <label class="check"><input type="checkbox" class="soc-canal" value="tiktok" /> TikTok</label>
                     <label class="check"><input type="checkbox" class="soc-canal" value="newsletter" /> Newsletter</label>
+                    <label class="check"><input type="checkbox" class="soc-canal" value="linkedin" /> LinkedIn</label>
+                    <label class="check"><input type="checkbox" class="soc-canal" value="youtube" /> YouTube Shorts</label>
                   </div>
                 </div>
                 <label class="mailc-f">Angle <span class="muted" style="font-weight:400">(ce qu'on raconte, en une phrase)</span>
@@ -1294,9 +1300,9 @@
                 </div>
 
                 <div id="soc-variantes" class="soc-variantes hidden"></div>
-                <div class="mailc-f"><span class="soc-lab">Images</span>
+                <div class="mailc-f"><span class="soc-lab">Images et vidéos</span>
                   <div id="soc-medias" class="soc-medias"></div>
-                  <label class="btnlike" style="cursor:pointer">＋ Ajouter des images<input id="soc-fichier" type="file" accept="image/*" multiple hidden /></label>
+                  <label class="btnlike" style="cursor:pointer">＋ Ajouter des images ou vidéos<input id="soc-fichier" type="file" accept="image/*,video/*" multiple hidden /></label>
                   <span id="soc-media-etat" class="muted" style="font-size:.82rem"></span>
                 </div>
               </div>

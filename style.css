@@ -4831,3 +4831,28 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   .rh-ligne{grid-template-columns:1fr auto auto;gap:8px}
   .rh-jauge{display:none}
 }
+/* Social Media Planner › Rushes (12.10.2026, db/149) + canaux LinkedIn / YouTube + vidéos */
+.soc-c-linkedin{background:#0a66c2}
+.soc-c-youtube{background:#e62117}
+.soc-med video{width:100%;height:100%;object-fit:cover;display:block;background:#111}
+.soc-gr-c video{width:100%;height:100%;object-fit:cover;display:block;background:#111}
+.soc-gr-play{position:absolute;top:6px;right:8px;color:#fff;font-size:.85rem;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.soc-rushes{margin-top:12px}
+.soc-rush-aide{background:#f6f8fd;border:1px solid var(--line);border-radius:12px;padding:0 14px;margin:0 0 12px}
+.soc-rush-aide summary{cursor:pointer;font-weight:700;color:var(--blue-ink,#0f1f6e);padding:10px 0}
+.soc-rush-aide[open]{padding-bottom:10px}
+.soc-rush-aide ol{margin:0 0 6px;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:.88rem;line-height:1.45}
+.soc-rush-aide p{margin:4px 0 0;font-size:.82rem}
+.soc-rush-top{margin:0 0 12px}
+.soc-rush{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 10px}
+.soc-rush-h{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 6px}
+.soc-rush-h b{font-size:1rem}
+.soc-rush-st{color:#fff;font-size:.72rem;font-weight:700;border-radius:999px;padding:2px 9px}
+.soc-rush-l{font-size:.86rem;margin:4px 0;line-height:1.45;overflow-wrap:anywhere}
+.soc-rush-l .soc-lab{display:inline-block;min-width:118px;color:var(--muted);font-weight:600}
+.soc-rush-c{display:inline-flex;align-items:center;gap:4px;margin-right:8px}
+.soc-rush-p{display:inline-flex;align-items:center;gap:6px;background:#f3f6fc;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:3px 10px;margin:2px 4px 2px 0;font-size:.8rem;font-weight:600}
+.soc-rush-p:hover{background:#e8eefc}
+.soc-rush-pd{width:8px;height:8px;border-radius:50%;display:inline-block}
+.soc-rush-rap summary{cursor:pointer;color:var(--blue);font-size:.84rem;font-weight:700;margin:4px 0}
+.soc-rush-rap div{font-size:.84rem;color:#3b4560;padding:4px 0 2px}
