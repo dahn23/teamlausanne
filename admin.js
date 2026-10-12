@@ -11501,7 +11501,20 @@ function oiSplitStreet(line) {
   const cp = s.match(/^(?:CP|Case postale|Postfach)\s*(\d+)\s*$/i); if (cp) return ["Case postale", cp[1]];
   const m = s.match(/^(.*?)[\s,]+(\d+[a-zA-Z]?(?:[-/]\d+[a-zA-Z]?)?)$/); return m ? [m[1].trim(), m[2]] : [s, ""];
 }
+// Jeu de caractères du QR-code suisse (SIX IG v2.3, ch. 4.1.1) : latin de base, latin-1, latin étendu A,
+// Ș ș Ț ț et €. Rien d'autre. Le 14.10.2026, le tiret long « — » des intitulés (« Stage … — Entraîne-toi… »)
+// faisait refuser le QR par PostFinance, qui applique la norme à la lettre ; BCV et Raiffeisen le toléraient.
+// On remplace donc la typographie par son équivalent simple et on retire le reste — dans le QR seulement,
+// le texte imprimé sur la facture garde sa typographie.
+const qrTxt = (s) => String(s ?? "")
+  .replace(/[‐-―−]/g, "-").replace(/[‘’‚‛′]/g, "'")
+  .replace(/[“”„‟″]/g, '"').replace(/…/g, "...").replace(/[  -​ ]/g, " ")
+  .replace(/[^ -~ -ſȘ-ț€]/g, "").replace(/\s+/g, " ").trim();
 function oiSpc(inv, acct) {
+  // Tous les champs texte passent par qrTxt (voir plus haut).
+  acct = { ...acct, name: qrTxt(acct.name), addr_line1: qrTxt(acct.addr_line1), addr_line2: qrTxt(acct.addr_line2) };
+  inv = { ...inv, debtor_name: qrTxt(inv.debtor_name) || null, debtor_street: qrTxt(inv.debtor_street) || null,
+    debtor_zip: qrTxt(inv.debtor_zip) || null, debtor_city: qrTxt(inv.debtor_city) || null, label: qrTxt(inv.label) };
   const [cStreet, cNo] = oiSplitStreet(acct.addr_line1);
   const cm = String(acct.addr_line2 || "").trim().match(/^(\d{4})\s+(.+)$/); const cZip = cm ? cm[1] : "", cCity = cm ? cm[2] : String(acct.addr_line2 || "");
   const hasD = inv.debtor_name && inv.debtor_street && inv.debtor_zip && inv.debtor_city;
