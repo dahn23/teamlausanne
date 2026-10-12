@@ -1,0 +1,36 @@
+<!doctype html>
+<!-- Story 1080×1920 : vainqueurs GameZone (jusqu'à 8). Données :
+     {"date":"Dimanche 4 octobre","vainqueurs":[{"nom":"Prénom Nom","tableau":"MS 12&U","photo":"file:///…"}],
+      "suite":"Prochain GameZone : 24 octobre","site":"teamlausanne.ch"} -->
+<html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="../brand.css">
+<style>
+  body { width: 1080px; height: 1920px; background: var(--prusse); color: #fff; position: relative; }
+  .tete { position: absolute; top: 70px; left: 64px; right: 64px; display: flex; align-items: center; gap: 30px; }
+  .tete .gz { width: 150px; display: block; }
+  .tete .k { font-size: 34px; font-weight: 800; color: var(--vert); letter-spacing: .08em; text-transform: uppercase; }
+  .tete .d { font-size: 36px; font-weight: 600; color: var(--blanc); margin-top: 6px; }
+  h1 { position: absolute; top: 250px; left: 64px; right: 64px; font-size: 150px; margin: 0; z-index: 2; }
+  .grille { position: absolute; top: 560px; left: 64px; right: 64px; display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  .c { position: relative; height: 300px; border-radius: 26px; overflow: hidden; background: var(--ocean) center/cover; }
+  .c .n { position: absolute; left: 0; right: 0; bottom: 0; padding: 60px 22px 18px; background: linear-gradient(180deg, rgba(0,54,82,0), rgba(0,54,82,.92)); }
+  .c b { display: block; font-size: 34px; font-weight: 900; line-height: 1.05; }
+  .c span { display: inline-block; margin-top: 8px; font-size: 22px; font-weight: 800; color: var(--noir); background: var(--vert); border-radius: 999px; padding: 4px 14px; }
+  .pied { position: absolute; left: 64px; right: 64px; bottom: 90px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .pied .s { font-size: 36px; font-weight: 800; } .pied .s small { display: block; font-size: 28px; font-weight: 600; color: var(--blanc); margin-top: 8px; }
+  .pied .logo { width: 120px; --logo: #fff; }
+</style></head><body>
+<div id="sw"></div>
+<div class="tete"><img class="gz" src="../assets/logo-gamezone.png" alt=""><div><div class="k">GameZone · Team Lausanne</div><div class="d" id="date"></div></div></div>
+<h1 class="display">Les <span style="color:var(--vert)">vainqueurs</span></h1>
+<div class="grille" id="g"></div>
+<div class="pied"><div class="s" id="suite"></div><span class="logo"></span></div>
+<script src="../kit.js"></script>
+<script>
+  document.getElementById("sw").innerHTML = sweep(1080, 1920, { y: 0.866, spread: .25 });
+  document.getElementById("date").textContent = D.date || "";
+  const v = (D.vainqueurs || []).slice(0, 8), g = document.getElementById("g");
+  // Hauteur des cartes : on remplit la place disponible (1080 px) selon le nombre de lignes.
+  const rows = Math.ceil(v.length / 2), hc = Math.min(560, Math.floor((1080 - (rows - 1) * 26) / Math.max(rows, 1)));
+  g.innerHTML = v.map((x) => `<div class="c" style="${photo(x.photo, x.cadrage || "50% 25%")};height:${hc}px"><div class="n"><b>${esc(x.nom)}</b>${x.tableau ? `<span>${esc(x.tableau)}</span>` : ""}</div></div>`).join("");
+  document.getElementById("suite").innerHTML = `${esc(D.suite || "Bravo à tous !")}<small>${esc(D.site ?? "teamlausanne.ch")}</small>`;
+</script></body></html>

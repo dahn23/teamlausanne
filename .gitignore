@@ -12,3 +12,6 @@ TeamLausanne-cle-app/
 *.jks
 *.keystore
 mot-de-passe*.txt
+
+# Kit réseaux sociaux : fichiers produits
+tools/social-kit/sortie/

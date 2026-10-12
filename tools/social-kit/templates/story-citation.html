@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- Story 1080×1920 : citation (coach, jeune, parent). Données :
+     {"citation":"Ce que j'aime ici, c'est qu'on apprend à *gagner* et à perdre.","nom":"Prénom Nom",
+      "role":"Head coach","photo":"file:///…","cadrage":"50% 20%"} -->
+<html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="../brand.css">
+<style>
+  body { width: 1080px; height: 1920px; background: var(--bleu); color: #fff; position: relative; }
+  .logo { position: absolute; top: 70px; left: 70px; width: 140px; --logo: #fff; }
+  .guil { position: absolute; top: 300px; left: 62px; font-family: "TL Sans"; font-weight: 900; font-size: 360px; line-height: 1; color: var(--vert); }
+  .q { position: absolute; top: 560px; bottom: 470px; left: 72px; right: 72px; display: flex; align-items: center; font-size: 92px; font-weight: 800; line-height: 1.15; }
+  .q em.v { font-style: normal; color: var(--vert); }
+  .qui { position: absolute; left: 72px; right: 72px; bottom: 140px; display: flex; align-items: center; gap: 34px; }
+  .qui .ph { width: 220px; height: 220px; border-radius: 50%; background: var(--prusse) center/cover; border: 8px solid var(--vert); flex: 0 0 auto; }
+  .qui b { display: block; font-size: 52px; font-weight: 900; } .qui span { font-size: 36px; font-weight: 600; color: var(--blanc); }
+</style></head><body>
+<div id="sw"></div><span class="logo"></span>
+<div class="guil">“</div>
+<div class="q" id="q"></div>
+<div class="qui"><div class="ph" id="ph"></div><div><b id="nom"></b><span id="role"></span></div></div>
+<script src="../kit.js"></script>
+<script>
+  document.getElementById("sw").innerHTML = sweep(1080, 1920, { y: 0.17, spread: .7, c2: "rgba(255,255,255,.35)" });
+  document.getElementById("q").innerHTML = `<div>${vert(D.citation || "")}</div>`;
+  // Texte long : on réduit la taille pour qu'il tienne.
+  const n = (D.citation || "").length; if (n > 90) document.getElementById("q").style.fontSize = n > 200 ? "58px" : n > 140 ? "68px" : "80px";
+  const ph = document.getElementById("ph"); if (D.photo) ph.setAttribute("style", photo(D.photo, D.cadrage)); else ph.remove();
+  document.getElementById("nom").textContent = D.nom || ""; document.getElementById("role").textContent = D.role || "";
+</script></body></html>

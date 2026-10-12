@@ -1,0 +1,42 @@
+/* Kit réseaux sociaux Team Lausanne — charte 2026 (Brand Guidelines, Drive › Team Lausanne › Brand Guidelines).
+   Polices : la charte prévoit Acumin Pro + Circe (Adobe) et, quand elles ne sont pas disponibles, Noto Sans.
+   Pas d'abonnement Adobe → Noto Sans partout (fichiers OFL dans fonts/). Noto Sans Display Condensed pour les
+   grands titres sportifs, Noto Sans pour le reste.
+   Couleurs : 60 % neutres (blanc, gris clair, noir), 30 % bleus, 10 % vert — le vert sert aux appels à l'action,
+   aux mots mis en avant et aux détails, jamais aux longs textes.
+   Logo : 4 combinaisons seulement (bleu sur blanc, noir sur vert, blanc sur bleu, vert sur noir), sans opacité,
+   ombre ni dégradé. */
+@font-face { font-family: "TL Sans"; src: url("fonts/NotoSans-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: "TL Sans"; src: url("fonts/NotoSans-SemiBold.ttf"); font-weight: 600; }
+@font-face { font-family: "TL Sans"; src: url("fonts/NotoSans-ExtraBold.ttf"); font-weight: 800; }
+@font-face { font-family: "TL Sans"; src: url("fonts/NotoSans-Black.ttf"); font-weight: 900; }
+@font-face { font-family: "TL Sans"; src: url("fonts/NotoSans-BlackItalic.ttf"); font-weight: 900; font-style: italic; }
+@font-face { font-family: "TL Display"; src: url("fonts/NotoSansDisplay-CondensedExtraBold.ttf"); font-weight: 800; }
+@font-face { font-family: "TL Display"; src: url("fonts/NotoSansDisplay-CondensedBlack.ttf"); font-weight: 900; }
+
+:root {
+  --noir: #141414;         /* Sport Black */
+  --prusse: #003652;       /* Prussian Blue */
+  --bleu: #073eb5;         /* Absolute Blue */
+  --ocean: #137297;        /* Ocean */
+  --vert: #b2fd13;         /* Energizing Mint Green */
+  --gris: #d9d9d9;         /* Light Grey */
+  --blanc: #e2ebf7;        /* Bright White */
+  --pur: #ffffff;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; overflow: hidden; }
+body { font-family: "TL Sans", sans-serif; -webkit-font-smoothing: antialiased; }
+.display { font-family: "TL Display", "TL Sans", sans-serif; font-weight: 900; text-transform: uppercase; line-height: .9; letter-spacing: .005em; }
+
+/* Logo recolorable (fichier blanc sur transparent) : la couleur vient de --logo. */
+.logo { display: block; background: var(--logo, #fff); -webkit-mask: url("assets/logo-academy.png") center / contain no-repeat; mask: url("assets/logo-academy.png") center / contain no-repeat; aspect-ratio: 2403 / 2481; }
+.logo-gz { display: block; background: var(--logo, #fff); -webkit-mask: url("assets/logo-gamezone.png") center / contain no-repeat; mask: url("assets/logo-gamezone.png") center / contain no-repeat; aspect-ratio: 462 / 516; }
+
+/* Pastille d'appel à l'action (vert, texte noir) et pastille d'info (contour). */
+.pill { display: inline-flex; align-items: center; gap: .4em; border-radius: 999px; padding: .5em 1.15em; font-weight: 800; }
+.pill-vert { background: var(--vert); color: var(--noir); }
+.pill-ligne { border: 3px solid currentColor; }
+
+/* Traits « sweep » de la charte (balle qui file) : SVG posé en fond. */
+.sweep { position: absolute; pointer-events: none; }

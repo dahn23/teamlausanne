@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- Carton de fin (image pleine) : logo blanc sur bleu prusse, site et appel à l'action.
+     Taille = celle de la vidéo. Données : {"cta":"Rejoins l'Academy","site":"teamlausanne.ch"} -->
+<html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="../brand.css">
+<style>
+  html, body { width: 100vw; height: 100vh; background: var(--prusse); color: #fff; }
+  .c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4vh; }
+  .logo { width: min(42vw, 30vh); --logo: #fff; }
+  .s { font-size: max(5vw, 2.6vh); font-weight: 900; letter-spacing: .01em; }
+  .pill { font-size: max(4vw, 2.2vh); padding: .55em 1.3em; }
+</style></head><body>
+<div id="sw"></div>
+<div class="c"><span class="logo"></span><div class="s" id="s"></div><div id="cta"></div></div>
+<script src="../kit.js"></script>
+<script>
+  document.getElementById("sw").innerHTML = sweep(innerWidth, innerHeight, { y: 0.78, spread: .5 });
+  document.getElementById("s").textContent = D.site ?? "teamlausanne.ch";
+  document.getElementById("cta").innerHTML = D.cta ? `<span class="pill pill-vert">${esc(D.cta)}</span>` : "";
+</script></body></html>

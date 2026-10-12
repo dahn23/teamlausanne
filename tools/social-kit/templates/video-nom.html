@@ -1,0 +1,17 @@
+<!doctype html>
+<!-- Calque transparent (à rendre avec --transparent) : bandeau « nom + rôle » posé sur une vidéo.
+     Taille = celle de la vidéo (1080×1920, 1080×1350 ou 1920×1080). Données : {"nom":"Prénom Nom","role":"Head coach"} -->
+<html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="../brand.css">
+<style>
+  html, body { background: transparent; width: 100vw; height: 100vh; }
+  .b { position: absolute; left: 6vw; bottom: 47vh; display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+  .n { background: var(--prusse); color: #fff; font-weight: 900; font-size: max(6.2vw, 3.4vh); padding: .28em .6em .3em; border-radius: .35em .35em .35em 0; }
+  .r { background: var(--vert); color: var(--noir); font-weight: 800; font-size: max(4vw, 2.2vh); padding: .3em .7em; border-radius: 0 0 .4em .4em; }
+  @media (min-aspect-ratio: 1/1) { .b { bottom: 18vh; left: 5vw; } .n { font-size: 3.1vw; } .r { font-size: 2vw; } }
+</style></head><body>
+<div class="b"><span class="n" id="n"></span><span class="r" id="r"></span></div>
+<script src="../kit.js"></script>
+<script>
+  document.getElementById("n").textContent = D.nom || "Prénom Nom";
+  const r = document.getElementById("r"); if (D.role) r.textContent = D.role; else r.remove();
+</script></body></html>

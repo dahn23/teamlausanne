@@ -1,0 +1,38 @@
+<!doctype html>
+<!-- Story 1080×1920 : annonce (tournoi, stage, événement). Données :
+     {"photo":"file:///…jpg","cadrage":"50% 30%","etiquette":"GameZone","titre":"Tournoi\n*d'automne*",
+      "date":"Sam 24 & dim 25 octobre","infos":["Plaines-du-Loup · intérieur","U10 à U16 · R2-R9"],
+      "cta":"Inscriptions sur mytennis","site":"teamlausanne.ch"} -->
+<html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="../brand.css">
+<style>
+  body { width: 1080px; height: 1920px; background: var(--prusse); color: #fff; position: relative; }
+  .ph { position: absolute; inset: 0; background-size: cover; }
+  .ombre { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,54,82,0) 30%, rgba(0,54,82,.78) 56%, var(--prusse) 74%); }
+  .haut { position: absolute; top: 64px; left: 64px; right: 64px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .haut .logo { width: 150px; --logo: #fff; }
+  .etiq { font-size: 34px; color: var(--vert); border: 3px solid var(--vert); border-radius: 999px; padding: 10px 26px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: rgba(0,54,82,.55); }
+  .bas { position: absolute; left: 72px; right: 72px; bottom: 120px; }
+  h1 { font-size: 168px; margin: 0 0 34px; }
+  h1 em.v, .v { font-style: normal; color: var(--vert); }
+  .date { font-size: 58px; font-weight: 800; margin: 0 0 22px; }
+  .infos { font-size: 38px; font-weight: 600; color: var(--blanc); line-height: 1.45; margin: 0 0 54px; }
+  .cta { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+  .cta .pill { font-size: 40px; padding: 22px 40px; }
+  .site { font-size: 32px; font-weight: 600; color: var(--blanc); }
+</style></head><body>
+<div class="ph" id="ph"></div><div class="ombre"></div><div id="sw"></div>
+<div class="haut"><span class="logo"></span><span class="etiq" id="etiq"></span></div>
+<div class="bas">
+  <h1 class="display" id="titre"></h1>
+  <p class="date" id="date"></p>
+  <div class="infos" id="infos"></div>
+  <div class="cta"><span class="pill pill-vert" id="cta"></span><span class="site" id="site"></span></div>
+</div>
+<script src="../kit.js"></script>
+<script>
+  document.getElementById("ph").setAttribute("style", photo(D.photo, D.cadrage));
+  document.getElementById("sw").innerHTML = sweep(1080, 1920, { y: 0.47 });
+  const set = (id, html) => { const e = document.getElementById(id); if (html) e.innerHTML = html; else e.remove(); };
+  set("etiq", esc(D.etiquette)); set("titre", vert(D.titre || "Titre")); set("date", esc(D.date));
+  set("infos", (D.infos || []).map(esc).join("<br>")); set("cta", D.cta ? esc(D.cta) + " →" : ""); set("site", esc(D.site ?? "teamlausanne.ch"));
+</script></body></html>

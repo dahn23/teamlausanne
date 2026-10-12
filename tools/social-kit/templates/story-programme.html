@@ -1,0 +1,30 @@
+<!doctype html>
+<!-- Story 1080×1920 : programme de la semaine / du week-end. Données :
+     {"titre":"Cette *semaine*","sous":"12 – 18 octobre","items":[{"jour":"Mer","titre":"Rendez-vous Compétition","detail":"16h00 – 18h30"}],
+      "cta":"Tout le programme sur teamlausanne.ch"} -->
+<html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="../brand.css">
+<style>
+  body { width: 1080px; height: 1920px; background: #fff; color: var(--prusse); position: relative; }
+  .logo { position: absolute; top: 70px; right: 70px; width: 140px; --logo: var(--bleu); }
+  h1 { position: absolute; top: 120px; left: 72px; right: 260px; font-size: 150px; margin: 0; color: var(--prusse); }
+  h1 em.v { font-style: normal; color: var(--bleu); text-decoration: underline; text-decoration-color: var(--vert); text-decoration-thickness: 14px; text-underline-offset: 14px; }
+  .sous { position: absolute; top: 450px; left: 72px; font-size: 44px; font-weight: 800; color: var(--ocean); }
+  .liste { position: absolute; top: 560px; left: 72px; right: 72px; display: flex; flex-direction: column; gap: 22px; }
+  .it { display: flex; align-items: center; gap: 30px; background: #f1f4f9; border-radius: 28px; padding: 28px 30px; }
+  .it .j { flex: 0 0 150px; height: 150px; border-radius: 24px; background: var(--bleu); color: #fff; display: flex; align-items: center; justify-content: center; font-family: "TL Display"; font-weight: 900; font-size: 64px; text-transform: uppercase; }
+  .it b { display: block; font-size: 46px; font-weight: 900; line-height: 1.1; } .it span { font-size: 34px; font-weight: 600; color: #3b4560; }
+  .cta { position: absolute; left: 72px; right: 72px; bottom: 110px; text-align: center; }
+  .cta .pill { font-size: 40px; padding: 24px 42px; }
+</style></head><body>
+<span class="logo"></span>
+<h1 class="display" id="titre"></h1><div class="sous" id="sous"></div>
+<div class="liste" id="l"></div>
+<div class="cta" id="cta"></div>
+<script src="../kit.js"></script>
+<script>
+  document.getElementById("titre").innerHTML = vert(D.titre || "Cette *semaine*");
+  document.getElementById("sous").textContent = D.sous || "";
+  const it = (D.items || []).slice(0, 6);
+  document.getElementById("l").innerHTML = it.map((x) => `<div class="it"><div class="j">${esc(x.jour)}</div><div><b>${esc(x.titre)}</b>${x.detail ? `<span>${esc(x.detail)}</span>` : ""}</div></div>`).join("");
+  document.getElementById("cta").innerHTML = D.cta ? `<span class="pill pill-vert">${esc(D.cta)}</span>` : "";
+</script></body></html>
