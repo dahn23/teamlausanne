@@ -15988,6 +15988,8 @@ async function mailQuickAssign(m) {
   await sb.from("mail_messages").update(upd).eq("id", m.id);
   renderMailAccts(); renderMailToolbar(); refreshMailView();
 }
+// Mail que la relève n'a pas pu décoder (> 8 Mo, ou décodage trop long : mail-cron v42).
+const mailEstLourd = (m) => /^⚠ Mail (volumineux|trop lourd)/.test(m.snippet || "");
 async function openMail(id) {
   const m = mailView.find((x) => x.id === id) || mailMsgs.find((x) => x.id === id);
   if (!m) return;
@@ -16044,6 +16046,9 @@ async function openMail(id) {
       ${m.cc_address ? `<div class="mail-d-meta muted" style="font-size:.85rem">Cc : ${esc(m.cc_address)}</div>` : ""}
     </div>
     ${m.has_invoice ? `<div class="mail-inv-note">📄 Une facture de ce mail a été ajoutée à l'onglet <b>Factures</b>. Tu peux passer ce mail en « Traité ».</div>` : ""}
+    ${mailEstLourd(m) ? `<div class="mail-inv-note mail-lourd-note">${/^hp(spam)?:/.test(m.imap_uid || "")
+      ? `📦 Ce mail était trop lourd pour la relève automatique. <button type="button" id="mail-d-import" class="ghost">Importer ce mail en entier</button><span id="mail-d-import-st" class="muted" style="font-size:.82rem;margin-left:6px"></span>`
+      : "📦 Ce mail était trop lourd pour être importé, et il vient de l'ancienne boîte Gmail : ouvre-le dans le webmail."}</div>` : ""}
     ${controls}
     <div id="mail-d-atts" class="mail-d-atts"></div>
     <div class="mail-d-body" id="mail-d-body"></div>
@@ -16056,6 +16061,18 @@ async function openMail(id) {
   $("view-mail").classList.toggle("mail-canreply", !isOut);  // FAB « Répondre » seulement sur un mail entrant
   $("mail-d-back").addEventListener("click", mailBackToList);
   $("mail-d-forward").addEventListener("click", () => mailForward(m));  // transfert (in ET out)
+  // Mail trop lourd pour la relève : import complet à la demande (mail-import-one, 13.10.2026).
+  $("mail-d-import")?.addEventListener("click", async (e) => {
+    const st = $("mail-d-import-st"); e.currentTarget.disabled = true; st.textContent = "Import en cours… (peut prendre jusqu'à une minute)";
+    const { data, error } = await sb.functions.invoke("mail-import-one", { body: { mail_id: id } });
+    let msg = error?.message || data?.error;
+    if (error) { try { msg = (await error.context.json())?.error || msg; } catch (_) {} }
+    if (msg) { st.textContent = "Échec : " + msg; e.currentTarget.disabled = false; return; }
+    const { data: bd } = await sb.from("mail_messages").select("body_text,body_html,snippet").eq("id", id).maybeSingle();
+    if (bd) { Object.assign(m, bd); mailSyncCache(m); }
+    openMail(id);
+    uiAlert(`✓ Mail importé${data.attachments ? ` avec ${data.attachments} pièce(s) jointe(s)` : ""}.${data.skipped ? `\n${data.skipped} pièce(s) de plus de 50 Mo restent dans le webmail.` : ""}`);
+  });
   $("mail-detail").scrollTop = 0;
   window.scrollTo(0, 0);
   if (!isOut) {

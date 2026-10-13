@@ -12,6 +12,7 @@
 // v29 (24.09.2026) : info@lausanneopen.ch chez Hostpoint (relevée directement, plus par redirection Gmail).
 // v30 (01.10.2026) : les pièces jointes d'Apple Mail ne disparaissent plus (voir processAtt).
 // v42 (13.10.2026) : un mail lourd à décoder ne bloque plus la relève (ligne d'attente avant décodage, Envoyés ≤ 3 Mo).
+// v43 (13.10.2026) : un mail de plus de 2 Mo est importé en entier par mail-import-one (partie par partie).
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -24,6 +25,7 @@ const SENT_MAX = 6;
 const SENT_FETCH = 3 * 1024 * 1024;   // v42 : décodage des Envoyés limité à 3 Mo
 const MAXB = 10 * 1024 * 1024;
 const MAX_FETCH = 8 * 1024 * 1024;
+const HEAVY = 2 * 1024 * 1024;        // v43 : au-delà, import par mail-import-one (Hostpoint)
 const SPAM_WINDOW = 30;               // dossier Spam : on regarde les 30 plus récents
 const SPAM_MAX = 8;                   // … et on en importe 8 au plus par passage
 const SPAM_FETCH = 1024 * 1024;       // contenu du spam limité à 1 Mo
@@ -228,9 +230,19 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
         const subj = env.subject || null;
         const dateIso = (env.date ? new Date(env.date) : new Date()).toISOString();
         if (!(await isDupMsg(supa, messageId, fromAddr, subj, dateIso))) {
-          if (size > MAX_FETCH) {
-            await supa.from("mail_messages").insert({ account_address: box, direction: "in", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: box, subject: subj, snippet: `⚠ Mail volumineux (~${mb(size)} Mo) — ouvrir dans le webmail`, body_text: `Ce message est trop volumineux (~${mb(size)} Mo) pour etre affiche ici. Ouvre-le directement dans le webmail de la boite.`, body_html: null, received_at: dateIso, imap_uid: uidTag(u), ...dmarcState(subj, fromAddr) });
+          if (size > (hp ? HEAVY : MAX_FETCH)) {
+            // v43 (13.10.2026) : mail lourd (> 2 Mo chez Hostpoint) → ligne « volumineux », puis import complet par
+            // mail-import-one (autre exécution, partie par partie, pièces jointes directement dans le stockage).
+            // Si l'import échoue, la ligne reste et le bouton « Importer ce mail en entier » de la console le relance.
+            const { data: big } = await supa.from("mail_messages").insert({ account_address: box, direction: "in", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: box, subject: subj, snippet: `⚠ Mail volumineux (~${mb(size)} Mo) — ouvrir dans le webmail`, body_text: `Ce message est trop volumineux (~${mb(size)} Mo) pour etre affiche ici. Ouvre-le directement dans le webmail de la boite.`, body_html: null, received_at: dateIso, imap_uid: uidTag(u), ...dmarcState(subj, fromAddr) }).select("id").single();
             st.inserted++; st.skippedBig++;
+            if (hp && big?.id) {
+              try {
+                const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/mail-import-one?key=${encodeURIComponent(Deno.env.get("CRON_SECRET") || "")}`,
+                  { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mail_id: big.id }), signal: AbortSignal.timeout(60000) });
+                if (r.ok) st.bigImported++;
+              } catch (_) { /* la console proposera l'import à la main */ }
+            }
           } else {
             // v42 (13.10.2026) : on enregistre d'abord une ligne d'attente, PUIS on décode. Un mail lourd à décoder
             // (pièces jointes) dépassait le temps de calcul autorisé : la fonction était tuée avant l'insertion,
@@ -383,7 +395,7 @@ Deno.serve(async (req) => {
     const { data: accts } = await supa.from("mail_accounts").select("address");
     const ourAddrs = (accts || []).map((a: { address: string }) => a.address.toLowerCase());
 
-    const st: Record<string, number> = { inserted: 0, archived: 0, sent: 0, skippedBig: 0, backfilled: 0, spam: 0 };
+    const st: Record<string, number> = { inserted: 0, archived: 0, sent: 0, skippedBig: 0, bigImported: 0, backfilled: 0, spam: 0 };
     const errors: Record<string, string> = {};
     // Une boîte en panne (mot de passe faux, serveur muet) ne doit pas empêcher de relever les autres.
     try { await pollBox(supa, hub, pass, true, ourAddrs, st); } catch (e) { errors[hub.toLowerCase()] = String((e as Error)?.message || e).slice(0, 200); }
