@@ -11,6 +11,7 @@
 //                    bien dans la Messagerie au lieu d'être pris pour un doublon de l'envoi.
 // v29 (24.09.2026) : info@lausanneopen.ch chez Hostpoint (relevée directement, plus par redirection Gmail).
 // v30 (01.10.2026) : les pièces jointes d'Apple Mail ne disparaissent plus (voir processAtt).
+// v42 (13.10.2026) : un mail lourd à décoder ne bloque plus la relève (ligne d'attente avant décodage, Envoyés ≤ 3 Mo).
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -20,6 +21,7 @@ const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: 
 const IN_MAX = 12;
 const SENT_WINDOW = 25;
 const SENT_MAX = 6;
+const SENT_FETCH = 3 * 1024 * 1024;   // v42 : décodage des Envoyés limité à 3 Mo
 const MAXB = 10 * 1024 * 1024;
 const MAX_FETCH = 8 * 1024 * 1024;
 const SPAM_WINDOW = 30;               // dossier Spam : on regarde les 30 plus récents
@@ -230,6 +232,12 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
             await supa.from("mail_messages").insert({ account_address: box, direction: "in", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: box, subject: subj, snippet: `⚠ Mail volumineux (~${mb(size)} Mo) — ouvrir dans le webmail`, body_text: `Ce message est trop volumineux (~${mb(size)} Mo) pour etre affiche ici. Ouvre-le directement dans le webmail de la boite.`, body_html: null, received_at: dateIso, imap_uid: uidTag(u), ...dmarcState(subj, fromAddr) });
             st.inserted++; st.skippedBig++;
           } else {
+            // v42 (13.10.2026) : on enregistre d'abord une ligne d'attente, PUIS on décode. Un mail lourd à décoder
+            // (pièces jointes) dépassait le temps de calcul autorisé : la fonction était tuée avant l'insertion,
+            // reprenait le même mail 2 minutes plus tard, et ainsi de suite — 549 échecs du 12.10 10h au 13.10 9h40,
+            // aucune boîte relevée. Si la fonction meurt maintenant, la ligne d'attente reste (« ouvrir dans le
+            // webmail ») et le mail n'est plus réessayé ; si le décodage réussit, la ligne est complétée.
+            const { data: ph } = await supa.from("mail_messages").insert({ account_address: box, direction: "in", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: box, subject: subj, snippet: `⚠ Mail trop lourd à afficher (~${mb(size)} Mo) — ouvrir dans le webmail`, body_text: `Ce message n'a pas pu être décodé ici (~${mb(size)} Mo, pièces jointes lourdes). Ouvre-le directement dans le webmail de la boîte.`, body_html: null, received_at: dateIso, imap_uid: uidTag(u), ...dmarcState(subj, fromAddr) }).select("id").single();
             const msg = await client.fetchOne(u, { source: true }, { uid: true });
             if (msg && (msg as { source?: Uint8Array }).source) {
               const p = await simpleParser((msg as { source: Uint8Array }).source);
@@ -247,7 +255,10 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
               }
               const body = (p.text || "").trim();
               const { html, rows } = processAtt(p, p.html || null);
-              const { data: ins, error: e } = await supa.from("mail_messages").insert({ account_address: brand, direction: "in", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || brand, cc_address: ccOf(p), subject: sj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dI, imap_uid: uidTag(u), ...dmarcState(sj, fA || null) }).select("id").single();
+              const row = { account_address: brand, direction: "in", message_id: mId, from_name: fV?.name || null, from_address: fA, to_address: p.to?.value?.[0]?.address || brand, cc_address: ccOf(p), subject: sj, snippet: body.slice(0, 140), body_text: body, body_html: html, received_at: dI, imap_uid: uidTag(u), ...dmarcState(sj, fA || null) };
+              const { data: ins, error: e } = ph?.id
+                ? await supa.from("mail_messages").update(row).eq("id", ph.id).select("id").single()
+                : await supa.from("mail_messages").insert(row).select("id").single();
               if (!e && ins) {
                 st.inserted++;
                 if (rows.length) await supa.from("mail_attachments").insert(rows.map((r) => ({ ...r, mail_id: ins.id })));
@@ -321,7 +332,8 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
           work++;
           const metaS = await client.fetchOne(su, { envelope: true, size: true }, { uid: true });
           // deno-lint-ignore no-explicit-any
-          if (((metaS as any)?.size || 0) > MAX_FETCH) continue;
+          // v42 : 3 Mo au plus pour les Envoyés (un mail lourd à décoder ici tuait la fonction à chaque passage).
+          if (((metaS as any)?.size || 0) > SENT_FETCH) continue;
           const msg = await client.fetchOne(su, { source: true }, { uid: true });
           if (!msg || !(msg as { source?: Uint8Array }).source) continue;
           const p = await simpleParser((msg as { source: Uint8Array }).source);
