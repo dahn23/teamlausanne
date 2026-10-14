@@ -3552,11 +3552,16 @@ async function loadDashboard() {
     + dashEncadrement(g) + dashAssiduite(absences, D.club || {})
     + dashGroup("Pro · Pro U18 · Sport-études", D.se || {})
     + dashGroup("Compétition & Performance", D.comp || {})
+    + dashSuivi()
     + dashNotes(notes) + dashRelances(relances) + dashProspects(prosp)
     + dashMail(mail) + dashFactures(fac)
     + dCard("Week-end GameZone", dashWeekend(lastWk), { sous: "Dernier week-end encaissé, moyen de paiement par moyen de paiement." })
     + dashAnniv(g) + dashImports(g.lastup || {})
     + `</div></section>`;
+
+  // Le suivi se remplit après coup : trois appels de plus ne doivent pas
+  // retarder l'affichage de tout le tableau de bord.
+  suiviCharger();
 
   // « Voir tous » : révèle les lignes masquées (.dash-more) du même bloc.
   // Les lignes cachées sont DANS le bloc qui précède le bouton (fil .dfeed des « Derniers messages ») ; l'ancien
@@ -21352,4 +21357,124 @@ function initMembresSubtabs() {
     $("membres-sub-clubs").classList.toggle("hidden", !loc);
     if (loc) loadTenants();
   }));
+}
+
+/* ---- Suivi des rendez-vous (db/154) --------------------------------------
+   Familles sport-études / pro, point hebdo avec Mariano, déjeuners joueur, et
+   les appels aux performance.
+
+   Le problème n'est pas d'oublier de NOTER un rendez-vous, c'est de ne pas
+   voir qu'une famille n'a plus eu de nouvelles depuis trois mois. Un agenda
+   montre ce qu'on a prévu, jamais ce qu'on a omis de prévoir — même défaut que
+   la newsletter qui annonçait les servis et taisait les 160 manquants.
+
+   D'où un bloc qui ne répond qu'à une question : QUI EST EN RETARD. Et le
+   classement par « le plus longtemps sans contact » désigne lui-même le
+   prochain : on ne choisit pas, donc on ne peut pas sauter quelqu'un sans
+   qu'il remonte en tête.
+   ------------------------------------------------------------------------- */
+
+const SUIVI_RYTHMES = [
+  ["famille",  "Familles sport-études & pro", "deux fois par saison"],
+  ["dejeuner", "Déjeuners Mariano ↔ joueur",  "deux par semaine, chacun toutes les 7 semaines"],
+  ["appel",    "Appels performance",          "quand c'est possible — pas d'échéance"],
+];
+let suiviEtats = {}, suiviMariano = null;
+
+const suiviJours = (n) => n == null ? "jamais" : n === 0 ? "aujourd'hui" : n === 1 ? "hier" : `il y a ${n} j`;
+
+function dashSuivi() {
+  return dCard("Suivi des familles et des joueurs",
+    `<div id="dsuivi-b"><p class="muted">Chargement…</p></div>`,
+    { id: "dcard-suivi", sous: "Qui n'a pas eu de nouvelles depuis le plus longtemps. Le premier de chaque liste est le prochain à voir." });
+}
+
+async function suiviCharger() {
+  const box = $("dsuivi-b"); if (!box) return;
+  const [fam, dej, app, hebdo] = await Promise.all([
+    sb.rpc("suivi_etat", { p_kind: "famille" }),
+    sb.rpc("suivi_etat", { p_kind: "dejeuner" }),
+    sb.rpc("suivi_etat", { p_kind: "appel" }),
+    sb.from("suivi_contacts").select("done_on").eq("kind", "hebdo").not("done_on", "is", null)
+      .order("done_on", { ascending: false }).limit(1),
+  ]);
+  if (fam.error) { box.innerHTML = `<p class="error">${esc(fam.error.message)}</p>`; return; }
+  suiviEtats = { famille: fam.data || [], dejeuner: dej.data || [], appel: app.data || [] };
+  const dernierHebdo = hebdo.data?.[0]?.done_on || null;
+  box.innerHTML = suiviHebdo(dernierHebdo) + SUIVI_RYTHMES.map(([k, titre, note]) => suiviBloc(k, titre, note)).join("");
+  suiviBrancher();
+}
+
+// Le point hebdo n'a pas de rotation : une seule question, fait ou pas fait
+// cette semaine. Lundi on est tranquille, vendredi beaucoup moins.
+function suiviHebdo(dernier) {
+  const lundi = mondayOf(isoA(new Date()));
+  const faitCetteSemaine = dernier && dernier >= lundi;
+  const jours = dernier ? Math.round((new Date(isoA(new Date())) - new Date(dernier)) / 86400000) : null;
+  return `<div class="dsv-hebdo ${faitCetteSemaine ? "ok" : "due"}">
+    <div><b>Point hebdo avec Mariano</b>
+      <span class="muted">${faitCetteSemaine ? "fait cette semaine" : dernier ? `dernier ${suiviJours(jours)}` : "jamais noté"}</span></div>
+    <span class="spacer"></span>
+    ${faitCetteSemaine ? `<span class="dsv-ok">✓</span>`
+      : `<button type="button" class="ghost dsv-add" data-k="hebdo">Noter le point</button>`}
+  </div>`;
+}
+
+function suiviBloc(kind, titre, note) {
+  const l = suiviEtats[kind] || [];
+  if (!l.length) return `<div class="dsv-bloc"><div class="dsv-t">${esc(titre)}</div>
+    <p class="muted" style="font-size:.84rem;margin:4px 0">Personne dans cette filière cette saison.</p></div>`;
+  const retard = l.filter((r) => r.en_retard).length;
+  // « appel » n'a pas d'échéance : on n'affiche donc jamais de rouge, sinon un
+  // rappel de confort dilue ceux qui comptent vraiment.
+  const douce = kind === "appel";
+  const vus = l.slice(0, douce ? 3 : 4);
+  return `<div class="dsv-bloc">
+    <div class="dsv-t">${esc(titre)}
+      ${douce ? "" : `<span class="dsv-cpt ${retard ? "r" : "v"}">${retard ? `${retard} en retard` : "à jour"}</span>`}
+      <span class="spacer"></span>
+      <button type="button" class="ghost dsv-add" data-k="${kind}">+ Noter</button></div>
+    <p class="dsv-n muted">${esc(note)}</p>
+    <ol class="dsv-l">${vus.map((r, i) => `<li class="${!douce && r.en_retard ? "dsv-r" : ""}">
+        ${i === 0 ? `<b class="dsv-next">prochain</b>` : ""}
+        <span class="dsv-nom">${esc(r.nom)}</span>
+        <span class="muted">${esc(suiviJours(r.jours))}</span>
+      </li>`).join("")}</ol>
+    ${l.length > vus.length ? `<p class="muted dsv-reste">… et ${l.length - vus.length} autres</p>` : ""}
+  </div>`;
+}
+
+function suiviBrancher() {
+  document.querySelectorAll(".dsv-add").forEach((b) =>
+    b.addEventListener("click", () => suiviNoter(b.dataset.k)));
+}
+
+// Noter un contact : on enregistre ce qui A EU LIEU. Le prochain se déduit
+// tout seul, il n'y a donc rien à planifier ici.
+async function suiviNoter(kind) {
+  const titre = (SUIVI_RYTHMES.find((x) => x[0] === kind) || [, "Point hebdo"])[1];
+  let personId = null;
+  if (kind !== "hebdo") {
+    const l = suiviEtats[kind] || [];
+    if (!l.length) { uiAlert("Personne dans cette filière cette saison."); return; }
+    // Le premier de la liste est proposé d'office : c'est celui qui attend
+    // depuis le plus longtemps.
+    const choix = await uiChoice(`${titre} — avec qui ?`,
+      l.map((r) => [r.person_id, `${r.nom} — ${suiviJours(r.jours)}`]));
+    if (!choix) return;
+    personId = choix;
+  }
+  const note = await uiPrompt(`${titre}\n\nUn mot sur ce qui s'est dit (facultatif) :`, "");
+  if (note === null) return;           // annulé
+  if (!suiviMariano) {
+    const { data } = await sb.from("people").select("id").ilike("first_name", "mariano").limit(1);
+    suiviMariano = data?.[0]?.id || null;
+  }
+  const { error } = await sb.from("suivi_contacts").insert({
+    kind, person_id: personId,
+    with_person_id: (kind === "dejeuner" || kind === "hebdo") ? suiviMariano : null,
+    done_on: isoA(new Date()), note: note.trim() || null,
+  });
+  if (error) { uiAlert(error.message); return; }
+  await suiviCharger();
 }

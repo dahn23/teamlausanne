@@ -5140,3 +5140,27 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .nl-manque-b button{background:#fff;border:1px solid #e0b98a;color:#8a4b00;font-weight:600;
   font-size:.82rem;padding:6px 12px;border-radius:8px}
 .nl-manque-b button:hover{background:#fff6ec;color:#6d3b00}
+
+/* Suivi des rendez-vous (db/154) : familles, point hebdo, déjeuners, appels.
+   Un seul message par bloc — qui attend depuis le plus longtemps. */
+.dsv-hebdo{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+  border:1px solid var(--line);margin-bottom:12px;font-size:.88rem}
+.dsv-hebdo.ok{background:#eefaf1;border-color:#bfe6cc}
+.dsv-hebdo.due{background:#fdf3e8;border-color:#f0cfa8}
+.dsv-hebdo .muted{display:block;font-size:.8rem}
+.dsv-ok{color:#1d6236;font-weight:800;font-size:1.1rem}
+.dsv-bloc{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.dsv-bloc:first-child{border-top:0;padding-top:0;margin-top:0}
+.dsv-t{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:var(--blue-ink)}
+.dsv-cpt{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  border-radius:999px;padding:2px 8px}
+.dsv-cpt.r{background:#fdeceb;color:#a3281c}
+.dsv-cpt.v{background:#eefaf1;color:#1d6236}
+.dsv-n{font-size:.78rem;margin:2px 0 6px}
+.dsv-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.dsv-l li{display:flex;align-items:center;gap:8px;font-size:.86rem;padding:4px 8px;border-radius:7px;background:#f8fafd}
+.dsv-l li.dsv-r{background:#fdf1f0}
+.dsv-next{font-size:.64rem;text-transform:uppercase;letter-spacing:.05em;background:var(--blue);
+  color:#fff;border-radius:999px;padding:1px 7px;font-weight:700}
+.dsv-nom{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dsv-reste{font-size:.78rem;margin:5px 0 0}
