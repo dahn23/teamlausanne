@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=311" />
+  <link rel="stylesheet" href="style.css?v=312" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -203,6 +203,15 @@
         <!-- ---- Vue Membres (CRM) ---- -->
         <div id="view-membres" class="view">
           <div id="people-list-wrap">
+            <!-- Le répertoire tient deux choses de natures différentes : des
+                 PERSONNES, et des CLUBS qui nous louent des courts. Un club
+                 n'a ni âge ni filière — d'où deux sous-onglets plutôt qu'un
+                 mélange qui fausserait tous les comptages de membres. -->
+            <div class="subnav">
+              <button class="subtab membres-subtab active" data-msub="personnes">Personnes</button>
+              <button class="subtab membres-subtab" data-msub="clubs">Clubs de tennis</button>
+            </div>
+            <div id="membres-sub-personnes">
             <div class="crm-head">
               <h1>Répertoire</h1>
               <div class="crm-actions">
@@ -237,6 +246,25 @@
               </ol>
               <p id="mt-bm-note" class="muted" style="font-size:.82rem"></p>
               <p class="muted" style="font-size:.9rem;margin:10px 0 0">Lire une fiche seule (même une licence désactivée) : glissez aussi <span id="mt-pb-holder"></span> dans les favoris, puis cliquez-le depuis mytennis.ch et indiquez l'id, la licence ou le nom du joueur.</p>
+            </div>
+          </div><!-- /#membres-sub-personnes -->
+
+            <!-- ---- Clubs de tennis locataires (db/151) ---- -->
+            <div id="membres-sub-clubs" class="hidden">
+              <div class="crm-head">
+                <div class="crm-ttl"><span class="crm-eyebrow">Locations de courts</span><h1>Clubs de tennis</h1></div>
+                <div class="crm-actions">
+                  <div class="search-wrap">
+                    <input id="cl-search" type="text" autocomplete="off" placeholder="Rechercher un club…" />
+                  </div>
+                  <label class="check"><input type="checkbox" id="cl-inactifs" /> Voir les inactifs</label>
+                  <button id="cl-new">+ Nouveau club</button>
+                </div>
+              </div>
+              <p class="crm-lead">Les clubs qui louent nos courts, surtout l'hiver. Tout ce qu'il faut pour leur
+                envoyer une facture : adresse de facturation, interlocuteur, n° IDE, et les créneaux loués
+                avec leur montant.</p>
+              <div id="cl-list"></div>
             </div>
           </div>
           <!-- Fiche en pleine page (le formulaire y est déplacé au chargement) -->
@@ -2962,6 +2990,67 @@ Team Lausanne Tennis</textarea></label>
         <button type="submit" id="c-save">Enregistrer le cours</button>
       </div>
       <p id="c-error" class="error" hidden></p>
+    </form>
+  </div>
+
+  <!-- ---- Club de tennis locataire (db/151) ---- -->
+  <div id="club-modal" class="modal hidden">
+    <form id="club-form" class="card wide">
+      <button type="button" id="club-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="club-title">Nouveau club</h2>
+      <input type="hidden" id="cl-id" />
+
+      <h3 class="cl-h">Le club</h3>
+      <div class="form-grid">
+        <label>Nom *<input id="cl-name" placeholder="ex. TC Pully" /></label>
+        <label>N° IDE <span class="muted">(si le club en a un)</span><input id="cl-ide" placeholder="CHE-123.456.789" /></label>
+      </div>
+
+      <h3 class="cl-h">Adresse de facturation</h3>
+      <div class="form-grid">
+        <label>Rue et numéro<input id="cl-address" placeholder="ex. Chemin du Stand 12" /></label>
+        <label>NPA<input id="cl-zip" placeholder="1009" /></label>
+        <label>Localité<input id="cl-city" placeholder="Pully" /></label>
+        <label>Pays<input id="cl-country" value="Suisse" /></label>
+      </div>
+
+      <h3 class="cl-h">Interlocuteur</h3>
+      <div class="form-grid">
+        <label>Nom<input id="cl-contact" placeholder="ex. Marie Dupont" /></label>
+        <label>Fonction<input id="cl-role" placeholder="ex. Caissière" /></label>
+        <label>E-mail<input id="cl-email" type="email" placeholder="caisse@tcpully.ch" /></label>
+        <label>Téléphone<input id="cl-phone" placeholder="021 000 00 00" /></label>
+      </div>
+
+      <h3 class="cl-h">Créneaux loués <span id="cl-saison-lbl" class="muted"></span></h3>
+      <p class="muted" style="font-size:.85rem;margin:-4px 0 8px">
+        Un montant forfaitaire l'emporte sur « heures × tarif ». Laissez-le vide pour que le total se calcule.
+      </p>
+      <div class="cl-rent-wrap">
+        <table class="cl-rent">
+          <thead>
+            <tr><th>Saison</th><th>Jour</th><th>De</th><th>À</th><th>Courts</th>
+                <th>Heures</th><th>Tarif/h</th><th>Forfait</th><th>Montant</th><th></th></tr>
+          </thead>
+          <tbody id="cl-rentals"></tbody>
+        </table>
+      </div>
+      <div class="cl-rent-foot">
+        <button type="button" id="cl-rent-add" class="ghost">+ Ajouter un créneau</button>
+        <span class="spacer"></span>
+        <b id="cl-total" class="cl-total"></b>
+      </div>
+
+      <label class="stg-note-lbl">Note (interne)
+        <textarea id="cl-notes" rows="2" placeholder="Contrat signé le…, conditions particulières…"></textarea></label>
+      <label class="check"><input type="checkbox" id="cl-active" checked /> Club actif</label>
+
+      <div class="form-foot">
+        <button type="button" id="cl-del" class="danger hidden">Supprimer le club</button>
+        <span class="spacer"></span>
+        <button type="submit" id="cl-save">Enregistrer</button>
+      </div>
+      <p id="cl-error" class="error" hidden></p>
     </form>
   </div>
 

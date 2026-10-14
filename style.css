@@ -782,6 +782,34 @@ input.pd-native{display:none}
 /* Confirmation sans redessiner la carte : un vert qui passe. */
 .stg-reg-note.stg-note-ok{border-color:var(--fluo);background:#f7ffe8}
 /* Le même champ dans la fenêtre d'ajout, où il est assumé comme un champ. */
+/* Clubs de tennis locataires (db/151) : sous-onglet du Répertoire. */
+.cl-carte{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);
+  border-radius:12px;padding:12px 14px;margin-bottom:8px;font:inherit;color:var(--ink);cursor:pointer}
+.cl-carte:hover{border-color:var(--blue);box-shadow:0 2px 12px rgba(20,30,60,.08)}
+.cl-carte.cl-off{opacity:.55}
+.cl-carte-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:3px}
+.cl-carte-h b{font-size:1rem;color:var(--blue-ink)}
+.cl-badge{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  background:#f2f4f8;color:var(--muted);border-radius:999px;padding:2px 8px}
+.cl-montant{margin-left:auto;font-weight:700;color:var(--blue-ink);white-space:nowrap}
+.cl-l{font-size:.88rem;line-height:1.5}
+.cl-h{margin:18px 0 8px;font-size:.95rem;color:var(--blue-ink)}
+.cl-h:first-of-type{margin-top:4px}
+/* Les créneaux loués : une vraie table, parce qu'on y compare des colonnes. */
+.cl-rent-wrap{overflow-x:auto}
+.cl-rent{width:100%;border-collapse:collapse;font-size:.86rem;min-width:720px}
+.cl-rent th{text-align:left;padding:4px 6px;color:var(--muted);font-weight:600;font-size:.78rem;white-space:nowrap}
+.cl-rent td{padding:3px 6px;vertical-align:middle}
+.cl-rent input,.cl-rent select{width:100%;box-sizing:border-box;padding:6px 8px;
+  border:1px solid var(--line);border-radius:8px;font:inherit;font-size:.86rem;color:var(--ink)}
+.cl-rent .cl-r-season{min-width:86px}
+.cl-rent .cl-r-hours,.cl-rent .cl-r-rate,.cl-rent .cl-r-amount{min-width:78px}
+.cl-r-calc{white-space:nowrap;font-weight:600;color:var(--blue-ink);font-variant-numeric:tabular-nums}
+.cl-r-del{border:0;background:transparent;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0 6px}
+.cl-r-del:hover{color:#c0392b}
+.cl-rent-foot{display:flex;align-items:center;gap:10px;margin:8px 0 4px}
+.cl-total{color:var(--blue-ink);font-size:1rem;white-space:nowrap}
+
 /* Déplacements (db/150) : le bandeau « hors du club », au-dessus de la grille
    des courts et du planning des cours. Volontairement plat et discret — il
    annonce une absence, il ne doit pas concurrencer la grille. */

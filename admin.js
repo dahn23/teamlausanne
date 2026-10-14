@@ -430,6 +430,7 @@ async function init(roles) {
   initEtudes();
   initMental();
   initMatchs(roles);
+  initMembresSubtabs();
 }
 
 // ---- Bascule de vues ----
@@ -20689,4 +20690,255 @@ function initAway() {
   $("a-start").addEventListener("change", () => {
     if (!$("a-end").value || $("a-end").value < $("a-start").value) $("a-end").value = $("a-start").value;
   });
+}
+
+/* ---- Clubs de tennis locataires (db/151) ---------------------------------
+   Les clubs qui louent nos courts, surtout l'hiver. Sous-onglet du Répertoire,
+   parce que c'est bien un carnet d'adresses — mais une table à part, parce
+   qu'un club n'est pas une personne : pas d'âge, pas de filière, et une
+   adresse de facturation qui n'est pas un domicile.
+
+   Le but déclaré est de les FACTURER. La fiche porte donc exactement ce qu'une
+   facture réclame : raison sociale, adresse, interlocuteur, n° IDE, et les
+   créneaux loués avec leur montant.
+
+   Sur le montant : certains clubs paient à l'heure, d'autres un forfait de
+   saison. Les deux cohabitent — heures × tarif donne un montant, et le forfait
+   le remplace quand il est saisi. Le calcul vit aussi en base
+   (club_rental_montant, db/151) pour que l'écran et la facture ne puissent pas
+   donner deux chiffres différents.
+   ------------------------------------------------------------------------- */
+
+const CL_JOURS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+let clList = [], clRentals = [], clRech = "", clInactifs = false, clBound = false;
+
+const clMontant = (r) => {
+  const forfait = parseFloat(r.amount_chf);
+  if (!isNaN(forfait)) return forfait;
+  return Math.round((parseFloat(r.hours) || 0) * (parseFloat(r.rate_chf) || 0) * 100) / 100;
+};
+const clChf = (n) => (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, "") + ".–";
+
+async function loadClubs() {
+  initClubs();
+  const [{ data: cs, error }, { data: rs }] = await Promise.all([
+    sb.from("clubs").select("*").order("name"),
+    sb.from("club_rentals").select("*"),
+  ]);
+  if (error) { $("cl-list").innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  clList = cs || [];
+  clRentals = rs || [];
+  renderClubs();
+}
+
+function renderClubs() {
+  const box = $("cl-list");
+  if (!box) return;
+  const q = clRech.toLowerCase();
+  const vus = clList.filter((c) =>
+    (clInactifs || c.active)
+    && (!q || `${c.name} ${c.city || ""} ${c.contact_name || ""}`.toLowerCase().includes(q)));
+  if (!vus.length) {
+    box.innerHTML = `<p class="muted">${clList.length
+      ? "Aucun club ne correspond."
+      : "Aucun club pour l'instant. Cliquez « + Nouveau club »."}</p>`;
+    return;
+  }
+  box.innerHTML = vus.map((c) => {
+    const rs = clRentals.filter((r) => r.club_id === c.id);
+    const total = rs.reduce((a, r) => a + clMontant(r), 0);
+    const adresse = [c.address, [c.postal_code, c.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+    const contact = [c.contact_name, c.contact_email, c.contact_phone].filter(Boolean).join(" · ");
+    return `<button type="button" class="cl-carte${c.active ? "" : " cl-off"}" data-id="${c.id}">
+      <div class="cl-carte-h">
+        <b>${esc(c.name)}</b>
+        ${c.active ? "" : '<span class="cl-badge">inactif</span>'}
+        ${rs.length ? `<span class="cl-montant">${esc(clChf(total))}</span>` : ""}
+      </div>
+      ${adresse ? `<div class="cl-l">${esc(adresse)}</div>` : ""}
+      ${contact ? `<div class="cl-l muted">${esc(contact)}</div>` : ""}
+      <div class="cl-l muted">${rs.length
+        ? `${rs.length} créneau${rs.length > 1 ? "x" : ""} loué${rs.length > 1 ? "s" : ""}`
+        : "aucun créneau saisi"}${c.ide ? " · " + esc(c.ide) : ""}</div>
+    </button>`;
+  }).join("");
+  box.querySelectorAll(".cl-carte").forEach((b) =>
+    b.addEventListener("click", () => openClub(clList.find((c) => c.id === b.dataset.id))));
+}
+
+/* ---- Les créneaux, dans la fiche ---- */
+
+function clRentRow(r) {
+  const tr = document.createElement("tr");
+  tr.className = "cl-rent-row";
+  const v = (x) => (x == null ? "" : String(x));
+  tr.innerHTML = `
+    <td><input class="cl-r-season" value="${esc(v(r.season_label) || "2026/27")}" /></td>
+    <td><select class="cl-r-day"><option value="">—</option>${CL_JOURS.map((j, i) =>
+      `<option value="${i + 1}"${Number(r.weekday) === i + 1 ? " selected" : ""}>${j}</option>`).join("")}</select></td>
+    <td><input class="cl-r-start" type="time" value="${esc(v(r.start_time).slice(0, 5))}" /></td>
+    <td><input class="cl-r-end" type="time" value="${esc(v(r.end_time).slice(0, 5))}" /></td>
+    <td><input class="cl-r-courts" value="${esc(v(r.courts))}" placeholder="5, 6" /></td>
+    <td><input class="cl-r-hours" type="number" step="0.25" min="0" value="${esc(v(r.hours))}" /></td>
+    <td><input class="cl-r-rate" type="number" step="0.05" min="0" value="${esc(v(r.rate_chf))}" /></td>
+    <td><input class="cl-r-amount" type="number" step="0.05" min="0" value="${esc(v(r.amount_chf))}" placeholder="auto" /></td>
+    <td class="cl-r-calc"></td>
+    <td><button type="button" class="cl-r-del ghost" aria-label="Retirer ce créneau">×</button></td>`;
+  tr.querySelector(".cl-r-del").addEventListener("click", () => { tr.remove(); clMajTotal(); });
+  tr.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", clMajTotal));
+  return tr;
+}
+
+function clLireRow(tr) {
+  const g = (sel) => tr.querySelector(sel).value.trim();
+  const num = (sel) => { const x = parseFloat(g(sel)); return isNaN(x) ? null : x; };
+  return {
+    season_label: g(".cl-r-season") || "2026/27",
+    weekday: g(".cl-r-day") ? Number(g(".cl-r-day")) : null,
+    start_time: g(".cl-r-start") || null,
+    end_time: g(".cl-r-end") || null,
+    courts: g(".cl-r-courts") || null,
+    hours: num(".cl-r-hours"),
+    rate_chf: num(".cl-r-rate"),
+    amount_chf: num(".cl-r-amount"),
+  };
+}
+
+function clMajTotal() {
+  let total = 0;
+  $("cl-rentals").querySelectorAll(".cl-rent-row").forEach((tr) => {
+    const m = clMontant(clLireRow(tr));
+    total += m;
+    tr.querySelector(".cl-r-calc").textContent = m ? clChf(m) : "—";
+  });
+  $("cl-total").textContent = total ? "Total : " + clChf(total) : "";
+}
+
+/* ---- Fiche ---- */
+
+function openClub(c) {
+  initClubs();
+  $("cl-error").hidden = true;
+  $("club-title").textContent = c ? c.name : "Nouveau club";
+  $("cl-id").value = c ? c.id : "";
+  const set = (id, val) => { $(id).value = val == null ? "" : val; };
+  set("cl-name", c && c.name);
+  set("cl-ide", c && c.ide);
+  set("cl-address", c && c.address);
+  set("cl-zip", c && c.postal_code);
+  set("cl-city", c && c.city);
+  set("cl-country", (c && c.country) || "Suisse");
+  set("cl-contact", c && c.contact_name);
+  set("cl-role", c && c.contact_role);
+  set("cl-email", c && c.contact_email);
+  set("cl-phone", c && c.contact_phone);
+  set("cl-notes", c && c.notes);
+  $("cl-active").checked = c ? !!c.active : true;
+
+  const corps = $("cl-rentals");
+  corps.innerHTML = "";
+  const rs = c ? clRentals.filter((r) => r.club_id === c.id)
+    .sort((a, b) => (a.weekday || 9) - (b.weekday || 9) || String(a.start_time).localeCompare(String(b.start_time)))
+    : [];
+  for (const r of rs) corps.appendChild(clRentRow(r));
+  if (!rs.length) corps.appendChild(clRentRow({}));
+  clMajTotal();
+
+  $("cl-del").classList.toggle("hidden", !c);
+  $("club-modal").classList.remove("hidden");
+}
+
+async function saveClub(e) {
+  e.preventDefault();
+  const err = $("cl-error"); err.hidden = true;
+  const dire = (m) => { err.textContent = m; err.hidden = false; };
+  const nom = $("cl-name").value.trim();
+  if (nom.length < 2) return dire("Donne un nom de club (deux caractères au moins).");
+
+  const champs = {
+    name: nom,
+    ide: $("cl-ide").value.trim() || null,
+    address: $("cl-address").value.trim() || null,
+    postal_code: $("cl-zip").value.trim() || null,
+    city: $("cl-city").value.trim() || null,
+    country: $("cl-country").value.trim() || "Suisse",
+    contact_name: $("cl-contact").value.trim() || null,
+    contact_role: $("cl-role").value.trim() || null,
+    contact_email: $("cl-email").value.trim() || null,
+    contact_phone: $("cl-phone").value.trim() || null,
+    notes: $("cl-notes").value.trim() || null,
+    active: $("cl-active").checked,
+  };
+
+  // Un créneau entièrement vide, c'est la ligne qu'on a ouverte sans la
+  // remplir : on la jette au lieu d'enregistrer une ligne de néant.
+  const lignes = [...$("cl-rentals").querySelectorAll(".cl-rent-row")]
+    .map(clLireRow)
+    .filter((r) => r.weekday || r.start_time || r.courts || r.hours || r.rate_chf || r.amount_chf);
+  for (const r of lignes) {
+    if (r.start_time && r.end_time && r.end_time <= r.start_time)
+      return dire("Un créneau se termine avant de commencer. Corrige les heures.");
+  }
+
+  const id = $("cl-id").value;
+  let clubId = id;
+  if (id) {
+    const { error } = await sb.from("clubs").update(champs).eq("id", id);
+    if (error) return dire(error.message);
+    // Les créneaux se réécrivent en entier : la liste est courte et un
+    // différentiel ligne à ligne n'apporterait que des occasions de se tromper.
+    const { error: eDel } = await sb.from("club_rentals").delete().eq("club_id", id);
+    if (eDel) return dire(eDel.message);
+  } else {
+    const { data, error } = await sb.from("clubs").insert(champs).select("id").single();
+    if (error) return dire(error.message);
+    clubId = data.id;
+  }
+  if (lignes.length) {
+    const { error } = await sb.from("club_rentals").insert(lignes.map((r) => ({ ...r, club_id: clubId })));
+    if (error) return dire(error.message);
+  }
+  $("club-modal").classList.add("hidden");
+  await loadClubs();
+}
+
+async function deleteClub() {
+  const id = $("cl-id").value;
+  if (!id) return;
+  const nom = $("cl-name").value.trim();
+  if (!(await uiConfirm(`Supprimer « ${nom} » et ses créneaux ? C'est définitif.\n\nPour le garder sans l'afficher, décoche « Club actif ».`))) return;
+  const { error } = await sb.from("clubs").delete().eq("id", id);
+  if (error) { uiAlert(error.message); return; }
+  $("club-modal").classList.add("hidden");
+  await loadClubs();
+}
+
+function initClubs() {
+  if (clBound) return;
+  clBound = true;
+  $("club-close").addEventListener("click", () => $("club-modal").classList.add("hidden"));
+  $("club-modal").addEventListener("click", (e) => { if (e.target === $("club-modal")) $("club-modal").classList.add("hidden"); });
+  $("club-form").addEventListener("submit", saveClub);
+  $("cl-del").addEventListener("click", deleteClub);
+  $("cl-new").addEventListener("click", () => openClub(null));
+  $("cl-rent-add").addEventListener("click", () => { $("cl-rentals").appendChild(clRentRow({})); clMajTotal(); });
+  $("cl-inactifs").addEventListener("change", () => { clInactifs = $("cl-inactifs").checked; renderClubs(); });
+  let t;
+  $("cl-search").addEventListener("input", (e) => {
+    clearTimeout(t);
+    t = setTimeout(() => { clRech = e.target.value.trim(); renderClubs(); }, 200);
+  });
+}
+
+// Sous-onglets du Répertoire. La fiche d'une personne vit en dehors des deux
+// panneaux : on la referme en changeant d'onglet, sinon elle resterait ouverte
+// par-dessus la liste des clubs.
+function initMembresSubtabs() {
+  document.querySelectorAll(".membres-subtab").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll(".membres-subtab").forEach((x) => x.classList.toggle("active", x === b));
+    const clubs = b.dataset.msub === "clubs";
+    $("membres-sub-personnes").classList.toggle("hidden", clubs);
+    $("membres-sub-clubs").classList.toggle("hidden", !clubs);
+    if (clubs) loadClubs();
+  }));
 }
