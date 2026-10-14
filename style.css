@@ -5177,3 +5177,7 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .dsv-annul:hover{color:#c0392b}
 .dsv-plan{background:var(--blue);color:#fff;font-size:.78rem;font-weight:700;padding:5px 11px;border-radius:8px}
 .dsv-plan:hover{background:var(--blue-ink)}
+.dsv-date{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.82rem;
+  cursor:pointer;text-decoration:underline dotted;padding:2px 4px}
+.dsv-date:hover{color:var(--blue-ink)}
+.dsv-avec{font-size:.7rem;font-weight:700;background:#e6edfd;color:#1b3a8f;border-radius:999px;padding:2px 8px;white-space:nowrap}

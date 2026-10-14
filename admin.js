@@ -21423,8 +21423,9 @@ function suiviAVenir(kind) {
   return `<ul class="dsv-prev">${l.map((p) => `<li class="${p.planned_on < auj ? "passe" : ""}">
     <span class="dsv-cal">📅</span>
     <span class="dsv-nom">${esc(suiviNom(kind, p.person_id))}</span>
-    <span class="muted">${esc(frDate(p.planned_on))}${p.planned_on < auj ? " · passé" : ""}</span>
-    <button type="button" class="dsv-fait" data-id="${p.id}" title="Marquer comme fait">✓ fait</button>
+    <button type="button" class="dsv-date" data-id="${p.id}" title="Changer la date">${esc(frDate(p.planned_on))}${p.planned_on < auj ? " · passé" : ""}</button>
+    ${kind === "dejeuner" ? `<span class="dsv-avec">avec Mariano</span>` : ""}
+    <button type="button" class="dsv-fait" data-id="${p.id}" title="Marquer comme fait et noter sur la fiche du jeune">✓ fait</button>
     <button type="button" class="dsv-annul" data-id="${p.id}" title="Annuler ce rendez-vous">✕</button>
   </li>`).join("")}</ul>`;
 }
@@ -21479,6 +21480,8 @@ function suiviBrancher() {
     b.addEventListener("click", () => suiviFait(b.dataset.id)));
   document.querySelectorAll(".dsv-annul").forEach((b) =>
     b.addEventListener("click", () => suiviAnnuler(b.dataset.id)));
+  document.querySelectorAll(".dsv-date").forEach((b) =>
+    b.addEventListener("click", () => suiviDeplacer(b.dataset.id)));
 }
 
 const SUIVI_TITRE_CAL = { famille: "RDV famille", dejeuner: "Déjeuner Mariano", hebdo: "Point hebdo Mariano", appel: "Appel" };
@@ -21535,13 +21538,49 @@ async function suiviMarianoId() {
 // prévue, et le rythme repart de là. C'est le geste qui fait tourner la roue.
 async function suiviFait(id) {
   const p = suiviPrevus.find((x) => x.id === id); if (!p) return;
+  const qui = p.person_id ? suiviNom(p.kind, p.person_id) : "";
   const note = await uiPrompt(
-    `${SUIVI_TITRE_CAL[p.kind]}${p.person_id ? " — " + suiviNom(p.kind, p.person_id) : ""} du ${frDate(p.planned_on)}\n\n`
+    `${SUIVI_TITRE_CAL[p.kind]}${qui ? " — " + qui : ""} du ${frDate(p.planned_on)}\n\n`
     + "Un mot sur ce qui s'est dit (facultatif) :", p.note || "");
   if (note === null) return;
+  const texte = note.trim();
   const { error } = await sb.from("suivi_contacts")
-    .update({ done_on: p.planned_on, note: note.trim() || null }).eq("id", id);
+    .update({ done_on: p.planned_on, note: texte || null }).eq("id", id);
   if (error) { uiAlert(error.message); return; }
+
+  // Le moment partagé se consigne SUR LA FICHE DU JEUNE, dans le fil de suivi
+  // que lisent déjà le coach mental, les profs et le secrétariat. Le tableau
+  // de bord sait « quand » ; la fiche doit garder « ce qui s'est dit » — c'est
+  // elle qu'on ouvre quand un parent pose une question six mois plus tard.
+  if (p.person_id) {
+    const corps = `${SUIVI_TITRE_CAL[p.kind]} du ${frDate(p.planned_on)}`
+      + (texte ? `\n\n${texte}` : "");
+    const { error: eN } = await sb.from("youth_notes").insert({
+      youth_person_id: p.person_id, body: corps,
+      author_person_id: myPersonId, author_name: meName, author_role: myNoteRole(), created_by: meId });
+    if (eN) uiAlert("Le rendez-vous est noté, mais la fiche du jeune n'a pas pu être mise à jour :\n" + eN.message);
+  }
+  await suiviCharger();
+}
+
+// Déplacer un rendez-vous. Mariano choisit ses dates : il voit ce qui a été
+// prévu pour lui et le bouge à sa convenance, sans repasser par quiconque.
+// Le calendrier suit, sinon l'agenda afficherait l'ancienne date.
+async function suiviDeplacer(id) {
+  const p = suiviPrevus.find((x) => x.id === id); if (!p) return;
+  const quand = await uiPrompt(
+    `${SUIVI_TITRE_CAL[p.kind]}${p.person_id ? " — " + suiviNom(p.kind, p.person_id) : ""}\n\nNouvelle date ? (AAAA-MM-JJ)`,
+    p.planned_on);
+  if (quand === null) return;
+  const jour = quand.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(jour) || isNaN(new Date(jour + "T00:00:00").getTime())) {
+    uiAlert("Date illisible. Attendu : AAAA-MM-JJ."); return;
+  }
+  const { error } = await sb.from("suivi_contacts").update({ planned_on: jour }).eq("id", id);
+  if (error) { uiAlert(error.message); return; }
+  if (p.cal_event_id) {
+    await sb.from("cal_events").update({ start_date: jour, end_date: jour }).eq("id", p.cal_event_id);
+  }
   await suiviCharger();
 }
 
