@@ -360,7 +360,11 @@ async function init(roles) {
   });
   // Barre latérale repliable (icônes seules), mémorisée ; repliée par défaut sur mobile
   const sideEl = document.querySelector(".side");
-  const isMobile = () => window.matchMedia("(max-width:600px)").matches;
+  // Le même seuil que la feuille de style (bloc « CONSOLE SUR TÉLÉPHONE ») :
+  // en dessous, le rail replié n'a plus de largeur et le menu est un tiroir.
+  // Deux seuils différents laisseraient une bande de largeurs où le tiroir
+  // s'ouvre sans pouvoir se refermer.
+  const isMobile = () => window.matchMedia("(max-width:768px)").matches;
   let sideStored = null; try { sideStored = localStorage.getItem("sideCollapsed"); } catch (_) {}
   if (sideStored === "1" || (sideStored === null && isMobile())) sideEl.classList.add("collapsed");
   $("side-toggle").addEventListener("click", () => {
@@ -369,6 +373,20 @@ async function init(roles) {
   });
   // Sur mobile, choisir un onglet referme le menu (overlay)
   sideEl.addEventListener("click", (e) => { if (e.target.closest(".side-item") && isMobile()) sideEl.classList.add("collapsed"); });
+  // Téléphone : le chevron est caché (replié, la barre n'a plus de largeur).
+  // C'est ce bouton-ci qui ouvre et ferme, et le voile qui referme.
+  const majMenuBtn = () => $("menu-btn").setAttribute("aria-expanded", String(!sideEl.classList.contains("collapsed")));
+  $("menu-btn").addEventListener("click", () => {
+    sideEl.classList.toggle("collapsed");
+    majMenuBtn();
+  });
+  majMenuBtn();
+  // Le voile est le ::before de .side : un pseudo-élément n'est jamais la
+  // cible d'un événement, donc un doigt posé dessus arrive ici avec
+  // e.target === l'aside lui-même. C'est la signature d'un clic « à côté ».
+  sideEl.addEventListener("click", (e) => {
+    if (e.target === sideEl && isMobile()) { sideEl.classList.add("collapsed"); majMenuBtn(); }
+  });
   $("new-person").addEventListener("click", () => openPerson(null));
   $("import-people").addEventListener("click", openImport);
   $("import-close").addEventListener("click", () => $("import-modal").classList.add("hidden"));

@@ -4952,3 +4952,119 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .soc-rush-pd{width:8px;height:8px;border-radius:50%;display:inline-block}
 .soc-rush-rap summary{cursor:pointer;color:var(--blue);font-size:.84rem;font-weight:700;margin:4px 0}
 .soc-rush-rap div{font-size:.84rem;color:#3b4560;padding:4px 0 2px}
+
+/* =====================================================================
+   CONSOLE SUR TÉLÉPHONE (14.10.2026)
+   =====================================================================
+   « Tout bouge dans tous les sens ». La cause principale n'était pas la
+   mise en page : 261 des 361 champs de la console avaient une police de
+   moins de 16 px. En dessous de 16 px, Safari iOS ZOOME la page dès qu'on
+   met le curseur dans un champ — la page entière grandit, se décale, et
+   ne revient pas toute seule. On corrige donc d'abord les champs, puis ce
+   qui gêne vraiment au doigt.
+
+   Tout est enfermé ici, dans un seul bloc en fin de fichier, pour qu'une
+   lecture suffise à savoir ce qui change sur un petit écran. */
+
+/* Au-dessus de 768 px la barre latérale est toujours visible : le bouton du
+   menu ferait doublon. Il n'apparaît que dans le bloc ci-dessous. */
+.menu-btn { display: none; }
+
+@media (max-width: 768px) {
+
+  /* ---- 1. Plus jamais de zoom à la mise au point -------------------
+     16 px est le seuil d'iOS, pas un choix esthétique : un pixel de moins
+     et la page saute. Les champs grandissent donc un peu sur téléphone,
+     ce qui les rend aussi plus faciles à viser. */
+  input, select, textarea,
+  .cl-rent input, .cl-rent select,
+  .oie-items input, .fac-rech input, .search-wrap input,
+  .combo input, .c-search, .cs-search {
+    font-size: 16px;
+  }
+  /* La case à cocher n'a pas de texte : la règle ci-dessus l'agrandirait
+     pour rien. On la ramène à une taille confortable au doigt. */
+  input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; font-size: inherit; }
+  input[type="color"] { min-height: 44px; }
+
+  /* ---- 2. De la place pour le contenu ------------------------------
+     22 px de marge de chaque côté, sur 375 px d'écran, c'est un quart de
+     la largeur perdue avant d'avoir rien affiché. */
+  .admin-main { padding: 12px 12px calc(16px + env(safe-area-inset-bottom)); }
+  .topbar { padding-left: calc(12px + env(safe-area-inset-left)); padding-right: calc(12px + env(safe-area-inset-right)); }
+  .crm-head { margin-bottom: 12px; gap: 8px; }
+  .crm-head h1 { font-size: 1.25rem; }
+  .crm-lead { font-size: .88rem; }
+
+  /* ---- 3. Le menu : un vrai tiroir ---------------------------------
+     Il s'ouvrait par-dessus le contenu sans rien derrière lui : on ne
+     savait pas comment le refermer, et un doigt posé à côté ne faisait
+     rien. Il a maintenant un fond sombre, qui se touche pour fermer. */
+  /* Tiroir flottant dès 768 px, et plus seulement 600 : entre les deux, il
+     serrait le contenu en colonne au lieu de passer par-dessus. */
+  .side:not(.collapsed) { position: fixed; top: 56px; left: 0; bottom: 0; z-index: 60;
+    width: min(78vw, 260px); overflow-y: auto; box-shadow: 6px 0 24px rgba(0,0,0,.3);
+    padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+  /* Le voile. Il appartient à .side, donc un doigt posé dessus déclenche un
+     clic dont la cible EST l'aside — c'est à ça que le script reconnaît
+     « fermer » (un pseudo-élément n'est jamais la cible d'un événement). */
+  .side:not(.collapsed)::before {
+    content: ""; position: fixed; inset: 56px 0 0 0;
+    background: rgba(12, 20, 45, .42); z-index: -1;
+  }
+  /* Le rail d'icônes replié mangeait encore 56 px en permanence. Sur
+     téléphone il disparaît : le bouton du menu vit dans la barre du haut. */
+  .side.collapsed { width: 0; padding: 0; border: 0; overflow: hidden; }
+  .side .side-toggle { display: none; }
+  .menu-btn { display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; padding: 0; font-size: 1.3rem; color: var(--blue); }
+
+  /* ---- 4. Les barres d'outils ne se replient plus ------------------
+     Avec flex-wrap, chaque bouton qui arrive change la hauteur de la
+     barre et pousse le contenu vers le bas — c'est ça qui « bouge ». Ici
+     elles défilent latéralement : hauteur fixe, rien ne saute. */
+  .crm-actions, .subnav, .fac-filters, .cs-toolbar, .fac-subtabs {
+    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    padding-bottom: 2px; scroll-padding-inline: 12px;
+  }
+  .crm-actions::-webkit-scrollbar, .subnav::-webkit-scrollbar,
+  .fac-filters::-webkit-scrollbar, .cs-toolbar::-webkit-scrollbar,
+  .fac-subtabs::-webkit-scrollbar { display: none; }
+  .crm-actions > *, .subnav > *, .fac-filters > *, .cs-toolbar > *, .fac-subtabs > * { flex: 0 0 auto; }
+  .crm-actions input, .crm-actions .search-wrap { min-width: 190px; }
+
+  /* ---- 5. Des cibles qu'on peut viser ------------------------------
+     Les boutons « ghost » faisaient 6 px de haut de rembourrage : à peine
+     20 px au total, moitié moins que ce qu'un doigt atteint de façon
+     fiable. 44 px est la recommandation d'Apple, et elle se justifie. */
+  button, .btnlike, .chip, .subtab, .side-item { min-height: 44px; }
+  button.ghost { padding: 10px 12px; }
+  button.nav { width: 44px; height: 44px; }
+  .chip { padding: 10px 16px; }
+  /* Sauf là où une rangée de petits boutons EST la mise en page : les
+     agrandir casserait les tableaux denses. */
+  .he-acts button, .oie-rm, .cl-r-del, .modal-close, .stg-reb-del { min-height: 0; }
+
+  /* ---- 6. Tableaux ------------------------------------------------- */
+  .table-wrap { -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+  .hscroll { padding-bottom: env(safe-area-inset-bottom); }
+
+  /* ---- 7. Fenêtres ------------------------------------------------- */
+  .modal { padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); }
+  .modal .card { max-height: calc(100dvh - 20px); padding: 18px 14px; }
+  .modal .card > .form-foot { padding-bottom: calc(2px + env(safe-area-inset-bottom)); }
+  .form-grid { grid-template-columns: 1fr; }
+
+  /* ---- 8. La grille des courts -------------------------------------
+     Elle ne tiendra jamais sur 375 px : on l'assume et on la fait défiler
+     proprement, au lieu de l'écraser jusqu'à l'illisible. */
+  .grid-wrap { -webkit-overflow-scrolling: touch; }
+}
+
+/* Écran très étroit : on sacrifie le superflu avant le fonctionnel. */
+@media (max-width: 400px) {
+  .crm-head h1 { font-size: 1.15rem; }
+  #brand-role { display: none; }
+  .admin-main { padding-left: 10px; padding-right: 10px; }
+}
