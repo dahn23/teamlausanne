@@ -10482,10 +10482,25 @@ document.addEventListener("wheel", (e) => {
 
 // Aller à un onglet de la section, en posant au passage le filtre qui va bien :
 // une tuile « en retard » doit ouvrir la liste des retards, pas la liste entière.
+// Cliquer une tuile doit montrer EXACTEMENT ce qu'elle compte. On remet donc à
+// zéro tout ce qui pourrait en cacher une partie — une filière encore cochée,
+// une recherche restée dans le champ, la loupe sur une sélection — avant de
+// poser le seul filtre voulu. Sans ça, la tuile annonce 27 et la liste en
+// montre 9, sans que rien n'explique l'écart.
 function facAller(sub, filtre) {
   const b = document.querySelector(`#view-factures .fac-subtab[data-fsub="${sub}"]`);
   if (b) b.click();
-  if (sub === "emises" && filtre) { oiFiltres = new Set([filtre]); renderOiFilters(); renderOutInvoices(); }
+  // Les impayées ont leur propre filtre par filière : même raison, on le rend
+  // à « Toutes » pour que la tuile « En retard » montre bien ses huit lignes.
+  if (sub === "impayees") { impFil = ""; if (typeof renderImpayees === "function" && impList.length) renderImpayees(); return; }
+  if (sub !== "emises" || !filtre) return;
+  oiFiltres = new Set([filtre]);
+  oiFilieres.clear();
+  oiLoupe = false;
+  oiRech = "";
+  const ch = $("oi-search");
+  if (ch) ch.value = "";
+  renderOiFilters(); renderOutInvoices();
 }
 
 function renderFacEntete(c) {
@@ -10517,9 +10532,19 @@ function renderFacEntete(c) {
       <span class="dstat-go-i" aria-hidden="true">→</span>
     </div>`;
   $("fac-chiffres").innerHTML =
-      tuile("À envoyer", c.aEnvoyer, c.mEnvoyer, "emises:maintenant", c.aEnvoyerM ? "warn" : "blue", "✉")
+    // Même écart ici, et plus large : la tuile compte TOUTES les factures à
+    // envoyer (160 le 14.10.2026), le filtre « maintenant » n'en garde que
+    // celles dont la date d'émission est arrivée (77) — les échéances de
+    // l'année sont émises d'avance. La tuile mène donc à ses 160 ; « prêtes à
+    // partir maintenant », juste au-dessus, garde le raccourci vers les 77.
+      tuile("À envoyer", c.aEnvoyer, c.mEnvoyer, "emises:a_envoyer", c.aEnvoyerM ? "warn" : "blue", "✉")
     + tuile("À encaisser", c.encaissables, c.mEncaissables, "emises:envoyee", "ocean", "⏳")
-    + tuile("Encaissé", c.payees, c.mPayees, "encaiss:", "ok", "✓")
+    // « Encaissé » compte des FACTURES payées, pas des versements bancaires :
+    // il mène donc aux factures payées, pas à l'onglet Encaissements. Les deux
+    // ne se recouvrent pas — une facture pointée à la main n'a aucun versement
+    // importé en face. Le 14.10.2026 : 27 factures payées, dont 5 seulement
+    // avec un versement. La tuile annonçait 27 et ouvrait une liste de 6.
+    + tuile("Encaissé", c.payees, c.mPayees, "emises:payee", "ok", "✓")
     + tuile("En retard", c.retard, c.mRetard, "impayees:", c.retard ? "bad" : "ok", "⚠");
 
   document.querySelectorAll("#view-factures [data-fgo]").forEach((el) => {
