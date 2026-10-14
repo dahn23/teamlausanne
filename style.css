@@ -2094,9 +2094,28 @@ body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fl
 /* =====================================================================
    FENÊTRE MODALE
    ===================================================================== */
+/* Une fenêtre plus haute que l'écran ne doit jamais être coupée. Trois mesures,
+   parce qu'aucune ne suffit seule :
+
+   1. `align-items:flex-start` + `margin:auto` : la carte reste centrée quand
+      elle tient, mais déborde vers le BAS quand elle ne tient pas. Centrée par
+      `align-items:center`, une carte trop haute dépasse des DEUX côtés, et le
+      haut — titre, bouton de fermeture — devient inatteignable.
+   2. `dvh` en plus de `vh` : sur un portable, la barre d'adresse est comptée
+      dans 100vh mais cache le bas de l'écran. Les vieux navigateurs ignorent
+      la seconde ligne et gardent `vh`.
+   3. le pied de formulaire COLLE en bas de la carte. C'est le vrai défaut
+      signalé le 14.10.2026 sur la facture : la carte défilait déjà, mais sur
+      macOS la barre de défilement est invisible au repos — rien ne disait
+      qu'il restait des Articles et un bouton « Enregistrer » en dessous. On
+      voyait une fenêtre tronquée. Le bouton reste désormais toujours visible. */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;
-  align-items:center;justify-content:center;padding:20px;z-index:50}
-.modal .card{position:relative;max-width:420px;width:100%;max-height:calc(100vh - 40px);overflow-y:auto}
+  align-items:flex-start;justify-content:center;padding:20px;z-index:50;
+  overflow-y:auto;overscroll-behavior:contain}
+.modal .card{position:relative;max-width:420px;width:100%;margin:auto;
+  max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow-y:auto}
+.modal .card > .form-foot{position:sticky;bottom:0;background:#fff;
+  margin-top:10px;padding:10px 0 2px;border-top:1px solid var(--line);z-index:3}
 .modal .card.wide{max-width:640px}
 .modal-close{position:absolute;top:10px;right:12px;background:transparent;color:var(--muted);
   font-size:1.5rem;padding:2px 8px;line-height:1}
