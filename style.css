@@ -4975,13 +4975,14 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   /* ---- 1. Plus jamais de zoom à la mise au point -------------------
      16 px est le seuil d'iOS, pas un choix esthétique : un pixel de moins
      et la page saute. Les champs grandissent donc un peu sur téléphone,
-     ce qui les rend aussi plus faciles à viser. */
-  input, select, textarea,
-  .cl-rent input, .cl-rent select,
-  .oie-items input, .fac-rech input, .search-wrap input,
-  .combo input, .c-search, .cs-search {
-    font-size: 16px;
-  }
+     ce qui les rend aussi plus faciles à viser.
+
+     `!important` à dessein : une centaine de règles de composants posent
+     leur propre taille (.cs-search, .cal-form input, .wp-rech…), et les
+     énumérer serait à refaire à chaque nouveau champ. Ce n'est pas un goût
+     de mise en page qu'on écrase, c'est une contrainte de la plateforme :
+     sous 16 px, iOS zoome, point. */
+  input, select, textarea { font-size: 16px !important; }
   /* La case à cocher n'a pas de texte : la règle ci-dessus l'agrandirait
      pour rien. On la ramène à une taille confortable au doigt. */
   input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; font-size: inherit; }
