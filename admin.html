@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=321" />
+  <link rel="stylesheet" href="style.css?v=322" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2197,9 +2197,20 @@
                   <summary>Destinataires <span id="nl-dest-resume" class="muted"></span></summary>
                   <div class="nl-dest-corps">
                     <div>
-                      <label class="check"><input type="checkbox" id="nl-all" /> Tout le répertoire (toute personne avec un e-mail)</label>
+                      <!-- L'étiquette disait « toute personne avec un e-mail ».
+                           C'était faux : les contacts venus seulement d'un
+                           tournoi GameZone ou d'un stage en sont exclus. On dit
+                           maintenant ce que la case fait vraiment. -->
+                      <label class="check"><input type="checkbox" id="nl-all" /> <b>Tout le répertoire</b> — tous les membres, parents et jeunes du CRM</label>
+                      <div class="muted" style="font-size:.78rem;margin:2px 0 8px 26px">
+                        Les contacts venus uniquement d'un tournoi GameZone ou d'un stage ne sont pas inclus ici :
+                        ils se cochent à droite.</div>
                       <div class="muted" style="font-size:.8rem;margin:6px 0 4px">Ou par filière / tag (saison en cours) :</div>
                       <div id="nl-roles" class="nl-roles"></div>
+                      <!-- Ce que le ciblage choisi LAISSE DE CÔTÉ. Sans ça, une
+                           sélection par filière écartait 160 familles sans que
+                           rien ne le dise (newsletter du 01.10.2026). -->
+                      <div id="nl-manque" class="nl-manque" hidden></div>
                     </div>
                     <div>
                       <div class="muted" style="font-size:.8rem;margin:0 0 4px">Participants GameZone :</div>

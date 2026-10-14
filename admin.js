@@ -9649,9 +9649,48 @@ async function nlComputeAudience() {
   nlAud = data || [];
   const bySrc = {}; for (const r of nlAud) bySrc[r.source] = (bySrc[r.source] || 0) + 1;
   $("nl-count-res").innerHTML = `<b>${nlAud.length}</b> destinataire(s) uniques${nlAud.length ? " — " + Object.entries(bySrc).map(([k, v]) => `${esc(k)} : ${v}`).join(", ") : ""} <span class="muted">(désinscrits exclus)</span>`;
+  nlMontrerManque(aud);
   $("nl-preview").innerHTML = nlAud.slice(0, 40).map((r) => `<div>${esc(r.email)}${r.name ? ` <span class="muted">· ${esc(r.name)}</span>` : ""}</div>`).join("") + (nlAud.length > 40 ? `<div class="muted">… et ${nlAud.length - 40} autres</div>` : "");
   return nlAud;
 }
+// Ce que le ciblage choisi LAISSE DE CÔTÉ, dit à voix haute.
+//
+// Le 01.10.2026, la newsletter « fermeture du club » a été ciblée par filière :
+// 198 adresses servies, 160 personnes du répertoire oubliées. Pas une panne
+// d'envoi — 139 de ces fiches ne portent AUCUN tag, donc aucun ciblage par
+// filière ne peut les atteindre. Rien ne le signalait : l'écran annonçait le
+// nombre de servis, jamais celui des manquants. Quatre familles sont venues se
+// plaindre avant qu'on comprenne.
+//
+// On compare donc toujours à la référence « tout le répertoire », et on propose
+// de l'étendre d'un clic.
+async function nlMontrerManque(aud) {
+  const box = $("nl-manque"); if (!box) return;
+  // Déjà tout le répertoire : il n'y a rien à rattraper de ce côté.
+  if (aud.all_people) { box.hidden = true; return; }
+  const { data, error } = await sb.rpc("newsletter_audience",
+    { p_aud: { roles: [], gz_all: false, all_people: true, extra_emails: [] } });
+  if (error) { box.hidden = true; return; }
+  const servis = new Set(nlAud.map((r) => r.email));
+  const oublies = (data || []).filter((r) => !servis.has(r.email));
+  if (!oublies.length) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = `<b>⚠ ${oublies.length} personne(s) du répertoire ne recevront pas ce message.</b>
+    <span class="muted">Surtout des fiches sans filière ni tag : aucun ciblage par filière ne peut les atteindre.</span>
+    <span class="nl-manque-b">
+      <button type="button" id="nl-manque-tout" class="ghost">Cocher « tout le répertoire »</button>
+      <button type="button" id="nl-manque-voir" class="ghost">Voir qui</button>
+    </span>`;
+  $("nl-manque-tout").addEventListener("click", () => {
+    $("nl-all").checked = true;
+    nlComputeAudience();
+  });
+  $("nl-manque-voir").addEventListener("click", () => uiAlert(
+    `Ne recevront pas « ${$("nl-subject").value.trim() || "ce message"} » :\n\n`
+    + oublies.slice(0, 60).map((r) => `· ${r.name || "—"} — ${r.email}`).join("\n")
+    + (oublies.length > 60 ? `\n\n… et ${oublies.length - 60} autres.` : "")));
+}
+
 async function nlSave() {
   const subject = $("nl-subject").value.trim(), html = $("nl-body").innerHTML.trim();
   const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
@@ -9757,7 +9796,18 @@ async function nlSendAll() {
   const id = await nlSave(); if (!id) return;
   const aud = await nlComputeAudience(); if (!aud) return;
   if (!aud.length) { uiAlert("Aucun destinataire : ajuste le ciblage."); return; }
-  if (!(await uiConfirm(`Envoyer « ${$("nl-subject").value.trim()} » à ${aud.length} destinataire(s) ? Cette action est définitive.`))) return;
+  // Le dernier verrou avant un envoi irréversible : on redit ici combien de
+  // personnes du répertoire restent de côté. Le bandeau au-dessus du ciblage
+  // peut avoir été refermé ou jamais lu.
+  let oubli = "";
+  if (!nlReadAudience().all_people) {
+    const { data: tout } = await sb.rpc("newsletter_audience",
+      { p_aud: { roles: [], gz_all: false, all_people: true, extra_emails: [] } });
+    const servis = new Set(aud.map((r) => r.email));
+    const n = (tout || []).filter((r) => !servis.has(r.email)).length;
+    if (n) oubli = `\n\n⚠ ${n} personne(s) du répertoire ne le recevront pas. Pour les inclure, coche « Tout le répertoire ».`;
+  }
+  if (!(await uiConfirm(`Envoyer « ${$("nl-subject").value.trim()} » à ${aud.length} destinataire(s) ? Cette action est définitive.${oubli}`))) return;
   const btn = $("nl-send"); btn.disabled = true; $("nl-status").textContent = "Préparation des destinataires…";
 
   // Le verrou d'abord, AVANT de toucher aux destinataires : les lignes qu'on

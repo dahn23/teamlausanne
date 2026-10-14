@@ -5129,3 +5129,14 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   #brand-role { display: none; }
   .admin-main { padding-left: 10px; padding-right: 10px; }
 }
+
+/* Newsletter : ce que le ciblage laisse de côté. Volontairement voyant — un
+   envoi qui oublie 160 familles ne doit pas pouvoir passer inaperçu. */
+.nl-manque{margin:10px 0 2px;padding:10px 12px;background:#fdf3e8;border:1px solid #f0cfa8;
+  border-radius:10px;font-size:.84rem;color:#8a4b00;line-height:1.5}
+.nl-manque[hidden]{display:none}
+.nl-manque b{display:block;margin-bottom:2px}
+.nl-manque-b{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.nl-manque-b button{background:#fff;border:1px solid #e0b98a;color:#8a4b00;font-weight:600;
+  font-size:.82rem;padding:6px 12px;border-radius:8px}
+.nl-manque-b button:hover{background:#fff6ec;color:#6d3b00}
