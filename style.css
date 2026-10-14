@@ -4808,7 +4808,12 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .stga-notes{margin:12px 20px 0;padding:10px 14px 10px 30px;background:#fdf7e8;border:1px solid #f0e2bd;
   border-radius:10px;color:#7a5a16;font-size:.85rem}
 .stga-corps-scroll{overflow:auto;padding:16px 20px;display:flex;flex-direction:column;gap:16px}
-.stga-cat{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+/* `flex:0 0 auto` n'est pas décoratif : dans une colonne flex, un enfant se
+   laisse COMPRIMER par défaut. Les cartes hautes étaient donc rognées et le
+   corps du mail s'arrêtait en plein milieu d'une phrase — c'est ce qu'on
+   voyait le 14.10.2026. Elles gardent maintenant leur hauteur, et c'est la
+   liste qui défile. */
+.stga-cat{border:1px solid var(--line);border-radius:12px;overflow:hidden;flex:0 0 auto}
 .stga-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 14px;
   background:#f6f9fd;border-bottom:1px solid var(--line);font-size:.88rem}
 .stga-ex{font-size:.8rem;font-style:italic}
@@ -4821,6 +4826,26 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   border-radius:9px;font-size:.9rem;line-height:1.6;white-space:normal}
 .stga-pj{margin-top:10px;font-size:.84rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .stga-sans{color:#a3401c}
+.stga-pour{font-size:.8rem;font-style:italic;margin:8px 0 0}
+/* Le PDF est MONTRÉ, pas seulement nommé : c'est la seule façon de voir qu'on
+   joint le bon programme et pas celui de l'an dernier. */
+.stga-pdf{width:100%;height:260px;border:1px solid var(--line);border-radius:9px;background:#fff;display:block}
+.stga-pjview{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.stga-pj-open{font-size:.84rem;color:var(--blue);font-weight:600;align-self:flex-start}
+/* Les destinataires, un par ligne et cochables : l'envoi groupé reste le
+   geste normal, mais on peut n'en servir qu'un. */
+.stga-dests{border-top:1px solid var(--line);background:#fbfcfe;max-height:260px;overflow:auto}
+.stga-d{display:flex;align-items:center;gap:10px;padding:7px 14px;font-size:.86rem;
+  border-bottom:1px solid #eef1f6;cursor:pointer}
+.stga-d:last-child{border-bottom:0}
+.stga-d:hover{background:#f2f6fd}
+.stga-d input{width:18px;height:18px;flex:none;accent-color:var(--blue)}
+.stga-d-n{font-weight:600;color:var(--ink)}
+.stga-d-m{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem}
+.stga-voir,.stga-tous{border:0;background:transparent;color:var(--blue);font:inherit;font-size:.8rem;
+  font-weight:600;cursor:pointer;padding:2px 6px;text-decoration:underline;white-space:nowrap}
+.stga-voir:hover,.stga-tous:hover{color:var(--blue-ink)}
+.stga-go:disabled{background:#c7cfdd;cursor:not-allowed}
 .stga-pied{display:flex;align-items:center;gap:10px;padding:12px 20px;border-top:1px solid var(--line)}
 
 /* ===========================================================================

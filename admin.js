@@ -13017,29 +13017,44 @@ function stgApercu(type, envoyables, parCat, s, info) {
   return new Promise((resolve) => {
     const label = STG_MAIL_TYPES.find((x) => x[0] === type)?.[1] || type;
     const cats = [...new Set(envoyables.map((r) => r.category_id))];
+    // Tout le monde coché d'entrée : l'envoi groupé reste le geste normal, et
+    // décocher reste possible. L'inverse obligerait à cocher quarante cases
+    // pour l'usage courant.
+    const choisis = new Set(envoyables.map((r) => r.id));
+    const blobs = [];   // libérés à la fermeture
+
+    const ligneDest = (r) => `<label class="stga-d">
+      <input type="checkbox" class="stga-ck" data-id="${r.id}" checked />
+      <span class="stga-d-n">${esc(r.first_name)} ${esc(r.last_name)}</span>
+      <span class="stga-d-m muted">${esc(r.email)}</span>
+      <button type="button" class="stga-voir" data-id="${r.id}">voir son mail</button>
+    </label>`;
 
     const cartes = cats.map((cid) => {
       const c = stgCatById(cid), t = parCat[cid];
       const gens = envoyables.filter((r) => r.category_id === cid);
       const ex = gens[0];
-      const corps = esc(stgVars(t.body, ex, s)).replace(/\n/g, "<br>");
       return `<section class="stga-cat" data-cat="${cid}">
         <header class="stga-h">
           <b>${esc(c.name || "Catégorie")}</b>
-          <span class="muted">${gens.length} destinataire(s)</span>
+          <span class="muted stga-cpt" data-cpt="${cid}">${gens.length} / ${gens.length}</span>
           <span class="spacer"></span>
-          <span class="muted stga-ex">aperçu pour ${esc(ex.first_name)} ${esc(ex.last_name)}</span>
+          <button type="button" class="stga-tous" data-cat="${cid}">tout décocher</button>
         </header>
         <div class="stga-mail">
           <div class="stga-ligne"><span>De</span><b>${esc(OI_FROM)}</b></div>
-          <div class="stga-ligne"><span>À</span><b>${esc(ex.email)}</b> <span class="muted">et ${gens.length - 1} autre(s)</span></div>
-          <div class="stga-ligne"><span>Objet</span><b>${esc(stgVars(t.subject, ex, s))}</b></div>
-          <div class="stga-corps">${corps}</div>
+          <div class="stga-ligne"><span>À</span><b class="stga-a" data-a="${cid}">${esc(ex.email)}</b></div>
+          <div class="stga-ligne"><span>Objet</span><b class="stga-o" data-o="${cid}">${esc(stgVars(t.subject, ex, s))}</b></div>
+          <!-- Le mail EN ENTIER. Il était rogné : les cartes vivent dans une
+               colonne flex, où elles se laissent comprimer par défaut. -->
+          <div class="stga-corps" data-corps="${cid}">${esc(stgVars(t.body, ex, s)).replace(/\n/g, "<br>")}</div>
+          <p class="stga-pour muted">Aperçu pour <b data-pour="${cid}">${esc(ex.first_name)} ${esc(ex.last_name)}</b> — le prénom et les dates changent d'un destinataire à l'autre.</p>
           <div class="stga-pj" data-pj="${cid}">${t.attachment_url
-            ? `<span class="stga-chk">⏳ vérification de la pièce jointe…</span>
-               <a href="${esc(t.attachment_url)}" target="_blank" rel="noopener">ouvrir</a>`
+            ? `<span class="stga-chk">⏳ vérification de la pièce jointe…</span>`
             : `<b class="stga-sans">⚠ aucune pièce jointe pour cette catégorie</b>`}</div>
+          <div class="stga-pjview" data-pjv="${cid}"></div>
         </div>
+        <div class="stga-dests">${gens.map(ligneDest).join("")}</div>
       </section>`;
     }).join("");
 
@@ -13063,26 +13078,76 @@ function stgApercu(type, envoyables, parCat, s, info) {
       <footer class="stga-pied">
         <button type="button" class="ghost stga-no">Annuler</button>
         <span class="spacer"></span>
-        <button type="button" class="stga-go">✉ Envoyer à ${envoyables.length} personne(s)</button>
+        <button type="button" class="stga-go"></button>
       </footer></div>`;
     document.body.appendChild(ov);
 
-    const fin = (v) => { ov.remove(); resolve(v); };
-    ov.querySelector(".stga-go").addEventListener("click", () => fin(true));
-    ov.querySelector(".stga-no").addEventListener("click", () => fin(false));
-    ov.querySelector(".stga-x").addEventListener("click", () => fin(false));
-    ov.addEventListener("click", (e) => { if (e.target === ov) fin(false); });
-    ov.querySelector(".stga-go").focus();
+    const btn = ov.querySelector(".stga-go");
+    function majCompte() {
+      btn.textContent = choisis.size
+        ? `✉ Envoyer à ${choisis.size} personne(s)`
+        : "Personne n'est coché";
+      btn.disabled = !choisis.size;
+      for (const cid of cats) {
+        const gens = envoyables.filter((r) => r.category_id === cid);
+        const n = gens.filter((r) => choisis.has(r.id)).length;
+        ov.querySelector(`[data-cpt="${cid}"]`).textContent = `${n} / ${gens.length}`;
+        ov.querySelector(`.stga-tous[data-cat="${cid}"]`).textContent = n ? "tout décocher" : "tout cocher";
+      }
+    }
+    majCompte();
+
+    ov.querySelectorAll(".stga-ck").forEach((c) => c.addEventListener("change", () => {
+      if (c.checked) choisis.add(c.dataset.id); else choisis.delete(c.dataset.id);
+      majCompte();
+    }));
+    ov.querySelectorAll(".stga-tous").forEach((b) => b.addEventListener("click", () => {
+      const gens = envoyables.filter((r) => r.category_id === b.dataset.cat);
+      const vider = gens.some((r) => choisis.has(r.id));
+      for (const r of gens) {
+        if (vider) choisis.delete(r.id); else choisis.add(r.id);
+        const c = ov.querySelector(`.stga-ck[data-id="${r.id}"]`); if (c) c.checked = !vider;
+      }
+      majCompte();
+    }));
+    // « voir son mail » : le même modèle, rempli pour CETTE personne. C'est là
+    // qu'on attrape un prénom mal saisi ou une variable restée telle quelle.
+    ov.querySelectorAll(".stga-voir").forEach((b) => b.addEventListener("click", (e) => {
+      e.preventDefault();
+      const r = envoyables.find((x) => x.id === b.dataset.id); if (!r) return;
+      const cid = r.category_id, t = parCat[cid];
+      ov.querySelector(`[data-a="${cid}"]`).textContent = r.email;
+      ov.querySelector(`[data-o="${cid}"]`).textContent = stgVars(t.subject, r, s);
+      ov.querySelector(`[data-corps="${cid}"]`).innerHTML = esc(stgVars(t.body, r, s)).replace(/\n/g, "<br>");
+      ov.querySelector(`[data-pour="${cid}"]`).textContent = `${r.first_name} ${r.last_name}`;
+    }));
+
+    const fin = (v) => { blobs.forEach((u) => URL.revokeObjectURL(u)); ov.remove(); resolve(v); };
+    btn.addEventListener("click", () => fin([...choisis]));
+    ov.querySelector(".stga-no").addEventListener("click", () => fin(null));
+    ov.querySelector(".stga-x").addEventListener("click", () => fin(null));
+    ov.addEventListener("click", (e) => { if (e.target === ov) fin(null); });
+    btn.focus();
 
     // Contrôle des pièces jointes, après affichage : l'aperçu ne doit pas
-    // attendre trois mégaoctets pour s'ouvrir.
+    // attendre trois mégaoctets pour s'ouvrir. Le PDF est ensuite MONTRÉ, et
+    // pas seulement nommé — c'est la seule façon de voir qu'on joint le bon
+    // programme et pas celui de l'an dernier.
     cats.forEach(async (cid) => {
       const t = parCat[cid]; if (!t.attachment_url) return;
       const zone = ov.querySelector(`.stga-pj[data-pj="${cid}"] .stga-chk`); if (!zone) return;
       const pj = await stgPieceJointe(t.attachment_url);
       if (!pj) { zone.innerHTML = `<b class="stga-sans">⚠ pièce jointe illisible — le mail partirait sans</b>`; return; }
-      const ko = Math.round(atob(pj.content).length / 1024);
+      const octets = Uint8Array.from(atob(pj.content), (ch) => ch.charCodeAt(0));
+      const ko = Math.round(octets.length / 1024);
+      const url = URL.createObjectURL(new Blob([octets], { type: pj.contentType }));
+      blobs.push(url);
       zone.innerHTML = `📎 <b>${esc(pj.filename)}</b> <span class="muted">${ko} Ko · ${esc(pj.contentType)}</span> ✓`;
+      const vue = ov.querySelector(`[data-pjv="${cid}"]`);
+      vue.innerHTML = /pdf/i.test(pj.contentType)
+        ? `<iframe class="stga-pdf" src="${url}#toolbar=0&navpanes=0" title="Aperçu de la pièce jointe"></iframe>
+           <a class="stga-pj-open" href="${url}" target="_blank" rel="noopener">ouvrir en grand</a>`
+        : `<a class="stga-pj-open" href="${url}" target="_blank" rel="noopener">ouvrir la pièce jointe</a>`;
     });
   });
 }
@@ -13108,14 +13173,19 @@ async function stgEnvoyerMails(type) {
     return;
   }
 
-  if (!(await stgApercu(type, envoyables, parCat, s, { dejaRecu, sansMail, sansModele }))) return;
+  // L'aperçu rend la LISTE des cochés, et non un oui/non : on n'envoie qu'à
+  // ceux-là. Annuler (croix, Échap, clic à côté) rend null et n'envoie rien —
+  // à ne pas confondre avec une liste vide, que le bouton interdit déjà.
+  const retenus = await stgApercu(type, envoyables, parCat, s, { dejaRecu, sansMail, sansModele });
+  if (!retenus || !retenus.length) return;
+  const aEnvoyer = envoyables.filter((r) => retenus.includes(r.id));
 
   const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
   const bouton = $("stg-mail-" + type);
   let ok = 0; const erreurs = [];
-  for (let i = 0; i < envoyables.length; i++) {
-    const r = envoyables[i], t = parCat[r.category_id];
-    if (bouton) bouton.textContent = `Envoi ${i + 1}/${envoyables.length}…`;
+  for (let i = 0; i < aEnvoyer.length; i++) {
+    const r = aEnvoyer[i], t = parCat[r.category_id];
+    if (bouton) bouton.textContent = `Envoi ${i + 1}/${aEnvoyer.length}…`;
     try {
       const pj = await stgPieceJointe(t.attachment_url);
       const { data, error } = await sb.functions.invoke("mail-send", { body: {
