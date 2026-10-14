@@ -2625,6 +2625,15 @@ td.he-acts{display:table-cell;vertical-align:middle;white-space:nowrap}
 .oie-hit{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:7px 10px;font:inherit;cursor:pointer;color:inherit}
 .oie-hit:hover{background:#f4f7ff}
 .oie-items td,.oie-items th{padding:6px 8px}
+/* Ligne de rabais : motif + pourcentage dans la même cellule, pour ne pas
+   ajouter une colonne qui resterait vide sur toutes les autres lignes. */
+.oie-rab-cell{display:flex;align-items:center;gap:6px}
+.oie-rab-cell .oie-l{flex:1;min-width:0}
+.oie-rab-cell .oie-p{width:72px;text-align:right}
+.oie-pc{color:var(--muted);font-size:.9rem}
+.oie-items tr[data-rab="1"]{background:#fbf4ec}
+.oie-items tr[data-rab="1"] .oie-a{color:#8a5a00;font-weight:700}
+.oie-items tr[data-rab="1"] .oie-a[readonly]{background:#f6efe6;cursor:not-allowed}
 .oie-items tfoot td{border-top:2px solid #333}
 /* Coach « sur facture » (indépendant) : ligne rose dans Heures */
 .crm-table tr.he-inv td{background:#fdeef5}

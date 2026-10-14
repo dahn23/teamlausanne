@@ -11156,6 +11156,15 @@ function initOutInvoices() {
   $("oi-new").addEventListener("click", () => oiOpenEdit(null));
   $("oie-close").addEventListener("click", () => $("oi-edit-modal").classList.add("hidden"));
   $("oie-add").addEventListener("click", () => { oieAddItem("", ""); });
+  // Un seul rabais par facture : deux lignes de rabais se cumuleraient sans
+  // qu'on sache sur quoi porte le second pourcentage.
+  $("oie-rabais").addEventListener("click", () => {
+    if (oieRows().some((tr) => tr.dataset.rab === "1")) {
+      uiAlert("Cette facture a déjà un rabais. Modifie-le, ou retire-le avant d'en poser un autre.");
+      return;
+    }
+    oieAddItem("Rabais", "", { rab: true });
+  });
   $("oie-save").addEventListener("click", oiSaveEdit);
   let t = null;
   $("oie-search").addEventListener("input", () => { clearTimeout(t); t = setTimeout(oieSearch, 250); });
@@ -11813,22 +11822,76 @@ async function oiOpenEdit(inv, preset) {
   $("oie-note").value = src.note || "";
   $("oie-items").innerHTML = "";
   const items = Array.isArray(src.items) && src.items.length ? src.items : (src.label ? [{ label: src.label, amount: src.amount }] : [{ label: "", amount: "" }]);
-  for (const it of items) oieAddItem(it.label, it.amount);
+  for (const it of items) oieAddItem(it.label, it.amount, { rab: it.kind === "rabais", pct: it.pct });
   $("oie-status").textContent = "";
   $("oi-edit-modal").classList.remove("hidden");
 }
-function oieAddItem(label, amount) {
+// Un rabais est une LIGNE comme une autre, de montant négatif. Pas un champ à
+// part : il doit se lire sur la facture (« Rabais famille −120.00 »), la
+// famille doit voir ce qu'on lui a accordé. Le PDF, le total et la QR-facture
+// n'ont donc rien eu à apprendre.
+//
+// Deux façons de le dire, parce que le secrétariat utilise les deux : un
+// POURCENTAGE (« −20 % »), recalculé tout seul si les articles changent, ou un
+// MONTANT fixe. Le pourcentage s'applique à la somme des articles NON remisés,
+// ce qu'attend quiconque lit « −20 % » sur une facture.
+function oieAddItem(label, amount, opts) {
+  const o = opts || {};
   const tr = document.createElement("tr");
-  tr.innerHTML = `<td><input class="oie-l" value="${esc(label || "")}" placeholder="Désignation" style="width:100%" /></td>
+  if (o.rab) tr.dataset.rab = "1";
+  const pct = o.pct == null || o.pct === "" || isNaN(Number(o.pct)) ? "" : Number(o.pct);
+  tr.innerHTML = `<td>${o.rab
+      ? `<span class="oie-rab-cell"><input class="oie-l" value="${esc(label || "Rabais")}" placeholder="Motif du rabais" />`
+        + `<input class="oie-p" type="number" step="0.5" min="0" max="100" value="${pct}" placeholder="%" title="Pourcentage — laisser vide pour un rabais en francs" /><span class="oie-pc">%</span></span>`
+      : `<input class="oie-l" value="${esc(label || "")}" placeholder="Désignation" style="width:100%" />`}</td>
     <td><input class="oie-a" type="number" step="0.05" value="${amount !== "" && amount != null ? Number(amount).toFixed(2) : ""}" style="width:120px;text-align:right" /></td>
     <td><button type="button" class="ghost oie-rm" title="Retirer">✕</button></td>`;
   $("oie-items").appendChild(tr);
-  tr.querySelector(".oie-rm").addEventListener("click", () => { tr.remove(); oieTotal(); });
-  tr.querySelector(".oie-a").addEventListener("input", oieTotal);
-  oieTotal();
+  tr.querySelector(".oie-rm").addEventListener("click", () => { tr.remove(); oieRecalc(); });
+  tr.querySelector(".oie-a").addEventListener("input", oieRecalc);
+  tr.querySelector(".oie-p")?.addEventListener("input", oieRecalc);
+  oieRecalc();
 }
-function oieItems() { return [...$("oie-items").querySelectorAll("tr")].map((tr) => ({ label: tr.querySelector(".oie-l").value.trim(), amount: tr.querySelector(".oie-a").value === "" ? 0 : Math.round(Number(tr.querySelector(".oie-a").value) * 100) / 100 })).filter((it) => it.label || it.amount); }
-function oieTotal() { $("oie-total").textContent = oiChf(oieItems().reduce((a, it) => a + (it.amount || 0), 0)); }
+const oieRows = () => [...$("oie-items").querySelectorAll("tr")];
+const oieNum = (el) => (el && el.value !== "" ? Math.round(Number(el.value) * 100) / 100 : 0);
+
+// Recalcule les rabais en pourcentage, puis le total. Le montant calculé est
+// écrit dans son champ : il part tel quel à l'enregistrement, et on voit ce
+// qu'on facture au lieu d'un pourcentage dont le résultat resterait caché.
+function oieRecalc() {
+  const base = oieRows().filter((tr) => tr.dataset.rab !== "1")
+    .reduce((a, tr) => a + oieNum(tr.querySelector(".oie-a")), 0);
+  for (const tr of oieRows()) {
+    if (tr.dataset.rab !== "1") continue;
+    const p = tr.querySelector(".oie-p");
+    const pct = p && p.value !== "" ? Number(p.value) : null;
+    const champ = tr.querySelector(".oie-a");
+    if (pct != null && !isNaN(pct)) {
+      champ.value = (-Math.round(base * pct) / 100).toFixed(2);
+      champ.readOnly = true;
+    } else {
+      champ.readOnly = false;
+      // Un rabais saisi en francs reste négatif, même tapé sans le signe.
+      const v = oieNum(champ);
+      if (v > 0) champ.value = (-v).toFixed(2);
+    }
+  }
+  const total = oieRows().reduce((a, tr) => a + oieNum(tr.querySelector(".oie-a")), 0);
+  $("oie-total").textContent = oiChf(total);
+  return total;
+}
+function oieItems() {
+  return oieRows().map((tr) => {
+    const it = { label: tr.querySelector(".oie-l").value.trim(), amount: oieNum(tr.querySelector(".oie-a")) };
+    if (tr.dataset.rab === "1") {
+      it.kind = "rabais";
+      const p = tr.querySelector(".oie-p");
+      if (p && p.value !== "") it.pct = Number(p.value);   // pour retrouver le « −20 % » à la réouverture
+    }
+    return it;
+  }).filter((it) => it.label || it.amount);
+}
+function oieTotal() { return oieRecalc(); }
 async function oieSearch() {
   const q = $("oie-search").value.trim(); const box = $("oie-results");
   if (q.length < 2) { box.classList.add("hidden"); return; }
@@ -11850,7 +11913,15 @@ async function oiSaveEdit() {
   const amount = Math.round(items.reduce((a, it) => a + (it.amount || 0), 0) * 100) / 100;
   const name = $("oie-name").value.trim();
   if (!name) { uiAlert("Indique le destinataire (personne du répertoire ou nom libre)."); return; }
-  if (!items.length || !(amount > 0)) { uiAlert("Ajoute au moins un article avec un montant."); return; }
+  if (!items.length) { uiAlert("Ajoute au moins un article avec un montant."); return; }
+  // Un rabais plus grand que la facture donnerait un total nul ou négatif : la
+  // QR-facture suisse n'accepte pas ça, et il n'y aurait rien à encaisser.
+  if (!(amount > 0)) {
+    uiAlert(items.some((it) => it.kind === "rabais")
+      ? `Le rabais ramène le total à ${oiChf(amount)}. Une facture doit rester positive — réduis le rabais, ou n'émets pas de facture.`
+      : "Ajoute au moins un article avec un montant.");
+    return;
+  }
   const btn = $("oie-save"); btn.disabled = true; $("oie-status").textContent = "Enregistrement…";
   try {
     const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
