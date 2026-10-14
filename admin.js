@@ -21464,6 +21464,17 @@ async function suiviNoter(kind) {
     if (!choix) return;
     personId = choix;
   }
+  // La DATE se demande, elle ne se suppose pas : on note souvent un déjeuner
+  // le lendemain, et le premier geste sera de saisir ceux déjà faits (Nadia).
+  // Un journal qui daterait tout d'aujourd'hui mentirait dès le départ.
+  const quand = await uiPrompt(`${titre}\n\nQuand ? (AAAA-MM-JJ)`, isoA(new Date()));
+  if (quand === null) return;
+  const jour = quand.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(jour) || isNaN(new Date(jour + "T00:00:00").getTime())) {
+    uiAlert("Date illisible. Attendu : AAAA-MM-JJ, par exemple " + isoA(new Date()) + ".");
+    return;
+  }
+  if (jour > isoA(new Date())) { uiAlert("Cette date est dans le futur. On note ici ce qui a EU LIEU."); return; }
   const note = await uiPrompt(`${titre}\n\nUn mot sur ce qui s'est dit (facultatif) :`, "");
   if (note === null) return;           // annulé
   if (!suiviMariano) {
@@ -21473,7 +21484,7 @@ async function suiviNoter(kind) {
   const { error } = await sb.from("suivi_contacts").insert({
     kind, person_id: personId,
     with_person_id: (kind === "dejeuner" || kind === "hebdo") ? suiviMariano : null,
-    done_on: isoA(new Date()), note: note.trim() || null,
+    done_on: jour, note: note.trim() || null,
   });
   if (error) { uiAlert(error.message); return; }
   await suiviCharger();
