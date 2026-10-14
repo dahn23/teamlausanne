@@ -21389,20 +21389,44 @@ function dashSuivi() {
     { id: "dcard-suivi", sous: "Qui n'a pas eu de nouvelles depuis le plus longtemps. Le premier de chaque liste est le prochain à voir." });
 }
 
+let suiviPrevus = [];
+
 async function suiviCharger() {
   const box = $("dsuivi-b"); if (!box) return;
-  const [fam, dej, app, hebdo] = await Promise.all([
+  const [fam, dej, app, hebdo, prevus] = await Promise.all([
     sb.rpc("suivi_etat", { p_kind: "famille" }),
     sb.rpc("suivi_etat", { p_kind: "dejeuner" }),
     sb.rpc("suivi_etat", { p_kind: "appel" }),
     sb.from("suivi_contacts").select("done_on").eq("kind", "hebdo").not("done_on", "is", null)
       .order("done_on", { ascending: false }).limit(1),
+    // Ce qui est PRÉVU et pas encore fait : c'est la partie vivante du bloc.
+    sb.from("suivi_contacts").select("id,kind,person_id,planned_on,note,cal_event_id")
+      .is("done_on", null).not("planned_on", "is", null).order("planned_on"),
   ]);
   if (fam.error) { box.innerHTML = `<p class="error">${esc(fam.error.message)}</p>`; return; }
   suiviEtats = { famille: fam.data || [], dejeuner: dej.data || [], appel: app.data || [] };
+  suiviPrevus = prevus.data || [];
   const dernierHebdo = hebdo.data?.[0]?.done_on || null;
   box.innerHTML = suiviHebdo(dernierHebdo) + SUIVI_RYTHMES.map(([k, titre, note]) => suiviBloc(k, titre, note)).join("");
   suiviBrancher();
+}
+
+// Le nom d'une personne, repris de la liste du rythme (elle y est toujours).
+const suiviNom = (kind, pid) =>
+  ((suiviEtats[kind] || []).find((r) => r.person_id === pid) || {}).nom || "—";
+
+// Ce qui est prévu, en tête du bloc : la seule partie sur laquelle on agit.
+function suiviAVenir(kind) {
+  const l = suiviPrevus.filter((p) => p.kind === kind);
+  if (!l.length) return "";
+  const auj = isoA(new Date());
+  return `<ul class="dsv-prev">${l.map((p) => `<li class="${p.planned_on < auj ? "passe" : ""}">
+    <span class="dsv-cal">📅</span>
+    <span class="dsv-nom">${esc(suiviNom(kind, p.person_id))}</span>
+    <span class="muted">${esc(frDate(p.planned_on))}${p.planned_on < auj ? " · passé" : ""}</span>
+    <button type="button" class="dsv-fait" data-id="${p.id}" title="Marquer comme fait">✓ fait</button>
+    <button type="button" class="dsv-annul" data-id="${p.id}" title="Annuler ce rendez-vous">✕</button>
+  </li>`).join("")}</ul>`;
 }
 
 // Le point hebdo n'a pas de rotation : une seule question, fait ou pas fait
@@ -21433,8 +21457,10 @@ function suiviBloc(kind, titre, note) {
     <div class="dsv-t">${esc(titre)}
       ${douce ? "" : `<span class="dsv-cpt ${retard ? "r" : "v"}">${retard ? `${retard} en retard` : "à jour"}</span>`}
       <span class="spacer"></span>
-      <button type="button" class="ghost dsv-add" data-k="${kind}">+ Noter</button></div>
+      <button type="button" class="dsv-plan" data-k="${kind}">+ Planifier</button>
+      <button type="button" class="ghost dsv-add" data-k="${kind}">Déjà fait</button></div>
     <p class="dsv-n muted">${esc(note)}</p>
+    ${suiviAVenir(kind)}
     <ol class="dsv-l">${vus.map((r, i) => `<li class="${!douce && r.en_retard ? "dsv-r" : ""}">
         ${i === 0 ? `<b class="dsv-next">prochain</b>` : ""}
         <span class="dsv-nom">${esc(r.nom)}</span>
@@ -21447,6 +21473,83 @@ function suiviBloc(kind, titre, note) {
 function suiviBrancher() {
   document.querySelectorAll(".dsv-add").forEach((b) =>
     b.addEventListener("click", () => suiviNoter(b.dataset.k)));
+  document.querySelectorAll(".dsv-plan").forEach((b) =>
+    b.addEventListener("click", () => suiviPlanifier(b.dataset.k)));
+  document.querySelectorAll(".dsv-fait").forEach((b) =>
+    b.addEventListener("click", () => suiviFait(b.dataset.id)));
+  document.querySelectorAll(".dsv-annul").forEach((b) =>
+    b.addEventListener("click", () => suiviAnnuler(b.dataset.id)));
+}
+
+const SUIVI_TITRE_CAL = { famille: "RDV famille", dejeuner: "Déjeuner Mariano", hebdo: "Point hebdo Mariano", appel: "Appel" };
+
+// Planifier depuis le bloc, et l'écrire DANS LE CALENDRIER.
+//
+// Un bloc qui se contente d'annoncer un retard ne fait rien avancer : on le
+// regarde, on acquiesce, on passe. Le geste utile est de poser une date tout
+// de suite, et de la retrouver là où on consulte son agenda.
+async function suiviPlanifier(kind) {
+  const titre = (SUIVI_RYTHMES.find((x) => x[0] === kind) || [, "Point hebdo"])[1];
+  let personId = null, nom = "";
+  if (kind !== "hebdo") {
+    const l = suiviEtats[kind] || [];
+    if (!l.length) { uiAlert("Personne dans cette filière cette saison."); return; }
+    const choix = await uiChoice(`${titre} — avec qui ?`,
+      l.map((r) => [r.person_id, `${r.nom} — ${suiviJours(r.jours)}`]));
+    if (!choix) return;
+    personId = choix; nom = suiviNom(kind, choix);
+  }
+  const quand = await uiPrompt(`${titre}${nom ? " avec " + nom : ""}\n\nQuand ? (AAAA-MM-JJ)`, isoA(new Date()));
+  if (quand === null) return;
+  const jour = quand.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(jour) || isNaN(new Date(jour + "T00:00:00").getTime())) {
+    uiAlert("Date illisible. Attendu : AAAA-MM-JJ."); return;
+  }
+  const libelle = `${SUIVI_TITRE_CAL[kind]}${nom ? " — " + nom : ""}`;
+  // L'événement d'abord : si le calendrier refuse, on n'a pas de ligne de
+  // suivi qui prétendrait qu'un rendez-vous est posé.
+  const { data: ev, error: eEv } = await sb.from("cal_events")
+    .insert({ kind: "evenement", title: libelle, start_date: jour, end_date: jour, member_id: personId })
+    .select("id").single();
+  if (eEv) { uiAlert("Calendrier : " + eEv.message); return; }
+  const { error } = await sb.from("suivi_contacts").insert({
+    kind, person_id: personId, planned_on: jour, cal_event_id: ev.id,
+    with_person_id: (kind === "dejeuner" || kind === "hebdo") ? await suiviMarianoId() : null,
+  });
+  if (error) { await sb.from("cal_events").delete().eq("id", ev.id); uiAlert(error.message); return; }
+  await suiviCharger();
+}
+
+async function suiviMarianoId() {
+  if (suiviMariano) return suiviMariano;
+  const { data } = await sb.from("people").select("id").ilike("first_name", "mariano").limit(1);
+  suiviMariano = data?.[0]?.id || null;
+  return suiviMariano;
+}
+
+// Cocher un rendez-vous prévu : il devient un contact RÉALISÉ, à sa date
+// prévue, et le rythme repart de là. C'est le geste qui fait tourner la roue.
+async function suiviFait(id) {
+  const p = suiviPrevus.find((x) => x.id === id); if (!p) return;
+  const note = await uiPrompt(
+    `${SUIVI_TITRE_CAL[p.kind]}${p.person_id ? " — " + suiviNom(p.kind, p.person_id) : ""} du ${frDate(p.planned_on)}\n\n`
+    + "Un mot sur ce qui s'est dit (facultatif) :", p.note || "");
+  if (note === null) return;
+  const { error } = await sb.from("suivi_contacts")
+    .update({ done_on: p.planned_on, note: note.trim() || null }).eq("id", id);
+  if (error) { uiAlert(error.message); return; }
+  await suiviCharger();
+}
+
+// Annuler : la case du calendrier part avec. Un rendez-vous annulé qui
+// resterait affiché à l'agenda vaudrait moins que rien.
+async function suiviAnnuler(id) {
+  const p = suiviPrevus.find((x) => x.id === id); if (!p) return;
+  if (!(await uiConfirm(`Annuler ce rendez-vous du ${frDate(p.planned_on)} ? Il disparaîtra aussi du calendrier.`))) return;
+  if (p.cal_event_id) await sb.from("cal_events").delete().eq("id", p.cal_event_id);
+  const { error } = await sb.from("suivi_contacts").delete().eq("id", id);
+  if (error) { uiAlert(error.message); return; }
+  await suiviCharger();
 }
 
 // Noter un contact : on enregistre ce qui A EU LIEU. Le prochain se déduit
@@ -21477,13 +21580,9 @@ async function suiviNoter(kind) {
   if (jour > isoA(new Date())) { uiAlert("Cette date est dans le futur. On note ici ce qui a EU LIEU."); return; }
   const note = await uiPrompt(`${titre}\n\nUn mot sur ce qui s'est dit (facultatif) :`, "");
   if (note === null) return;           // annulé
-  if (!suiviMariano) {
-    const { data } = await sb.from("people").select("id").ilike("first_name", "mariano").limit(1);
-    suiviMariano = data?.[0]?.id || null;
-  }
   const { error } = await sb.from("suivi_contacts").insert({
     kind, person_id: personId,
-    with_person_id: (kind === "dejeuner" || kind === "hebdo") ? suiviMariano : null,
+    with_person_id: (kind === "dejeuner" || kind === "hebdo") ? await suiviMarianoId() : null,
     done_on: jour, note: note.trim() || null,
   });
   if (error) { uiAlert(error.message); return; }

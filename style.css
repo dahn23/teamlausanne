@@ -5164,3 +5164,16 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   color:#fff;border-radius:999px;padding:1px 7px;font-weight:700}
 .dsv-nom{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dsv-reste{font-size:.78rem;margin:5px 0 0}
+/* Suivi : ce qui est PRÉVU, la seule partie sur laquelle on agit. */
+.dsv-prev{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:4px}
+.dsv-prev li{display:flex;align-items:center;gap:8px;font-size:.85rem;padding:6px 9px;
+  border-radius:8px;background:#eef2fc;border:1px solid #cdd8f5}
+.dsv-prev li.passe{background:#fdf3e8;border-color:#f0cfa8}
+.dsv-cal{flex:none}
+.dsv-fait,.dsv-annul{border:0;background:#fff;border:1px solid var(--line);border-radius:7px;
+  font:inherit;font-size:.78rem;font-weight:700;padding:4px 9px;cursor:pointer;color:var(--blue-ink)}
+.dsv-fait:hover{background:#eefaf1;border-color:#bfe6cc;color:#1d6236}
+.dsv-annul{color:var(--muted);padding:4px 8px}
+.dsv-annul:hover{color:#c0392b}
+.dsv-plan{background:var(--blue);color:#fff;font-size:.78rem;font-weight:700;padding:5px 11px;border-radius:8px}
+.dsv-plan:hover{background:var(--blue-ink)}
