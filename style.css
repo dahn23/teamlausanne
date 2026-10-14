@@ -5181,3 +5181,24 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   cursor:pointer;text-decoration:underline dotted;padding:2px 4px}
 .dsv-date:hover{color:var(--blue-ink)}
 .dsv-avec{font-size:.7rem;font-weight:700;background:#e6edfd;color:#1b3a8f;border-radius:999px;padding:2px 8px;white-space:nowrap}
+/* La filière des familles : déjeuner → appel → rencontre, une ligne par joueur.
+   Trois listes séparées auraient obligé à refaire le rapprochement de tête. */
+.dsv-pipe{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.dsv-ph,.dsv-pr{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(3,minmax(84px,1fr));
+  gap:6px;align-items:center}
+.dsv-ph{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+  font-weight:700;padding:0 8px 2px}
+.dsv-pr{padding:5px 8px;border-radius:7px;background:#f8fafd;font-size:.84rem}
+.dsv-pr.pret{background:#fdf3e8;border:1px solid #f0cfa8}
+.dsv-c{font-size:.78rem;text-align:center;border-radius:6px;padding:4px 6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.dsv-c.ok{background:#eefaf1;color:#1d6236;font-weight:700}
+.dsv-c.prev{background:#eef2fc;color:#1b3a8f;font-weight:600}
+.dsv-c.vide{color:#c3cbd9}
+.dsv-c.todo{border:1px dashed var(--line);background:#fff;color:var(--blue);font-weight:600;cursor:pointer}
+.dsv-c.todo:hover{border-style:solid;border-color:var(--blue);background:#f4f7ff}
+@media(max-width:768px){
+  .dsv-ph{display:none}
+  .dsv-pr{grid-template-columns:1fr 1fr;gap:4px}
+  .dsv-pr .dsv-nom{grid-column:1/-1}
+}

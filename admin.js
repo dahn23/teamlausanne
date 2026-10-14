@@ -21375,11 +21375,10 @@ function initMembresSubtabs() {
    ------------------------------------------------------------------------- */
 
 const SUIVI_RYTHMES = [
-  ["famille",  "Familles sport-études & pro", "deux fois par saison"],
-  ["dejeuner", "Déjeuners Mariano ↔ joueur",  "deux par semaine, chacun toutes les 7 semaines"],
-  ["appel",    "Appels performance",          "quand c'est possible — pas d'échéance"],
+  ["dejeuner", "Déjeuners Mariano ↔ joueur", "deux par semaine, chacun toutes les 7 semaines"],
+  ["perf",     "Appels performance",         "quand c'est possible — pas d'échéance"],
 ];
-let suiviEtats = {}, suiviMariano = null;
+let suiviEtats = {}, suiviMariano = null, suiviPipe = [];
 
 const suiviJours = (n) => n == null ? "jamais" : n === 0 ? "aujourd'hui" : n === 1 ? "hier" : `il y a ${n} j`;
 
@@ -21394,9 +21393,9 @@ let suiviPrevus = [];
 async function suiviCharger() {
   const box = $("dsuivi-b"); if (!box) return;
   const [fam, dej, app, hebdo, prevus] = await Promise.all([
-    sb.rpc("suivi_etat", { p_kind: "famille" }),
+    sb.rpc("suivi_pipeline"),
     sb.rpc("suivi_etat", { p_kind: "dejeuner" }),
-    sb.rpc("suivi_etat", { p_kind: "appel" }),
+    sb.rpc("suivi_etat", { p_kind: "perf" }),
     sb.from("suivi_contacts").select("done_on").eq("kind", "hebdo").not("done_on", "is", null)
       .order("done_on", { ascending: false }).limit(1),
     // Ce qui est PRÉVU et pas encore fait : c'est la partie vivante du bloc.
@@ -21404,11 +21403,49 @@ async function suiviCharger() {
       .is("done_on", null).not("planned_on", "is", null).order("planned_on"),
   ]);
   if (fam.error) { box.innerHTML = `<p class="error">${esc(fam.error.message)}</p>`; return; }
-  suiviEtats = { famille: fam.data || [], dejeuner: dej.data || [], appel: app.data || [] };
+  suiviPipe = fam.data || [];
+  // Les deux listes « familles » servent au choix de personne dans Planifier.
+  const noms = suiviPipe.map((r) => ({ person_id: r.person_id, nom: r.nom, jours: null }));
+  suiviEtats = { dejeuner: dej.data || [], perf: app.data || [], famille_appel: noms, famille_rdv: noms };
   suiviPrevus = prevus.data || [];
   const dernierHebdo = hebdo.data?.[0]?.done_on || null;
-  box.innerHTML = suiviHebdo(dernierHebdo) + SUIVI_RYTHMES.map(([k, titre, note]) => suiviBloc(k, titre, note)).join("");
+  box.innerHTML = suiviHebdo(dernierHebdo) + suiviFamilles()
+    + SUIVI_RYTHMES.map(([k, titre, note]) => suiviBloc(k, titre, note)).join("");
   suiviBrancher();
+}
+
+// Les familles : une FILIÈRE, pas une liste.
+//
+// « Un appel ET une rencontre, idéalement après le déjeuner avec Mariano. »
+// C'est un enchaînement — déjeuner (Mariano prend le ressenti du jeune), puis
+// appel aux parents, puis rencontre. Trois listes séparées auraient obligé à
+// refaire le rapprochement de tête à chaque fois : « Nadia a-t-elle déjeuné ?
+// puis-je appeler ? ». Une ligne par joueur, trois cases, et ceux dont le
+// déjeuner est fait mais l'appel pas encore remontent en tête : ce sont
+// exactement ceux à appeler maintenant.
+function suiviFamilles() {
+  if (!suiviPipe.length) return "";
+  const prets = suiviPipe.filter((r) => r.pret).length;
+  const cell = (fait, prevu, kind, pid, label) => {
+    if (fait) return `<span class="dsv-c ok" title="${esc(label)} le ${esc(frDate(fait))}">✓ ${esc(frDate(fait))}</span>`;
+    if (prevu) return `<span class="dsv-c prev" title="${esc(label)} prévu">📅 ${esc(frDate(prevu))}</span>`;
+    if (!kind) return `<span class="dsv-c vide">—</span>`;
+    return `<button type="button" class="dsv-c todo" data-pk="${kind}" data-pid="${pid}">+ poser</button>`;
+  };
+  return `<div class="dsv-bloc">
+    <div class="dsv-t">Familles sport-études &amp; pro
+      <span class="dsv-cpt ${prets ? "r" : "v"}">${prets ? `${prets} à appeler` : "rien en attente"}</span></div>
+    <p class="dsv-n muted">Déjeuner Mariano → ton appel aux parents → ta rencontre en personne.</p>
+    <div class="dsv-pipe">
+      <div class="dsv-ph"><span>Joueur</span><span>Déjeuner</span><span>Ton appel</span><span>Ta rencontre</span></div>
+      ${suiviPipe.map((r) => `<div class="dsv-pr ${r.pret ? "pret" : ""}">
+        <span class="dsv-nom">${esc(r.nom)}${r.pret ? ` <b class="dsv-next">à appeler</b>` : ""}</span>
+        ${cell(r.dejeuner_on, r.dejeuner_prevu, "dejeuner", r.person_id, "Déjeuner")}
+        ${cell(r.appel_on, r.appel_prevu, "famille_appel", r.person_id, "Appel")}
+        ${cell(r.rdv_on, r.rdv_prevu, "famille_rdv", r.person_id, "Rencontre")}
+      </div>`).join("")}
+    </div>
+  </div>`;
 }
 
 // Le nom d'une personne, repris de la liste du rythme (elle y est toujours).
@@ -21482,26 +21519,32 @@ function suiviBrancher() {
     b.addEventListener("click", () => suiviAnnuler(b.dataset.id)));
   document.querySelectorAll(".dsv-date").forEach((b) =>
     b.addEventListener("click", () => suiviDeplacer(b.dataset.id)));
+  // Les cases vides de la filière : poser directement la date pour CE joueur,
+  // sans repasser par le choix de la personne.
+  document.querySelectorAll(".dsv-c.todo").forEach((b) =>
+    b.addEventListener("click", () => suiviPlanifier(b.dataset.pk, b.dataset.pid)));
 }
 
-const SUIVI_TITRE_CAL = { famille: "RDV famille", dejeuner: "Déjeuner Mariano", hebdo: "Point hebdo Mariano", appel: "Appel" };
+const SUIVI_TITRE_CAL = { famille_appel: "Appel parents", famille_rdv: "Rencontre parents",
+  dejeuner: "Déjeuner Mariano", hebdo: "Point hebdo Mariano", perf: "Appel performance" };
 
 // Planifier depuis le bloc, et l'écrire DANS LE CALENDRIER.
 //
 // Un bloc qui se contente d'annoncer un retard ne fait rien avancer : on le
 // regarde, on acquiesce, on passe. Le geste utile est de poser une date tout
 // de suite, et de la retrouver là où on consulte son agenda.
-async function suiviPlanifier(kind) {
-  const titre = (SUIVI_RYTHMES.find((x) => x[0] === kind) || [, "Point hebdo"])[1];
-  let personId = null, nom = "";
-  if (kind !== "hebdo") {
+async function suiviPlanifier(kind, pid) {
+  const titre = SUIVI_TITRE_CAL[kind] || "Point hebdo";
+  let personId = pid || null, nom = "";
+  if (kind !== "hebdo" && !personId) {
     const l = suiviEtats[kind] || [];
     if (!l.length) { uiAlert("Personne dans cette filière cette saison."); return; }
     const choix = await uiChoice(`${titre} — avec qui ?`,
-      l.map((r) => [r.person_id, `${r.nom} — ${suiviJours(r.jours)}`]));
+      l.map((r) => [r.person_id, r.jours == null ? r.nom : `${r.nom} — ${suiviJours(r.jours)}`]));
     if (!choix) return;
-    personId = choix; nom = suiviNom(kind, choix);
+    personId = choix;
   }
+  if (personId) nom = suiviNom(kind, personId);
   const quand = await uiPrompt(`${titre}${nom ? " avec " + nom : ""}\n\nQuand ? (AAAA-MM-JJ)`, isoA(new Date()));
   if (quand === null) return;
   const jour = quand.trim();
