@@ -11094,7 +11094,7 @@ const OI_ST = { a_envoyer: ["À envoyer", "fac-todo"], envoyee: ["Envoyée", "fa
 const OI_ORDER = ["a_envoyer", "envoyee", "payee", "annulee"];
 // Lot par filière = filières « grille Tarifs » ; sport-études / pro / pro U18 = depuis le contrat de la fiche.
 const OI_FILIERES = [["performance", "Performance"], ["competition", "Compétition"], ["club", "Club"], ["kidstennis", "KidsTennis"], ["adultes", "Adultes"]];
-const OI_FIL_ALL = [...OI_FILIERES, ["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"], ["stage", "Stages"]];
+const OI_FIL_ALL = [...OI_FILIERES, ["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"], ["stage", "Stages"], ["location", "Locations"]];
 const OI_FROM = "info@teamlausanne.ch";
 // Les filtres sont des ENSEMBLES, pas des chaînes : on travaille filière par
 // filière, mais on veut aussi « Compétition + Club + KidsTennis » d'un coup.
@@ -20692,89 +20692,112 @@ function initAway() {
   });
 }
 
-/* ---- Clubs de tennis locataires (db/151) ---------------------------------
-   Les clubs qui louent nos courts, surtout l'hiver. Sous-onglet du Répertoire,
-   parce que c'est bien un carnet d'adresses — mais une table à part, parce
-   qu'un club n'est pas une personne : pas d'âge, pas de filière, et une
-   adresse de facturation qui n'est pas un domicile.
+/* ---- Locations de courts (db/151, db/152) --------------------------------
+   Qui loue nos courts, et combien nous doivent-ils ?
 
-   Le but déclaré est de les FACTURER. La fiche porte donc exactement ce qu'une
-   facture réclame : raison sociale, adresse, interlocuteur, n° IDE, et les
-   créneaux loués avec leur montant.
+   TROIS NATURES, UNE SEULE LISTE : un CLUB (TC Pully), un MEMBRE du club, un
+   coach EXTERNE de la région. Rien ne les distingue au moment de facturer —
+   mêmes créneaux, même tarif, même facture ; ce qui change, c'est seulement
+   qui paie. Trois tables parallèles auraient obligé à les réunir à chaque
+   question. La nature est donc une propriété du locataire, pas une sorte
+   différente d'objet.
 
-   Sur le montant : certains clubs paient à l'heure, d'autres un forfait de
-   saison. Les deux cohabitent — heures × tarif donne un montant, et le forfait
-   le remplace quand il est saisi. Le calcul vit aussi en base
-   (club_rental_montant, db/151) pour que l'écran et la facture ne puissent pas
-   donner deux chiffres différents.
+   Un membre ou un coach externe se relie à sa fiche du répertoire quand elle
+   existe : on ne retape pas une adresse déjà connue et on ne crée pas un
+   second dossier pour quelqu'un qu'on tient déjà. Un club n'a pas de fiche, et
+   la base le refuse (court_tenants_club_sans_fiche).
+
+   La facture naît EN BASE (tenant_invoice_create) : numéro, référence RF et
+   lignes doivent apparaître ensemble ou pas du tout.
    ------------------------------------------------------------------------- */
 
-const CL_JOURS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
-let clList = [], clRentals = [], clRech = "", clInactifs = false, clBound = false;
+const LOC_JOURS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+const LOC_NATURES = [["club", "Club"], ["membre", "Membre"], ["externe", "Coach externe"]];
+const locNatureLabel = (k) => (LOC_NATURES.find(([v]) => v === k) || [k, k])[1];
+let locList = [], locRentals = [], locRech = "", locNatures = new Set(), locInactifs = false, locBound = false;
 
-const clMontant = (r) => {
+const locMontant = (r) => {
   const forfait = parseFloat(r.amount_chf);
   if (!isNaN(forfait)) return forfait;
   return Math.round((parseFloat(r.hours) || 0) * (parseFloat(r.rate_chf) || 0) * 100) / 100;
 };
-const clChf = (n) => (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, "") + ".–";
+const locChf = (n) => (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, "") + ".–";
 
-async function loadClubs() {
-  initClubs();
-  const [{ data: cs, error }, { data: rs }] = await Promise.all([
-    sb.from("clubs").select("*").order("name"),
-    sb.from("club_rentals").select("*"),
+async function loadTenants() {
+  initTenants();
+  const [{ data: ts, error }, { data: rs }] = await Promise.all([
+    sb.from("court_tenants").select("*").order("name"),
+    sb.from("tenant_rentals").select("*"),
   ]);
   if (error) { $("cl-list").innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
-  clList = cs || [];
-  clRentals = rs || [];
-  renderClubs();
+  locList = ts || [];
+  locRentals = rs || [];
+  renderTenantFilters();
+  renderTenants();
 }
 
-function renderClubs() {
+function renderTenantFilters() {
+  const box = $("cl-filtres");
+  if (!box) return;
+  const n = (k) => locList.filter((t) => t.kind === k && (locInactifs || t.active)).length;
+  box.innerHTML = LOC_NATURES.map(([v, l]) =>
+    `<button type="button" class="chip filt ${locNatures.has(v) ? "sel" : ""}" data-nat="${v}">${esc(l)} <span class="muted">${n(v)}</span></button>`).join("")
+    + `<button type="button" class="chip filt ${locNatures.size ? "" : "sel"}" data-nat="">Tous</button>`;
+  box.querySelectorAll("[data-nat]").forEach((b) => b.addEventListener("click", () => {
+    const v = b.dataset.nat;
+    if (!v) locNatures.clear();
+    else if (locNatures.has(v)) locNatures.delete(v);
+    else locNatures.add(v);
+    renderTenantFilters(); renderTenants();
+  }));
+}
+
+function renderTenants() {
   const box = $("cl-list");
   if (!box) return;
-  const q = clRech.toLowerCase();
-  const vus = clList.filter((c) =>
-    (clInactifs || c.active)
-    && (!q || `${c.name} ${c.city || ""} ${c.contact_name || ""}`.toLowerCase().includes(q)));
+  const q = locRech.toLowerCase();
+  const vus = locList.filter((t) =>
+    (locInactifs || t.active)
+    && (!locNatures.size || locNatures.has(t.kind))
+    && (!q || `${t.name} ${t.city || ""} ${t.contact_name || ""}`.toLowerCase().includes(q)));
   if (!vus.length) {
-    box.innerHTML = `<p class="muted">${clList.length
-      ? "Aucun club ne correspond."
-      : "Aucun club pour l'instant. Cliquez « + Nouveau club »."}</p>`;
+    box.innerHTML = `<p class="muted">${locList.length
+      ? "Aucun locataire ne correspond."
+      : "Personne pour l'instant. Cliquez « + Nouveau locataire »."}</p>`;
     return;
   }
-  box.innerHTML = vus.map((c) => {
-    const rs = clRentals.filter((r) => r.club_id === c.id);
-    const total = rs.reduce((a, r) => a + clMontant(r), 0);
-    const adresse = [c.address, [c.postal_code, c.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-    const contact = [c.contact_name, c.contact_email, c.contact_phone].filter(Boolean).join(" · ");
-    return `<button type="button" class="cl-carte${c.active ? "" : " cl-off"}" data-id="${c.id}">
+  box.innerHTML = vus.map((t) => {
+    const rs = locRentals.filter((r) => r.tenant_id === t.id);
+    const total = rs.reduce((a, r) => a + locMontant(r), 0);
+    const adresse = [t.address, [t.postal_code, t.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+    const contact = [t.contact_name, t.contact_email, t.contact_phone].filter(Boolean).join(" · ");
+    return `<button type="button" class="cl-carte${t.active ? "" : " cl-off"}" data-id="${t.id}">
       <div class="cl-carte-h">
-        <b>${esc(c.name)}</b>
-        ${c.active ? "" : '<span class="cl-badge">inactif</span>'}
-        ${rs.length ? `<span class="cl-montant">${esc(clChf(total))}</span>` : ""}
+        <span class="cl-nat cl-nat-${esc(t.kind)}">${esc(locNatureLabel(t.kind))}</span>
+        <b>${esc(t.name)}</b>
+        ${t.active ? "" : '<span class="cl-badge">inactif</span>'}
+        ${rs.length ? `<span class="cl-montant">${esc(locChf(total))}</span>` : ""}
       </div>
       ${adresse ? `<div class="cl-l">${esc(adresse)}</div>` : ""}
       ${contact ? `<div class="cl-l muted">${esc(contact)}</div>` : ""}
       <div class="cl-l muted">${rs.length
         ? `${rs.length} créneau${rs.length > 1 ? "x" : ""} loué${rs.length > 1 ? "s" : ""}`
-        : "aucun créneau saisi"}${c.ide ? " · " + esc(c.ide) : ""}</div>
+        : "aucun créneau saisi"}${t.ide ? " · " + esc(t.ide) : ""}</div>
     </button>`;
   }).join("");
   box.querySelectorAll(".cl-carte").forEach((b) =>
-    b.addEventListener("click", () => openClub(clList.find((c) => c.id === b.dataset.id))));
+    b.addEventListener("click", () => openTenant(locList.find((t) => t.id === b.dataset.id))));
 }
 
 /* ---- Les créneaux, dans la fiche ---- */
 
-function clRentRow(r) {
+function locRentRow(r) {
   const tr = document.createElement("tr");
   tr.className = "cl-rent-row";
   const v = (x) => (x == null ? "" : String(x));
   tr.innerHTML = `
     <td><input class="cl-r-season" value="${esc(v(r.season_label) || "2026/27")}" /></td>
-    <td><select class="cl-r-day"><option value="">—</option>${CL_JOURS.map((j, i) =>
+    <td><select class="cl-r-day"><option value="">—</option>${LOC_JOURS.map((j, i) =>
       `<option value="${i + 1}"${Number(r.weekday) === i + 1 ? " selected" : ""}>${j}</option>`).join("")}</select></td>
     <td><input class="cl-r-start" type="time" value="${esc(v(r.start_time).slice(0, 5))}" /></td>
     <td><input class="cl-r-end" type="time" value="${esc(v(r.end_time).slice(0, 5))}" /></td>
@@ -20784,12 +20807,12 @@ function clRentRow(r) {
     <td><input class="cl-r-amount" type="number" step="0.05" min="0" value="${esc(v(r.amount_chf))}" placeholder="auto" /></td>
     <td class="cl-r-calc"></td>
     <td><button type="button" class="cl-r-del ghost" aria-label="Retirer ce créneau">×</button></td>`;
-  tr.querySelector(".cl-r-del").addEventListener("click", () => { tr.remove(); clMajTotal(); });
-  tr.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", clMajTotal));
+  tr.querySelector(".cl-r-del").addEventListener("click", () => { tr.remove(); locMajTotal(); });
+  tr.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", locMajTotal));
   return tr;
 }
 
-function clLireRow(tr) {
+function locLireRow(tr) {
   const g = (sel) => tr.querySelector(sel).value.trim();
   const num = (sel) => { const x = parseFloat(g(sel)); return isNaN(x) ? null : x; };
   return {
@@ -20804,59 +20827,132 @@ function clLireRow(tr) {
   };
 }
 
-function clMajTotal() {
+function locMajTotal() {
   let total = 0;
+  const saisons = new Set();
   $("cl-rentals").querySelectorAll(".cl-rent-row").forEach((tr) => {
-    const m = clMontant(clLireRow(tr));
+    const l = locLireRow(tr);
+    const m = locMontant(l);
     total += m;
-    tr.querySelector(".cl-r-calc").textContent = m ? clChf(m) : "—";
+    saisons.add(l.season_label);
+    tr.querySelector(".cl-r-calc").textContent = m ? locChf(m) : "—";
   });
-  $("cl-total").textContent = total ? "Total : " + clChf(total) : "";
+  $("cl-total").textContent = total ? "Total : " + locChf(total) : "";
+  // La facture porte sur UNE saison : le sélecteur n'offre que celles saisies.
+  const sel = $("cl-fac-saison");
+  if (sel) {
+    const avant = sel.value;
+    const liste = [...saisons].sort();
+    sel.innerHTML = liste.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
+    sel.value = liste.includes(avant) ? avant : (liste[0] || "");
+  }
+}
+
+/* ---- La nature pilote deux champs : la fiche liée, et le libellé du nom ---- */
+
+function locMajNature() {
+  const k = $("cl-kind").value;
+  const estClub = k === "club";
+  $("cl-fiche-wrap").hidden = estClub;
+  $("cl-name-lbl").textContent = estClub ? "Nom du club *" : "Nom *";
+  $("cl-name").placeholder = estClub ? "ex. TC Pully" : "ex. Jean Dupont";
+  if (estClub) { $("cl-person").value = ""; $("cl-person-nom").textContent = ""; }
+}
+
+// Reprend la fiche du répertoire : nom et adresse pré-remplis, et le lien posé.
+function locChoisirFiche(p) {
+  $("cl-person").value = p.id;
+  $("cl-person-nom").textContent = `${p.first_name} ${p.last_name}`;
+  if (!$("cl-name").value.trim()) $("cl-name").value = `${p.first_name} ${p.last_name}`;
+  if (!$("cl-address").value.trim()) $("cl-address").value = p.address || "";
+  if (!$("cl-zip").value.trim()) $("cl-zip").value = p.postal_code || "";
+  if (!$("cl-city").value.trim()) $("cl-city").value = p.city || "";
+  if (!$("cl-email").value.trim()) $("cl-email").value = p.email || "";
+  $("cl-fiche-search").value = "";
+  $("cl-fiche-list").hidden = true;
+}
+
+let locTrouves = [];
+function renderLocFicheList(q) {
+  q = (q || "").trim().toLowerCase();
+  const box = $("cl-fiche-list");
+  locTrouves = !q ? [] : people
+    .filter((p) => `${p.last_name} ${p.first_name} ${p.email || ""}`.toLowerCase().includes(q))
+    .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""))
+    .slice(0, 15);
+  if (!q) { box.hidden = true; return; }
+  box.innerHTML = locTrouves.length
+    ? locTrouves.map((p) => `<div class="combo-opt" data-id="${p.id}"><b>${esc(p.last_name || "")}</b> ${esc(p.first_name || "")}`
+        + `<span class="muted">${p.city ? " · " + esc(p.city) : ""}${p.email ? " · " + esc(p.email) : ""}</span></div>`).join("")
+    : '<div class="combo-empty">Aucune fiche. Laisse vide : le nom et l\'adresse saisis ici suffisent.</div>';
+  box.querySelectorAll(".combo-opt").forEach((o) => o.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    const p = people.find((x) => x.id === o.dataset.id);
+    if (p) locChoisirFiche(p);
+  }));
+  const r = $("cl-fiche-search").getBoundingClientRect();
+  box.style.left = r.left + "px";
+  box.style.top = (r.bottom + 4) + "px";
+  box.style.width = r.width + "px";
+  box.style.maxHeight = Math.max(120, Math.min(240, window.innerHeight - r.bottom - 10)) + "px";
+  box.hidden = false;
 }
 
 /* ---- Fiche ---- */
 
-function openClub(c) {
-  initClubs();
+function openTenant(t) {
+  initTenants();
   $("cl-error").hidden = true;
-  $("club-title").textContent = c ? c.name : "Nouveau club";
-  $("cl-id").value = c ? c.id : "";
+  $("club-title").textContent = t ? t.name : "Nouveau locataire";
+  $("cl-id").value = t ? t.id : "";
   const set = (id, val) => { $(id).value = val == null ? "" : val; };
-  set("cl-name", c && c.name);
-  set("cl-ide", c && c.ide);
-  set("cl-address", c && c.address);
-  set("cl-zip", c && c.postal_code);
-  set("cl-city", c && c.city);
-  set("cl-country", (c && c.country) || "Suisse");
-  set("cl-contact", c && c.contact_name);
-  set("cl-role", c && c.contact_role);
-  set("cl-email", c && c.contact_email);
-  set("cl-phone", c && c.contact_phone);
-  set("cl-notes", c && c.notes);
-  $("cl-active").checked = c ? !!c.active : true;
+  $("cl-kind").value = (t && t.kind) || "club";
+  set("cl-name", t && t.name);
+  set("cl-ide", t && t.ide);
+  set("cl-address", t && t.address);
+  set("cl-zip", t && t.postal_code);
+  set("cl-city", t && t.city);
+  set("cl-country", (t && t.country) || "Suisse");
+  set("cl-contact", t && t.contact_name);
+  set("cl-role", t && t.contact_role);
+  set("cl-email", t && t.contact_email);
+  set("cl-phone", t && t.contact_phone);
+  set("cl-notes", t && t.notes);
+  $("cl-active").checked = t ? !!t.active : true;
+  set("cl-person", t && t.person_id);
+  const fiche = t && t.person_id ? people.find((p) => p.id === t.person_id) : null;
+  $("cl-person-nom").textContent = fiche ? `${fiche.first_name} ${fiche.last_name}` : "";
+  $("cl-fiche-search").value = "";
+  $("cl-fiche-list").hidden = true;
+  locMajNature();
 
   const corps = $("cl-rentals");
   corps.innerHTML = "";
-  const rs = c ? clRentals.filter((r) => r.club_id === c.id)
+  const rs = t ? locRentals.filter((r) => r.tenant_id === t.id)
     .sort((a, b) => (a.weekday || 9) - (b.weekday || 9) || String(a.start_time).localeCompare(String(b.start_time)))
     : [];
-  for (const r of rs) corps.appendChild(clRentRow(r));
-  if (!rs.length) corps.appendChild(clRentRow({}));
-  clMajTotal();
+  for (const r of rs) corps.appendChild(locRentRow(r));
+  if (!rs.length) corps.appendChild(locRentRow({}));
+  locMajTotal();
 
-  $("cl-del").classList.toggle("hidden", !c);
+  // Facturer demande un locataire DÉJÀ enregistré (la fonction travaille sur
+  // son identifiant) et au moins un créneau.
+  $("cl-fac-bloc").hidden = !t || !rs.length;
+  $("cl-del").classList.toggle("hidden", !t);
   $("club-modal").classList.remove("hidden");
 }
 
-async function saveClub(e) {
+async function saveTenant(e) {
   e.preventDefault();
   const err = $("cl-error"); err.hidden = true;
   const dire = (m) => { err.textContent = m; err.hidden = false; };
   const nom = $("cl-name").value.trim();
-  if (nom.length < 2) return dire("Donne un nom de club (deux caractères au moins).");
+  if (nom.length < 2) return dire("Donne un nom (deux caractères au moins).");
 
   const champs = {
+    kind: $("cl-kind").value,
     name: nom,
+    person_id: $("cl-kind").value === "club" ? null : ($("cl-person").value || null),
     ide: $("cl-ide").value.trim() || null,
     address: $("cl-address").value.trim() || null,
     postal_code: $("cl-zip").value.trim() || null,
@@ -20870,10 +20966,9 @@ async function saveClub(e) {
     active: $("cl-active").checked,
   };
 
-  // Un créneau entièrement vide, c'est la ligne qu'on a ouverte sans la
-  // remplir : on la jette au lieu d'enregistrer une ligne de néant.
+  // Une ligne entièrement vide, c'est celle qu'on a ouverte sans la remplir.
   const lignes = [...$("cl-rentals").querySelectorAll(".cl-rent-row")]
-    .map(clLireRow)
+    .map(locLireRow)
     .filter((r) => r.weekday || r.start_time || r.courts || r.hours || r.rate_chf || r.amount_chf);
   for (const r of lignes) {
     if (r.start_time && r.end_time && r.end_time <= r.start_time)
@@ -20881,64 +20976,102 @@ async function saveClub(e) {
   }
 
   const id = $("cl-id").value;
-  let clubId = id;
+  let tenantId = id;
   if (id) {
-    const { error } = await sb.from("clubs").update(champs).eq("id", id);
+    const { error } = await sb.from("court_tenants").update(champs).eq("id", id);
     if (error) return dire(error.message);
-    // Les créneaux se réécrivent en entier : la liste est courte et un
+    // Les créneaux se réécrivent en entier : la liste est courte, et un
     // différentiel ligne à ligne n'apporterait que des occasions de se tromper.
-    const { error: eDel } = await sb.from("club_rentals").delete().eq("club_id", id);
+    const { error: eDel } = await sb.from("tenant_rentals").delete().eq("tenant_id", id);
     if (eDel) return dire(eDel.message);
   } else {
-    const { data, error } = await sb.from("clubs").insert(champs).select("id").single();
+    const { data, error } = await sb.from("court_tenants").insert(champs).select("id").single();
     if (error) return dire(error.message);
-    clubId = data.id;
+    tenantId = data.id;
   }
   if (lignes.length) {
-    const { error } = await sb.from("club_rentals").insert(lignes.map((r) => ({ ...r, club_id: clubId })));
+    const { error } = await sb.from("tenant_rentals").insert(lignes.map((r) => ({ ...r, tenant_id: tenantId })));
     if (error) return dire(error.message);
   }
   $("club-modal").classList.add("hidden");
-  await loadClubs();
+  await loadTenants();
 }
 
-async function deleteClub() {
+// La facture naît en base : numéro, référence RF et lignes ensemble ou rien.
+async function facturerTenant() {
+  const err = $("cl-error"); err.hidden = true;
+  const id = $("cl-id").value;
+  const saison = $("cl-fac-saison").value;
+  if (!id || !saison) return;
+  const t = locList.find((x) => x.id === id);
+  const rs = locRentals.filter((r) => r.tenant_id === id && r.season_label === saison);
+  const total = rs.reduce((a, r) => a + locMontant(r), 0);
+  if (!(await uiConfirm(
+    `Créer une facture de ${locChf(total)} pour « ${t ? t.name : ""} », saison ${saison} ?\n\n`
+    + `${rs.length} créneau(x). Elle apparaîtra dans l'onglet Factures, en « à envoyer » — rien n'est envoyé maintenant.`
+  ))) return;
+
+  const btn = $("cl-facturer");
+  btn.disabled = true; btn.textContent = "Création…";
+  const { data, error } = await sb.rpc("tenant_invoice_create", { p_tenant: id, p_season_label: saison });
+  btn.disabled = false; btn.textContent = "Créer la facture";
+  if (error) { err.textContent = error.message; err.hidden = false; return; }
+  const f = Array.isArray(data) ? data[0] : data;
+  await uiAlert(`Facture ${f.inv_number} créée — ${locChf(Number(f.inv_amount))}.\n\nElle attend dans l'onglet Factures, filière « Location de courts ».`);
+}
+
+async function deleteTenant() {
   const id = $("cl-id").value;
   if (!id) return;
   const nom = $("cl-name").value.trim();
-  if (!(await uiConfirm(`Supprimer « ${nom} » et ses créneaux ? C'est définitif.\n\nPour le garder sans l'afficher, décoche « Club actif ».`))) return;
-  const { error } = await sb.from("clubs").delete().eq("id", id);
+  if (!(await uiConfirm(`Supprimer « ${nom} » et ses créneaux ? C'est définitif.\n\nPour le garder sans l'afficher, décoche « Actif ».`))) return;
+  const { error } = await sb.from("court_tenants").delete().eq("id", id);
   if (error) { uiAlert(error.message); return; }
   $("club-modal").classList.add("hidden");
-  await loadClubs();
+  await loadTenants();
 }
 
-function initClubs() {
-  if (clBound) return;
-  clBound = true;
+function initTenants() {
+  if (locBound) return;
+  locBound = true;
   $("club-close").addEventListener("click", () => $("club-modal").classList.add("hidden"));
   $("club-modal").addEventListener("click", (e) => { if (e.target === $("club-modal")) $("club-modal").classList.add("hidden"); });
-  $("club-form").addEventListener("submit", saveClub);
-  $("cl-del").addEventListener("click", deleteClub);
-  $("cl-new").addEventListener("click", () => openClub(null));
-  $("cl-rent-add").addEventListener("click", () => { $("cl-rentals").appendChild(clRentRow({})); clMajTotal(); });
-  $("cl-inactifs").addEventListener("change", () => { clInactifs = $("cl-inactifs").checked; renderClubs(); });
+  $("club-form").addEventListener("submit", saveTenant);
+  $("cl-del").addEventListener("click", deleteTenant);
+  $("cl-new").addEventListener("click", () => openTenant(null));
+  $("cl-kind").addEventListener("change", locMajNature);
+  $("cl-rent-add").addEventListener("click", () => { $("cl-rentals").appendChild(locRentRow({})); locMajTotal(); });
+  $("cl-inactifs").addEventListener("change", () => { locInactifs = $("cl-inactifs").checked; renderTenantFilters(); renderTenants(); });
+  $("cl-facturer").addEventListener("click", facturerTenant);
+  $("cl-person-x").addEventListener("click", () => { $("cl-person").value = ""; $("cl-person-nom").textContent = ""; });
+  $("cl-fiche-search").addEventListener("input", (e) => renderLocFicheList(e.target.value));
+  $("cl-fiche-search").addEventListener("focus", (e) => renderLocFicheList(e.target.value));
+  // Entrée dans une recherche enverrait le formulaire : on prend la 1re fiche.
+  $("cl-fiche-search").addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { $("cl-fiche-list").hidden = true; return; }
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (locTrouves.length) locChoisirFiche(locTrouves[0]);
+  });
+  document.addEventListener("pointerdown", (e) => {
+    if (!$("cl-fiche-combo").contains(e.target)) $("cl-fiche-list").hidden = true;
+  }, true);
   let t;
   $("cl-search").addEventListener("input", (e) => {
     clearTimeout(t);
-    t = setTimeout(() => { clRech = e.target.value.trim(); renderClubs(); }, 200);
+    t = setTimeout(() => { locRech = e.target.value.trim(); renderTenants(); }, 200);
   });
 }
 
 // Sous-onglets du Répertoire. La fiche d'une personne vit en dehors des deux
-// panneaux : on la referme en changeant d'onglet, sinon elle resterait ouverte
-// par-dessus la liste des clubs.
+// panneaux : elle se referme en changeant d'onglet, sinon elle resterait
+// ouverte par-dessus la liste des locataires.
 function initMembresSubtabs() {
   document.querySelectorAll(".membres-subtab").forEach((b) => b.addEventListener("click", () => {
     document.querySelectorAll(".membres-subtab").forEach((x) => x.classList.toggle("active", x === b));
-    const clubs = b.dataset.msub === "clubs";
-    $("membres-sub-personnes").classList.toggle("hidden", clubs);
-    $("membres-sub-clubs").classList.toggle("hidden", !clubs);
-    if (clubs) loadClubs();
+    const loc = b.dataset.msub === "locations";
+    $("membres-sub-personnes").classList.toggle("hidden", loc);
+    $("membres-sub-clubs").classList.toggle("hidden", !loc);
+    if (loc) loadTenants();
   }));
 }

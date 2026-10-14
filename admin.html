@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=312" />
+  <link rel="stylesheet" href="style.css?v=313" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -209,7 +209,7 @@
                  mélange qui fausserait tous les comptages de membres. -->
             <div class="subnav">
               <button class="subtab membres-subtab active" data-msub="personnes">Personnes</button>
-              <button class="subtab membres-subtab" data-msub="clubs">Clubs de tennis</button>
+              <button class="subtab membres-subtab" data-msub="locations">Locations de courts</button>
             </div>
             <div id="membres-sub-personnes">
             <div class="crm-head">
@@ -252,18 +252,19 @@
             <!-- ---- Clubs de tennis locataires (db/151) ---- -->
             <div id="membres-sub-clubs" class="hidden">
               <div class="crm-head">
-                <div class="crm-ttl"><span class="crm-eyebrow">Locations de courts</span><h1>Clubs de tennis</h1></div>
+                <div class="crm-ttl"><span class="crm-eyebrow">Qui loue nos courts</span><h1>Locations de courts</h1></div>
                 <div class="crm-actions">
                   <div class="search-wrap">
-                    <input id="cl-search" type="text" autocomplete="off" placeholder="Rechercher un club…" />
+                    <input id="cl-search" type="text" autocomplete="off" placeholder="Rechercher un locataire…" />
                   </div>
                   <label class="check"><input type="checkbox" id="cl-inactifs" /> Voir les inactifs</label>
-                  <button id="cl-new">+ Nouveau club</button>
+                  <button id="cl-new">+ Nouveau locataire</button>
                 </div>
               </div>
-              <p class="crm-lead">Les clubs qui louent nos courts, surtout l'hiver. Tout ce qu'il faut pour leur
-                envoyer une facture : adresse de facturation, interlocuteur, n° IDE, et les créneaux loués
-                avec leur montant.</p>
+              <p class="crm-lead">Les clubs, membres et coachs externes qui louent nos courts, surtout l'hiver.
+                Tout ce qu'il faut pour leur envoyer une facture : adresse de facturation, interlocuteur,
+                n° IDE, et les créneaux loués avec leur montant.</p>
+              <div id="cl-filtres" class="fac-filters"></div>
               <div id="cl-list"></div>
             </div>
           </div>
@@ -2997,13 +2998,34 @@ Team Lausanne Tennis</textarea></label>
   <div id="club-modal" class="modal hidden">
     <form id="club-form" class="card wide">
       <button type="button" id="club-close" class="modal-close" aria-label="Fermer">×</button>
-      <h2 id="club-title">Nouveau club</h2>
+      <h2 id="club-title">Nouveau locataire</h2>
       <input type="hidden" id="cl-id" />
 
-      <h3 class="cl-h">Le club</h3>
+      <h3 class="cl-h">Le locataire</h3>
       <div class="form-grid">
-        <label>Nom *<input id="cl-name" placeholder="ex. TC Pully" /></label>
-        <label>N° IDE <span class="muted">(si le club en a un)</span><input id="cl-ide" placeholder="CHE-123.456.789" /></label>
+        <label>Nature
+          <select id="cl-kind">
+            <option value="club">Club</option>
+            <option value="membre">Membre</option>
+            <option value="externe">Coach externe</option>
+          </select>
+        </label>
+        <label><span id="cl-name-lbl">Nom *</span><input id="cl-name" placeholder="ex. TC Pully" /></label>
+        <label>N° IDE <span class="muted">(s'il en a un)</span><input id="cl-ide" placeholder="CHE-123.456.789" /></label>
+      </div>
+      <!-- Un membre ou un coach externe est souvent DÉJÀ dans le répertoire :
+           on relie plutôt que de recopier. Un club n'a pas de fiche, et la
+           base refuse d'en attacher une (court_tenants_club_sans_fiche). -->
+      <div id="cl-fiche-wrap" hidden>
+        <label class="reg-rech">Relier à une fiche du répertoire <span class="muted">(facultatif)</span>
+          <div class="combo" id="cl-fiche-combo">
+            <input type="text" id="cl-fiche-search" autocomplete="off" placeholder="Nom ou prénom…" />
+            <div id="cl-fiche-list" class="combo-list" hidden></div>
+          </div>
+        </label>
+        <input type="hidden" id="cl-person" />
+        <p class="cl-fiche-liee"><span id="cl-person-nom"></span>
+          <button type="button" id="cl-person-x" class="ghost">détacher</button></p>
       </div>
 
       <h3 class="cl-h">Adresse de facturation</h3>
@@ -3041,12 +3063,27 @@ Team Lausanne Tennis</textarea></label>
         <b id="cl-total" class="cl-total"></b>
       </div>
 
+      <!-- La facture naît en base (tenant_invoice_create) : numéro, référence RF
+           et lignes ensemble ou rien. Elle part en « à envoyer », jamais envoyée
+           d'ici. -->
+      <div id="cl-fac-bloc" class="cl-fac" hidden>
+        <div>
+          <b>Facturer cette saison</b>
+          <p class="muted" style="margin:2px 0 0;font-size:.84rem">
+            Une facture est créée dans l'onglet Factures, filière « Location de courts »,
+            en « à envoyer ». Rien n'est envoyé ici.</p>
+        </div>
+        <span class="spacer"></span>
+        <select id="cl-fac-saison" aria-label="Saison à facturer"></select>
+        <button type="button" id="cl-facturer">Créer la facture</button>
+      </div>
+
       <label class="stg-note-lbl">Note (interne)
         <textarea id="cl-notes" rows="2" placeholder="Contrat signé le…, conditions particulières…"></textarea></label>
-      <label class="check"><input type="checkbox" id="cl-active" checked /> Club actif</label>
+      <label class="check"><input type="checkbox" id="cl-active" checked /> Actif</label>
 
       <div class="form-foot">
-        <button type="button" id="cl-del" class="danger hidden">Supprimer le club</button>
+        <button type="button" id="cl-del" class="danger hidden">Supprimer</button>
         <span class="spacer"></span>
         <button type="submit" id="cl-save">Enregistrer</button>
       </div>
