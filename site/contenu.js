@@ -166,7 +166,7 @@ coachs:
   // La fiche ne l'affiche pas quand la liste est absente.
   { slug: "andreas-egger", role: "Coach physique", nom: "Andreas Egger",
     resume: "Préparateur physique, il accompagne les joueurs toute la saison et les pousse à se surpasser au quotidien.",
-    tags: ["Sport-études & Pro", "Compétition", "Performance"],
+    tags: ["Sport-études & Pro"],
     bio: [
       "Titulaire d'un Bachelor en sciences du mouvement et du sport de l'Université de Lausanne, Andreas a poursuivi avec deux années de Master en sport, puis une formation de Personal Trainer.",
       "D'origine norvégienne et passionné de sport depuis l'enfance, il a pratiqué et enseigné le football avant d'évoluer en biathlon au niveau national élite, chez les juniors puis chez les adultes. Il poursuit aujourd'hui la compétition en amateur.",
