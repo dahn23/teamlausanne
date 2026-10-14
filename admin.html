@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=310" />
+  <link rel="stylesheet" href="style.css?v=311" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -494,6 +494,8 @@
               <button id="resa-next" class="nav" aria-label="Jour suivant">›</button>
               <button id="resa-today" class="nav nav-wide">Aujourd'hui</button>
               <span id="resa-season" class="tag"></span>
+              <span class="spacer"></span>
+              <button id="resa-away-new" class="ghost">+ Déplacement</button>
             </div>
             <p class="muted" style="font-size:.86rem;margin:0 0 10px">
               Glissez sur la grille pour choisir un créneau, ou cliquez une case. Cliquez une réservation pour la modifier.
@@ -516,6 +518,9 @@
               </div>
               <div id="rh-liste" class="rh-liste"></div>
             </details>
+            <!-- Qui est hors du club ce jour-là. Au-dessus de la grille, parce
+                 qu'une absence se lit avant de chercher un créneau libre. -->
+            <div id="resa-away" class="away-bande" hidden></div>
             <div class="grid-wrap"><div id="resa-grid" class="rgrid"></div></div>
           </div>
 
@@ -640,8 +645,10 @@
               </div>
               <input id="cs-search" class="cs-search" type="text" placeholder="Filtrer par coach ou joueur…" autocomplete="off" />
               <button id="cs-copy" class="ghost">Copier la semaine</button>
+              <button id="cs-away-new" class="ghost">+ Déplacement</button>
               <button id="cs-new">+ Nouveau cours</button>
             </div>
+            <div id="cs-away" class="away-bande" hidden></div>
             <div id="cs-legend" class="att-legend">
               <span><i class="lg st-present"></i>Présent</span>
               <span><i class="lg st-absent"></i>Absent</span>
@@ -2906,6 +2913,13 @@ Team Lausanne Tennis</textarea></label>
         <label class="check"><input type="checkbox" id="r-rec" /> Répéter chaque semaine</label>
         <label>Jusqu'au (récurrence)<input type="date" id="r-until" /></label>
       </div>
+      <!-- Type « Tournoi » : il peut se jouer ici (il prend alors un court) ou
+           ailleurs (il n'en prend aucun). La grille ne sait pas dire le second,
+           d'où ce renvoi vers le formulaire de déplacement. -->
+      <p id="r-away-hint" class="r-away-hint" hidden>
+        Ce tournoi se joue <b>hors du club</b> ?
+        <button type="button" id="r-away-go" class="ghost">Saisir un déplacement</button>
+      </p>
       <div class="form-foot">
         <button type="button" id="r-del-occ" class="danger hidden">Suppr. cette fois</button>
         <button type="button" id="r-del-series" class="danger hidden">Suppr. la série</button>
@@ -2948,6 +2962,55 @@ Team Lausanne Tennis</textarea></label>
         <button type="submit" id="c-save">Enregistrer le cours</button>
       </div>
       <p id="c-error" class="error" hidden></p>
+    </form>
+  </div>
+
+  <!-- ---- Déplacement : tournoi hors du club (db/150) ----
+       Pas de court, pas d'heures : des JOURS et une destination. Volontairement
+       séparé du cours, qui lui bloque un court et compte dans les heures. -->
+  <div id="away-modal" class="modal hidden">
+    <form id="away-form" class="card wide">
+      <button type="button" id="away-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="away-title">Nouveau déplacement</h2>
+      <p class="muted" style="margin:-6px 0 14px">
+        Un coach et des joueurs <b>hors du club</b> : aucun court n'est bloqué, et ces
+        journées ne comptent pas dans les heures de cours.
+      </p>
+      <input type="hidden" id="a-id" />
+      <div class="form-grid">
+        <label>Nature
+          <select id="a-kind">
+            <option value="tournoi">Tournoi</option>
+            <option value="stage">Stage</option>
+            <option value="formation">Formation</option>
+            <option value="autre">Autre</option>
+          </select>
+        </label>
+        <label>Intitulé *<input id="a-label" placeholder="ex. Tournoi national U16" /></label>
+        <label>Destination<input id="a-place" placeholder="ex. Bâle, Tarbes…" /></label>
+        <label>Où
+          <select id="a-scope">
+            <option value="">— non précisé —</option>
+            <option value="suisse">En Suisse</option>
+            <option value="etranger">À l'étranger</option>
+          </select>
+        </label>
+        <label>Du<input type="date" id="a-start" /></label>
+        <label>Au<input type="date" id="a-end" /></label>
+        <label>Couleur<input type="color" id="a-color" value="#8a4b00" /></label>
+      </div>
+      <label class="cs-lbl">Coachs</label><div id="a-coaches" class="chip-select"></div>
+      <label class="cs-lbl">Joueurs <span id="a-count" class="muted"></span></label>
+      <input id="a-search" class="c-search" type="text" placeholder="Rechercher un joueur (nom, prénom)…" autocomplete="off" />
+      <div id="a-players" class="chip-select"></div>
+      <label class="stg-note-lbl">Note (interne, facultative)
+        <textarea id="a-notes" rows="2" placeholder="Transport, hébergement, horaires…"></textarea></label>
+      <div class="form-foot">
+        <button type="button" id="a-del" class="danger hidden">Supprimer</button>
+        <span class="spacer"></span>
+        <button type="submit" id="a-save">Enregistrer</button>
+      </div>
+      <p id="a-error" class="error" hidden></p>
     </form>
   </div>
 

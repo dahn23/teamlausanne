@@ -782,6 +782,30 @@ input.pd-native{display:none}
 /* Confirmation sans redessiner la carte : un vert qui passe. */
 .stg-reg-note.stg-note-ok{border-color:var(--fluo);background:#f7ffe8}
 /* Le même champ dans la fenêtre d'ajout, où il est assumé comme un champ. */
+/* Déplacements (db/150) : le bandeau « hors du club », au-dessus de la grille
+   des courts et du planning des cours. Volontairement plat et discret — il
+   annonce une absence, il ne doit pas concurrencer la grille. */
+.away-bande{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin:0 0 10px;
+  padding:9px 11px;background:#fbf4ec;border:1px solid #e8d6c0;border-radius:12px}
+.away-bande[hidden]{display:none}
+.away-titre{align-self:center;font-size:.74rem;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:#8a5a00;padding-right:4px}
+.away-carte{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;text-align:left;
+  background:#fff;border:1px solid var(--line);border-left:4px solid var(--away-c,#8a4b00);
+  border-radius:9px;padding:7px 11px;font:inherit;font-size:.84rem;color:var(--ink);cursor:pointer}
+.away-carte:hover{border-color:var(--blue);box-shadow:0 2px 10px rgba(20,30,60,.08)}
+.away-k{font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:#fff;background:var(--away-c,#8a4b00);border-radius:999px;padding:2px 7px}
+.away-t{color:var(--blue-ink)}
+.away-l{color:var(--ink)}
+.away-d,.away-g{color:var(--muted);font-size:.8rem}
+.away-g{flex-basis:100%}
+/* Renvoi « hors du club » dans la modale de réservation. */
+.r-away-hint{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-2px 0 12px;
+  background:#fbf4ec;border:1px solid #e8d6c0;border-radius:10px;padding:8px 11px;
+  font-size:.86rem;color:#8a5a00}
+.r-away-hint[hidden]{display:none}
+
 /* Modal « Nouvel inscrit » : recherche dans le répertoire + bandeau du lien. */
 .reg-rech{display:block;margin:0 0 12px;font-size:.88rem;color:var(--muted)}
 .reg-rech .combo{margin-top:4px}

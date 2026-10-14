@@ -607,6 +607,16 @@ async function initResa(roles) {
   $("resa-prev").addEventListener("click", () => shiftResa(-1));
   $("resa-next").addEventListener("click", () => shiftResa(1));
   $("resa-today").addEventListener("click", () => allerAuJour(isoA(new Date())));
+  $("resa-away-new").addEventListener("click", () => openAway(null, $("resa-date").value));
+  $("r-kind").addEventListener("change", majAwayHint);
+  // On repart de la date déjà saisie : le tournoi qu'on allait poser sur la
+  // grille devient un déplacement le même jour, sans resaisir quoi que ce soit.
+  $("r-away-go").addEventListener("click", () => {
+    const d = $("r-date").value, titre = $("r-name").value.trim();
+    closeResa();
+    openAway(null, d);
+    if (titre) $("a-label").value = titre;
+  });
   $("resa-close").addEventListener("click", closeResa);
   $("resa-modal").addEventListener("click", (e) => { if (e.target === $("resa-modal")) closeResa(); });
   $("resa-form").addEventListener("submit", saveResa);
@@ -656,6 +666,7 @@ async function loadResaDay() {
   // Le bloc « heures des coachs » suit le jour affiché. Il ne recharge que s'il
   // est ouvert — la fonction s'en assure elle-même.
   loadResaHeures();
+  renderAwayBande("resa-away", date, date);   // qui est hors du club ce jour-là
   const season = seasonA(date);
   const sunIco = '<svg class="season-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"/></svg>';
   const snowIco = '<svg class="season-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M3.4 7l17.2 10M20.6 7L3.4 17"/><path d="M12 5l-2.2 2.2M12 5l2.2 2.2M12 19l-2.2-2.2M12 19l2.2 2.2"/></svg>';
@@ -1006,7 +1017,16 @@ function openResaCreate(courtId, hour, dur) {
   $("r-rec").checked = false; $("r-until").value = "";
   $("r-del-occ").classList.add("hidden");
   $("r-del-series").classList.add("hidden");
+  majAwayHint();
   $("resa-modal").classList.remove("hidden");
+}
+
+// Le renvoi « hors du club » n'a de sens que pour un tournoi : c'est le seul
+// type qui peut aussi bien se jouer ici (il prend un court) qu'ailleurs (il
+// n'en prend aucun, et la grille ne sait pas le représenter).
+function majAwayHint() {
+  const h = $("r-away-hint");
+  if (h) h.hidden = $("r-kind").value !== "tournoi";
 }
 
 function editBooking(b, hour) {
@@ -1025,6 +1045,7 @@ function editBooking(b, hour) {
   $("r-rec").checked = false; $("r-until").value = "";
   $("r-del-occ").classList.remove("hidden");
   $("r-del-series").classList.toggle("hidden", !b.recurrence_id);
+  majAwayHint();
   $("resa-modal").classList.remove("hidden");
 }
 
@@ -4552,6 +4573,8 @@ function initCours(roles) {
   $("cs-prev").addEventListener("click", () => shiftCs(-1));
   $("cs-next").addEventListener("click", () => shiftCs(1));
   $("cs-new").addEventListener("click", () => openCourse(null));
+  $("cs-away-new").addEventListener("click", () => openAway(null, $("cs-date").value));
+  $("cs-away-new").classList.toggle("hidden", !isCourseMgr);
   $("cs-copy").addEventListener("click", copyWeek);
   $("cs-mode-day").addEventListener("click", () => setCoursView("day"));
   $("cs-mode-week").addEventListener("click", () => setCoursView("week"));
@@ -4824,6 +4847,7 @@ function attCol(course, coachIds, list, isCoach, title, statusFn) {
 }
 
 async function loadCoursesDay() {
+  renderAwayCours();           // bandeau « hors du club » au-dessus du planning
   await loadRecentMatches();   // 🔥 / 🎾 à côté des joueurs (7 jours, cache 5 min)
   const date = $("cs-date").value;
   const { data: courses } = await sb.from("courses").select("*").eq("course_date", date).order("start_time");
@@ -4935,6 +4959,7 @@ function filterCourses() {
 
 const DOW_ABBR = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 async function loadCoursesWeek() {
+  renderAwayCours();           // bandeau « hors du club » au-dessus du planning
   const mon = mondayOf($("cs-date").value);
   const days = [];
   for (let i = 0; i < 7; i++) { const d = new Date(mon + "T00:00:00"); d.setDate(d.getDate() + i); days.push(isoA(d)); }
@@ -20451,5 +20476,217 @@ function initResaHeures() {
   $("rh-rech").addEventListener("input", (e) => {
     clearTimeout(t);
     t = setTimeout(() => { rhRech = e.target.value.trim(); renderResaHeures(); }, 200);
+  });
+}
+
+/* ---- Déplacements : tournoi hors du club (db/150) ------------------------
+   Un coach et des joueurs ailleurs. Ni court, ni heures : des JOURS et une
+   destination.
+
+   Pourquoi ce n'est pas un cours sans court : un cours a des heures
+   obligatoires, et `coach_heures_periode` le compterait. Un week-end de
+   tournoi gonflerait alors les heures d'enseignement et casserait la
+   comparaison entre coachs, qui est tout l'intérêt du bloc Heures. Le
+   secrétariat a tranché : un déplacement ne compte pas dans ces heures.
+
+   Il s'affiche en bandeau au-dessus de la grille (jour affiché) et du planning
+   des cours (jour ou semaine affichés) : une absence se lit avant de chercher
+   un créneau libre.
+   ------------------------------------------------------------------------- */
+
+const AWAY_KINDS = { tournoi: "Tournoi", stage: "Stage", formation: "Formation", autre: "Autre" };
+const AWAY_SCOPES = { suisse: "en Suisse", etranger: "à l'étranger" };
+let awayPlayerSel = new Set(), awayPlayers = [], awayBound = false;
+
+const awayNom = (id) => {
+  const p = people.find((x) => x.id === id);
+  return p ? `${p.first_name} ${p.last_name}` : "?";
+};
+
+// Où ça se passe, dit en une fois : « Bâle (à l'étranger) », « En Suisse », « Bâle ».
+function awayLieu(e) {
+  const ou = AWAY_SCOPES[e.scope];
+  if (e.place && ou) return `${e.place} (${ou})`;
+  return e.place || (ou ? ou.charAt(0).toUpperCase() + ou.slice(1) : "");
+}
+
+// Les déplacements qui CHEVAUCHENT la période, pas seulement ceux qui y
+// commencent : un tournoi du 17 au 19 doit aussi apparaître le 18.
+async function awayCharger(du, au) {
+  const { data, error } = await sb.from("away_events").select("*")
+    .lte("start_date", au).gte("end_date", du).order("start_date");
+  if (error || !data || !data.length) return [];
+  const ids = data.map((e) => e.id);
+  const [{ data: cs }, { data: js }] = await Promise.all([
+    sb.from("away_coaches").select("event_id,coach_person_id").in("event_id", ids),
+    sb.from("away_players").select("event_id,person_id").in("event_id", ids),
+  ]);
+  const parEv = (rows, champ) => {
+    const m = {};
+    for (const r of rows || []) (m[r.event_id] = m[r.event_id] || []).push(r[champ]);
+    return m;
+  };
+  const mc = parEv(cs, "coach_person_id"), mj = parEv(js, "person_id");
+  for (const e of data) { e.coachs = mc[e.id] || []; e.joueurs = mj[e.id] || []; }
+  return data;
+}
+
+function awayCarte(e) {
+  const jours = e.start_date === e.end_date
+    ? frDate(e.start_date)
+    : `du ${frDate(e.start_date)} au ${frDate(e.end_date)}`;
+  const lieu = awayLieu(e);
+  const gens = [...e.coachs.map(awayNom), ...e.joueurs.map(awayNom)];
+  return `<button type="button" class="away-carte" data-id="${e.id}" style="--away-c:${esc(e.color || "#8a4b00")}">
+    <span class="away-k">${esc(AWAY_KINDS[e.kind] || e.kind)}</span>
+    <b class="away-t">${esc(e.label)}</b>
+    ${lieu ? `<span class="away-l">${esc(lieu)}</span>` : ""}
+    <span class="away-d">${esc(jours)}</span>
+    ${gens.length ? `<span class="away-g">${esc(gens.join(" · "))}</span>` : ""}
+  </button>`;
+}
+
+async function renderAwayBande(boxId, du, au) {
+  const box = $(boxId);
+  if (!box) return;
+  const evs = await awayCharger(du, au);
+  box.hidden = !evs.length;
+  if (!evs.length) { box.innerHTML = ""; return; }
+  box.innerHTML = `<span class="away-titre">Hors du club</span>` + evs.map(awayCarte).join("");
+  box.querySelectorAll(".away-carte").forEach((b) =>
+    b.addEventListener("click", () => openAway(evs.find((x) => x.id === b.dataset.id))));
+}
+
+/* ---- Formulaire ---- */
+
+function renderAwayPlayers() {
+  const q = ($("a-search").value || "").trim().toLowerCase();
+  const sel = awayPlayers.filter((p) => awayPlayerSel.has(String(p[0])));
+  let pool = awayPlayers.filter((p) => !awayPlayerSel.has(String(p[0])));
+  if (q) pool = pool.filter((p) => p[1].toLowerCase().includes(q));
+  const shown = [...sel, ...pool.slice(0, 10)];
+  const reste = pool.length - Math.min(pool.length, 10);
+  $("a-players").innerHTML = shown.map(([val, label]) =>
+    `<button type="button" class="chip ${awayPlayerSel.has(String(val)) ? "sel" : ""}" data-val="${val}">${esc(label)}</button>`).join("")
+    + (reste > 0 ? `<span class="muted c-more">+${reste} autres — affinez la recherche</span>` : "");
+  $("a-players").querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
+    const v = String(c.dataset.val);
+    if (awayPlayerSel.has(v)) awayPlayerSel.delete(v); else awayPlayerSel.add(v);
+    renderAwayPlayers();
+    $("a-count").textContent = awayPlayerSel.size ? `(${awayPlayerSel.size})` : "";
+  }));
+}
+
+function openAway(e, dateDefaut) {
+  initAway();
+  $("a-error").hidden = true;
+  $("away-title").textContent = e ? "Modifier le déplacement" : "Nouveau déplacement";
+  $("a-id").value = e ? e.id : "";
+  $("a-kind").value = (e && e.kind) || "tournoi";
+  $("a-label").value = (e && e.label) || "";
+  $("a-place").value = (e && e.place) || "";
+  $("a-scope").value = (e && e.scope) || "";
+  const d = (e && e.start_date) || dateDefaut || isoA(new Date());
+  $("a-start").value = d;
+  $("a-end").value = (e && e.end_date) || d;
+  $("a-color").value = (e && e.color) || "#8a4b00";
+  $("a-notes").value = (e && e.notes) || "";
+  renderChips("a-coaches", people.filter((p) => hasRoleIn(p.id, COACH_ROLES))
+    .map((p) => [p.id, `${p.last_name} ${p.first_name}`]), e && e.coachs);
+  awayPlayers = people.filter((p) => hasRoleIn(p.id, COURSE_ROLES))
+    .map((p) => [p.id, `${p.last_name} ${p.first_name}`])
+    .sort((a, b) => a[1].localeCompare(b[1]));
+  awayPlayerSel = new Set(((e && e.joueurs) || []).map(String));
+  $("a-search").value = "";
+  $("a-count").textContent = awayPlayerSel.size ? `(${awayPlayerSel.size})` : "";
+  renderAwayPlayers();
+  $("a-del").classList.toggle("hidden", !e);
+  $("away-modal").classList.remove("hidden");
+}
+
+async function saveAway(ev) {
+  ev.preventDefault();
+  const err = $("a-error"); err.hidden = true;
+  const dire = (m) => { err.textContent = m; err.hidden = false; };
+  const label = $("a-label").value.trim();
+  const du = $("a-start").value, au = $("a-end").value;
+  if (label.length < 2) return dire("Donne un intitulé (deux caractères au moins).");
+  if (!du || !au) return dire("Les deux dates sont nécessaires.");
+  if (au < du) return dire("La date de fin est avant la date de début.");
+
+  const champs = {
+    kind: $("a-kind").value, label, place: $("a-place").value.trim() || null,
+    scope: $("a-scope").value || null, start_date: du, end_date: au,
+    color: $("a-color").value, notes: $("a-notes").value.trim() || null,
+  };
+  const id = $("a-id").value;
+  let evId = id;
+  if (id) {
+    const { error } = await sb.from("away_events").update(champs).eq("id", id);
+    if (error) return dire(error.message);
+    // Les participations se réécrivent en entier : plus simple et plus sûr que
+    // de calculer un différentiel, et ces tables sont minuscules.
+    await Promise.all([
+      sb.from("away_coaches").delete().eq("event_id", id),
+      sb.from("away_players").delete().eq("event_id", id),
+    ]);
+  } else {
+    const { data, error } = await sb.from("away_events").insert(champs).select("id").single();
+    if (error) return dire(error.message);
+    evId = data.id;
+  }
+  const coachs = chipValues("a-coaches").map((cid) => ({ event_id: evId, coach_person_id: cid }));
+  const joueurs = [...awayPlayerSel].map((pid) => ({ event_id: evId, person_id: pid }));
+  if (coachs.length) { const { error } = await sb.from("away_coaches").insert(coachs); if (error) return dire(error.message); }
+  if (joueurs.length) { const { error } = await sb.from("away_players").insert(joueurs); if (error) return dire(error.message); }
+  $("away-modal").classList.add("hidden");
+  await refreshAwayBandes();
+}
+
+async function deleteAway() {
+  const id = $("a-id").value;
+  if (!id) return;
+  if (!(await uiConfirm(`Supprimer le déplacement « ${$("a-label").value.trim()} » ?`))) return;
+  const { error } = await sb.from("away_events").delete().eq("id", id);
+  if (error) { uiAlert(error.message); return; }
+  $("away-modal").classList.add("hidden");
+  await refreshAwayBandes();
+}
+
+// On rafraîchit le bandeau de l'onglet visible ; l'autre se recalculera à sa
+// prochaine ouverture, puisque les deux chargent à chaque changement de date.
+async function refreshAwayBandes() {
+  const visible = (id) => { const v = $(id); return v && v.closest(".view") && !v.closest(".view").classList.contains("hidden"); };
+  if (visible("resa-grid")) {
+    const d = $("resa-date").value;
+    if (d) await renderAwayBande("resa-away", d, d);
+  }
+  if (visible("cs-list")) await renderAwayCours();
+}
+
+// Planning des cours : le bandeau suit le jour ou la semaine affichés.
+async function renderAwayCours() {
+  const d = $("cs-date") && $("cs-date").value;
+  if (!d) return;
+  const semaine = $("cs-week") && !$("cs-week").classList.contains("hidden");
+  if (!semaine) return renderAwayBande("cs-away", d, d);
+  const lundi = mondayOf(d);
+  const fin = new Date(lundi + "T00:00:00");
+  fin.setDate(fin.getDate() + 6);
+  return renderAwayBande("cs-away", lundi, isoA(fin));
+}
+
+function initAway() {
+  if (awayBound) return;
+  awayBound = true;
+  $("away-close").addEventListener("click", () => $("away-modal").classList.add("hidden"));
+  $("away-modal").addEventListener("click", (e) => { if (e.target === $("away-modal")) $("away-modal").classList.add("hidden"); });
+  $("away-form").addEventListener("submit", saveAway);
+  $("a-del").addEventListener("click", deleteAway);
+  $("a-search").addEventListener("input", renderAwayPlayers);
+  // Une date de fin avant le début n'a pas de sens : elle suit le début tant
+  // qu'on ne l'a pas réglée à la main, au lieu d'être refusée à l'envoi.
+  $("a-start").addEventListener("change", () => {
+    if (!$("a-end").value || $("a-end").value < $("a-start").value) $("a-end").value = $("a-start").value;
   });
 }
