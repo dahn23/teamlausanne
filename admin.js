@@ -21508,8 +21508,12 @@ async function suiviPlanifier(kind) {
   const libelle = `${SUIVI_TITRE_CAL[kind]}${nom ? " — " + nom : ""}`;
   // L'événement d'abord : si le calendrier refuse, on n'a pas de ligne de
   // suivi qui prétendrait qu'un rendez-vous est posé.
+  // Pas de member_id : malgré son nom, cette colonne pointe vers pm_members
+  // (les membres du Project Manager), pas vers people. Y mettre un joueur fait
+  // échouer l'insertion sur la clé étrangère. Le joueur est nommé dans le
+  // titre, et le lien dur vit sur la ligne de suivi.
   const { data: ev, error: eEv } = await sb.from("cal_events")
-    .insert({ kind: "evenement", title: libelle, start_date: jour, end_date: jour, member_id: personId })
+    .insert({ kind: "evenement", title: libelle, start_date: jour, end_date: jour })
     .select("id").single();
   if (eEv) { uiAlert("Calendrier : " + eEv.message); return; }
   const { error } = await sb.from("suivi_contacts").insert({
