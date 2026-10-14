@@ -160,6 +160,30 @@ coachs:
       "Débuts sur les tournois internationaux.",
       "Intervient en Kids Tennis, dans les groupes Club et sur les stages.",
     ]},
+
+  // Seul coach de l'équipe à ne pas enseigner le tennis : pas de bloc
+  // « Classement », qui n'aurait aucun sens pour un préparateur physique.
+  // La fiche ne l'affiche pas quand la liste est absente.
+  { slug: "andreas-egger", role: "Coach physique", nom: "Andreas Egger",
+    resume: "Préparateur physique, il accompagne les joueurs toute la saison et les pousse à se surpasser au quotidien.",
+    tags: ["Sport-études & Pro", "Compétition", "Performance"],
+    bio: [
+      "Titulaire d'un Bachelor en sciences du mouvement et du sport de l'Université de Lausanne, Andreas a poursuivi avec deux années de Master en sport, puis une formation de Personal Trainer.",
+      "D'origine norvégienne et passionné de sport depuis l'enfance, il a pratiqué et enseigné le football avant d'évoluer en biathlon au niveau national élite, chez les juniors puis chez les adultes. Il poursuit aujourd'hui la compétition en amateur.",
+      "À la Team Lausanne Academy, Andreas accompagne nos joueurs dans leur préparation physique tout au long de la saison et leur transmet sa passion. Son objectif : les aider à se surpasser au quotidien et leur donner les meilleures chances d'atteindre leurs objectifs.",
+    ],
+    formations: [
+      "Bachelor en sciences du mouvement et du sport, Université de Lausanne.",
+      "Deux années de Master en sport.",
+      "Formation de Personal Trainer.",
+    ],
+    parcours: [
+      "D'origine norvégienne, passionné de sport depuis l'enfance.",
+      "A pratiqué et enseigné le football.",
+      "Biathlon au niveau national élite, chez les juniors puis chez les adultes.",
+      "Poursuit la compétition en amateur.",
+      "Assure la préparation physique des joueurs de l'académie tout au long de la saison.",
+    ]},
 ],
 
 // Droit à l'image : même mention au bas des quatre filières sans contrat signé
