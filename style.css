@@ -795,18 +795,25 @@ input.pd-native{display:none}
 .cl-l{font-size:.88rem;line-height:1.5}
 .cl-h{margin:18px 0 8px;font-size:.95rem;color:var(--blue-ink)}
 .cl-h:first-of-type{margin-top:4px}
-/* Les créneaux loués : une vraie table, parce qu'on y compare des colonnes. */
-.cl-rent-wrap{overflow-x:auto}
-.cl-rent{width:100%;border-collapse:collapse;font-size:.86rem;min-width:720px}
-.cl-rent th{text-align:left;padding:4px 6px;color:var(--muted);font-weight:600;font-size:.78rem;white-space:nowrap}
-.cl-rent td{padding:3px 6px;vertical-align:middle}
-.cl-rent input,.cl-rent select{width:100%;box-sizing:border-box;padding:6px 8px;
-  border:1px solid var(--line);border-radius:8px;font:inherit;font-size:.86rem;color:var(--ink)}
-.cl-rent .cl-r-season{min-width:86px}
-.cl-rent .cl-r-hours,.cl-rent .cl-r-rate,.cl-rent .cl-r-amount{min-width:78px}
-.cl-r-calc{white-space:nowrap;font-weight:600;color:var(--blue-ink);font-variant-numeric:tabular-nums}
-.cl-r-del{border:0;background:transparent;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0 6px}
+/* Les créneaux loués : une CARTE par créneau. En tableau de dix colonnes, les
+   champs étaient illisibles dans une fenêtre étroite et invisables au doigt.
+   Chaque champ porte son étiquette, et la grille se replie toute seule. */
+.cl-rents{display:flex;flex-direction:column;gap:10px}
+.cl-rent-row{display:grid;gap:8px 10px;background:#f8fafd;border:1px solid var(--line);
+  border-radius:12px;padding:12px;
+  grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
+.cl-f{display:flex;flex-direction:column;gap:3px;font-size:.78rem;color:var(--muted);min-width:0}
+.cl-f input,.cl-f select{width:100%;box-sizing:border-box;padding:9px 10px;
+  border:1px solid var(--line);border-radius:9px;font:inherit;font-size:.92rem;color:var(--ink);background:#fff}
+.cl-r-pied{grid-column:1/-1;display:flex;align-items:center;gap:10px;
+  border-top:1px solid var(--line);padding-top:8px;margin-top:2px}
+.cl-r-calc{flex:1;font-size:1rem;color:var(--blue-ink);font-variant-numeric:tabular-nums}
+.cl-r-del{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:.84rem;font-weight:600}
 .cl-r-del:hover{color:#c0392b}
+/* Reprise depuis la Saison hiver. */
+.cl-reprise{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:#eef2fc;border:1px solid #cdd8f5;border-radius:12px;padding:12px 14px;margin-bottom:4px}
+.cl-reprise input{width:120px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit}
 .cl-rent-foot{display:flex;align-items:center;gap:10px;margin:8px 0 4px}
 .cl-total{color:var(--blue-ink);font-size:1rem;white-space:nowrap}
 /* La nature du locataire : lue d'un coup d'œil dans la liste. */

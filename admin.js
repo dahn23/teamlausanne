@@ -20910,25 +20910,63 @@ function renderTenants() {
 
 /* ---- Les créneaux, dans la fiche ---- */
 
+// Une CARTE par créneau, et non une ligne de tableau : à dix colonnes dans une
+// fenêtre étroite, les champs devenaient illisibles — et sur téléphone,
+// impossibles à viser. Chaque champ porte ici son étiquette et la carte se
+// replie en une colonne quand la place manque.
 function locRentRow(r) {
-  const tr = document.createElement("tr");
-  tr.className = "cl-rent-row";
+  const div = document.createElement("div");
+  div.className = "cl-rent-row";
   const v = (x) => (x == null ? "" : String(x));
-  tr.innerHTML = `
-    <td><input class="cl-r-season" value="${esc(v(r.season_label) || "2026/27")}" /></td>
-    <td><select class="cl-r-day"><option value="">—</option>${LOC_JOURS.map((j, i) =>
-      `<option value="${i + 1}"${Number(r.weekday) === i + 1 ? " selected" : ""}>${j}</option>`).join("")}</select></td>
-    <td><input class="cl-r-start" type="time" value="${esc(v(r.start_time).slice(0, 5))}" /></td>
-    <td><input class="cl-r-end" type="time" value="${esc(v(r.end_time).slice(0, 5))}" /></td>
-    <td><input class="cl-r-courts" value="${esc(v(r.courts))}" placeholder="5, 6" /></td>
-    <td><input class="cl-r-hours" type="number" step="0.25" min="0" value="${esc(v(r.hours))}" /></td>
-    <td><input class="cl-r-rate" type="number" step="0.05" min="0" value="${esc(v(r.rate_chf))}" /></td>
-    <td><input class="cl-r-amount" type="number" step="0.05" min="0" value="${esc(v(r.amount_chf))}" placeholder="auto" /></td>
-    <td class="cl-r-calc"></td>
-    <td><button type="button" class="cl-r-del ghost" aria-label="Retirer ce créneau">×</button></td>`;
-  tr.querySelector(".cl-r-del").addEventListener("click", () => { tr.remove(); locMajTotal(); });
-  tr.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", locMajTotal));
-  return tr;
+  div.innerHTML = `
+    <label class="cl-f"><span>Saison</span><input class="cl-r-season" value="${esc(v(r.season_label) || "2026/27")}" /></label>
+    <label class="cl-f"><span>Jour</span><select class="cl-r-day"><option value="">—</option>${LOC_JOURS.map((j, i) =>
+      `<option value="${i + 1}"${Number(r.weekday) === i + 1 ? " selected" : ""}>${j}</option>`).join("")}</select></label>
+    <label class="cl-f"><span>De</span><input class="cl-r-start" type="time" value="${esc(v(r.start_time).slice(0, 5))}" /></label>
+    <label class="cl-f"><span>À</span><input class="cl-r-end" type="time" value="${esc(v(r.end_time).slice(0, 5))}" /></label>
+    <label class="cl-f"><span>Courts</span><input class="cl-r-courts" value="${esc(v(r.courts))}" placeholder="5, 6" /></label>
+    <label class="cl-f"><span>Heures</span><input class="cl-r-hours" type="number" step="0.25" min="0" value="${esc(v(r.hours))}" /></label>
+    <label class="cl-f"><span>Tarif/h</span><input class="cl-r-rate" type="number" step="0.05" min="0" value="${esc(v(r.rate_chf))}" /></label>
+    <label class="cl-f"><span>Forfait</span><input class="cl-r-amount" type="number" step="0.05" min="0" value="${esc(v(r.amount_chf))}" placeholder="auto" /></label>
+    <div class="cl-r-pied"><b class="cl-r-calc"></b>
+      <button type="button" class="cl-r-del ghost" aria-label="Retirer ce créneau">✕ Retirer</button></div>`;
+  div.querySelector(".cl-r-del").addEventListener("click", () => { div.remove(); locMajTotal(); });
+  div.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", locMajTotal));
+  return div;
+}
+
+// Reprise depuis le planning d'hiver. Le prix vient de la base
+// (winter_rentals_for, db/153), qui lit le même barème que la grille : la
+// facture ne peut donc pas contredire ce que l'écran affiche.
+async function locReprendreHiver() {
+  const err = $("cl-error"); err.hidden = true;
+  const nom = $("cl-name").value.trim();
+  const saison = $("cl-hiver-saison").value.trim();
+  if (nom.length < 2) { err.textContent = "Écris d'abord le nom, tel qu'il est tapé dans les cases du planning d'hiver."; err.hidden = false; return; }
+  const btn = $("cl-hiver"); btn.disabled = true; btn.textContent = "Recherche…";
+  const { data, error } = await sb.rpc("winter_rentals_for", { p_name: nom, p_season: saison });
+  btn.disabled = false; btn.textContent = "⟲ Reprendre";
+  if (error) { err.textContent = error.message; err.hidden = false; return; }
+  if (!data || !data.length) {
+    err.textContent = `Aucun créneau payant au nom de « ${nom} » dans le planning ${saison}. Vérifie l'orthographe exacte dans les cases, et que les cases ne sont pas en « gratuit ».`;
+    err.hidden = false; return;
+  }
+  const total = data.reduce((a, x) => a + Number(x.amount_chf || 0), 0);
+  const dejaLa = $("cl-rentals").querySelectorAll(".cl-rent-row").length > 0;
+  if (!(await uiConfirm(
+    `${data.length} créneau(x) trouvé(s) pour « ${nom} » — ${locChf(total)}.\n\n`
+    + data.map((x) => "· " + x.label + " : " + locChf(Number(x.amount_chf))).join("\n")
+    + (dejaLa ? "\n\nLes créneaux actuellement saisis seront remplacés." : "")))) return;
+  const corps = $("cl-rentals");
+  corps.innerHTML = "";
+  for (const x of data) {
+    corps.appendChild(locRentRow({
+      season_label: $("cl-rentals").dataset.saison || "2026/27",
+      weekday: x.weekday, start_time: x.start_time, end_time: x.end_time,
+      courts: x.courts, hours: x.hours, rate_chf: null, amount_chf: x.amount_chf,
+    }));
+  }
+  locMajTotal();
 }
 
 function locLireRow(tr) {
@@ -21160,6 +21198,7 @@ function initTenants() {
   $("cl-new").addEventListener("click", () => openTenant(null));
   $("cl-kind").addEventListener("change", locMajNature);
   $("cl-rent-add").addEventListener("click", () => { $("cl-rentals").appendChild(locRentRow({})); locMajTotal(); });
+  $("cl-hiver").addEventListener("click", locReprendreHiver);
   $("cl-inactifs").addEventListener("change", () => { locInactifs = $("cl-inactifs").checked; renderTenantFilters(); renderTenants(); });
   $("cl-facturer").addEventListener("click", facturerTenant);
   $("cl-person-x").addEventListener("click", () => { $("cl-person").value = ""; $("cl-person-nom").textContent = ""; });

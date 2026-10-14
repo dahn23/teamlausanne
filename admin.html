@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=318" />
+  <link rel="stylesheet" href="style.css?v=319" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -3052,18 +3052,23 @@ Team Lausanne Tennis</textarea></label>
       </div>
 
       <h3 class="cl-h">Créneaux loués <span id="cl-saison-lbl" class="muted"></span></h3>
-      <p class="muted" style="font-size:.85rem;margin:-4px 0 8px">
+      <!-- Reprise depuis le planning d'hiver : le nom écrit dans les cases
+           (« TC Montchoisi ») suffit à retrouver les créneaux ET leur prix. -->
+      <div class="cl-reprise">
+        <div>
+          <b>Reprendre depuis la Saison hiver</b>
+          <p class="muted" style="margin:2px 0 0;font-size:.84rem">
+            Cherche le nom ci-dessus dans les cases du planning d'hiver et remplit les créneaux,
+            au tarif que la grille affiche déjà.</p>
+        </div>
+        <span class="spacer"></span>
+        <input id="cl-hiver-saison" value="2026-2027" aria-label="Saison d'hiver" />
+        <button type="button" id="cl-hiver">⟲ Reprendre</button>
+      </div>
+      <p class="muted" style="font-size:.85rem;margin:10px 0 8px">
         Un montant forfaitaire l'emporte sur « heures × tarif ». Laissez-le vide pour que le total se calcule.
       </p>
-      <div class="cl-rent-wrap">
-        <table class="cl-rent">
-          <thead>
-            <tr><th>Saison</th><th>Jour</th><th>De</th><th>À</th><th>Courts</th>
-                <th>Heures</th><th>Tarif/h</th><th>Forfait</th><th>Montant</th><th></th></tr>
-          </thead>
-          <tbody id="cl-rentals"></tbody>
-        </table>
-      </div>
+      <div id="cl-rentals" class="cl-rents"></div>
       <div class="cl-rent-foot">
         <button type="button" id="cl-rent-add" class="ghost">+ Ajouter un créneau</button>
         <span class="spacer"></span>
