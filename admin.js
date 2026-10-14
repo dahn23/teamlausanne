@@ -366,7 +366,12 @@ async function init(roles) {
   // s'ouvre sans pouvoir se refermer.
   const isMobile = () => window.matchMedia("(max-width:768px)").matches;
   let sideStored = null; try { sideStored = localStorage.getItem("sideCollapsed"); } catch (_) {}
-  if (sideStored === "1" || (sideStored === null && isMobile())) sideEl.classList.add("collapsed");
+  // Sur téléphone le menu est un TIROIR : il doit toujours démarrer fermé.
+  // Avant, un « déplié » mémorisé (choisi un jour sur grand écran, ou en
+  // tournant le téléphone) rouvrait le tiroir par-dessus toute la page à
+  // chaque ouverture de la console, sans qu'on voie comment s'en sortir.
+  // La préférence ne vaut donc que pour les écrans larges.
+  if (isMobile() || sideStored === "1") sideEl.classList.add("collapsed");
   $("side-toggle").addEventListener("click", () => {
     sideEl.classList.toggle("collapsed");
     try { localStorage.setItem("sideCollapsed", sideEl.classList.contains("collapsed") ? "1" : "0"); } catch (_) {}

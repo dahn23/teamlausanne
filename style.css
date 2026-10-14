@@ -4992,7 +4992,32 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
      22 px de marge de chaque côté, sur 375 px d'écran, c'est un quart de
      la largeur perdue avant d'avoir rien affiché. */
   .admin-main { padding: 12px 12px calc(16px + env(safe-area-inset-bottom)); }
-  .topbar { padding-left: calc(12px + env(safe-area-inset-left)); padding-right: calc(12px + env(safe-area-inset-right)); }
+
+  /* ---- 2 bis. L'encoche et la barre d'état -------------------------
+     Installée sur l'écran d'accueil, la console s'affiche en plein écran
+     (viewport-fit=cover) : sans marge haute, l'heure, la 5G et la
+     batterie se superposaient au logo et au nom. */
+  .topbar { padding-top: calc(10px + env(safe-area-inset-top));
+    padding-left: calc(12px + env(safe-area-inset-left));
+    padding-right: calc(12px + env(safe-area-inset-right)); }
+
+  /* La hauteur du contenu se CALCULAIT : 100dvh − 56 px, en supposant une
+     barre du haut de 56 px. Elle n'en fait plus 56 — les boutons sont
+     passés à 44 px de haut, et l'encoche s'ajoute par-dessus. Le bas de
+     la page partait donc hors de l'écran. On ne calcule plus : la barre
+     prend ce qu'il lui faut, le contenu prend le reste. */
+  #console { height: 100dvh; min-height: 0; display: flex; flex-direction: column; }
+  .admin-body { height: auto; flex: 1; min-height: 0; }
+
+  /* ---- 2 ter. Une barre du haut qui tient sur la largeur -----------
+     Le nom complet pouvait occuper 58 % de l'écran, et poussait le reste
+     sous la barre d'état. L'icône suffit : le profil s'ouvre au toucher,
+     et le nom s'y lit en entier. */
+  .who-btn { max-width: 44px; padding-left: 0; padding-right: 0; font-size: 0; }
+  .who-btn::before { content: "👤"; font-size: 1.1rem; }
+  #brand-role { display: none; }
+  .space-switch { font-size: .76rem; padding: 6px 8px; }
+  .topbar { gap: 6px; }
   .crm-head { margin-bottom: 12px; gap: 8px; }
   .crm-head h1 { font-size: 1.25rem; }
   .crm-lead { font-size: .88rem; }
