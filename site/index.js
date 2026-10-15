@@ -2051,7 +2051,9 @@ document.addEventListener("click", (e) => {
   // clique le logo apres avoir descendu toute la page d'accueil n'obtiendrait
   // donc aucune reponse — le bouton paraitrait casse. On remonte.
   const dejaLa = (cible) => (location.hash.slice(1) || DEFAULT_WORLD) === cible;
-  const remonter = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  // Saut net, et non defilement anime : c'est ce que route() fait deja a chaque
+  // changement de page, et le retour a l'accueil doit se comporter pareil.
+  const remonter = () => window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   // Le logo : retour a l'accueil du monde ouvert.
   const accueil = e.target.closest("#nav-accueil");
   if (accueil) {
