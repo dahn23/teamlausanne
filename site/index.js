@@ -328,6 +328,37 @@ function sectionHTML(sec) {
         <p class="actus-acc-tout"><a class="btn-cta" href="#actualites">Toutes les actualités →</a></p>
       </section>`;
 
+    // Les programmes, tous visibles, groupes par intention. Remplace le
+    // carrousel : on ne compare pas ce qu'on ne voit pas, et un parent qui
+    // arrive cherche a situer son enfant, pas a faire defiler des photos.
+    case "progmap":
+      return `<section class="wsec progmap"${sec.anchor ? ` id="${esc(sec.anchor)}"` : ""}>
+        <div class="progmap-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.sub ? `<p class="progmap-sub">${esc(sec.sub)}</p>` : ""}
+        </div>
+        ${sec.groupes.map((g) => `<div class="progmap-groupe">
+          <div class="progmap-gh">
+            <h3>${esc(g.titre)}</h3>
+            ${g.pour ? `<p>${esc(g.pour)}</p>` : ""}
+          </div>
+          <div class="progmap-grille">${g.items.map((o) => `
+            <a class="progcard" href="${esc(o.href)}">
+              <span class="progcard-media">
+                <img src="${esc(o.photo)}" alt="" loading="lazy" />
+                ${o.age ? `<span class="progcard-age">${esc(o.age)}</span>` : ""}
+              </span>
+              <span class="progcard-txt">
+                <b>${esc(o.name)}</b>
+                ${o.quoi ? `<span class="progcard-quoi">${esc(o.quoi)}</span>` : ""}
+                <span class="progcard-go">En savoir plus →</span>
+              </span>
+            </a>`).join("")}</div>
+        </div>`).join("")}
+        ${sec.note ? `<p class="progmap-note">${esc(sec.note)}</p>` : ""}
+      </section>`;
+
     case "features":
       return `<section class="wsec">${sec.title ? `<h2>${esc(sec.title)}</h2>` : ""}
         <div class="feature-grid">${sec.items.map(([h, t]) =>
