@@ -1,0 +1,10 @@
+{
+  "name": "teamlausanne-site",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Site public teamlausanne.ch. Aucune dépendance : le build n'utilise que Node, et contenu.js est lu tel quel.",
+  "scripts": {
+    "build": "node build.mjs"
+  }
+}

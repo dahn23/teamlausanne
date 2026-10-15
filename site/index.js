@@ -86,6 +86,10 @@ const PARTENAIRES_ACADEMIE = ["garage-plaine", "bs-architectes"]
 // lire CE fichier-là à son adresse publique pour se constituer sa base de
 // connaissances : une seule source, donc jamais de réponse à côté du site.
 import { CONTENU } from "./contenu.js";
+// La table des adresses est partagée avec build.mjs : une seule liste pour le
+// serveur qui fabrique les pages et pour le navigateur qui les relie. Si elles
+// divergeaient, un lien mènerait à une page qui n'a pas été écrite.
+import { SLUGS, CLE_DE_SLUG } from "./adresses.js";
 
 const MENTION_IMAGE = CONTENU.mention_image;
 const COACHS = CONTENU.coachs;
@@ -1609,8 +1613,49 @@ function majMentionImage(pageId) {
   }
 }
 
-function route() {
+// ---- Adresses ----
+// Le site a longtemps routé par #ancre. Une ancre n'étant jamais envoyée au
+// serveur, il n'avait qu'UNE adresse indexable pour quatorze pages. Les
+// filières ont désormais un vrai chemin (/sport-etudes), fabriqué au
+// déploiement par build.mjs.
+//
+// Les deux cohabitent, et c'est voulu : le chemin d'abord, l'ancre ensuite.
+// Des années de liens en #kids circulent dans des mails, des messages et des
+// favoris — ils doivent continuer de marcher. Au chargement, on les réécrit
+// silencieusement vers la vraie adresse (voir upgradeAncre).
+//
+// Les actualités restent en ancre : leurs pages ne sont pas fabriquées au
+// déploiement puisqu'elles viennent de la base, et un chemin sans fichier
+// derrière renverrait une 404.
+const cheminDe = (cle) => (cle in SLUGS ? "/" + SLUGS[cle] : null);
+
+function cleCourante() {
+  const chemin = location.pathname.replace(/^\/+|\/+$/g, "");
+  if (chemin && CLE_DE_SLUG[chemin]) return CLE_DE_SLUG[chemin];
+  if (!chemin) return location.hash.replace("#", "");
+  return location.hash.replace("#", "");
+}
+
+// Aller à une page. Un vrai chemin quand elle en a un, l'ancre sinon.
+function allerA(cle) {
+  const chemin = cheminDe(cle);
+  if (chemin === null) { location.hash = cle; return; }   // actualités, ancres
+  history.pushState(null, "", chemin);
+  route();
+}
+
+// Un vieux lien « /#kids » arrive sur la racine avec une ancre. On le remet
+// sur /kids-tennis sans recharger ni ajouter d'entrée à l'historique : le
+// bouton Retour doit ramener d'où l'on vient, pas sur l'ancienne adresse.
+function upgradeAncre() {
   const h = location.hash.replace("#", "");
+  if (!h || !(h in SLUGS)) return;
+  const chemin = cheminDe(h);
+  if (chemin && location.pathname !== chemin) history.replaceState(null, "", chemin);
+}
+
+function route() {
+  const h = cleCourante();
   hit("site", h || "accueil");
   majMentionImage(h);
   // Les actualités : la liste, et un article par son slug. Elles ne vivent pas
@@ -1893,7 +1938,7 @@ function annonceAccueil() {
   });
   el.querySelector(".annonce-cta").addEventListener("click", () => {
     el.remove();                       // on ne la referme pas définitivement :
-    location.hash = ANNONCE.cible;     // elle a fait son travail pour cette fois.
+    allerA(ANNONCE.cible);     // elle a fait son travail pour cette fois.
   });
 }
 
@@ -2161,7 +2206,7 @@ document.addEventListener("click", (e) => {
   // le second geste ne fait rien. Le resultat est le meme dans tous les cas —
   // en haut de l'accueil — et aucune condition ne peut se tromper.
   const remonter = () => window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
-  const rentrer = (monde) => { swFermer(); location.hash = monde; remonter(); };
+  const rentrer = (monde) => { swFermer(); allerA(monde); remonter(); };
   const accueil = e.target.closest("#nav-accueil");
   if (accueil) {
     // Ctrl/Cmd/Maj-clic : on laisse le navigateur ouvrir son onglet.
@@ -2191,7 +2236,7 @@ document.addEventListener("click", (e) => {
   }
   if (e.target.closest("[data-calp-plus]")) { calpTout = true; calpRendre(); return; }
   const cpage = e.target.closest("[data-scroll-page]");
-  if (cpage) { location.hash = cpage.dataset.scrollPage; return; }
+  if (cpage) { allerA(cpage.dataset.scrollPage); return; }
   // Fiches des coachs. La fermeture passe avant l'ouverture : le voile couvre la
   // page, et un clic dessus ne doit pas rouvrir la carte qui se trouve dessous.
   if (e.target.closest("[data-cch-fermer]")) { coachFermer(); return; }
@@ -2211,7 +2256,7 @@ document.addEventListener("click", (e) => {
     // La valeur est la clef de la page visee : toute page existante est
     // atteignable, sans ajouter un cas ici a chaque nouveau bouton.
     const t = cta.dataset.cta;
-    if (DETAILS[t]) location.hash = t;
+    if (DETAILS[t]) allerA(t);
     return;
   }
   const plan = e.target.closest("[data-plan]");
@@ -2270,7 +2315,7 @@ document.addEventListener("click", (e) => {
     return;
   }
   const back = e.target.closest("[data-back]");
-  if (back) { location.hash = back.dataset.back; return; }
+  if (back) { allerA(back.dataset.back); return; }
   // navigation entre mondes desactivee : ce site ne montre que le tournoi
 });
 
@@ -2353,7 +2398,25 @@ document.addEventListener("submit", async (e) => {
   $("en-done").classList.remove("hidden");
 });
 
+// Un lien « #kids » resté dans le HTML ou dans un mail doit mener à la vraie
+// adresse. On l'intercepte avant que le navigateur ne pose l'ancre : sinon
+// l'URL afficherait /sport-etudes#kids, deux adresses pour une page.
+document.addEventListener("click", (e) => {
+  if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+  const a = e.target.closest('a[href^="#"]');
+  if (!a) return;
+  const cle = a.getAttribute("href").slice(1);
+  if (!(cle in SLUGS)) return;                 // ancre de page, pas une route
+  e.preventDefault();
+  allerA(cle);
+});
+
+// Bouton Précédent / Suivant du navigateur : avec des vrais chemins, c'est
+// « popstate » qui parle, plus « hashchange ».
+window.addEventListener("popstate", route);
 window.addEventListener("hashchange", route);
+
+upgradeAncre();
 route();
 
 // Arrivée depuis une autre page avec ?at=<ancre> : défiler vers la section.
@@ -2880,7 +2943,7 @@ async function renderActus() {
 async function renderActu(slug) {
   const tous = await actusCharger();
   const a = tous.find((x) => x.slug === slug);
-  if (!a) { location.hash = "actualites"; return; }
+  if (!a) { allerA("actualites"); return; }
 
   document.body.dataset.world = "academie";
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === "academie"));
