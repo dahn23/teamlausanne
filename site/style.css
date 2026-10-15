@@ -781,7 +781,28 @@ body[data-world="tournoi"]{--scrim:rgba(6,12,45,.68)}
 /* Barre de navigation + switcher */
 .nav{display:flex;align-items:center;gap:16px;padding:10px 20px;background:#fff;
   border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
-.nav-brand{display:flex;align-items:center}
+/* Le logo est un lien vers l'accueil : il doit en avoir l'air au survol, et
+   montrer le cadre de focus au clavier. */
+.nav-brand{display:flex;align-items:center;text-decoration:none;border-radius:10px}
+.nav-brand:hover .nav-logo{opacity:.82}
+/* Bouton scinde : le nom ramene a l'accueil, le chevron ouvre les sections.
+   La pastille garde son aspect d'un seul tenant — l'enveloppe porte le fond et
+   l'arrondi, les deux moitiees ne portent que leur zone de clic. */
+.sw.sw-split{padding:0;display:inline-flex;align-items:stretch;overflow:hidden}
+.sw.sw-split:hover{background:transparent}
+.sw.sw-split.active:hover{background:var(--accent)}
+.sw-part,.sw-chev{background:transparent;border:0;margin:0;color:inherit;font:inherit;
+  font-weight:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.sw-part{padding:9px 14px 9px 18px}
+.sw-chev{padding:0 13px;position:relative}
+/* Le trait qui separe les deux moitiees : assez discret pour ne pas casser la
+   pastille, assez visible pour annoncer qu'il y a deux gestes. */
+.sw-chev::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:1px;
+  background:currentColor;opacity:.28}
+.sw-part:hover,.sw-chev:hover{background:rgba(20,26,46,.07)}
+.sw.sw-split.active .sw-part:hover,.sw.sw-split.active .sw-chev:hover{background:rgba(0,0,0,.12)}
+.sw-chev svg{transition:transform .18s ease}
+.sw-wrap.open .sw-chev svg{transform:rotate(180deg)}
 .nav-logo{height:44px;width:auto;object-fit:contain;transition:opacity .2s}
 .switcher{flex:1;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 /* Barre de navigation : Acumin Pro en casse normale. La charte range les
@@ -854,6 +875,10 @@ body[data-world="academie"] .sw.active{color:var(--fluo-ink)}
      fixee, reste enfermee dans ce calque. On le souleve le temps de l'ouverture
      pour qu'elle passe devant le contenu de la page. */
   body.menu-ouvert .nav{z-index:100}
+  /* Les deux moities de la pastille restent deux cibles du doigt distinctes :
+     44px de haut, et de quoi viser le chevron sans toucher le nom. */
+  .sw-part{padding:0 12px 0 15px;min-height:44px;font-size:.85rem}
+  .sw-chev{padding:0 15px;min-height:44px}
   body.menu-ouvert{overflow:hidden}
 }
 /* Sections Business / Club ajoutées */

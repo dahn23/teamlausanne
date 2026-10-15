@@ -1067,6 +1067,10 @@ function paintHero({ logo, heroLogo, hero, heroPos, heroVideo, tag, slogan, desc
   // pages d'article prennent donc un voile renforcé, appuyé à gauche.
   $("hero").classList.toggle("hero-art", !!titreArticle);
   $("nav-logo").src = logo;
+  // Le logo ramene a l'accueil du monde ouvert, pas toujours a celui de
+  // l'Academy. Les quatre appelants de paintHero() marquent l'onglet actif
+  // juste avant : c'est lui qui sait dans quel monde on se trouve.
+  $("nav-accueil")?.setAttribute("href", "#" + (document.querySelector(".sw.active")?.dataset.world || "academie"));
   $("hero-bg").style.backgroundImage = `url("${hero}")`;
   $("hero-bg").style.backgroundPosition = heroPos || "center";   // point d'intérêt (visages) par page
   $("hero-logo").src = heroLogo || logo;   // hero sur photo : version blanche si le monde en a une
@@ -2006,13 +2010,13 @@ async function loadGzWinners(seasonId) {
 function swFermer() {
   document.querySelectorAll(".sw-wrap.open").forEach((w) => {
     w.classList.remove("open");
-    w.querySelector(".sw")?.setAttribute("aria-expanded", "false");
+    w.querySelector("[data-menu-ouvrir]")?.setAttribute("aria-expanded", "false");
   });
   document.body.classList.remove("menu-ouvert");
 }
 function swOuvrir(wrap) {
   wrap.classList.add("open");
-  wrap.querySelector(".sw")?.setAttribute("aria-expanded", "true");
+  wrap.querySelector("[data-menu-ouvrir]")?.setAttribute("aria-expanded", "true");
   // Au telephone le panneau est une feuille plein ecran : la page derriere ne
   // doit pas defiler sous le doigt.
   document.body.classList.add("menu-ouvert");
@@ -2021,7 +2025,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   const wrap = document.querySelector(".sw-wrap.open");
   if (!wrap) return;
-  const bouton = wrap.querySelector(".sw");
+  const bouton = wrap.querySelector("[data-menu-ouvrir]");
   swFermer();
   bouton?.focus();
 });
@@ -2029,6 +2033,16 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("click", (e) => {
   // Fermeture explicite (la croix de la feuille, au telephone).
   if (e.target.closest("[data-menu-fermer]")) { swFermer(); return; }
+  // Le chevron du bouton scinde, et lui seul, ouvre le panneau. Le nom a cote
+  // ramene a l'accueil du monde : deux gestes, deux boutons, aucun des deux ne
+  // change de sens selon la page ou l'on se trouve.
+  const chev = e.target.closest("[data-menu-ouvrir]");
+  if (chev) {
+    const wrap = chev.closest(".sw-wrap"), ouvert = wrap.classList.contains("open");
+    swFermer();
+    if (!ouvert) swOuvrir(wrap);
+    return;
+  }
   // Une entree choisie : on referme, puis on laisse le lien ou le bouton agir.
   // Pas de « return » ici : deux entrees de la derniere colonne sont des boutons
   // data-goto / data-scroll, traites plus bas dans ce meme ecouteur.
@@ -2037,17 +2051,7 @@ document.addEventListener("click", (e) => {
   const sw = e.target.closest(".sw[data-world], .flow-step[data-world]");
   if (sw) {
     if (LO_ONLY) return;
-    const wrap = sw.closest(".sw-wrap"), menu = wrap?.querySelector(".sw-menu");
-    const ouvert = wrap?.classList.contains("open");
     swFermer();
-    if (menu) {
-      // L'onglet fait deux choses selon l'endroit ou l'on se trouve : il amene
-      // dans son monde quand on est ailleurs, et montre ses sections quand on
-      // y est deja. Jamais les deux a la fois : on ne jette pas un panneau sur
-      // une page que le visiteur vient tout juste de demander.
-      if (ouvert) return;
-      if (sw.classList.contains("active")) { swOuvrir(wrap); return; }
-    }
     location.hash = sw.dataset.world; return;
   }
   // Clic ailleurs : on referme le panneau ouvert.

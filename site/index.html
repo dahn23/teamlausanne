@@ -13,7 +13,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=135" />
+  <link rel="stylesheet" href="style.css?v=136" />
   <!-- Site public teamlausanne.ch : deux mondes (Academy, Lausanne Open). L'onglet Club renvoie sur www.lstennis.ch.
        Aucune connexion ni réservation ici : l'app (console, portail) vit sur app.teamlausanne.ch.
        Sur le domaine lausanneopen.ch, le script bascule en mode « tournoi seul » (barre et pied de page masqués). -->
@@ -25,16 +25,31 @@
 </head>
 <body class="public" data-world="academie">
   <header class="nav">
-    <div class="nav-brand">
+    <!-- Le logo ramene a l'accueil du monde ouvert. C'est la convention du web,
+         et c'etait le trou du menu precedent : depuis une page de filiere, plus
+         rien ne ramenait a l'accueil. Son adresse est remise a jour par
+         paintHero() a chaque changement de page. -->
+    <a class="nav-brand" id="nav-accueil" href="#academie" aria-label="Retour à l'accueil">
       <img id="nav-logo" class="nav-logo" src="assets/logo-club.webp" alt="" />
-    </div>
+    </a>
     <div class="switcher" aria-label="Choisir un univers">
       <div class="sw-wrap">
         <!-- Club = le TC Lausanne-Sports : site externe, pas de page club ici -->
         <a class="sw sw-ext" href="https://www.lstennis.ch" target="_blank" rel="noopener">TC Lausanne-Sports ↗</a>
       </div>
       <div class="sw-wrap">
-        <button class="sw" data-world="academie" aria-expanded="false" aria-controls="menu-academie">Team Lausanne Academy</button>
+        <!-- Bouton scinde. L'onglet faisait deux choses selon l'endroit ou l'on
+             se trouvait — ramener au monde, ou ouvrir le panneau — et depuis une
+             page de filiere il n'y avait donc plus de retour a l'accueil. Les
+             deux gestes sont separes : le nom ramene a l'accueil, le chevron
+             ouvre les sections. La classe .sw et data-world restent sur
+             l'enveloppe : c'est elle que le script marque « active ». -->
+        <div class="sw sw-split" data-world="academie">
+          <button type="button" class="sw-part">Team Lausanne Academy</button>
+          <button type="button" class="sw-chev" data-menu-ouvrir aria-expanded="false" aria-controls="menu-academie" aria-label="Voir les sections de l'Academy">
+            <svg viewBox="0 0 12 8" width="11" height="8" aria-hidden="true" focusable="false"><path d="M1 1.8 6 6.4 11 1.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
+        </div>
         <!-- Le panneau des sections de l'Academy. Les trois premieres colonnes
              reprennent, mot pour mot, les groupes de la grille des programmes
              de la page d'accueil (section « progmap » dans contenu.js) : le
