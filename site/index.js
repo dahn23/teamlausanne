@@ -1015,6 +1015,12 @@ function paintHero({ logo, heroLogo, hero, heroPos, heroVideo, tag, slogan, desc
   // un mur, et le trait mint se répète sous chaque ligne. Il a donc son propre
   // traitement, posé ici et retiré partout ailleurs.
   $("hero-slogan").classList.toggle("hero-titre-art", !!titreArticle);
+  // Le voile du hero est un dégradé VERTICAL, sombre en bas : il convient aux
+  // pages de filière, dont le texte est bas et court. Le titre d'un article
+  // est plus haut et plus long, et sa photo de couverture est souvent un
+  // portrait — du blanc sur un visage en plein soleil ne se lit pas. Les
+  // pages d'article prennent donc un voile renforcé, appuyé à gauche.
+  $("hero").classList.toggle("hero-art", !!titreArticle);
   $("nav-logo").src = logo;
   $("hero-bg").style.backgroundImage = `url("${hero}")`;
   $("hero-bg").style.backgroundPosition = heroPos || "center";   // point d'intérêt (visages) par page

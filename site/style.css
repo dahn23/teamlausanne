@@ -3448,3 +3448,27 @@ html.bot-ouvert{overflow:hidden}
 @media(max-width:700px){
   .hero-slogan.hero-titre-art{max-width:none;line-height:1.2}
 }
+
+/* Voile renforcé pour les pages d'article.
+   ---------------------------------------------------------------------------
+   Le voile par défaut est un dégradé vertical, sombre en bas : parfait pour
+   une page de filière, dont le titre est court et bas dans le cadre. Un titre
+   d'article est plus haut, plus long, et sa couverture est souvent un
+   portrait — du blanc sur un visage en plein soleil ne se lit pas.
+   On ajoute donc un dégradé HORIZONTAL, appuyé du côté du texte (à gauche),
+   qui laisse la photo respirer à droite. */
+.hero.hero-art .hero-scrim{
+  background:
+    linear-gradient(90deg, rgba(0,34,56,.88) 0%, rgba(0,34,56,.78) 34%,
+                            rgba(0,34,56,.34) 68%, rgba(0,34,56,.10) 100%),
+    linear-gradient(180deg, rgba(0,0,0,.26), rgba(0,0,0,.46));
+}
+/* Le hero d'article n'a pas besoin de toute la hauteur d'une page d'accueil :
+   l'article commence juste en dessous, et on veut y arriver vite. */
+.hero.hero-art{min-height:52vh}
+.hero.hero-art .hero-logo{height:84px;margin-bottom:12px}
+@media(max-width:700px){
+  .hero.hero-art .hero-scrim{
+    background:linear-gradient(180deg, rgba(0,34,56,.52), rgba(0,34,56,.82));
+  }
+}
