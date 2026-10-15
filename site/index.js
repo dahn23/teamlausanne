@@ -1497,7 +1497,11 @@ function route() {
   const h = location.hash.replace("#", "");
   hit("site", h || "accueil");
   majMentionImage(h);
-  if (DETAILS[h] && WORLDS[DETAILS[h].world] && (!LO_ONLY || DETAILS[h].world === "tournoi")) { renderDetail(h); setTitle(DETAILS[h].world, DETAILS[h].title); }
+  // Les actualités : la liste, et un article par son slug. Elles ne vivent pas
+  // dans DETAILS puisqu'elles viennent de la base, pas de contenu.js.
+  if (!LO_ONLY && h === "actualites") { renderActus(); setTitle("academie", "Actualités"); }
+  else if (!LO_ONLY && h.startsWith("actu-")) { renderActu(h.slice(5)); }
+  else if (DETAILS[h] && WORLDS[DETAILS[h].world] && (!LO_ONLY || DETAILS[h].world === "tournoi")) { renderDetail(h); setTitle(DETAILS[h].world, DETAILS[h].title); }
   else if (WORLDS[h] && !LO_ONLY) { renderWorld(h); setTitle(h); }
   else { renderWorld(DEFAULT_WORLD); setTitle(DEFAULT_WORLD); }
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
@@ -2513,3 +2517,151 @@ document.addEventListener("click", (e) => {
     carte.hidden = g !== "tous" && carte.dataset.groupe !== g;
   }
 });
+
+// ===================================================================
+//  ACTUALITES — le journal du club (db/158)
+// ===================================================================
+// Un article par semaine, c'est l'objectif annonce. Le contenu vit donc en
+// base (news_articles) et non dans contenu.js : sinon chaque breve demanderait
+// une modification de code, et personne au secretariat ne doit dependre d'un
+// developpeur pour publier.
+//
+// La lecture passe par news_public(), une fonction SECURITY DEFINER qui ne
+// rend que les colonnes publiques des articles publies et dont la date est
+// arrivee. Un brouillon ne peut donc pas fuiter, meme en lisant la reponse
+// reseau.
+//
+// Le corps d'un article est une suite de BLOCS ({t:"p"|"h2"|"quote"|"img"}),
+// pas du HTML : rien de ce qui vient de la base n'est injecte tel quel, et un
+// type de bloc inconnu est ignore plutot que de casser la page.
+let actusCache = null;
+let actuFiltre = "Tout";
+
+const ACTU_FILIERES = ["Tout", "Kids Tennis", "Club", "Compétition", "Performance",
+  "Sport-études", "Pro", "Stages", "GameZone", "Lausanne Open", "Nos coachs", "Vie du club"];
+
+const actuDate = (iso) => {
+  if (!iso) return "";
+  const M = ["janvier", "février", "mars", "avril", "mai", "juin",
+    "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+  const d = new Date(iso + "T00:00:00");
+  return `${d.getDate()} ${M[d.getMonth()]} ${d.getFullYear()}`;
+};
+
+async function actusCharger() {
+  if (actusCache) return actusCache;
+  const { data, error } = await sb.rpc("news_public", { p_slug: null });
+  actusCache = error ? [] : (data || []);
+  return actusCache;
+}
+
+// Un bloc -> du HTML. Tout passe par esc() : le texte vient de la base.
+function actuBloc(b) {
+  if (!b || typeof b !== "object") return "";
+  if (b.t === "p") return `<p>${esc(b.x || "")}</p>`;
+  if (b.t === "h2") return `<h2>${esc(b.x || "")}</h2>`;
+  if (b.t === "quote")
+    return `<figure class="actu-cite"><p>${esc(b.x || "")}</p>${
+      b.src ? `<cite>${esc(b.src)}</cite>` : ""}</figure>`;
+  if (b.t === "img" && b.x)
+    return `<figure class="actu-fig"><img src="${esc(b.x)}" alt="${esc(b.alt || "")}" loading="lazy" />${
+      b.cap ? `<figcaption>${esc(b.cap)}</figcaption>` : ""}</figure>`;
+  return "";   // type inconnu : on ignore, on ne casse pas la page
+}
+
+function actuCarte(a) {
+  return `<a class="actu-carte" href="#actu-${esc(a.slug)}">
+    ${a.cover_url ? `<img src="${esc(a.cover_url)}" alt="${esc(a.cover_alt || "")}" loading="lazy" />`
+      : `<div class="actu-sansphoto" aria-hidden="true"></div>`}
+    <div class="actu-carte-txt">
+      <span class="actu-cat">${esc(a.category)}</span>
+      <h3>${esc(a.title)}</h3>
+      ${a.lede ? `<p>${esc(a.lede)}</p>` : ""}
+      <span class="actu-meta"><time datetime="${esc(a.published_on)}">${esc(actuDate(a.published_on))}</time>${
+        a.reading_min ? ` · ${a.reading_min} min` : ""}</span>
+    </div></a>`;
+}
+
+async function renderActus() {
+  document.body.dataset.world = "academie";
+  document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === "academie"));
+  const w = WORLDS.academie;
+  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: "assets/photos/club-2026.jpg",
+    tag: w.tag, slogan: "Actualités", sloganEntier: true,
+    desc: "Chaque semaine, un regard sur la vie de l'académie : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club.",
+    ctaHTML: `<button class="btn-cta ghost" data-back="academie">← Retour ${esc(w.retour)}</button>` });
+  $("world-main").innerHTML = `<section class="wsec"><p class="muted">Chargement des actualités…</p></section>`;
+
+  const tous = await actusCharger();
+  if (!tous.length) {
+    $("world-main").innerHTML = `<section class="wsec"><h2>Actualités</h2>
+      <p>Les premiers articles arrivent bientôt.</p></section>`;
+    animate(); return;
+  }
+
+  // Seules les filieres qui ont au moins un article : une rangee de filtres
+  // dont les trois quarts ne donnent rien n'aide personne.
+  const presentes = ACTU_FILIERES.filter((c) => c === "Tout" || tous.some((a) => a.category === c));
+  if (!presentes.includes(actuFiltre)) actuFiltre = "Tout";
+  const vus = actuFiltre === "Tout" ? tous : tous.filter((a) => a.category === actuFiltre);
+  const une = vus.find((a) => a.featured) || null;
+  const reste = une ? vus.filter((a) => a.slug !== une.slug) : vus;
+
+  $("world-main").innerHTML = `
+    <section class="wsec actu-sec">
+      <div class="actu-filtres" role="group" aria-label="Filtrer par filière">
+        ${presentes.map((c) => `<button type="button" class="chip-f${c === actuFiltre ? " on" : ""}"
+          data-actu-f="${esc(c)}" aria-pressed="${c === actuFiltre}">${esc(c)}</button>`).join("")}
+      </div>
+      <p class="actu-compte">${vus.length} article${vus.length > 1 ? "s" : ""}${
+        actuFiltre === "Tout" ? "" : " · " + esc(actuFiltre)}</p>
+
+      ${une ? `<a class="actu-une" href="#actu-${esc(une.slug)}">
+        ${une.cover_url ? `<img src="${esc(une.cover_url)}" alt="${esc(une.cover_alt || "")}" />` : ""}
+        <div class="actu-une-txt">
+          <span class="actu-badges"><b>À la une</b><span class="actu-cat">${esc(une.category)}</span></span>
+          <h2>${esc(une.title)}</h2>
+          ${une.lede ? `<p>${esc(une.lede)}</p>` : ""}
+          <span class="actu-meta"><time datetime="${esc(une.published_on)}">${esc(actuDate(une.published_on))}</time>${
+            une.reading_min ? ` · ${une.reading_min} min` : ""}</span>
+          <span class="actu-lire">Lire l'article →</span>
+        </div></a>` : ""}
+
+      ${reste.length ? `<div class="actu-grille">${reste.map(actuCarte).join("")}</div>` : ""}
+      ${!vus.length ? `<p class="actu-vide">Pas encore d'article dans cette filière.</p>` : ""}
+    </section>`;
+
+  $("world-main").querySelectorAll("[data-actu-f]").forEach((b) =>
+    b.addEventListener("click", () => { actuFiltre = b.dataset.actuF; renderActus(); }));
+  animate();
+}
+
+async function renderActu(slug) {
+  const tous = await actusCharger();
+  const a = tous.find((x) => x.slug === slug);
+  if (!a) { location.hash = "actualites"; return; }
+
+  document.body.dataset.world = "academie";
+  document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === "academie"));
+  const w = WORLDS.academie;
+  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: a.cover_url || "assets/photos/club-2026.jpg",
+    tag: a.category, slogan: a.title, sloganEntier: true, desc: a.lede || "",
+    ctaHTML: `<a class="btn-cta ghost" href="#actualites">← Toutes les actualités</a>` });
+
+  const corps = Array.isArray(a.body) ? a.body.map(actuBloc).join("") : "";
+  const autres = tous.filter((x) => x.slug !== a.slug).slice(0, 3);
+  $("world-main").innerHTML = `
+    <section class="wsec actu-art">
+      <p class="actu-meta actu-art-meta">
+        <time datetime="${esc(a.published_on)}">${esc(actuDate(a.published_on))}</time>
+        ${a.reading_min ? ` · ${a.reading_min} min de lecture` : ""} · ${esc(a.author)}
+      </p>
+      <div class="actu-corps">${corps}</div>
+      ${autres.length ? `<div class="actu-suite">
+        <h2>À lire aussi</h2>
+        <div class="actu-grille">${autres.map(actuCarte).join("")}</div></div>` : ""}
+      <p class="actu-retour"><a href="#actualites">← Revenir aux actualités</a></p>
+    </section>`;
+  setTitle("academie", a.title);
+  animate();
+}

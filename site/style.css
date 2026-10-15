@@ -3353,3 +3353,67 @@ html.bot-ouvert{overflow:hidden}
   .mention-bande{margin-top:32px;padding:20px 18px calc(20px + env(safe-area-inset-bottom))}
   .mention-bande p{font-size:.8rem;line-height:1.65}
 }
+
+/* ===========================================================================
+   Actualités — le journal du club (db/158)
+   ---------------------------------------------------------------------------
+   Une « une » large, puis une grille de cartes, et des filtres par filière.
+   Les filtres ne listent que les filières qui ont au moins un article : une
+   rangée dont les trois quarts ne donnent rien n'aide personne.
+   =========================================================================== */
+.actu-sec{max-width:var(--container);margin:0 auto}
+.actu-filtres{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.chip-f{font:inherit;font-size:.88rem;font-weight:600;color:var(--ink);background:#fff;
+  border:1.5px solid var(--line);border-radius:999px;padding:9px 16px;cursor:pointer;min-height:44px}
+.chip-f:hover{border-color:var(--blue)}
+.chip-f.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.actu-compte{font-size:.9rem;color:var(--muted);margin:0 0 18px}
+
+.actu-une{display:flex;flex-wrap:wrap;background:#fff;border:1px solid var(--line);
+  border-radius:var(--radius);overflow:hidden;text-decoration:none;color:inherit;
+  box-shadow:var(--shadow);margin-bottom:28px}
+.actu-une img{flex:1 1 440px;min-width:0;width:100%;height:100%;min-height:300px;object-fit:cover;display:block}
+.actu-une-txt{flex:1 1 400px;min-width:0;padding:34px 36px;display:flex;flex-direction:column;
+  justify-content:center;gap:12px}
+.actu-une-txt h2{margin:0;font-size:1.9rem;line-height:1.18;color:var(--blue-ink)}
+.actu-une-txt p{margin:0;color:var(--muted);line-height:1.65}
+.actu-badges{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+.actu-badges b{font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--fluo-ink);background:var(--fluo);border-radius:999px;padding:4px 11px}
+.actu-cat{font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--blue-ink);background:#e6edfd;border-radius:999px;padding:4px 11px;align-self:flex-start}
+.actu-lire{font-weight:700;color:var(--blue)}
+.actu-meta{font-size:.84rem;color:var(--muted)}
+
+.actu-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:24px}
+.actu-carte{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);
+  border-radius:var(--radius);overflow:hidden;text-decoration:none;color:inherit}
+.actu-carte:hover{border-color:var(--blue);box-shadow:var(--shadow)}
+.actu-carte img,.actu-sansphoto{width:100%;height:188px;object-fit:cover;display:block}
+.actu-sansphoto{background:linear-gradient(140deg,var(--prussian),var(--ocean))}
+.actu-carte-txt{padding:20px 22px 22px;display:flex;flex-direction:column;gap:10px;flex-grow:1}
+.actu-carte-txt h3{margin:0;font-size:1.12rem;line-height:1.32;color:var(--blue-ink)}
+.actu-carte-txt p{margin:0;font-size:.92rem;line-height:1.6;color:var(--muted);flex-grow:1}
+.actu-vide{padding:34px;text-align:center;background:#fff;border:1px dashed var(--line);
+  border-radius:var(--radius);color:var(--muted)}
+
+/* L'article lui-même : colonne de lecture étroite, photos pleine largeur. */
+.actu-art{max-width:46rem;margin:0 auto}
+.actu-art-meta{margin:0 0 22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.actu-corps{font-size:1.06rem;line-height:1.75}
+.actu-corps p{margin:0 0 1.15em}
+.actu-corps h2{margin:1.9em 0 .6em;font-size:1.3rem;line-height:1.35;color:var(--blue)}
+.actu-cite{margin:2em 0;padding:4px 0 4px 22px;border-left:5px solid var(--fluo)}
+.actu-cite p{margin:0 0 8px;font-size:1.25rem;line-height:1.4;color:var(--prussian);font-weight:600}
+.actu-cite cite{font-style:normal;font-size:.85rem;color:var(--muted);font-weight:600}
+.actu-fig{margin:2em 0}
+.actu-fig img{display:block;width:100%;height:auto;border-radius:14px}
+.actu-fig figcaption{margin-top:10px;font-size:.84rem;color:var(--muted);line-height:1.45}
+.actu-suite{margin-top:3em;padding-top:2em;border-top:1px solid var(--line)}
+.actu-suite h2{margin:0 0 18px;font-size:1.2rem;color:var(--blue-ink)}
+.actu-retour{margin:2.4em 0 0;font-weight:700}
+@media(max-width:700px){
+  .actu-une-txt{padding:24px 22px}
+  .actu-une-txt h2{font-size:1.45rem}
+  .actu-art{max-width:none}
+}
