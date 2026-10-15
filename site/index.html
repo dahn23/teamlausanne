@@ -13,7 +13,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=136" />
+  <link rel="stylesheet" href="style.css?v=137" />
   <!-- Site public teamlausanne.ch : deux mondes (Academy, Lausanne Open). L'onglet Club renvoie sur www.lstennis.ch.
        Aucune connexion ni réservation ici : l'app (console, portail) vit sur app.teamlausanne.ch.
        Sur le domaine lausanneopen.ch, le script bascule en mode « tournoi seul » (barre et pied de page masqués). -->
@@ -32,10 +32,15 @@
     <a class="nav-brand" id="nav-accueil" href="#academie" aria-label="Retour à l'accueil">
       <img id="nav-logo" class="nav-logo" src="assets/logo-club.webp" alt="" />
     </a>
+    <!-- Chaque pastille porte deux libelles : le long sur grand ecran, le court
+         au telephone. Les trois libelles longs font 460px a eux seuls — sur un
+         ecran de 375px ils se mettaient l'un SOUS l'autre, et la barre collante
+         mangeait un tiers de la hauteur. Les libelles courts tiennent sur une
+         ligne. (« Le Club » est deja le nom employe au pied de page.) -->
     <div class="switcher" aria-label="Choisir un univers">
       <div class="sw-wrap">
         <!-- Club = le TC Lausanne-Sports : site externe, pas de page club ici -->
-        <a class="sw sw-ext" href="https://www.lstennis.ch" target="_blank" rel="noopener">TC Lausanne-Sports ↗</a>
+        <a class="sw sw-ext" href="https://www.lstennis.ch" target="_blank" rel="noopener"><span class="sw-long">TC Lausanne-Sports ↗</span><span class="sw-court">Le Club ↗</span></a>
       </div>
       <div class="sw-wrap">
         <!-- Bouton scinde. L'onglet faisait deux choses selon l'endroit ou l'on
@@ -45,7 +50,7 @@
              ouvre les sections. La classe .sw et data-world restent sur
              l'enveloppe : c'est elle que le script marque « active ». -->
         <div class="sw sw-split" data-world="academie">
-          <button type="button" class="sw-part">Team Lausanne Academy</button>
+          <button type="button" class="sw-part"><span class="sw-long">Team Lausanne Academy</span><span class="sw-court">Academy</span></button>
           <button type="button" class="sw-chev" data-menu-ouvrir aria-expanded="false" aria-controls="menu-academie" aria-label="Voir les sections de l'Academy">
             <svg viewBox="0 0 12 8" width="11" height="8" aria-hidden="true" focusable="false"><path d="M1 1.8 6 6.4 11 1.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
           </button>

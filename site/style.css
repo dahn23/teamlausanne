@@ -812,6 +812,8 @@ body[data-world="tournoi"]{--scrim:rgba(6,12,45,.68)}
   text-transform:none;letter-spacing:0;padding:9px 18px;border-radius:999px;
   border:2px solid transparent;font-size:.98rem}
 .sw:hover{background:#f1f3f9;color:var(--ink)}
+/* Libelle court des pastilles : cache tant qu on a la place (voir le bloc 640px). */
+.sw-court{display:none}
 .sw.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 body[data-world="academie"] .sw.active{color:var(--fluo-ink)}
 /* ---- Le panneau des sections de l'Academy ---- */
@@ -1979,9 +1981,15 @@ a.ccard-pill:hover .ccard-arrow,button.ccard-pill:hover .ccard-arrow{
 .formula-price{font-size:1.5rem;font-weight:800;font-style:italic;color:var(--blue-ink)}
 
 @media (max-width:640px){
-  .nav{flex-wrap:wrap;gap:10px}
-  .switcher{order:3;width:100%}
+  .nav{flex-wrap:wrap;gap:10px;padding:8px 14px}
+  /* « width:100% » ne suffisait pas : dans un conteneur flex, la base l'emporte
+     sur la largeur, et .switcher a flex:1 (donc base 0). La rangee restait
+     large de 177px au milieu de la barre, les trois pastilles empilees dessous
+     et le logo flottant a cote. Il faut poser la base elle-meme. */
+  .switcher{order:3;flex:0 0 100%;width:100%;gap:5px}
   .sw{padding:8px 12px;font-size:.85rem}
+  .sw-long{display:none}
+  .sw-court{display:inline}
   .hero-logo{height:96px}
   /* Les 3 mondes restent côte-à-côte en mobile (pas empilés) */
   .flow{flex-wrap:nowrap;gap:5px;align-items:stretch}
