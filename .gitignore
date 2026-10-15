@@ -20,16 +20,16 @@ tools/social-kit/sortie/
 # chaque build). Elles n'ont rien à faire dans le dépôt : la source, c'est
 # contenu.js.
 site/sitemap.xml
-site/kids-tennis/
-site/club/
-site/competition/
-site/performance/
-site/sport-etudes/
-site/pro-u18/
-site/pro/
-site/stages/
-site/cours-adultes/
-site/gamezone/
-site/nos-coachs/
-site/lausanne-open/
-site/journee-team-lausanne/
+site/kids-tennis.html
+site/club.html
+site/competition.html
+site/performance.html
+site/sport-etudes.html
+site/pro-u18.html
+site/pro.html
+site/stages.html
+site/cours-adultes.html
+site/gamezone.html
+site/nos-coachs.html
+site/lausanne-open.html
+site/journee-team-lausanne.html

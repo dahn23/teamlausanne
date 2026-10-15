@@ -19,7 +19,7 @@
 // visiteur voit exactement ce qu'il voyait, simplement plus tôt.
 // ===========================================================================
 
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTENU } from "./contenu.js";
@@ -142,9 +142,19 @@ for (const [cle, page] of Object.entries(pages)) {
   html = html.replace(MARQUE,
     `<main id="world-main" class="world-main" data-rendu-statique="${esc(cle)}">\n${corps}\n</main>`);
 
-  const dossier = slug ? join(ICI, slug) : ICI;
-  if (slug) await mkdir(dossier, { recursive: true });
-  await writeFile(join(dossier, "index.html"), html, "utf8");
+  // « sport-etudes.html » et NON « sport-etudes/index.html ».
+  //
+  // Ce détail a cassé le premier déploiement. Avec un dossier, Netlify
+  // redirige /sport-etudes vers /sport-etudes/ — et à partir de cette adresse,
+  // tous les chemins relatifs du gabarit glissent d'un cran : style.css est
+  // cherché dans /sport-etudes/style.css, index.js dans /sport-etudes/index.js,
+  // et les centaines de « assets/photos/… » de contenu.js avec eux. La page
+  // s'affichait sans style ni JavaScript.
+  //
+  // Posé à plat, le fichier est servi à /sport-etudes, sans barre finale : les
+  // chemins relatifs repartent donc de la racine, comme à l'accueil. En prime
+  // l'adresse servie est exactement l'adresse canonique, sans redirection.
+  await writeFile(join(ICI, slug ? slug + ".html" : "index.html"), html, "utf8");
   ecrites.push({ cle, adresse: "/" + slug, mots: corps.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length });
 }
 
