@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=326" />
+  <link rel="stylesheet" href="style.css?v=327" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -1803,7 +1803,7 @@
               </div>
               <select id="gz-fin-season"></select>
             </div>
-            <div class="table-wrap">
+            <div class="table-wrap gz-fin-scroll">
               <table class="crm-table">
                 <thead>
                   <tr><th>Tournoi</th><th>Date</th><th>Présents</th><th>Twint</th><th title="Montant réellement versé par Twint (frais déduits), réparti entre les tournois du week-end">Twint réel</th><th>Cash</th><th>Carte</th><th title="Montant réellement versé par SumUp (frais déduits), réparti entre les tournois du week-end">Carte réel</th><th>Salaires</th><th title="Cash + carte réel + Twint réel − salaires (montant console tant que le réel n'est pas validé)">Total</th><th>Responsables</th></tr>

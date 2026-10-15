@@ -39,6 +39,18 @@
   to = "https://teamlausanne.ch/#tournoi"
   status = 301
   force = true
+# Adresses techniques Netlify (15.10.2026) : elles servaient une copie complète du site, que Google
+# pourrait indexer en double. On les renvoie vers le vrai domaine.
+[[redirects]]
+  from = "https://zesty-clafoutis-a95fbc.netlify.app/*"
+  to = "https://teamlausanne.ch/:splat"
+  status = 301
+  force = true
+[[redirects]]
+  from = "https://lausanne-open-site.netlify.app/*"
+  to = "https://teamlausanne.ch/:splat"
+  status = 301
+  force = true
 # Anciennes adresses Wix du tournoi (mails, flyers, Google) → onglet Lausanne Open
 [[redirects]]
   from = "https://lausanneopen.ch/partenariats"
