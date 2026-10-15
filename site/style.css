@@ -3417,3 +3417,34 @@ html.bot-ouvert{overflow:hidden}
   .actu-une-txt h2{font-size:1.45rem}
   .actu-art{max-width:none}
 }
+
+/* Titre d'article dans le hero.
+   ---------------------------------------------------------------------------
+   Le style maison des titres (.public h1) met en CAPITALES, en Circe, avec un
+   interlettrage serré et le trait mint du slogan. Parfait pour « KIDS TENNIS »
+   ou « Jouer. Progresser. Ensemble. » — illisible pour un titre d'article de
+   quatre-vingt-dix signes, qui devient un mur de capitales avec un trait mint
+   sous chacune de ses cinq lignes.
+   Le titre d'article reprend donc la casse normale, une taille plus sage, un
+   interligne qui respire, et aucun trait : à cette longueur, c'est le texte
+   qui doit porter, pas la décoration. */
+.hero-slogan.hero-titre-art{
+  text-transform:none;
+  font-family:var(--font-body);
+  font-weight:700;
+  letter-spacing:-.015em;
+  font-size:clamp(1.65rem,3.4vw,2.85rem);
+  line-height:1.16;
+  max-width:26ch;
+  text-wrap:balance;
+}
+/* Le trait mint du slogan est un dégradé de fond : on le retire, sinon il se
+   redessine sous chaque ligne du titre. */
+.hero-titre-art .hs-w-entier{
+  background-image:none;
+  transition:none;
+}
+.hero-titre-art .hs-w-entier:hover{background-size:0 .075em}
+@media(max-width:700px){
+  .hero-slogan.hero-titre-art{max-width:none;line-height:1.2}
+}

@@ -1008,7 +1008,13 @@ function sectionHTML(sec) {
   }
 }
 
-function paintHero({ logo, heroLogo, hero, heroPos, heroVideo, tag, slogan, desc, ctaHTML, sloganEntier }) {
+function paintHero({ logo, heroLogo, hero, heroPos, heroVideo, tag, slogan, desc, ctaHTML, sloganEntier, titreArticle }) {
+  // Le style maison des titres — capitales, Circe, interlettrage serré, trait
+  // mint — est fait pour un slogan ou un nom de filière (« KIDS TENNIS »).
+  // Un titre d'article fait quatre-vingt-dix signes : en capitales il devient
+  // un mur, et le trait mint se répète sous chaque ligne. Il a donc son propre
+  // traitement, posé ici et retiré partout ailleurs.
+  $("hero-slogan").classList.toggle("hero-titre-art", !!titreArticle);
   $("nav-logo").src = logo;
   $("hero-bg").style.backgroundImage = `url("${hero}")`;
   $("hero-bg").style.backgroundPosition = heroPos || "center";   // point d'intérêt (visages) par page
@@ -2653,7 +2659,7 @@ async function renderActu(slug) {
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === "academie"));
   const w = WORLDS.academie;
   paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: a.cover_url || "assets/photos/club-2026.jpg",
-    tag: a.category, slogan: a.title, sloganEntier: true, desc: a.lede || "",
+    tag: a.category, slogan: a.title, sloganEntier: true, titreArticle: true, desc: a.lede || "",
     ctaHTML: `<a class="btn-cta ghost" href="#actualites">← Toutes les actualités</a>` });
 
   const corps = Array.isArray(a.body) ? a.body.map(actuBloc).join("") : "";
