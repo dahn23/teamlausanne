@@ -95,6 +95,12 @@ export const pagesDe = (CONTENU) => ({
 // page entière au build : on préfère un bloc vide à un site qui ne compile pas.
 const tab = (v) => (Array.isArray(v) ? v : []);
 
+// Quelques valeurs de contenu.js portent un peu de gras (« <b>−20 %</b> »).
+// On retire les balises AVANT d'échapper : sinon la page statique afficherait
+// « &lt;b&gt;−20 %&lt;/b&gt; ». Retirer puis échapper, dans cet ordre, ne
+// laisse jamais passer de balise.
+const sansBalises = (s) => (typeof s === "string" ? s.replace(/<[^>]*>/g, "") : s);
+
 // --- petits assembleurs ---------------------------------------------------
 const p = (t) => (t ? `<p>${esc(t)}</p>` : "");
 const h = (n, t) => (t ? `<h${n}>${esc(t)}</h${n}>` : "");
@@ -171,11 +177,31 @@ function sectionConnue(sec) {
       return (sec.label ? h(2, sec.label) : "")
         + ul(tab(sec.items).map((x) => (typeof x === "string" ? x : x && x.t)).filter(Boolean));
 
+    // Chaque coach a un résumé et une vraie biographie. Les laisser de côté
+    // revenait à publier une page « Nos coachs » de cent mots alors que le
+    // site en contient des centaines — et ce sont des mots que personne
+    // d'autre n'a écrits, donc exactement ceux qui méritent d'être lus.
     case "coachs":
       return h(2, sec.title) + p(sec.eyebrow)
-        + `<ul>${tab(sec.items).map((c) =>
-            `<li><strong>${esc(c.nom || c.name)}</strong>${
-              c.role ? ` — ${esc(c.role)}` : ""}</li>`).join("")}</ul>`;
+        + tab(sec.items).map((c) => {
+            const nom = c.nom || c.name || "";
+            if (!nom) return "";
+            return h(3, nom) + (c.role ? p(c.role) : "") + p(c.resume)
+              + texteDe(c.bio)
+              + (Array.isArray(c.tags) && c.tags.length ? ul(c.tags) : "");
+          }).join("");
+
+    // Les formules de stage : âge, horaire, contenu, prix. C'est la réponse à
+    // « combien coûte un stage de tennis à Lausanne », et elle était jusqu'ici
+    // invisible. Chaque formule devient un bloc à part entière.
+    case "formules":
+      return h(2, sec.title) + p(sansBalises(sec.intro))
+        + tab(sec.items).map((f) => {
+            if (!f || !f.name) return "";
+            const infos = [f.age, f.rythme, f.horaire, f.price].filter(Boolean);
+            return h(3, f.name) + (infos.length ? p(infos.join(" · ")) : "")
+              + ul(tab(f.lines));
+          }).join("");
 
     case "telecharger":
       return h(2, sec.title) + p(sec.lead) + ul(tab(sec.points))
