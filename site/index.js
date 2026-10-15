@@ -89,7 +89,7 @@ import { CONTENU } from "./contenu.js";
 // La table des adresses est partagée avec build.mjs : une seule liste pour le
 // serveur qui fabrique les pages et pour le navigateur qui les relie. Si elles
 // divergeaient, un lien mènerait à une page qui n'a pas été écrite.
-import { SLUGS, CLE_DE_SLUG } from "./rendu-statique.js";
+import { SLUGS, CLE_DE_SLUG } from "./adresses.js";
 
 const MENTION_IMAGE = CONTENU.mention_image;
 const COACHS = CONTENU.coachs;

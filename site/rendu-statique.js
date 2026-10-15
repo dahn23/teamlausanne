@@ -28,32 +28,10 @@ export const esc = (s) => String(s == null ? "" : s)
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
   .replace(/"/g, "&quot;");
 
-// Les adresses des pages. La clé est celle de contenu.js, la valeur l'adresse
-// publique. On ne se contente pas de reprendre la clé : « club-academy » et
-// « coaches » sont des noms de code, pas des adresses qu'on lit.
-export const SLUGS = {
-  academie: "",                       // la racine
-  tournoi: "lausanne-open",
-  "journee-team-lausanne": "journee-team-lausanne",
-  stages: "stages",
-  "sport-etudes": "sport-etudes",
-  competition: "competition",
-  performance: "performance",
-  "pro-u18": "pro-u18",
-  pro: "pro",
-  kids: "kids-tennis",
-  "club-academy": "club",
-  adultes: "cours-adultes",
-  gamezone: "gamezone",
-  coaches: "nos-coachs",
-};
-
-// L'inverse, pour que le routeur retrouve la clé depuis l'adresse.
-export const CLE_DE_SLUG = Object.fromEntries(
-  Object.entries(SLUGS).filter(([, s]) => s).map(([c, s]) => [s, c]));
-
-const SITE = "https://teamlausanne.ch";
-export const urlDe = (cle) => SITE + "/" + (SLUGS[cle] || "");
+// La table des adresses vit dans adresses.js : le navigateur la lit aussi, et
+// n'a pas à télécharger ce moteur de rendu pour connaître un chemin.
+export { SLUGS, CLE_DE_SLUG, urlDe } from "./adresses.js";
+import { SLUGS } from "./adresses.js";
 
 // contenu.js porte deux renvois, en texte, que index.js résout avant de
 // rendre : "@coachs" devient la liste des coachs, { type:"mention" } sans

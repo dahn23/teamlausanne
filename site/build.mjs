@@ -24,8 +24,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTENU } from "./contenu.js";
 import {
-  pagesDe, corpsHTML, titreDe, descriptionDe, SLUGS, urlDe, esc,
+  pagesDe, corpsHTML, titreDe, descriptionDe, esc,
 } from "./rendu-statique.js";
+import { SLUGS, urlDe } from "./adresses.js";
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const SITE = "https://teamlausanne.ch";
