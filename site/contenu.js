@@ -302,9 +302,16 @@ worlds:
       { type: "actus", anchor: "actus", eyebrow: "Le journal du club",
         title: "Les dernières actualités",
         lead: "La vie de l'académie, semaine après semaine : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club." },
+      // Les deux PDF sont la vue « toute l'année d'un coup » — celle qu'on
+      // imprime et qu'on colle sur un frigo. La page, elle, filtre et reste à
+      // jour. Chacune fait ce qu'elle fait de mieux.
       { type: "calendrier", anchor: "calendrier", eyebrow: "Agenda",
         title: "Le calendrier de la saison",
-        lead: "Vacances scolaires, jours fériés, fermetures de l'académie et stages : les dates à retenir, au même endroit." },
+        lead: "Vacances scolaires, jours fériés, fermetures de l'académie et stages : les dates à retenir, au même endroit.",
+        pdfs: [
+          { label: "École de tennis (PDF)", href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf" },
+          { label: "Sport-études (PDF)", href: "assets/calendriers/calendrier-2026-27-sport-etudes.pdf" },
+        ] },
     ],
   },
 
@@ -529,6 +536,20 @@ details:
             mytennis: "19781973",
             mot: "Seize ans, classé R3. Il se dépasse chaque jour à l'entraînement pour aller chercher son objectif, et aime repousser ses limites. Surtout, il adore jouer en équipe : c'est ensemble qu'on va le plus loin. Motivé, travailleur, toujours prêt à progresser." },
         ]},
+      // Le calendrier de la saison, à imprimer. Les mêmes dates vivent sur
+      // l'accueil, filtrables et tenues à jour ; ici c'est la version qu'on
+      // affiche sur un frigo, et qui répond sans réseau ni recherche.
+      { type: "telecharger", anchor: "calendrier", eyebrow: "À garder sous la main",
+        title: "Le calendrier 2026-2027",
+        lead: "Les 35 semaines du Sport-études sur une page : la reprise, les vacances, les fermetures de l'académie et les semaines de stages.",
+        points: [
+          "Reprise des entraînements le lundi 31 août 2026",
+          "Fin de saison le vendredi 2 juillet 2027, stages d'été dès le 5",
+          "Vacances scolaires et jours fériés du Canton de Vaud",
+        ],
+        href: "assets/calendriers/calendrier-2026-27-sport-etudes.pdf",
+        apercu: "assets/calendriers/calendrier-2026-27-sport-etudes-apercu.jpg",
+        bouton: "Télécharger le calendrier" },
       { type: "brochure", anchor: "brochure",
         eyebrow: "Brochure 2026", title: "Le programme en détail, dans votre boîte mail",
         lead: "Le déroulé d'une semaine, les écoles partenaires, l'encadrement et les conditions d'admission — onze pages pour tout savoir avant de nous écrire.",
@@ -605,6 +626,20 @@ details:
           ["Quelles compétitions ?", "Les tournois juniors et les GameZone, tout au long de la saison, avec les coachs pour préparer et débriefer."],
           ["Et ensuite ?", "La filière Performance prend le relais pour celles et ceux qui confirment."],
         ]},
+      // Le calendrier de la saison, à imprimer. Les mêmes dates vivent sur
+      // l'accueil, filtrables et tenues à jour ; ici c'est la version qu'on
+      // affiche sur un frigo, et qui répond sans réseau ni recherche.
+      { type: "telecharger", anchor: "calendrier", eyebrow: "À garder sous la main",
+        title: "Le calendrier 2026-2027",
+        lead: "Toute la saison de l'École de tennis sur une page : la reprise, les vacances, les fermetures de l'académie et les semaines de stages.",
+        points: [
+          "Reprise des entraînements le lundi 31 août 2026",
+          "Fin de saison le vendredi 2 juillet 2027",
+          "Vacances scolaires et jours fériés du Canton de Vaud",
+        ],
+        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        bouton: "Télécharger le calendrier" },
       { type: "enroll", title: "Demander une inscription", filiere: "competition", ranking: true,
         lead: "Intéressé(e) par la filière Compétition ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
@@ -673,6 +708,20 @@ details:
           ["Et si la sélection ne passe pas ?", "On poursuit en Compétition ou en Club. Rien n'est figé : l'évolution se fait à son rythme, et la porte reste ouverte la saison suivante."],
           ["Et ensuite ?", "Le Sport-études prend le relais, puis la voie Pro U18 pour celles et ceux qui confirment."],
         ]},
+      // Le calendrier de la saison, à imprimer. Les mêmes dates vivent sur
+      // l'accueil, filtrables et tenues à jour ; ici c'est la version qu'on
+      // affiche sur un frigo, et qui répond sans réseau ni recherche.
+      { type: "telecharger", anchor: "calendrier", eyebrow: "À garder sous la main",
+        title: "Le calendrier 2026-2027",
+        lead: "Toute la saison de l'École de tennis sur une page : la reprise, les vacances, les fermetures de l'académie et les semaines de stages.",
+        points: [
+          "Reprise des entraînements le lundi 31 août 2026",
+          "Fin de saison le vendredi 2 juillet 2027",
+          "Vacances scolaires et jours fériés du Canton de Vaud",
+        ],
+        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        bouton: "Télécharger le calendrier" },
       { type: "enroll", title: "Demander une inscription", filiere: "performance", ranking: true,
         lead: "Intéressé(e) par la filière Performance ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
@@ -855,6 +904,20 @@ details:
           ["De quel matériel a-t-il besoin ?", "Une tenue de sport confortable et des chaussures de tennis. La raquette peut être prêtée, en particulier pour les débutants."],
           ["Comment mon enfant progresse-t-il ?", "Par un encadrement adapté à son âge, du travail de coordination, les bases techniques et les retours réguliers de l'équipe de coachs."],
         ]},
+      // Le calendrier de la saison, à imprimer. Les mêmes dates vivent sur
+      // l'accueil, filtrables et tenues à jour ; ici c'est la version qu'on
+      // affiche sur un frigo, et qui répond sans réseau ni recherche.
+      { type: "telecharger", anchor: "calendrier", eyebrow: "À garder sous la main",
+        title: "Le calendrier 2026-2027",
+        lead: "Toute la saison de l'École de tennis sur une page : la reprise, les vacances, les fermetures de l'académie et les semaines de stages.",
+        points: [
+          "Reprise des entraînements le lundi 31 août 2026",
+          "Fin de saison le vendredi 2 juillet 2027",
+          "Vacances scolaires et jours fériés du Canton de Vaud",
+        ],
+        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        bouton: "Télécharger le calendrier" },
       { type: "enroll", title: "Demander une inscription", filiere: "kidstennis", ranking: false,
         lead: "Envie d'inscrire votre enfant à Kids Tennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
@@ -904,6 +967,20 @@ details:
           ["Et la compétition ?", "Quelques compétitions au fil de la saison, selon l'envie et sans obligation. Les membres du club peuvent aussi disputer les interclubs, selon les disponibilités."],
           ["Qu'est-ce qui est compris ?", "L'entraînement encadré en groupe, le suivi de la progression tout au long de la saison, et le t-shirt Team Lausanne."],
         ]},
+      // Le calendrier de la saison, à imprimer. Les mêmes dates vivent sur
+      // l'accueil, filtrables et tenues à jour ; ici c'est la version qu'on
+      // affiche sur un frigo, et qui répond sans réseau ni recherche.
+      { type: "telecharger", anchor: "calendrier", eyebrow: "À garder sous la main",
+        title: "Le calendrier 2026-2027",
+        lead: "Toute la saison de l'École de tennis sur une page : la reprise, les vacances, les fermetures de l'académie et les semaines de stages.",
+        points: [
+          "Reprise des entraînements le lundi 31 août 2026",
+          "Fin de saison le vendredi 2 juillet 2027",
+          "Vacances scolaires et jours fériés du Canton de Vaud",
+        ],
+        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        bouton: "Télécharger le calendrier" },
       { type: "enroll", title: "Demander une inscription", filiere: "club", ranking: false,
         lead: "Envie de rejoindre l'offre Club ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],

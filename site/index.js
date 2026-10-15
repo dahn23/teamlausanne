@@ -867,9 +867,20 @@ function sectionHTML(sec) {
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}
         ${linkHTML(sec.link)}</section>`;
 
+
     // ---- Calendrier public de la saison ----
     // La coquille seulement : les dates arrivent par agenda_public() une fois
     // la page montée (voir calPubCharger).
+    //
+    // Ce bloc remplace une grille mensuelle qui occupait deux écrans pour ne
+    // montrer, dans des cases de 85 px, qu'un chiffre et trois pastilles : il
+    // fallait cliquer chaque jour pour savoir ce qu'il contenait, et passer
+    // de mois en mois pour retrouver les vacances de Pâques. Désormais trois
+    // prochaines dates en tête, des filtres, puis la saison entière en clair.
+    // Le coup d'œil sur douze mois, lui, est dans le PDF à télécharger : la
+    // page fait ce qu'une page fait bien (chercher, filtrer, rester à jour),
+    // le PDF ce qu'un papier fait bien (tout voir d'un coup, et s'afficher
+    // sur un frigo).
     case "calendrier":
       return `<section class="wsec calp"${sec.anchor ? ` id="${esc(sec.anchor)}" data-anchor="${esc(sec.anchor)}"` : ""}>
         <div class="perks-head">
@@ -877,17 +888,15 @@ function sectionHTML(sec) {
           <h2>${esc(sec.title)}</h2>
           ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
         </div>
-        <div class="calp-barre">
-          <button type="button" class="calp-nav" data-calp="-1" aria-label="Mois précédent">‹</button>
-          <strong class="calp-mois" id="calp-mois" aria-live="polite">…</strong>
-          <button type="button" class="calp-nav" data-calp="1" aria-label="Mois suivant">›</button>
+        <div class="calp-suite" id="calp-suite"></div>
+        <div class="calp-outils">
+          <div class="calp-filtres" id="calp-filtres" role="group" aria-label="Filtrer le calendrier"></div>
+          ${(sec.pdfs || []).length ? `<div class="calp-dls">${sec.pdfs.map((p) =>
+            `<a class="calp-dl" href="${esc(p.href)}" download>
+               <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M8 1v9m0 0 3.2-3.2M8 10 4.8 6.8M2 12.5v1A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5v-1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+               ${esc(p.label)}</a>`).join("")}</div>` : ""}
         </div>
-        <div class="calp-jours" aria-hidden="true">${
-          ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"].map((j) => `<span>${j}</span>`).join("")}</div>
-        <div class="calp-grille" id="calp-grille"></div>
-        <div class="calp-liste" id="calp-liste"></div>
-        <ul class="calp-legende">${CALP_GENRES.map(([g, lbl]) =>
-          `<li class="calp-lg calp-g-${g}"><i aria-hidden="true"></i>${esc(lbl)}</li>`).join("")}</ul>
+        <div class="calp-saison" id="calp-saison" aria-live="polite"></div>
       </section>`;
 
     // ---- Rendez-vous de la saison ----
@@ -1028,6 +1037,30 @@ function sectionHTML(sec) {
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
 
     // ---- Brochure contre une adresse e-mail ----
+
+    // ---- Calendrier à télécharger ----
+    // Un bloc volontairement petit : l'aperçu montre de quoi il s'agit (sans
+    // quoi « PDF » ne dit rien), le bouton télécharge, et c'est tout. Pas de
+    // formulaire ni d'e-mail à laisser : une famille qui cherche les dates des
+    // vacances n'a pas à payer en adresse pour les obtenir.
+    case "telecharger":
+      return `<section class="wsec dlcal"${sec.anchor ? ` id="${esc(sec.anchor)}" data-anchor="${esc(sec.anchor)}"` : ""}>
+        <div class="dlcal-in">
+          ${sec.apercu ? `<a class="dlcal-vue" href="${esc(sec.href)}" download tabindex="-1" aria-hidden="true">
+            <img src="${esc(sec.apercu)}" alt="" loading="lazy" />
+          </a>` : ""}
+          <div class="dlcal-txt">
+            ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+            <h2>${esc(sec.title)}</h2>
+            ${sec.lead ? `<p class="dlcal-lead">${esc(sec.lead)}</p>` : ""}
+            ${(sec.points || []).length ? `<ul class="dlcal-pts">${sec.points.map((p) =>
+              `<li>${esc(p)}</li>`).join("")}</ul>` : ""}
+            <a class="btn-cta dlcal-btn" href="${esc(sec.href)}" download>
+              <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false"><path d="M8 1v9m0 0 3.2-3.2M8 10 4.8 6.8M2 12.5v1A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5v-1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              ${esc(sec.bouton || "Télécharger le calendrier")}</a>
+            <p class="dlcal-meta">${esc(sec.meta || "PDF · 1 page · à imprimer en A4")}</p>
+          </div>
+        </div></section>`;
     case "brochure":
       return `<section class="wsec brochure">
         <div class="broch-in">
@@ -1596,16 +1629,21 @@ function route() {
 // renvoie QUE le public. Le site ne lit jamais cal_events : cette table
 // contient les vacances de l'équipe et des rendez-vous nominatifs avec des
 // familles. Le tri est fait en base, pas ici.
+//
+// L'ordre de CALP_GENRES sert deux fois : il range les pastilles de filtre, et
+// il départage les entrées qui tombent le même jour (voir calpFusion). Ce qui
+// demande une action — un stage auquel s'inscrire, une fermeture à anticiper —
+// passe avant le décor du calendrier scolaire.
 var CALP_GENRES = [
-  ["stage", "Stage"],
-  ["fermeture", "Académie fermée"],
+  ["fermeture", "Fermetures"],
+  ["stage", "Stages"],
+  ["evenement", "Événements"],
   ["vacances-scolaires", "Vacances scolaires"],
-  ["ferie", "Jour férié"],
-  ["evenement", "Événement"],
+  ["ferie", "Jours fériés"],
 ];
 var CALP_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin",
   "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-var calpDates = null, calpMois = null, calpMin = null, calpMax = null, calpJourVu = null;
+var calpDates = null, calpFiltre = "tout";
 
 // Dates manipulées en texte « AAAA-MM-JJ » et jamais en objet Date : une borne
 // de vacances comparée en UTC se décale d'un jour pour qui lit depuis Lausanne.
@@ -1613,8 +1651,6 @@ const calpISO = (a, m, j) =>
   `${a}-${String(m + 1).padStart(2, "0")}-${String(j).padStart(2, "0")}`;
 const calpAujourdHui = () => { const d = new Date(); return calpISO(d.getFullYear(), d.getMonth(), d.getDate()); };
 const calpJoursDansMois = (a, m) => new Date(a, m + 1, 0).getDate();
-// JS compte la semaine à partir de dimanche ; en Suisse elle commence lundi.
-const calpPremierCase = (a, m) => (new Date(a, m, 1).getDay() + 6) % 7;
 const calpFrDate = (iso) => {
   const [a, m, j] = iso.split("-").map(Number);
   return `${j} ${CALP_MOIS[m - 1]} ${a}`;
@@ -1629,103 +1665,165 @@ const calpPeriode = (d, f) => {
   if (a1 === a2) return `Du ${j1} ${CALP_MOIS[m1 - 1]} au ${calpFrDate(f)}`;
   return `Du ${calpFrDate(d)} au ${calpFrDate(f)}`;
 };
+const calpLabel = (g) => (CALP_GENRES.find(([k]) => k === g) || [g, g])[1];
+// Libellé au singulier pour une entrée isolée : la pastille de filtre dit
+// « Stages », la ligne qui décrit un stage dit « Stage ».
+const CALP_UN = { fermeture: "Fermeture", stage: "Stage", evenement: "Événement",
+  "vacances-scolaires": "Vacances scolaires", ferie: "Jour férié" };
+
+// Deux titres disent-ils la même chose ? On compare des formes normalisées
+// (sans accents, sans chiffres, sans ponctuation) et on conclut à l'identique
+// dès que l'une contient l'autre. « Lundi du Jeûne », « Lundi du Jeûne fédéral »
+// et « Lundi du Jeûne 2026 » sont alors une seule et même chose.
+const calpNorm = (s) => (s || "").toLowerCase()
+  .normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .replace(/[^a-z ]+/g, " ").replace(/\s+/g, " ").trim();
+const calpMemeChose = (a, b) => {
+  const x = calpNorm(a), y = calpNorm(b);
+  return !!x && !!y && (x.includes(y) || y.includes(x));
+};
+
+// Trois sources décrivent souvent le même jour : le canton le dit férié, le
+// calendrier scolaire le met en vacances, et nous fermons. La liste affichait
+// donc trois lignes pour un seul lundi. On regroupe tout ce qui couvre
+// exactement la même période en UNE entrée, qui garde le genre le plus
+// « actionnable », porte les autres en pastilles, et ne répète pas un titre
+// qui redit la même chose.
+function calpFusion(rows) {
+  const rang = (g) => { const i = CALP_GENRES.findIndex(([k]) => k === g); return i < 0 ? 99 : i; };
+  const par = new Map();
+  for (const e of rows) {
+    const cle = e.debut + "|" + e.fin;
+    if (!par.has(cle)) par.set(cle, []);
+    par.get(cle).push(e);
+  }
+  const out = [];
+  for (const lot of par.values()) {
+    lot.sort((a, b) => rang(a.genre) - rang(b.genre));
+    const chef = lot[0];
+    const genres = [...new Set(lot.map((e) => e.genre))];
+    const extras = lot.slice(1)
+      .filter((e) => !calpMemeChose(e.titre, chef.titre))
+      .map((e) => e.titre);
+    const details = [...new Set(lot.map((e) => e.detail).filter(Boolean)
+      .filter((d) => !calpMemeChose(d, chef.titre)))];
+    out.push({
+      debut: chef.debut, fin: chef.fin, titre: chef.titre, genre: chef.genre,
+      genres, extras, detail: details.join(" · "),
+    });
+  }
+  return out.sort((a, b) => a.debut.localeCompare(b.debut)
+    || rang(a.genre) - rang(b.genre) || a.titre.localeCompare(b.titre));
+}
 
 async function calPubCharger() {
-  if (!document.getElementById("calp-grille")) return;
+  if (!document.getElementById("calp-saison")) return;
   if (calpDates) { calpRendre(); return; }
   const d = new Date();
   const du = calpISO(d.getFullYear(), d.getMonth(), 1);
   const au = calpISO(d.getFullYear() + 1, d.getMonth(), calpJoursDansMois(d.getFullYear() + 1, d.getMonth()));
   const { data, error } = await sb.rpc("agenda_public", { p_du: du, p_au: au });
   if (error) {
-    document.getElementById("calp-liste").innerHTML =
+    document.getElementById("calp-saison").innerHTML =
       '<p class="muted">Le calendrier n\'a pas pu être chargé. Réessayez plus tard.</p>';
     return;
   }
-  calpDates = data || [];
-  calpMin = du.slice(0, 7);
-  calpMax = au.slice(0, 7);
-  calpMois = calpMin;
+  calpDates = calpFusion(data || []);
   calpRendre();
 }
 
-// Entrées couvrant un jour donné, dans l'ordre de la légende : ce qui demande
-// une action (stage, fermeture) passe avant le décor (vacances, férié).
-function calpDuJour(iso) {
-  const rang = (g) => CALP_GENRES.findIndex(([k]) => k === g);
-  return (calpDates || []).filter((e) => e.debut <= iso && iso <= e.fin)
-    .sort((a, b) => rang(a.genre) - rang(b.genre));
-}
+// Ce qui reste devant nous. Une période commencée mais pas finie compte comme
+// à venir : les vacances d'automne intéressent autant le 15 octobre que le 1er.
+const calpAVenir = () => {
+  const auj = calpAujourdHui();
+  return (calpDates || []).filter((e) => e.fin >= auj);
+};
+const calpRetenu = (e) => calpFiltre === "tout" || e.genres.includes(calpFiltre);
 
 function calpRendre() {
-  const grille = document.getElementById("calp-grille"); if (!grille) return;
-  const [a, m] = calpMois.split("-").map(Number);
-  const an = a, mois = m - 1;
-  document.getElementById("calp-mois").textContent = `${CALP_MOIS[mois]} ${an}`;
-  document.querySelectorAll("[data-calp]").forEach((b) => {
-    const cible = calpDecaler(calpMois, Number(b.dataset.calp));
-    b.disabled = cible < calpMin || cible > calpMax;
-  });
-
-  const auj = calpAujourdHui();
-  let html = "";
-  for (let i = 0; i < calpPremierCase(an, mois); i++) html += '<span class="calp-vide"></span>';
-  for (let j = 1; j <= calpJoursDansMois(an, mois); j++) {
-    const iso = calpISO(an, mois, j);
-    const evs = calpDuJour(iso);
-    const cls = ["calp-c"].concat(evs.map((e) => "calp-g-" + e.genre));
-    if (iso === auj) cls.push("calp-auj");
-    if (iso === calpJourVu) cls.push("calp-sel");
-    if (!evs.length) {
-      html += `<span class="${cls.join(" ")}"><b>${j}</b></span>`;
-    } else {
-      const quoi = evs.map((e) => e.titre).join(", ");
-      html += `<button type="button" class="${cls.join(" ")}" data-calp-jour="${iso}"
-        aria-label="${esc(calpFrDate(iso))} — ${esc(quoi)}"><b>${j}</b>
-        <span class="calp-pts" aria-hidden="true">${evs.slice(0, 3).map((e) =>
-          `<i class="calp-pt calp-g-${e.genre}"></i>`).join("")}</span></button>`;
-    }
-  }
-  grille.innerHTML = html;
-  calpListe();
+  if (!document.getElementById("calp-saison")) return;
+  calpFiltresRendre();
+  calpSuite();
+  calpSaison();
 }
 
-const calpDecaler = (ym, n) => {
-  const [a, m] = ym.split("-").map(Number);
-  const d = new Date(a, m - 1 + n, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-};
+// Les pastilles : « Tout », puis les genres réellement présents dans la saison.
+// Proposer un filtre qui ne renverrait rien est une promesse en l'air.
+function calpFiltresRendre() {
+  const box = document.getElementById("calp-filtres"); if (!box) return;
+  const aVenir = calpAVenir();
+  const presents = new Set();
+  for (const e of aVenir) for (const g of e.genres) presents.add(g);
+  const liste = [["tout", "Tout"]].concat(CALP_GENRES.filter(([g]) => presents.has(g)));
+  box.innerHTML = liste.map(([g, lbl]) => {
+    const n = g === "tout" ? aVenir.length : aVenir.filter((e) => e.genres.includes(g)).length;
+    return `<button type="button" class="calp-pill calp-g-${g}${calpFiltre === g ? " on" : ""}"
+      data-calp-filtre="${esc(g)}" aria-pressed="${calpFiltre === g}">${esc(lbl)}
+      <span class="calp-n">${n}</span></button>`;
+  }).join("");
+}
 
-// Sous la grille : le détail. Un jour choisi prend toute la place, sinon on
-// liste le mois — sur téléphone, c'est cette liste qui se lit vraiment.
-function calpListe() {
-  const L = document.getElementById("calp-liste"); if (!L) return;
-  let titre, lot;
-  if (calpJourVu && calpJourVu.slice(0, 7) === calpMois) {
-    titre = calpFrDate(calpJourVu);
-    lot = calpDuJour(calpJourVu);
-  } else {
-    const [a, m] = calpMois.split("-").map(Number);
-    const fin = calpISO(a, m - 1, calpJoursDansMois(a, m - 1));
-    titre = `${CALP_MOIS[m - 1]} ${a}`;
-    const rang = (g) => CALP_GENRES.findIndex(([k]) => k === g);
-    lot = (calpDates || []).filter((e) => e.debut <= fin && e.fin >= `${calpMois}-01`)
-      .sort((x, y) => x.debut.localeCompare(y.debut) || rang(x.genre) - rang(y.genre));
-  }
+// Les trois prochaines dates, en tête. C'est la question que presque tout le
+// monde vient poser ; elle ne doit pas demander de chercher.
+function calpSuite() {
+  const box = document.getElementById("calp-suite"); if (!box) return;
+  const auj = calpAujourdHui();
+  const lot = calpAVenir().slice(0, 3);
+  if (!lot.length) { box.innerHTML = ""; return; }
+  box.innerHTML = lot.map((e) => {
+    const encours = e.debut <= auj;
+    const quand = encours && e.debut !== e.fin
+      ? `Jusqu'au ${calpFrDate(e.fin)}`
+      : calpPeriode(e.debut, e.fin);
+    return `<article class="calp-next calp-g-${e.genre}">
+      <span class="calp-next-g">${encours ? "En cours" : esc(CALP_UN[e.genre] || e.genre)}</span>
+      <b class="calp-next-t">${esc(e.titre)}</b>
+      <span class="calp-next-q">${esc(quand)}</span>
+    </article>`;
+  }).join("");
+}
+
+// La saison entière, groupée par mois. Une ligne = une période, lisible sans
+// cliquer : c'est ce que l'ancienne grille ne savait pas faire.
+function calpSaison() {
+  const L = document.getElementById("calp-saison"); if (!L) return;
+  const lot = calpAVenir().filter(calpRetenu);
   if (!lot.length) {
-    L.innerHTML = `<p class="calp-rien">Rien de particulier en ${esc(titre.toLowerCase())}.</p>`;
+    L.innerHTML = `<p class="calp-rien">Rien à afficher avec ce filtre.
+      <button type="button" class="calp-lien" data-calp-filtre="tout">Tout voir</button></p>`;
     return;
   }
-  L.innerHTML = `<h3 class="calp-liste-t">${esc(titre)}</h3>
-    <ul class="calp-items">${lot.map((e) => {
-      const quand = calpPeriode(e.debut, e.fin);
-      const lien = e.genre === "stage"
-        ? ' <button type="button" class="calp-lien" data-scroll-page="stages">Voir les stages</button>' : "";
-      return `<li class="calp-item calp-g-${e.genre}">
-        <span class="calp-quand">${esc(quand)}</span>
-        <b class="calp-titre">${esc(e.titre)}</b>
-        ${e.detail ? `<span class="calp-detail">${esc(e.detail)}</span>` : ""}${lien}</li>`;
-    }).join("")}</ul>`;
+  const auj = calpAujourdHui();
+  const mois = [];
+  for (const e of lot) {
+    const ym = e.debut.slice(0, 7);
+    if (!mois.length || mois[mois.length - 1].ym !== ym) mois.push({ ym, lot: [] });
+    mois[mois.length - 1].lot.push(e);
+  }
+  L.innerHTML = mois.map(({ ym, lot: items }) => {
+    const [a, m] = ym.split("-").map(Number);
+    return `<section class="calp-mois">
+      <h3 class="calp-mois-t">${CALP_MOIS[m - 1]} <span>${a}</span></h3>
+      <ul class="calp-items">${items.map((e) => {
+        const encours = e.debut <= auj && e.fin >= auj;
+        const lien = e.genres.includes("stage")
+          ? ` <button type="button" class="calp-lien" data-scroll-page="stages">Voir les stages</button>` : "";
+        const chips = e.genres.length > 1
+          // Une pastille décrit UNE entrée : « Fermeture », pas « Fermetures ».
+          // Le pluriel est réservé au filtre, qui, lui, compte des entrées.
+          ? `<span class="calp-chips">${e.genres.map((g) =>
+              `<span class="calp-chip calp-g-${g}">${esc(CALP_UN[g] || calpLabel(g))}</span>`).join("")}</span>` : "";
+        const plus = e.extras.length ? `<span class="calp-aussi">${esc(e.extras.join(" · "))}</span>` : "";
+        return `<li class="calp-item calp-g-${e.genre}${encours ? " calp-encours" : ""}">
+          <span class="calp-quand">${esc(calpPeriode(e.debut, e.fin))}${
+            encours ? `<em class="calp-badge">en cours</em>` : ""}</span>
+          <b class="calp-titre">${esc(e.titre)}</b>
+          ${plus}
+          ${e.detail ? `<span class="calp-detail">${esc(e.detail)}</span>` : ""}
+          ${chips}${lien}</li>`;
+      }).join("")}</ul>
+    </section>`;
+  }).join("");
 }
 
 // ---- Annonce temporaire sur l'accueil ----
@@ -2071,13 +2169,12 @@ document.addEventListener("click", (e) => {
   }
   // Clic ailleurs : on referme le panneau ouvert.
   if (!e.target.closest(".sw-wrap")) swFermer();
-  // Calendrier : navigation de mois, choix d'un jour, renvoi vers les stages.
-  const cnav = e.target.closest("[data-calp]");
-  if (cnav) { calpJourVu = null; calpMois = calpDecaler(calpMois, Number(cnav.dataset.calp)); calpRendre(); return; }
-  const cjour = e.target.closest("[data-calp-jour]");
-  if (cjour) {
-    // Recliquer le même jour revient au mois entier : pas de cul-de-sac.
-    calpJourVu = calpJourVu === cjour.dataset.calpJour ? null : cjour.dataset.calpJour;
+  // Calendrier : les pastilles de filtre. Recliquer la pastille active revient
+  // à « Tout » — un filtre dont on ne peut pas sortir est un piège.
+  const cfil = e.target.closest("[data-calp-filtre]");
+  if (cfil) {
+    const g = cfil.dataset.calpFiltre;
+    calpFiltre = (calpFiltre === g && g !== "tout") ? "tout" : g;
     calpRendre(); return;
   }
   const cpage = e.target.closest("[data-scroll-page]");
