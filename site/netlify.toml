@@ -179,6 +179,19 @@
     Cache-Control = "public, max-age=0, must-revalidate"
 
 # --- Site public teamlausanne.ch : Academy + Lausanne Open ---
+# Un article publié APRÈS le dernier déploiement n'a pas encore de fichier :
+# build.mjs lit les actualités au moment du build. Sans cette règle, son
+# adresse renverrait une 404 jusqu'au prochain « git push ». On sert alors la
+# page d'accueil, qui route côté navigateur et affiche l'article — il sera
+# indexable dès le déploiement suivant. 200 et non 301 : l'adresse reste
+# /actualites/<slug>, la seule qu'on annonce.
+# Netlify sert d'abord le fichier quand il existe : les articles déjà
+# fabriqués ne passent jamais par ici.
+[[redirects]]
+  from = "/actualites/*"
+  to = "/index.html"
+  status = 200
+
 # /lausanne-open est désormais une VRAIE page, fabriquée par build.mjs.
 # L'ancienne règle la renvoyait vers /#tournoi : elle se serait redirigée
 # elle-même, et la page n'aurait jamais été servie.

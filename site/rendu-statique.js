@@ -225,10 +225,102 @@ export function enTeteDe(cle, page) {
   return { titre, chapo };
 }
 
+// Rendre absolu tout chemin relatif d'un href ou d'un src.
+//
+// Les pages d'articles vivent à /actualites/<slug> : un chemin relatif y
+// repart de /actualites/ et pointe dans le vide. Plutôt que de corriger au cas
+// par cas — c'est déjà ce qui a cassé le premier déploiement — on pose la
+// règle une fois : ce qui ne commence ni par http, ni par /, ni par # ou
+// mailto: reçoit sa barre de tête.
+export function absolutiser(html) {
+  return String(html).replace(/(\s(?:href|src)=")(?!https?:|\/|#|mailto:|tel:|data:)([^"]*)"/g,
+    (_, avant, chemin) => `${avant}/${chemin}"`);
+}
+
 export function corpsHTML(cle, page) {
   const { titre, chapo } = enTeteDe(cle, page);
   const sections = tab(page.sections).map(sectionHTML).join("\n");
-  return `<article>\n${h(1, titre)}\n${p(chapo)}\n${sections}\n</article>`;
+  return absolutiser(`<article>\n${h(1, titre)}\n${p(chapo)}\n${sections}\n</article>`);
+}
+
+// ===========================================================================
+//  Actualités
+// ---------------------------------------------------------------------------
+// Les articles viennent de la base, pas de contenu.js : build.mjs les lit par
+// news_public() au moment du déploiement. Le rendu ci-dessous reproduit celui
+// d'index.js (actuBloc), à une différence près : un lien interne « #stages »
+// devient « /stages ». Servir à un robot un lien qui ne mène nulle part, c'est
+// perdre le maillage interne qu'on vient de construire.
+// ===========================================================================
+
+export function actuBlocHTML(b) {
+  if (!b || typeof b !== "object") return "";
+  if (b.t === "p") return p(b.x);
+  if (b.t === "h2") return h(2, b.x);
+  if (b.t === "quote") {
+    return `<blockquote><p>${esc(b.x || "")}</p>${
+      b.src ? `<cite>${esc(b.src)}</cite>` : ""}</blockquote>`;
+  }
+  if (b.t === "img" && b.x) {
+    return `<figure><img src="${esc(b.x)}" alt="${esc(b.alt || "")}" loading="lazy" />${
+      b.cap ? `<figcaption>${esc(b.cap)}</figcaption>` : ""}</figure>`;
+  }
+  // Même garde qu'index.js : seuls http(s) et les ancres internes passent. Une
+  // adresse « javascript: » glissée en base ne doit pas devenir un lien.
+  if (b.t === "lien" && typeof b.x === "string") {
+    if (/^#[\w-]+$/.test(b.x)) {
+      return `<p><a href="${esc(lienDe(b.x))}">${esc(b.label || "En savoir plus")}</a></p>`;
+    }
+    if (/^https?:\/\//i.test(b.x)) {
+      return `<p><a href="${esc(b.x)}" target="_blank" rel="noopener">${esc(b.label || "Voir")}</a></p>`;
+    }
+    return "";
+  }
+  return "";
+}
+
+export function articleHTML(a) {
+  const corps = tab(a.body).map(actuBlocHTML).join("\n");
+  const date = a.published_on
+    ? `<p><time datetime="${esc(a.published_on)}">${esc(a.published_on)}</time>${
+        a.author ? ` · ${esc(a.author)}` : ""}${a.category ? ` · ${esc(a.category)}` : ""}</p>`
+    : "";
+  const couv = a.cover_url
+    ? `<figure><img src="${esc(a.cover_url)}" alt="${esc(a.cover_alt || a.title || "")}" /></figure>` : "";
+  return absolutiser(`<article>
+${h(1, a.title)}
+${date}
+${p(a.lede)}
+${couv}
+${corps}
+<p><a href="/actualites">Toutes les actualités</a></p>
+</article>`);
+}
+
+export function listeActusHTML(articles) {
+  const items = tab(articles).map((a) => `<li>
+    <article>
+      <h2><a href="/actualites/${esc(a.slug)}">${esc(a.title)}</a></h2>
+      ${a.category ? `<p>${esc(a.category)}${
+        a.published_on ? ` · <time datetime="${esc(a.published_on)}">${esc(a.published_on)}</time>` : ""}</p>` : ""}
+      ${p(a.lede)}
+    </article>
+  </li>`).join("\n");
+  return absolutiser(`<article>
+<h1>Actualités</h1>
+<p>La vie de l'académie, semaine après semaine : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club.</p>
+<ul>
+${items}
+</ul>
+</article>`);
+}
+
+// Une description d'article : son chapô, coupé proprement comme les autres.
+export function descriptionArticle(a) {
+  const brut = String(a.lede || a.title || "").replace(/\s+/g, " ").trim();
+  if (brut.length <= 155) return brut;
+  const coupe = brut.slice(0, 155);
+  return coupe.slice(0, coupe.lastIndexOf(" ")).replace(/[ ,;:]+$/, "") + "…";
 }
 
 // --- métadonnées ----------------------------------------------------------

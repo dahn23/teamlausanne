@@ -19,12 +19,13 @@
 // visiteur voit exactement ce qu'il voyait, simplement plus tôt.
 // ===========================================================================
 
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTENU } from "./contenu.js";
 import {
   pagesDe, corpsHTML, titreDe, descriptionDe, esc,
+  articleHTML, listeActusHTML, descriptionArticle,
 } from "./rendu-statique.js";
 import { SLUGS, urlDe } from "./adresses.js";
 
@@ -36,7 +37,17 @@ const IMAGE = SITE + "/assets/og-teamlausanne.jpg";
 // est vierge : si <main> contient déjà quelque chose, c'est qu'on relance le
 // build sur une sortie précédente, et on s'arrête plutôt que d'empiler.
 const MARQUE = '<main id="world-main" class="world-main"></main>';
-const gabarit = await readFile(join(ICI, "index.html"), "utf8");
+const gabaritBrut = await readFile(join(ICI, "index.html"), "utf8");
+
+// Les pages d'articles vivent à /actualites/<slug> : depuis cette adresse, un
+// « style.css » relatif est cherché dans /actualites/style.css. C'est le
+// défaut qui a servi des pages nues au premier déploiement, et il reviendrait
+// ici d'un cran plus bas. On rend donc absolus, une fois pour toutes, les
+// chemins du gabarit — ce qui ne change rien pour les pages à la racine.
+const gabarit = gabaritBrut.replace(
+  /(\s(?:href|src)=")(?!https?:|\/|#|mailto:|tel:|data:)([^"]*)"/g,
+  (_, avant, chemin) => `${avant}/${chemin}"`);
+
 if (!gabarit.includes(MARQUE)) {
   console.error("build: index.html n'est pas vierge (le <main> n'est pas vide).");
   console.error("build: relancer depuis une copie propre du dépôt.");
@@ -158,6 +169,94 @@ for (const [cle, page] of Object.entries(pages)) {
   ecrites.push({ cle, adresse: "/" + slug, mots: corps.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length });
 }
 
+// --- les actualités -------------------------------------------------------
+// Elles ne vivent pas dans contenu.js mais dans la base. On les lit au
+// déploiement par news_public(), la fonction SECURITY DEFINER qui ne rend que
+// les articles publiés et dont la date est arrivée — un brouillon ne peut donc
+// pas fuiter, même en lisant la réponse réseau.
+//
+// Si la lecture échoue, on N'ARRÊTE PAS le build : un incident réseau chez
+// Supabase ne doit pas empêcher de déployer une correction de CSS. On prévient
+// bruyamment, les pages d'articles manquent pour ce déploiement, et le site
+// continue de les rendre côté navigateur (voir la règle /actualites/* dans
+// netlify.toml). Le prochain déploiement les rattrape.
+const SUPABASE = "https://lnrmtwamuaqcubohontn.supabase.co";
+const CLE_PUBLIABLE = "sb_publishable_nsRKXBFgwmDjtmvS3mFc0w_Q4pi_qxK";
+
+async function lireActus() {
+  try {
+    const r = await fetch(`${SUPABASE}/rest/v1/rpc/news_public`, {
+      method: "POST",
+      headers: { apikey: CLE_PUBLIABLE, "Content-Type": "application/json" },
+      body: "{}",
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    return Array.isArray(j) ? j : [];
+  } catch (e) {
+    console.warn("build: actualités illisibles (" + e.message + ") — pages d'articles non fabriquées.");
+    console.warn("build: le site les rendra côté navigateur ; le prochain déploiement les rattrapera.");
+    return null;
+  }
+}
+
+const actus = await lireActus();
+const actusEcrites = [];
+
+if (actus) {
+  const pageActu = (titre, description, url, corps, jsonld) => {
+    let html = gabarit;
+    html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(titre)}</title>`);
+    html = html.replace(/<meta name="description" content="[^"]*"\s*\/>/,
+      `<meta name="description" content="${esc(description)}" />`);
+    html = html.replace(/<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${url}" />`);
+    html = html.replace(/<meta property="og:url" content="[^"]*"\s*\/>/, `<meta property="og:url" content="${url}" />`);
+    html = html.replace(/<meta property="og:title" content="[^"]*"\s*\/>/, `<meta property="og:title" content="${esc(titre)}" />`);
+    html = html.replace(/<meta property="og:description" content="[^"]*"\s*\/>/,
+      `<meta property="og:description" content="${esc(description)}" />`);
+    html = html.replace(/<meta name="twitter:title" content="[^"]*"\s*\/>/, `<meta name="twitter:title" content="${esc(titre)}" />`);
+    html = html.replace(/<meta name="twitter:description" content="[^"]*"\s*\/>/,
+      `<meta name="twitter:description" content="${esc(description)}" />`);
+    if (jsonld) {
+      html = html.replace("</head>", `  <script type="application/ld+json">\n${jsonld}\n  </script>\n</head>`);
+    }
+    return html.replace(MARQUE, `<main id="world-main" class="world-main" data-rendu-statique="actu">\n${corps}\n</main>`);
+  };
+
+  // La liste
+  await writeFile(join(ICI, "actualites.html"), pageActu(
+    "Actualités — Team Lausanne Academy",
+    "La vie de l'académie, semaine après semaine : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club.",
+    SITE + "/actualites", listeActusHTML(actus),
+    JSON.stringify({ "@context": "https://schema.org", "@type": "CollectionPage",
+      "@id": SITE + "/actualites#page", url: SITE + "/actualites", name: "Actualités",
+      inLanguage: "fr-CH", isPartOf: { "@id": SITE + "/#site" },
+      about: { "@id": SITE + "/#academy" } }, null, 2)), "utf8");
+
+  // Un fichier par article, dans actualites/
+  await mkdir(join(ICI, "actualites"), { recursive: true });
+  for (const a of actus) {
+    if (!a || !a.slug) continue;
+    const url = `${SITE}/actualites/${a.slug}`;
+    const description = descriptionArticle(a);
+    const jsonld = JSON.stringify({
+      "@context": "https://schema.org", "@type": "NewsArticle",
+      "@id": url + "#article", mainEntityOfPage: url, url,
+      headline: String(a.title || "").slice(0, 110),
+      description, inLanguage: "fr-CH",
+      datePublished: a.published_on, dateModified: a.published_on,
+      articleSection: a.category || undefined,
+      image: a.cover_url || IMAGE,
+      author: { "@type": "Organization", name: a.author || "Team Lausanne Academy", url: SITE + "/" },
+      publisher: { "@id": SITE + "/#academy" },
+    }, null, 2);
+    await writeFile(join(ICI, "actualites", a.slug + ".html"),
+      pageActu(`${a.title} — Team Lausanne Academy`, description, url, articleHTML(a), jsonld), "utf8");
+    actusEcrites.push({ slug: a.slug, date: a.published_on });
+  }
+}
+
 // --- le plan du site ------------------------------------------------------
 // Généré depuis la même liste : impossible qu'il annonce une page qui
 // n'existe pas, ou qu'il en oublie une.
@@ -171,6 +270,18 @@ ${Object.keys(pages).map((cle) => `  <url>
     <changefreq>${cle === "academie" ? "weekly" : "monthly"}</changefreq>
     <priority>${cle === "academie" ? "1.0" : "0.8"}</priority>
   </url>`).join("\n")}
+${actus ? `  <url>
+    <loc>${SITE}/actualites</loc>
+    <lastmod>${aujourdhui}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+${actusEcrites.map((a) => `  <url>
+    <loc>${SITE}/actualites/${a.slug}</loc>
+    <lastmod>${a.date || aujourdhui}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>`).join("\n")}` : ""}
 ${["samedi-famille", "tennis-lunchs", "confidentialite"].map((s) => `  <url>
     <loc>${SITE}/${s}</loc>
     <changefreq>yearly</changefreq>
@@ -182,4 +293,5 @@ await writeFile(join(ICI, "sitemap.xml"), sitemap, "utf8");
 
 console.log(`build: ${ecrites.length} pages écrites`);
 for (const e of ecrites) console.log(`  ${e.adresse.padEnd(24)} ${String(e.mots).padStart(5)} mots`);
-console.log(`build: sitemap.xml — ${Object.keys(pages).length + 3} adresses`);
+console.log(`build: ${actus ? actusEcrites.length + " articles" : "actualités NON fabriquées"}`);
+console.log(`build: sitemap.xml — ${Object.keys(pages).length + 3 + (actus ? actusEcrites.length + 1 : 0)} adresses`);

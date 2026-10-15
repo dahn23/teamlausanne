@@ -329,7 +329,7 @@ function sectionHTML(sec) {
           ${sec.lead ? `<p class="actus-acc-lead">${esc(sec.lead)}</p>` : ""}
         </div>
         <div id="accueil-actus" class="actu-grille"></div>
-        <p class="actus-acc-tout"><a class="btn-cta" href="#actualites">Toutes les actualités →</a></p>
+        <p class="actus-acc-tout"><a class="btn-cta" href="/actualites">Toutes les actualités →</a></p>
       </section>`;
 
     // Les programmes, tous visibles, groupes par intention. Remplace le
@@ -1627,14 +1627,22 @@ function majMentionImage(pageId) {
 // Les actualités restent en ancre : leurs pages ne sont pas fabriquées au
 // déploiement puisqu'elles viennent de la base, et un chemin sans fichier
 // derrière renverrait une 404.
-const cheminDe = (cle) => (cle in SLUGS ? "/" + SLUGS[cle] : null);
+const cheminDe = (cle) => (cle in SLUGS ? "/" + SLUGS[cle] : cheminActu(cle));
 
 function cleCourante() {
   const chemin = location.pathname.replace(/^\/+|\/+$/g, "");
   if (chemin && CLE_DE_SLUG[chemin]) return CLE_DE_SLUG[chemin];
-  if (!chemin) return location.hash.replace("#", "");
+  // Les actualités : /actualites et /actualites/<slug>. Le routeur interne
+  // continue de parler en « actualites » et « actu-<slug> » — seule l'adresse
+  // publique change.
+  if (chemin === "actualites") return "actualites";
+  if (chemin.startsWith("actualites/")) return "actu-" + chemin.slice("actualites/".length);
   return location.hash.replace("#", "");
 }
+
+// L'adresse publique d'une clé d'actualité.
+const cheminActu = (cle) => (cle === "actualites" ? "/actualites"
+  : cle.startsWith("actu-") ? "/actualites/" + cle.slice(5) : null);
 
 // Aller à une page. Un vrai chemin quand elle en a un, l'ancre sinon.
 function allerA(cle) {
@@ -1649,8 +1657,8 @@ function allerA(cle) {
 // bouton Retour doit ramener d'où l'on vient, pas sur l'ancienne adresse.
 function upgradeAncre() {
   const h = location.hash.replace("#", "");
-  if (!h || !(h in SLUGS)) return;
-  const chemin = cheminDe(h);
+  if (!h) return;
+  const chemin = cheminDe(h);   // null si l'ancre n'est pas une page
   if (chemin && location.pathname !== chemin) history.replaceState(null, "", chemin);
 }
 
@@ -2403,13 +2411,31 @@ document.addEventListener("submit", async (e) => {
 // l'URL afficherait /sport-etudes#kids, deux adresses pour une page.
 document.addEventListener("click", (e) => {
   if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
-  const a = e.target.closest('a[href^="#"]');
+  const a = e.target.closest('a[href^="#"], a[href^="/"]');
   if (!a) return;
-  const cle = a.getAttribute("href").slice(1);
-  if (!(cle in SLUGS)) return;                 // ancre de page, pas une route
+  if (a.target === "_blank" || a.hasAttribute("download")) return;
+  const href = a.getAttribute("href");
+  // Une ancre : seulement si elle désigne une page. « #brochure » doit
+  // continuer de faire défiler, pas de naviguer.
+  // Un chemin : on le repasse par la table des adresses, et on ne retient que
+  // ce que l'application sait rendre — /confidentialite ou un PDF partent au
+  // serveur comme avant.
+  const cle = href.startsWith("#") ? href.slice(1) : cleDeChemin(href);
+  if (!cle) return;
+  if (!(cle in SLUGS) && !cle.startsWith("actu")) return;
   e.preventDefault();
   allerA(cle);
 });
+
+// L'inverse de cheminDe : une adresse interne redevient une clé de page.
+function cleDeChemin(href) {
+  const chemin = href.split("?")[0].split("#")[0].replace(/^\/+|\/+$/g, "");
+  if (!chemin) return "academie";
+  if (CLE_DE_SLUG[chemin]) return CLE_DE_SLUG[chemin];
+  if (chemin === "actualites") return "actualites";
+  if (chemin.startsWith("actualites/")) return "actu-" + chemin.slice("actualites/".length);
+  return null;
+}
 
 // Bouton Précédent / Suivant du navigateur : avec des vrais chemins, c'est
 // « popstate » qui parle, plus « hashchange ».
@@ -2874,7 +2900,7 @@ function actuBloc(b) {
 }
 
 function actuCarte(a) {
-  return `<a class="actu-carte" href="#actu-${esc(a.slug)}">
+  return `<a class="actu-carte" href="/actualites/${esc(a.slug)}">
     ${a.cover_url ? `<img src="${esc(a.cover_url)}" alt="${esc(a.cover_alt || "")}" loading="lazy" />`
       : `<div class="actu-sansphoto" aria-hidden="true"></div>`}
     <div class="actu-carte-txt">
@@ -2920,7 +2946,7 @@ async function renderActus() {
       <p class="actu-compte">${vus.length} article${vus.length > 1 ? "s" : ""}${
         actuFiltre === "Tout" ? "" : " · " + esc(actuFiltre)}</p>
 
-      ${une ? `<a class="actu-une" href="#actu-${esc(une.slug)}">
+      ${une ? `<a class="actu-une" href="/actualites/${esc(une.slug)}">
         ${une.cover_url ? `<img src="${esc(une.cover_url)}" alt="${esc(une.cover_alt || "")}" />` : ""}
         <div class="actu-une-txt">
           <span class="actu-badges"><b>À la une</b><span class="actu-cat">${esc(une.category)}</span></span>
@@ -2950,7 +2976,7 @@ async function renderActu(slug) {
   const w = WORLDS.academie;
   paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: a.cover_url || "assets/photos/club-2026.jpg",
     tag: a.category, slogan: a.title, sloganEntier: true, titreArticle: true, desc: a.lede || "",
-    ctaHTML: `<a class="btn-cta ghost" href="#actualites">← Toutes les actualités</a>` });
+    ctaHTML: `<a class="btn-cta ghost" href="/actualites">← Toutes les actualités</a>` });
 
   const corps = Array.isArray(a.body) ? a.body.map(actuBloc).join("") : "";
   const autres = tous.filter((x) => x.slug !== a.slug).slice(0, 3);
@@ -2964,7 +2990,7 @@ async function renderActu(slug) {
       ${autres.length ? `<div class="actu-suite">
         <h2>À lire aussi</h2>
         <div class="actu-grille">${autres.map(actuCarte).join("")}</div></div>` : ""}
-      <p class="actu-retour"><a href="#actualites">← Revenir aux actualités</a></p>
+      <p class="actu-retour"><a href="/actualites">← Revenir aux actualités</a></p>
     </section>`;
   setTitle("academie", a.title);
   animate();
