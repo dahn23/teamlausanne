@@ -2591,9 +2591,16 @@ function actuBloc(b) {
   // pas devenir un lien cliquable, meme si seule l'equipe peut ecrire.
   // target="_blank" + rel="noopener" : la page d'origine reste ouverte, et la
   // page ouverte n'a pas la main sur elle.
-  if (b.t === "lien" && typeof b.x === "string" && /^https?:\/\//i.test(b.x))
-    return `<p class="actu-lien"><a class="btn-cta" href="${esc(b.x)}"
-      target="_blank" rel="noopener">${esc(b.label || "Voir")} ↗</a></p>`;
+  if (b.t === "lien" && typeof b.x === "string") {
+    // Un lien INTERNE (« #stages ») reste dans l'onglet : on ne chasse pas le
+    // lecteur hors du site pour l'envoyer sur une autre page du site.
+    if (/^#[\w-]+$/.test(b.x))
+      return `<p class="actu-lien"><a class="btn-cta" href="${esc(b.x)}">${esc(b.label || "En savoir plus")} →</a></p>`;
+    if (/^https?:\/\//i.test(b.x))
+      return `<p class="actu-lien"><a class="btn-cta" href="${esc(b.x)}"
+        target="_blank" rel="noopener">${esc(b.label || "Voir")} ↗</a></p>`;
+    return "";
+  }
   return "";   // type inconnu : on ignore, on ne casse pas la page
 }
 
