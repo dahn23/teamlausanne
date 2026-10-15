@@ -121,6 +121,14 @@ function resoudre(o) {
 const WORLDS = resoudre(CONTENU.worlds);
 const DETAILS = resoudre(CONTENU.details);
 
+// État des actualités (le rendu est plus bas, avec le reste du module).
+// Il est déclaré ICI, et pas à côté de ses fonctions : route() est appelé
+// pendant l'évaluation du module, donc avant les déclarations qui suivent.
+// Un `let` lu avant son initialisation lève une ReferenceError — la page
+// restait sur « Chargement des actualités… », sans rien dire d'autre.
+let actusCache = null;
+let actuFiltre = "Tout";
+
 // ===================================================================
 //  RENDU
 // ===================================================================
@@ -2534,9 +2542,9 @@ document.addEventListener("click", (e) => {
 // Le corps d'un article est une suite de BLOCS ({t:"p"|"h2"|"quote"|"img"}),
 // pas du HTML : rien de ce qui vient de la base n'est injecte tel quel, et un
 // type de bloc inconnu est ignore plutot que de casser la page.
-let actusCache = null;
-let actuFiltre = "Tout";
-
+//
+// actusCache et actuFiltre sont declares tout en haut du fichier : route()
+// s'execute pendant l'evaluation du module, donc avant cette ligne.
 const ACTU_FILIERES = ["Tout", "Kids Tennis", "Club", "Compétition", "Performance",
   "Sport-études", "Pro", "Stages", "GameZone", "Lausanne Open", "Nos coachs", "Vie du club"];
 
