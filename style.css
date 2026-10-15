@@ -413,6 +413,10 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .gz-cl-ok{background:#e3f6ea;color:#0b6b3a}
 .gz-cl-todo{background:#fff1d6;color:#8a5a00}
 .gz-total td{font-weight:800;color:var(--blue-ink);background:#eef1f7;border-top:2px solid var(--line)}
+/* Finances GameZone : en-tête + ligne TOTAL figés, seul le contenu défile */
+.gz-fin-scroll{max-height:calc(100vh - 220px);min-height:260px}
+.gz-fin-scroll thead{position:sticky;top:0;z-index:3}
+.gz-fin-scroll thead th{position:static}
 /* Petit logo Team Lausanne à côté d'un joueur « de chez nous » (répertoire + filière active) */
 .gz-ours{height:16px;width:auto;vertical-align:-3px;margin-left:5px}
 .gz-trow{cursor:pointer}
