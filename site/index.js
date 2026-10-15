@@ -1675,6 +1675,34 @@ function route() {
   else { renderWorld(DEFAULT_WORLD); setTitle(DEFAULT_WORLD); }
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   annonceAccueil();
+  signalerIntrouvable();
+}
+
+// Une adresse qui n'existe pas. Le serveur répond bien 404 et sert 404.html —
+// mais index.js prenait ensuite la main et peignait l'accueil par-dessus. Le
+// visiteur cliquait un lien mort et se retrouvait sur la page d'accueil, sans
+// un mot : rien ne lui disait que son lien était périmé, et il pouvait croire
+// que c'était ce qu'il avait demandé.
+//
+// On garde l'accueil dessous — il offre tout ce qu'il faut pour rebondir —
+// mais on le dit, et le titre de l'onglet le dit aussi.
+function signalerIntrouvable() {
+  const chemin = location.pathname.replace(/^\/+|\/+$/g, "");
+  const connue = !chemin || CLE_DE_SLUG[chemin] || chemin === "actualites"
+    || chemin.startsWith("actualites/") || location.hash;
+  const dejaLa = document.getElementById("introuvable");
+  if (connue) { dejaLa?.remove(); return; }
+  if (dejaLa) return;
+  setTitle("academie", "Page introuvable");
+  const main = $("world-main");
+  if (!main) return;
+  const bloc = document.createElement("section");
+  bloc.id = "introuvable";
+  bloc.className = "wsec introuvable";
+  bloc.innerHTML = `<p class="introuvable-t">Cette page n'existe pas</p>
+    <p class="introuvable-x">L'adresse <code>${esc(location.pathname)}</code> n'existe pas, ou n'existe plus.
+    Voici l'accueil — tout le reste est dans le menu, en haut.</p>`;
+  main.prepend(bloc);
 }
 
 // ---- Calendrier public de la saison ----
