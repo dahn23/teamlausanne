@@ -55,6 +55,46 @@ export const CLE_DE_SLUG = Object.fromEntries(
 const SITE = "https://teamlausanne.ch";
 export const urlDe = (cle) => SITE + "/" + (SLUGS[cle] || "");
 
+// contenu.js porte deux renvois, en texte, que index.js résout avant de
+// rendre : "@coachs" devient la liste des coachs, { type:"mention" } sans
+// titre devient la mention « droit à l'image ». Le build DOIT faire le même
+// travail — sinon il essaie de parcourir la chaîne "@coachs" comme un tableau,
+// et la page entière se perd. C'est exactement ce qui s'est produit au premier
+// essai. Même logique qu'index.js, reproduite ici parce que ce module ne doit
+// dépendre de rien.
+export function resoudre(o, CONTENU) {
+  const renvois = {
+    "@coachs": () => CONTENU.coachs,
+    "@flag_ch": () => CONTENU.flag_ch,
+    "@flag_ie": () => CONTENU.flag_ie,
+    "@flag_fr": () => CONTENU.flag_fr,
+    "@itf_url": () => CONTENU.itf_url,
+    "@gamezone_url": () => CONTENU.gamezone_url,
+  };
+  const pas = (x) => {
+    if (typeof x === "string") return renvois[x] ? renvois[x]() : x;
+    if (Array.isArray(x)) return x.map(pas);
+    if (x && typeof x === "object") {
+      if (x.type === "mention" && !x.title) return { ...CONTENU.mention_image };
+      const r = {};
+      for (const [k, v] of Object.entries(x)) r[k] = pas(v);
+      return r;
+    }
+    return x;
+  };
+  return pas(o);
+}
+
+// Toutes les pages du site, clés résolues, prêtes à rendre.
+export const pagesDe = (CONTENU) => ({
+  ...resoudre(CONTENU.worlds, CONTENU),
+  ...resoudre(CONTENU.details, CONTENU),
+});
+
+// Un tableau, ou rien. Une section mal formée ne doit pas faire tomber la
+// page entière au build : on préfère un bloc vide à un site qui ne compile pas.
+const tab = (v) => (Array.isArray(v) ? v : []);
+
 // --- petits assembleurs ---------------------------------------------------
 const p = (t) => (t ? `<p>${esc(t)}</p>` : "");
 const h = (n, t) => (t ? `<h${n}>${esc(t)}</h${n}>` : "");
@@ -118,8 +158,8 @@ function sectionConnue(sec) {
         + (Array.isArray(sec.points) ? ul(sec.points) : "");
 
     case "progmap":
-      return h(2, sec.title) + p(sec.sub) + (sec.groupes || []).map((g) =>
-        h(3, g.titre) + p(g.pour) + `<ul>${(g.items || []).map((o) =>
+      return h(2, sec.title) + p(sec.sub) + tab(sec.groupes).map((g) =>
+        h(3, g.titre) + p(g.pour) + `<ul>${tab(g.items).map((o) =>
           `<li><a href="${esc(lienDe(o.href))}"><strong>${esc(o.name)}</strong></a>${
             o.age ? ` (${esc(o.age)})` : ""}${o.quoi ? ` — ${esc(o.quoi)}` : ""}</li>`
         ).join("")}</ul>`).join("") + p(sec.note);
@@ -129,16 +169,16 @@ function sectionConnue(sec) {
 
     case "keywords":
       return (sec.label ? h(2, sec.label) : "")
-        + ul((sec.items || []).map((x) => (typeof x === "string" ? x : x && x.t)).filter(Boolean));
+        + ul(tab(sec.items).map((x) => (typeof x === "string" ? x : x && x.t)).filter(Boolean));
 
     case "coachs":
       return h(2, sec.title) + p(sec.eyebrow)
-        + `<ul>${(sec.items || []).map((c) =>
+        + `<ul>${tab(sec.items).map((c) =>
             `<li><strong>${esc(c.nom || c.name)}</strong>${
               c.role ? ` — ${esc(c.role)}` : ""}</li>`).join("")}</ul>`;
 
     case "telecharger":
-      return h(2, sec.title) + p(sec.lead) + ul(sec.points || [])
+      return h(2, sec.title) + p(sec.lead) + ul(tab(sec.points))
         + (sec.href ? `<p><a href="${esc(sec.href)}" download>${
             esc(sec.bouton || "Télécharger")}</a></p>` : "");
 
@@ -179,7 +219,7 @@ export function enTeteDe(cle, page) {
 
 export function corpsHTML(cle, page) {
   const { titre, chapo } = enTeteDe(cle, page);
-  const sections = (page.sections || []).map(sectionHTML).join("\n");
+  const sections = tab(page.sections).map(sectionHTML).join("\n");
   return `<article>\n${h(1, titre)}\n${p(chapo)}\n${sections}\n</article>`;
 }
 
