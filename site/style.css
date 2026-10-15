@@ -3478,3 +3478,14 @@ html.bot-ouvert{overflow:hidden}
    voir sans interrompre la lecture au milieu d'un paragraphe. */
 .actu-lien{margin:2.2em 0;text-align:center}
 .actu-lien .btn-cta{display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+
+/* Bandeau d'actualités sur l'accueil.
+   ---------------------------------------------------------------------------
+   Les actualités vivent au bout d'un menu déroulant : personne ne va les y
+   chercher. Ce bloc met les trois derniers articles sur le chemin, là où les
+   gens passent déjà, avec une sortie claire vers la page complète. */
+.actus-accueil{max-width:var(--container);margin:0 auto}
+.actus-acc-head{margin-bottom:22px}
+.actus-acc-lead{margin:10px 0 0;max-width:62ch;color:var(--muted);line-height:1.65}
+.actus-acc-tout{margin:26px 0 0;text-align:center}
+.actus-acc-tout .btn-cta{display:inline-flex;align-items:center;gap:8px;text-decoration:none}

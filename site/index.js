@@ -314,6 +314,20 @@ function sectionHTML(sec) {
           ${sec.body.map((p) => `<p>${esc(p)}</p>`).join("")}${linkHTML(sec.link)}</div>
       </section>`;
 
+    // Bandeau d'actualités de l'accueil. La coquille est posée tout de suite,
+    // les articles arrivent ensuite (actusAccueil) : trois articles ne doivent
+    // pas retarder l'affichage de la page.
+    case "actus":
+      return `<section class="wsec actus-accueil"${sec.anchor ? ` id="${esc(sec.anchor)}"` : ""}>
+        <div class="actus-acc-head">
+          ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
+          <h2>${esc(sec.title)}</h2>
+          ${sec.lead ? `<p class="actus-acc-lead">${esc(sec.lead)}</p>` : ""}
+        </div>
+        <div id="accueil-actus" class="actu-grille"></div>
+        <p class="actus-acc-tout"><a class="btn-cta" href="#actualites">Toutes les actualités →</a></p>
+      </section>`;
+
     case "features":
       return `<section class="wsec">${sec.title ? `<h2>${esc(sec.title)}</h2>` : ""}
         <div class="feature-grid">${sec.items.map(([h, t]) =>
@@ -1420,6 +1434,20 @@ function renderWorld(key) {
   calerBandeaux();
   calpDates = null; calpJourVu = null;   // on change de monde : on repart propre
   calPubCharger();
+  if ($("accueil-actus")) actusAccueil();
+}
+
+// Les trois derniers articles sur l'accueil. Le bloc est déjà en place quand
+// cette fonction s'exécute : on ne fait que le remplir, donc la page n'attend
+// jamais la base pour s'afficher. Aucun article : le bloc se retire au lieu de
+// laisser une rangée vide.
+async function actusAccueil() {
+  const box = $("accueil-actus");
+  if (!box) return;
+  const tous = await actusCharger();
+  const sec = box.closest(".actus-accueil");
+  if (!tous.length) { if (sec) sec.remove(); return; }
+  box.innerHTML = tous.slice(0, 3).map(actuCarte).join("");
 }
 
 function renderDetail(id) {

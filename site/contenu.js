@@ -258,6 +258,12 @@ worlds:
           { name: "Stages", photo: "assets/photos/stages-2026.jpg", href: "#stages" },
           { name: "Adultes et privés", photo: "assets/photos/adultes-2026.jpg", href: "#adultes" },
         ]},
+      // Les actualités vivent au bout d'un menu déroulant : personne ne va les
+      // y chercher. Ce bloc met les trois derniers articles sur le chemin, là
+      // où les gens passent déjà.
+      { type: "actus", anchor: "actus", eyebrow: "Le journal du club",
+        title: "Les dernières actualités",
+        lead: "La vie de l'académie, semaine après semaine : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club." },
       { type: "calendrier", anchor: "calendrier", eyebrow: "Agenda",
         title: "Le calendrier de la saison",
         lead: "Vacances scolaires, jours fériés, fermetures de l'académie et stages : les dates à retenir, au même endroit." },
@@ -562,7 +568,7 @@ details:
           ["Et ensuite ?", "La filière Performance prend le relais pour celles et ceux qui confirment."],
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "competition", ranking: true,
-        lead: "Intéressé(e) par la filière Compétition ? Remplissez ce formulaire, le secrétariat vous recontacte." },
+        lead: "Intéressé(e) par la filière Compétition ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
   },
   performance: {
@@ -630,7 +636,7 @@ details:
           ["Et ensuite ?", "Le Sport-études prend le relais, puis la voie Pro U18 pour celles et ceux qui confirment."],
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "performance", ranking: true,
-        lead: "Intéressé(e) par la filière Performance ? Remplissez ce formulaire, le secrétariat vous recontacte." },
+        lead: "Intéressé(e) par la filière Performance ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
   },
   "pro-u18": {
@@ -812,7 +818,7 @@ details:
           ["Comment mon enfant progresse-t-il ?", "Par un encadrement adapté à son âge, du travail de coordination, les bases techniques et les retours réguliers de l'équipe de coachs."],
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "kidstennis", ranking: false,
-        lead: "Envie d'inscrire votre enfant à Kids Tennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
+        lead: "Envie d'inscrire votre enfant à Kids Tennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
   },
   "club-academy": {
@@ -861,7 +867,7 @@ details:
           ["Qu'est-ce qui est compris ?", "L'entraînement encadré en groupe, le suivi de la progression tout au long de la saison, et le t-shirt Team Lausanne."],
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "club", ranking: false,
-        lead: "Envie de rejoindre l'offre Club ? Remplissez ce formulaire, le secrétariat vous recontacte." },
+        lead: "Envie de rejoindre l'offre Club ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
   },
   adultes: {
@@ -935,7 +941,7 @@ details:
         lead: "Nos coachs travaillent ensemble, pour que l'encadrement reste cohérent à tous les niveaux — des premières balles jusqu'au Sport-études et au Pro.",
         // La meme liste sert la page « Nos coachs » et le carrousel de
         // l'accueil : une seule source, pas deux a tenir a jour.
-        items: "@coachs" },
+        items: "@coachs" },
     ],
   },
 },
