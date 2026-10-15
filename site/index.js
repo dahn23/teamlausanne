@@ -1500,7 +1500,7 @@ function renderWorld(key) {
   majPartenairesBas();
   visioGlisser();
   calerBandeaux();
-  calpDates = null; calpFiltre = "tout";   // on change de monde : on repart propre
+  calpDates = null; calpFiltre = "tout"; calpTout = false;   // on change de monde : on repart propre
   calPubCharger();
   if ($("accueil-actus")) actusAccueil();
 }
@@ -1643,7 +1643,9 @@ var CALP_GENRES = [
 ];
 var CALP_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin",
   "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-var calpDates = null, calpFiltre = "tout";
+var calpDates = null, calpFiltre = "tout", calpTout = false;
+// Nombre d entrees montrees avant le bouton « Voir toute la saison ».
+const CALP_APERCU = 10;
 
 // Dates manipulées en texte « AAAA-MM-JJ » et jamais en objet Date : une borne
 // de vacances comparée en UTC se décale d'un jour pour qui lit depuis Lausanne.
@@ -1794,8 +1796,13 @@ function calpSaison() {
     return;
   }
   const auj = calpAujourdHui();
+  // agenda_public() renvoie douze mois : tout déplier d'un coup redonnerait le
+  // défaut qu'on vient de corriger — une section de trois écrans. On s'arrête
+  // aux dix premières entrées, ce qui couvre les trois ou quatre mois qui
+  // viennent, et le reste est à un clic.
+  const vus = calpTout ? lot : lot.slice(0, CALP_APERCU);
   const mois = [];
-  for (const e of lot) {
+  for (const e of vus) {
     const ym = e.debut.slice(0, 7);
     if (!mois.length || mois[mois.length - 1].ym !== ym) mois.push({ ym, lot: [] });
     mois[mois.length - 1].lot.push(e);
@@ -1823,7 +1830,9 @@ function calpSaison() {
           ${chips}${lien}</li>`;
       }).join("")}</ul>
     </section>`;
-  }).join("");
+  }).join("") + (calpTout || lot.length <= CALP_APERCU ? "" :
+    `<button type="button" class="calp-plus" data-calp-plus>
+       Voir toute la saison <span class="calp-n">${lot.length - CALP_APERCU} de plus</span></button>`);
 }
 
 // ---- Annonce temporaire sur l'accueil ----
@@ -2175,8 +2184,12 @@ document.addEventListener("click", (e) => {
   if (cfil) {
     const g = cfil.dataset.calpFiltre;
     calpFiltre = (calpFiltre === g && g !== "tout") ? "tout" : g;
+    // Changer de filtre replie la liste : sinon on garde ouvertes les trente
+    // entrées d'un filtre qu'on vient de quitter.
+    calpTout = false;
     calpRendre(); return;
   }
+  if (e.target.closest("[data-calp-plus]")) { calpTout = true; calpRendre(); return; }
   const cpage = e.target.closest("[data-scroll-page]");
   if (cpage) { location.hash = cpage.dataset.scrollPage; return; }
   // Fiches des coachs. La fermeture passe avant l'ouverture : le voile couvre la

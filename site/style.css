@@ -3285,6 +3285,14 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 .calp-lien:hover{background:var(--blue-d)}
 .calp-rien{margin:8px 0 0;color:var(--muted);font-size:.9rem}
 .calp-rien .calp-lien{display:inline-block;margin-left:6px;vertical-align:middle}
+/* Le bouton qui déplie le reste de la saison. Large et centré : c est la
+   seule chose à faire à cet endroit de la page. */
+.calp-plus{align-self:center;display:inline-flex;align-items:center;gap:9px;
+  margin-top:4px;padding:11px 22px;border-radius:999px;cursor:pointer;
+  border:1.5px solid var(--line);background:#fff;color:var(--ink);
+  font:inherit;font-size:.88rem;font-weight:700;transition:.15s}
+.calp-plus:hover{border-color:var(--blue);color:var(--blue)}
+.calp-plus .calp-n{background:#eef1f7;color:var(--muted)}
 
 @media(max-width:900px){
   .calp-suite{grid-template-columns:1fr}
