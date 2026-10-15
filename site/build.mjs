@@ -24,7 +24,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTENU } from "./contenu.js";
 import {
-  pagesDe, corpsHTML, titreDe, descriptionDe, esc, faqDe,
+  pagesDe, corpsHTML, titreDe, descriptionDe, esc, faqDe, naviguerHTML,
   articleHTML, listeActusHTML, descriptionArticle,
 } from "./rendu-statique.js";
 import { SLUGS, urlDe } from "./adresses.js";
@@ -118,6 +118,18 @@ function jsonLdPage(cle, page, titre, description) {
   return JSON.stringify({ "@context": "https://schema.org", "@graph": graphe }, null, 2);
 }
 
+// Remplace l'image de partage (Open Graph + Twitter) par celle de la page.
+// Les dimensions annoncées par le gabarit valent pour l'image par défaut, qui
+// fait 1200x630 ; une photo de filière a d'autres proportions, et annoncer de
+// fausses dimensions fait recadrer de travers. On les retire.
+function imagePartage(html, url) {
+  return html
+    .replace(/<meta property="og:image" content="[^"]*"\s*\/>/, `<meta property="og:image" content="${esc(url)}" />`)
+    .replace(/<meta property="og:image:width" content="[^"]*"\s*\/>\s*/, "")
+    .replace(/<meta property="og:image:height" content="[^"]*"\s*\/>\s*/, "")
+    .replace(/<meta name="twitter:image" content="[^"]*"\s*\/>/, `<meta name="twitter:image" content="${esc(url)}" />`);
+}
+
 const EST_UNE_FILIERE = new Set([
   "kids", "club-academy", "competition", "performance",
   "sport-etudes", "pro-u18", "pro", "adultes", "stages",
@@ -156,6 +168,10 @@ for (const [cle, page] of Object.entries(pages)) {
     `<meta name="twitter:title" content="${esc(titre)}" />`);
   html = html.replace(/<meta name="twitter:description" content="[^"]*"\s*\/>/,
     `<meta name="twitter:description" content="${esc(description)}" />`);
+  // L'image de partage : celle de la page, pas celle du site. Les quatorze
+  // pages partageaient la même photo — un lien vers le Sport-études et un lien
+  // vers Kids Tennis arrivaient avec la même vignette sur WhatsApp.
+  html = imagePartage(html, page.hero ? SITE + "/" + page.hero.replace(/^\//, "") : IMAGE);
 
   // Les données structurées de la page viennent S'AJOUTER à celles du site
   // (organisation, lieu, programmes), qui restent dans le gabarit.
@@ -239,11 +255,15 @@ if (actus) {
     return html.replace(MARQUE, `<main id="world-main" class="world-main" data-rendu-statique="actu">\n${corps}\n</main>`);
   };
 
+  // Le même maillage que sur les pages de filière : un article ne doit pas
+  // être un cul-de-sac pour un robot.
+  const navCommune = naviguerHTML(null, pages);
+
   // La liste
   await writeFile(join(ICI, "actualites.html"), pageActu(
     "Actualités — Team Lausanne Academy",
     "La vie de l'académie, semaine après semaine : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club.",
-    SITE + "/actualites", listeActusHTML(actus),
+    SITE + "/actualites", listeActusHTML(actus) + navCommune,
     JSON.stringify({ "@context": "https://schema.org", "@type": "CollectionPage",
       "@id": SITE + "/actualites#page", url: SITE + "/actualites", name: "Actualités",
       inLanguage: "fr-CH", isPartOf: { "@id": SITE + "/#site" },
@@ -267,9 +287,33 @@ if (actus) {
       publisher: { "@id": SITE + "/#academy" },
     }, null, 2);
     await writeFile(join(ICI, "actualites", a.slug + ".html"),
-      pageActu(`${a.title} — Team Lausanne Academy`, description, url, articleHTML(a), jsonld), "utf8");
+      pageActu(`${a.title} — Team Lausanne Academy`, description, url, articleHTML(a, navCommune), jsonld), "utf8");
     actusEcrites.push({ slug: a.slug, date: a.published_on });
   }
+}
+
+// --- la page 404 ----------------------------------------------------------
+// Netlify en sert une par défaut : fond blanc, « Page Not Found », aucun lien.
+// Le visiteur n'a plus qu'à fermer l'onglet. Celle-ci porte la barre du site
+// et le chemin vers toutes les pages — une adresse périmée ramène donc dans
+// le site au lieu d'en sortir. Netlify la sert automatiquement, avec le bon
+// statut 404, dès qu'un fichier 404.html existe à la racine.
+{
+  const corps = `<article>
+<h1>Cette page n'existe pas</h1>
+<p>L'adresse demandée n'existe pas, ou n'existe plus. Voici par où reprendre.</p>
+</article>
+${naviguerHTML(null, pages)}`;
+  let html = gabarit;
+  html = html.replace(/<title>[\s\S]*?<\/title>/, "<title>Page introuvable — Team Lausanne Academy</title>");
+  html = html.replace(/<meta name="description" content="[^"]*"\s*\/>/,
+    '<meta name="description" content="Cette page n\'existe pas. Retrouvez les programmes, les stages et les actualités de Team Lausanne Academy." />');
+  // Pas d'adresse canonique sur une 404, et surtout pas d'indexation : cette
+  // page peut être servie sous mille adresses différentes.
+  html = html.replace(/<link rel="canonical" href="[^"]*"\s*\/>/,
+    '<meta name="robots" content="noindex" />');
+  html = html.replace(MARQUE, `<main id="world-main" class="world-main" data-rendu-statique="404">\n${corps}\n</main>`);
+  await writeFile(join(ICI, "404.html"), html, "utf8");
 }
 
 // --- le plan du site ------------------------------------------------------

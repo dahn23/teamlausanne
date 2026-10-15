@@ -324,7 +324,7 @@ export function actuBlocHTML(b) {
   return "";
 }
 
-export function articleHTML(a) {
+export function articleHTML(a, nav = "") {
   const corps = tab(a.body).map(actuBlocHTML).join("\n");
   const date = a.published_on
     ? `<p><time datetime="${esc(a.published_on)}">${esc(a.published_on)}</time>${
@@ -339,7 +339,8 @@ ${p(a.lede)}
 ${couv}
 ${corps}
 <p><a href="/actualites">Toutes les actualités</a></p>
-</article>`);
+</article>
+${nav}`);
 }
 
 export function listeActusHTML(articles) {
