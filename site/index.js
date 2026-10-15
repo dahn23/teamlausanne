@@ -2586,6 +2586,14 @@ function actuBloc(b) {
   if (b.t === "img" && b.x)
     return `<figure class="actu-fig"><img src="${esc(b.x)}" alt="${esc(b.alt || "")}" loading="lazy" />${
       b.cap ? `<figcaption>${esc(b.cap)}</figcaption>` : ""}</figure>`;
+  // Un lien sortant (Instagram, inscription, document…). Seuls http et https
+  // sont acceptes : une adresse « javascript: » glissee dans la base ne doit
+  // pas devenir un lien cliquable, meme si seule l'equipe peut ecrire.
+  // target="_blank" + rel="noopener" : la page d'origine reste ouverte, et la
+  // page ouverte n'a pas la main sur elle.
+  if (b.t === "lien" && typeof b.x === "string" && /^https?:\/\//i.test(b.x))
+    return `<p class="actu-lien"><a class="btn-cta" href="${esc(b.x)}"
+      target="_blank" rel="noopener">${esc(b.label || "Voir")} ↗</a></p>`;
   return "";   // type inconnu : on ignore, on ne casse pas la page
 }
 
