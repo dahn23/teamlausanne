@@ -237,10 +237,55 @@ export function absolutiser(html) {
     (_, avant, chemin) => `${avant}/${chemin}"`);
 }
 
-export function corpsHTML(cle, page) {
+// Le maillage interne. Une page rendue ne portait qu'UN lien sortant : pour un
+// robot, chaque filière était un cul-de-sac. Or c'est en suivant des liens
+// qu'il découvre les pages et qu'il juge lesquelles comptent. On pose donc, au
+// pied de chaque page, le chemin vers toutes les autres.
+//
+// Ce bloc disparaît dès qu'index.js prend la main — il ne s'ajoute pas au
+// menu, il le remplace le temps du chargement.
+export function naviguerHTML(cleCourante, pages) {
+  const liens = Object.keys(pages)
+    .filter((c) => c !== cleCourante && c in SLUGS)
+    .map((c) => {
+      const { titre } = enTeteDe(c, pages[c]);
+      return `<li><a href="${esc("/" + SLUGS[c])}">${esc(titre || c)}</a></li>`;
+    }).join("");
+  return `<nav aria-label="Les autres pages">
+<h2>Découvrir aussi</h2>
+<ul>${liens}<li><a href="/actualites">Actualités</a></li></ul>
+</nav>`;
+}
+
+export function corpsHTML(cle, page, pages) {
   const { titre, chapo } = enTeteDe(cle, page);
   const sections = tab(page.sections).map(sectionHTML).join("\n");
-  return absolutiser(`<article>\n${h(1, titre)}\n${p(chapo)}\n${sections}\n</article>`);
+  // La photo de tête, avec un vrai texte de remplacement. Une page sans
+  // image n'existe pas dans Google Images, et « alt » est la seule chose
+  // qu'un moteur sait lire d'une photo.
+  const hero = page.hero
+    ? `<figure><img src="${esc(page.hero)}" alt="${esc(titre)} — Team Lausanne Academy, école de tennis à Lausanne" /></figure>`
+    : "";
+  const nav = pages ? naviguerHTML(cle, pages) : "";
+  return absolutiser(`<article>\n${h(1, titre)}\n${p(chapo)}\n${hero}\n${sections}\n</article>\n${nav}`);
+}
+
+// Les questions-réponses d'une page, pour le balisage FAQPage.
+//
+// Ce balisage n'était pas légitime tant que le site tenait sur une seule
+// adresse : Google demande que la FAQ soit VISIBLE sur la page qui la déclare.
+// Maintenant que chaque filière a la sienne, et que ses questions y sont
+// rendues en clair, il l'est — et c'est le format que les moteurs de réponse
+// reprennent le plus volontiers.
+export function faqDe(page) {
+  const out = [];
+  for (const sec of tab(page.sections)) {
+    if (!sec || sec.type !== "faq") continue;
+    for (const it of tab(sec.items)) {
+      if (Array.isArray(it) && it[0] && it[1]) out.push([String(it[0]), String(it[1])]);
+    }
+  }
+  return out;
 }
 
 // ===========================================================================

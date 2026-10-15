@@ -24,7 +24,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTENU } from "./contenu.js";
 import {
-  pagesDe, corpsHTML, titreDe, descriptionDe, esc,
+  pagesDe, corpsHTML, titreDe, descriptionDe, esc, faqDe,
   articleHTML, listeActusHTML, descriptionArticle,
 } from "./rendu-statique.js";
 import { SLUGS, urlDe } from "./adresses.js";
@@ -100,6 +100,21 @@ function jsonLdPage(cle, page, titre, description) {
       locationCreated: { "@id": SITE + "/#academy" },
     });
   }
+  // Les questions-réponses de la page, telles qu'elles y sont affichées.
+  // Google exige que la FAQ soit visible sur la page qui la déclare : c'est le
+  // cas depuis que chaque filière a sa propre adresse, et pas avant.
+  const faq = faqDe(page);
+  if (faq.length) {
+    graphe.push({
+      "@type": "FAQPage",
+      "@id": url + "#faq",
+      mainEntity: faq.map(([q, r]) => ({
+        "@type": "Question",
+        name: q,
+        acceptedAnswer: { "@type": "Answer", text: r },
+      })),
+    });
+  }
   return JSON.stringify({ "@context": "https://schema.org", "@graph": graphe }, null, 2);
 }
 
@@ -123,7 +138,7 @@ for (const [cle, page] of Object.entries(pages)) {
   const url = urlDe(cle);
   const titre = titreDe(cle, page);
   const description = descriptionDe(cle, page);
-  const corps = corpsHTML(cle, page);
+  const corps = corpsHTML(cle, page, pages);
 
   let html = gabarit;
   html = remplacer(html, /<title>[\s\S]*?<\/title>/, `<title>${esc(titre)}</title>`, "<title>");
