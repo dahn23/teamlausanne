@@ -1471,9 +1471,32 @@ function setTitle(world, sub) {
     ? "Une question sur le Lausanne Open, une demande de presse, un partenariat — écrivez-nous, nous répondons rapidement."
     : "Une question sur l'Academy — écrivez-nous, nous répondons rapidement.";
 }
+// Droit à l'image : les filières où des mineurs sont photographiés en cours,
+// en stage ou en tournoi. Sport-études, Pro U18 et Pro en sont absents — leur
+// contrat traite déjà la question — tout comme l'accueil, les adultes et la
+// page des coachs, où la mention n'aurait rien à protéger.
+//
+// Une seule bande, affichée ou masquée, plutôt qu'une copie par page : six
+// copies d'une mention légale finissent par diverger, et une mention qui ne
+// dit pas la même chose d'une page à l'autre ne vaut rien.
+const MENTION_PAGES = new Set(["kids", "competition", "club-academy", "performance", "stages", "gamezone"]);
+
+function majMentionImage(pageId) {
+  const el = document.getElementById("mention-image");
+  if (!el) return;
+  const montrer = MENTION_PAGES.has(pageId);
+  el.hidden = !montrer;
+  if (montrer && !el.innerHTML) {
+    el.innerHTML = `<div class="mention-bande-in">
+      <h2>${esc(MENTION_IMAGE.title)}</h2>
+      <p>${esc(MENTION_IMAGE.body)}</p></div>`;
+  }
+}
+
 function route() {
   const h = location.hash.replace("#", "");
   hit("site", h || "accueil");
+  majMentionImage(h);
   if (DETAILS[h] && WORLDS[DETAILS[h].world] && (!LO_ONLY || DETAILS[h].world === "tournoi")) { renderDetail(h); setTitle(DETAILS[h].world, DETAILS[h].title); }
   else if (WORLDS[h] && !LO_ONLY) { renderWorld(h); setTitle(h); }
   else { renderWorld(DEFAULT_WORLD); setTitle(DEFAULT_WORLD); }

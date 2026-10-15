@@ -13,7 +13,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=127" />
+  <link rel="stylesheet" href="style.css?v=128" />
   <!-- Site public teamlausanne.ch : deux mondes (Academy, Lausanne Open). L'onglet Club renvoie sur www.lstennis.ch.
        Aucune connexion ni réservation ici : l'app (console, portail) vit sur app.teamlausanne.ch.
        Sur le domaine lausanneopen.ch, le script bascule en mode « tournoi seul » (barre et pied de page masqués). -->
@@ -196,6 +196,14 @@
       <a class="btn-cta" href="https://www.instagram.com/lausanne_sports_tennis/"
          target="_blank" rel="noopener">SUIVEZ-NOUS</a>
     </div>
+
+    <!-- Droit à l'image. Elle vivait dans la colonne de texte de chaque
+         filière, en fin de page : étroite, perdue sous le formulaire, et
+         recopiée page après page. Elle est désormais une bande pleine largeur
+         au bas de « Suivez-nous » — juste sous les photos qu'elle concerne,
+         ce qui est l'endroit logique pour la lire. index.js l'affiche sur les
+         filières qui en ont besoin et la masque ailleurs. -->
+    <aside id="mention-image" class="mention-bande" hidden></aside>
   </section>
 
   <footer class="foot">

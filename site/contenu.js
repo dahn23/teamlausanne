@@ -424,6 +424,14 @@ details:
           ["Préparation mentale", "Un accompagnement mental intégré à la semaine."],
           ["Et après", "Université suisse, institutions américaines (NCAA) ou circuit professionnel."],
         ]},
+      // Ce qui est compris, et surtout ce qui ne l'est PAS : l'abonnement
+      // d'hiver et le cordage se règlent à part. Mieux vaut le lire ici que
+      // le découvrir sur une facture.
+      { type: "features", title: "Cotisation et cordage : ce qui est compris", items: [
+        ["Cotisation d'été offerte", "La cotisation d'été au club est prise en charge par l'académie : rien à régler de votre côté."],
+        ["Abonnement d'hiver à votre charge", "Il n'est pas compris dans le programme et se règle directement auprès du club."],
+        ["Cordage à votre charge", "Chez nos amis d'Aubert Sport, au tarif préférentiel de 20.– la raquette."],
+      ]},
       { type: "students", eyebrow: "On vous présente",
         title: "Nos athlètes",
         lead: "Derrière le programme, il y a d'abord des joueuses et des joueurs. Touchez une carte pour en savoir plus.", items: [
@@ -554,8 +562,7 @@ details:
           ["Et ensuite ?", "La filière Performance prend le relais pour celles et ceux qui confirment."],
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "competition", ranking: true,
-        lead: "Intéressé(e) par la filière Compétition ? Remplissez ce formulaire, le secrétariat vous recontacte." },
-      { type: "mention" },
+        lead: "Intéressé(e) par la filière Compétition ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
   },
   performance: {
@@ -623,8 +630,7 @@ details:
           ["Et ensuite ?", "Le Sport-études prend le relais, puis la voie Pro U18 pour celles et ceux qui confirment."],
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "performance", ranking: true,
-        lead: "Intéressé(e) par la filière Performance ? Remplissez ce formulaire, le secrétariat vous recontacte." },
-      { type: "mention" },
+        lead: "Intéressé(e) par la filière Performance ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
   },
   "pro-u18": {
@@ -723,6 +729,14 @@ details:
           ["Les objectifs", "Points ATP ou WTA, progression au classement, préparation d'une saison ou d'un retour de blessure."],
           ["Le rythme", "Sessions ajustées à votre charge, à la récupération et aux impératifs du circuit."],
         ]},
+      // Même bloc qu'en Sport-études, à une ligne près : le cordage est offert
+      // ici et nulle part ailleurs. L'abonnement d'hiver reste exclu dans les
+      // deux cas — on le dit, plutôt que de le laisser deviner.
+      { type: "features", title: "Cotisation et cordage : ce qui est compris", items: [
+        ["Cotisation d'été offerte", "La cotisation d'été au club est prise en charge par l'académie."],
+        ["Cordage offert", "Les cordages sont pris en charge par l'académie — un avantage propre à la filière Pro."],
+        ["Abonnement d'hiver à votre charge", "Il n'est pas compris dans le programme et se règle directement auprès du club."],
+      ]},
       { type: "split", photos: ["assets/webflow/sport-studies.jpg"],
         eyebrow: "La question qu'on n'ose pas poser", title: "Une solution 360°, y compris financière", body: [
           "Le tennis professionnel coûte cher, et c'est souvent ce qui arrête les carrières avant le niveau de jeu. Nous préférons en parler dès le premier entretien.",
@@ -798,8 +812,7 @@ details:
           ["Comment mon enfant progresse-t-il ?", "Par un encadrement adapté à son âge, du travail de coordination, les bases techniques et les retours réguliers de l'équipe de coachs."],
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "kidstennis", ranking: false,
-        lead: "Envie d'inscrire votre enfant à Kids Tennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
-      { type: "mention" },
+        lead: "Envie d'inscrire votre enfant à Kids Tennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
   },
   "club-academy": {
@@ -848,8 +861,7 @@ details:
           ["Qu'est-ce qui est compris ?", "L'entraînement encadré en groupe, le suivi de la progression tout au long de la saison, et le t-shirt Team Lausanne."],
         ]},
       { type: "enroll", title: "Demander une inscription", filiere: "club", ranking: false,
-        lead: "Envie de rejoindre l'offre Club ? Remplissez ce formulaire, le secrétariat vous recontacte." },
-      { type: "mention" },
+        lead: "Envie de rejoindre l'offre Club ? Remplissez ce formulaire, le secrétariat vous recontacte." },
     ],
   },
   adultes: {
@@ -923,8 +935,7 @@ details:
         lead: "Nos coachs travaillent ensemble, pour que l'encadrement reste cohérent à tous les niveaux — des premières balles jusqu'au Sport-études et au Pro.",
         // La meme liste sert la page « Nos coachs » et le carrousel de
         // l'accueil : une seule source, pas deux a tenir a jour.
-        items: "@coachs" },
-      { type: "mention" },
+        items: "@coachs" },
     ],
   },
 },

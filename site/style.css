@@ -3332,3 +3332,24 @@ html.bot-ouvert{overflow:hidden}
   .bot-rond,.bot-bulle-accueil{transition:none}
   .bot-points i{animation:none;opacity:.6}
 }
+
+/* ===========================================================================
+   Droit à l'image — bande pleine largeur au bas de « Suivez-nous »
+   ---------------------------------------------------------------------------
+   Elle vivait dans la colonne de texte des filières : étroite, coincée sous le
+   formulaire d'inscription, et recopiée page après page. Elle occupe désormais
+   toute la largeur, juste sous les photos qu'elle concerne. Discrète mais
+   lisible : une mention qu'on ne peut pas lire ne protège personne.
+   =========================================================================== */
+.mention-bande{display:block;margin-top:46px;padding:26px 22px calc(26px + env(safe-area-inset-bottom));
+  border-top:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04)}
+.mention-bande[hidden]{display:none}
+.mention-bande-in{max-width:1180px;margin:0 auto}
+.mention-bande h2{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;
+  margin:0 0 8px;font-weight:700;color:rgba(255,255,255,.72)}
+.mention-bande p{margin:0;font-size:.84rem;line-height:1.7;color:rgba(255,255,255,.66);
+  max-width:none;text-wrap:pretty}
+@media(max-width:700px){
+  .mention-bande{margin-top:32px;padding:20px 18px calc(20px + env(safe-area-inset-bottom))}
+  .mention-bande p{font-size:.8rem;line-height:1.65}
+}
