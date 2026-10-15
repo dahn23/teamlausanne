@@ -125,6 +125,37 @@
   from = "/coaches"
   to = "/nos-coachs"
   status = 301
+# /academy est encore indexée par Google : elle vient du site Wix et sort
+# toujours dans les résultats. Elle répondait 404 — ce qui dit à Google
+# d'oublier la page, et jette au passage tout ce qu'elle avait accumulé. Un 301
+# transmet cette valeur à la page qui l'a remplacée, et le visiteur arrive sur
+# quelque chose plutôt que sur une erreur.
+[[redirects]]
+  from = "/academy"
+  to = "/"
+  status = 301
+# Raccourcis plausibles : ce qu'on tape ou dicte de mémoire. Gratuit à écrire,
+# et cela évite une 404 à qui ne se trompe que d'un mot.
+[[redirects]]
+  from = "/kids"
+  to = "/kids-tennis"
+  status = 301
+[[redirects]]
+  from = "/sport-etudes-tennis"
+  to = "/sport-etudes"
+  status = 301
+[[redirects]]
+  from = "/ecole-de-tennis"
+  to = "/"
+  status = 301
+[[redirects]]
+  from = "/actualite"
+  to = "/actualites"
+  status = 301
+[[redirects]]
+  from = "/news"
+  to = "/actualites"
+  status = 301
 # --- Anciennes adresses du site Wix : aucune ne doit tomber en 404 ---
 [[redirects]]
   from = "/partenariats"
