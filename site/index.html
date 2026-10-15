@@ -4,8 +4,159 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#123cc4" />
-  <title>Team Lausanne Academy — Tennis à Lausanne, du Kids Tennis au Pro</title>
-  <meta name="description" content="Team Lausanne Academy : le centre de formation tennis des Plaines-du-Loup à Lausanne. Kids Tennis, Club, Compétition, Performance, Sport-études, Pro U18, Pro, stages, tournois GameZone — et le Lausanne Open, tournoi ITF M25." />
+  <!-- ====================== Référencement ======================
+       Le titre et la description visent la requête qu'un parent tape
+       réellement — « école de tennis Lausanne » — et non le nom de la marque,
+       qu'on ne cherche que si on le connaît déjà. La description tient sous
+       155 signes, au-delà Google la coupe.
+
+       Attention : ce site route par #ancre, et une ancre n'est jamais envoyée
+       au serveur. Pour un moteur, teamlausanne.ch/#kids et teamlausanne.ch
+       sont LA MÊME page — il n'y en a qu'une seule indexable. Ces balises
+       décrivent donc le site entier, et c'est aussi pourquoi les mettre à jour
+       en JavaScript à chaque changement d'onglet ne servirait à rien : les
+       robots qui lisent Open Graph (WhatsApp, LinkedIn, Facebook) n'exécutent
+       pas de JavaScript, et de toute façon ils normalisent l'ancre. -->
+  <title>École de tennis à Lausanne — Team Lausanne Academy</title>
+  <meta name="description" content="École de tennis à Lausanne, aux Plaines-du-Loup : cours enfants dès 4 ans, compétition, sport-études et stages pendant les vacances scolaires." />
+  <link rel="canonical" href="https://teamlausanne.ch/" />
+
+  <!-- Partage sur WhatsApp, Instagram, LinkedIn. Sans ces balises, un lien
+       partagé n'affichait qu'une adresse nue : ni titre, ni image, ni phrase.
+       L'image fait 1200x630, le format que toutes les plateformes attendent. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Team Lausanne Academy" />
+  <meta property="og:locale" content="fr_CH" />
+  <meta property="og:url" content="https://teamlausanne.ch/" />
+  <meta property="og:title" content="École de tennis à Lausanne — Team Lausanne Academy" />
+  <meta property="og:description" content="Cours enfants dès 4 ans, compétition, sport-études et stages pendant les vacances scolaires, aux Plaines-du-Loup à Lausanne." />
+  <meta property="og:image" content="https://teamlausanne.ch/assets/og-teamlausanne.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Jeunes joueuses et joueurs à l'entraînement sur les courts de Team Lausanne" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="École de tennis à Lausanne — Team Lausanne Academy" />
+  <meta name="twitter:description" content="Cours enfants dès 4 ans, compétition, sport-études et stages pendant les vacances scolaires, aux Plaines-du-Loup à Lausanne." />
+  <meta name="twitter:image" content="https://teamlausanne.ch/assets/og-teamlausanne.jpg" />
+
+  <!-- Données structurées (JSON-LD). C'est ce que lisent en premier les
+       résultats enrichis de Google ET les moteurs de réponse (ChatGPT,
+       Perplexity, Claude) : du texte brut, sans JavaScript à exécuter. Tout
+       ce qui suit est vérifiable sur le site — adresse, téléphone, âges,
+       descriptions des filières. Rien n'est inventé : des horaires ou des
+       prix faux ici se retrouveraient cités tels quels dans une réponse d'IA.
+       Coordonnées géographiques relevées à l'adresse exacte (OpenStreetMap). -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": ["SportsActivityLocation", "SportsClub"],
+        "@id": "https://teamlausanne.ch/#academy",
+        "name": "Team Lausanne Academy",
+        "alternateName": ["Team Lausanne", "École de tennis Team Lausanne"],
+        "description": "Centre de formation de tennis à Lausanne, aux Plaines-du-Loup. École de tennis dès 4 ans, filières compétition et performance, sport-études, cours adultes et stages pendant les vacances scolaires.",
+        "url": "https://teamlausanne.ch/",
+        "logo": "https://teamlausanne.ch/assets/logo-academie.webp",
+        "image": "https://teamlausanne.ch/assets/og-teamlausanne.jpg",
+        "telephone": "+41216461350",
+        "email": "info@teamlausanne.ch",
+        "sport": "Tennis",
+        "slogan": "Jouer. Progresser. Ensemble.",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Route des Plaines-du-Loup 7",
+          "postalCode": "1018",
+          "addressLocality": "Lausanne",
+          "addressRegion": "Vaud",
+          "addressCountry": "CH"
+        },
+        "geo": { "@type": "GeoCoordinates", "latitude": 46.5336098, "longitude": 6.625856 },
+        "areaServed": [
+          { "@type": "City", "name": "Lausanne" },
+          { "@type": "AdministrativeArea", "name": "Canton de Vaud" }
+        ],
+        "knowsLanguage": ["fr", "en"],
+        "parentOrganization": {
+          "@type": "SportsClub",
+          "name": "TC Lausanne-Sports",
+          "url": "https://www.lstennis.ch"
+        },
+        "sameAs": [
+          "https://www.instagram.com/lausanne_sports_tennis/",
+          "https://www.lstennis.ch"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://teamlausanne.ch/#site",
+        "url": "https://teamlausanne.ch/",
+        "name": "Team Lausanne Academy",
+        "inLanguage": "fr-CH",
+        "publisher": { "@id": "https://teamlausanne.ch/#academy" }
+      },
+      {
+        "@type": "ItemList",
+        "@id": "https://teamlausanne.ch/#programmes",
+        "name": "Les programmes de Team Lausanne Academy",
+        "numberOfItems": 10,
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "item": {
+            "@type": "Course", "name": "Kids Tennis",
+            "description": "Le tennis dès 4 ans, dans un cadre ludique, structuré et bienveillant.",
+            "typicalAgeRange": "4-10", "url": "https://teamlausanne.ch/#kids",
+            "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
+          { "@type": "ListItem", "position": 2, "item": {
+            "@type": "Course", "name": "Club",
+            "description": "Une à deux fois par semaine, pour progresser à son rythme et prendre du plaisir.",
+            "url": "https://teamlausanne.ch/#club-academy",
+            "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
+          { "@type": "ListItem", "position": 3, "item": {
+            "@type": "Course", "name": "Cours adultes et privés",
+            "description": "Cours privés, semi-privés et de groupe, adaptés à votre rythme.",
+            "url": "https://teamlausanne.ch/#adultes",
+            "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
+          { "@type": "ListItem", "position": 4, "item": {
+            "@type": "Course", "name": "Compétition",
+            "description": "Entraînement structuré et matchs, pour les jeunes prêts à passer un cap. Seize places.",
+            "typicalAgeRange": "10-13", "url": "https://teamlausanne.ch/#competition",
+            "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
+          { "@type": "ListItem", "position": 5, "item": {
+            "@type": "Course", "name": "Performance",
+            "description": "Le lien entre la Compétition et le Sport-études : charge d'entraînement renforcée, préparation physique intégrée. Huit places.",
+            "typicalAgeRange": "12-15", "url": "https://teamlausanne.ch/#performance",
+            "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
+          { "@type": "ListItem", "position": 6, "item": {
+            "@type": "Course", "name": "Sport-études",
+            "description": "Deux heures de tennis, une heure de préparation physique et quatre heures de cours par jour, avec l'Institut DOMI, l'EPSU ou le CNED. Maturité fédérale suisse ou baccalauréat français.",
+            "typicalAgeRange": "14-19", "url": "https://teamlausanne.ch/#sport-etudes",
+            "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
+          { "@type": "ListItem", "position": 7, "item": {
+            "@type": "Course", "name": "Pro U18",
+            "description": "L'entraînement devient le métier : deux sessions par jour et le circuit.",
+            "url": "https://teamlausanne.ch/#pro-u18",
+            "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
+          { "@type": "ListItem", "position": 8, "item": {
+            "@type": "Course", "name": "Pro",
+            "description": "Pas d'offre standard : un calendrier, des objectifs et un encadrement sur mesure, dès 18 ans.",
+            "url": "https://teamlausanne.ch/#pro",
+            "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
+          { "@type": "ListItem", "position": 9, "item": {
+            "@type": "Course", "name": "Stages de tennis",
+            "description": "Pendant les vacances scolaires, de la découverte ludique à la semaine intensive, pour les 4 à 18 ans et pour les adultes.",
+            "typicalAgeRange": "4-18", "url": "https://teamlausanne.ch/#stages",
+            "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
+          { "@type": "ListItem", "position": 10, "item": {
+            "@type": "Course", "name": "Game Zone",
+            "description": "Des tournois juniors presque chaque week-end, sur une journée, deux matchs garantis.",
+            "url": "https://teamlausanne.ch/#gamezone",
+            "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } }
+        ]
+      }
+    ]
+  }
+  </script>
+  <!-- ==================== fin Référencement ==================== -->
   <script>if(/lausanneopen/i.test(location.hostname))document.documentElement.classList.add("lo-only");</script>
   <link rel="preconnect" href="https://use.typekit.net" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

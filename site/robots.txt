@@ -1,0 +1,40 @@
+# teamlausanne.ch — tout est public, rien à cacher.
+# Les robots des moteurs de réponse (ChatGPT, Claude, Perplexity, Gemini) sont
+# nommés explicitement : sans ce fichier ils passaient déjà, mais les écrire
+# ici rend le choix visible — et laisse un seul endroit à changer si un jour
+# on veut en refuser un.
+
+User-agent: *
+Allow: /
+
+# Moteurs de réponse / IA
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Rien de l'application ici : la console et le portail vivent sur
+# app.teamlausanne.ch, et ce domaine les renvoie déjà vers l'accueil.
+Disallow: /console
+Disallow: /admin/
+
+Sitemap: https://teamlausanne.ch/sitemap.xml

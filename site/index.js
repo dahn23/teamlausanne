@@ -346,7 +346,7 @@ function sectionHTML(sec) {
           <div class="progmap-grille">${g.items.map((o) => `
             <a class="progcard" href="${esc(o.href)}">
               <span class="progcard-media">
-                <img src="${esc(o.photo)}" alt="" loading="lazy" />
+                <img src="${esc(o.photo)}" alt="${esc(o.name)} — Team Lausanne Academy, école de tennis à Lausanne" loading="lazy" />
                 ${o.age ? `<span class="progcard-age">${esc(o.age)}</span>` : ""}
               </span>
               <span class="progcard-txt">
@@ -1949,7 +1949,7 @@ function stgRenderList() {
     const badges = oc.map((c) => `<span class="stg-tag">${esc(c.name)}</span>`).join("");
     return `<article class="stg-pub-card" data-stg="${s.id}">
       <span class="stg-saison">${esc(stgSaison(s.start_date))}</span>
-      ${img ? `<img src="${img}" alt="" class="stg-pub-img" loading="lazy"/>` : '<div class="stg-pub-img stg-pub-noimg"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg></div>'}
+      ${img ? `<img src="${img}" alt="${esc(s.title || "Stage de tennis")} — stage de tennis pendant les vacances scolaires a Lausanne" class="stg-pub-img" loading="lazy"/>` : '<div class="stg-pub-img stg-pub-noimg"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M4.7 6.5c3.2 2 3.2 9 0 11M19.3 6.5c-3.2 2-3.2 9 0 11"/></svg></div>'}
       <div class="stg-pub-body"><h3>${esc(s.title || "Stage")}</h3>
         <div class="stg-pub-dates">${dates} · ${jours(d)}</div>
         <div class="stg-pub-badges">${badges}</div>
