@@ -2129,11 +2129,14 @@ document.addEventListener("click", (e) => {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
-  const goto = LO_ONLY ? null : e.target.closest("[data-goto]");   // menu déroulant : aller à une section d'un monde
+  const goto = LO_ONLY ? null : e.target.closest("[data-goto]");   // panneau du menu : aller a une section d'un monde
   if (goto) {
     const w = goto.dataset.goto, a = goto.dataset.anchor;
     history.replaceState(null, "", "#" + w);
     renderWorld(w);
+    // L'adresse change sans passer par route() : le titre de l'onglet doit
+    // suivre, sinon il garde celui de la page d'ou l'on vient.
+    setTitle(w);
     requestAnimationFrame(() => document.querySelector(`[data-anchor="${a}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
     return;
   }
