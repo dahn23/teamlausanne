@@ -13,7 +13,7 @@
        Noto Sans = repli officiel prevu par les guidelines de marque. -->
   <link rel="stylesheet" href="https://use.typekit.net/uxl8yzy.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=134" />
+  <link rel="stylesheet" href="style.css?v=135" />
   <!-- Site public teamlausanne.ch : deux mondes (Academy, Lausanne Open). L'onglet Club renvoie sur www.lstennis.ch.
        Aucune connexion ni réservation ici : l'app (console, portail) vit sur app.teamlausanne.ch.
        Sur le domaine lausanneopen.ch, le script bascule en mode « tournoi seul » (barre et pied de page masqués). -->
@@ -28,30 +28,60 @@
     <div class="nav-brand">
       <img id="nav-logo" class="nav-logo" src="assets/logo-club.webp" alt="" />
     </div>
-    <div class="switcher" role="tablist" aria-label="Choisir un univers">
+    <div class="switcher" aria-label="Choisir un univers">
       <div class="sw-wrap">
         <!-- Club = le TC Lausanne-Sports : site externe, pas de page club ici -->
         <a class="sw sw-ext" href="https://www.lstennis.ch" target="_blank" rel="noopener">TC Lausanne-Sports ↗</a>
       </div>
       <div class="sw-wrap">
-        <button class="sw" data-world="academie" role="tab">Team Lausanne Academy</button>
-        <div class="sw-menu">
-          <a href="#kids">Kids Tennis</a>
-          <a href="#club-academy">Club</a>
-          <a href="#competition">Compétition</a>
-          <a href="#performance">Performance</a>
-          <a href="#sport-etudes">Sport-études</a>
-          <a href="#pro-u18">Pro U18</a>
-          <a href="#pro">Pro</a>
-          <a href="#stages">Stages</a>
-          <a href="#gamezone">GameZone</a>
-          <a href="#adultes">Adultes et privés</a>
-          <a href="#coaches">Nos coachs</a>
-          <a href="#actualites">Actualités</a>
+        <button class="sw" data-world="academie" aria-expanded="false" aria-controls="menu-academie">Team Lausanne Academy</button>
+        <!-- Le panneau des sections de l'Academy. Les trois premieres colonnes
+             reprennent, mot pour mot, les groupes de la grille des programmes
+             de la page d'accueil (section « progmap » dans contenu.js) : le
+             menu et la page doivent classer les dix programmes de la meme
+             facon, sinon le visiteur recoit deux rangements concurrents.
+             Il s'ouvre au clic, jamais au survol, et occupe tout l'ecran au
+             telephone. -->
+        <div class="sw-menu" id="menu-academie" role="group" aria-label="Les sections de l'Academy">
+          <div class="swm-tete">
+            <span>Team Lausanne Academy</span>
+            <button type="button" class="swm-x" data-menu-fermer aria-label="Fermer le menu">✕</button>
+          </div>
+          <div class="swm-cols">
+            <div class="swm-col">
+              <p class="swm-h">Pour débuter</p>
+              <a class="swm-l" href="#kids"><span class="swm-n">Kids Tennis</span><span class="swm-a">4–10 ans · ouvert à tous</span></a>
+              <a class="swm-l" href="#club-academy"><span class="swm-n">Club</span><span class="swm-a">tous niveaux</span></a>
+              <a class="swm-l" href="#adultes"><span class="swm-n">Adultes et privés</span><span class="swm-a">tous niveaux</span></a>
+            </div>
+            <div class="swm-col">
+              <p class="swm-h">Pour progresser et jouer</p>
+              <a class="swm-l" href="#competition"><span class="swm-n">Compétition</span><span class="swm-a">≈ 10–13 ans · 16 places</span></a>
+              <a class="swm-l" href="#performance"><span class="swm-n">Performance</span><span class="swm-a">≈ 12–15 ans · 8 places</span></a>
+              <a class="swm-l" href="#stages"><span class="swm-n">Stages</span><span class="swm-a">vacances scolaires</span></a>
+              <a class="swm-l" href="#gamezone"><span class="swm-n">Game Zone</span><span class="swm-a">tournois juniors</span></a>
+            </div>
+            <div class="swm-col">
+              <p class="swm-h">Pour viser haut</p>
+              <a class="swm-l" href="#sport-etudes"><span class="swm-n">Sport-études</span><span class="swm-a">14–19 ans · places limitées</span></a>
+              <a class="swm-l" href="#pro-u18"><span class="swm-n">Pro U18</span><span class="swm-a">après la scolarité</span></a>
+              <a class="swm-l" href="#pro"><span class="swm-n">Pro</span><span class="swm-a">dès 18 ans</span></a>
+            </div>
+            <div class="swm-col">
+              <p class="swm-h">L'académie</p>
+              <a class="swm-l" href="#academie"><span class="swm-n">Accueil de l'Academy</span><span class="swm-a">la vue d'ensemble</span></a>
+              <a class="swm-l" href="#coaches"><span class="swm-n">Nos coachs</span><span class="swm-a">l'équipe d'encadrement</span></a>
+              <a class="swm-l" href="#actualites"><span class="swm-n">Actualités</span><span class="swm-a">le journal du club</span></a>
+              <!-- Sections internes au monde Academy : pas une page, donc pas
+                   un lien de hash — data-goto rend le monde puis fait defiler. -->
+              <button type="button" class="swm-l" data-goto="academie" data-anchor="calendrier"><span class="swm-n">Le calendrier</span><span class="swm-a">vacances, stages, fermetures</span></button>
+              <button type="button" class="swm-l" data-scroll="contact-lo"><span class="swm-n">Nous écrire</span><span class="swm-a">une question, un essai</span></button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="sw-wrap">
-        <button class="sw" data-world="tournoi" role="tab">Lausanne Open</button>
+        <button class="sw" data-world="tournoi">Lausanne Open</button>
       </div>
     </div>
     <button type="button" class="btn-contact" data-scroll="contact-lo">Contact</button>

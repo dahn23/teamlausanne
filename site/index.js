@@ -1997,46 +1997,61 @@ async function loadGzWinners(seasonId) {
 // ===================================================================
 //  Interactions globales (délégation)
 // ===================================================================
-// Un choix dans le menu deroulant le referme. Il s'ouvre au survol ET au focus :
-// apres le clic, le lien garde le focus et la souris n'a pas bouge, donc le menu
-// restait pose sur la page qu'on venait de demander. On le neutralise par une
-// classe, levee des que le pointeur quitte le bloc ou y revient — au doigt,
-// aucun des deux n'arrive, et c'est tant mieux : il n'y a pas de survol a
-// annuler.
-document.addEventListener("click", (e) => {
-  const lien = e.target.closest(".sw-menu a");
-  const wrap = lien && lien.closest(".sw-wrap");
+// ---- Le panneau des sections de l'Academy ----
+// Il s'ouvre au clic et jamais au survol. Au survol, le panneau se refermait
+// des que la souris en sortait — et apres un clic sur une entree, le lien
+// gardait le focus et la souris n'avait pas bouge, donc le deroulant restait
+// pose sur la page qu'on venait de demander. Au clic, il n'y a rien a deviner :
+// un clic ouvre, un deuxieme ferme, Echap ferme, un clic ailleurs ferme.
+function swFermer() {
+  document.querySelectorAll(".sw-wrap.open").forEach((w) => {
+    w.classList.remove("open");
+    w.querySelector(".sw")?.setAttribute("aria-expanded", "false");
+  });
+  document.body.classList.remove("menu-ouvert");
+}
+function swOuvrir(wrap) {
+  wrap.classList.add("open");
+  wrap.querySelector(".sw")?.setAttribute("aria-expanded", "true");
+  // Au telephone le panneau est une feuille plein ecran : la page derriere ne
+  // doit pas defiler sous le doigt.
+  document.body.classList.add("menu-ouvert");
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  const wrap = document.querySelector(".sw-wrap.open");
   if (!wrap) return;
-  lien.blur();
-  wrap.classList.add("sw-ferme");
-  const rouvrir = () => {
-    wrap.classList.remove("sw-ferme");
-    wrap.removeEventListener("pointerleave", rouvrir);
-    wrap.removeEventListener("pointerenter", rouvrir);
-  };
-  wrap.addEventListener("pointerleave", rouvrir);
-  wrap.addEventListener("pointerenter", rouvrir);
+  const bouton = wrap.querySelector(".sw");
+  swFermer();
+  bouton?.focus();
 });
 
 document.addEventListener("click", (e) => {
+  // Fermeture explicite (la croix de la feuille, au telephone).
+  if (e.target.closest("[data-menu-fermer]")) { swFermer(); return; }
+  // Une entree choisie : on referme, puis on laisse le lien ou le bouton agir.
+  // Pas de « return » ici : deux entrees de la derniere colonne sont des boutons
+  // data-goto / data-scroll, traites plus bas dans ce meme ecouteur.
+  if (e.target.closest(".swm-l")) swFermer();
   // Onglets du haut / étapes du pied de page : changement de monde (Academy ↔ Lausanne Open).
   const sw = e.target.closest(".sw[data-world], .flow-step[data-world]");
   if (sw) {
     if (LO_ONLY) return;
-    // Mobile / écran tactile : le 1er tap sur un onglet ouvre sa liste d'accès directs, le 2e tap navigue.
     const wrap = sw.closest(".sw-wrap"), menu = wrap?.querySelector(".sw-menu");
-    const touch = window.matchMedia("(hover: none)").matches || window.innerWidth <= 760;
-    if (menu && touch && !wrap.classList.contains("open")) {
-      document.querySelectorAll(".sw-wrap.open").forEach((w) => w.classList.remove("open"));
-      wrap.classList.add("open");
-      return;
+    const ouvert = wrap?.classList.contains("open");
+    swFermer();
+    if (menu) {
+      // L'onglet fait deux choses selon l'endroit ou l'on se trouve : il amene
+      // dans son monde quand on est ailleurs, et montre ses sections quand on
+      // y est deja. Jamais les deux a la fois : on ne jette pas un panneau sur
+      // une page que le visiteur vient tout juste de demander.
+      if (ouvert) return;
+      if (sw.classList.contains("active")) { swOuvrir(wrap); return; }
     }
-    document.querySelectorAll(".sw-wrap.open").forEach((w) => w.classList.remove("open"));
     location.hash = sw.dataset.world; return;
   }
-  // Tap ailleurs : referme les listes ouvertes (les liens de la liste naviguent normalement).
-  if (!e.target.closest(".sw-wrap")) document.querySelectorAll(".sw-wrap.open").forEach((w) => w.classList.remove("open"));
-  else if (e.target.closest(".sw-menu a")) setTimeout(() => document.querySelectorAll(".sw-wrap.open").forEach((w) => w.classList.remove("open")), 50);
+  // Clic ailleurs : on referme le panneau ouvert.
+  if (!e.target.closest(".sw-wrap")) swFermer();
   // Calendrier : navigation de mois, choix d'un jour, renvoi vers les stages.
   const cnav = e.target.closest("[data-calp]");
   if (cnav) { calpJourVu = null; calpMois = calpDecaler(calpMois, Number(cnav.dataset.calp)); calpRendre(); return; }
