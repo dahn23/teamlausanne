@@ -216,7 +216,11 @@ export function sectionHTML(sec) {
 // deux n'ont pas les mêmes champs de tête : un monde porte slogan/desc, une
 // fiche porte title/subtitle. On normalise ici, une fois.
 export function enTeteDe(cle, page) {
-  const titre = page.title || page.slogan || "";
+  // Une fiche porte un `title` ; un monde n'a qu'un `slogan` et un `tag`. Le
+  // slogan ne fait pas un titre : celui du tournoi donnait « Vibrer. Rêver.
+  // Ensemble. », sous quoi personne ne cherchera jamais le Lausanne Open. Le
+  // `tag` d'un monde, lui, est son nom — on le prend avant le slogan.
+  const titre = page.title || page.tag || page.slogan || "";
   const chapo = page.subtitle || page.desc || "";
   return { titre, chapo };
 }
