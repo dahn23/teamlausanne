@@ -1500,7 +1500,7 @@ function renderWorld(key) {
   majPartenairesBas();
   visioGlisser();
   calerBandeaux();
-  calpDates = null; calpJourVu = null;   // on change de monde : on repart propre
+  calpDates = null; calpFiltre = "tout";   // on change de monde : on repart propre
   calPubCharger();
   if ($("accueil-actus")) actusAccueil();
 }
