@@ -2047,27 +2047,27 @@ document.addEventListener("click", (e) => {
   // Pas de « return » ici : deux entrees de la derniere colonne sont des boutons
   // data-goto / data-scroll, traites plus bas dans ce meme ecouteur.
   if (e.target.closest(".swm-l")) swFermer();
-  // « On y est deja » : reposer la meme adresse ne declenche rien. Celui qui
-  // clique le logo apres avoir descendu toute la page d'accueil n'obtiendrait
-  // donc aucune reponse — le bouton paraitrait casse. On remonte.
-  const dejaLa = (cible) => (location.hash.slice(1) || DEFAULT_WORLD) === cible;
-  // Saut net, et non defilement anime : c'est ce que route() fait deja a chaque
-  // changement de page, et le retour a l'accueil doit se comporter pareil.
+  // Retour a l'accueil — par le logo ou par la pastille du monde. On pose
+  // l'adresse ET on remonte, sans se demander si l'une des deux suffit :
+  // reposer la meme adresse ne declenche aucun evenement, donc sur l'accueil
+  // meme, seul le second geste repond ; ailleurs, c'est route() qui remonte et
+  // le second geste ne fait rien. Le resultat est le meme dans tous les cas —
+  // en haut de l'accueil — et aucune condition ne peut se tromper.
   const remonter = () => window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
-  // Le logo : retour a l'accueil du monde ouvert.
+  const rentrer = (monde) => { swFermer(); location.hash = monde; remonter(); };
   const accueil = e.target.closest("#nav-accueil");
   if (accueil) {
-    swFermer();
-    if (dejaLa(accueil.getAttribute("href").slice(1))) { e.preventDefault(); remonter(); }
+    // Ctrl/Cmd/Maj-clic : on laisse le navigateur ouvrir son onglet.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+    e.preventDefault();
+    rentrer(accueil.getAttribute("href").slice(1) || DEFAULT_WORLD);
     return;
   }
   // Onglets du haut / étapes du pied de page : changement de monde (Academy ↔ Lausanne Open).
   const sw = e.target.closest(".sw[data-world], .flow-step[data-world]");
   if (sw) {
     if (LO_ONLY) return;
-    swFermer();
-    if (dejaLa(sw.dataset.world)) { remonter(); return; }
-    location.hash = sw.dataset.world; return;
+    rentrer(sw.dataset.world); return;
   }
   // Clic ailleurs : on referme le panneau ouvert.
   if (!e.target.closest(".sw-wrap")) swFermer();
