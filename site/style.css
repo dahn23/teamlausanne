@@ -39,7 +39,13 @@
    existait deja sur body, mais l'overflow de body est propage a la fenetre et
    ne s'applique donc pas a lui-meme. */
 html{overflow-x:clip}
-html,body{margin:0;height:100%}
+/* min-height et non height. « height:100% » bornait la boite de body a la
+   hauteur de l'ecran : un element colle (position:sticky) ne peut pas sortir de
+   son bloc conteneur, donc la barre de navigation ne tenait que le temps du
+   premier ecran, puis s'en allait avec le contenu. Passe cette hauteur, le
+   visiteur n'avait plus ni logo, ni onglets, ni Contact — plus aucun chemin de
+   retour vers l'accueil sans remonter toute la page a la main. */
+html,body{margin:0;min-height:100%}
 body{font-family:var(--font-body);
   color:var(--ink);background:var(--bg);-webkit-text-size-adjust:100%}
 .hidden{display:none!important}
