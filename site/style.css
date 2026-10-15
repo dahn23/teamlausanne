@@ -1986,8 +1986,13 @@ a.ccard-pill:hover .ccard-arrow,button.ccard-pill:hover .ccard-arrow{
      sur la largeur, et .switcher a flex:1 (donc base 0). La rangee restait
      large de 177px au milieu de la barre, les trois pastilles empilees dessous
      et le logo flottant a cote. Il faut poser la base elle-meme. */
-  .switcher{order:3;flex:0 0 100%;width:100%;gap:5px}
-  .sw{padding:8px 12px;font-size:.85rem}
+  .switcher{order:3;flex:0 0 100%;width:100%;gap:4px}
+  /* Les trois pastilles doivent tenir sur UNE ligne, y compris sur un ecran de
+     360px : 325px au total pour 332 disponibles. Chaque pixel de rembourrage
+     compte, mais le chevron garde 37x44 — c'est une cible du doigt. */
+  .sw{padding:8px 10px;font-size:.8rem}
+  .sw-part{padding:0 9px 0 12px;min-height:44px}
+  .sw-chev{padding:0 13px;min-height:44px}
   .sw-long{display:none}
   .sw-court{display:inline}
   .hero-logo{height:96px}
