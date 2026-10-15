@@ -15,3 +15,21 @@ mot-de-passe*.txt
 
 # Kit réseaux sociaux : fichiers produits
 tools/social-kit/sortie/
+
+# Pages fabriquées au déploiement par site/build.mjs (Netlify les régénère à
+# chaque build). Elles n'ont rien à faire dans le dépôt : la source, c'est
+# contenu.js.
+site/sitemap.xml
+site/kids-tennis/
+site/club/
+site/competition/
+site/performance/
+site/sport-etudes/
+site/pro-u18/
+site/pro/
+site/stages/
+site/cours-adultes/
+site/gamezone/
+site/nos-coachs/
+site/lausanne-open/
+site/journee-team-lausanne/

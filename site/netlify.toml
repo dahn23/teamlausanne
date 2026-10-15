@@ -6,7 +6,10 @@
   status = 200
 [build]
   publish = "."
-  command = ""
+  # Fabrique une vraie page HTML par programme (voir build.mjs). Le script
+  # tourne ICI, sur les serveurs de Netlify : nos machines n'ont pas Node et
+  # n'en ont pas besoin — « git push » reste le seul geste à faire.
+  command = "node build.mjs"
 
 # ============================================================
 #  lausanneopen.ch → teamlausanne.ch (décidé le 07.09.2026)
@@ -108,7 +111,7 @@
 
 [[redirects]]
   from = "/coaches"
-  to = "/#coaches"
+  to = "/nos-coachs"
   status = 301
 # --- Anciennes adresses du site Wix : aucune ne doit tomber en 404 ---
 [[redirects]]
@@ -164,11 +167,9 @@
     Cache-Control = "public, max-age=0, must-revalidate"
 
 # --- Site public teamlausanne.ch : Academy + Lausanne Open ---
-# Adresse propre du tournoi (utilisée quand lausanneopen.ch redirigera ici).
-[[redirects]]
-  from = "/lausanne-open"
-  to = "/#tournoi"
-  status = 301
+# /lausanne-open est désormais une VRAIE page, fabriquée par build.mjs.
+# L'ancienne règle la renvoyait vers /#tournoi : elle se serait redirigée
+# elle-même, et la page n'aurait jamais été servie.
 # Aucune réservation ni connexion sur le site public : l'app est sur app.teamlausanne.ch.
 [[redirects]]
   from = "/reservation*"
