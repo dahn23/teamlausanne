@@ -5260,3 +5260,18 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .pay-partielle{background:#fef3c7;color:#78350f}
 .pay-annulee{background:#fdecea;color:#b3261e}
 .pay-lignes{margin-top:4px}
+
+/* ---- Factures › Relances (db/164) ---------------------------------
+   Le résumé dit ce qu'il y a à faire aujourd'hui, et ce qui est retenu avec
+   la raison. « imp-next » annonce le niveau du prochain rappel : savoir qu'on
+   part sur un DERNIER rappel avant poursuites change la façon de cliquer. */
+.imp-resume{margin:0 0 12px;font-size:.95rem}
+.imp-next{font-size:.74rem;font-weight:700;color:#b91c1c}
+
+/* ---- Factures › Produits -------------------------------------------
+   Un seul tableau pour tous les genres, avec des lignes de titre : c'est ce
+   qui garantit que les colonnes tombent en face d'un groupe à l'autre. Les
+   colonnes de chiffres sont alignées à droite — on compare des montants. */
+.pro-table .pro-num{text-align:right;white-space:nowrap}
+.pro-table .pro-g>td{background:#eef2ff;font-weight:800;font-size:.9rem;
+  letter-spacing:.02em;color:#1e3ad1;padding-top:10px;padding-bottom:6px}

@@ -10586,7 +10586,7 @@ function facAller(sub, filtre) {
   if (b) b.click();
   // Les impayées ont leur propre filtre par filière : même raison, on le rend
   // à « Toutes » pour que la tuile « En retard » montre bien ses huit lignes.
-  if (sub === "impayees") { impFil = ""; if (typeof renderImpayees === "function" && impList.length) renderImpayees(); return; }
+  if (sub === "impayees") { impFil = ""; impProd.clear(); if (typeof renderImpayees === "function" && impList.length) renderImpayees(); return; }
   if (sub !== "emises" || !filtre) return;
   oiFiltres = new Set([filtre]);
   oiFilieres.clear();
@@ -11071,22 +11071,41 @@ async function encLier(entryId) {
 // ===================================================================
 //  Impayées — qui doit encore, et depuis quand
 // ===================================================================
-let impList = [], impSel = new Set(), impFil = "";
+// ===================================================================
+//  FACTURES › RELANCES (db/164)
+// ===================================================================
+// Trois choses manquaient à l'ancien onglet Impayées, et chacune coûtait de
+// l'argent ou de la crédibilité :
+//
+//  · Il relançait le montant de la FACTURE. Une famille ayant déjà versé 400
+//    sur 815 recevait un rappel de 815. Le rappel réclame maintenant le RESTE,
+//    versements et avoirs déduits.
+//
+//  · Il renvoyait la facture d'origine : le mail disait « rappel », le document
+//    disait « FACTURE ». Il y a maintenant un vrai document de rappel, qui
+//    porte son numéro (1er / 2e / 3e et dernier avant poursuites).
+//
+//  · Le niveau montait sans fin. Il s'arrête à 3 : après, ce ne sont plus des
+//    rappels mais des poursuites, et le document le dit.
+//
+// La liste n'est pas une table à tenir : c'est la vue out_relances_a_envoyer.
+// Une facture y entre le lendemain de son échéance et en sort à la seconde où
+// elle est soldée — personne n'a à cocher ni à nettoyer quoi que ce soit.
+const OI_REL = {
+  1: ["1er rappel", "Premier rappel. Nous vous remercions de régler ce solde dans les dix jours."],
+  2: ["2e rappel", "Deuxième rappel. Sans versement dans les dix jours, un dernier rappel vous sera adressé."],
+  3: ["3e et dernier rappel", "Troisième et dernier rappel. Sans versement dans les dix jours, le dossier sera transmis pour engagement d'une procédure de poursuites."],
+};
+const IMP_DELAI = 10;                 // jours accordés sur le rappel
+let impList = [], impSel = new Set(), impFil = "", impProd = new Set();
 
 async function loadImpayees() {
-  const auj = new Date().toISOString().slice(0, 10);
-  const { data, error } = await sb.from("out_invoices")
-    .select("id,number,debtor_name,debtor_email,person_id,filiere,amount,due_date,label,reference,pdf_path,status")
-    .eq("status", "envoyee").lt("due_date", auj).order("due_date");
+  // Le PDF du rappel a besoin du compte bancaire (IBAN, adresse) comme celui
+  // d'une facture : sans lui, oiBuildPdf tombe sur un compte indéfini.
+  if (!facAccts.length) { const { data: acc } = await sb.from("finance_accounts").select("*").order("sort"); facAccts = acc || []; }
+  const { data, error } = await sb.from("out_relances_a_envoyer").select("*").order("jours_retard", { ascending: false });
   if (error) { $("imp-rows").innerHTML = `<tr><td colspan="10" class="error">${esc(error.message)}</td></tr>`; return; }
   impList = data || [];
-  const ids = impList.map((f) => f.id);
-  if (ids.length) {
-    const { data: rap } = await sb.from("out_invoice_reminders").select("invoice_id,sent_at").in("invoice_id", ids);
-    const parF = {};
-    for (const r of rap || []) (parF[r.invoice_id] = parF[r.invoice_id] || []).push(r.sent_at);
-    for (const f of impList) { const l = parF[f.id] || []; f.rappels = l.length; f.dernier_rappel = l.sort().pop() || null; }
-  }
   // Les noms de joueurs, pour savoir de qui il s'agit sans ouvrir la fiche.
   const pids = [...new Set(impList.map((f) => f.person_id).filter(Boolean))];
   if (pids.length) {
@@ -11098,32 +11117,86 @@ async function loadImpayees() {
   renderImpayees();
 }
 
+// Prête à partir = échue, non soldée, et rien ne la retient (pas de rappel
+// récent, pas d'arrangement en cours, une adresse e-mail, moins de 3 rappels).
+const impPrete = (f) => !f.bloque;
+const impVisible = (f) => (!impFil || f.filiere === impFil)
+  && (!impProd.size || impProd.has(f.produit || "—"));
+
 function renderImpayees() {
   const badge = $("imp-badge");
-  if (badge) { badge.textContent = impList.length || ""; badge.hidden = !impList.length; }
-  const vus = impList.filter((f) => !impFil || f.filiere === impFil);
-  const counts = { "": impList.length };
-  for (const f of impList) counts[f.filiere] = (counts[f.filiere] || 0) + 1;
-  const chip = (v, l) => `<button type="button" class="chip filt${impFil === v ? " sel" : ""}" data-fil="${v}">${l} <span class="muted">(${counts[v] || 0})</span></button>`;
-  $("imp-filters").innerHTML = chip("", "Toutes") + OI_FIL_ALL.map(([v, l]) => chip(v, l)).join("");
-  $("imp-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { impFil = b.dataset.fil; renderImpayees(); }));
+  // La pastille compte les relances PRÊTES, pas les factures en retard : c'est
+  // le nombre de choses à faire aujourd'hui.
+  const pretes = impList.filter(impPrete);
+  if (badge) { badge.textContent = pretes.length || ""; badge.hidden = !pretes.length; }
 
-  const auj = new Date();
+  const vus = impList.filter(impVisible);
+  const cf = { "": impList.length };
+  for (const f of impList) cf[f.filiere] = (cf[f.filiere] || 0) + 1;
+  const chip = (v, l) => `<button type="button" class="chip filt${impFil === v ? " sel" : ""}" data-fil="${v}">${l} <span class="muted">(${cf[v] || 0})</span></button>`;
+  $("imp-filters").innerHTML = chip("", "Toutes filières")
+    + OI_FIL_ALL.filter(([v]) => cf[v]).map(([v, l]) => chip(v, l)).join("");
+  $("imp-filters").querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => { impFil = b.dataset.fil; impSel.clear(); renderImpayees(); }));
+
+  // Pastilles par PRODUIT (« Relance – Club », « Relance – Stages »…). Elles
+  // sont construites depuis les données, pas écrites en dur : le jour où un
+  // produit s'ajoute au catalogue, sa pastille apparaît toute seule.
+  const base = impList.filter((f) => !impFil || f.filiere === impFil);
+  const cp = {};
+  for (const f of base) { const k = f.produit || "—"; cp[k] = (cp[k] || 0) + 1; }
+  const noms = Object.keys(cp).sort((a, b) => cp[b] - cp[a] || a.localeCompare(b));
+  const cprod = (v, l, n) => `<button type="button" class="chip filt${(v ? impProd.has(v) : !impProd.size) ? " sel" : ""}" data-prod="${esc(v)}">${esc(l)} <span class="muted">(${n})</span></button>`;
+  $("imp-produits").innerHTML = noms.length > 1
+    ? `<span class="oi-prod-lbl">Produit</span>` + cprod("", "Tous", base.length)
+      + noms.map((n) => cprod(n, n === "—" ? "sans produit" : n, cp[n])).join("")
+    : "";
+  $("imp-produits").querySelectorAll("[data-prod]").forEach((b) => b.addEventListener("click", () => {
+    const v = b.dataset.prod;
+    if (!v) impProd.clear(); else oiBasculer(impProd, v);
+    impSel.clear(); renderImpayees();
+  }));
+
+  // Ce qu'il y a à faire, en une ligne, et ce qui est retenu — avec la raison.
+  // Une ligne qui disparaît sans explication se traduit par un appel au
+  // secrétariat ; une raison affichée se règle toute seule.
+  const pretesVues = vus.filter(impPrete);
+  const somme = pretesVues.reduce((a, f) => a + Number(f.reste), 0);
+  const bloques = {};
+  for (const f of vus) if (f.bloque) {
+    const k = f.bloque.replace(/ (le|jusqu'au) .*/, "");
+    bloques[k] = (bloques[k] || 0) + 1;
+  }
+  $("imp-resume").innerHTML = vus.length
+    ? `<b>${pretesVues.length}</b> relance(s) prête(s) — <b>${oiChf(somme)}</b> à réclamer.`
+      + (Object.keys(bloques).length
+        ? ` <span class="muted">En attente : ${Object.entries(bloques).map(([k, n]) => `${n} ${k}`).join(" · ")}.</span>`
+        : "")
+    : "";
+
   $("imp-empty").hidden = vus.length > 0;
   $("imp-rows").innerHTML = vus.map((f) => {
-    const jours = Math.floor((auj - new Date(f.due_date + "T12:00:00")) / 86400000);
+    const jours = Number(f.jours_retard);
     const tone = jours > 60 ? "dc-bad" : jours > 30 ? "dc-warn" : "dc-info";
-    return `<tr>
-      <td><input type="checkbox" class="imp-ck" data-id="${f.id}"${impSel.has(f.id) ? " checked" : ""}${f.debtor_email ? "" : " disabled title='Pas d\\'adresse e-mail'"} /></td>
+    const verse = Number(f.verse) + Number(f.avoir);
+    return `<tr${f.bloque ? ' style="opacity:.62"' : ""}>
+      <td><input type="checkbox" class="imp-ck" data-id="${f.id}"${impSel.has(f.id) ? " checked" : ""}${f.bloque ? ` disabled title="${esc(f.bloque)}"` : ""} /></td>
       <td>${esc(f.number)}</td>
       <td>${esc(f.debtor_name || "—")}<br><span class="muted" style="font-size:.8rem">${esc(f.debtor_email || "pas d'e-mail")}</span></td>
       <td>${esc(f.player_name || "—")}</td>
-      <td>${esc(f.filiere ? oiFil(f.filiere) : "—")}</td>
-      <td style="white-space:nowrap;font-weight:800">${oiChf(f.amount)}</td>
+      <td>${f.produit ? esc(f.produit) : '<span class="muted">—</span>'}<br><span class="muted" style="font-size:.78rem">${esc(f.filiere ? oiFil(f.filiere) : "")}</span></td>
+      <td style="white-space:nowrap;font-weight:800">${oiChf(f.reste)}${verse > 0.005
+        ? `<br /><span class="muted" style="font-weight:400;font-size:.78rem">sur ${oiChf(f.montant_facture)} · ${oiChf(verse)} reçu</span>` : ""}</td>
       <td>${dFD(f.due_date)}</td>
       <td><span class="dchip ${tone}">${jours} j</span></td>
-      <td>${f.rappels ? `${f.rappels}<br><span class="muted" style="font-size:.78rem">${dFD(f.dernier_rappel)}</span>` : '<span class="muted">—</span>'}</td>
-      <td class="he-acts"><button class="ghost imp-un" data-id="${f.id}" title="Envoyer un rappel">✉</button></td>
+      <td>${f.rappels
+        ? `${f.rappels}<br><span class="muted" style="font-size:.78rem">${dFD(f.dernier_rappel)}</span>`
+        : '<span class="muted">—</span>'}
+        ${f.bloque ? `<br /><span class="muted" style="font-size:.74rem">${esc(f.bloque)}</span>`
+                   : `<br /><span class="imp-next">${esc(OI_REL[f.prochain_niveau][0])} à envoyer</span>`}</td>
+      <td class="he-acts">
+        <button class="ghost imp-un" data-id="${f.id}" title="Envoyer ce rappel"${f.bloque ? " disabled" : ""}>✉</button>
+        <button class="ghost imp-pause" data-id="${f.id}" title="Arrangement pris : ne pas relancer avant une date">⏸</button>
+      </td>
     </tr>`;
   }).join("");
   $("imp-rows").querySelectorAll(".imp-ck").forEach((c) => c.addEventListener("change", () => {
@@ -11131,61 +11204,147 @@ function renderImpayees() {
     impMajBouton();
   }));
   $("imp-rows").querySelectorAll(".imp-un").forEach((b) => b.addEventListener("click", () => impRelancer([b.dataset.id])));
+  $("imp-rows").querySelectorAll(".imp-pause").forEach((b) => b.addEventListener("click", () => impPause(b.dataset.id)));
   impMajBouton();
 }
+
 function impMajBouton() {
-  $("imp-relancer").textContent = `✉ Envoyer un rappel à la sélection${impSel.size ? ` (${impSel.size})` : ""}`;
+  $("imp-relancer").textContent = `✉ Envoyer à la sélection${impSel.size ? ` (${impSel.size})` : ""}`;
   $("imp-relancer").disabled = !impSel.size;
+  const n = impList.filter((f) => impVisible(f) && impPrete(f)).length;
+  const t = $("imp-relancer-tout");
+  t.textContent = `✉ Envoyer les relances prêtes${n ? ` (${n})` : ""}`;
+  t.disabled = !n;
 }
 
-const IMP_OBJET = "Rappel — facture {numero} échue le {echeance}";
+// Arrangement pris avec la famille. Sans cet endroit pour le noter,
+// l'information vit dans la tête d'une personne et le rappel part quand même.
+async function impPause(id) {
+  const f = impList.find((x) => x.id === id); if (!f) return;
+  const def = f.relance_pause_jusqu || new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+  const v = await uiPrompt(`Ne pas relancer ${f.debtor_name} (facture ${f.number}) avant le…\n\n`
+    + `Format AAAA-MM-JJ. Laisser vide pour lever la pause.`, def);
+  if (v === null) return;
+  const d = v.trim() === "" ? null : v.trim();
+  if (d && !/^\d{4}-\d{2}-\d{2}$/.test(d)) { uiAlert("Date attendue au format AAAA-MM-JJ."); return; }
+  const { error } = await sb.from("out_invoices").update({ relance_pause_jusqu: d }).eq("id", id);
+  if (error) { uiAlert("Erreur : " + error.message); return; }
+  await loadImpayees();
+}
+
+const IMP_OBJET = "{niveau} — facture {numero}, solde de CHF {montant}";
 const IMP_CORPS = `Bonjour {destinataire},
 
-Sauf erreur de notre part, la facture n° {numero} ({libelle}) d'un montant de CHF {montant}, échue le {echeance}, ne nous est pas encore parvenue.
+Sauf erreur de notre part, la facture n° {numero} ({libelle}) reste impayée à ce jour pour un solde de CHF {montant}, alors que son échéance était fixée au {echeance}.
 
-Vous la trouverez à nouveau ci-jointe, avec sa QR-facture (référence {reference}).
+Vous trouverez ci-joint le rappel correspondant, avec sa QR-facture. La référence est inchangée ({reference}) : votre versement sera rapproché automatiquement.
 
 Si le paiement a été effectué entre-temps, merci de ne pas tenir compte de ce message.
 
 Avec nos meilleures salutations,
 Team Lausanne Tennis`;
 
-// Un rappel renvoie la facture d'origine : la famille ne doit pas avoir à
-// retrouver un mail vieux d'un mois pour payer.
-async function impRelancer(ids) {
-  const list = impList.filter((f) => ids.includes(f.id) && f.debtor_email);
-  if (!list.length) { uiAlert("Aucune de ces factures n'a d'adresse e-mail."); return; }
-  if (!(await uiConfirm(`Envoyer un rappel à ${list.length} famille(s) ?\n\n`
-    + list.slice(0, 8).map((f) => `· ${f.debtor_name} — ${f.number} — ${oiChf(f.amount)}`).join("\n")
-    + (list.length > 8 ? `\n… et ${list.length - 8} autre(s)` : "")))) return;
+// Le document de rappel. On réutilise oiBuildPdf : une seule mise en page, une
+// seule QR-facture, un seul jeu de bugs. Le détail (facture, déjà versé, solde)
+// tient dans les ARTICLES — la famille doit pouvoir refaire le calcul.
+function impDocRelance(f, niveau) {
+  const ech = new Date(Date.now() + IMP_DELAI * 86400000).toISOString().slice(0, 10);
+  const items = [{ label: `Facture ${f.number} du ${frDate(f.issue_date)}${f.label ? ` — ${f.label}` : ""}`, amount: Number(f.montant_facture) }];
+  if (Number(f.verse) > 0.005) items.push({ label: "Déjà versé", amount: -Number(f.verse) });
+  if (Number(f.avoir) > 0.005) items.push({ label: "Annulé (avoir)", amount: -Number(f.avoir) });
+  return {
+    ...f, amount: Number(f.reste), items,
+    issue_date: new Date().toISOString().slice(0, 10), due_date: ech,
+    relance: { level: niveau, src_number: f.number, src_date: f.issue_date },
+  };
+}
 
-  const st = $("imp-status"); const btn = $("imp-relancer"); btn.disabled = true;
+// ⚠️ Chemin séparé, et c'est essentiel : oiMakePdf écrit sur `<id>.pdf` et
+// pousse le chemin dans out_invoices.pdf_path. L'utiliser ici REMPLACERAIT la
+// facture d'origine par son rappel — le document que la famille a reçu, perdu.
+async function impMakePdf(docRel, niveau) {
+  const doc = await oiBuildPdf(docRel);
+  const path = `rappels/${docRel.id}-r${niveau}.pdf`;
+  const up = await sb.storage.from("out_invoices").upload(
+    path, new Blob([doc.output("arraybuffer")], { type: "application/pdf" }),
+    { contentType: "application/pdf", upsert: true });
+  if (up.error) throw new Error("PDF : " + up.error.message);
+  return path;
+}
+
+async function impRelancer(ids) {
+  const list = impList.filter((f) => ids.includes(f.id) && impPrete(f));
+  if (!list.length) { uiAlert("Aucune de ces factures n'est prête à être relancée."); return; }
+  const apercu = list.slice(0, 8).map((f) =>
+    `· ${OI_REL[f.prochain_niveau][0]} — ${f.debtor_name} — ${f.number} — ${oiChf(f.reste)}`).join("\n");
+  const n3 = list.filter((f) => f.prochain_niveau === 3).length;
+  if (!(await uiConfirm(`Envoyer ${list.length} relance(s) ?\n\n${apercu}`
+    + (list.length > 8 ? `\n… et ${list.length - 8} autre(s)` : "")
+    + `\n\nTotal réclamé : ${oiChf(list.reduce((a, f) => a + Number(f.reste), 0))}, payable sous ${IMP_DELAI} jours.`
+    + (n3 ? `\n\n⚠ ${n3} est un DERNIER rappel : le document annonce des poursuites.` : "")))) return;
+
+  const st = $("imp-status"); const btn = $("imp-relancer"); const btnT = $("imp-relancer-tout");
+  btn.disabled = true; btnT.disabled = true;
   const uid = (await sb.auth.getSession()).data?.session?.user?.id || null;
   let ok = 0; const errs = [];
   for (const f of list) {
-    st.textContent = `Rappel ${ok + errs.length + 1}/${list.length} — ${f.debtor_name}…`;
+    const niveau = f.prochain_niveau;
+    st.textContent = `Relance ${ok + errs.length + 1}/${list.length} — ${f.debtor_name}…`;
     try {
-      const chemin = await oiAssurerPdf(f);
+      const docRel = impDocRelance(f, niveau);
+      const chemin = await impMakePdf(docRel, niveau);
       const { data: blob, error: e1 } = await sb.storage.from("out_invoices").download(chemin);
       if (e1) throw new Error(e1.message);
       const b64 = await fileToB64(blob);
+      // Les variables du mail portent sur le RAPPEL (solde, nouvelle échéance),
+      // pas sur la facture : {montant} doit être ce qu'on réclame.
+      const vars = { ...f, amount: Number(f.reste), due_date: f.due_date, player_name: f.player_name };
+      const sujet = oiVars(IMP_OBJET, vars).replace(/\{niveau\}/g, OI_REL[niveau][0]);
+      const corps = oiVars(IMP_CORPS, vars).replace(/\{niveau\}/g, OI_REL[niveau][0]);
       const { data, error } = await sb.functions.invoke("mail-send", { body: {
-        account: OI_FROM, to: f.debtor_email,
-        subject: oiVars(IMP_OBJET, f), text: oiVars(IMP_CORPS, f),
-        attachments: [{ filename: `facture-${f.number}.pdf`, contentType: "application/pdf", content: b64 }] } });
+        account: OI_FROM, to: f.debtor_email, subject: sujet, text: corps,
+        attachments: [{ filename: `rappel-${f.number}.pdf`, contentType: "application/pdf", content: b64 }] } });
       if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} throw new Error(m); }
       if (data?.error) throw new Error(data.error);
-      await sb.from("out_invoice_reminders").insert({
-        invoice_id: f.id, level: (f.rappels || 0) + 1, to_email: f.debtor_email, sent_by: uid });
+      // La trace n'est écrite QU'APRÈS le départ du mail : une ligne ici veut
+      // dire « ce rappel est parti », jamais « on a essayé ». Sinon un échec
+      // ferait monter le niveau et le 2e rappel partirait sans le 1er.
+      const { error: eIns } = await sb.from("out_invoice_reminders").insert({
+        invoice_id: f.id, level: niveau, amount: Number(f.reste),
+        due_date: docRel.due_date, pdf_path: chemin, to_email: f.debtor_email, sent_by: uid });
+      if (eIns) throw new Error("Mail parti, mais trace non enregistrée : " + eIns.message);
       ok++;
     } catch (e) { errs.push(`${f.number} — ${e?.message || e}`); }
   }
-  st.textContent = ""; btn.disabled = false;
-  uiAlert(`${ok} rappel(s) envoyé(s).` + (errs.length ? `\n\n${errs.length} en échec :\n` + errs.slice(0, 5).join("\n") : ""));
+  st.textContent = "";
+  uiAlert(`✓ ${ok} relance(s) envoyée(s).` + (errs.length ? `\n\n${errs.length} en échec :\n` + errs.slice(0, 5).join("\n") : ""));
   await loadImpayees();
   majFacEntete();
 }
 
+// Ce qui est PARTI, avec sa date et son niveau. On en a besoin le jour où une
+// famille affirme n'avoir rien reçu.
+async function impHistorique() {
+  const z = $("imp-histo-corps");
+  z.innerHTML = '<p class="muted">Chargement…</p>';
+  $("imp-histo-modal").classList.remove("hidden");
+  const { data, error } = await sb.from("out_relances").select("*").order("sent_at", { ascending: false });
+  if (error) { z.innerHTML = `<p class="muted">Erreur : ${esc(error.message)}</p>`; return; }
+  if (!(data || []).length) { z.innerHTML = '<p class="muted">Aucune relance envoyée pour l\'instant.</p>'; return; }
+  const ETAT = { envoyee: "toujours due", partielle: "partiellement payée", payee: "payée depuis", annulee: "annulée depuis" };
+  z.innerHTML = `<p class="muted" style="font-size:.88rem">${data.length} relance(s) envoyée(s).</p>
+    <div class="table-wrap"><table class="crm-table">
+      <thead><tr><th>Envoyée le</th><th>Niveau</th><th>Facture</th><th>Destinataire</th><th>Produit</th><th>Réclamé</th><th>Depuis</th></tr></thead>
+      <tbody>${data.map((r) => `<tr>
+        <td style="white-space:nowrap">${dFD(r.sent_at)}</td>
+        <td>${esc(OI_REL[r.level]?.[0] || r.level)}</td>
+        <td>${esc(r.number)}</td>
+        <td>${esc(r.debtor_name || "—")}<br><span class="muted" style="font-size:.78rem">${esc(r.to_email || "")}</span></td>
+        <td>${r.produit ? esc(r.produit) : '<span class="muted">—</span>'}</td>
+        <td style="white-space:nowrap"><b>${oiChf(r.amount || 0)}</b></td>
+        <td class="muted">${esc(ETAT[r.statut_reel] || r.statut_reel || "")}</td>
+      </tr>`).join("")}</tbody></table></div>`;
+}
 function initEncaissements() {
   if (encInit) return; encInit = true;
   $("enc-file").addEventListener("change", (ev) => {
@@ -11200,8 +11359,16 @@ function initEncaissements() {
     encValider(surs.map((e) => e.id));
   });
   $("imp-relancer").addEventListener("click", () => impRelancer([...impSel]));
+  // « Toutes les relances prêtes » = ce qui est affiché ET prêt. Le filtre
+  // compte : on relance souvent une filière ou un produit à la fois, et le
+  // bouton doit obéir à ce qu'on voit, pas à ce qui existe.
+  $("imp-relancer-tout").addEventListener("click", () =>
+    impRelancer(impList.filter((f) => impVisible(f) && impPrete(f)).map((f) => f.id)));
+  $("imp-histo").addEventListener("click", impHistorique);
+  $("imp-histo-close").addEventListener("click", () => $("imp-histo-modal").classList.add("hidden"));
+  $("imp-histo-modal").addEventListener("click", (e) => { if (e.target === $("imp-histo-modal")) $("imp-histo-modal").classList.add("hidden"); });
   $("imp-sel-all").addEventListener("change", (e) => {
-    const vus = impList.filter((f) => (!impFil || f.filiere === impFil) && f.debtor_email);
+    const vus = impList.filter((f) => impVisible(f) && impPrete(f));
     impSel = e.target.checked ? new Set(vus.map((f) => f.id)) : new Set();
     renderImpayees();
   });
@@ -12184,15 +12351,23 @@ async function oiBuildPdf(inv) {
   const BLUE = [30, 58, 209], INK = [15, 31, 110], LIGHT = [232, 237, 255], GREY = [110, 110, 110];
   const logo = await oiLogo();
   if (logo) doc.addImage(logo, "JPEG", 18, 11, 26, 27);
-  doc.setTextColor(...BLUE); T("FACTURE", 192, 24, { b: true, s: 26, al: "right" });
+  // Un rappel se reconnaît au premier coup d'œil, titre et bandeau en rouge.
+  // Renvoyer un document intitulé « FACTURE » pour réclamer un retard, c'est
+  // laisser la famille croire qu'elle a reçu la facture deux fois.
+  const rel = inv.relance || null;
+  const ACC = rel ? [185, 28, 28] : BLUE;
+  doc.setTextColor(...ACC); T(rel ? "RAPPEL" : "FACTURE", 192, 24, { b: true, s: 26, al: "right" });
   doc.setTextColor(...GREY); T(`N° ${inv.number}`, 192, 31.5, { b: true, s: 12, al: "right" });
-  doc.setFillColor(...BLUE); doc.rect(18, 43, 174, 1.6, "F");
+  if (rel) { doc.setTextColor(...ACC); T(OI_REL[rel.level][0], 192, 38, { b: true, s: 10.5, al: "right" }); }
+  doc.setFillColor(...ACC); doc.rect(18, 43, 174, 1.6, "F");
   doc.setTextColor(...INK); T(acct.name, 18, 51, { b: true, s: 10.5 });
   doc.setTextColor(...GREY); T(`${cLines[1]} · ${cLines[2]} · ${OI_FROM}`, 18, 56, { s: 8.5 });
-  // Encadré date / échéance / référence
-  doc.setFillColor(...LIGHT); doc.roundedRect(118, 47.5, 74, 24.5, 2, 2, "F");
+  // Encadré date / échéance / référence (+ la facture d'origine sur un rappel :
+  // c'est la première chose que la famille cherche)
+  doc.setFillColor(...LIGHT); doc.roundedRect(118, 47.5, 74, rel ? 31 : 24.5, 2, 2, "F");
   const kv = (k, v, yy) => { doc.setTextColor(...GREY); T(k, 122, yy, { s: 7.5 }); doc.setTextColor(...INK); T(v, 188, yy, { b: true, s: 9, al: "right" }); };
   kv("Date", frDate(inv.issue_date), 54); kv("Échéance", inv.due_date ? frDate(inv.due_date) : "à réception", 60.5); kv("Référence", oiFmt4(inv.reference), 67);
+  if (rel) kv("Facture", `${rel.src_number} du ${frDate(rel.src_date)}`, 73.5);
   // Destinataire (fenêtre enveloppe, à gauche)
   let y = 82; doc.setTextColor(...GREY); T("FACTURÉ À", 18, y - 5, { b: true, s: 7 }); doc.setTextColor(0);
   for (const l of dLines) { T(l, 18, y, { s: 11 }); y += 5.5; }
@@ -12207,7 +12382,7 @@ async function oiBuildPdf(inv) {
   // --- Articles (en-tête bleu, lignes alternées) ---
   const items = Array.isArray(inv.items) && inv.items.length ? inv.items : [{ label: inv.label || "", amount: inv.amount }];
   y = 106;
-  doc.setFillColor(...BLUE); doc.rect(18, y, 174, 8, "F"); doc.setTextColor(255);
+  doc.setFillColor(...ACC); doc.rect(18, y, 174, 8, "F"); doc.setTextColor(255);
   T("Désignation", 21, y + 5.5, { b: true, s: 9 }); T("Montant CHF", 189, y + 5.5, { b: true, s: 9, al: "right" }); doc.setTextColor(0);
   let yi = y + 8, zebra = false;
   for (const it of items) {
@@ -12216,12 +12391,22 @@ async function oiBuildPdf(inv) {
     T(desc, 21, yi + 5.5, { s: 10 }); T(oiChf(it.amount || 0), 189, yi + 5.5, { s: 10, al: "right" });
     yi += h;
   }
-  doc.setDrawColor(...BLUE); doc.setLineWidth(0.6); doc.line(18, yi, 192, yi); doc.setLineWidth(0.2); doc.setDrawColor(0);
-  doc.setTextColor(...INK); T("Total à payer", 120, yi + 8.5, { b: true, s: 12 }); T(`CHF ${oiChf(inv.amount)}`, 189, yi + 8.5, { b: true, s: 13, al: "right" });
+  doc.setDrawColor(...ACC); doc.setLineWidth(0.6); doc.line(18, yi, 192, yi); doc.setLineWidth(0.2); doc.setDrawColor(0);
+  doc.setTextColor(...INK); T(rel ? "Solde à payer" : "Total à payer", 120, yi + 8.5, { b: true, s: 12 }); T(`CHF ${oiChf(inv.amount)}`, 189, yi + 8.5, { b: true, s: 13, al: "right" });
   doc.setTextColor(...GREY);
   T(`Payable jusqu'au ${inv.due_date ? frDate(inv.due_date) : "réception"} au moyen de la QR-facture ci-dessous (référence ${oiFmt4(inv.reference)}).`, 18, yi + 18, { s: 8.5 });
-  doc.setTextColor(...INK); T("Merci pour votre confiance", 18, yi + 27, { b: true, s: 13 });
-  doc.setTextColor(...GREY); T("Team Lausanne Academy", 18, yi + 32, { s: 9 });
+  if (rel) {
+    // La référence QR est celle de la FACTURE : la phrase le dit, sinon on
+    // reçoit des virements avec une référence inventée, impossibles à pointer.
+    doc.setTextColor(...ACC);
+    T(doc.splitTextToSize(PS(OI_REL[rel.level][1]), 174), 18, yi + 24, { b: true, s: 9 });
+    doc.setTextColor(...GREY);
+    T("Si le paiement a été effectué entre-temps, merci de ne pas tenir compte de ce rappel.", 18, yi + 33, { s: 8.5 });
+    doc.setTextColor(...INK); T("Team Lausanne Academy", 18, yi + 41, { b: true, s: 10 });
+  } else {
+    doc.setTextColor(...INK); T("Merci pour votre confiance", 18, yi + 27, { b: true, s: 13 });
+    doc.setTextColor(...GREY); T("Team Lausanne Academy", 18, yi + 32, { s: 9 });
+  }
   doc.setTextColor(0);
   // --- Section paiement (bas de page : récépissé 62 mm + section paiement 148 mm, hauteur 105 mm) ---
   const Y = 192;
@@ -13387,26 +13572,33 @@ function renderProduits() {
   if (!lot.length) { host.innerHTML = '<p class="muted">Aucun produit. Commencez par « Nouveau produit ».</p>'; return; }
   // Groupés par genre : un abonnement, un stage et une location ne se lisent
   // pas de la même façon, et on cherche dans l'un ou dans l'autre.
+  //
+  // ⚠️ UN SEUL TABLEAU, avec des lignes de titre — pas un tableau par groupe.
+  // Quatre tableaux, c'est quatre calculs de largeur de colonne indépendants :
+  // les noms et les prix ne tombaient pas en face les uns des autres d'un
+  // groupe à l'autre, et la page se lisait de travers. C'était ça, le défaut
+  // d'alignement.
   const parGenre = PRO_GENRES.map(([k, lbl]) => [lbl, lot.filter((p) => p.kind === k)]).filter(([, l]) => l.length);
-  host.innerHTML = parGenre.map(([lbl, l]) => `
-    <h3 style="margin:18px 0 6px;font-size:1rem">${esc(lbl)}</h3>
-    <div class="table-wrap"><table class="crm-table">
-      <thead><tr><th>Produit</th><th>Prix par défaut</th><th>Cours lié</th><th>Filière</th><th title="Nombre de factures déjà émises avec ce produit">Factures</th><th></th></tr></thead>
-      <tbody>${l.map((p) => {
-        const jours = p.price_by_weekday && Object.keys(p.price_by_weekday).length
-          ? PRO_JOURS.filter(([j]) => p.price_by_weekday[j] != null)
-              .map(([j, d]) => `${d.slice(0, 3)} ${Number(p.price_by_weekday[j])}`).join(" · ")
-          : "";
-        const ct = proTypes.find((t) => t.id === p.course_type_id);
-        return `<tr${p.active ? "" : ' style="opacity:.55"'}>
-          <td><b>${esc(p.name)}</b>${p.active ? "" : ' <span class="muted" style="font-size:.8rem">(retiré)</span>'}</td>
-          <td>${proChf(p.price)}${jours ? `<br /><span class="muted" style="font-size:.78rem">${esc(jours)}</span>` : ""}</td>
-          <td>${ct ? esc(ct.name) : '<span class="muted">—</span>'}</td>
-          <td>${p.filiere ? esc(p.filiere) : '<span class="muted">—</span>'}</td>
-          <td class="pro-n" data-n="${esc(p.id)}"><span class="muted">…</span></td>
-          <td><button type="button" class="ghost pro-edit" data-p="${esc(p.id)}">Modifier</button></td>
-        </tr>`;
-      }).join("")}</tbody></table></div>`).join("");
+  const ligne = (p) => {
+    const jours = p.price_by_weekday && Object.keys(p.price_by_weekday).length
+      ? PRO_JOURS.filter(([j]) => p.price_by_weekday[j] != null)
+          .map(([j, d]) => `${d.slice(0, 3)} ${Number(p.price_by_weekday[j])}`).join(" · ")
+      : "";
+    const ct = proTypes.find((t) => t.id === p.course_type_id);
+    return `<tr${p.active ? "" : ' style="opacity:.55"'}>
+      <td><b>${esc(p.name)}</b>${p.active ? "" : ' <span class="muted" style="font-size:.8rem">(retiré)</span>'}</td>
+      <td class="pro-num">${proChf(p.price)}${jours ? `<br /><span class="muted" style="font-size:.78rem;font-weight:400">${esc(jours)}</span>` : ""}</td>
+      <td>${ct ? esc(ct.name) : '<span class="muted">—</span>'}</td>
+      <td>${p.filiere ? esc(p.filiere) : '<span class="muted">—</span>'}</td>
+      <td class="pro-n pro-num" data-n="${esc(p.id)}"><span class="muted">…</span></td>
+      <td><button type="button" class="ghost pro-edit" data-p="${esc(p.id)}">Modifier</button></td>
+    </tr>`;
+  };
+  host.innerHTML = `<div class="table-wrap"><table class="crm-table pro-table">
+      <thead><tr><th>Produit</th><th class="pro-num">Prix par défaut</th><th>Cours lié</th><th>Filière</th><th class="pro-num" title="Nombre de factures déjà émises avec ce produit">Factures</th><th></th></tr></thead>
+      <tbody>${parGenre.map(([lbl, l]) =>
+        `<tr class="pro-g"><td colspan="6">${esc(lbl)} <span class="muted">(${l.length})</span></td></tr>`
+        + l.map(ligne).join("")).join("")}</tbody></table></div>`;
   host.querySelectorAll(".pro-edit").forEach((b) =>
     b.addEventListener("click", () => proOuvrir(proList.find((p) => p.id === b.dataset.p))));
   proCompter();

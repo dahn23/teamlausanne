@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=334" />
+  <link rel="stylesheet" href="style.css?v=335" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2002,7 +2002,7 @@
             <button type="button" class="subtab fac-subtab active" data-fsub="recues">Reçues — à payer</button>
             <button type="button" class="subtab fac-subtab" data-fsub="emises">Émises — à encaisser</button>
             <button type="button" class="subtab fac-subtab" data-fsub="encaiss">Encaissements</button>
-            <button type="button" class="subtab fac-subtab" data-fsub="impayees">Impayées <span id="imp-badge" class="sub-badge" hidden></span></button>
+            <button type="button" class="subtab fac-subtab" data-fsub="impayees">Relances <span id="imp-badge" class="sub-badge" hidden></span></button>
             <button type="button" class="subtab fac-subtab" data-fsub="hiver">Abonnements hiver</button>
             <button type="button" class="subtab fac-subtab" data-fsub="afact">À facturer <span id="afact-badge" class="sub-badge" hidden></span></button>
             <button type="button" class="subtab fac-subtab" data-fsub="produits">Produits</button>
@@ -2079,20 +2079,39 @@
             <p id="enc-empty" class="muted" hidden>Aucun versement importé pour l'instant.</p>
           </div>
 
-          <!-- ---- Impayées : qui doit encore, et depuis combien de temps ---- -->
+          <!-- ---- Relances : qui doit encore, combien, et depuis quand ----
+               La liste vient de la vue out_relances_a_envoyer (db/164) : une
+               facture y entre le lendemain de son échéance et en sort dès
+               qu'elle est soldée. Le montant relancé est le RESTE dû, jamais
+               le montant de la facture. -->
           <div id="fac-sub-impayees" class="fac-sub hidden">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-              <button id="imp-relancer" type="button" class="ghost" title="Envoie un rappel par mail aux familles cochées, avec la facture en pièce jointe">✉ Envoyer un rappel à la sélection</button>
+              <button id="imp-relancer-tout" type="button" title="Envoie d'un coup toutes les relances prêtes">✉ Envoyer les relances prêtes</button>
+              <button id="imp-relancer" type="button" class="ghost" title="N'envoie qu'aux lignes cochées">✉ Envoyer à la sélection</button>
+              <span class="spacer"></span>
+              <button id="imp-histo" type="button" class="ghost" title="Les relances déjà parties, avec leur date et leur niveau">🕘 Historique</button>
               <span id="imp-status" class="muted" style="font-size:.86rem"></span>
             </div>
-            <p class="muted" style="margin-top:0;font-size:.88rem">Factures envoyées dont l'échéance est passée et qui ne sont pas encore pointées comme payées. Le rappel reprend la facture d'origine, avec sa QR-facture — la famille n'a rien à retrouver.</p>
-            <div id="imp-filters" class="fac-filters"></div>
+            <p class="muted" style="margin-top:0;font-size:.88rem">Factures échues et non soldées. Le rappel réclame <b>ce qui reste dû</b> (versements et avoirs déduits) et porte son numéro — 1<sup>er</sup>, 2<sup>e</sup>, puis 3<sup>e</sup> et dernier avant poursuites. Il garde la <b>référence QR de la facture d'origine</b> : le versement se rapproche tout seul.</p>
+            <div id="imp-resume" class="imp-resume"></div>
+            <div id="imp-filters" class="fac-filters fac-fil-row"></div>
+            <div id="imp-produits" class="fac-filters fac-fil-row"></div>
             <div class="table-wrap">
               <table class="crm-table fac-table"><thead><tr>
-                <th><input type="checkbox" id="imp-sel-all" title="Tout cocher" /></th><th>N°</th><th>Destinataire</th><th>Joueur</th><th>Filière</th><th>Montant</th><th>Échéance</th><th>Retard</th><th>Rappels</th><th></th>
+                <th><input type="checkbox" id="imp-sel-all" title="Tout cocher" /></th><th>N°</th><th>Destinataire</th><th>Joueur</th><th>Produit</th><th title="Facture, déjà versé, et ce qui reste">Reste à payer</th><th>Échéance</th><th>Retard</th><th>Rappels</th><th></th>
               </tr></thead><tbody id="imp-rows"></tbody></table>
             </div>
             <p id="imp-empty" class="muted" hidden>Aucune facture en retard. </p>
+          </div>
+
+          <!-- Historique des relances parties (vue out_relances). On en a
+               besoin le jour où une famille affirme n'avoir rien reçu. -->
+          <div id="imp-histo-modal" class="modal hidden">
+            <div class="modal-card" style="max-width:840px">
+              <button type="button" id="imp-histo-close" class="modal-close" aria-label="Fermer">×</button>
+              <h2 style="margin-top:0">Relances envoyées</h2>
+              <div id="imp-histo-corps"></div>
+            </div>
           </div>
 
           <!-- Abonnements d'hiver (point 7). Les créneaux viennent de
