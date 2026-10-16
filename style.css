@@ -5290,3 +5290,16 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .imps-lot{margin:0 0 14px}
 .imps-lot table{font-size:.86rem}
 .imps-grave{margin:0 0 8px;font-weight:800;color:#b91c1c;font-size:.9rem}
+
+/* « Partiellement payée » (point 4) : un état à part, ni « envoyée » ni
+   « payée ». Teinte ambre — on voit du premier coup d'œil qu'il reste un
+   solde, sans avoir à ouvrir la fenêtre des versements. */
+.fac-st.fac-part{background:#fef3c7;color:#92400e}
+.oi-reste{font-size:.72rem;font-weight:700;color:#92400e;white-space:nowrap}
+
+/* Lot par filière : prix pris selon le jour d'entraînement (point 6, db/167).
+   Deux jours réguliers = le prix d'un seul jour sous-facturerait : on le
+   signale sur la ligne ET au-dessus de la liste, en nommant les joueurs. */
+.oi-amb{margin-top:8px;padding:8px 10px;border-radius:8px;background:#fef3c7;
+  color:#92400e;font-size:.82rem;font-weight:600;line-height:1.45}
+.oi-src-amb{font-size:.8rem;color:#92400e;font-weight:700}

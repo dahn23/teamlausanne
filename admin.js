@@ -11592,8 +11592,17 @@ function initEncaissements() {
 // ===================================================================
 //  Factures ÉMISES (à encaisser) : lot par filière → n° + référence RF → PDF QR-facture → envoi mail → suivi
 // ===================================================================
-const OI_ST = { a_envoyer: ["À envoyer", "fac-todo"], envoyee: ["Envoyée", "fac-pay"], payee: ["Payée", "fac-paid"], annulee: ["Annulée", ""] };
-const OI_ORDER = ["a_envoyer", "envoyee", "payee", "annulee"];
+// « Partiellement payée » est un état À PART (point 4). Il se DÉDUIT des
+// versements (out_invoices_solde.statut_reel) et ne se range pas dans
+// out_invoices.status, qui reste « envoyee » : la facture est toujours due,
+// et c'est ce que lit tout le reste du code. Mais la montrer comme simplement
+// « Envoyée » cachait l'acompte déjà reçu — on ne voyait pas la différence
+// entre une famille qui n'a rien versé et une qui a versé la moitié.
+const OI_ST = { a_envoyer: ["À envoyer", "fac-todo"], envoyee: ["Envoyée", "fac-pay"],
+  partielle: ["Partiellement payée", "fac-part"], payee: ["Payée", "fac-paid"], annulee: ["Annulée", ""] };
+const OI_ORDER = ["a_envoyer", "envoyee", "partielle", "payee", "annulee"];
+// L'état réel d'une facture : celui déduit des versements s'il est connu.
+const oiEtat = (f) => f.statut_reel || f.status;
 // Lot par filière = filières « grille Tarifs » ; sport-études / pro / pro U18 = depuis le contrat de la fiche.
 const OI_FILIERES = [["performance", "Performance"], ["competition", "Compétition"], ["club", "Club"], ["kidstennis", "KidsTennis"], ["adultes", "Adultes"]];
 const OI_FIL_ALL = [...OI_FILIERES, ["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"], ["stage", "Stages"], ["location", "Locations"]];
@@ -11666,17 +11675,27 @@ async function loadOutInvoices() {
   oiList = data || [];
   // Les produits et le verdict de cohérence, en deux requêtes pour toute la
   // liste. Le faire facture par facture ferait 300 allers-retours.
-  const [{ data: prods }, { data: coh }] = await Promise.all([
+  const [{ data: prods }, { data: coh }, { data: sold }] = await Promise.all([
     sb.from("invoice_products").select("id,name,price,price_by_weekday,course_type_id,filiere,kind,active").order("sort", { nullsFirst: false }).order("name"),
     sb.from("out_invoices_coherence").select("id,produit,cours_inscrits,coherent"),
+    // Les soldes pour toute la liste (point 4) : sans eux, une facture dont la
+    // moitié est versée s'affichait « Envoyée », exactement comme une facture
+    // dont rien n'est arrivé.
+    sb.from("out_invoices_solde").select("id,verse,avoir,du,reste,statut_reel"),
   ]);
   oiProduits = prods || [];
   const parId = {}; for (const c of coh || []) parId[c.id] = c;
+  const parSolde = {}; for (const s of sold || []) parSolde[s.id] = s;
   for (const x of oiList) {
     const c = parId[x.id] || {};
     x.produit = c.produit || null;
     x.cours_inscrits = c.cours_inscrits || null;
     x.coherent = c.coherent;          // true / false / null — null = rien à vérifier
+    const s = parSolde[x.id];
+    if (s) {
+      x.verse = Number(s.verse); x.avoir = Number(s.avoir);
+      x.reste = Number(s.reste); x.statut_reel = s.statut_reel;
+    }
   }
   const pids = [...new Set(oiList.map((x) => x.person_id).filter(Boolean))];
   if (pids.length) {
@@ -12184,7 +12203,7 @@ async function oiBloquerSiIncoherent(ids) {
 }
 const oiStatutOk = (f) => {
   if (!oiFiltres.size) return true;
-  for (const v of oiFiltres) if (v === "maintenant" ? oiAEnvoyerMaintenant(f) : f.status === v) return true;
+  for (const v of oiFiltres) if (v === "maintenant" ? oiAEnvoyerMaintenant(f) : oiEtat(f) === v) return true;
   return false;
 };
 const oiFiliereOk = (f) => !oiFilieres.size || oiFilieres.has(f.filiere);
@@ -12194,7 +12213,7 @@ function renderOiFilters() {
   // de SES factures sont à envoyer, pas le total du club.
   const vus = oiList.filter((f) => oiCorrespond(f) && oiFiliereOk(f));
   const counts = { "": vus.length };
-  for (const f of vus) counts[f.status] = (counts[f.status] || 0) + 1;
+  for (const f of vus) counts[oiEtat(f)] = (counts[oiEtat(f)] || 0) + 1;
   // Filières : une rangée à part. On facture des cursus très différents et on
   // travaille filière par filière — mélanger KidsTennis et Pro dans une même
   // liste oblige à trier à l'œil.
@@ -12239,7 +12258,7 @@ function renderOutInvoices() {
   // resterait vide sans dire pourquoi.
   if (oiLoupe && !oiSel.size) oiLoupe = false;
   $("oi-rows").innerHTML = rows.map((f) => {
-    const [lbl, cls] = OI_ST[f.status] || [f.status, ""];
+    const [lbl, cls] = OI_ST[oiEtat(f)] || [f.status, ""];
     const editable = f.status !== "payee" && f.status !== "annulee";
     const items = Array.isArray(f.items) && f.items.length ? f.items : (f.label ? [{ label: f.label, amount: f.amount }] : []);
     const acts = (editable ? `<button class="ghost oi-edit" data-id="${f.id}" title="Modifier (dates, articles, destinataire)">✎</button>` : "")
@@ -12255,7 +12274,11 @@ function renderOutInvoices() {
       <td>${esc(f.player_name || "")}</td>
       <td>${oiCelluleProduit(f)}</td>
       <td class="muted" style="font-size:.82rem">${items.map((it) => `<div>${esc(it.label || "")}${items.length > 1 ? ` <span style="white-space:nowrap">— ${oiChf(it.amount || 0)}</span>` : ""}</div>`).join("")}</td>
-      <td style="white-space:nowrap"><b>${oiChf(f.amount)}</b></td>
+      <td style="white-space:nowrap"><b>${oiChf(f.amount)}</b>${
+        // Le montant de la facture ne bouge jamais (le PDF est chez la famille).
+        // Ce qui RESTE dû se lit donc en dessous, quand il diffère.
+        f.reste != null && Math.abs(f.reste - Number(f.amount)) > 0.005 && oiEtat(f) !== "annulee"
+          ? `<div class="oi-reste">reste ${oiChf(f.reste)}</div>` : ""}</td>
       <td style="white-space:nowrap">${dateIn("issue_date")}</td>
       <td style="white-space:nowrap">${dateIn("due_date")}</td>
       <td>${f.pdf_path ? `<button class="ghost oi-pdf" data-path="${esc(f.pdf_path)}">📄</button>` : `<button class="ghost oi-regen" data-id="${f.id}" title="Générer le PDF">⟳ PDF</button>`}</td>
@@ -12351,6 +12374,20 @@ async function oiLoadPlayers() {
   const byId = {}; for (const p of [...(pl || []), ...(gp || [])]) byId[p.id] = p;
   const grid = st?.value || {}; const gridPrice = parseFloat(grid[fil]);
   const nInst = parseInt($("oi-inst-total").value) || null;
+  // Prix par JOUR (point 6). La grille du produit — Club : lundi 770, mardi
+  // 815, mercredi 815, jeudi 790, vendredi 770 — ne servait à rien tant que
+  // personne ne savait quel jour l'enfant s'entraîne. Le planning le sait :
+  // product_weekday_prices() va le lire (db/167). Plus spécifique que le tarif
+  // plat de la grille Tarifs, il passe donc devant ; le contrat reste au-dessus
+  // de tout, c'est un montant négocié.
+  const prod = (oiProduits || []).find((p) => p.filiere === fil && p.active && p.price_by_weekday
+    && Object.keys(p.price_by_weekday).length);
+  const parJour = {};
+  if (prod) {
+    const { data: wp } = await sb.rpc("product_weekday_prices",
+      { p_product: prod.id, p_from: oiDebutSaison(seasonId) });
+    for (const w of wp || []) parJour[w.person_id] = w;
+  }
   oiPrep = (pl || []).sort((a, b) => a.last_name.localeCompare(b.last_name)).map((p) => {
     const parents = (gs || []).filter((g) => g.child_id === p.id && g.relation !== "sibling").map((g) => byId[g.guardian_id]).filter(Boolean);
     const { cands, def } = oiDebtorCands(p, parents);   // parent lié / Parent 1 / Parent 2 / joueur
@@ -12359,15 +12396,37 @@ async function oiLoadPlayers() {
     // L'arrangement de la famille prime sur tout : c'est une décision prise
     // avec elle. À défaut, le contrat, puis la valeur saisie pour le lot.
     const total = planPar[p.id] || cInst || nInst || 1;
-    const annuel = fee > 0 ? fee : (gridPrice > 0 ? gridPrice : null);
-    const source = fee > 0 ? `contrat ${oiChf(fee)}` : (gridPrice > 0 ? `tarifs ${oiChf(gridPrice)}` : "—");
+    const w = parJour[p.id];
+    const wPrix = w && Number(w.prix) > 0 ? Number(w.prix) : null;
+    const annuel = fee > 0 ? fee : (wPrix || (gridPrice > 0 ? gridPrice : null));
+    const source = fee > 0 ? `contrat ${oiChf(fee)}`
+      : wPrix ? `${w.jours} ${oiChf(wPrix)}`
+      : (gridPrice > 0 ? `tarifs ${oiChf(gridPrice)}` : "—");
     const amount = annuel ? Math.round((annuel / total) * 100) / 100 : null;
+    // Deux jours réguliers : le prix d'un seul jour le sous-facturerait de
+    // plusieurs centaines de francs. On ne devine pas — on le signale.
+    const ambigu = !!(w && w.ambigu && !(fee > 0));
     return { include: amount > 0, person: p, cands, debtor: def.key,
-             annuel, amount, source, total, planEnregistre: !!planPar[p.id] };
+             annuel, amount, source, total, ambigu, planEnregistre: !!planPar[p.id] };
   });
   renderOiPrep();
   const missing = oiPrep.filter((r) => !(r.amount > 0)).length;
-  note.textContent = `${oiPrep.length} joueur(s)${missing ? ` · ${missing} sans montant (pas de contrat ni de tarif : saisis-le ou décoche)` : ""}.`;
+  const amb = oiPrep.filter((r) => r.ambigu);
+  note.innerHTML = `${oiPrep.length} joueur(s)${missing ? ` · ${missing} sans montant (pas de contrat ni de tarif : saisis-le ou décoche)` : ""}.`
+    + (prod ? ` <span class="muted">Prix pris selon le jour d'entraînement (grille du produit ${esc(prod.name)}).</span>` : "")
+    // Nommés, pas comptés : « 4 à vérifier » obligerait à les chercher un par un.
+    + (amb.length ? `<div class="oi-amb">⚠ ${amb.length} joueur(s) s'entraînent plusieurs jours par semaine — `
+        + `le prix d'un seul jour est proposé, à corriger si l'abonnement est double :<br />`
+        + amb.map((r) => `${esc(r.person.first_name)} ${esc(r.person.last_name)} (${esc(r.source)})`).join(" · ")
+        + `</div>` : "");
+}
+
+// Début de la saison choisie : c'est là qu'on commence à compter les jours
+// d'entraînement. À défaut, le 1er août — une saison juniors ne commence
+// jamais avant.
+function oiDebutSaison(seasonId) {
+  const s = seasons.find((x) => x.id === seasonId);
+  return s?.start_date || `${new Date().getFullYear()}-08-01`;
 }
 function renderOiPrep() {
   $("oi-prep-rows").innerHTML = oiPrep.map((r, i) => {
@@ -12379,7 +12438,7 @@ function renderOiPrep() {
       <td><select class="oi-debtor" data-i="${i}">${r.cands.map((c) => `<option value="${c.key}"${c.key === r.debtor ? " selected" : ""}>${esc(c.label)}</option>`).join("")}</select></td>
       <td style="font-size:.82rem">${addrOk ? esc(`${a.street}, ${a.zip} ${a.city}`) : '<span style="color:#b45309">adresse incomplète</span>'}</td>
       <td style="font-size:.82rem">${a.email ? esc(a.email) : '<span style="color:#b45309">pas d\'e-mail</span>'}</td>
-      <td class="muted" style="font-size:.8rem">${esc(r.source)}</td>
+      <td class="${r.ambigu ? "oi-src-amb" : "muted"}" style="font-size:.8rem">${esc(r.source)}${r.ambigu ? " ⚠" : ""}</td>
       <td><input type="number" min="1" max="12" step="1" class="oi-inst" data-i="${i}" value="${r.total}"
             title="Nombre de factures pour cette famille. 1 = tout en une fois."
             style="width:58px;text-align:center${r.planEnregistre ? ";font-weight:800;color:var(--blue)" : ""}" /></td>
