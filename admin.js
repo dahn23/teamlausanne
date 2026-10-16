@@ -10443,6 +10443,7 @@ function initFactures() {
     document.querySelectorAll("#view-factures .fac-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "fac-sub-" + b.dataset.fsub));
     if (b.dataset.fsub === "tarifs") { renderFacTarifs(); renderFacPeak(); }
     if (b.dataset.fsub === "produits") loadProduits();
+    if (b.dataset.fsub === "afact") loadAFacturer();
     if (b.dataset.fsub === "emises") loadOutInvoices();
     if (b.dataset.fsub === "encaiss") loadEncaissements();
     if (b.dataset.fsub === "impayees") loadImpayees();
@@ -11209,7 +11210,7 @@ let oiList = [], oiFiltres = new Set(), oiFilieres = new Set(), oiInit = false, 
 // cochées. Ce n'est pas un filtre de plus — rien n'est modifié, la sélection ne
 // bouge pas, et un seul clic ramène la liste entière.
 let oiLoupe = false;
-let oieId = null, oieDebtorPid = null, oiePlayerPid = null, oieSeason = null, oieFiliere = null;
+let oieId = null, oieDebtorPid = null, oiePlayerPid = null, oieSeason = null, oieFiliere = null, oieProduit = null;
 const oiChf = (n) => Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ");   // 1 234.50 (format QR-facture)
 const oiFmt4 = (s) => String(s || "").replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
 const oiFil = (v) => (OI_FIL_ALL.find(([k]) => k === v) || [v, v])[1];
@@ -11351,6 +11352,101 @@ function oiBasculer(ens, v) {
 // entre eux, donc plusieurs chips cochés = une union.
 
 
+
+// ===================================================================
+//  FACTURES › À FACTURER (point 5, db/163)
+// ===================================================================
+// Qui est inscrit et n'a pas encore de facture pour son abonnement. La liste
+// vient d'out_a_facturer() : une personne en sort dès que sa facture existe —
+// rien à cocher, rien à tenir à jour à la main.
+//
+// Le bouton de chaque groupe n'invente pas une seconde façon de facturer : il
+// ouvre le lot par filière qui existe déjà, lequel sait résoudre le
+// destinataire, l'adresse, les échéances et le PDF. Dupliquer cette mécanique,
+// c'était se condamner à corriger deux fois chaque bug.
+let afactList = [];
+
+async function loadAFacturer() {
+  const host = $("afact-liste"); if (!host) return;
+  host.innerHTML = '<p class="muted">Chargement…</p>';
+  const { data, error } = await sb.rpc("out_a_facturer");
+  if (error) { host.innerHTML = `<p class="muted">Erreur : ${esc(error.message)}</p>`; return; }
+  afactList = data || [];
+  majAfactBadge();
+  if (!afactList.length) {
+    host.innerHTML = '<p class="muted">Personne en attente : tous les inscrits de la saison ont leur facture.</p>';
+    return;
+  }
+  // Groupé par produit : on facture par lot, pas personne par personne.
+  const groupes = {};
+  for (const r of afactList) (groupes[r.produit] = groupes[r.produit] || []).push(r);
+  const total = afactList.reduce((a, r) => a + (Number(r.prix) || 0), 0);
+  host.innerHTML = `<p class="afact-tot"><b>${afactList.length}</b> personne(s) à facturer — <b>${oiChf(total)}</b> au total.</p>`
+    + Object.entries(groupes).sort((a, b) => b[1].length - a[1].length).map(([prod, l]) => {
+      const sous = l.reduce((a, r) => a + (Number(r.prix) || 0), 0);
+      const fil = l[0].filiere;
+      return `<section class="afact-g">
+        <div class="afact-g-t">
+          <h3>${esc(prod)}</h3>
+          <span class="muted">${l.length} personne(s) · ${oiChf(sous)}</span>
+          <span class="spacer"></span>
+          <button type="button" class="afact-lot" data-fil="${esc(fil)}">Préparer le lot ${esc(prod)}</button>
+        </div>
+        <div class="table-wrap"><table class="crm-table">
+          <thead><tr><th>Joueur</th><th>Filière</th><th>Prix</th><th></th></tr></thead>
+          <tbody>${l.map((r) => `<tr>
+            <td><b>${esc(r.nom)}</b></td>
+            <td class="muted">${esc(r.filiere)}</td>
+            <td style="white-space:nowrap">${oiChf(Number(r.prix) || 0)}</td>
+            <td><button type="button" class="ghost afact-un" data-p="${esc(r.person_id)}" data-prod="${esc(r.product_id)}">Facturer seul</button></td>
+          </tr>`).join("")}</tbody></table></div>
+      </section>`;
+    }).join("");
+
+  host.querySelectorAll(".afact-lot").forEach((b) => b.addEventListener("click", async () => {
+    // On ouvre le lot existant, positionné sur la bonne filière.
+    await oiOpenPrep();
+    const sel = $("oi-filiere");
+    if ([...sel.options].some((o) => o.value === b.dataset.fil)) {
+      sel.value = b.dataset.fil;
+      oiLoadPlayers();
+    }
+  }));
+  host.querySelectorAll(".afact-un").forEach((b) => b.addEventListener("click", () => afactUn(b.dataset.p, b.dataset.prod)));
+}
+
+function majAfactBadge() {
+  const b = $("afact-badge"); if (!b) return;
+  b.textContent = afactList.length;
+  b.hidden = !afactList.length;
+}
+
+// Une seule personne : on ouvre l'éditeur habituel, déjà rempli avec son
+// produit et son prix. Le secrétariat garde la main sur tout le reste.
+async function afactUn(pid, prodId) {
+  const r = afactList.find((x) => x.person_id === pid && x.product_id === prodId);
+  if (!r) return;
+  const [{ data: p }, { data: gs }] = await Promise.all([
+    sb.from("people").select("id,first_name,last_name,address,postal_code,city,email,parent1,parent2").eq("id", pid).single(),
+    sb.from("guardianships").select("guardian_id,relation").eq("child_id", pid),
+  ]);
+  if (!p) return;
+  const gIds = (gs || []).filter((g) => g.relation !== "sibling").map((g) => g.guardian_id);
+  const { data: gp } = gIds.length
+    ? await sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").in("id", gIds)
+    : { data: [] };
+  const a = oiDebtorCands(p, gp || []).def;    // parent lié avec e-mail > parent 1 > parent 2 > joueur
+  const sea = currentSeason("juniors");
+  await oiOpenEdit(null, {
+    person_id: pid, debtor_person_id: a.pid, debtor_name: a.name, debtor_email: a.email,
+    debtor_street: a.street, debtor_zip: a.zip, debtor_city: a.city,
+    season_id: sea?.id || null, filiere: r.filiere,
+    label: `${r.produit} ${sea?.label || ""} — ${p.first_name} ${p.last_name}`.replace(/\s+/g, " ").trim(),
+    amount: Number(r.prix) || 0,
+    items: [{ label: `${r.produit} ${sea?.label || ""} — ${p.first_name} ${p.last_name}`.replace(/\s+/g, " ").trim(), amount: Number(r.prix) || 0 }],
+    product_id: r.product_id,
+  });
+}
 // ---- Vue d'ensemble financière (point 8, db/163) ----
 // Six montants, calculés en base par out_resume_financier() — et nulle part
 // ailleurs. Les recalculer ici en JavaScript, c'est garantir qu'un jour les
@@ -12026,6 +12122,13 @@ async function oiOpenEdit(inv, preset) {
   $("oie-acct").innerHTML = facAccts.map((a) => `<option value="${a.id}">${esc(a.name)} — ${esc(a.iban)}</option>`).join("");
   $("oie-acct").value = src.account_id || (facAccts.find((a) => a.is_default) || facAccts[0])?.id || "";
   $("oie-note").value = src.note || "";
+  // Le produit vendu. Seuls les produits en vente sont proposés — plus celui
+  // que la facture porte déjà, même retiré du catalogue depuis : une facture
+  // ancienne ne doit pas perdre son produit parce qu'on a cessé de le vendre.
+  oieProduit = src.product_id || null;
+  const dispo = oiProduits.filter((p) => p.active || p.id === oieProduit);
+  $("oie-prod").innerHTML = '<option value="">— aucun —</option>'
+    + dispo.map((p) => `<option value="${p.id}"${p.id === oieProduit ? " selected" : ""}>${esc(p.name)}${p.active ? "" : " (retiré)"}</option>`).join("");
   $("oie-items").innerHTML = "";
   const items = Array.isArray(src.items) && src.items.length ? src.items : (src.label ? [{ label: src.label, amount: src.amount }] : [{ label: "", amount: "" }]);
   for (const it of items) oieAddItem(it.label, it.amount, { rab: it.kind === "rabais", pct: it.pct });
@@ -12135,6 +12238,7 @@ async function oiSaveEdit() {
       debtor_street: $("oie-street").value.trim() || null, debtor_zip: $("oie-zip").value.trim() || null, debtor_city: $("oie-city").value.trim() || null,
       issue_date: $("oie-issue").value || new Date().toISOString().slice(0, 10), due_date: $("oie-due").value || null,
       account_id: $("oie-acct").value || null, note: $("oie-note").value.trim() || null,
+      product_id: $("oie-prod").value || null,
       items, amount, label: items.map((it) => it.label).filter(Boolean).join(" · ").slice(0, 140) };
     let row;
     if (oieId) {

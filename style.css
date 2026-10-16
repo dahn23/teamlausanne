@@ -5235,3 +5235,9 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .oi-res-sous{border-left:4px solid #cbd5e1}
 .oi-res-alerte{border-color:#f3c9c4;background:#fdecea}
 .oi-res-alerte .oi-res-m,.oi-res-alerte .oi-res-l{color:#b3261e}
+
+/* ---- Factures › À facturer (db/163) ------------------------------------- */
+.afact-tot{margin:0 0 14px;font-size:.95rem}
+.afact-g{margin:0 0 22px}
+.afact-g-t{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 8px}
+.afact-g-t h3{margin:0;font-size:1.02rem}

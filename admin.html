@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=330" />
+  <link rel="stylesheet" href="style.css?v=331" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2003,6 +2003,7 @@
             <button type="button" class="subtab fac-subtab" data-fsub="emises">Émises — à encaisser</button>
             <button type="button" class="subtab fac-subtab" data-fsub="encaiss">Encaissements</button>
             <button type="button" class="subtab fac-subtab" data-fsub="impayees">Impayées <span id="imp-badge" class="sub-badge" hidden></span></button>
+            <button type="button" class="subtab fac-subtab" data-fsub="afact">À facturer <span id="afact-badge" class="sub-badge" hidden></span></button>
             <button type="button" class="subtab fac-subtab" data-fsub="produits">Produits</button>
             <button type="button" class="subtab fac-subtab" data-fsub="tarifs">Tarifs</button>
           </div>
@@ -2091,6 +2092,14 @@
               </tr></thead><tbody id="imp-rows"></tbody></table>
             </div>
             <p id="imp-empty" class="muted" hidden>Aucune facture en retard. </p>
+          </div>
+
+          <!-- Qui est inscrit et n'a pas encore de facture pour son
+               abonnement. La liste vient d'out_a_facturer() : une personne en
+               sort dès que sa facture existe, sans rien à cocher. -->
+          <div id="fac-sub-afact" class="fac-sub hidden">
+            <p class="muted" style="margin-top:0;font-size:.88rem">Inscrits pour la saison en cours, sans facture vivante pour leur abonnement. La liste se vide d'elle-même à mesure que les factures partent. Les cours à la leçon (privés) et les contrats (Sport-études, Pro) n'y figurent pas : ils ne se facturent pas à la saison.</p>
+            <div id="afact-liste"></div>
           </div>
 
           <!-- Le catalogue des produits facturables. Une facture ne porte plus
@@ -2388,6 +2397,7 @@
               <label>Date d'émission<input id="oie-issue" type="date" /></label>
               <label>Échéance<input id="oie-due" type="date" /></label>
               <label>Compte à créditer<select id="oie-acct"></select></label>
+              <label>Produit vendu <span class="muted" style="font-weight:400">(sert au filtre et au contrôle)</span><select id="oie-prod"></select></label>
               <label>Note interne<input id="oie-note" /></label>
             </div>
             <h3 style="margin:14px 0 6px;font-size:1rem">Articles</h3>
