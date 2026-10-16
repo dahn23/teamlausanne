@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=336" />
+  <link rel="stylesheet" href="style.css?v=337" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -678,6 +678,7 @@
               </div>
               <input id="cs-search" class="cs-search" type="text" placeholder="Filtrer par coach ou joueur…" autocomplete="off" />
               <button id="cs-copy" class="ghost">Copier la semaine</button>
+              <button id="cs-hiver" class="ghost" title="Pose les créneaux loués pour l'hiver (clubs, membres) sur le planning, du 26 octobre à la fin de la saison">❄ Abonnements d'hiver</button>
               <button id="cs-away-new" class="ghost">+ Déplacement</button>
               <button id="cs-new">+ Nouveau cours</button>
             </div>
@@ -2489,6 +2490,26 @@ Team Lausanne Tennis</textarea></label>
           </div>
         </div>
 
+        <!-- Relire une relance avant qu'elle ne parte (db/164). Un rappel qui
+             réclame plusieurs milliers de francs se relit, et s'essaie sur sa
+             propre adresse — comme une facture. Le texte est modifiable : le
+             ton d'un 1er rappel et celui d'un dernier ne sont pas le même. -->
+        <div id="imp-send-modal" class="modal hidden">
+          <div class="card" style="max-width:720px">
+            <button type="button" id="imps-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0">Envoyer <span id="imps-count"></span> relance(s)</h2>
+            <p class="muted" style="margin-top:0;font-size:.88rem">Envoi depuis <b>info@teamlausanne.ch</b>, document de rappel joint. Le montant réclamé est le <b>solde</b> et la référence QR reste celle de la facture. Variables : {niveau}, {destinataire}, {joueur}, {numero}, {montant}, {echeance}, {libelle}, {reference}.</p>
+            <div id="imps-lot" class="imps-lot"></div>
+            <label>Objet<input id="imps-subject" /></label>
+            <label>Message<textarea id="imps-text" rows="10"></textarea></label>
+            <div id="imps-preview" class="muted" style="font-size:.85rem;margin-top:8px"></div>
+            <div class="form-foot"><span id="imps-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span>
+              <button type="button" id="imps-pdf" class="ghost" title="Ouvre le document de rappel de la première ligne, sans rien envoyer">Voir le rappel</button>
+              <button type="button" id="imps-test" class="ghost" title="Envoie la première relance à l'adresse de votre choix, sans rien enregistrer">Envoyer un test</button>
+              <button type="button" id="imps-go">Envoyer</button></div>
+          </div>
+        </div>
+
         <!-- Fenêtre : édition d'une facture -->
         <div id="fac-modal" class="modal hidden">
           <div class="card">
@@ -3282,6 +3303,30 @@ Team Lausanne Tennis</textarea></label>
       <h2 id="rod-title" style="margin-top:0"></h2>
       <p class="muted" id="rod-meta" style="margin:0 0 14px"></p>
       <div id="rod-body"></div>
+    </div>
+  </div>
+
+  <!-- Abonnements d'hiver sur le planning (db/166). Les créneaux sont déjà
+       saisis dans Répertoire › Locations de courts : on les déroule, on ne les
+       ressaisit pas. Essai à blanc d'abord — quelques centaines de blocs ne se
+       posent pas à l'aveugle. -->
+  <div id="hivp-modal" class="modal hidden">
+    <div class="card">
+      <button type="button" id="hivp-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 style="margin-top:0">Abonnements d'hiver sur le planning</h2>
+      <p class="muted" style="margin:0 0 12px;font-size:.9rem">Les créneaux loués pour l'hiver — clubs et membres — tels qu'ils sont saisis dans <b>Répertoire › Locations de courts</b>, posés semaine après semaine sur la grille. Ils <b>bloquent le court</b> et ne comptent dans <b>aucune heure de coach</b>. Rien n'est écrasé : un créneau qui tombe sur un cours existant est signalé, pas créé.</p>
+      <div class="hivp-row">
+        <label>Saison <select id="hivp-saison"></select></label>
+        <label>Du <input type="date" id="hivp-from" value="2026-10-26" /></label>
+        <label>Au <input type="date" id="hivp-to" value="2027-04-14" /></label>
+      </div>
+      <div id="hivp-resume" class="cw-summary" hidden></div>
+      <div class="form-foot">
+        <button type="button" id="hivp-clear" class="ghost" title="Retire les blocs posés par ce bouton — jamais un cours saisi à la main">Retirer les blocs posés</button>
+        <span class="spacer"></span>
+        <span id="hivp-status" class="muted" style="font-size:.85rem"></span>
+        <button type="button" id="hivp-go">Essai à blanc</button>
+      </div>
     </div>
   </div>
 

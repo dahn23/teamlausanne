@@ -4605,6 +4605,7 @@ function initCours(roles) {
   $("cs-away-new").addEventListener("click", () => openAway(null, $("cs-date").value));
   $("cs-away-new").classList.toggle("hidden", !isCourseMgr);
   $("cs-copy").addEventListener("click", copyWeek);
+  $("cs-hiver").addEventListener("click", hivpOuvrir);
   $("cs-mode-day").addEventListener("click", () => setCoursView("day"));
   $("cs-mode-week").addEventListener("click", () => setCoursView("week"));
   $("cw-close").addEventListener("click", () => $("copyweek-modal").classList.add("hidden"));
@@ -4692,6 +4693,116 @@ async function deleteType(id) {
   loadTypes();
 }
 
+
+// ===================================================================
+//  PLANNING › ABONNEMENTS D'HIVER (db/166)
+// ===================================================================
+// Les créneaux loués pour l'hiver étaient saisis une fois, dans Répertoire ›
+// Locations de courts, et ne servaient qu'à facturer. Le planning les
+// ignorait : on ne voyait nulle part la semaine complète, et un court loué
+// à un club pour toute la saison restait réservable.
+//
+// Ce bouton les DÉROULE sur la grille. Il ne les recopie pas : si un créneau
+// change dans le Répertoire, on retire les blocs et on les repose, et c'est
+// toujours la même source qui a raison.
+//
+// Deux garde-fous, et ils comptent :
+//  · Essai à blanc d'abord. Deux cent vingt blocs ne se posent pas à l'aveugle.
+//  · Rien n'est jamais écrasé. Un créneau qui tombe sur un cours de l'école
+//    est SIGNALÉ, pas créé — on ne sacrifie pas une leçon à une location.
+let hivpInit = false;
+
+async function hivpOuvrir() {
+  if (!hivpInit) {
+    hivpInit = true;
+    $("hivp-close").addEventListener("click", () => $("hivp-modal").classList.add("hidden"));
+    $("hivp-modal").addEventListener("click", (e) => { if (e.target === $("hivp-modal")) $("hivp-modal").classList.add("hidden"); });
+    $("hivp-go").addEventListener("click", hivpLancer);
+    $("hivp-clear").addEventListener("click", hivpRetirer);
+    // Les saisons telles qu'elles sont écrites sur les créneaux : on ne les
+    // devine pas, on prend celles qui existent.
+    const { data } = await sb.from("tenant_rentals").select("season_label");
+    const saisons = [...new Set((data || []).map((r) => r.season_label).filter(Boolean))].sort().reverse();
+    $("hivp-saison").innerHTML = saisons.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")
+      || '<option value="">(aucun créneau saisi)</option>';
+    if (saisons.length) $("hivp-saison").value = saisons[0];   // pretty-select : forcer la valeur au 1er rendu
+  }
+  $("hivp-resume").hidden = true;
+  $("hivp-status").textContent = "";
+  $("hivp-go").textContent = "Essai à blanc";
+  $("hivp-go").dataset.apply = "";
+  $("hivp-modal").classList.remove("hidden");
+}
+
+function hivpArgs() {
+  return {
+    p_season: $("hivp-saison").value,
+    p_from: $("hivp-from").value || "2026-10-26",
+    p_to: $("hivp-to").value || "2027-04-14",
+  };
+}
+
+// Deux temps dans un seul bouton : il dit « Essai à blanc », puis « Poser les
+// N blocs » une fois qu'on a vu le résultat. Un bouton qui écrit directement
+// obligerait à relire un chiffre qu'on n'a pas encore vu.
+async function hivpLancer() {
+  const btn = $("hivp-go");
+  const apply = btn.dataset.apply === "1";
+  btn.disabled = true;
+  $("hivp-status").textContent = apply ? "Pose des blocs…" : "Calcul…";
+  const { data, error } = await sb.rpc("winter_rentals_generate", { ...hivpArgs(), p_apply: apply });
+  btn.disabled = false;
+  $("hivp-status").textContent = "";
+  if (error) { $("hivp-status").textContent = "Erreur : " + error.message; return; }
+  const r = data || {};
+  const z = $("hivp-resume"); z.hidden = false;
+  const conf = r.conflits || [];
+  const ligne = (c) => `${frDate(c.date)} ${c.heure} · court ${c.court} · ${esc(c.locataire)}`;
+  if (apply) {
+    z.innerHTML = `<b>✓ ${r.crees} bloc(s) posé(s)</b> sur le planning, du ${frDate(r.du)} au ${frDate(r.au)}.`
+      + (Number(r.deja_en_place) ? `<br />${r.deja_en_place} étaient déjà là.` : "")
+      + (conf.length ? `<div class="cw-warn">${conf.length} créneau(x) non posé(s), le court est déjà pris :<br />`
+          + conf.slice(0, 10).map((c) => ligne(c) + ` — occupé par ${esc(c.occupe_par)}`).join("<br />")
+          + (conf.length > 10 ? `<br />… et ${conf.length - 10} autre(s).` : "") + `</div>` : "");
+    btn.textContent = "Essai à blanc"; btn.dataset.apply = "";
+    loadCoursesCurrent();
+    return;
+  }
+  if (!Number(r.crees) && !conf.length) {
+    z.innerHTML = Number(r.deja_en_place)
+      ? `Tout est déjà en place : ${r.deja_en_place} bloc(s) posé(s) pour cette saison. Rien à ajouter.`
+      : `Aucun créneau saisi pour ${esc(r.saison || "cette saison")}. Ils se saisissent dans <b>Répertoire › Locations de courts</b>.`;
+    btn.textContent = "Essai à blanc"; btn.dataset.apply = "";
+    return;
+  }
+  z.innerHTML = `<b>${r.crees}</b> bloc(s) seraient posés, du ${frDate(r.du)} au ${frDate(r.au)}.`
+    + (Number(r.deja_en_place) ? ` ${r.deja_en_place} déjà en place (ignorés).` : "")
+    + (Number(r.courts_fermes) ? ` ${r.courts_fermes} ignoré(s) : court fermé l'hiver.` : "")
+    + ((r.apercu || []).length ? `<div class="muted" style="margin-top:8px;font-size:.84rem">Les premiers :<br />`
+        + r.apercu.map(ligne).join("<br />") + `</div>` : "")
+    + (conf.length ? `<div class="cw-warn">${conf.length} ne seraient pas posés, le court est déjà pris :<br />`
+        + conf.slice(0, 10).map((c) => ligne(c) + ` — occupé par ${esc(c.occupe_par)}`).join("<br />")
+        + (conf.length > 10 ? `<br />… et ${conf.length - 10} autre(s).` : "") + `</div>` : "");
+  if (Number(r.crees)) { btn.textContent = `Poser les ${r.crees} blocs`; btn.dataset.apply = "1"; }
+}
+
+// Le ménage. Ne touche QUE les blocs posés par le bouton (reconnus à leur
+// recurrence_id) — jamais un cours saisi à la main, même s'il porte le même
+// nom de club.
+async function hivpRetirer() {
+  const a = hivpArgs();
+  if (!(await uiConfirm(`Retirer du planning les blocs d'abonnement d'hiver ${a.p_season} ?\n\n`
+    + `Du ${frDate(a.p_from)} au ${frDate(a.p_to)}. Seuls les blocs posés par ce bouton partent ; `
+    + `un cours saisi à la main n'est pas touché.`))) return;
+  $("hivp-status").textContent = "Retrait…";
+  const { data, error } = await sb.rpc("winter_rentals_clear", a);
+  $("hivp-status").textContent = "";
+  if (error) { $("hivp-status").textContent = "Erreur : " + error.message; return; }
+  const z = $("hivp-resume"); z.hidden = false;
+  z.innerHTML = `<b>${data?.supprimes || 0} bloc(s) retiré(s)</b> du planning.`;
+  $("hivp-go").textContent = "Essai à blanc"; $("hivp-go").dataset.apply = "";
+  loadCoursesCurrent();
+}
 function shiftCs(delta) {
   const d = new Date($("cs-date").value + "T00:00:00");
   d.setDate(d.getDate() + delta * (coursView === "week" ? 7 : 1));
@@ -11218,7 +11329,7 @@ function renderImpayees() {
     if (c.checked) impSel.add(c.dataset.id); else impSel.delete(c.dataset.id);
     impMajBouton();
   }));
-  $("imp-rows").querySelectorAll(".imp-un").forEach((b) => b.addEventListener("click", () => impRelancer([b.dataset.id])));
+  $("imp-rows").querySelectorAll(".imp-un").forEach((b) => b.addEventListener("click", () => impOuvrirEnvoi([b.dataset.id])));
   $("imp-rows").querySelectorAll(".imp-pause").forEach((b) => b.addEventListener("click", () => impPause(b.dataset.id)));
   impMajBouton();
 }
@@ -11287,19 +11398,99 @@ async function impMakePdf(docRel, niveau) {
   return path;
 }
 
+// On OUVRE la fenêtre de relecture, on n'envoie pas. Une relance réclame
+// souvent plusieurs milliers de francs : elle se relit, et le ton d'un premier
+// rappel n'est pas celui d'un dernier — le texte doit donc être modifiable.
+let impsIds = [];
+
+function impOuvrirEnvoi(ids) {
+  const list = impList.filter((f) => ids.includes(f.id) && impPrete(f));
+  if (!list.length) { uiAlert("Aucune de ces factures n'est prête à être relancée."); return; }
+  impsIds = list.map((f) => f.id);
+  const n3 = list.filter((f) => f.prochain_niveau === 3).length;
+  const total = list.reduce((a, f) => a + Number(f.reste), 0);
+  $("imps-count").textContent = list.length;
+  $("imps-subject").value = IMP_OBJET;
+  $("imps-text").value = IMP_CORPS;
+  $("imps-status").textContent = "";
+  $("imps-lot").innerHTML = `<p style="margin:0 0 6px"><b>${oiChf(total)}</b> réclamés en tout, payables sous ${IMP_DELAI} jours.</p>`
+    + (n3 ? `<p class="imps-grave">⚠ ${n3} dernier(s) rappel(s) : le document annonce des poursuites.</p>` : "")
+    + `<div class="table-wrap"><table class="crm-table"><tbody>${list.map((f) => `<tr>
+        <td>${esc(OI_REL[f.prochain_niveau][0])}</td>
+        <td>${esc(f.number)}</td>
+        <td>${esc(f.debtor_name || "—")}<br /><span class="muted" style="font-size:.78rem">${esc(f.debtor_email)}</span></td>
+        <td style="white-space:nowrap;text-align:right"><b>${oiChf(f.reste)}</b></td>
+      </tr>`).join("")}</tbody></table></div>`;
+  impsApercu();
+  $("imp-send-modal").classList.remove("hidden");
+}
+
+// L'aperçu porte sur la PREMIÈRE ligne, variables résolues : c'est le seul
+// moyen de voir que {montant} vaut bien le solde et pas le total de la facture.
+function impsApercu() {
+  const f = impList.find((x) => x.id === impsIds[0]); if (!f) return;
+  const v = impsVars(f);
+  $("imps-preview").innerHTML = `<b>Aperçu (${esc(f.number)}, à ${esc(f.debtor_email || "?")})</b><br />`
+    + `<b>${esc(impsRemplir($("imps-subject").value, f, v))}</b><br />`
+    + `<span style="white-space:pre-wrap">${esc(impsRemplir($("imps-text").value, f, v))}</span>`;
+}
+const impsVars = (f) => ({ ...f, amount: Number(f.reste), due_date: f.due_date, player_name: f.player_name });
+const impsRemplir = (tpl, f, v) =>
+  oiVars(tpl, v || impsVars(f)).replace(/\{niveau\}/g, OI_REL[f.prochain_niveau][0]);
+
+// Essai sur sa propre adresse. Rien n'est écrit en base : la facture reste à
+// relancer, le niveau ne monte pas. Sans cela, le seul moyen de voir le rappel
+// serait de l'envoyer à la famille.
+async function impsTest() {
+  const f = impList.find((x) => x.id === impsIds[0]); if (!f) return;
+  const { data: sess } = await sb.auth.getSession();
+  const moi = await uiPrompt("Envoyer l'essai à quelle adresse ?", sess?.session?.user?.email || "");
+  if (!moi || !/@/.test(moi)) return;
+  const btn = $("imps-test"); btn.disabled = true;
+  const st = $("imps-status"); st.textContent = `Envoi du test à ${moi}…`;
+  try {
+    const niveau = f.prochain_niveau;
+    const chemin = await impMakePdf(impDocRelance(f, niveau), niveau);
+    const { data: blob, error: e1 } = await sb.storage.from("out_invoices").download(chemin);
+    if (e1) throw new Error(e1.message);
+    const b64 = await fileToB64(blob);
+    const { data, error } = await sb.functions.invoke("mail-send", { body: {
+      account: OI_FROM, to: moi,
+      subject: "[TEST] " + impsRemplir($("imps-subject").value, f),
+      text: impsRemplir($("imps-text").value, f),
+      attachments: [{ filename: `rappel-${f.number}.pdf`, contentType: "application/pdf", content: b64 }] } });
+    if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} throw new Error(m); }
+    if (data?.error) throw new Error(data.error);
+    st.textContent = "";
+    uiAlert(`✓ Test envoyé à ${moi} (rappel de la facture ${f.number}).\n\n`
+      + `Rien n'a été enregistré : la facture reste à relancer et le niveau n'a pas monté.`);
+  } catch (e) { st.textContent = ""; uiAlert("Échec du test : " + (e?.message || e)); }
+  finally { btn.disabled = false; }
+}
+
+// Le document seul, ouvert dans un onglet. Plus rapide qu'un mail de test quand
+// on ne veut vérifier que la mise en page et le montant.
+async function impsVoirPdf() {
+  const f = impList.find((x) => x.id === impsIds[0]); if (!f) return;
+  const btn = $("imps-pdf"); btn.disabled = true;
+  $("imps-status").textContent = "Fabrication du document…";
+  try {
+    const doc = await oiBuildPdf(impDocRelance(f, f.prochain_niveau));
+    window.open(doc.output("bloburl"), "_blank");
+    $("imps-status").textContent = "";
+  } catch (e) { $("imps-status").textContent = ""; uiAlert("PDF impossible : " + (e?.message || e)); }
+  finally { btn.disabled = false; }
+}
+
 async function impRelancer(ids) {
   const list = impList.filter((f) => ids.includes(f.id) && impPrete(f));
   if (!list.length) { uiAlert("Aucune de ces factures n'est prête à être relancée."); return; }
-  const apercu = list.slice(0, 8).map((f) =>
-    `· ${OI_REL[f.prochain_niveau][0]} — ${f.debtor_name} — ${f.number} — ${oiChf(f.reste)}`).join("\n");
   const n3 = list.filter((f) => f.prochain_niveau === 3).length;
-  if (!(await uiConfirm(`Envoyer ${list.length} relance(s) ?\n\n${apercu}`
-    + (list.length > 8 ? `\n… et ${list.length - 8} autre(s)` : "")
-    + `\n\nTotal réclamé : ${oiChf(list.reduce((a, f) => a + Number(f.reste), 0))}, payable sous ${IMP_DELAI} jours.`
+  if (!(await uiConfirm(`Envoyer ${list.length} relance(s) pour ${oiChf(list.reduce((a, f) => a + Number(f.reste), 0))} ?`
     + (n3 ? `\n\n⚠ ${n3} est un DERNIER rappel : le document annonce des poursuites.` : "")))) return;
 
-  const st = $("imp-status"); const btn = $("imp-relancer"); const btnT = $("imp-relancer-tout");
-  btn.disabled = true; btnT.disabled = true;
+  const st = $("imps-status"); const btn = $("imps-go");
+  btn.disabled = true;
   const uid = (await sb.auth.getSession()).data?.session?.user?.id || null;
   let ok = 0; const errs = [];
   for (const f of list) {
@@ -11311,13 +11502,13 @@ async function impRelancer(ids) {
       const { data: blob, error: e1 } = await sb.storage.from("out_invoices").download(chemin);
       if (e1) throw new Error(e1.message);
       const b64 = await fileToB64(blob);
-      // Les variables du mail portent sur le RAPPEL (solde, nouvelle échéance),
-      // pas sur la facture : {montant} doit être ce qu'on réclame.
-      const vars = { ...f, amount: Number(f.reste), due_date: f.due_date, player_name: f.player_name };
-      const sujet = oiVars(IMP_OBJET, vars).replace(/\{niveau\}/g, OI_REL[niveau][0]);
-      const corps = oiVars(IMP_CORPS, vars).replace(/\{niveau\}/g, OI_REL[niveau][0]);
+      // Le texte vient de la fenêtre, tel qu'il a été relu — pas du modèle.
+      // Les variables portent sur le RAPPEL (solde, niveau), pas sur la
+      // facture : {montant} doit être ce qu'on réclame.
       const { data, error } = await sb.functions.invoke("mail-send", { body: {
-        account: OI_FROM, to: f.debtor_email, subject: sujet, text: corps,
+        account: OI_FROM, to: f.debtor_email,
+        subject: impsRemplir($("imps-subject").value, f),
+        text: impsRemplir($("imps-text").value, f),
         attachments: [{ filename: `rappel-${f.number}.pdf`, contentType: "application/pdf", content: b64 }] } });
       if (error) { let m = error.message; try { m = (await error.context.json())?.error || m; } catch (_) {} throw new Error(m); }
       if (data?.error) throw new Error(data.error);
@@ -11331,7 +11522,8 @@ async function impRelancer(ids) {
       ok++;
     } catch (e) { errs.push(`${f.number} — ${e?.message || e}`); }
   }
-  st.textContent = "";
+  st.textContent = ""; btn.disabled = false;
+  $("imp-send-modal").classList.add("hidden");
   uiAlert(`✓ ${ok} relance(s) envoyée(s).` + (errs.length ? `\n\n${errs.length} en échec :\n` + errs.slice(0, 5).join("\n") : ""));
   await loadImpayees();
   majFacEntete();
@@ -11373,13 +11565,22 @@ function initEncaissements() {
       + `Les factures correspondantes passeront « payée », à la date du versement.`))) return;
     encValider(surs.map((e) => e.id));
   });
-  $("imp-relancer").addEventListener("click", () => impRelancer([...impSel]));
+  $("imp-relancer").addEventListener("click", () => impOuvrirEnvoi([...impSel]));
   // « Toutes les relances prêtes » = ce qui est affiché ET prêt. Le filtre
   // compte : on relance souvent une filière ou un produit à la fois, et le
   // bouton doit obéir à ce qu'on voit, pas à ce qui existe.
   $("imp-relancer-tout").addEventListener("click", () =>
-    impRelancer(impList.filter((f) => impVisible(f) && impPrete(f)).map((f) => f.id)));
+    impOuvrirEnvoi(impList.filter((f) => impVisible(f) && impPrete(f)).map((f) => f.id)));
   $("imp-histo").addEventListener("click", impHistorique);
+  // La fenêtre de relecture d'une relance : aperçu vivant, essai sur sa propre
+  // adresse, document consultable, puis envoi avec le texte tel qu'il a été relu.
+  $("imps-close").addEventListener("click", () => $("imp-send-modal").classList.add("hidden"));
+  $("imp-send-modal").addEventListener("click", (e) => { if (e.target === $("imp-send-modal")) $("imp-send-modal").classList.add("hidden"); });
+  $("imps-subject").addEventListener("input", impsApercu);
+  $("imps-text").addEventListener("input", impsApercu);
+  $("imps-pdf").addEventListener("click", impsVoirPdf);
+  $("imps-test").addEventListener("click", impsTest);
+  $("imps-go").addEventListener("click", () => impRelancer(impsIds));
   $("imp-histo-close").addEventListener("click", () => $("imp-histo-modal").classList.add("hidden"));
   $("imp-histo-modal").addEventListener("click", (e) => { if (e.target === $("imp-histo-modal")) $("imp-histo-modal").classList.add("hidden"); });
   $("imp-sel-all").addEventListener("change", (e) => {

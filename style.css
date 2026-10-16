@@ -5280,3 +5280,13 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
    posent sur la même grille que les leçons mais n'en sont pas. */
 .ct-sep{margin:14px 0 6px;font-size:.82rem;font-weight:800;color:#5d6b78;
   border-top:1px solid #e3e8ef;padding-top:10px}
+
+/* Abonnements d'hiver posés sur le planning (db/166) */
+.hivp-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:0 0 12px}
+.hivp-row label{display:flex;flex-direction:column;gap:4px;font-size:.86rem;font-weight:700}
+
+/* Relire une relance avant qu'elle ne parte. Le dernier rappel annonce des
+   poursuites : il doit se voir avant qu'on clique, pas après. */
+.imps-lot{margin:0 0 14px}
+.imps-lot table{font-size:.86rem}
+.imps-grave{margin:0 0 8px;font-weight:800;color:#b91c1c;font-size:.9rem}
