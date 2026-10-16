@@ -5308,3 +5308,12 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
    demande pourquoi le montant ne colle pas à la grille, et on « corrige »
    le chiffre juste. */
 .hiv-aj{font-size:.72rem;font-weight:700;color:#92400e;white-space:nowrap}
+
+/* Factures : la ligne entière ouvre la facture. Le crayon est tout à droite,
+   donc hors écran dès que le tableau déborde. Seules les lignes modifiables
+   prennent le curseur : un pointeur sur une ligne qui ne réagit pas est une
+   promesse en l'air.
+   Le survol, lui, existe déjà sur .crm-table tbody tr — rien à redire ici. */
+.oi-table tr.oi-cliquable{cursor:pointer}
+.oi-table tr.oi-cliquable input,
+.oi-table tr.oi-cliquable .oi-date{cursor:auto}

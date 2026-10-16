@@ -12390,7 +12390,13 @@ function renderOutInvoices() {
           ? `<button class="ghost oi-pay" data-id="${f.id}" title="Versements, acomptes, annulation partielle">💰 Paiement</button>` : "")
       + (editable ? `<button class="ghost oi-cancel" data-id="${f.id}" title="Annuler">✕</button>` : "");
     const dateIn = (k) => editable ? `<input type="date" class="oi-date" data-id="${f.id}" data-k="${k}" value="${f[k] || ""}" style="width:118px" />` : (f[k] ? frDate(f[k]) : "—");
-    return `<tr class="${f.status === "annulee" ? "muted" : ""}">
+    // La ligne entière ouvre la facture : le crayon est tout à droite, donc
+    // hors écran dès que le tableau déborde — on faisait défiler pour atteindre
+    // un bouton qu'on voyait à peine. Seules les factures modifiables réagissent,
+    // comme le crayon : une payée ou annulée ne s'édite pas, et un curseur de
+    // clic sur une ligne qui ne fait rien est une promesse en l'air.
+    return `<tr class="${f.status === "annulee" ? "muted" : ""}${editable ? " oi-cliquable" : ""}"${
+      editable ? ` data-ouvrir="${f.id}"` : ""}>
       <td>${editable ? `<input type="checkbox" class="oi-chk" data-id="${f.id}" ${oiSel.has(f.id) ? "checked" : ""} />` : ""}</td>
       <td style="white-space:nowrap"><b>${esc(f.number)}</b>${f.reference ? `<div class="muted" style="font-size:.7rem">${esc(oiFmt4(f.reference))}</div>` : ""}</td>
       <td>${esc(f.debtor_name || "—")}</td>
@@ -12413,6 +12419,19 @@ function renderOutInvoices() {
   R.querySelectorAll(".oi-chk").forEach((c) => c.addEventListener("change", () => { if (c.checked) oiSel.add(c.dataset.id); else oiSel.delete(c.dataset.id); oiUpdateSelBtn(); }));
   oiUpdateSelBtn();
   R.querySelectorAll(".oi-edit").forEach((b) => b.addEventListener("click", () => oiOpenEdit(oiList.find((x) => x.id === b.dataset.id))));
+  // Un seul écouteur sur le tableau plutôt qu'un par ligne : la liste monte à
+  // plusieurs centaines de factures.
+  R.addEventListener("click", (e) => {
+    // Tout ce qui fait déjà quelque chose garde la main : cocher, changer une
+    // date, ouvrir le PDF, envoyer, encaisser, annuler. Et une sélection de
+    // texte (on copie un n° ou un e-mail) n'est pas un clic sur la ligne.
+    if (e.target.closest("button, input, a, select, textarea, label")) return;
+    if (!window.getSelection().isCollapsed) return;
+    const tr = e.target.closest("tr[data-ouvrir]");
+    if (!tr) return;
+    const f = oiList.find((x) => x.id === tr.dataset.ouvrir);
+    if (f) oiOpenEdit(f);
+  });
   R.querySelectorAll(".oi-date").forEach((inp) => inp.addEventListener("change", async () => {   // dates modifiables en ligne → PDF régénéré
     const f = oiList.find((x) => x.id === inp.dataset.id); if (!f) return;
     const patch = {}; patch[inp.dataset.k] = inp.value || null;
