@@ -182,3 +182,17 @@ grant execute on function public.wp_titre(text) to authenticated;
 -- distinguer. #e5ff00 est un jaune de surligneur — aucune hésitation.
 update court_bookings set color = '#e5ff00'
  where kind = 'hiver' and color = '#facc15';
+
+-- ---- Départ avancé au 19 octobre (16.10.2026) ----------------------
+-- Demandé : que les sessions d'hiver apparaissent dès la semaine prochaine.
+-- Le 19 octobre est d'ailleurs la date que porte déjà le réglage de la
+-- saison (app_settings.season.winter_start), donc on ne fait que s'y aligner.
+--
+-- La semaine du 19 au 23 octobre est celle du camp d'automne 2, mais aucune
+-- de ses heures n'est réservée sur la grille des courts : zéro réservation
+-- entre le 19 et le 25. Rien n'entre donc en conflit — et c'est à noter, car
+-- le camp occupe bien des courts dans la réalité sans apparaître ici.
+--
+-- Relancer la fonction est sans danger : chaque bloc porte son recurrence_id,
+-- les 1343 déjà posés sont reconnus et sautés. 55 ajoutés, une semaine.
+select public.winter_sessions_to_bookings('2026-2027', date '2026-10-19', date '2027-04-14', true);
