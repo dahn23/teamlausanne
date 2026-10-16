@@ -1,0 +1,129 @@
+# Fabrique l'app iPhone dans le cloud (Mac prêté par GitHub) : aucun Mac ni Xcode dans l'équipe.
+# Même coquille que l'Android : elle ouvre https://app.teamlausanne.ch, le site se met à jour par git push.
+#
+# Sans les secrets Apple : on vérifie seulement que l'app se fabrique (version simulateur, non signée).
+# Avec les secrets : version signée envoyée directement sur App Store Connect → TestFlight (environ 15 min
+# de traitement chez Apple), puis installation sur iPhone par l'app TestFlight.
+# Secrets du dépôt (posés par Dan, jamais dans un fichier) :
+#   APPLE_TEAM_ID         identifiant d'équipe Apple (10 caractères, page Membership)
+#   ASC_KEY_ID            identifiant de la clé API App Store Connect
+#   ASC_ISSUER_ID         « Issuer ID » affiché au-dessus de la liste des clés
+#   ASC_KEY_P8            contenu complet du fichier AuthKey_XXXX.p8 (rôle Admin : il crée lui-même les certificats)
+name: App iPhone
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/ios.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -iv -E "beta|rc" | sort -V | tail -1)" && xcodebuild -version   # Apple exige le SDK le plus récent
+      - name: Dépendances
+        run: npm install --no-audit --no-fund
+      - name: Projet iOS (généré à chaque fois, pas stocké dans le dépôt)
+        run: npx cap add ios
+      - name: Icônes et écran de démarrage
+        continue-on-error: true
+        run: npx capacitor-assets generate --ios --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#ffffff' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#ffffff'
+      - name: Réglages de l'app (notifications, version, chiffrement)
+        working-directory: mobile/ios/App
+        run: |
+          P=App/Info.plist
+          # Pas de chiffrement propre (seulement HTTPS) : évite la question d'export à chaque envoi.
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" $P || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" $P || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string remote-notification" $P || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Team Lausanne" $P || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Team Lausanne" $P
+          # Numéro de fabrication : doit augmenter à chaque envoi chez Apple.
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" $P
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0" $P
+          sed -i '' -E "s/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = ${GITHUB_RUN_NUMBER};/; s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = 1.0;/" App.xcodeproj/project.pbxproj
+          # Droit « notifications » (APNs, production : TestFlight et App Store).
+          cat > App/App.entitlements <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>aps-environment</key><string>production</string></dict></plist>
+          EOF
+          sed -i '' -E 's/^ +//' App/App.entitlements
+          # Le module de notifications de Capacitor a besoin que l'app lui transmette le jeton d'Apple.
+          python3 - <<'PY'
+          import re
+          p = "App/AppDelegate.swift"
+          s = open(p).read()
+          if "capacitorDidRegisterForRemoteNotifications" not in s:
+              add = '''
+              func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+                  NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+              }
+
+              func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+                  NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+              }
+          '''
+              i = s.rstrip().rfind("}")
+              s = s[:i] + add + "}\n"
+              open(p, "w").write(s)
+          PY
+          grep -n "RemoteNotifications" App/AppDelegate.swift
+      - name: Synchronisation
+        run: npx cap sync ios
+
+      - name: Contrôle (version simulateur, sans signature)
+        working-directory: mobile/ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build -quiet
+          echo "::notice::L'app iPhone se fabrique correctement."
+
+      - name: Version signée → App Store Connect (TestFlight)
+        working-directory: mobile/ios/App
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          if [ -z "$APPLE_TEAM_ID" ] || [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_KEY_P8" ]; then
+            echo "::notice::Secrets Apple absents : version TestFlight non fabriquée."; exit 0
+          fi
+          TEAM="$(printf '%s' "$APPLE_TEAM_ID" | tr -d '\r\n ')"; KID="$(printf '%s' "$ASC_KEY_ID" | tr -d '\r\n ')"; ISS="$(printf '%s' "$ASC_ISSUER_ID" | tr -d '\r\n ')"
+          KEY="$RUNNER_TEMP/AuthKey_${KID}.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$KEY"
+          # Ajoute le fichier de droits au projet (signature automatique : Xcode crée certificat et profil lui-même).
+          sed -i '' -E "s/(PRODUCT_BUNDLE_IDENTIFIER = ch\.teamlausanne\.app;)/\1 CODE_SIGN_ENTITLEMENTS = App\/App.entitlements;/" App.xcodeproj/project.pbxproj
+          AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS")
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic "${AUTH[@]}" archive -quiet
+          cat > "$RUNNER_TEMP/export.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${TEAM}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
+            -exportPath "$RUNNER_TEMP/export" "${AUTH[@]}"
+          rm -f "$KEY"
+          echo "::notice::Fabrication ${GITHUB_RUN_NUMBER} envoyée à App Store Connect : elle apparaît dans TestFlight après le traitement d'Apple."
