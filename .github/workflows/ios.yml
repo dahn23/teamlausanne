@@ -113,20 +113,29 @@ jobs:
           # En cas d'échec, les erreurs d'Xcode sont recopiées dans le résumé public de la fabrication (annotations).
           show() { grep -E "error|Error|No profiles|provisioning|certificate" "$1" | grep -v -E "^[[:space:]]*$" | sort -u | head -15 | while IFS= read -r l; do echo "::error::$l"; done; }
           AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS")
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/App.xcarchive" DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic "${AUTH[@]}" archive -quiet > "$RUNNER_TEMP/archive.log" 2>&1 || { show "$RUNNER_TEMP/archive.log"; exit 1; }
+          # 1) Archive SANS signature : la signature « développement » d'Xcode exige un iPhone enregistré chez Apple.
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -destination 'generic/platform=iOS'             -archivePath "$RUNNER_TEMP/App.xcarchive" DEVELOPMENT_TEAM="$TEAM" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO             archive -quiet > "$RUNNER_TEMP/archive.log" 2>&1 || { show "$RUNNER_TEMP/archive.log"; exit 1; }
+          # 2) Signature App Store à l'export (certificat géré par Apple dans le cloud, profil créé automatiquement).
           cat > "$RUNNER_TEMP/export.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
             <key>method</key><string>app-store-connect</string>
-            <key>destination</key><string>upload</string>
+            <key>destination</key><string>export</string>
             <key>teamID</key><string>${TEAM}</string>
             <key>signingStyle</key><string>automatic</string>
             <key>manageAppVersionAndBuildNumber</key><false/>
           </dict></plist>
           EOF
-          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
-            -exportPath "$RUNNER_TEMP/export" "${AUTH[@]}" > "$RUNNER_TEMP/export.log" 2>&1 || { show "$RUNNER_TEMP/export.log"; exit 1; }
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/export.plist"             -exportPath "$RUNNER_TEMP/export" "${AUTH[@]}" > "$RUNNER_TEMP/export.log" 2>&1 || { show "$RUNNER_TEMP/export.log"; exit 1; }
+          IPA="$(ls "$RUNNER_TEMP"/export/*.ipa | head -1)"
+          # 3) Contrôle : l'app signée doit porter le droit aux notifications.
+          mkdir -p "$RUNNER_TEMP/ipa" && (cd "$RUNNER_TEMP/ipa" && unzip -q "$IPA")
+          ENT="$(codesign -d --entitlements :- "$RUNNER_TEMP"/ipa/Payload/*.app 2>/dev/null || true)"
+          if printf '%s' "$ENT" | grep -q "aps-environment"; then echo "::notice::Signature App Store OK, notifications incluses."; else echo "::warning::Signée, mais sans le droit aux notifications (aps-environment)."; fi
+          # 4) Envoi à App Store Connect.
+          mkdir -p ~/.appstoreconnect/private_keys && cp "$KEY" ~/.appstoreconnect/private_keys/
+          xcrun altool --upload-app -t ios -f "$IPA" --apiKey "$KID" --apiIssuer "$ISS" > "$RUNNER_TEMP/upload.log" 2>&1 || { show "$RUNNER_TEMP/upload.log"; exit 1; }
+          rm -rf ~/.appstoreconnect/private_keys
           rm -f "$KEY"
           echo "::notice::Fabrication ${GITHUB_RUN_NUMBER} envoyée à App Store Connect : elle apparaît dans TestFlight après le traitement d'Apple."
