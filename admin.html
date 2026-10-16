@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=328" />
+  <link rel="stylesheet" href="style.css?v=329" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2039,6 +2039,7 @@
                  facturation part toute seule et la ligne disparaît d'ici. -->
             <div id="oi-attente" class="oi-attente hidden"></div>
             <div id="oi-filieres" class="fac-filters fac-fil-row"></div>
+            <div id="oi-produits" class="fac-filters fac-fil-row"></div>
             <div class="fac-barre">
               <div id="oi-filters" class="fac-filters"></div>
               <label class="fac-rech">
@@ -2048,7 +2049,7 @@
             </div>
             <div class="table-wrap">
               <table class="crm-table fac-table oi-table"><thead><tr>
-                <th><input type="checkbox" id="oi-sel-all" title="Tout cocher" /></th><th>N°</th><th>Destinataire</th><th>E-mail</th><th>Joueur</th><th>Articles</th><th>Montant</th><th>Émise le</th><th>Échéance</th><th>PDF</th><th>Statut</th><th></th>
+                <th><input type="checkbox" id="oi-sel-all" title="Tout cocher" /></th><th>N°</th><th>Destinataire</th><th>E-mail</th><th>Joueur</th><th title="Le produit vendu, et le cours auquel l'enfant est inscrit">Produit</th><th>Articles</th><th>Montant</th><th>Émise le</th><th>Échéance</th><th>PDF</th><th>Statut</th><th></th>
               </tr></thead><tbody id="oi-rows"></tbody></table>
             </div>
             <p id="oi-empty" class="muted" hidden>Aucune facture émise.</p>

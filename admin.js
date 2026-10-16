@@ -10579,7 +10579,7 @@ function facAller(sub, filtre) {
   oiRech = "";
   const ch = $("oi-search");
   if (ch) ch.value = "";
-  renderOiFilters(); renderOutInvoices();
+  renderOiFilters(); renderOiProduits(); renderOutInvoices();
 }
 
 function renderFacEntete(c) {
@@ -11265,6 +11265,20 @@ async function loadOutInvoices() {
   const { data, error } = await sb.from("out_invoices").select("*").order("number", { ascending: false });
   if (error) { $("oi-rows").innerHTML = `<tr><td colspan="9" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
   oiList = data || [];
+  // Les produits et le verdict de cohérence, en deux requêtes pour toute la
+  // liste. Le faire facture par facture ferait 300 allers-retours.
+  const [{ data: prods }, { data: coh }] = await Promise.all([
+    sb.from("invoice_products").select("id,name,price,price_by_weekday,course_type_id,filiere,kind,active").order("sort", { nullsFirst: false }).order("name"),
+    sb.from("out_invoices_coherence").select("id,produit,cours_inscrits,coherent"),
+  ]);
+  oiProduits = prods || [];
+  const parId = {}; for (const c of coh || []) parId[c.id] = c;
+  for (const x of oiList) {
+    const c = parId[x.id] || {};
+    x.produit = c.produit || null;
+    x.cours_inscrits = c.cours_inscrits || null;
+    x.coherent = c.coherent;          // true / false / null — null = rien à vérifier
+  }
   const pids = [...new Set(oiList.map((x) => x.person_id).filter(Boolean))];
   if (pids.length) {
     const { data: pl } = await sb.from("people").select("id,first_name,last_name").in("id", pids);
@@ -11273,14 +11287,14 @@ async function loadOutInvoices() {
   }
   oiBrancherRecherche();
   oiRenderAttente();
-  renderOiFilters(); renderOutInvoices();
+  renderOiFilters(); renderOiProduits(); renderOutInvoices();
   // PDF manquant (facture modifiée en base, échec précédent…) → régénéré automatiquement, en arrière-plan.
   const missing = oiList.filter((x) => !x.pdf_path && (x.status === "a_envoyer" || x.status === "envoyee"));
   if (missing.length && !oiRegen) {
     oiRegen = true;
     try { for (const x of missing) { try { await oiMakePdf(x); } catch (e) { console.warn("PDF", x.number, e); } } }
     finally { oiRegen = false; }
-    renderOiFilters(); renderOutInvoices();
+    renderOiFilters(); renderOiProduits(); renderOutInvoices();
   }
 }
 let oiRegen = false;
@@ -11309,7 +11323,7 @@ function oiBrancherRecherche() {
   ch.dataset.pret = "1";
   ch.addEventListener("input", () => {
     oiRech = ch.value.trim();
-    renderOiFilters(); renderOutInvoices();
+    renderOiFilters(); renderOiProduits(); renderOutInvoices();
   });
 }
 
@@ -11331,10 +11345,82 @@ function oiBasculer(ens, v) {
   if (!v) ens.clear();
   else if (ens.has(v)) ens.delete(v);
   else ens.add(v);
-  renderOiFilters(); renderOutInvoices();
+  renderOiFilters(); renderOiProduits(); renderOutInvoices();
 }
 // Une facture passe-t-elle le filtre de statut ? Les statuts sont exclusifs
 // entre eux, donc plusieurs chips cochés = une union.
+
+// ---- Produit vendu, et cohérence avec le cours de l'enfant (db/161, db/162) ----
+// Point 2 de la liste de l'équipe. On ne refuse pas de CRÉER une facture qui
+// ne colle pas au cours : il y a de bonnes raisons de le faire (rattrapage,
+// cas particulier, changement en cours de saison). Mais on le signale en
+// rouge, et on refuse de l'ENVOYER tant que personne n'a tranché — une facture
+// partie est beaucoup plus pénible à rattraper qu'une facture retenue.
+let oiProduits = [];
+let oiProdFiltre = new Set();          // vide = tous les produits
+
+const oiIncoherente = (f) => f.coherent === false;
+
+function oiCelluleProduit(f) {
+  if (!f.produit) return '<span class="muted">—</span>';
+  if (!oiIncoherente(f)) {
+    return `<span>${esc(f.produit)}</span>`;
+  }
+  // Le détail compte plus que l'alerte : « Compétition alors qu'il est inscrit
+  // en Performance » se corrige tout seul, « incohérent » n'aide personne.
+  return `<span class="oi-mismatch" title="Le produit facturé ne correspond pas au cours suivi">
+      ${esc(f.produit)}<br /><span class="oi-mismatch-x">inscrit en ${esc(f.cours_inscrits || "aucun cours")}</span>
+    </span>`;
+}
+
+// Les pastilles de filtre par produit. Seuls les produits réellement présents
+// dans la liste sont proposés : un filtre qui ne renverrait rien est une
+// promesse en l'air. Une pastille « à vérifier » vient en tête quand il y a
+// des incohérences — c'est la première chose qu'on veut voir.
+function renderOiProduits() {
+  const z = $("oi-produits"); if (!z) return;
+  const base = oiList.filter((f) => oiStatutOk(f) && oiFiliereOk(f));
+  const compte = {};
+  for (const f of base) if (f.produit) compte[f.produit] = (compte[f.produit] || 0) + 1;
+  const noms = Object.keys(compte).sort((a, b) => compte[b] - compte[a] || a.localeCompare(b));
+  const nIncoh = base.filter(oiIncoherente).length;
+  if (!noms.length) { z.innerHTML = ""; return; }
+  const chip = (v, lbl, n, cls) =>
+    `<button type="button" class="fac-chip${cls || ""}${oiProdFiltre.has(v) ? " on" : ""}" data-prod="${esc(v)}">${esc(lbl)}<span class="fac-chip-n">${n}</span></button>`;
+  z.innerHTML = `<span class="fac-chip-lbl">Produit</span>`
+    + chip("", "Tous", base.length)
+    + (nIncoh ? chip("!incoherent", "À vérifier", nIncoh, " fac-chip-alerte") : "")
+    + noms.map((n) => chip(n, n, compte[n])).join("");
+  z.querySelectorAll("[data-prod]").forEach((b) => b.addEventListener("click", () => {
+    const v = b.dataset.prod;
+    if (!v) oiProdFiltre.clear();
+    else oiBasculer(oiProdFiltre, v);
+    renderOiProduits(); renderOutInvoices();
+  }));
+}
+
+const oiProduitOk = (f) => {
+  if (!oiProdFiltre.size) return true;
+  if (oiProdFiltre.has("!incoherent") && oiIncoherente(f)) return true;
+  return f.produit ? oiProdFiltre.has(f.produit) : false;
+};
+
+// Garde-fou d'envoi. Appelé avant tout départ de mail : une facture dont le
+// produit ne correspond pas au cours ne part pas tant que personne n'a tranché.
+// On NOMME les factures concernées — « 3 factures incohérentes » obligerait à
+// les chercher une par une.
+async function oiBloquerSiIncoherent(ids) {
+  const mauvaises = ids.map((id) => oiList.find((f) => f.id === id)).filter((f) => f && oiIncoherente(f));
+  if (!mauvaises.length) return ids;
+  const liste = mauvaises.slice(0, 6).map((f) =>
+    `• ${f.number} — ${f.player_name || f.debtor_name} : facturé ${f.produit}, inscrit en ${f.cours_inscrits || "aucun cours"}`).join("\n");
+  const reste = mauvaises.length > 6 ? `\n… et ${mauvaises.length - 6} autre(s).` : "";
+  const ok = await uiConfirm(
+    `${mauvaises.length} facture(s) ne correspondent pas au cours suivi :\n\n${liste}${reste}\n\n`
+    + `Les écarter de l'envoi et expédier les autres ? (« Non » annule tout l'envoi.)`);
+  if (!ok) return [];
+  return ids.filter((id) => !mauvaises.some((f) => f.id === id));
+}
 const oiStatutOk = (f) => {
   if (!oiFiltres.size) return true;
   for (const v of oiFiltres) if (v === "maintenant" ? oiAEnvoyerMaintenant(f) : f.status === v) return true;
@@ -11380,7 +11466,7 @@ const oiAEnvoyerMaintenant = (f) =>
 // Le predicat de la liste, ecrit UNE fois : le bouton d'envoi s'en sert aussi,
 // donc il ne peut pas envoyer autre chose que ce qui est affiche.
 const oiDansLaListe = (f) =>
-  (!oiLoupe || oiSel.has(f.id)) && oiStatutOk(f) && oiFiliereOk(f) && oiCorrespond(f);
+  (!oiLoupe || oiSel.has(f.id)) && oiStatutOk(f) && oiFiliereOk(f) && oiProduitOk(f) && oiCorrespond(f);
 
 function renderOutInvoices() {
   const rows = oiList.filter(oiDansLaListe);
@@ -11406,6 +11492,7 @@ function renderOutInvoices() {
       <td>${esc(f.debtor_name || "—")}</td>
       <td style="font-size:.8rem">${f.debtor_email ? esc(f.debtor_email) : '<span style="color:#b45309">—</span>'}</td>
       <td>${esc(f.player_name || "")}</td>
+      <td>${oiCelluleProduit(f)}</td>
       <td class="muted" style="font-size:.82rem">${items.map((it) => `<div>${esc(it.label || "")}${items.length > 1 ? ` <span style="white-space:nowrap">— ${oiChf(it.amount || 0)}</span>` : ""}</div>`).join("")}</td>
       <td style="white-space:nowrap"><b>${oiChf(f.amount)}</b></td>
       <td style="white-space:nowrap">${dateIn("issue_date")}</td>
@@ -11796,9 +11883,14 @@ async function oiMakePdf(inv) {
 // ---- Envoi par mail (depuis info@, PDF joint) ----
 const oiVars = (tpl, f) => tpl.replace(/\{destinataire\}/g, f.debtor_name || "").replace(/\{joueur\}/g, f.player_name || "").replace(/\{numero\}/g, f.number || "")
   .replace(/\{montant\}/g, oiChf(f.amount)).replace(/\{echeance\}/g, f.due_date ? frDate(f.due_date) : "réception").replace(/\{libelle\}/g, f.label || "").replace(/\{reference\}/g, oiFmt4(f.reference));
-function oiOpenSend(ids) {
+async function oiOpenSend(ids) {
   oiSendIds = ids.filter((id) => oiList.some((x) => x.id === id));
   if (!oiSendIds.length) { uiAlert("Aucune facture à envoyer."); return; }
+  // Point 2 : une facture dont le produit ne correspond pas au cours suivi ne
+  // part pas tant que personne n'a tranché. Une facture déjà partie se
+  // rattrape beaucoup plus mal qu'une facture retenue.
+  oiSendIds = await oiBloquerSiIncoherent(oiSendIds);
+  if (!oiSendIds.length) return;
   const noMail = oiSendIds.map((id) => oiList.find((x) => x.id === id)).filter((f) => !f.debtor_email);
   $("oi-send-count").textContent = oiSendIds.length;
   $("oi-send-status").textContent = noMail.length ? `⚠ ${noMail.length} sans e-mail (${noMail.map((f) => f.debtor_name).join(", ")}) : elles seront ignorées.` : "";
