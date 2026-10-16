@@ -31,8 +31,8 @@ jobs:
       run:
         working-directory: mobile
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Xcode
@@ -56,6 +56,10 @@ jobs:
           # Numéro de fabrication : doit augmenter à chaque envoi chez Apple.
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" $P
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0" $P
+          # iOS 15 minimum : Apple refuse les apps visant iOS 14 dès avril 2027 (avertissement ITMS-90068).
+          sed -i '' -E "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/" App.xcodeproj/project.pbxproj
+          sed -i '' -E "s/platform :ios, '[0-9.]+'/platform :ios, '15.0'/" Podfile
+          grep -m1 "platform :ios" Podfile
           sed -i '' -E "s/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = ${GITHUB_RUN_NUMBER};/; s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = 1.0;/" App.xcodeproj/project.pbxproj
           # Droit « notifications » (APNs, production : TestFlight et App Store).
           cat > App/App.entitlements <<'EOF'
