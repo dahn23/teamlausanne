@@ -4642,14 +4642,29 @@ function setCoursView(v) {
 async function loadTypes() {
   const { data } = await sb.from("course_types").select("*").order("name");
   courseTypes = data || [];
-  $("ct-list").innerHTML = courseTypes.length ? courseTypes.map((t) =>
-    `<div class="ct-item"><span class="ct-dot" style="background:${t.color}"></span>
+  // Les locations de court (clubs, membres) se posent sur la même grille que
+  // les leçons — c'est tout l'intérêt : voir le planning d'hiver par-dessus
+  // celui de l'école de tennis. Mais ce ne sont PAS des leçons, donc elles
+  // sont rassemblées à part, en bas de la liste et du menu (db/165).
+  const loc = (t) => t.hours_bucket === "location";
+  const cours = courseTypes.filter((t) => !loc(t));
+  const locs = courseTypes.filter(loc);
+  const item = (t) => `<div class="ct-item"><span class="ct-dot" style="background:${t.color}"></span>
       <b>${esc(t.name)}</b>
-      ${isAdminUser ? `<button type="button" class="fam-del" data-id="${t.id}">✕</button>` : ""}</div>`).join("")
+      ${isAdminUser ? `<button type="button" class="fam-del" data-id="${t.id}">✕</button>` : ""}</div>`;
+  $("ct-list").innerHTML = courseTypes.length
+    ? cours.map(item).join("")
+      + (locs.length ? `<p class="ct-sep">Locations de court <span class="muted">— bloquent le court, hors heures de coach</span></p>`
+          + locs.map(item).join("") : "")
     : '<p class="muted" style="font-size:.85rem">Aucun type de cours.</p>';
   $("ct-list").querySelectorAll(".fam-del").forEach((b) => b.addEventListener("click", () => deleteType(b.dataset.id)));
-  $("c-type").innerHTML = '<option value="">— Type —</option>' +
-    courseTypes.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+  // Une option DÉSACTIVÉE sert de titre : pretty-select aplatit les <optgroup>
+  // (il lit select.options) mais saute les options désactivées, donc la ligne
+  // s'affiche sans pouvoir être choisie. C'est le séparateur qui marche ici.
+  const opt = (t) => `<option value="${t.id}">${esc(t.name)}</option>`;
+  $("c-type").innerHTML = '<option value="">— Type —</option>'
+    + cours.map(opt).join("")
+    + (locs.length ? '<option value="" disabled>— Locations de court —</option>' + locs.map(opt).join("") : "");
 }
 
 async function addType() {

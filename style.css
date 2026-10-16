@@ -5275,3 +5275,8 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .pro-table .pro-num{text-align:right;white-space:nowrap}
 .pro-table .pro-g>td{background:#eef2ff;font-weight:800;font-size:.9rem;
   letter-spacing:.02em;color:#1e3ad1;padding-top:10px;padding-bottom:6px}
+
+/* Types de cours : les locations de court à part, sous un titre. Elles se
+   posent sur la même grille que les leçons mais n'en sont pas. */
+.ct-sep{margin:14px 0 6px;font-size:.82rem;font-weight:800;color:#5d6b78;
+  border-top:1px solid #e3e8ef;padding-top:10px}
