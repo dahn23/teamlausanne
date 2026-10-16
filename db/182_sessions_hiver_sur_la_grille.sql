@@ -38,7 +38,9 @@ create or replace function public.winter_sessions_to_bookings(
 ) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
-  v_jaune constant text := '#facc15';
+  -- Jaune fluo. La Compétition est en #eab308, un doré mat : un jaune de
+  -- surligneur à côté, et on ne confond plus les deux d'un coup d'œil.
+  v_jaune constant text := '#e5ff00';
   v_cree int := 0; v_deja int := 0; v_ferme int := 0;
   v_conflits jsonb := '[]'::jsonb; v_noms jsonb := '[]'::jsonb;
   r record; d date; v_rec uuid; v_clash text;
@@ -173,3 +175,10 @@ grant execute on function public.wp_titre(text) to authenticated;
 -- rattachée à un cours ; 14 créneaux sautés car la case était déjà prise
 -- (tous dans la seule semaine déjà planifiée, et tous des doublons de cours
 -- déjà saisis — « Privé Schumacher », « Cours adultes »).
+
+-- ---- Le jaune, revu (16.10.2026) -----------------------------------
+-- Le premier jaune (#facc15) était trop proche de la Compétition (#eab308) :
+-- deux dorés voisins sur la même grille, qu'il fallait comparer pour les
+-- distinguer. #e5ff00 est un jaune de surligneur — aucune hésitation.
+update court_bookings set color = '#e5ff00'
+ where kind = 'hiver' and color = '#facc15';
