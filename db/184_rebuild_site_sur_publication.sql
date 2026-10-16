@@ -61,9 +61,11 @@ create or replace function public.news_articles_rebuild()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare v_avant boolean; v_apres boolean;
 begin
-  v_apres := (tg_op <> 'DELETE' and new.published_on is not null);
-  v_avant := (tg_op = 'UPDATE' and old.published_on is not null)
-          or (tg_op = 'DELETE' and old.published_on is not null);
+  -- Un article n'est visible que si news_public() le renvoie : status =
+  -- 'publie' ET published_on <= aujourd'hui. Ne regarder que la date ferait
+  -- reconstruire pour un brouillon daté, qui n'est rendu nulle part.
+  v_apres := (tg_op <> 'DELETE' and new.status = 'publie' and new.published_on is not null);
+  v_avant := (tg_op in ('UPDATE','DELETE') and old.status = 'publie' and old.published_on is not null);
   if v_apres or v_avant then
     perform site_rebuild('article ' || lower(tg_op) || ' : '
       || coalesce(case when tg_op = 'DELETE' then old.slug else new.slug end, '?'));
