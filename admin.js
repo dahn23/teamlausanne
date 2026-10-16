@@ -10442,6 +10442,7 @@ function initFactures() {
     document.querySelectorAll("#view-factures .fac-subtab").forEach((x) => x.classList.toggle("active", x === b));
     document.querySelectorAll("#view-factures .fac-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "fac-sub-" + b.dataset.fsub));
     if (b.dataset.fsub === "tarifs") { renderFacTarifs(); renderFacPeak(); }
+    if (b.dataset.fsub === "produits") loadProduits();
     if (b.dataset.fsub === "emises") loadOutInvoices();
     if (b.dataset.fsub === "encaiss") loadEncaissements();
     if (b.dataset.fsub === "impayees") loadImpayees();
@@ -12853,6 +12854,147 @@ async function uploadCatImage(id, file) {
   renderStageCats();
 }
 
+
+// ===================================================================
+//  FACTURES › PRODUITS (db/161)
+// ===================================================================
+// Une ligne de facture était du texte libre : « Kids Tennis 2026/27 — Amanuel
+// Betiel ». Lisible, mais c'est une PHRASE. On ne peut pas filtrer dessus, ni
+// recouper avec le cours auquel l'enfant est inscrit, ni savoir ce qui reste à
+// facturer. D'où ce catalogue : la facture porte désormais un produit.
+//
+// Le prix reste un DÉFAUT, jamais une contrainte — une facture s'en écarte
+// tous les jours au secrétariat (rabais, prorata, semaine en moins).
+const PRO_GENRES = [["abonnement", "Abonnement"], ["stage", "Stage"],
+  ["location", "Location de courts"], ["autre", "Autre"]];
+const PRO_JOURS = [["1", "Lundi"], ["2", "Mardi"], ["3", "Mercredi"], ["4", "Jeudi"],
+  ["5", "Vendredi"], ["6", "Samedi"], ["7", "Dimanche"]];
+let proList = [], proTypes = [], proInit = false, proEnCours = null;
+
+const proChf = (n) => (n == null || n === "" ? "—"
+  : Number(n).toLocaleString("fr-CH", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " CHF");
+
+async function loadProduits() {
+  if (!proInit) {
+    proInit = true;
+    $("pro-new").addEventListener("click", () => proOuvrir(null));
+    $("pro-inactifs").addEventListener("change", renderProduits);
+    $("pro-close").addEventListener("click", () => $("pro-modal").classList.add("hidden"));
+    $("pro-modal").addEventListener("click", (e) => { if (e.target === $("pro-modal")) $("pro-modal").classList.add("hidden"); });
+    $("pro-save").addEventListener("click", proEnregistrer);
+    $("pro-f-genre").innerHTML = PRO_GENRES.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("");
+    $("pro-jgrid").innerHTML = PRO_JOURS.map(([j, d]) =>
+      `<label><span>${d}</span><input type="number" step="0.05" min="0" data-j="${j}" placeholder="—" /></label>`).join("");
+  }
+  if (!proTypes.length) {
+    const { data } = await sb.from("course_types").select("id,name").order("name");
+    proTypes = data || [];
+    $("pro-f-cours").innerHTML = '<option value="">— aucun —</option>'
+      + proTypes.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+  }
+  const { data, error } = await sb.from("invoice_products")
+    .select("*").order("sort", { nullsFirst: false }).order("name");
+  if (error) { $("pro-liste").innerHTML = `<p class="muted">Erreur : ${esc(error.message)}</p>`; return; }
+  proList = data || [];
+  renderProduits();
+}
+
+function renderProduits() {
+  const host = $("pro-liste"); if (!host) return;
+  const tout = $("pro-inactifs").checked;
+  const lot = proList.filter((p) => tout || p.active);
+  if (!lot.length) { host.innerHTML = '<p class="muted">Aucun produit. Commencez par « Nouveau produit ».</p>'; return; }
+  // Groupés par genre : un abonnement, un stage et une location ne se lisent
+  // pas de la même façon, et on cherche dans l'un ou dans l'autre.
+  const parGenre = PRO_GENRES.map(([k, lbl]) => [lbl, lot.filter((p) => p.kind === k)]).filter(([, l]) => l.length);
+  host.innerHTML = parGenre.map(([lbl, l]) => `
+    <h3 style="margin:18px 0 6px;font-size:1rem">${esc(lbl)}</h3>
+    <div class="table-wrap"><table class="crm-table">
+      <thead><tr><th>Produit</th><th>Prix par défaut</th><th>Cours lié</th><th>Filière</th><th title="Nombre de factures déjà émises avec ce produit">Factures</th><th></th></tr></thead>
+      <tbody>${l.map((p) => {
+        const jours = p.price_by_weekday && Object.keys(p.price_by_weekday).length
+          ? PRO_JOURS.filter(([j]) => p.price_by_weekday[j] != null)
+              .map(([j, d]) => `${d.slice(0, 3)} ${Number(p.price_by_weekday[j])}`).join(" · ")
+          : "";
+        const ct = proTypes.find((t) => t.id === p.course_type_id);
+        return `<tr${p.active ? "" : ' style="opacity:.55"'}>
+          <td><b>${esc(p.name)}</b>${p.active ? "" : ' <span class="muted" style="font-size:.8rem">(retiré)</span>'}</td>
+          <td>${proChf(p.price)}${jours ? `<br /><span class="muted" style="font-size:.78rem">${esc(jours)}</span>` : ""}</td>
+          <td>${ct ? esc(ct.name) : '<span class="muted">—</span>'}</td>
+          <td>${p.filiere ? esc(p.filiere) : '<span class="muted">—</span>'}</td>
+          <td class="pro-n" data-n="${esc(p.id)}"><span class="muted">…</span></td>
+          <td><button type="button" class="ghost pro-edit" data-p="${esc(p.id)}">Modifier</button></td>
+        </tr>`;
+      }).join("")}</tbody></table></div>`).join("");
+  host.querySelectorAll(".pro-edit").forEach((b) =>
+    b.addEventListener("click", () => proOuvrir(proList.find((p) => p.id === b.dataset.p))));
+  proCompter();
+}
+
+// Combien de factures portent chaque produit. Le chiffre n'est pas décoratif :
+// il dit lesquels servent vraiment, et il prévient avant de retirer de la
+// vente un produit déjà utilisé.
+async function proCompter() {
+  const { data } = await sb.from("out_invoices").select("product_id");
+  const n = {};
+  for (const r of data || []) if (r.product_id) n[r.product_id] = (n[r.product_id] || 0) + 1;
+  document.querySelectorAll(".pro-n").forEach((td) => {
+    const v = n[td.dataset.n] || 0;
+    td.innerHTML = v ? String(v) : '<span class="muted">0</span>';
+  });
+}
+
+function proOuvrir(p) {
+  proEnCours = p || null;
+  const v = p || { name: "", price: null, price_by_weekday: null, course_type_id: "", filiere: "", kind: "abonnement", active: true };
+  $("pro-title").textContent = p ? "Modifier le produit" : "Nouveau produit";
+  $("pro-f-nom").value = v.name || "";
+  $("pro-f-prix").value = v.price == null ? "" : v.price;
+  $("pro-f-genre").value = v.kind || "abonnement";
+  $("pro-f-cours").value = v.course_type_id || "";
+  $("pro-f-fil").value = v.filiere || "";
+  $("pro-f-actif").checked = v.active !== false;
+  const j = v.price_by_weekday || {};
+  $("pro-jgrid").querySelectorAll("input[data-j]").forEach((i) => { i.value = j[i.dataset.j] == null ? "" : j[i.dataset.j]; });
+  $("pro-f-status").textContent = "";
+  $("pro-modal").classList.remove("hidden");
+  $("pro-f-nom").focus();
+}
+
+async function proEnregistrer() {
+  const nom = $("pro-f-nom").value.trim();
+  if (!nom) { $("pro-f-status").textContent = "Le nom est obligatoire : c'est lui qui paraît sur la facture."; return; }
+  const jmap = {};
+  $("pro-jgrid").querySelectorAll("input[data-j]").forEach((i) => {
+    if (i.value.trim() !== "") jmap[i.dataset.j] = Number(i.value);
+  });
+  const patch = {
+    name: nom,
+    price: $("pro-f-prix").value.trim() === "" ? null : Number($("pro-f-prix").value),
+    price_by_weekday: Object.keys(jmap).length ? jmap : null,
+    course_type_id: $("pro-f-cours").value || null,
+    filiere: $("pro-f-fil").value.trim() || null,
+    kind: $("pro-f-genre").value,
+    active: $("pro-f-actif").checked,
+    updated_at: new Date().toISOString(),
+  };
+  const btn = $("pro-save"); btn.disabled = true;
+  const { error } = proEnCours
+    ? await sb.from("invoice_products").update(patch).eq("id", proEnCours.id)
+    : await sb.from("invoice_products").insert(patch);
+  btn.disabled = false;
+  if (error) {
+    // Le nom est unique en base : deux « Club » rendraient le filtre par
+    // produit et les totaux ambigus, sans qu'on sache lequel est lequel.
+    $("pro-f-status").textContent = /duplicate|unique/i.test(error.message)
+      ? "Un produit porte déjà ce nom. Deux produits identiques rendraient le filtre ambigu."
+      : "Erreur : " + error.message;
+    return;
+  }
+  $("pro-modal").classList.add("hidden");
+  $("pro-status").textContent = proEnCours ? "✓ Produit enregistré" : "✓ Produit créé";
+  await loadProduits();
+}
 // ---- Liste des stages ----
 function stgVisLabel(s) {
   if (s.visibility_mode === "manual") return s.visible ? "Visible (manuel)" : "Masqué (manuel)";

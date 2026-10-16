@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=327" />
+  <link rel="stylesheet" href="style.css?v=328" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2003,6 +2003,7 @@
             <button type="button" class="subtab fac-subtab" data-fsub="emises">Émises — à encaisser</button>
             <button type="button" class="subtab fac-subtab" data-fsub="encaiss">Encaissements</button>
             <button type="button" class="subtab fac-subtab" data-fsub="impayees">Impayées <span id="imp-badge" class="sub-badge" hidden></span></button>
+            <button type="button" class="subtab fac-subtab" data-fsub="produits">Produits</button>
             <button type="button" class="subtab fac-subtab" data-fsub="tarifs">Tarifs</button>
           </div>
 
@@ -2085,6 +2086,20 @@
               </tr></thead><tbody id="imp-rows"></tbody></table>
             </div>
             <p id="imp-empty" class="muted" hidden>Aucune facture en retard. </p>
+          </div>
+
+          <!-- Le catalogue des produits facturables. Une facture ne porte plus
+               seulement une phrase, mais un PRODUIT : c'est lui qui permet de
+               filtrer, de recouper avec le cours de l'enfant, et de savoir ce
+               qui reste à facturer. -->
+          <div id="fac-sub-produits" class="fac-sub hidden">
+            <p class="muted" style="margin-top:0;font-size:.88rem">Les produits qu'on vend. Le <b>nom</b> est celui qui paraîtra sur la facture. Le <b>prix</b> est une valeur par défaut — toujours modifiable au moment de facturer. Le <b>cours lié</b> sert à vérifier qu'on facture à un enfant le cours auquel il est réellement inscrit.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px">
+              <button type="button" id="pro-new">➕ Nouveau produit</button>
+              <label class="btnlike" style="cursor:pointer"><input type="checkbox" id="pro-inactifs" /> Voir aussi les produits retirés</label>
+              <span class="spacer"></span><span id="pro-status" class="muted" style="font-size:.85rem"></span>
+            </div>
+            <div id="pro-liste"></div>
           </div>
 
           <div id="fac-sub-tarifs" class="fac-sub hidden">
@@ -2332,6 +2347,26 @@
         </div>
 
         <!-- Fenêtre : éditeur d'une facture émise (nouvelle / personnelle / blanche / modification) -->
+        <!-- Fenêtre : un produit facturable (db/161) -->
+        <div id="pro-modal" class="modal hidden">
+          <div class="card" style="max-width:620px">
+            <button type="button" id="pro-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0" id="pro-title">Nouveau produit</h2>
+            <div class="form-grid">
+              <label style="grid-column:1/-1">Nom — tel qu'il paraîtra sur la facture<input id="pro-f-nom" placeholder="Kids Tennis" /></label>
+              <label>Prix par défaut (CHF)<input id="pro-f-prix" type="number" step="0.05" min="0" placeholder="vide si au contrat" /></label>
+              <label>Genre<select id="pro-f-genre"></select></label>
+              <label>Cours lié <span class="muted" style="font-weight:400">(onglet Cours)</span><select id="pro-f-cours"></select></label>
+              <label>Filière<input id="pro-f-fil" placeholder="club, kidstennis…" /></label>
+            </div>
+            <h3 style="margin:16px 0 4px;font-size:.98rem">Prix selon le jour</h3>
+            <p class="muted" style="margin:0 0 10px;font-size:.84rem">À remplir seulement si le tarif dépend du jour. Laissé vide, c'est le prix par défaut qui s'applique. Le Club se facture 770 le lundi et le vendredi, 815 le mardi et le mercredi, 790 le jeudi.</p>
+            <div id="pro-jgrid" class="pro-jgrid"></div>
+            <label class="btnlike" style="margin-top:12px;cursor:pointer;display:inline-flex;gap:8px;align-items:center"><input type="checkbox" id="pro-f-actif" checked /> Produit en vente</label>
+            <div class="form-foot"><span id="pro-f-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span><button type="button" id="pro-save">Enregistrer</button></div>
+          </div>
+        </div>
+
         <div id="oi-edit-modal" class="modal hidden">
           <div class="card" style="max-width:880px">
             <button type="button" id="oie-close" class="modal-close" aria-label="Fermer">×</button>

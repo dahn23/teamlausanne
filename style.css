@@ -5206,3 +5206,11 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   .dsv-pr{grid-template-columns:1fr 1fr;gap:4px}
   .dsv-pr .dsv-nom{grid-column:1/-1}
 }
+
+/* ---- Factures › Produits (db/161) --------------------------------------- */
+/* La grille des prix par jour. Sept champs courts : en colonne ils feraient
+   une liste interminable, en ligne ils ne tiennent pas sur un téléphone. */
+.pro-jgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
+.pro-jgrid label{display:flex;flex-direction:column;gap:3px;font-size:.84rem}
+.pro-jgrid span{color:#5d6b78;font-weight:600}
+.pro-jgrid input{width:100%}
