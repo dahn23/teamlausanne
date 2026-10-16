@@ -10444,6 +10444,7 @@ function initFactures() {
     if (b.dataset.fsub === "tarifs") { renderFacTarifs(); renderFacPeak(); }
     if (b.dataset.fsub === "produits") loadProduits();
     if (b.dataset.fsub === "afact") loadAFacturer();
+    if (b.dataset.fsub === "hiver") loadHiver();
     if (b.dataset.fsub === "emises") loadOutInvoices();
     if (b.dataset.fsub === "encaiss") loadEncaissements();
     if (b.dataset.fsub === "impayees") loadImpayees();
@@ -11447,6 +11448,97 @@ async function afactUn(pid, prodId) {
     items: [{ label: `${r.produit} ${sea?.label || ""} — ${p.first_name} ${p.last_name}`.replace(/\s+/g, " ").trim(), amount: Number(r.prix) || 0 }],
     product_id: r.product_id,
   });
+}
+
+// ===================================================================
+//  FACTURES › ABONNEMENTS HIVER (point 7, db/151-153)
+// ===================================================================
+// Tout existait déjà, mais à trois endroits : les créneaux et les montants
+// dans Répertoire › Locations de courts, les adresses sur la même fiche, et
+// la fabrication de la facture dans tenant_invoice_create(). Il manquait
+// l'écran qui les met bout à bout — d'où la ressaisie.
+//
+// Rien n'est recopié ici : le montant vient des créneaux, l'adresse de la
+// fiche. Un créneau corrigé dans le Répertoire change le montant ici sans
+// qu'on ait à y penser, et c'est ce qui évite les deux vérités.
+let hivList = [];
+
+async function loadHiver() {
+  const host = $("hiv-liste"); if (!host) return;
+  const sel = $("hiv-saison");
+  if (!sel.options.length) {
+    // Les saisons telles qu'elles sont écrites sur les créneaux : on ne les
+    // devine pas, on prend celles qui existent.
+    const { data } = await sb.from("tenant_rentals").select("season_label");
+    const saisons = [...new Set((data || []).map((r) => r.season_label).filter(Boolean))].sort().reverse();
+    sel.innerHTML = saisons.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")
+      || '<option value="">(aucune saison saisie)</option>';
+    sel.addEventListener("change", loadHiver);
+  }
+  const saison = sel.value || null;
+  host.innerHTML = '<p class="muted">Chargement…</p>';
+  const [{ data: tenants }, { data: rentals }, { data: facs }] = await Promise.all([
+    sb.from("court_tenants").select("*").eq("active", true).order("name"),
+    sb.from("tenant_rentals").select("*").eq("season_label", saison || ""),
+    sb.from("out_invoices").select("id,number,tenant_id,amount,status,sent_at").not("tenant_id", "is", null),
+  ]);
+  const parLoc = {};
+  for (const r of rentals || []) (parLoc[r.tenant_id] = parLoc[r.tenant_id] || []).push(r);
+  const facPar = {};
+  for (const f of facs || []) if (f.status !== "annulee") (facPar[f.tenant_id] = facPar[f.tenant_id] || []).push(f);
+
+  // Seuls ceux qui louent réellement cette saison. Les 19 autres fiches du
+  // répertoire n'ont rien à faire dans un écran de facturation.
+  hivList = (tenants || []).filter((t) => (parLoc[t.id] || []).length);
+  if (!hivList.length) {
+    host.innerHTML = `<p class="muted">Aucun créneau saisi pour ${esc(saison || "cette saison")}. Les créneaux se saisissent dans <b>Répertoire › Locations de courts</b>.</p>`;
+    return;
+  }
+  const JOURS = ["", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+  const hhmm = (t) => String(t || "").slice(0, 5);
+  const total = hivList.reduce((a, t) => a + (parLoc[t.id] || []).reduce((b, r) => b + (Number(r.amount_chf) || 0), 0), 0);
+  const nFact = hivList.filter((t) => (facPar[t.id] || []).length).length;
+  host.innerHTML = `<p class="afact-tot"><b>${hivList.length}</b> locataire(s) — <b>${oiChf(total)}</b> au total · ${nFact} déjà facturé(s)</p>
+    <div class="table-wrap"><table class="crm-table">
+      <thead><tr><th>Locataire</th><th>Créneaux</th><th>Montant</th><th>Adresse</th><th>Facture</th><th></th></tr></thead>
+      <tbody>${hivList.map((t) => {
+        const l = parLoc[t.id] || [];
+        const somme = l.reduce((a, r) => a + (Number(r.amount_chf) || 0), 0);
+        const fs = facPar[t.id] || [];
+        const adrOk = t.address && t.postal_code && t.city;
+        return `<tr>
+          <td><b>${esc(t.name)}</b><div class="muted" style="font-size:.78rem">${esc(t.kind || "")}${t.contact_email ? "" : " · sans e-mail"}</div></td>
+          <td class="muted" style="font-size:.82rem">${l.map((r) =>
+            `<div>${esc(JOURS[r.weekday] || "")} ${esc(hhmm(r.start_time))}–${esc(hhmm(r.end_time))}${r.courts ? ` · court ${esc(r.courts)}` : ""}</div>`).join("")}</td>
+          <td style="white-space:nowrap"><b>${oiChf(somme)}</b></td>
+          <td style="font-size:.82rem">${adrOk
+            ? esc(`${t.address}, ${t.postal_code} ${t.city}`)
+            : '<span style="color:#b45309">adresse incomplète</span>'}</td>
+          <td>${fs.length
+            ? fs.map((f) => `<div><b>${esc(f.number)}</b> <span class="muted">${oiChf(f.amount)}</span></div>`).join("")
+            : '<span class="muted">—</span>'}</td>
+          <td>${fs.length
+            ? '<span class="muted" style="font-size:.8rem">déjà faite</span>'
+            : `<button type="button" class="ghost hiv-fac" data-t="${esc(t.id)}" data-n="${esc(t.name)}" data-m="${somme}"${adrOk ? "" : " disabled title=\"Complétez l'adresse dans Répertoire › Locations de courts\""}>Créer la facture</button>`}</td>
+        </tr>`;
+      }).join("")}</tbody></table></div>`;
+  host.querySelectorAll(".hiv-fac").forEach((b) => b.addEventListener("click", () => hivFacturer(b.dataset.t, b.dataset.n, Number(b.dataset.m))));
+}
+
+async function hivFacturer(tenantId, nom, montant) {
+  const saison = $("hiv-saison").value;
+  if (!(await uiConfirm(`Créer la facture d'abonnement hiver ${saison} pour ${nom} ?\n\nMontant : ${oiChf(montant)}, repris des créneaux du Répertoire.`))) return;
+  $("hiv-status").textContent = "Création…";
+  const { data, error } = await sb.rpc("tenant_invoice_create", { p_tenant: tenantId, p_season_label: saison });
+  if (error) { $("hiv-status").textContent = "Erreur : " + error.message; return; }
+  const r = Array.isArray(data) ? data[0] : data;
+  // La facture existe ; son PDF QR se fabrique comme pour toutes les autres.
+  if (r?.inv_id) {
+    const { data: inv } = await sb.from("out_invoices").select("*").eq("id", r.inv_id).maybeSingle();
+    if (inv) { try { await oiMakePdf(inv); } catch (e) { console.warn("PDF hiver", e); } }
+  }
+  $("hiv-status").textContent = `✓ Facture ${r?.inv_number || ""} créée (${oiChf(r?.inv_amount || montant)})`;
+  await loadHiver();
 }
 // ---- Vue d'ensemble financière (point 8, db/163) ----
 // Six montants, calculés en base par out_resume_financier() — et nulle part

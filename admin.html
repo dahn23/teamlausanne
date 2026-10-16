@@ -2003,6 +2003,7 @@
             <button type="button" class="subtab fac-subtab" data-fsub="emises">Émises — à encaisser</button>
             <button type="button" class="subtab fac-subtab" data-fsub="encaiss">Encaissements</button>
             <button type="button" class="subtab fac-subtab" data-fsub="impayees">Impayées <span id="imp-badge" class="sub-badge" hidden></span></button>
+            <button type="button" class="subtab fac-subtab" data-fsub="hiver">Abonnements hiver</button>
             <button type="button" class="subtab fac-subtab" data-fsub="afact">À facturer <span id="afact-badge" class="sub-badge" hidden></span></button>
             <button type="button" class="subtab fac-subtab" data-fsub="produits">Produits</button>
             <button type="button" class="subtab fac-subtab" data-fsub="tarifs">Tarifs</button>
@@ -2092,6 +2093,18 @@
               </tr></thead><tbody id="imp-rows"></tbody></table>
             </div>
             <p id="imp-empty" class="muted" hidden>Aucune facture en retard. </p>
+          </div>
+
+          <!-- Abonnements d'hiver (point 7). Les créneaux viennent de
+               Répertoire › Locations de courts, les adresses des mêmes fiches,
+               et la facture de tenant_invoice_create(). Rien à ressaisir. -->
+          <div id="fac-sub-hiver" class="fac-sub hidden">
+            <p class="muted" style="margin-top:0;font-size:.88rem">Les locataires de courts et leurs créneaux d'hiver, tels qu'ils sont saisis dans <b>Répertoire › Locations de courts</b>. Le montant et l'adresse viennent de là : il n'y a rien à retaper ici.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 12px">
+              <label>Saison <select id="hiv-saison"></select></label>
+              <span class="spacer"></span><span id="hiv-status" class="muted" style="font-size:.85rem"></span>
+            </div>
+            <div id="hiv-liste"></div>
           </div>
 
           <!-- Qui est inscrit et n'a pas encore de facture pour son
