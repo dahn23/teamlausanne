@@ -9,6 +9,7 @@
 #   ASC_KEY_ID            identifiant de la clé API App Store Connect
 #   ASC_ISSUER_ID         « Issuer ID » affiché au-dessus de la liste des clés
 #   ASC_KEY_P8            contenu complet du fichier AuthKey_XXXX.p8 (rôle Admin : il crée lui-même les certificats)
+# Secrets posés par Dan le 16.10.2026.
 name: App iPhone
 
 on:
