@@ -115,6 +115,12 @@ jobs:
           AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS")
           # 1) Archive SANS signature : la signature « développement » d'Xcode exige un iPhone enregistré chez Apple.
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -destination 'generic/platform=iOS'             -archivePath "$RUNNER_TEMP/App.xcarchive" DEVELOPMENT_TEAM="$TEAM" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO             archive -quiet > "$RUNNER_TEMP/archive.log" 2>&1 || { show "$RUNNER_TEMP/archive.log"; exit 1; }
+          # 1 bis) Signature provisoire « ad hoc » portant les droits (notifications) : l'export App Store reprend les
+          # droits inscrits dans l'app archivée ; une archive non signée n'en porte aucun.
+          APP="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
+          for f in "$APP"/Frameworks/*; do [ -e "$f" ] && codesign --force --sign - "$f"; done
+          codesign --force --sign - --entitlements App/App.entitlements "$APP"
+          codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q aps-environment && echo "Droits posés sur l'archive."
           # 2) Signature App Store à l'export (certificat géré par Apple dans le cloud, profil créé automatiquement).
           cat > "$RUNNER_TEMP/export.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
