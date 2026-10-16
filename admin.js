@@ -739,8 +739,9 @@ function drawResaGrid(date, bookings, coachMap = {}, colorMap = {}) {
       const el = document.createElement("div");
       el.className = "rcell rslot";
       if (b) {
-        el.style.background = (b.course_id && colorMap[b.course_id]) || b.color || "#1e3ad1";
-        el.style.color = "#fff";
+        const fond = (b.course_id && colorMap[b.course_id]) || b.color || "#1e3ad1";
+        el.style.background = fond;
+        el.style.color = texteSur(fond);
         // Pour un cours : nom du/des coach(s) (le type est déjà donné par la couleur)
         const cids = b.course_id ? (coachMap[b.course_id] || []) : [];
         let label, full;
@@ -1002,7 +1003,17 @@ async function showBookingDetail(b) {
 }
 
 const isFitnessCourt = (c) => /fitness/i.test(c?.name || "");
-const kindLabel = (k) => ({ cours: "Cours", tournoi: "Tournoi", maintenance: "Maintenance", libre: "Réservé" }[k] || "Réservé");
+const kindLabel = (k) => ({ cours: "Cours", tournoi: "Tournoi", maintenance: "Maintenance", hiver: "Session d'hiver", libre: "Réservé" }[k] || "Réservé");
+// Texte lisible sur n'importe quel fond. La grille écrivait en blanc quoi
+// qu'il arrive : sur le jaune des sessions d'hiver, le nom disparaissait.
+// Luminance perçue — au-delà du seuil, on écrit en foncé.
+const texteSur = (fond) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(fond || ""));
+  if (!m) return "#fff";
+  const n = parseInt(m[1], 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255);
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 0.55 ? "#1b2030" : "#fff";
+};
 function rcell(text, cls) { const el = document.createElement("div"); el.className = cls; el.textContent = text; return el; }
 function surfaceClass(s) { return /terre/i.test(s) ? "sfc-terre" : /gazon|synth/i.test(s) ? "sfc-gazon" : "sfc-dur"; }
 
