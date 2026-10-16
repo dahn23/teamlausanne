@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=331" />
+  <link rel="stylesheet" href="style.css?v=332" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2361,6 +2361,33 @@
         </div>
 
         <!-- Fenêtre : éditeur d'une facture émise (nouvelle / personnelle / blanche / modification) -->
+        <!-- Fenêtre : versements et annulation partielle (db/161) -->
+        <div id="pay-modal" class="modal hidden">
+          <div class="card" style="max-width:640px">
+            <button type="button" id="pay-close" class="modal-close" aria-label="Fermer">×</button>
+            <h2 style="margin-top:0" id="pay-title">Versements</h2>
+            <div id="pay-solde" class="pay-solde"></div>
+            <h3 style="margin:16px 0 6px;font-size:.98rem">Enregistrer un versement</h3>
+            <div class="form-grid">
+              <label>Montant reçu (CHF)<input id="pay-montant" type="number" step="0.05" min="0" /></label>
+              <label>Date<input id="pay-date" type="date" /></label>
+              <label>Moyen<select id="pay-moyen"><option value="virement">Virement</option><option value="twint">TWINT</option><option value="sumup">SumUp</option><option value="especes">Espèces</option><option value="autre">Autre</option></select></label>
+              <label>Note<input id="pay-note" placeholder="facultatif" /></label>
+            </div>
+            <div style="margin-top:10px"><button type="button" id="pay-add">Enregistrer le versement</button>
+              <button type="button" id="pay-solder" class="ghost" title="Enregistre le solde exact qui reste à payer">Solder le reste</button></div>
+            <h3 style="margin:20px 0 6px;font-size:.98rem">Annuler une partie</h3>
+            <p class="muted" style="margin:0 0 8px;font-size:.84rem">On ne réécrit pas une facture déjà envoyée : le PDF chez la famille ne correspondrait plus. On enregistre un avoir, et le solde dû en tient compte.</p>
+            <div class="form-grid">
+              <label>Montant annulé (CHF)<input id="pay-av-montant" type="number" step="0.05" min="0" /></label>
+              <label>Motif<input id="pay-av-motif" placeholder="semaine en moins, erreur de formule…" /></label>
+            </div>
+            <div style="margin-top:10px"><button type="button" id="pay-av-add" class="ghost">Enregistrer l'avoir</button></div>
+            <div id="pay-lignes" class="pay-lignes"></div>
+            <div class="form-foot"><span id="pay-status" class="muted" style="font-size:.85rem"></span></div>
+          </div>
+        </div>
+
         <!-- Fenêtre : un produit facturable (db/161) -->
         <div id="pro-modal" class="modal hidden">
           <div class="card" style="max-width:620px">

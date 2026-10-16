@@ -5241,3 +5241,17 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .afact-g{margin:0 0 22px}
 .afact-g-t{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 8px}
 .afact-g-t h3{margin:0;font-size:1.02rem}
+
+/* ---- Factures › versements et avoirs (db/161) --------------------------- */
+.pay-solde{background:#f6f8fb;border:1px solid var(--line,#e4e8f0);border-radius:12px;padding:12px 14px;
+  display:flex;flex-direction:column;gap:4px}
+.pay-k{display:flex;justify-content:space-between;gap:12px;font-size:.9rem}
+.pay-k b{font-variant-numeric:tabular-nums}
+.pay-k-fort{border-top:1px solid var(--line,#e4e8f0);margin-top:4px;padding-top:6px;font-size:1.02rem}
+.pay-k-fort b{font-weight:800}
+.pay-etat{align-self:flex-start;margin-top:8px;font-size:.72rem;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;padding:3px 10px;border-radius:999px;background:#e4e8f0;color:#39414d}
+.pay-payee{background:#dcfce7;color:#14532d}
+.pay-partielle{background:#fef3c7;color:#78350f}
+.pay-annulee{background:#fdecea;color:#b3261e}
+.pay-lignes{margin-top:4px}

@@ -11246,6 +11246,7 @@ function initOutInvoices() {
     oieAddItem("Rabais", "", { rab: true });
   });
   $("oie-save").addEventListener("click", oiSaveEdit);
+  initPaiements();
   let t = null;
   $("oie-search").addEventListener("input", () => { clearTimeout(t); t = setTimeout(oieSearch, 250); });
   $("oie-search").addEventListener("blur", () => setTimeout(() => $("oie-results").classList.add("hidden"), 200));
@@ -11481,6 +11482,142 @@ async function renderOiResume() {
     </div>`;
   }).join("");
 }
+
+// ===================================================================
+//  FACTURES › VERSEMENTS ET AVOIRS (points 3 et 4, db/161)
+// ===================================================================
+// Avant : une facture était payée, ou elle ne l'était pas. Un acompte n'avait
+// pas de place, et une facture partiellement annulée non plus.
+//
+// Deux principes, et ils expliquent toute la suite :
+//
+//  · Le statut se DÉDUIT des versements, il ne se saisit pas. Un statut tapé à
+//    la main et un montant encaissé finissent toujours par se contredire, et
+//    c'est alors le chiffre faux qu'on découvre en dernier.
+//
+//  · On ne réécrit JAMAIS le montant d'une facture déjà envoyée. Le PDF est
+//    chez la famille ; le modifier en base, c'est créer deux vérités. Une
+//    annulation partielle est donc un avoir, enregistré à côté.
+let payFac = null;
+
+async function payOuvrir(id) {
+  const f = oiList.find((x) => x.id === id); if (!f) return;
+  payFac = f;
+  $("pay-title").textContent = `Facture ${f.number} — ${f.debtor_name || ""}`;
+  $("pay-date").value = new Date().toISOString().slice(0, 10);
+  $("pay-montant").value = ""; $("pay-note").value = "";
+  $("pay-av-montant").value = ""; $("pay-av-motif").value = "";
+  $("pay-status").textContent = "";
+  $("pay-modal").classList.remove("hidden");
+  await payRafraichir();
+}
+
+async function payRafraichir() {
+  if (!payFac) return;
+  const [{ data: s }, { data: vers }, { data: avs }] = await Promise.all([
+    sb.from("out_invoices_solde").select("amount,verse,avoir,du,reste,statut_reel").eq("id", payFac.id).maybeSingle(),
+    sb.from("out_invoice_payments").select("*").eq("invoice_id", payFac.id).order("paid_on"),
+    sb.from("out_invoice_credits").select("*").eq("invoice_id", payFac.id).order("created_at"),
+  ]);
+  if (!s) return;
+  const ETAT = { a_envoyer: "À envoyer", envoyee: "Envoyée", partielle: "Partiellement payée", payee: "Payée", annulee: "Annulée" };
+  $("pay-solde").innerHTML = `
+    <div class="pay-k"><span>Montant de la facture</span><b>${oiChf(s.amount)}</b></div>
+    ${Number(s.avoir) ? `<div class="pay-k"><span>Annulé (avoirs)</span><b>− ${oiChf(s.avoir)}</b></div>
+    <div class="pay-k"><span>Dû après avoirs</span><b>${oiChf(s.du)}</b></div>` : ""}
+    <div class="pay-k"><span>Déjà versé</span><b>${oiChf(s.verse)}</b></div>
+    <div class="pay-k pay-k-fort"><span>Reste à payer</span><b>${oiChf(s.reste)}</b></div>
+    <div class="pay-etat pay-${esc(s.statut_reel)}">${esc(ETAT[s.statut_reel] || s.statut_reel)}</div>`;
+  const lignes = [
+    ...(vers || []).map((v) => ({ t: "v", d: v.paid_on, m: Number(v.amount), x: v.method || "", n: v.note || "", id: v.id })),
+    ...(avs || []).map((a) => ({ t: "a", d: a.created_at.slice(0, 10), m: -Number(a.amount), x: "avoir", n: a.reason || "", id: a.id })),
+  ].sort((a, b) => a.d.localeCompare(b.d));
+  $("pay-lignes").innerHTML = lignes.length
+    ? `<h3 style="margin:20px 0 6px;font-size:.98rem">Mouvements</h3>
+       <div class="table-wrap"><table class="crm-table"><tbody>${lignes.map((l) => `<tr>
+         <td style="white-space:nowrap">${frDate(l.d)}</td>
+         <td>${l.t === "a" ? "Avoir" : "Versement"}${l.x && l.t === "v" ? ` <span class="muted">(${esc(l.x)})</span>` : ""}</td>
+         <td>${esc(l.n)}</td>
+         <td style="white-space:nowrap;text-align:right"><b>${oiChf(l.m)}</b></td>
+         <td><button type="button" class="ghost pay-del" data-t="${l.t}" data-id="${l.id}" title="Supprimer ce mouvement">✕</button></td>
+       </tr>`).join("")}</tbody></table></div>`
+    : '<p class="muted" style="margin-top:18px;font-size:.88rem">Aucun mouvement enregistré.</p>';
+  $("pay-lignes").querySelectorAll(".pay-del").forEach((b) =>
+    b.addEventListener("click", () => paySupprimer(b.dataset.t, b.dataset.id)));
+  // Le statut de la facture suit ce qu'on vient d'enregistrer. C'est la seule
+  // écriture de status : partout ailleurs il est déduit.
+  await paySyncStatut(s);
+}
+
+// « payee » dès que le reste tombe à zéro, et retour à « envoyee » si un
+// versement est supprimé. Sans ce retour, une erreur de saisie laisserait une
+// facture marquée payée que plus rien ne réclamerait.
+async function paySyncStatut(s) {
+  const voulu = s.statut_reel === "partielle" ? "envoyee" : s.statut_reel;
+  if (payFac.status === voulu || payFac.status === "annulee") return;
+  if (!["envoyee", "payee"].includes(voulu)) return;
+  const patch = { status: voulu, paid_at: voulu === "payee" ? new Date().toISOString() : null };
+  await sb.from("out_invoices").update(patch).eq("id", payFac.id);
+  payFac.status = voulu;
+}
+
+async function payAjouter(montant, note) {
+  const m = Math.round(Number(montant) * 100) / 100;
+  if (!(m > 0)) { $("pay-status").textContent = "Indiquez un montant reçu."; return; }
+  const { data: sess } = await sb.auth.getSession();
+  const { error } = await sb.from("out_invoice_payments").insert({
+    invoice_id: payFac.id, amount: m, paid_on: $("pay-date").value || new Date().toISOString().slice(0, 10),
+    method: $("pay-moyen").value, note: note || $("pay-note").value.trim() || null,
+    created_by: sess?.session?.user?.id || null,
+  });
+  if (error) { $("pay-status").textContent = "Erreur : " + error.message; return; }
+  $("pay-montant").value = ""; $("pay-note").value = "";
+  $("pay-status").textContent = "✓ Versement enregistré";
+  await payRafraichir();
+  await loadOutInvoices();
+}
+
+async function payAvoir() {
+  const m = Math.round(Number($("pay-av-montant").value) * 100) / 100;
+  if (!(m > 0)) { $("pay-status").textContent = "Indiquez le montant à annuler."; return; }
+  const { data: s } = await sb.from("out_invoices_solde").select("du").eq("id", payFac.id).maybeSingle();
+  if (s && m > Number(s.du) + 0.005) {
+    $("pay-status").textContent = `L'avoir (${oiChf(m)}) dépasse ce qui reste dû (${oiChf(s.du)}).`;
+    return;
+  }
+  if (!(await uiConfirm(`Annuler ${oiChf(m)} sur la facture ${payFac.number} ?\n\nLa facture et son PDF ne changent pas : c'est un avoir, et le solde dû en tiendra compte.`))) return;
+  const { data: sess } = await sb.auth.getSession();
+  const { error } = await sb.from("out_invoice_credits").insert({
+    invoice_id: payFac.id, amount: m, reason: $("pay-av-motif").value.trim() || null,
+    created_by: sess?.session?.user?.id || null,
+  });
+  if (error) { $("pay-status").textContent = "Erreur : " + error.message; return; }
+  $("pay-av-montant").value = ""; $("pay-av-motif").value = "";
+  $("pay-status").textContent = "✓ Avoir enregistré";
+  await payRafraichir();
+  await loadOutInvoices();
+}
+
+async function paySupprimer(t, id) {
+  if (!(await uiConfirm("Supprimer ce mouvement ? Le solde sera recalculé."))) return;
+  const table = t === "a" ? "out_invoice_credits" : "out_invoice_payments";
+  const { error } = await sb.from(table).delete().eq("id", id);
+  if (error) { $("pay-status").textContent = "Erreur : " + error.message; return; }
+  await payRafraichir();
+  await loadOutInvoices();
+}
+
+function initPaiements() {
+  $("pay-close").addEventListener("click", () => $("pay-modal").classList.add("hidden"));
+  $("pay-modal").addEventListener("click", (e) => { if (e.target === $("pay-modal")) $("pay-modal").classList.add("hidden"); });
+  $("pay-add").addEventListener("click", () => payAjouter($("pay-montant").value));
+  $("pay-av-add").addEventListener("click", payAvoir);
+  $("pay-solder").addEventListener("click", async () => {
+    const { data: s } = await sb.from("out_invoices_solde").select("reste").eq("id", payFac.id).maybeSingle();
+    if (!s || !(Number(s.reste) > 0)) { $("pay-status").textContent = "Il ne reste rien à payer."; return; }
+    await payAjouter(Number(s.reste), "Solde");
+  });
+}
 // ---- Produit vendu, et cohérence avec le cours de l'enfant (db/161, db/162) ----
 // Point 2 de la liste de l'équipe. On ne refuse pas de CRÉER une facture qui
 // ne colle pas au cours : il y a de bonnes raisons de le faire (rattrapage,
@@ -11614,7 +11751,7 @@ function renderOutInvoices() {
     const items = Array.isArray(f.items) && f.items.length ? f.items : (f.label ? [{ label: f.label, amount: f.amount }] : []);
     const acts = (editable ? `<button class="ghost oi-edit" data-id="${f.id}" title="Modifier (dates, articles, destinataire)">✎</button>` : "")
       + (f.status === "a_envoyer" ? `<button class="ghost oi-send" data-id="${f.id}">Envoyer</button>` : "")
-      + (f.status === "envoyee" ? `<button class="ghost oi-send" data-id="${f.id}" title="Renvoyer">↻</button><button class="ghost oi-paid" data-id="${f.id}">Payée</button>` : "")
+      + (f.status === "envoyee" ? `<button class="ghost oi-send" data-id="${f.id}" title="Renvoyer">↻</button><button class="ghost oi-pay" data-id="${f.id}" title="Versements, acomptes, annulation partielle">💰 Paiement</button>` : "")
       + (editable ? `<button class="ghost oi-cancel" data-id="${f.id}" title="Annuler">✕</button>` : "");
     const dateIn = (k) => editable ? `<input type="date" class="oi-date" data-id="${f.id}" data-k="${k}" value="${f[k] || ""}" style="width:118px" />` : (f[k] ? frDate(f[k]) : "—");
     return `<tr class="${f.status === "annulee" ? "muted" : ""}">
@@ -11652,7 +11789,10 @@ function renderOutInvoices() {
   }));
   R.querySelectorAll(".oi-regen").forEach((b) => b.addEventListener("click", async () => { const f = oiList.find((x) => x.id === b.dataset.id); if (f) { await oiMakePdf(f); loadOutInvoices(); } }));
   R.querySelectorAll(".oi-send").forEach((b) => b.addEventListener("click", () => oiOpenSend([b.dataset.id])));
-  R.querySelectorAll(".oi-paid").forEach((b) => b.addEventListener("click", async () => { await sb.from("out_invoices").update({ status: "payee", paid_at: new Date().toISOString() }).eq("id", b.dataset.id); loadOutInvoices(); }));
+  // Le bouton « Payée » posait le statut d'un coup, sans dire combien avait
+  // été reçu ni quand. Il ouvre maintenant les versements : un acompte s'y
+  // enregistre, le solde se calcule, et le statut en découle.
+  R.querySelectorAll(".oi-pay").forEach((b) => b.addEventListener("click", () => payOuvrir(b.dataset.id)));
   R.querySelectorAll(".oi-cancel").forEach((b) => b.addEventListener("click", async () => {
     const f = oiList.find((x) => x.id === b.dataset.id);
     if (!(await uiConfirm(`Annuler la facture ${f?.number} ? (elle reste dans la liste, statut « Annulée »)`))) return;
