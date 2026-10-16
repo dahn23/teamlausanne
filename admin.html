@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=339" />
+  <link rel="stylesheet" href="style.css?v=340" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2122,6 +2122,7 @@
             <p class="muted" style="margin-top:0;font-size:.88rem">Les locataires de courts et leurs créneaux d'hiver, tels qu'ils sont saisis dans <b>Répertoire › Locations de courts</b>. Le montant et l'adresse viennent de là : il n'y a rien à retaper ici.</p>
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 12px">
               <label>Saison <select id="hiv-saison"></select></label>
+              <button id="hiv-fac-sel" type="button" disabled title="Crée une facture par locataire coché, avec son PDF QR-facture">🧾 Générer les factures sélectionnées</button>
               <span class="spacer"></span><span id="hiv-status" class="muted" style="font-size:.85rem"></span>
             </div>
             <div id="hiv-liste"></div>

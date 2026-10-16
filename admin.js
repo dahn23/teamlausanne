@@ -11887,7 +11887,7 @@ async function afactUn(pid, prodId) {
 // Rien n'est recopié ici : le montant vient des créneaux, l'adresse de la
 // fiche. Un créneau corrigé dans le Répertoire change le montant ici sans
 // qu'on ait à y penser, et c'est ce qui évite les deux vérités.
-let hivList = [];
+let hivList = [], hivSel = new Set(), hivLoc = {};
 
 async function loadHiver() {
   const host = $("hiv-liste"); if (!host) return;
@@ -11899,7 +11899,24 @@ async function loadHiver() {
     const saisons = [...new Set((data || []).map((r) => r.season_label).filter(Boolean))].sort().reverse();
     sel.innerHTML = saisons.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")
       || '<option value="">(aucune saison saisie)</option>';
-    sel.addEventListener("change", loadHiver);
+    // Changer de saison vide la sélection : les cases cochées désignaient des
+    // créneaux d'une autre année.
+    sel.addEventListener("change", () => { hivSel.clear(); loadHiver(); });
+    $("hiv-fac-sel").addEventListener("click", hivFacturerLot);
+    $("hiv-liste").addEventListener("change", (e) => {
+      if (e.target.id !== "hiv-sel-all") return;
+      // « Tout cocher » ne coche que ce qui est réellement facturable : les
+      // cases désactivées restent hors du lot.
+      hivSel.clear();
+      if (e.target.checked) {
+        $("hiv-liste").querySelectorAll(".hiv-ck:not(:disabled)").forEach((c) => {
+          c.checked = true; hivSel.add(c.dataset.t);
+        });
+      } else {
+        $("hiv-liste").querySelectorAll(".hiv-ck").forEach((c) => { c.checked = false; });
+      }
+      hivMajBouton();
+    });
   }
   const saison = sel.value || null;
   host.innerHTML = '<p class="muted">Chargement…</p>';
@@ -11910,6 +11927,7 @@ async function loadHiver() {
   ]);
   const parLoc = {};
   for (const r of rentals || []) (parLoc[r.tenant_id] = parLoc[r.tenant_id] || []).push(r);
+  hivLoc = parLoc;   // les créneaux, pour recalculer un montant sans relire la page
   const facPar = {};
   for (const f of facs || []) if (f.status !== "annulee") (facPar[f.tenant_id] = facPar[f.tenant_id] || []).push(f);
 
@@ -11918,6 +11936,8 @@ async function loadHiver() {
   hivList = (tenants || []).filter((t) => (parLoc[t.id] || []).length);
   if (!hivList.length) {
     host.innerHTML = `<p class="muted">Aucun créneau saisi pour ${esc(saison || "cette saison")}. Les créneaux se saisissent dans <b>Répertoire › Locations de courts</b>.</p>`;
+    // Sans cela le bouton garderait le compte de la saison précédente.
+    hivSel.clear(); hivMajBouton();
     return;
   }
   const JOURS = ["", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
@@ -11926,13 +11946,19 @@ async function loadHiver() {
   const nFact = hivList.filter((t) => (facPar[t.id] || []).length).length;
   host.innerHTML = `<p class="afact-tot"><b>${hivList.length}</b> locataire(s) — <b>${oiChf(total)}</b> au total · ${nFact} déjà facturé(s)</p>
     <div class="table-wrap"><table class="crm-table">
-      <thead><tr><th>Locataire</th><th>Créneaux</th><th>Montant</th><th>Adresse</th><th>Facture</th><th></th></tr></thead>
+      <thead><tr><th><input type="checkbox" id="hiv-sel-all" title="Tout cocher" /></th><th>Locataire</th><th>Créneaux</th><th>Montant</th><th>Adresse</th><th>Facture</th><th></th></tr></thead>
       <tbody>${hivList.map((t) => {
         const l = parLoc[t.id] || [];
         const somme = l.reduce((a, r) => a + (Number(r.amount_chf) || 0), 0);
         const fs = facPar[t.id] || [];
         const adrOk = t.address && t.postal_code && t.city;
+        // Facturable = pas encore facturé et adresse complète. C'est la seule
+        // chose qui décide si la case est cochable : on ne propose pas de
+        // sélectionner ce qui ne partira pas.
+        const ok = !fs.length && adrOk;
         return `<tr>
+          <td><input type="checkbox" class="hiv-ck" data-t="${esc(t.id)}" data-n="${esc(t.name)}" data-m="${somme}"
+                ${hivSel.has(t.id) ? "checked" : ""}${ok ? "" : ` disabled title="${fs.length ? "Déjà facturé" : "Adresse incomplète"}"`} /></td>
           <td><b>${esc(t.name)}</b><div class="muted" style="font-size:.78rem">${esc(t.kind || "")}${t.contact_email ? "" : " · sans e-mail"}</div></td>
           <td class="muted" style="font-size:.82rem">${l.map((r) =>
             `<div>${esc(JOURS[r.weekday] || "")} ${esc(hhmm(r.start_time))}–${esc(hhmm(r.end_time))}${r.courts ? ` · court ${esc(r.courts)}` : ""}</div>`).join("")}</td>
@@ -11959,6 +11985,64 @@ async function loadHiver() {
         </tr>`;
       }).join("")}</tbody></table></div>`;
   host.querySelectorAll(".hiv-fac").forEach((b) => b.addEventListener("click", () => hivFacturer(b.dataset.t, b.dataset.n, Number(b.dataset.m))));
+  host.querySelectorAll(".hiv-ck").forEach((c) => c.addEventListener("change", () => {
+    if (c.checked) hivSel.add(c.dataset.t); else hivSel.delete(c.dataset.t);
+    hivMajBouton();
+  }));
+  const tout = $("hiv-sel-all");
+  if (tout) tout.checked = false;
+  hivMajBouton();
+}
+
+// Le bouton porte le nombre ET le montant : on ne lance pas vingt-trois
+// factures sans savoir combien on vient de facturer.
+function hivMajBouton() {
+  const b = $("hiv-fac-sel"); if (!b) return;
+  const lot = hivList.filter((t) => hivSel.has(t.id));
+  const somme = lot.reduce((a, t) => a + hivMontant(t.id), 0);
+  b.textContent = lot.length
+    ? `🧾 Générer ${lot.length} facture(s) — ${oiChf(somme)}`
+    : "🧾 Générer les factures sélectionnées";
+  b.disabled = !lot.length;
+}
+const hivMontant = (tid) => (hivLoc[tid] || []).reduce((a, r) => a + (Number(r.amount_chf) || 0), 0);
+
+// Facturation en lot. Une par une en base — tenant_invoice_create numérote,
+// construit les lignes par produit et pose la référence QR ; l'appeler en
+// boucle est exactement ce qu'on veut, et un échec n'emporte pas les autres.
+async function hivFacturerLot() {
+  const lot = hivList.filter((t) => hivSel.has(t.id));
+  if (!lot.length) return;
+  const somme = lot.reduce((a, t) => a + hivMontant(t.id), 0);
+  const saison = $("hiv-saison").value;
+  if (!(await uiConfirm(`Générer ${lot.length} facture(s) d'abonnement hiver ${saison} ?\n\n`
+    + lot.slice(0, 10).map((t) => `· ${t.name} — ${oiChf(hivMontant(t.id))}`).join("\n")
+    + (lot.length > 10 ? `\n… et ${lot.length - 10} autre(s)` : "")
+    + `\n\nTotal : ${oiChf(somme)}. Elles seront créées « à envoyer », avec leur PDF QR-facture.`))) return;
+
+  const btn = $("hiv-fac-sel"); btn.disabled = true;
+  const st = $("hiv-status");
+  let ok = 0; const errs = [];
+  for (const t of lot) {
+    st.textContent = `Facture ${ok + errs.length + 1}/${lot.length} — ${t.name}…`;
+    try {
+      const { data, error } = await sb.rpc("tenant_invoice_create", { p_tenant: t.id, p_season_label: saison });
+      if (error) throw new Error(error.message);
+      const r = Array.isArray(data) ? data[0] : data;
+      if (r?.inv_id) {
+        const { data: inv } = await sb.from("out_invoices").select("*").eq("id", r.inv_id).maybeSingle();
+        if (inv) { try { await oiMakePdf(inv); } catch (e) { console.warn("PDF hiver", t.name, e); } }
+      }
+      ok++;
+    } catch (e) { errs.push(`${t.name} : ${e?.message || e}`); }
+  }
+  st.textContent = "";
+  hivSel.clear();
+  uiAlert(`✓ ${ok} facture(s) créée(s) pour ${oiChf(somme)}.`
+    + (errs.length ? `\n\n${errs.length} en échec :\n` + errs.slice(0, 5).join("\n") : "")
+    + `\n\nElles sont dans « Émises », au statut « à envoyer ».`);
+  await loadHiver();
+  majFacEntete();
 }
 
 async function hivFacturer(tenantId, nom, montant) {
