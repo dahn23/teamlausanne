@@ -1,24 +1,63 @@
-// Page d'activation : l'utilisateur arrive via le lien d'invitation (le token
-// dans l'URL crée une session), choisit son mot de passe, puis est redirigé.
+// Page d'activation : la personne arrive par le lien d'invitation, choisit son
+// mot de passe, puis repart vers l'écran qui correspond à son rôle.
+//
+// ⚠️ POURQUOI LE JETON EST DANS LE FRAGMENT (#) — 16.10.2026
+//
+// Un lien d'activation est à usage unique : la première requête le consomme.
+// Or WhatsApp, Messenger, Outlook et les autres VISITENT le lien qu'on leur
+// colle pour en fabriquer l'aperçu. Leur robot brûlait donc le jeton avant
+// que la personne n'ait tapé dessus, et elle tombait sur « Lien invalide ou
+// expiré ». Constaté en base : deux sessions « WhatsApp/2.23.20.0 » sur le
+// compte d'Augustin Tarouat, dont aucune par lui.
+//
+// Le jeton arrive maintenant après le #. Un fragment n'est JAMAIS transmis au
+// serveur : le robot reçoit une page vide et n'a rien à consommer. Seul un
+// vrai navigateur, qui exécute ce fichier, s'en sert — et le lien reste donc
+// valable jusqu'à ce que la personne l'ouvre vraiment.
 import { sb, myRoles, landingFor } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
-let hasSession = false;
+let pret = false;
 
 function ready() {
-  if (hasSession) return;
-  hasSession = true;
+  if (pret) return;
+  pret = true;
   $("sp-wait").classList.add("hidden");
   $("sp-form").classList.remove("hidden");
 }
 
+function echec(msg) {
+  if (pret) return;
+  $("sp-wait").textContent = msg;
+}
+
+// Le fragment, lu puis effacé tout de suite : inutile de laisser un jeton
+// dans la barre d'adresse et dans l'historique du navigateur.
+const frag = new URLSearchParams((location.hash || "").replace(/^#/, ""));
+const th = frag.get("th");
+const type = frag.get("t") || "invite";
+if (th) history.replaceState(null, "", location.pathname + location.search);
+
 sb.auth.onAuthStateChange((_e, session) => { if (session) ready(); });
-const { data } = await sb.auth.getSession();
-if (data.session) ready();
-setTimeout(() => {
-  if (!hasSession) $("sp-wait").textContent =
-    "Lien invalide ou expiré. Demandez une nouvelle invitation à l'académie.";
-}, 3000);
+
+if (th) {
+  // Lien nouvelle génération : c'est ici, et nulle part ailleurs, que le
+  // jeton est échangé contre une session.
+  const { error } = await sb.auth.verifyOtp({ token_hash: th, type });
+  if (error) {
+    echec(/expired|invalid/i.test(error.message || "")
+      ? "Ce lien a expiré. Demandez-en un nouveau à l'académie."
+      : "Lien invalide : " + error.message);
+  } else {
+    ready();
+  }
+} else {
+  // Anciens liens (jeton déjà échangé par Supabase) et personne déjà connectée.
+  const { data } = await sb.auth.getSession();
+  if (data.session) ready();
+  setTimeout(() => echec(
+    "Lien invalide ou expiré. Demandez une nouvelle invitation à l'académie."), 3000);
+}
 
 $("sp-form").addEventListener("submit", async (e) => {
   e.preventDefault();

@@ -7491,10 +7491,23 @@ async function invitePerson() {
   if (error || data?.error) { alert("Échec : " + (data?.error || error?.message)); return; }
   const link = data.action_link || "";
   const reactiv = data.mode === "recovery";
+  // Le compte vient seulement de naître : syncAccessRoles n'avait rien pu faire
+  // au dernier enregistrement (pas de compte = pas de user_roles). Sans ce
+  // rappel ici, les chips de la fiche restaient décoratives et la personne
+  // entrait sur un « Mon espace » vide. C'est arrivé à deux moniteurs.
+  let note = "";
+  if (id) {
+    const ok = await syncAccessRoles(id, personRolesSel);
+    const acc = [...new Set([...personRolesSel].map((r) => CHIP_TO_ACCESS[r] || r)
+      .filter((r) => ACCESS_SYNC_ROLES.includes(r)))];
+    if (!ok) note = '<p class="muted">⚠ Les rôles d\'accès n\'ont pas pu être posés (réservé à un admin) : la personne n\'aura que « Mon espace ».</p>';
+    else if (acc.length) note = `<p class="muted">Rôles d'accès accordés : <b>${esc(acc.join(", "))}</b> — elle arrivera donc sur la console.</p>`;
+  }
   box.classList.remove("hidden");
   box.innerHTML = `
     <p class="invite-ok">✅ Accès ${reactiv ? "ré-activé" : "créé"} pour <b>${email}</b>.</p>
-    <p class="muted" style="margin:.3rem 0">Envoie ce lien d'activation à la personne (email, WhatsApp…) — il ouvre la page où elle choisit son mot de passe, puis « Mon espace ».</p>
+    ${note}
+    <p class="muted" style="margin:.3rem 0">Envoie ce lien d'activation à la personne (email, WhatsApp…) — il ouvre la page où elle choisit son mot de passe. Le lien résiste aux aperçus de WhatsApp : il reste valable jusqu'à ce qu'elle l'ouvre vraiment.</p>
     <div class="invite-linkrow">
       <input type="text" id="p-invite-link" readonly value="${link}" />
       <button type="button" id="p-invite-copy">Copier</button>
