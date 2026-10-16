@@ -3690,25 +3690,27 @@ html.bot-ouvert{overflow:hidden}
   padding:6px 13px;font-size:.82rem;font-weight:700;color:var(--blue);cursor:pointer}
 .calm-auj:hover{background:var(--sand)}
 
-.calm-dows{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:0 0 4px}
+.calm-dows{display:grid;grid-template-columns:repeat(7,1fr);margin:0 0 6px;padding:0 7px}
 .calm-dows span{text-align:center;font-size:.72rem;font-weight:800;letter-spacing:.06em;
   text-transform:uppercase;color:var(--muted)}
 
-.calm-weeks{display:flex;flex-direction:column;gap:4px}
+.calm-weeks{display:flex;flex-direction:column;gap:6px}
 /* Ligne 1 = les numéros, puis une ligne par couloir de barres. */
-.calm-week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;
-  grid-template-rows:auto repeat(var(--lanes,0),22px);align-items:start}
-.calm-day{grid-row:1;min-height:42px;border:1px solid var(--line);border-radius:10px;
-  background:#fff;padding:5px 0 0;cursor:pointer;font:inherit;color:var(--ink);
-  display:block;text-align:center;transition:border-color .15s,background .15s}
-.calm-day:hover{border-color:var(--blue);background:var(--sand)}
+.calm-week{display:grid;grid-template-columns:repeat(7,1fr);gap:3px 0;align-items:start;
+  grid-template-rows:auto repeat(var(--lanes,0),22px);
+  border:1px solid var(--line);border-radius:12px;background:#fff;padding:6px}
+.calm-day{grid-row:1;min-height:26px;border:0;border-radius:8px;background:none;
+  padding:2px 0;cursor:pointer;font:inherit;color:var(--ink);display:block;text-align:center;
+  transition:background .15s}
+.calm-day:hover{background:var(--sand)}
 .calm-vide{cursor:default}
-.calm-vide:hover{border-color:var(--line);background:#fff}
-.calm-n{font-size:.86rem;font-weight:700}
+.calm-vide:hover{background:none}
+.calm-n{display:inline-grid;place-items:center;min-width:24px;height:24px;
+  border-radius:50%;font-size:.84rem;font-weight:700}
 .calm-hors{opacity:.38}
-.calm-auj.calm-day{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
-.calm-auj .calm-n{color:var(--blue)}
-.calm-sel{background:var(--sand);border-color:var(--blue)}
+.calm-auj.calm-day .calm-n{background:var(--blue);color:#fff}
+
+.calm-sel .calm-n{box-shadow:inset 0 0 0 2px var(--blue)}
 
 /* La barre. Les bords coupés disent « ça continue la semaine d'avant/d'après ». */
 .calm-bar{align-self:stretch;min-width:0;border:1px solid var(--calp-br,var(--line));
@@ -3736,9 +3738,9 @@ html.bot-ouvert{overflow:hidden}
 .calm-fermer:hover{color:var(--ink)}
 
 @media (max-width:640px){
-  .calm-day{min-height:34px}
-  .calm-n{font-size:.78rem}
-  .calm-week{gap:3px;grid-template-rows:auto repeat(var(--lanes,0),19px)}
-  .calm-dows{gap:3px}
+  .calm-day{min-height:22px}
+  .calm-n{font-size:.76rem;min-width:21px;height:21px}
+  .calm-week{gap:3px 0;padding:4px;grid-template-rows:auto repeat(var(--lanes,0),18px)}
+  .calm-dows{padding:0 5px}
   .calm-bar{font-size:.66rem;line-height:17px;padding:0 5px}
 }
