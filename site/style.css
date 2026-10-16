@@ -3670,3 +3670,75 @@ html.bot-ouvert{overflow:hidden}
 .introuvable-x{margin:0;color:var(--ink);font-size:.92rem;line-height:1.55}
 .introuvable-x code{background:rgba(179,38,30,.1);padding:1px 6px;border-radius:5px;
   font-size:.88em;word-break:break-all}
+
+/* ---- Calendrier : la grille mensuelle (16.10.2026) ------------------
+   Une période s'affiche comme une BARRE CONTINUE en travers de la semaine,
+   titre écrit dessus : « Vacances d'automne » se lit du lundi au dimanche
+   sans un clic. C'est ce qu'une grille sait faire et qu'une liste ne sait
+   pas — montrer la forme du temps, quelles semaines sont pleines.
+   Les barres s'empilent en couloirs ; la semaine grandit d'autant. */
+.calm{margin:22px 0 0}
+.calm-barre{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.calm-mois{flex:0 0 auto;min-width:11ch;text-align:center;font-size:1.06rem;
+  color:var(--ink);text-transform:capitalize;letter-spacing:-.01em}
+.calm-nav{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
+  background:#fff;color:var(--ink);font-size:1.15rem;line-height:1;cursor:pointer;
+  display:grid;place-items:center;transition:background .15s,border-color .15s}
+.calm-nav:hover:not(:disabled){background:var(--sand);border-color:var(--blue)}
+.calm-nav:disabled{opacity:.3;cursor:default}
+.calm-auj{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:999px;
+  padding:6px 13px;font-size:.82rem;font-weight:700;color:var(--blue);cursor:pointer}
+.calm-auj:hover{background:var(--sand)}
+
+.calm-dows{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:0 0 4px}
+.calm-dows span{text-align:center;font-size:.72rem;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted)}
+
+.calm-weeks{display:flex;flex-direction:column;gap:4px}
+/* Ligne 1 = les numéros, puis une ligne par couloir de barres. */
+.calm-week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;
+  grid-template-rows:auto repeat(var(--lanes,0),22px);align-items:start}
+.calm-day{grid-row:1;min-height:42px;border:1px solid var(--line);border-radius:10px;
+  background:#fff;padding:5px 0 0;cursor:pointer;font:inherit;color:var(--ink);
+  display:block;text-align:center;transition:border-color .15s,background .15s}
+.calm-day:hover{border-color:var(--blue);background:var(--sand)}
+.calm-vide{cursor:default}
+.calm-vide:hover{border-color:var(--line);background:#fff}
+.calm-n{font-size:.86rem;font-weight:700}
+.calm-hors{opacity:.38}
+.calm-auj.calm-day{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+.calm-auj .calm-n{color:var(--blue)}
+.calm-sel{background:var(--sand);border-color:var(--blue)}
+
+/* La barre. Les bords coupés disent « ça continue la semaine d'avant/d'après ». */
+.calm-bar{align-self:stretch;min-width:0;border:1px solid var(--calp-br,var(--line));
+  background:var(--calp-bg,#eef2fd);color:var(--calp-c,var(--blue));
+  border-radius:6px;padding:0 8px;font:inherit;font-size:.74rem;font-weight:700;
+  line-height:20px;text-align:left;cursor:pointer;overflow:hidden;white-space:nowrap;
+  text-overflow:ellipsis;transition:filter .15s}
+.calm-bar:hover{filter:brightness(.96)}
+.calm-coupe-g{border-top-left-radius:0;border-bottom-left-radius:0;border-left-style:dashed}
+.calm-coupe-d{border-top-right-radius:0;border-bottom-right-radius:0;border-right-style:dashed}
+
+.calm-legende{display:flex;flex-wrap:wrap;gap:8px 16px;list-style:none;margin:14px 0 0;padding:0}
+.calm-lg{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+.calm-lg i{width:11px;height:11px;border-radius:3px;background:var(--calp-bg);
+  border:1px solid var(--calp-br);display:inline-block}
+
+/* Le détail du jour : on clique pour en savoir plus, pas pour découvrir
+   qu'il y a quelque chose — c'était le défaut de l'ancienne grille. */
+.calp-jour{margin:14px 0 0;border:1px solid var(--line);border-radius:14px;
+  background:#fff;padding:14px 16px}
+.calm-jour-t{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.calm-jour-t b{font-size:1rem;color:var(--ink)}
+.calm-fermer{margin-left:auto;border:0;background:none;font-size:1.35rem;line-height:1;
+  color:var(--muted);cursor:pointer;padding:0 2px}
+.calm-fermer:hover{color:var(--ink)}
+
+@media (max-width:640px){
+  .calm-day{min-height:34px}
+  .calm-n{font-size:.78rem}
+  .calm-week{gap:3px;grid-template-rows:auto repeat(var(--lanes,0),19px)}
+  .calm-dows{gap:3px}
+  .calm-bar{font-size:.66rem;line-height:17px;padding:0 5px}
+}

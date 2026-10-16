@@ -141,6 +141,20 @@ function sectionConnue(sec) {
       return h(2, sec.title) + texteDe(sec.lead || sec.body)
         + (Array.isArray(sec.points) ? ul(sec.points) : "");
 
+    // Le carrousel défile à l'écran, mais dans la page servie au robot ce sont
+    // dix LIENS vers les dix programmes. Sans ce cas, il tombait dans le
+    // ramasse-miettes, qui écrit les noms sans les lier : l'accueil — la page
+    // la plus visitée — cessait de désigner nos propres pages.
+    case "carousel":
+      return h(2, sec.title) + p(sec.sub || sec.lead)
+        + `<ul>${tab(sec.items).map((o) => {
+            const nom = o && (o.name || o.title || o.label);
+            if (!nom) return "";
+            return o.href
+              ? `<li><a href="${esc(lienDe(o.href))}">${esc(nom)}</a></li>`
+              : `<li>${esc(nom)}</li>`;
+          }).join("")}</ul>`;
+
     case "progmap":
       return h(2, sec.title) + p(sec.sub) + tab(sec.groupes).map((g) =>
         h(3, g.titre) + p(g.pour) + `<ul>${tab(g.items).map((o) =>

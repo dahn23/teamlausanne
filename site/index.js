@@ -876,15 +876,14 @@ function sectionHTML(sec) {
     // La coquille seulement : les dates arrivent par agenda_public() une fois
     // la page montée (voir calPubCharger).
     //
-    // Ce bloc remplace une grille mensuelle qui occupait deux écrans pour ne
-    // montrer, dans des cases de 85 px, qu'un chiffre et trois pastilles : il
-    // fallait cliquer chaque jour pour savoir ce qu'il contenait, et passer
-    // de mois en mois pour retrouver les vacances de Pâques. Désormais trois
-    // prochaines dates en tête, des filtres, puis la saison entière en clair.
-    // Le coup d'œil sur douze mois, lui, est dans le PDF à télécharger : la
-    // page fait ce qu'une page fait bien (chercher, filtrer, rester à jour),
-    // le PDF ce qu'un papier fait bien (tout voir d'un coup, et s'afficher
-    // sur un frigo).
+    // Trois étages, du plus pressé au plus large : les trois prochaines dates,
+    // les filtres, puis la grille du mois — rétablie le 16.10.2026, demandée
+    // telle quelle. On n'est pas revenu à l'ancienne pour autant : elle ne
+    // montrait qu'un chiffre et trois pastilles de 6 px par jour, donc il
+    // fallait cliquer pour savoir. Une période s'affiche maintenant comme une
+    // barre continue en travers de la semaine, titre écrit dessus (voir
+    // calpCalendrier), et le clic sert à en savoir PLUS, pas à découvrir
+    // qu'il y a quelque chose.
     case "calendrier":
       return `<section class="wsec calp"${sec.anchor ? ` id="${esc(sec.anchor)}" data-anchor="${esc(sec.anchor)}"` : ""}>
         <div class="perks-head">
@@ -900,7 +899,8 @@ function sectionHTML(sec) {
                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M8 1v9m0 0 3.2-3.2M8 10 4.8 6.8M2 12.5v1A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5v-1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
                ${esc(p.label)}</a>`).join("")}</div>` : ""}
         </div>
-        <div class="calp-saison" id="calp-saison" aria-live="polite"></div>
+        <div class="calm" id="calp-cal"></div>
+        <div class="calp-jour" id="calp-jour" hidden></div>
       </section>`;
 
     // ---- Rendez-vous de la saison ----
@@ -1504,7 +1504,7 @@ function renderWorld(key) {
   majPartenairesBas();
   visioGlisser();
   calerBandeaux();
-  calpDates = null; calpFiltre = "tout"; calpTout = false;   // on change de monde : on repart propre
+  calpDates = null; calpFiltre = "tout"; calpMois = null; calpJourSel = null;   // on change de monde : on repart propre
   calPubCharger();
   if ($("accueil-actus")) actusAccueil();
 }
@@ -1724,9 +1724,7 @@ var CALP_GENRES = [
 ];
 var CALP_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin",
   "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-var calpDates = null, calpFiltre = "tout", calpTout = false;
-// Nombre d entrees montrees avant le bouton « Voir toute la saison ».
-const CALP_APERCU = 10;
+var calpDates = null, calpFiltre = "tout";
 
 // Dates manipulées en texte « AAAA-MM-JJ » et jamais en objet Date : une borne
 // de vacances comparée en UTC se décale d'un jour pour qui lit depuis Lausanne.
@@ -1800,14 +1798,14 @@ function calpFusion(rows) {
 }
 
 async function calPubCharger() {
-  if (!document.getElementById("calp-saison")) return;
+  if (!document.getElementById("calp-cal")) return;
   if (calpDates) { calpRendre(); return; }
   const d = new Date();
   const du = calpISO(d.getFullYear(), d.getMonth(), 1);
   const au = calpISO(d.getFullYear() + 1, d.getMonth(), calpJoursDansMois(d.getFullYear() + 1, d.getMonth()));
   const { data, error } = await sb.rpc("agenda_public", { p_du: du, p_au: au });
   if (error) {
-    document.getElementById("calp-saison").innerHTML =
+    document.getElementById("calp-cal").innerHTML =
       '<p class="muted">Le calendrier n\'a pas pu être chargé. Réessayez plus tard.</p>';
     return;
   }
@@ -1824,10 +1822,10 @@ const calpAVenir = () => {
 const calpRetenu = (e) => calpFiltre === "tout" || e.genres.includes(calpFiltre);
 
 function calpRendre() {
-  if (!document.getElementById("calp-saison")) return;
+  if (!document.getElementById("calp-cal")) return;
   calpFiltresRendre();
   calpSuite();
-  calpSaison();
+  calpCalendrier();
 }
 
 // Les pastilles : « Tout », puis les genres réellement présents dans la saison.
@@ -1866,54 +1864,150 @@ function calpSuite() {
   }).join("");
 }
 
-// La saison entière, groupée par mois. Une ligne = une période, lisible sans
-// cliquer : c'est ce que l'ancienne grille ne savait pas faire.
-function calpSaison() {
-  const L = document.getElementById("calp-saison"); if (!L) return;
-  const lot = calpAVenir().filter(calpRetenu);
-  if (!lot.length) {
-    L.innerHTML = `<p class="calp-rien">Rien à afficher avec ce filtre.
-      <button type="button" class="calp-lien" data-calp-filtre="tout">Tout voir</button></p>`;
-    return;
+// ---- Le calendrier, en vrai calendrier ----
+// Retour à la grille mensuelle le 16.10.2026, demandée telle quelle. L'ancienne
+// grille avait pourtant un défaut réel : des cases de 85 px où chaque jour ne
+// portait qu'un chiffre et trois pastilles de 6 px, donc il fallait cliquer un
+// jour pour savoir ce qu'il contenait. On ne la remet pas à l'identique.
+//
+// Ce qui change, et c'est tout l'intérêt d'une grille : une période s'affiche
+// comme une BARRE CONTINUE en travers de la semaine, avec son titre écrit
+// dessus. « Vacances d'automne » se lit d'un bout à l'autre, du lundi au
+// dimanche, sans un clic. Un calendrier sert à voir la forme du temps — quelles
+// semaines sont pleines, lesquelles sont libres — et c'est ce que des pastilles
+// ne savent pas montrer.
+//
+// Les barres sont rangées en couloirs : deux périodes qui se chevauchent ne se
+// marchent pas dessus, elles s'empilent. La hauteur de la semaine suit.
+var calpMois = null, calpMin = null, calpMax = null, calpJourSel = null;
+
+// Lundi = 0 : JS compte la semaine à partir de dimanche, pas la Suisse.
+const calpPremierCase = (a, m) => (new Date(a, m, 1).getDay() + 6) % 7;
+const calpDecaler = (ym, n) => {
+  const [a, m] = ym.split("-").map(Number);
+  const d = new Date(a, m - 1 + n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+// Entrées couvrant un jour donné, dans l'ordre de la légende : ce qui demande
+// une action (stage, fermeture) passe avant le décor (vacances, férié).
+function calpDuJour(iso) {
+  const rang = (g) => CALP_GENRES.findIndex(([k]) => k === g);
+  return (calpDates || []).filter((e) => e.debut <= iso && iso <= e.fin && calpRetenu(e))
+    .sort((a, b) => rang(a.genre) - rang(b.genre));
+}
+
+function calpCalendrier() {
+  const box = document.getElementById("calp-cal"); if (!box) return;
+  if (!calpMois) {
+    const d = new Date();
+    calpMois = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    calpMin = calpMois;
+    calpMax = calpDecaler(calpMois, 11);      // la fenêtre que charge agenda_public()
   }
+  const [a, m] = calpMois.split("-").map(Number);
+  const an = a, mois = m - 1;
   const auj = calpAujourdHui();
-  // agenda_public() renvoie douze mois : tout déplier d'un coup redonnerait le
-  // défaut qu'on vient de corriger — une section de trois écrans. On s'arrête
-  // aux dix premières entrées, ce qui couvre les trois ou quatre mois qui
-  // viennent, et le reste est à un clic.
-  const vus = calpTout ? lot : lot.slice(0, CALP_APERCU);
-  const mois = [];
-  for (const e of vus) {
-    const ym = e.debut.slice(0, 7);
-    if (!mois.length || mois[mois.length - 1].ym !== ym) mois.push({ ym, lot: [] });
-    mois[mois.length - 1].lot.push(e);
+  const nb = calpJoursDansMois(an, mois);
+  const avant = calpPremierCase(an, mois);
+
+  // Les semaines, en jours ISO. On complète le début et la fin avec les jours
+  // des mois voisins : une grille trouée se lit mal, et une période à cheval
+  // sur deux mois doit pouvoir continuer jusqu'au bord.
+  const cases = [];
+  for (let i = avant; i > 0; i--) {
+    const d = new Date(an, mois, 1 - i);
+    cases.push({ iso: calpISO(d.getFullYear(), d.getMonth(), d.getDate()), j: d.getDate(), hors: true });
   }
-  L.innerHTML = mois.map(({ ym, lot: items }) => {
-    const [a, m] = ym.split("-").map(Number);
-    return `<section class="calp-mois">
-      <h3 class="calp-mois-t">${CALP_MOIS[m - 1]} <span>${a}</span></h3>
-      <ul class="calp-items">${items.map((e) => {
-        const encours = e.debut <= auj && e.fin >= auj;
-        const lien = e.genres.includes("stage")
-          ? ` <button type="button" class="calp-lien" data-scroll-page="stages">Voir les stages</button>` : "";
-        const chips = e.genres.length > 1
-          // Une pastille décrit UNE entrée : « Fermeture », pas « Fermetures ».
-          // Le pluriel est réservé au filtre, qui, lui, compte des entrées.
-          ? `<span class="calp-chips">${e.genres.map((g) =>
-              `<span class="calp-chip calp-g-${g}">${esc(CALP_UN[g] || calpLabel(g))}</span>`).join("")}</span>` : "";
-        const plus = e.extras.length ? `<span class="calp-aussi">${esc(e.extras.join(" · "))}</span>` : "";
-        return `<li class="calp-item calp-g-${e.genre}${encours ? " calp-encours" : ""}">
-          <span class="calp-quand">${esc(calpPeriode(e.debut, e.fin))}${
-            encours ? `<em class="calp-badge">en cours</em>` : ""}</span>
-          <b class="calp-titre">${esc(e.titre)}</b>
-          ${plus}
-          ${e.detail ? `<span class="calp-detail">${esc(e.detail)}</span>` : ""}
-          ${chips}${lien}</li>`;
-      }).join("")}</ul>
-    </section>`;
-  }).join("") + (calpTout || lot.length <= CALP_APERCU ? "" :
-    `<button type="button" class="calp-plus" data-calp-plus>
-       Voir toute la saison <span class="calp-n">${lot.length - CALP_APERCU} de plus</span></button>`);
+  for (let j = 1; j <= nb; j++) cases.push({ iso: calpISO(an, mois, j), j, hors: false });
+  while (cases.length % 7) {
+    const d = new Date(an, mois, nb + (cases.length - avant - nb) + 1);
+    cases.push({ iso: calpISO(d.getFullYear(), d.getMonth(), d.getDate()), j: d.getDate(), hors: true });
+  }
+  const semaines = [];
+  for (let i = 0; i < cases.length; i += 7) semaines.push(cases.slice(i, i + 7));
+
+  const retenus = (calpDates || []).filter(calpRetenu);
+  const JOURS = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
+
+  box.innerHTML = `
+    <div class="calm-barre">
+      <button type="button" class="calm-nav" data-calm="-1" aria-label="Mois précédent"
+        ${calpDecaler(calpMois, -1) < calpMin ? "disabled" : ""}>‹</button>
+      <strong class="calm-mois" aria-live="polite">${CALP_MOIS[mois]} ${an}</strong>
+      <button type="button" class="calm-nav" data-calm="1" aria-label="Mois suivant"
+        ${calpDecaler(calpMois, 1) > calpMax ? "disabled" : ""}>›</button>
+      ${calpMois === calpMin ? "" : '<button type="button" class="calm-auj" data-calm-auj>Aujourd\'hui</button>'}
+    </div>
+    <div class="calm-dows" aria-hidden="true">${JOURS.map((j) => `<span>${j}</span>`).join("")}</div>
+    <div class="calm-weeks">${semaines.map((sem) => {
+      const debSem = sem[0].iso, finSem = sem[6].iso;
+      // Les périodes qui touchent cette semaine, les plus longues d'abord :
+      // une barre qui traverse toute la semaine se lit mieux en haut.
+      const barres = retenus
+        .filter((e) => e.debut <= finSem && e.fin >= debSem)
+        .map((e) => {
+          let d = 0; while (d < 6 && sem[d].iso < e.debut) d++;
+          let f = 6; while (f > 0 && sem[f].iso > e.fin) f--;
+          return { e, col: d + 1, span: Math.max(1, f - d + 1),
+                   coupeAvant: e.debut < debSem, coupeApres: e.fin > finSem };
+        })
+        .sort((x, y) => y.span - x.span || x.col - y.col);
+      // Couloirs : on pose chaque barre sur la première ligne libre.
+      const couloirs = [];
+      for (const b of barres) {
+        let k = 0;
+        while (couloirs[k] && couloirs[k].some((o) => b.col < o.col + o.span && o.col < b.col + b.span)) k++;
+        (couloirs[k] = couloirs[k] || []).push(b);
+        b.lane = k;
+      }
+      return `<div class="calm-week" style="--lanes:${couloirs.length}">
+        ${sem.map((c, i) => {
+          const n = calpDuJour(c.iso).length;
+          return `<button type="button" class="calm-day${c.hors ? " calm-hors" : ""}${
+            c.iso === auj ? " calm-auj" : ""}${c.iso === calpJourSel ? " calm-sel" : ""}${
+            n ? "" : " calm-vide"}"
+            style="grid-column:${i + 1}" data-calm-jour="${c.iso}"
+            ${n ? `aria-label="${esc(c.j + " " + CALP_MOIS[Number(c.iso.slice(5, 7)) - 1])} — ${n} entrée(s)"` : `aria-label="${c.j}"`}>
+            <span class="calm-n">${c.j}</span></button>`;
+        }).join("")}
+        ${barres.map((b) => `<button type="button"
+            class="calm-bar calp-g-${b.e.genre}${b.coupeAvant ? " calm-coupe-g" : ""}${b.coupeApres ? " calm-coupe-d" : ""}"
+            style="grid-column:${b.col} / span ${b.span};grid-row:${b.lane + 2}"
+            data-calm-jour="${b.e.debut < debSem ? debSem : b.e.debut}"
+            title="${esc(b.e.titre)} — ${esc(calpPeriode(b.e.debut, b.e.fin))}">
+            <span>${esc(b.e.titre)}</span></button>`).join("")}
+      </div>`;
+    }).join("")}</div>
+    <ul class="calm-legende">${CALP_GENRES.filter(([g]) =>
+      retenus.some((e) => e.genres.includes(g))).map(([g, lbl]) =>
+      `<li class="calm-lg calp-g-${g}"><i aria-hidden="true"></i>${esc(lbl)}</li>`).join("")}</ul>`;
+  calpJourRendre();
+}
+
+// Le détail du jour choisi, sous la grille. C'est la réponse au reproche fait
+// à l'ancienne version : on clique pour EN SAVOIR PLUS, pas pour découvrir
+// qu'il y a quelque chose.
+function calpJourRendre() {
+  const box = document.getElementById("calp-jour"); if (!box) return;
+  if (!calpJourSel) { box.innerHTML = ""; box.hidden = true; return; }
+  const lot = calpDuJour(calpJourSel);
+  if (!lot.length) { box.innerHTML = ""; box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = `<div class="calm-jour-t">
+      <b>${esc(calpFrDate(calpJourSel))}</b>
+      <button type="button" class="calm-fermer" data-calm-fermer aria-label="Fermer">×</button>
+    </div>
+    <ul class="calp-items">${lot.map((e) => {
+      const lien = e.genres.includes("stage")
+        ? ` <button type="button" class="calp-lien" data-scroll-page="stages">Voir les stages</button>` : "";
+      const plus = (e.extras || []).length ? `<span class="calp-aussi">${esc(e.extras.join(" · "))}</span>` : "";
+      return `<li class="calp-item calp-g-${e.genre}">
+        <span class="calp-quand">${esc(calpPeriode(e.debut, e.fin))}</span>
+        <b class="calp-titre">${esc(e.titre)}</b>
+        ${plus}
+        ${e.detail ? `<span class="calp-detail">${esc(e.detail)}</span>` : ""}
+        ${lien}</li>`;
+    }).join("")}</ul>`;
 }
 
 // ---- Annonce temporaire sur l'accueil ----
@@ -2265,12 +2359,24 @@ document.addEventListener("click", (e) => {
   if (cfil) {
     const g = cfil.dataset.calpFiltre;
     calpFiltre = (calpFiltre === g && g !== "tout") ? "tout" : g;
-    // Changer de filtre replie la liste : sinon on garde ouvertes les trente
-    // entrées d'un filtre qu'on vient de quitter.
-    calpTout = false;
+    // Changer de filtre referme le détail : il porterait sur un jour dont les
+    // entrées viennent peut-être d'être filtrées.
+    calpJourSel = null;
     calpRendre(); return;
   }
-  if (e.target.closest("[data-calp-plus]")) { calpTout = true; calpRendre(); return; }
+  // Calendrier : navigation de mois, choix d'un jour, fermeture du détail.
+  const cnav = e.target.closest("[data-calm]");
+  if (cnav) { calpMois = calpDecaler(calpMois, Number(cnav.dataset.calm)); calpCalendrier(); return; }
+  if (e.target.closest("[data-calm-auj]")) { calpMois = calpMin; calpCalendrier(); return; }
+  if (e.target.closest("[data-calm-fermer]")) { calpJourSel = null; calpCalendrier(); return; }
+  const cjour = e.target.closest("[data-calm-jour]");
+  if (cjour) {
+    const iso = cjour.dataset.calmJour;
+    // Recliquer le jour ouvert le referme : sinon le panneau reste collé en
+    // bas de la grille sans qu'on sache comment s'en débarrasser.
+    calpJourSel = calpJourSel === iso ? null : iso;
+    calpCalendrier(); return;
+  }
   const cpage = e.target.closest("[data-scroll-page]");
   if (cpage) { allerA(cpage.dataset.scrollPage); return; }
   // Fiches des coachs. La fermeture passe avant l'ouverture : le voile couvre la

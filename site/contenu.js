@@ -244,58 +244,23 @@ worlds:
         lead: "Du Kids Tennis au Pro, la même équipe et la même exigence. Cliquez sur une carte pour lire son parcours.",
         lien: { label: "Voir toute l'équipe", href: "#coaches" },
         items: "@coachs" },
-      // Les dix programmes, tous visibles, groupés par intention.
-      //
-      // C'était un carrousel : trois ou quatre cartes à l'écran, les six autres
-      // derrière un défilement latéral que peu de visiteurs font. Un carrousel
-      // sert à flâner, pas à CHOISIR — on ne compare pas ce qu'on ne voit pas.
-      //
-      // Le groupement répond à la question que se pose un parent qui arrive —
-      // « lequel est pour mon enfant ? » — avant le premier clic. L'âge et le
-      // nombre de places viennent de la pyramide ci-dessus, la phrase de
-      // chaque carte du sous-titre de sa propre page : une seule vérité.
-      { type: "progmap", anchor: "programmes", eyebrow: "Cours pour tous",
-        title: "Un programme pour chaque niveau",
+      // Carrousel : les dix programmes défilent latéralement, trois ou quatre
+      // à l'écran. On est revenu à cette forme le 16.10.2026 — la grille à
+      // plat montrait tout mais mangeait un écran et demi sur l'accueil.
+      { type: "carousel", anchor: "programmes", eyebrow: "Cours pour tous", title: "Un programme pour chaque niveau",
         sub: "Du premier échange à la performance, un parcours clair pour progresser avec plaisir.",
-        note: "L'âge n'est qu'un repère : la progression s'adapte à chacun, à 1–2 ans près. Celles et ceux qui ne rejoignent pas une filière sélective poursuivent en Club.",
-        groupes: [
-          { titre: "Pour débuter", pour: "Découvrir le tennis, ou jouer régulièrement sans viser la compétition", items: [
-            { name: "Kids Tennis", age: "4–10 ans · ouvert à tous", href: "#kids",
-              photo: "assets/photos/kidstennis-2026.jpg",
-              quoi: "Le tennis dès 4 ans, dans un cadre ludique, structuré et bienveillant." },
-            { name: "Club", age: "tous niveaux", href: "#club-academy",
-              photo: "assets/photos/club-2026.jpg",
-              quoi: "Une à deux fois par semaine, pour progresser à son rythme et prendre du plaisir." },
-            { name: "Adultes et privés", age: "tous niveaux", href: "#adultes",
-              photo: "assets/photos/adultes-2026.jpg",
-              quoi: "Cours privés, semi-privés et de groupe, adaptés à votre rythme." },
-          ]},
-          { titre: "Pour progresser et jouer", pour: "Passer un cap, disputer des matchs, utiliser les vacances", items: [
-            { name: "Compétition", age: "≈ 10–13 ans · 16 places", href: "#competition",
-              photo: "assets/photos/competition-2026-card.jpg",
-              quoi: "Entraînement structuré et matchs, pour les jeunes prêts à passer un cap." },
-            { name: "Performance", age: "≈ 12–15 ans · 8 places", href: "#performance",
-              photo: "assets/photos/performance-2026.jpg",
-              quoi: "Le lien entre la Compétition et le Sport-études : charge renforcée, physique intégré." },
-            { name: "Stages", age: "4–18 ans et adultes", href: "#stages",
-              photo: "assets/photos/stages-2026.jpg",
-              quoi: "Pendant les vacances scolaires, de la découverte ludique à la semaine intensive." },
-            { name: "Game Zone", age: "tournois juniors", href: "#gamezone",
-              photo: "assets/photos/gamezone-2026.jpg",
-              quoi: "Des tournois presque chaque week-end, sur une journée, deux matchs garantis." },
-          ]},
-          { titre: "Pour viser haut", pour: "Concilier le tennis et les études, ou en faire son métier", items: [
-            { name: "Sport-études", age: "14–19 ans · places limitées", href: "#sport-etudes",
-              photo: "assets/photos/sport-etudes-2026.jpg",
-              quoi: "Deux heures de tennis, une heure de physique et quatre heures de cours par jour." },
-            { name: "Pro U18", age: "après la scolarité", href: "#pro-u18",
-              photo: "assets/photos/pro-u18-2026.jpg",
-              quoi: "L'entraînement devient le métier : deux sessions par jour et le circuit." },
-            { name: "Pro", age: "dès 18 ans", href: "#pro",
-              photo: "assets/photos/pro-2026.jpg",
-              quoi: "Pas d'offre standard : un calendrier, des objectifs et un encadrement sur mesure." },
-          ]},
-        ]},
+        items: [
+          { name: "Kids Tennis", photo: "assets/photos/kidstennis-2026.jpg", href: "#kids" },
+          { name: "Club", photo: "assets/photos/club-2026.jpg", href: "#club-academy" },
+          { name: "Compétition", photo: "assets/photos/competition-2026-card.jpg", href: "#competition" },
+          { name: "Performance", photo: "assets/photos/performance-2026.jpg", href: "#performance" },
+          { name: "Sport-études", photo: "assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
+          { name: "Pro U18", photo: "assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
+          { name: "Pro", photo: "assets/photos/pro-2026.jpg", href: "#pro" },
+          { name: "Game Zone", photo: "assets/photos/gamezone-2026.jpg", href: "#gamezone" },
+          { name: "Stages", photo: "assets/photos/stages-2026.jpg", href: "#stages" },
+          { name: "Adultes et privés", photo: "assets/photos/adultes-2026.jpg", href: "#adultes" },
+        ] },
       // Les actualités vivent au bout d'un menu déroulant : personne ne va les
       // y chercher. Ce bloc met les trois derniers articles sur le chemin, là
       // où les gens passent déjà.
@@ -475,12 +440,10 @@ details:
           ["Préparation mentale", "Un accompagnement mental intégré à la semaine."],
           ["Et après", "Université suisse, institutions américaines (NCAA) ou circuit professionnel."],
         ]},
-      // Ce qui est compris, et surtout ce qui ne l'est PAS : l'abonnement
-      // d'hiver et le cordage se règlent à part. Mieux vaut le lire ici que
-      // le découvrir sur une facture.
+      // Ce qui est compris. L'abonnement d'hiver ne figure plus ici (16.10.2026) :
+      // il se discute à l'inscription, pas sur la page qui présente la filière.
       { type: "features", title: "Cotisation et cordage : ce qui est compris", items: [
         ["Cotisation d'été offerte", "La cotisation d'été au club est prise en charge par l'académie : rien à régler de votre côté."],
-        ["Abonnement d'hiver à votre charge", "Il n'est pas compris dans le programme et se règle directement auprès du club."],
         ["Cordage à votre charge", "Chez nos amis d'Aubert Sport, au tarif préférentiel de 20.– la raquette."],
       ]},
       { type: "students", eyebrow: "On vous présente",
