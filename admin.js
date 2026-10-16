@@ -12060,10 +12060,19 @@ async function payRafraichir() {
 // « payee » dès que le reste tombe à zéro, et retour à « envoyee » si un
 // versement est supprimé. Sans ce retour, une erreur de saisie laisserait une
 // facture marquée payée que plus rien ne réclamerait.
+// Une facture peut être payée sans avoir été envoyée : la famille règle au
+// secrétariat, ou vire le montant avant que le mail ne parte. On revient donc
+// toujours à l'état « d'avant le paiement », et cet état se lit sur sent_at —
+// la seule chose qui dise si le document est vraiment parti.
+//
+// L'ancienne version ramenait à « envoyée » dans tous les cas : supprimer un
+// versement sur une facture jamais expédiée l'aurait donc déclarée envoyée,
+// et elle serait sortie de la liste à envoyer sans que personne ne la voie
+// partir.
 async function paySyncStatut(s) {
-  const voulu = s.statut_reel === "partielle" ? "envoyee" : s.statut_reel;
+  const base = payFac.sent_at ? "envoyee" : "a_envoyer";
+  const voulu = Number(s.reste) <= 0.005 ? "payee" : base;
   if (payFac.status === voulu || payFac.status === "annulee") return;
-  if (!["envoyee", "payee"].includes(voulu)) return;
   const patch = { status: voulu, paid_at: voulu === "payee" ? new Date().toISOString() : null };
   await sb.from("out_invoices").update(patch).eq("id", payFac.id);
   payFac.status = voulu;
@@ -12240,8 +12249,12 @@ function renderOiFilters() {
 // « À envoyer maintenant » : à envoyer ET dont la date d'émission est arrivée.
 // Sans ce filtre, « Envoyer tout » embarquait les échéances de toute l'année —
 // une famille aurait reçu en septembre sa facture de juin.
+// Une facture déjà soldée n'est plus à envoyer, même si elle n'est jamais
+// partie : la famille a payé au secrétariat, lui expédier la facture ensuite
+// ne ferait que semer le doute.
 const oiAEnvoyerMaintenant = (f) =>
-  f.status === "a_envoyer" && (!f.issue_date || f.issue_date <= new Date().toISOString().slice(0, 10));
+  f.status === "a_envoyer" && !(Number(f.reste) <= 0.005 && Number(f.verse) > 0)
+  && (!f.issue_date || f.issue_date <= new Date().toISOString().slice(0, 10));
 
 // Le predicat de la liste, ecrit UNE fois : le bouton d'envoi s'en sert aussi,
 // donc il ne peut pas envoyer autre chose que ce qui est affiche.
@@ -12263,7 +12276,13 @@ function renderOutInvoices() {
     const items = Array.isArray(f.items) && f.items.length ? f.items : (f.label ? [{ label: f.label, amount: f.amount }] : []);
     const acts = (editable ? `<button class="ghost oi-edit" data-id="${f.id}" title="Modifier (dates, articles, destinataire)">✎</button>` : "")
       + (f.status === "a_envoyer" ? `<button class="ghost oi-send" data-id="${f.id}">Envoyer</button>` : "")
-      + (f.status === "envoyee" ? `<button class="ghost oi-send" data-id="${f.id}" title="Renvoyer">↻</button><button class="ghost oi-pay" data-id="${f.id}" title="Versements, acomptes, annulation partielle">💰 Paiement</button>` : "")
+      + (f.status === "envoyee" ? `<button class="ghost oi-send" data-id="${f.id}" title="Renvoyer">↻</button>` : "")
+      // Le paiement s'enregistre AUSSI sur une facture pas encore envoyée :
+      // une famille règle au secrétariat, ou vire le montant avant que le mail
+      // ne parte. Obliger à l'envoyer d'abord ferait partir une facture déjà
+      // payée — et c'est exactement ce qu'on veut éviter.
+      + (["a_envoyer", "envoyee", "payee"].includes(f.status)
+          ? `<button class="ghost oi-pay" data-id="${f.id}" title="Versements, acomptes, annulation partielle">💰 Paiement</button>` : "")
       + (editable ? `<button class="ghost oi-cancel" data-id="${f.id}" title="Annuler">✕</button>` : "");
     const dateIn = (k) => editable ? `<input type="date" class="oi-date" data-id="${f.id}" data-k="${k}" value="${f[k] || ""}" style="width:118px" />` : (f[k] ? frDate(f[k]) : "—");
     return `<tr class="${f.status === "annulee" ? "muted" : ""}">
