@@ -11745,11 +11745,15 @@ function renderOiProduits() {
   const noms = Object.keys(compte).sort((a, b) => compte[b] - compte[a] || a.localeCompare(b));
   const nIncoh = base.filter(oiIncoherente).length;
   if (!noms.length) { z.innerHTML = ""; return; }
+  // Mêmes classes que les deux autres rangées de filtres (statuts, filières) :
+  // un troisième style de pastille à trois centimètres des deux premiers se
+  // lirait comme un autre genre de commande, alors que c'en est le même.
   const chip = (v, lbl, n, cls) =>
-    `<button type="button" class="fac-chip${cls || ""}${oiProdFiltre.has(v) ? " on" : ""}" data-prod="${esc(v)}">${esc(lbl)}<span class="fac-chip-n">${n}</span></button>`;
-  z.innerHTML = `<span class="fac-chip-lbl">Produit</span>`
+    `<button type="button" class="chip filt${cls || ""}${(v ? oiProdFiltre.has(v) : !oiProdFiltre.size) ? " sel" : ""}"
+       data-prod="${esc(v)}" aria-pressed="${v ? oiProdFiltre.has(v) : !oiProdFiltre.size}">${esc(lbl)} <span class="muted">(${n})</span></button>`;
+  z.innerHTML = `<span class="oi-prod-lbl">Produit</span>`
     + chip("", "Tous", base.length)
-    + (nIncoh ? chip("!incoherent", "À vérifier", nIncoh, " fac-chip-alerte") : "")
+    + (nIncoh ? chip("!incoherent", "À vérifier", nIncoh, " oi-chip-alerte") : "")
     + noms.map((n) => chip(n, n, compte[n])).join("");
   z.querySelectorAll("[data-prod]").forEach((b) => b.addEventListener("click", () => {
     const v = b.dataset.prod;
