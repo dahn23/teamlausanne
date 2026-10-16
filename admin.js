@@ -11925,7 +11925,17 @@ async function loadHiver() {
           <td><b>${esc(t.name)}</b><div class="muted" style="font-size:.78rem">${esc(t.kind || "")}${t.contact_email ? "" : " · sans e-mail"}</div></td>
           <td class="muted" style="font-size:.82rem">${l.map((r) =>
             `<div>${esc(JOURS[r.weekday] || "")} ${esc(hhmm(r.start_time))}–${esc(hhmm(r.end_time))}${r.courts ? ` · court ${esc(r.courts)}` : ""}</div>`).join("")}</td>
-          <td style="white-space:nowrap"><b>${oiChf(somme)}</b></td>
+          <td style="white-space:nowrap"><b>${oiChf(somme)}</b>${
+            // L'écart négocié se lit à côté du total, sinon on se demande
+            // pourquoi TC Boisy paie 950 là où la grille dit 1100 — et on
+            // finit par « corriger » le montant juste.
+            (() => {
+              const aj = l.reduce((a, r) => a + (Number(r.ajustement_chf) || 0), 0);
+              if (!aj) return "";
+              const motif = l.map((r) => r.ajustement_motif).filter(Boolean)[0] || "";
+              return `<div class="hiv-aj" title="${esc(motif)}">tarif ${oiChf(somme - aj)} · ${
+                aj < 0 ? "−" : "+"}${oiChf(Math.abs(aj))}</div>`;
+            })()}</td>
           <td style="font-size:.82rem">${adrOk
             ? esc(`${t.address}, ${t.postal_code} ${t.city}`)
             : '<span style="color:#b45309">adresse incomplète</span>'}</td>

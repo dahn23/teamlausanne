@@ -5303,3 +5303,8 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .oi-amb{margin-top:8px;padding:8px 10px;border-radius:8px;background:#fef3c7;
   color:#92400e;font-size:.82rem;font-weight:600;line-height:1.45}
 .oi-src-amb{font-size:.8rem;color:#92400e;font-weight:700}
+
+/* Location de courts : l'écart négocié, à côté du total. Sans lui on se
+   demande pourquoi le montant ne colle pas à la grille, et on « corrige »
+   le chiffre juste. */
+.hiv-aj{font-size:.72rem;font-weight:700;color:#92400e;white-space:nowrap}
