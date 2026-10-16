@@ -10579,7 +10579,7 @@ function facAller(sub, filtre) {
   oiRech = "";
   const ch = $("oi-search");
   if (ch) ch.value = "";
-  renderOiFilters(); renderOiProduits(); renderOutInvoices();
+  renderOiFilters(); renderOiProduits(); renderOutInvoices(); renderOiResume();
 }
 
 function renderFacEntete(c) {
@@ -11287,14 +11287,14 @@ async function loadOutInvoices() {
   }
   oiBrancherRecherche();
   oiRenderAttente();
-  renderOiFilters(); renderOiProduits(); renderOutInvoices();
+  renderOiFilters(); renderOiProduits(); renderOutInvoices(); renderOiResume();
   // PDF manquant (facture modifiée en base, échec précédent…) → régénéré automatiquement, en arrière-plan.
   const missing = oiList.filter((x) => !x.pdf_path && (x.status === "a_envoyer" || x.status === "envoyee"));
   if (missing.length && !oiRegen) {
     oiRegen = true;
     try { for (const x of missing) { try { await oiMakePdf(x); } catch (e) { console.warn("PDF", x.number, e); } } }
     finally { oiRegen = false; }
-    renderOiFilters(); renderOiProduits(); renderOutInvoices();
+    renderOiFilters(); renderOiProduits(); renderOutInvoices(); renderOiResume();
   }
 }
 let oiRegen = false;
@@ -11323,7 +11323,7 @@ function oiBrancherRecherche() {
   ch.dataset.pret = "1";
   ch.addEventListener("input", () => {
     oiRech = ch.value.trim();
-    renderOiFilters(); renderOiProduits(); renderOutInvoices();
+    renderOiFilters(); renderOiProduits(); renderOutInvoices(); renderOiResume();
   });
 }
 
@@ -11345,11 +11345,46 @@ function oiBasculer(ens, v) {
   if (!v) ens.clear();
   else if (ens.has(v)) ens.delete(v);
   else ens.add(v);
-  renderOiFilters(); renderOiProduits(); renderOutInvoices();
+  renderOiFilters(); renderOiProduits(); renderOutInvoices(); renderOiResume();
 }
 // Une facture passe-t-elle le filtre de statut ? Les statuts sont exclusifs
 // entre eux, donc plusieurs chips cochés = une union.
 
+
+// ---- Vue d'ensemble financière (point 8, db/163) ----
+// Six montants, calculés en base par out_resume_financier() — et nulle part
+// ailleurs. Les recalculer ici en JavaScript, c'est garantir qu'un jour les
+// deux versions diront des chiffres différents.
+//
+// Le piège nommé par l'équipe, et évité : le double comptage. « En retard »
+// est une PARTIE de « à encaisser », et l'écran le dit au lieu de laisser
+// croire qu'on peut les additionner. Les abonnements d'hiver sont tenus hors
+// des autres totaux.
+const OI_RESUME = {
+  a_envoyer:   { ordre: 1, aide: "Factures préparées, pas encore parties.",            vers: null },
+  a_encaisser: { ordre: 2, aide: "Envoyées, pas encore payées en entier.",             vers: "envoyees" },
+  en_retard:   { ordre: 3, aide: "Échéance dépassée. Compris dans « à encaisser ».",   vers: null, alerte: true },
+  encaisse:    { ordre: 4, aide: "Versements réellement reçus.",                       vers: "payees" },
+  hiver:       { ordre: 5, aide: "Locations de courts. Hors des autres totaux.",       vers: null },
+  a_facturer:  { ordre: 6, aide: "Inscrits sans facture pour leur abonnement.",        vers: null },
+};
+
+async function renderOiResume() {
+  const z = $("oi-resume"); if (!z) return;
+  const { data, error } = await sb.rpc("out_resume_financier");
+  if (error || !data) { z.innerHTML = ""; return; }
+  const lot = data.slice().sort((a, b) => (OI_RESUME[a.cle]?.ordre || 9) - (OI_RESUME[b.cle]?.ordre || 9));
+  z.innerHTML = lot.map((r) => {
+    const m = OI_RESUME[r.cle] || {};
+    const n = Number(r.n) || 0;
+    return `<div class="oi-res${m.alerte ? " oi-res-alerte" : ""}${r.sous_total_de ? " oi-res-sous" : ""}">
+      <span class="oi-res-l">${esc(r.libelle)}</span>
+      <b class="oi-res-m">${oiChf(Number(r.montant) || 0)}</b>
+      <span class="oi-res-n">${n} ${r.cle === "a_facturer" ? (n > 1 ? "personnes" : "personne") : (n > 1 ? "factures" : "facture")}</span>
+      <span class="oi-res-a">${esc(m.aide || "")}</span>
+    </div>`;
+  }).join("");
+}
 // ---- Produit vendu, et cohérence avec le cours de l'enfant (db/161, db/162) ----
 // Point 2 de la liste de l'équipe. On ne refuse pas de CRÉER une facture qui
 // ne colle pas au cours : il y a de bonnes raisons de le faire (rattrapage,
