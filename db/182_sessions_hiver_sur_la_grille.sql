@@ -196,3 +196,39 @@ update court_bookings set color = '#e5ff00'
 -- Relancer la fonction est sans danger : chaque bloc porte son recurrence_id,
 -- les 1343 déjà posés sont reconnus et sautés. 55 ajoutés, une semaine.
 select public.winter_sessions_to_bookings('2026-2027', date '2026-10-19', date '2027-04-14', true);
+
+-- ---- L'hiver s'arrête le 11 avril (16.10.2026) ---------------------
+-- J'avais pris le 14 avril depuis season_of(), qui fait commencer l'été le 15.
+-- Ce sont deux choses différentes : la bascule été/hiver des COURTS, et la fin
+-- de la saison d'hiver du CLUB. C'est le réglage du club qui fait foi —
+-- app_settings.season dit winter_start 2026-10-19, winter_end 2027-04-11, et
+-- les deux bornes par défaut le disent maintenant aussi.
+delete from court_bookings
+ where kind = 'hiver' and booking_date > date '2027-04-11';
+
+-- Les trois fonctions à dates reprennent ces bornes. Changer une valeur par
+-- défaut impose de redéfinir la fonction : plutôt que de retaper cent lignes
+-- et d'y glisser une faute, on relit la définition et on n'y remplace que la
+-- date — avec un garde-fou qui lève si la date attendue n'y est pas.
+do $$
+declare f text; src text; d record;
+begin
+  for d in select unnest(array['2026-10-26','2027-04-14']) as avant,
+                  unnest(array['2026-10-19','2027-04-11']) as apres
+  loop
+    foreach f in array array[
+      'public.winter_sessions_to_bookings(text,date,date,boolean)',
+      'public.winter_sessions_clear(date,date)',
+      'public.winter_rentals_generate(text,date,date,boolean)']
+    loop
+      src := pg_get_functiondef(f::regprocedure);
+      if position(d.avant in src) > 0 then
+        execute replace(src, d.avant, d.apres);
+      end if;
+    end loop;
+  end loop;
+end $$;
+
+-- Vérifié : un appel sans argument couvre 2026-10-19 → 2027-04-11 et ne crée
+-- rien (1361 blocs déjà en place), donc les bornes par défaut décrivent
+-- exactement ce qui est posé.
