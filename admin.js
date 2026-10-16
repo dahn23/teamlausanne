@@ -216,13 +216,13 @@ const DEFAULT_TAB_ACCESS = {
   superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
   admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
   secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "social", "assistant", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats"],
-  head_coach: ["dashboard", "calendrier", "anniv", "social", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "heures"],
-  coach:      ["cours", "social", "matchs", "lastscores", "plantournois", "phystests", "physique", "heures"],
-  coach_physique: ["cours", "social", "phystests", "physique", "heures"],
-  moniteur:   ["cours", "social", "heures"],
+  head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "heures"],
+  coach:      ["cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "heures"],
+  coach_physique: ["cours", "phystests", "physique", "heures"],
+  moniteur:   ["cours", "heures"],
   affichage:  ["resa"],                      // ecran du club : grille des courts, lecture seule
-  prof:       ["etudes", "social"],
-  coach_mental: ["mental", "matchs", "social"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
+  prof:       ["etudes"],
+  coach_mental: ["mental", "matchs"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
   // GameZone en lecture seule (db/135) : tout l'onglet visible, aucune
