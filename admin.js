@@ -11398,7 +11398,7 @@ async function loadAFacturer() {
           <thead><tr><th>Joueur</th><th>Filière</th><th>Prix</th><th></th></tr></thead>
           <tbody>${l.map((r) => `<tr>
             <td><b>${esc(r.nom)}</b></td>
-            <td class="muted">${esc(r.filiere)}</td>
+            <td class="muted">${esc(oiFil(r.filiere))}</td>
             <td style="white-space:nowrap">${oiChf(Number(r.prix) || 0)}</td>
             <td><button type="button" class="ghost afact-un" data-p="${esc(r.person_id)}" data-prod="${esc(r.product_id)}">Facturer seul</button></td>
           </tr>`).join("")}</tbody></table></div>
@@ -11569,7 +11569,8 @@ async function renderOiResume() {
     return `<div class="oi-res${m.alerte ? " oi-res-alerte" : ""}${r.sous_total_de ? " oi-res-sous" : ""}">
       <span class="oi-res-l">${esc(r.libelle)}</span>
       <b class="oi-res-m">${oiChf(Number(r.montant) || 0)}</b>
-      <span class="oi-res-n">${n} ${r.cle === "a_facturer" ? (n > 1 ? "personnes" : "personne") : (n > 1 ? "factures" : "facture")}</span>
+      <span class="oi-res-n">${n} ${r.cle === "a_facturer" ? (n > 1 ? "personnes" : "personne") : (n > 1 ? "factures" : "facture")}${
+        Number(r.a_venir) > 0 ? ` · <b>${oiChf(Number(r.a_venir))}</b> à facturer` : ""}</span>
       <span class="oi-res-a">${esc(m.aide || "")}</span>
     </div>`;
   }).join("");
