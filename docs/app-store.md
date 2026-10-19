@@ -47,7 +47,8 @@ POUR L'ÉQUIPE
 • La messagerie et les notifications des nouvelles demandes.
 
 NOTIFICATIONS
-L'équipe est avertie dès qu'un nouveau message arrive au secrétariat, sans avoir à ouvrir l'app.
+• Un message de ton coach de préparation physique ou mentale, une nouvelle actualité de l'académie : tu es averti tout de suite, et la notification ouvre directement le bon onglet.
+• L'équipe est avertie des nouveaux messages des joueurs et du secrétariat.
 
 ACCÈS
 Les comptes sont ouverts par l'académie : chaque famille reçoit une invitation par e-mail pour activer son espace. Pas encore membre ? Retrouvez nos programmes sur teamlausanne.ch.
@@ -89,7 +90,7 @@ Features worth testing:
 - "Mes cours" tab: weekly schedule, report an absence.
 - "Physique" and "Mental" tabs: routines prepared by the coaches.
 - "Stages" (in the "Plus" menu): academy camps with online registration.
-- Push notifications: the app asks for permission after sign-in; staff members are notified of new incoming messages.
+- Push notifications: the app asks for permission after sign-in. Players and parents are notified when a coach writes to them (physical / mental preparation threads) and when the academy publishes news; tapping the notification opens the matching tab. Staff members are notified of new incoming messages.
 - Offline: without network the app shows a dedicated offline screen instead of an error.
 
 Account deletion: "Plus" menu > "Profil" > "Supprimer mon compte" at the bottom of the page.
