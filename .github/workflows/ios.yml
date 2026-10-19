@@ -57,6 +57,9 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" $P
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0" $P
           # iOS 15 minimum : Apple refuse les apps visant iOS 14 dès avril 2027 (avertissement ITMS-90068).
+          # iPhone seulement : une app « iPhone + iPad » oblige à fournir aussi des captures et une mise en page iPad.
+          sed -i '' -E 's/TARGETED_DEVICE_FAMILY = "?1,2"?;/TARGETED_DEVICE_FAMILY = 1;/' App.xcodeproj/project.pbxproj
+          grep -m1 "TARGETED_DEVICE_FAMILY" App.xcodeproj/project.pbxproj || true
           sed -i '' -E "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/" App.xcodeproj/project.pbxproj
           sed -i '' -E "s/platform :ios, '[0-9.]+'/platform :ios, '15.0'/" Podfile
           grep -m1 "platform :ios" Podfile
