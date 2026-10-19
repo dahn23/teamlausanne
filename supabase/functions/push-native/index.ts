@@ -1,7 +1,9 @@
-// push-native — envoi des notifications vers l'app native (Android, puis iOS) par Firebase Cloud Messaging (API HTTP v1).
+// push-native — envoi des notifications vers l'app native : Android par Firebase Cloud Messaging (API HTTP v1),
+// iPhone directement chez Apple (APNs) depuis le 19.10.2026 : sur iOS, Capacitor rend un jeton APNs, pas un jeton FCM.
 // Appelée UNIQUEMENT par nos propres fonctions serveur (en-tête x-cron-secret) : jamais depuis un navigateur.
 //   body : { messages: [{ user_id, title, body, url? }] }  -> un envoi par téléphone enregistré (table push_devices).
 // Secret FCM_SERVICE_ACCOUNT = le fichier JSON « compte de service » de Firebase (posé par Dan dans Supabase).
+// Secret APNS_KEY_P8 = contenu du fichier AuthKey_J33B7U348D.p8 (clé « Notifications » d'Apple, posée par Dan dans Supabase).
 // Un téléphone dont le jeton n'existe plus (app désinstallée) est retiré de la table.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -35,6 +37,24 @@ async function googleAccessToken(sa: { client_email: string; private_key: string
   return j.access_token as string;
 }
 
+// iPhone : jeton d'authentification Apple (JWT ES256 signé avec la clé .p8), valable 1 h ; Apple refuse d'en
+// recevoir un nouveau plus d'une fois toutes les 20 min, on le garde donc en mémoire tant que la fonction vit.
+const APNS_KEY_ID = Deno.env.get("APNS_KEY_ID") || "J33B7U348D";
+const APNS_TEAM_ID = Deno.env.get("APNS_TEAM_ID") || "QP97ZW26MS";
+const APNS_TOPIC = "ch.teamlausanne.app";
+let apnsCache: { jwt: string; at: number } | null = null;
+async function apnsJwt(p8: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  if (apnsCache && now - apnsCache.at < 40 * 60) return apnsCache.jwt;
+  const unsigned = enc({ alg: "ES256", kid: APNS_KEY_ID }) + "." + enc({ iss: APNS_TEAM_ID, iat: now });
+  const der = Uint8Array.from(atob(p8.replace(/-----[A-Z ]+-----/g, "").replace(/\s+/g, "")), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey("pkcs8", der, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  // WebCrypto rend la signature brute r||s : c'est précisément le format attendu par un JWT ES256.
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(unsigned));
+  apnsCache = { jwt: unsigned + "." + b64url(sig), at: now };
+  return apnsCache.jwt;
+}
+
 Deno.serve(async (req) => {
   try {
     const cronSecret = Deno.env.get("CRON_SECRET") || "";
@@ -49,10 +69,14 @@ Deno.serve(async (req) => {
     const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Diagnostic sans envoi : { action: "check" } -> le secret est lisible, Google l'accepte, N téléphones enregistrés.
+    const p8 = Deno.env.get("APNS_KEY_P8") || "";
     if (payload.action === "check") {
       await googleAccessToken(sa);
-      const { count } = await supa.from("push_devices").select("id", { count: "exact", head: true });
-      return json({ ok: true, project: sa.project_id, devices: count || 0 });
+      let apns = p8 ? "clé présente" : "secret APNS_KEY_P8 manquant";
+      if (p8) { try { await apnsJwt(p8); apns = "clé lisible"; } catch (e) { apns = "clé illisible : " + String((e as Error)?.message || e); } }
+      const { data: devs } = await supa.from("push_devices").select("platform");
+      const by: Record<string, number> = {}; (devs || []).forEach((d: { platform?: string }) => { const k = d.platform || "?"; by[k] = (by[k] || 0) + 1; });
+      return json({ ok: true, project: sa.project_id, devices: by, apns });
     }
 
     // { action: "mails" } — lancé toutes les 2 min par la base (pg_cron), juste après la relève : notifie les nouveaux mails
@@ -99,17 +123,33 @@ Deno.serve(async (req) => {
     const { data: devices } = await supa.from("push_devices").select("token,user_id,platform").in("user_id", userIds);
     if (!devices || !devices.length) return json({ ok: true, sent: 0, devices: 0 });
 
-    const access = await googleAccessToken(sa);
+    const access = devices.some((d: { platform?: string }) => d.platform !== "ios") ? await googleAccessToken(sa) : "";
     const endpoint = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
     let sent = 0; let error: string | null = null;
     for (const m of messages) {
       for (const d of devices.filter((x: { user_id: string }) => x.user_id === m.user_id)) {
+        const title = String(m.title || "Team Lausanne").slice(0, 120), body = String(m.body || "").slice(0, 900);
+        if (d.platform === "ios") {
+          if (!p8) { if (!error) error = "iPhone : secret APNS_KEY_P8 manquant"; continue; }
+          const res = await fetch(`https://api.push.apple.com/3/device/${d.token}`, {
+            method: "POST",
+            headers: { authorization: "bearer " + await apnsJwt(p8), "apns-topic": APNS_TOPIC, "apns-push-type": "alert", "apns-priority": "10", "content-type": "application/json" },
+            body: JSON.stringify({ aps: { alert: { title, body }, sound: "default" }, url: String(m.url || "/") }),
+          });
+          if (res.ok) { sent++; continue; }
+          const j = await res.json().catch(() => ({}));
+          const reason = String(j?.reason || res.status);
+          // Jeton mort (app désinstallée) : on retire le téléphone.
+          if (res.status === 410 || reason === "BadDeviceToken" || reason === "Unregistered") await supa.from("push_devices").delete().eq("token", d.token);
+          if (!error) error = `iPhone ${res.status} ${reason}`;
+          continue;
+        }
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { authorization: "Bearer " + access, "content-type": "application/json" },
           body: JSON.stringify({ message: {
             token: d.token,
-            notification: { title: String(m.title || "Team Lausanne").slice(0, 120), body: String(m.body || "").slice(0, 900) },
+            notification: { title, body },
             data: { url: String(m.url || "/") },
             android: { priority: "HIGH", notification: { channel_id: "general" } },   // HIGH : livraison immédiate, même téléphone en veille
           } }),
