@@ -1737,6 +1737,7 @@ function openPerson(p) {
   $("p-address").value = p?.address || "";
   $("p-postal").value = p?.postal_code || "";
   $("p-city").value = p?.city || "";
+  $("p-country").value = p?.country || "";
   $("p-parent1").value = p?.parent1 || "";
   $("p-parent2").value = p?.parent2 || "";
   $("p-tshirt").value = p?.tshirt || "";
@@ -7461,6 +7462,7 @@ async function savePerson(e) {
     sweatpants: $("p-sweatpants").value.trim() || null,
     postal_code: $("p-postal").value.trim() || null,
     city: $("p-city").value.trim() || null,
+    country: $("p-country").value || null,
     is_active: $("p-active").checked,
     notes: $("p-notes").value.trim() || null,
   };
@@ -11855,19 +11857,19 @@ async function afactUn(pid, prodId) {
   const r = afactList.find((x) => x.person_id === pid && x.product_id === prodId);
   if (!r) return;
   const [{ data: p }, { data: gs }] = await Promise.all([
-    sb.from("people").select("id,first_name,last_name,address,postal_code,city,email,parent1,parent2").eq("id", pid).single(),
+    sb.from("people").select("id,first_name,last_name,address,postal_code,city,country,email,parent1,parent2").eq("id", pid).single(),
     sb.from("guardianships").select("guardian_id,relation").eq("child_id", pid),
   ]);
   if (!p) return;
   const gIds = (gs || []).filter((g) => g.relation !== "sibling").map((g) => g.guardian_id);
   const { data: gp } = gIds.length
-    ? await sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").in("id", gIds)
+    ? await sb.from("people").select("id,first_name,last_name,address,postal_code,city,country,email").in("id", gIds)
     : { data: [] };
   const a = oiDebtorCands(p, gp || []).def;    // parent lié avec e-mail > parent 1 > parent 2 > joueur
   const sea = currentSeason("juniors");
   await oiOpenEdit(null, {
     person_id: pid, debtor_person_id: a.pid, debtor_name: a.name, debtor_email: a.email,
-    debtor_street: a.street, debtor_zip: a.zip, debtor_city: a.city,
+    debtor_street: a.street, debtor_zip: a.zip, debtor_city: a.city, debtor_country: a.country || null,
     season_id: sea?.id || null, filiere: r.filiere,
     label: `${r.produit} ${sea?.label || ""} — ${p.first_name} ${p.last_name}`.replace(/\s+/g, " ").trim(),
     amount: Number(r.prix) || 0,
@@ -12479,7 +12481,11 @@ function oiUpdateGenBtn() {
   const n = oiPrep.filter((r) => r.include && r.amount > 0).length;
   $("oi-generate").disabled = !n; $("oi-generate").textContent = n ? `Générer ${n} facture(s)` : "Générer les factures";
 }
-function oiAddr(p) { return p ? { street: (p.address || "").trim(), zip: (p.postal_code || "").trim(), city: (p.city || "").trim(), email: (p.email || "").trim() } : { street: "", zip: "", city: "", email: "" }; }
+// Pays : NULL = Suisse. On ne remplit pas 350 fiches avec « CH » pour dire
+// l'évidence — l'absence de valeur est déjà la réponse (voir db/185).
+const OI_PAYS = { CH: "Suisse", FR: "France", IT: "Italie", DE: "Allemagne", AT: "Autriche", ES: "Espagne", GB: "Royaume-Uni", BE: "Belgique", LU: "Luxembourg", NL: "Pays-Bas", PT: "Portugal", US: "États-Unis" };
+const oiPays = (c) => (c && c !== "CH" ? (OI_PAYS[c] || c) : "");
+function oiAddr(p) { return p ? { street: (p.address || "").trim(), zip: (p.postal_code || "").trim(), city: (p.city || "").trim(), email: (p.email || "").trim(), country: (p.country || "").trim().toUpperCase() } : { street: "", zip: "", city: "", email: "", country: "" }; }
 // Champ texte « Parent 1 / Parent 2 » de la fiche du jeune : « Nom Prénom · 079 … · email »
 function oiParseParent(s) {
   if (!s || !String(s).trim()) return null;
@@ -12491,9 +12497,11 @@ function oiParseParent(s) {
 // fiche, adresse postale = celle du jeune), parent lié sans e-mail, puis le joueur lui-même.
 function oiDebtorCands(p, linkedParents) {
   const a = oiAddr(p); const c = [];
-  for (const lp of linkedParents || []) { const la = oiAddr(lp); c.push({ key: "l:" + lp.id, pid: lp.id, name: `${lp.first_name} ${lp.last_name}`, street: la.street || a.street, zip: la.zip || a.zip, city: la.city || a.city, email: la.email, label: `${lp.last_name} ${lp.first_name} (parent lié)` }); }
-  for (const [k, lbl] of [["parent1", "Parent 1"], ["parent2", "Parent 2"]]) { const pp = oiParseParent(p[k]); if (pp) c.push({ key: k, pid: null, name: pp.name, street: a.street, zip: a.zip, city: a.city, email: pp.email, label: `${pp.name} (${lbl})` }); }
-  c.push({ key: "self", pid: p.id, name: `${p.first_name} ${p.last_name}`, street: a.street, zip: a.zip, city: a.city, email: a.email, label: `${p.last_name} ${p.first_name} (joueur)` });
+  // Le pays suit l'adresse : un parent lié qui a la sienne apporte son pays,
+  // sinon on hérite de celui du jeune — comme pour la rue et le NPA.
+  for (const lp of linkedParents || []) { const la = oiAddr(lp); c.push({ key: "l:" + lp.id, pid: lp.id, name: `${lp.first_name} ${lp.last_name}`, street: la.street || a.street, zip: la.zip || a.zip, city: la.city || a.city, country: la.street ? la.country : a.country, email: la.email, label: `${lp.last_name} ${lp.first_name} (parent lié)` }); }
+  for (const [k, lbl] of [["parent1", "Parent 1"], ["parent2", "Parent 2"]]) { const pp = oiParseParent(p[k]); if (pp) c.push({ key: k, pid: null, name: pp.name, street: a.street, zip: a.zip, city: a.city, country: a.country, email: pp.email, label: `${pp.name} (${lbl})` }); }
+  c.push({ key: "self", pid: p.id, name: `${p.first_name} ${p.last_name}`, street: a.street, zip: a.zip, city: a.city, country: a.country, email: a.email, label: `${p.last_name} ${p.first_name} (joueur)` });
   const def = c.find((x) => x.key.startsWith("l:") && x.email) || c.find((x) => (x.key === "parent1" || x.key === "parent2") && x.email) || c.find((x) => x.key.startsWith("l:")) || c[c.length - 1];
   return { cands: c, def };
 }
@@ -12504,7 +12512,7 @@ async function oiLoadPlayers() {
   const ids = [...new Set((rp || []).map((r) => r.person_id))];
   if (!ids.length) { note.textContent = `Aucun joueur en ${oiFil(fil)} pour cette saison (rôles par saison de la fiche).`; oiPrep = []; $("oi-prep-rows").innerHTML = ""; oiUpdateGenBtn(); return; }
   const [{ data: pl }, { data: gs }, { data: ct }, { data: st }, { data: bp }] = await Promise.all([
-    sb.from("people").select("id,first_name,last_name,address,postal_code,city,email,parent1,parent2").in("id", ids),
+    sb.from("people").select("id,first_name,last_name,address,postal_code,city,country,email,parent1,parent2").in("id", ids),
     sb.from("guardianships").select("guardian_id,child_id,relation").in("child_id", ids),
     sb.from("player_contracts").select("person_id,data").eq("season_id", seasonId).in("person_id", ids),
     sb.from("app_settings").select("value").eq("key", "sub_prices").maybeSingle(),
@@ -12513,7 +12521,7 @@ async function oiLoadPlayers() {
   ]);
   const planPar = {}; for (const p of bp || []) planPar[p.person_id] = p.instalments;
   const gIds = [...new Set((gs || []).filter((g) => g.relation !== "sibling").map((g) => g.guardian_id))];
-  const { data: gp } = gIds.length ? await sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").in("id", gIds) : { data: [] };
+  const { data: gp } = gIds.length ? await sb.from("people").select("id,first_name,last_name,address,postal_code,city,country,email").in("id", gIds) : { data: [] };
   const byId = {}; for (const p of [...(pl || []), ...(gp || [])]) byId[p.id] = p;
   const grid = st?.value || {}; const gridPrice = parseFloat(grid[fil]);
   const nInst = parseInt($("oi-inst-total").value) || null;
@@ -12666,7 +12674,7 @@ async function oiGenerate() {
         const label = tpl.replace("{filiere}", oiFil(fil)).replace("{saison}", sea?.label || "")
           .replace("{n}", r.total > 1 ? k : instNo).replace("{total}", r.total).replace("{joueur}", joueur);
         const inv = { number: num, season_id: seasonId, filiere: fil, person_id: r.person.id, debtor_person_id: a.pid,
-          debtor_name: a.name, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_email: a.email || null,
+          debtor_name: a.name, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_country: a.country || null, debtor_email: a.email || null,
           label, items: [{ label, amount: mt }], instalment_no: r.total > 1 ? k : instNo, instalment_total: r.total,
           amount: mt, currency: "CHF", due_date: ech,
           // Une échéance ne s'émet pas le jour où on la crée : elle part 30
@@ -12715,7 +12723,10 @@ function oiSpc(inv, acct) {
     "S", acct.name.slice(0, 70), cStreet.slice(0, 70), cNo.slice(0, 16), cZip, cCity.slice(0, 35), "CH",
     "", "", "", "", "", "", "",
     Number(inv.amount).toFixed(2), inv.currency || "CHF",
-    ...(hasD ? ["S", inv.debtor_name.slice(0, 70), dStreet.slice(0, 70), dNo.slice(0, 16), inv.debtor_zip, inv.debtor_city.slice(0, 35), "CH"] : ["", "", "", "", "", "", ""]),
+    // Le pays du débiteur n'est plus écrit en dur : une famille à
+    // Divonne-les-Bains payait une facture qui la disait suisse (db/185).
+    // Celui du créancier reste CH — c'est le club, il ne déménage pas.
+    ...(hasD ? ["S", inv.debtor_name.slice(0, 70), dStreet.slice(0, 70), dNo.slice(0, 16), inv.debtor_zip, inv.debtor_city.slice(0, 35), (inv.debtor_country || "CH").toUpperCase()] : ["", "", "", "", "", "", ""]),
     "SCOR", inv.reference, (inv.label || "").slice(0, 140), "EPD"];
   return { payload: L.join("\n"), cStreet, cNo, cZip, cCity, dStreet, dNo, hasD };
 }
@@ -12764,7 +12775,12 @@ async function oiBuildPdf(inv) {
   const T = (s, x, y, o = {}) => { doc.setFont("helvetica", o.b ? "bold" : "normal"); doc.setFontSize(o.s || 10); doc.text(Array.isArray(s) ? s.map(PS) : PS(s), x, y, o.al ? { align: o.al } : undefined); };
   const sp = oiSpc(inv, acct);
   const cLines = [acct.name, [sp.cStreet, sp.cNo].filter(Boolean).join(" "), `${sp.cZip} ${sp.cCity}`.trim()];
-  const dLines = sp.hasD ? [inv.debtor_name, [sp.dStreet, sp.dNo].filter(Boolean).join(" "), `${inv.debtor_zip} ${inv.debtor_city}`] : [inv.debtor_name || ""];
+  // Le pays ne s'imprime que s'il n'est pas la Suisse : écrire « Suisse » sur
+  // les 350 factures du club ajouterait une ligne qui n'apprend rien.
+  const dPays = oiPays(inv.debtor_country);
+  const dLines = sp.hasD
+    ? [inv.debtor_name, [sp.dStreet, sp.dNo].filter(Boolean).join(" "), `${inv.debtor_zip} ${inv.debtor_city}`, ...(dPays ? [dPays] : [])]
+    : [inv.debtor_name || ""];
   // --- En-tête : logo Team Lausanne + titre + bandeau bleu (charte : bleu #1e3ad1) ---
   const BLUE = [30, 58, 209], INK = [15, 31, 110], LIGHT = [232, 237, 255], GREY = [110, 110, 110];
   const logo = await oiLogo();
@@ -12968,7 +12984,7 @@ async function oiOpenEdit(inv, preset) {
   $("oie-title").textContent = inv ? `Facture ${inv.number}` : "Nouvelle facture";
   $("oie-search").value = ""; $("oie-results").classList.add("hidden");
   $("oie-name").value = src.debtor_name || ""; $("oie-email").value = src.debtor_email || "";
-  $("oie-street").value = src.debtor_street || ""; $("oie-zip").value = src.debtor_zip || ""; $("oie-city").value = src.debtor_city || "";
+  $("oie-street").value = src.debtor_street || ""; $("oie-zip").value = src.debtor_zip || ""; $("oie-city").value = src.debtor_city || ""; $("oie-country").value = src.debtor_country || "";
   $("oie-issue").value = src.issue_date || new Date().toISOString().slice(0, 10);
   const due = new Date(); due.setDate(due.getDate() + 30);
   $("oie-due").value = src.due_date || due.toISOString().slice(0, 10);
@@ -13057,7 +13073,7 @@ function oieTotal() { return oieRecalc(); }
 async function oieSearch() {
   const q = $("oie-search").value.trim(); const box = $("oie-results");
   if (q.length < 2) { box.classList.add("hidden"); return; }
-  const { data } = await sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%`).order("last_name").limit(15);
+  const { data } = await sb.from("people").select("id,first_name,last_name,address,postal_code,city,country,email").or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%`).order("last_name").limit(15);
   const rows = data || [];
   box.innerHTML = rows.length ? rows.map((p) => `<button type="button" class="oie-hit" data-id="${p.id}"><b>${esc(p.last_name)} ${esc(p.first_name)}</b> <span class="muted">${esc([p.address, p.postal_code, p.city].filter(Boolean).join(", ") || "sans adresse")}${p.email ? " · " + esc(p.email) : ""}</span></button>`).join("") : '<span class="muted" style="padding:6px 10px;display:block">Aucun résultat</span>';
   box.classList.remove("hidden");
@@ -13088,7 +13104,7 @@ async function oiSaveEdit() {
   try {
     const { data: sess } = await sb.auth.getSession(); const uid = sess?.session?.user?.id || null;
     const patch = { debtor_person_id: oieDebtorPid, debtor_name: name, debtor_email: $("oie-email").value.trim() || null,
-      debtor_street: $("oie-street").value.trim() || null, debtor_zip: $("oie-zip").value.trim() || null, debtor_city: $("oie-city").value.trim() || null,
+      debtor_street: $("oie-street").value.trim() || null, debtor_zip: $("oie-zip").value.trim() || null, debtor_city: $("oie-city").value.trim() || null, debtor_country: $("oie-country").value || null,
       issue_date: $("oie-issue").value || new Date().toISOString().slice(0, 10), due_date: $("oie-due").value || null,
       account_id: $("oie-acct").value || null, note: $("oie-note").value.trim() || null,
       product_id: $("oie-prod").value || null,
@@ -13115,11 +13131,11 @@ async function oiFromContract(personId, seasonId, d, n, startDate) {
   if (!(fee > 0)) { uiAlert("Renseigne d'abord le montant annuel du contrat (et enregistre-le)."); return 0; }
   const sea = seasons.find((s) => s.id === seasonId);
   const [{ data: p }, { data: gs }] = await Promise.all([
-    sb.from("people").select("id,first_name,last_name,address,postal_code,city,email,parent1,parent2").eq("id", personId).single(),
+    sb.from("people").select("id,first_name,last_name,address,postal_code,city,country,email,parent1,parent2").eq("id", personId).single(),
     sb.from("guardianships").select("guardian_id,relation").eq("child_id", personId),
   ]);
   const gIds = (gs || []).filter((g) => g.relation !== "sibling").map((g) => g.guardian_id);
-  const { data: gp } = gIds.length ? await sb.from("people").select("id,first_name,last_name,address,postal_code,city,email").in("id", gIds) : { data: [] };
+  const { data: gp } = gIds.length ? await sb.from("people").select("id,first_name,last_name,address,postal_code,city,country,email").in("id", gIds) : { data: [] };
   const a = oiDebtorCands(p, gp || []).def;   // parent lié avec e-mail > Parent 1 > Parent 2 > joueur
   const debtor = { id: a.pid, first_name: a.name, last_name: "" };
   const acct = facAccts.find((x) => x.is_default) || facAccts[0]; if (!acct?.iban) { uiAlert("Aucun compte à créditer configuré."); return 0; }
@@ -13137,7 +13153,7 @@ async function oiFromContract(personId, seasonId, d, n, startDate) {
       const { data: num, error: e1 } = await sb.rpc("out_invoice_next_number"); if (e1) throw new Error(e1.message);
       const amt = i === n ? last : each;
       const inv = { number: num, season_id: seasonId, filiere: d["Programme"] === "pro" ? "pro" : "sport-etudes", person_id: personId, debtor_person_id: debtor.id,
-        debtor_name: a.name, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_email: a.email || null,
+        debtor_name: a.name, debtor_street: a.street || null, debtor_zip: a.zip || null, debtor_city: a.city || null, debtor_country: a.country || null, debtor_email: a.email || null,
         label, instalment_no: i, instalment_total: n, items: [{ label, amount: amt }], amount: amt, currency: "CHF",
         issue_date: (issue < today ? today : issue).toISOString().slice(0, 10), due_date: due.toISOString().slice(0, 10),
         reference: oiScor(num.replace(/\D/g, "")), account_id: acct.id, status: "a_envoyer", created_by: uid };
@@ -15090,7 +15106,7 @@ async function createInvoice(id) {
       number: num, reference: oiScor(String(num).replace(/\D/g, "")), filiere: "stage", season_id: season?.id || null,
       person_id: r.person_id || null, debtor_person_id: r.person_id || null,
       debtor_name: `${r.first_name} ${r.last_name}`.trim(), debtor_email: email || null,
-      debtor_street: person?.address || null, debtor_zip: person?.postal_code || null, debtor_city: person?.city || null,
+      debtor_street: person?.address || null, debtor_zip: person?.postal_code || null, debtor_city: person?.city || null, debtor_country: person?.country || null,
       items, amount, label: `Stage ${s.title || ""} — ${cat.name || ""}`.trim().slice(0, 140),
       currency: "CHF", issue_date: today, due_date: due, account_id: acct?.id || null, status: "a_envoyer",
       created_by: sess?.session?.user?.id || null,
