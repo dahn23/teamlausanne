@@ -14600,7 +14600,17 @@ function renderRegistrants() {
   const coachsRepas = new Set(stgStaff.map((x) => x.coach_person_id || x.name)).size;
   const repasCount = days * (coachsRepas + mealRegs);
   const repasCost = repasCount * 15;
-  const coachFees = stgStaff.reduce((t, x) => t + Number(x.fee || 0), 0);
+  // Même piège, même parade, pour l'argent : deux lignes pour un coach qui
+  // encadre deux catégories, mais UN seul forfait. On prend le plus élevé par
+  // personne, jamais la somme — c'est exactement ce que paie la fiduciaire
+  // (max par camp, voir db/140). Additionner ici annonçait un coût que
+  // personne ne touche : 1 800 au lieu de 1 200 sur la semaine 1 d'automne.
+  const forfaitParCoach = new Map();
+  for (const x of stgStaff) {
+    const qui = x.coach_person_id || x.name;
+    forfaitParCoach.set(qui, Math.max(forfaitParCoach.get(qui) ?? 0, Number(x.fee || 0)));
+  }
+  const coachFees = [...forfaitParCoach.values()].reduce((t, v) => t + v, 0);
   const solde = round2(encaisse - repasCost - coachFees);
   $("stg-finance").innerHTML = `
     <h3 style="margin:0 0 10px">Résumé financier</h3>
@@ -14612,7 +14622,7 @@ function renderRegistrants() {
     </div>
     <p class="muted" style="font-size:.78rem;margin:8px 0 0">Repas = 15 CHF × ${jours(days)} × (${coachsRepas} coach(s) + ${mealRegs} inscrit(s)${
       exceptions ? `, dont ${exceptions} par exception` : ""}) = <b>${coachsRepas + mealRegs} par jour</b>.
-      ${stgStaff.length > coachsRepas ? `<br>${stgStaff.length} affectation(s) de coach pour ${coachsRepas} personne(s) : qui encadre deux catégories ne mange qu'une fois.` : ""}</p>`;
+      ${stgStaff.length > coachsRepas ? `<br>${stgStaff.length} affectation(s) de coach pour ${coachsRepas} personne(s) : qui encadre deux catégories ne mange qu'une fois, et ne touche qu'un forfait — le plus élevé de ses lignes.` : ""}</p>`;
 
   // --- Tuiles récap ---
   $("stg-cat-tiles").innerHTML = [`<div class="stg-tile"><b>${stgRegs.length}</b><span>participants</span></div>`]
@@ -14829,8 +14839,26 @@ async function loadPersonStages(personId) {
         <td>${r.paid ? '<span class="ss-tag ss-ok">payé</span>' : '<span class="ss-tag ss-warn">en attente</span>'}</td></tr>`;
     }).join("") + "</tbody></table>" : '<p class="muted" style="font-size:.85rem">Aucune participation à un stage.</p>';
   $("ps-coaching-block").classList.toggle("hidden", !S.length);
-  $("ps-coaching").innerHTML = S.length ? '<table class="crm-table"><thead><tr><th>Stage</th><th>Dates</th><th>Catégorie</th><th>Tarif reçu</th></tr></thead><tbody>'
-    + S.map((x) => { const s = x.stage_sessions; return `<tr><td><b>${esc(s?.title || "Stage")}</b></td><td>${s ? frDate(s.start_date) + " → " + frDate(s.end_date) : "—"}</td><td>${esc(x.stage_categories?.name || "—")}</td><td><b>${round2(x.fee || 0)} CHF</b></td></tr>`; }).join("") + "</tbody></table>" : "";
+  // UN forfait par CAMP, pas par catégorie. Célyan encadre le Loisir journée
+  // ET le Loisir demi-journée de la même semaine : deux lignes en base, un
+  // seul montant touché (le plus élevé, comme la paie — db/140). Les lister
+  // séparément faisait lire « 600 + 600 » à un coach qui reçoit 600.
+  const parCamp = new Map();
+  for (const x of S) {
+    const dejaVu = parCamp.get(x.session_id);
+    const cat = x.stage_categories?.name;
+    if (dejaVu) {
+      dejaVu.fee = Math.max(dejaVu.fee, Number(x.fee || 0));
+      if (cat) dejaVu.cats.add(cat);
+    } else {
+      parCamp.set(x.session_id, { s: x.stage_sessions, fee: Number(x.fee || 0), cats: new Set(cat ? [cat] : []) });
+    }
+  }
+  const camps = [...parCamp.values()]
+    .sort((a, b) => String(b.s?.start_date || "").localeCompare(String(a.s?.start_date || "")));
+  $("ps-coaching").innerHTML = camps.length ? '<table class="crm-table"><thead><tr><th>Stage</th><th>Dates</th><th>Catégorie</th><th>Tarif reçu</th></tr></thead><tbody>'
+    + camps.map((c) => `<tr><td><b>${esc(c.s?.title || "Stage")}</b></td><td>${c.s ? frDate(c.s.start_date) + " → " + frDate(c.s.end_date) : "—"}</td><td>${esc([...c.cats].join(" + ") || "—")}</td><td><b>${round2(c.fee)} CHF</b></td></tr>`).join("")
+    + "</tbody></table>" : "";
 }
 
 // ---- Modal ajout d'un inscrit ----
