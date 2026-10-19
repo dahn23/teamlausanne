@@ -143,7 +143,10 @@ async function startApp() {
   renderYouthSelector();
   bindNav();
   bindBot();
-  switchView("accueil");
+  // Ouvert depuis une notification (« ?vue=physique ») : on va droit à l'onglet, s'il existe pour ce compte.
+  const vue = new URLSearchParams(location.search).get("vue") || "";
+  const btnVue = VIEW_TITLES[vue] && document.querySelector(`.pt-nav-item[data-view="${vue}"]`);
+  switchView(btnVue && !btnVue.classList.contains("hidden") ? vue : "accueil");
 
   // Notifs push : cible le compte connecté (si OneSignal est configuré).
   const uid = (await sb.auth.getUser()).data.user?.id;

@@ -1,7 +1,8 @@
 // push-native — envoi des notifications vers l'app native : Android par Firebase Cloud Messaging (API HTTP v1),
 // iPhone directement chez Apple (APNs) depuis le 19.10.2026 : sur iOS, Capacitor rend un jeton APNs, pas un jeton FCM.
 // Appelée UNIQUEMENT par nos propres fonctions serveur (en-tête x-cron-secret) : jamais depuis un navigateur.
-//   body : { messages: [{ user_id, title, body, url? }] }  -> un envoi par téléphone enregistré (table push_devices).
+//   body : { action: "mails" } (cron : nouveaux mails du staff + file push_queue des familles, db/186)
+//       ou { messages: [{ user_id, title, body, url? }] }  -> un envoi par téléphone enregistré (table push_devices).
 // Secret FCM_SERVICE_ACCOUNT = le fichier JSON « compte de service » de Firebase (posé par Dan dans Supabase).
 // Secret APNS_KEY_P8 = contenu du fichier AuthKey_J33B7U348D.p8 (clé « Notifications » d'Apple, posée par Dan dans Supabase).
 // Un téléphone dont le jeton n'existe plus (app désinstallée) est retiré de la table.
@@ -96,27 +97,38 @@ Deno.serve(async (req) => {
       if (ids.length) await supa.from("mail_messages").update({ pushed_native: true }).in("id", ids);
       await supa.from("mail_messages").update({ pushed_native: true }).eq("pushed_native", false)
         .or(`is_spam.eq.true,status.neq.a_traiter,direction.neq.in,received_at.lt.${cutoff}`);
-      if (!ids.length) return json({ ok: true, found: 0, sent: 0 });
-      const { data: accs } = await supa.from("mail_accounts").select("address,label,private_user_id");
-      const accLabel: Record<string, string> = {}; const accOwner: Record<string, string | null> = {};
-      (accs || []).forEach((a: { address: string; label?: string; private_user_id?: string | null }) => { accLabel[a.address] = a.label || a.address; accOwner[a.address] = a.private_user_id || null; });
-      const { data: staffRoles } = await supa.from("user_roles").select("user_id,role").in("role", ["superadmin", "admin", "secretaire"]);
-      const staffIds = [...new Set((staffRoles || []).map((r: { user_id: string }) => r.user_id))] as string[];
-      const superIds = new Set((staffRoles || []).filter((r: { role: string }) => r.role === "superadmin").map((r: { user_id: string }) => r.user_id));
-      type M = { from_name?: string; from_address?: string; subject?: string; account_address?: string };
-      const nm = (m: M) => m.from_name || m.from_address || "?";
-      const boxOf = (m: M) => accLabel[m.account_address || ""] || m.account_address || "";
       messages = [];
-      for (const uid of staffIds) {
-        const visible = (mails as M[]).filter((m) => { const o = accOwner[m.account_address || ""]; return !o || o === uid || superIds.has(uid); });
-        if (!visible.length) continue;
-        const n = visible.length;
-        messages.push({
-          user_id: uid, url: "/console",
-          title: n === 1 ? `Nouveau mail — ${boxOf(visible[0])}` : `${n} nouveaux mails`,
-          body: n === 1 ? `${nm(visible[0])} : ${visible[0].subject || "(sans objet)"}` : visible.slice(0, 3).map((m) => `${boxOf(m)} • ${nm(m)} : ${m.subject || "(sans objet)"}`).join("\n"),
-        });
+      if (ids.length) {
+        const { data: accs } = await supa.from("mail_accounts").select("address,label,private_user_id");
+        const accLabel: Record<string, string> = {}; const accOwner: Record<string, string | null> = {};
+        (accs || []).forEach((a: { address: string; label?: string; private_user_id?: string | null }) => { accLabel[a.address] = a.label || a.address; accOwner[a.address] = a.private_user_id || null; });
+        const { data: staffRoles } = await supa.from("user_roles").select("user_id,role").in("role", ["superadmin", "admin", "secretaire"]);
+        const staffIds = [...new Set((staffRoles || []).map((r: { user_id: string }) => r.user_id))] as string[];
+        const superIds = new Set((staffRoles || []).filter((r: { role: string }) => r.role === "superadmin").map((r: { user_id: string }) => r.user_id));
+        type M = { from_name?: string; from_address?: string; subject?: string; account_address?: string };
+        const nm = (m: M) => m.from_name || m.from_address || "?";
+        const boxOf = (m: M) => accLabel[m.account_address || ""] || m.account_address || "";
+        for (const uid of staffIds) {
+          const visible = (mails as M[]).filter((m) => { const o = accOwner[m.account_address || ""]; return !o || o === uid || superIds.has(uid); });
+          if (!visible.length) continue;
+          const n = visible.length;
+          messages.push({
+            user_id: uid, url: "/console",
+            title: n === 1 ? `Nouveau mail — ${boxOf(visible[0])}` : `${n} nouveaux mails`,
+            body: n === 1 ? `${nm(visible[0])} : ${visible[0].subject || "(sans objet)"}` : visible.slice(0, 3).map((m) => `${boxOf(m)} • ${nm(m)} : ${m.subject || "(sans objet)"}`).join("\n"),
+          });
+        }
       }
+      // File des notifications « familles » (db/186) : messages des coachs, actualités… remplie par la base.
+      // Marquée envoyée AVANT l'envoi (pas de doublon si la fonction est relancée) ; au-delà de 6 h, on n'envoie plus.
+      const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+      const { data: queued } = await supa.from("push_queue").select("id,user_id,title,body,url")
+        .is("sent_at", null).gte("created_at", since).order("id").limit(300);
+      if (queued && queued.length) {
+        await supa.from("push_queue").update({ sent_at: new Date().toISOString() }).in("id", queued.map((q: { id: number }) => q.id));
+        for (const q of queued as { user_id: string; title: string; body?: string; url?: string }[]) messages.push({ user_id: q.user_id, title: q.title, body: q.body || "", url: q.url || "/" });
+      }
+      await supa.from("push_queue").update({ sent_at: new Date().toISOString() }).is("sent_at", null).lt("created_at", since);
     }
     if (!messages.length) return json({ ok: true, sent: 0, devices: 0 });
     const userIds = [...new Set(messages.map((m) => m.user_id).filter(Boolean))];
