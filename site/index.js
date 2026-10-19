@@ -157,6 +157,22 @@ function reelHTML(items) {
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+// Un chemin d'image venu des données est écrit « assets/photos/x.jpg ».
+// À la racine, le navigateur le cherche au bon endroit. Mais une page
+// d'article vit à /actualites/<slug> : il va alors le chercher dans
+// /actualites/assets/photos/x.jpg, où il n'y a rien — et la photo disparaît.
+//
+// Le rendu statique avait déjà sa parade (absolutiser, rendu-statique.js) ;
+// elle ne protégeait que le HTML servi, pas celui qu'index.js réécrit par
+// dessus. D'où des pages correctes à l'ouverture, puis sans photos.
+//
+// Sans effet sur une adresse déjà absolue, une URL complète ou un data: —
+// on peut donc l'appliquer partout sans se demander d'où vient le chemin.
+const asset = (p) => {
+  const s = String(p ?? "").trim();
+  return s && !/^(https?:|\/\/|\/|data:|blob:|#)/i.test(s) ? "/" + s : s;
+};
+
 function linkHTML(link) {
   if (!link) return "";
   if (link.action === "login")
@@ -216,7 +232,7 @@ function coachCarte(c) {
       </div>
     </div>
     <div class="cch-photo">
-      <img src="${esc(coachPhoto(c))}" alt="${esc(c.nom)}" />
+      <img src="${esc(asset(coachPhoto(c)))}" alt="${esc(c.nom)}" />
       <button type="button" class="cch-plus" aria-haspopup="dialog"
         aria-label="En savoir plus sur ${esc(c.nom)}">En savoir plus${CCH_FLECHE}</button>
     </div>
@@ -249,7 +265,7 @@ function coachFiche(c) {
           </div>
         </div>
         <ul class="cch-fiche-tags">${c.tags.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
-        <img class="cch-fiche-photo" data-src="${esc(coachPortrait(c))}" alt="${esc(c.nom)}"
+        <img class="cch-fiche-photo" data-src="${esc(asset(coachPortrait(c)))}" alt="${esc(c.nom)}"
           ${c.portraitPos ? `style="object-position:${esc(c.portraitPos)}"` : ""} />
       </div>
     </div>
@@ -291,7 +307,7 @@ function sectionHTML(sec) {
       return `<section class="split${(sec.video || sec.videoFile) ? " split-hasvideo" : ""}">
         ${(sec.video || sec.videoFile)
           ? (sec.videoFile
-            ? `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><video class="split-native" controls playsinline preload="metadata" poster="${esc(sec.poster || "")}"><source src="${esc(sec.videoFile)}" type="video/mp4" />Votre navigateur ne peut pas lire cette vidéo.</video></div>`
+            ? `<div class="split-media split-video${sec.vertical ? " split-video-vertical" : ""}"><video class="split-native" controls playsinline preload="metadata" poster="${esc(asset(sec.poster || ""))}"><source src="${esc(asset(sec.videoFile))}" type="video/mp4" />Votre navigateur ne peut pas lire cette vidéo.</video></div>`
             // Avec une affiche : on montre l'image du site et un bouton. YouTube
             // n'est appele qu'au clic — donc ni cookie, ni bandeau de titre, ni
             // suggestions tant que la video n'est pas lancee.
@@ -299,7 +315,7 @@ function sectionHTML(sec) {
             ? `<div class="split-media split-video split-film">
                  <button type="button" class="film-lance" data-film="${esc(sec.video)}"
                    data-titre="${esc(sec.title)}" aria-label="Lire la vidéo : ${esc(sec.title)}">
-                   <img class="film-affiche" src="${esc(sec.poster)}" alt="" loading="lazy" />
+                   <img class="film-affiche" src="${esc(asset(sec.poster))}" alt="" loading="lazy" />
                    <span class="film-play" aria-hidden="true"></span>
                  </button>
                </div>`
@@ -350,7 +366,7 @@ function sectionHTML(sec) {
           <div class="progmap-grille">${g.items.map((o) => `
             <a class="progcard" href="${esc(o.href)}">
               <span class="progcard-media">
-                <img src="${esc(o.photo)}" alt="${esc(o.name)} — Team Lausanne Academy, école de tennis à Lausanne" loading="lazy" />
+                <img src="${esc(asset(o.photo))}" alt="${esc(o.name)} — Team Lausanne Academy, école de tennis à Lausanne" loading="lazy" />
                 ${o.age ? `<span class="progcard-age">${esc(o.age)}</span>` : ""}
               </span>
               <span class="progcard-txt">
@@ -974,13 +990,13 @@ function sectionHTML(sec) {
       if (!sec.video && !sec.videoFile) return "";
       const dedans = sec.videoFile
         ? `<video class="film-media" controls playsinline preload="metadata"${sec.poster ? ` poster="${esc(sec.poster)}"` : ""}>
-             <source src="${esc(sec.videoFile)}" type="video/mp4" />
+             <source src="${esc(asset(sec.videoFile))}" type="video/mp4" />
              Votre navigateur ne peut pas lire cette video.
            </video>`
         : sec.poster
         ? `<button type="button" class="film-lance" data-film="${esc(sec.video)}"
              data-titre="${esc(sec.title)}" aria-label="Lire la vidéo : ${esc(sec.title)}">
-             <img class="film-affiche" src="${esc(sec.poster)}" alt="" loading="lazy" />
+             <img class="film-affiche" src="${esc(asset(sec.poster))}" alt="" loading="lazy" />
              <span class="film-play" aria-hidden="true"></span>
            </button>`
         : `<iframe class="film-media" src="https://www.youtube-nocookie.com/embed/${esc(sec.video)}?rel=0&amp;start=0"
@@ -1051,7 +1067,7 @@ function sectionHTML(sec) {
       return `<section class="wsec dlcal"${sec.anchor ? ` id="${esc(sec.anchor)}" data-anchor="${esc(sec.anchor)}"` : ""}>
         <div class="dlcal-in">
           ${sec.apercu ? `<a class="dlcal-vue" href="${esc(sec.href)}" download tabindex="-1" aria-hidden="true">
-            <img src="${esc(sec.apercu)}" alt="" loading="lazy" />
+            <img src="${esc(asset(sec.apercu))}" alt="" loading="lazy" />
           </a>` : ""}
           <div class="dlcal-txt">
             ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
@@ -1083,7 +1099,7 @@ function sectionHTML(sec) {
               <p class="broch-rgpd">${esc(sec.mention || "Votre adresse sert uniquement a vous envoyer la brochure et a vous recontacter.")}</p>
             </form>
           </div>
-          ${sec.apercu ? `<div class="broch-visuel"><img src="${esc(sec.apercu)}" alt="" loading="lazy" /></div>` : ""}
+          ${sec.apercu ? `<div class="broch-visuel"><img src="${esc(asset(sec.apercu))}" alt="" loading="lazy" /></div>` : ""}
         </div></section>`;
 
     default: return "";
@@ -1103,14 +1119,14 @@ function paintHero({ logo, heroLogo, hero, heroPos, heroVideo, tag, slogan, desc
   // portrait — du blanc sur un visage en plein soleil ne se lit pas. Les
   // pages d'article prennent donc un voile renforcé, appuyé à gauche.
   $("hero").classList.toggle("hero-art", !!titreArticle);
-  $("nav-logo").src = logo;
+  $("nav-logo").src = asset(logo);
   // Le logo ramene a l'accueil du monde ouvert, pas toujours a celui de
   // l'Academy. Les quatre appelants de paintHero() marquent l'onglet actif
   // juste avant : c'est lui qui sait dans quel monde on se trouve.
   $("nav-accueil")?.setAttribute("href", "#" + (document.querySelector(".sw.active")?.dataset.world || "academie"));
-  $("hero-bg").style.backgroundImage = `url("${hero}")`;
+  $("hero-bg").style.backgroundImage = `url("${asset(hero)}")`;
   $("hero-bg").style.backgroundPosition = heroPos || "center";   // point d'intérêt (visages) par page
-  $("hero-logo").src = heroLogo || logo;   // hero sur photo : version blanche si le monde en a une
+  $("hero-logo").src = asset(heroLogo || logo);   // hero sur photo : version blanche si le monde en a une
   $("hero-tag").textContent = tag;
   // Un span par mot : c'est ce qui rend chaque mot survolable separement, pour
   // le slogan de l'accueil. Le titre d'une page de filiere, lui, est un seul
@@ -3013,7 +3029,7 @@ function actuBloc(b) {
     return `<figure class="actu-cite"><p>${esc(b.x || "")}</p>${
       b.src ? `<cite>${esc(b.src)}</cite>` : ""}</figure>`;
   if (b.t === "img" && b.x)
-    return `<figure class="actu-fig"><img src="${esc(b.x)}" alt="${esc(b.alt || "")}" loading="lazy" />${
+    return `<figure class="actu-fig"><img src="${esc(asset(b.x))}" alt="${esc(b.alt || "")}" loading="lazy" />${
       b.cap ? `<figcaption>${esc(b.cap)}</figcaption>` : ""}</figure>`;
   // Un lien sortant (Instagram, inscription, document…). Seuls http et https
   // sont acceptes : une adresse « javascript: » glissee dans la base ne doit
@@ -3035,7 +3051,7 @@ function actuBloc(b) {
 
 function actuCarte(a) {
   return `<a class="actu-carte" href="/actualites/${esc(a.slug)}">
-    ${a.cover_url ? `<img src="${esc(a.cover_url)}" alt="${esc(a.cover_alt || "")}" loading="lazy" />`
+    ${a.cover_url ? `<img src="${esc(asset(a.cover_url))}" alt="${esc(a.cover_alt || "")}" loading="lazy" />`
       : `<div class="actu-sansphoto" aria-hidden="true"></div>`}
     <div class="actu-carte-txt">
       <span class="actu-cat">${esc(a.category)}</span>
@@ -3081,7 +3097,7 @@ async function renderActus() {
         actuFiltre === "Tout" ? "" : " · " + esc(actuFiltre)}</p>
 
       ${une ? `<a class="actu-une" href="/actualites/${esc(une.slug)}">
-        ${une.cover_url ? `<img src="${esc(une.cover_url)}" alt="${esc(une.cover_alt || "")}" />` : ""}
+        ${une.cover_url ? `<img src="${esc(asset(une.cover_url))}" alt="${esc(une.cover_alt || "")}" />` : ""}
         <div class="actu-une-txt">
           <span class="actu-badges"><b>À la une</b><span class="actu-cat">${esc(une.category)}</span></span>
           <h2>${esc(une.title)}</h2>
