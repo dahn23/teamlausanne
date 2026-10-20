@@ -2405,10 +2405,16 @@ function plFrise(pid, big) {
   const cellArr = plWeekList.map((ws, i) => {
     const k = kinds[ws] || "", plan = plPlanned(pid, ws), regs = plRegsIn(pid, ws);
     const now = ws <= today && today <= isoA(plAdd(ws, 6));
+    // Première semaine d'un mois : on y pose le trait de séparation. Le mois
+    // se lit sur le jeudi, comme dans la barre des mois, pour que les deux
+    // tombent au même endroit.
+    const moisIci = plAdd(ws, 3).getMonth();
+    const moisAvant = i > 0 ? plAdd(plWeekList[i - 1], 3).getMonth() : -1;
+    const debutMois = i > 0 && moisIci !== moisAvant;
     const hors = regs.some(plRegHors);
     const off = plOffIn(ws);
     const tip = `Sem. du ${plWkLabel(ws)} · ${PL_KIND_LABEL[k] || "—"}${plan.length ? " · Week-end : zone tournoi" : ""}${regs.length ? " · Inscrit : " + regs.map((t) => `${t.name} (${plRange(t.start_date, t.end_date)})`).join(", ") : ""}${hors ? " · HORS ZONE PRÉVUE" : ""}${off.length ? " · Sans entraînement : " + off.map(plOffLabel).join(", ") : ""}`;
-    return `<div class="pl-col${now ? " pl-now" : ""}" title="${esc(tip)}"><div class="pl-top pl-k-${k || "none"}${off.length ? " pl-off" : ""}" data-i="${i}">${mosaic ? `<span class="pl-day">${plAdd(ws, 0).getDate()}</span>` : ""}</div><div class="pl-we${plan.length ? " pl-we-on" : ""}" data-i="${i}"></div><div class="pl-reg${regs.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}" data-i="${i}"></div></div>`;
+    return `<div class="pl-col${now ? " pl-now" : ""}${debutMois ? " pl-mstart" : ""}" title="${esc(tip)}"><div class="pl-top pl-k-${k || "none"}${off.length ? " pl-off" : ""}" data-i="${i}">${mosaic ? `<span class="pl-day">${plAdd(ws, 0).getDate()}</span>` : ""}</div><div class="pl-we${plan.length ? " pl-we-on" : ""}" data-i="${i}"></div><div class="pl-reg${regs.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}" data-i="${i}"></div></div>`;
   });
   if (mosaic) {
     const rows = [];
@@ -2430,7 +2436,7 @@ function plRenderCal() {
   }));
   $("pl-legend").innerHTML = plLegend();
   const list = plPlayers.filter((p) => !plFil.size || plFil.has(plFilOf(p.id)));
-  $("pl-rows").innerHTML = list.length ? `<div class="pl-row pl-row-head"><span></span>${plMonthsRow()}</div>` + list.map((p) => `
+  $("pl-rows").innerHTML = list.length ? `<div class="pl-row pl-row-head"><span class="pl-key"><span><i class="pl-key-s"></i>Type de semaine</span><span><i class="pl-key-w"></i>Week-end</span><span><i class="pl-key-r"></i>Inscription</span></span>${plMonthsRow()}</div>` + list.map((p) => `
     <div class="pl-row${plSel === p.id ? " sel" : ""}" data-pid="${p.id}">
       <span class="pl-row-name"><b>${esc(p.first_name)} ${esc(p.last_name)}</b><span class="muted">${esc(PL_FIL_LABEL[plFilOf(p.id)] || "")}</span></span>
       ${plFrise(p.id, false)}
