@@ -366,15 +366,22 @@ const newsLinks = (html) => html.replace(/https:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) 
    LES ACTUALITÉS DU SITE, DANS L'ACCUEIL
    ------------------------------------------------------------
    Les articles de teamlausanne.ch (table news_articles) ne sont pas recopiés
-   ici : on les relit. portal_site_news() en rend les dernières SANS le corps
+   ici : on les relit. portal_site_news() en rend une poignée SANS le corps
    — la liste reste légère sur un téléphone — avec un drapeau « pour_moi »
-   quand la catégorie de l'article correspond à une filière de la famille
-   (db/188). Pour lire, on redemande l'article seul à news_public(slug), la
-   même fonction que le site public.
+   quand la catégorie de l'article est celle de la filière de la famille.
+   Pour lire, on redemande l'article seul à news_public(slug), la même
+   fonction que le site public.
 
-   Rien n'est filtré : tout ceci est déjà public. On marque simplement ce qui
-   touche sa filière, parce que plusieurs filières n'ont pour l'instant aucun
-   article et qu'une section vide serait pire que des nouvelles du club.
+   L'ORDRE VIENT DE LA BASE, et pas d'ici (db/189) : d'abord sa filière, puis
+   ce qui s'en approche (les stages et la GameZone pour les petits, le
+   Lausanne Open et les portraits de coachs pour les grands, la vie du club
+   pour tout le monde), puis le reste ; passé 90 jours un article perd sa
+   priorité pour ne pas camper en tête de liste. Le client n'a donc aucune
+   règle de pertinence à connaître : il affiche la liste dans l'ordre reçu.
+
+   Rien n'est filtré : tout ceci est déjà public. On range, on ne cache pas —
+   plusieurs filières n'ont pour l'instant aucun article, et une section vide
+   serait pire que des nouvelles du club.
 
    Les images et les liens internes des articles sont écrits pour le site
    (« assets/… », « #stages ») : il faut les rendre absolus, sinon ils
