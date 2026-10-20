@@ -356,9 +356,63 @@ async function renderAccueil() {
       <div class="pt-news-body">
         <h3>${escHtml(n.title)}</h3>
         <div class="pt-news-date">${frShort((n.published_at || "").slice(0, 10))}</div>
-        ${n.body ? `<p>${newsLinks(escHtml(n.body)).replace(/\n/g, "<br/>")}</p>` : ""}
+        ${newsCorps(n.body)}
+        ${newsBouton(n)}
       </div>
     </article>`).join("");
+}
+
+/* ---------- Le corps d'un message ----------
+   Le texte reste du texte : c'est le secrétariat qui l'écrit, pas un
+   développeur. Deux facilités seulement, et aucune balise à retenir.
+
+   · « @saison Saison — description » devient une ligne à icône. L'icône n'est
+     PAS redessinée ici : elle est prise dans la barre d'onglets du bas, telle
+     quelle. Le jeune reconnaît donc dans le message le dessin exact qu'il va
+     toucher, et si la barre change un jour, les messages suivent.
+   · Les adresses https:// restent cliquables, comme avant.
+   ------------------------------------------------------------------------- */
+const NEWS_ONGLETS = {
+  accueil: "accueil", calendrier: "calendrier", cours: "cours",
+  saison: "matchs", match: "feuille", physique: "physique", mental: "comp",
+  stages: "stages", profil: "profil", contact: "contact",
+};
+function newsIcone(cle) {
+  const vue = NEWS_ONGLETS[cle];
+  const svg = vue && document.querySelector(`.pt-nav-item[data-view="${vue}"] svg`);
+  return svg ? svg.outerHTML : "";
+}
+function newsCorps(body) {
+  const sortie = [];
+  let para = [];
+  const viderPara = () => {
+    if (!para.length) return;
+    sortie.push(`<p>${newsLinks(escHtml(para.join("\n"))).replace(/\n/g, "<br/>")}</p>`);
+    para = [];
+  };
+  for (const ligne of String(body || "").split("\n")) {
+    // « @clé Nom — description ». Le tiret long est exigé : un trait d'union
+    // dans un nom ne doit pas couper la ligne en deux.
+    const m = ligne.match(/^@([a-z-]+)\s+(.+?)\s+[—–]\s+(.+)$/i);
+    const cle = m && m[1].toLowerCase();
+    if (cle && NEWS_ONGLETS[cle]) {
+      viderPara();
+      sortie.push(`<div class="pt-news-tab">
+        <span class="pt-news-tab-ico">${newsIcone(cle)}</span>
+        <span class="pt-news-tab-txt"><b>${escHtml(m[2].trim())}</b><em>${escHtml(m[3].trim())}</em></span>
+      </div>`);
+    } else para.push(ligne);
+  }
+  viderPara();
+  return sortie.join("");
+}
+// Le bouton d'un message (db/193). Seules http et https sont acceptées : une
+// adresse « javascript: » glissée en base ne doit pas devenir un bouton.
+function newsBouton(n) {
+  const u = String(n.link_url || "").trim();
+  if (!/^https?:\/\//i.test(u)) return "";
+  return `<a class="pt-news-btn" href="${escHtml(u)}" target="_blank" rel="noopener">${
+    escHtml(n.link_label || "En savoir plus")} →</a>`;
 }
 // Liens https:// d'un message (texte déjà échappé) → cliquables, ouverts dans un nouvel onglet.
 const newsLinks = (html) => html.replace(/https:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) => `<a href="${u}" target="_blank" rel="noopener" class="pt-news-link">${u.replace(/^https:\/\/(www\.)?/, "")}</a>`);
@@ -813,7 +867,9 @@ function calFusion(rows) {
     const genres = [...new Set(lot.map((e) => e.genre))];
     const titres = [...new Set(lot.map((e) => e.titre).filter(Boolean))];
     out.push({ debut: chef.debut, fin: chef.fin, titre: chef.titre, genre: chef.genre,
-      genres, autres: titres.slice(1), detail: chef.detail || "" });
+      genres, autres: titres.slice(1), detail: chef.detail || "",
+      // Vrai dès qu'une des entrées fusionnées vise ma filière (db/194).
+      cible: lot.some((e) => e.cible) });
   }
   return out.sort((a, b) => a.debut.localeCompare(b.debut) || rang(a.genre) - rang(b.genre));
 }
@@ -881,6 +937,7 @@ function calDessiner() {
       ${horsSaison ? `<p class="pcal-hors">La saison ${escHtml(SAISON_COURS.label)} ${
         auj < SAISON_COURS.reprise ? "n'a pas encore commencé" : "est terminée"}.</p>` : ""}
     </div>
+    ${calMiens()}
     <div id="pcal-grille"></div>
     <div id="pcal-jour" class="pcal-jour hidden"></div>
     <div id="pcal-suite"></div>`;
@@ -995,6 +1052,24 @@ function calJour() {
       ${e.autres.length ? `<span class="pcal-aussi">${escHtml(e.autres.join(" · "))}</span>` : ""}
       ${e.detail ? `<span class="pcal-detail">${escHtml(e.detail)}</span>` : ""}</li>`).join("")}</ul>`;
   box.querySelector("[data-pcal-fermer]").addEventListener("click", () => { CAL_JOUR = null; calGrille(); });
+}
+
+/* Les rendez-vous qui visent MA filière (db/194), réunis sous l'entête.
+   Ils figurent déjà dans la grille, mais répartis sur l'année : les trois
+   sessions Compétition tombent en octobre, février et avril, et personne ne
+   feuillette dix mois pour s'en souvenir. Ici, ils tiennent en trois lignes.
+   On garde les dates passées de la saison : savoir qu'on a manqué la première
+   session fait partie du rappel. */
+function calMiens() {
+  const miens = (CAL_DATES || []).filter((e) => e.cible);
+  if (!miens.length) return "";
+  const auj = calAuj();
+  return `<div class="pcal-miens">
+    <span class="pcal-miens-t">Vos rendez-vous</span>
+    <ul>${miens.map((e) => `<li${e.fin < auj ? ' class="passe"' : ""}>
+      <b>${escHtml([e.titre, ...e.autres].join(" · "))}</b>
+      <span>${escHtml(calPeriode(e.debut, e.fin))}</span></li>`).join("")}</ul>
+  </div>`;
 }
 
 // Ce qui reste devant nous. Une période commencée mais pas finie compte comme

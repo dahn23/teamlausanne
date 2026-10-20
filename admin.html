@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=350" />
+  <link rel="stylesheet" href="style.css?v=352" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -3510,6 +3510,17 @@ Team Lausanne Tennis</textarea></label>
         <input type="file" id="n-img-file" accept="image/*" class="hidden" />
       </div>
       <label>Texte<textarea id="n-body" rows="6" placeholder="Le contenu de l'actualité…"></textarea></label>
+      <p class="muted news-aide">Astuce : une ligne « <b>@saison Saison — description</b> » s'affiche avec l'icône
+        de l'onglet, telle qu'elle apparaît dans la barre du bas. Clés disponibles : accueil, calendrier, cours,
+        saison, match, physique, mental, stages, profil, contact.</p>
+      <!-- Un bouton plutôt qu'une adresse en clair au fil du texte (db/193).
+           Laisser vide : aucun bouton ne s'affiche. -->
+      <div class="news-lien">
+        <label>Bouton — adresse <span class="muted" style="font-weight:400">(facultatif)</span>
+          <input id="n-link-url" type="url" placeholder="https://teamlausanne.ch/#gamezone" /></label>
+        <label>Bouton — texte
+          <input id="n-link-label" placeholder="En savoir plus" /></label>
+      </div>
       <div class="news-aud-wrap">
         <span class="news-aud-lbl">Destinataires <span class="muted">— touche les filières ; aucune sélection = visible par tout le monde</span></span>
         <div id="n-aud" class="news-aud-grid"></div>

@@ -5576,3 +5576,36 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .cal-visi-int{background:#eef1f6;color:var(--ink);border-left:4px solid var(--muted)}
 .cal-visi-fam{background:#eef4ff;color:var(--blue-ink);border-left:4px solid var(--blue)}
 .cal-visi-pub{background:#f3fde0;color:var(--fluo-ink);border-left:4px solid var(--fluo-d)}
+
+/* ---- Message interne : lignes d onglet et bouton (db/193) ----------------
+   Une ligne « @saison Saison — … » porte l icone exacte de la barre du bas :
+   le jeune reconnait le dessin qu il va toucher. Le bouton remplace une
+   adresse en clair, qui ne se touchait pas, elle se dechiffrait. */
+.pt-news-tab{display:flex;gap:11px;align-items:flex-start;margin:10px 0;padding:10px 12px;
+  background:#f4f7fd;border-radius:12px}
+.pt-news-tab-ico{flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:var(--blue);
+  display:flex;align-items:center;justify-content:center}
+.pt-news-tab-ico svg{width:19px;height:19px;fill:none;stroke:#fff;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round;display:block}
+.pt-news-tab-txt{min-width:0}
+.pt-news-tab-txt b{display:block;color:var(--blue-ink);font-size:.95rem;line-height:1.25}
+.pt-news-tab-txt em{display:block;font-style:normal;font-size:.86rem;line-height:1.45;color:var(--ink);margin-top:2px}
+.pt-news-btn{display:inline-block;margin-top:12px;background:var(--blue);color:#fff;
+  border-radius:999px;padding:10px 20px;font-weight:700;font-size:.9rem;text-decoration:none}
+.pt-news-btn:hover{background:var(--blue-d);color:#fff}
+/* Formulaire des messages, cote console */
+.news-aide{font-size:.82rem;line-height:1.45;margin:2px 0 10px}
+.news-lien{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:620px){.news-lien{grid-template-columns:1fr}}
+
+/* ---- Calendrier : mes rendez-vous de filiere (db/194) ------------------- */
+.pcal-miens{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue);
+  border-radius:14px;padding:12px 14px;margin:0 0 14px}
+.pcal-miens-t{display:block;font-size:.72rem;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.pcal-miens ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.pcal-miens li{display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:.9rem}
+.pcal-miens li b{color:var(--blue-ink);font-weight:700;min-width:0}
+.pcal-miens li span{color:var(--muted);font-size:.82rem;white-space:nowrap;flex:0 0 auto}
+.pcal-miens li.passe{opacity:.45}
+.pcal-miens li.passe b{text-decoration:line-through}

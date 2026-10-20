@@ -7921,6 +7921,8 @@ function openNews(n, copyFrom) {
   $("n-id").value = n?.id || "";
   $("n-title").value = n ? n.title : copyFrom ? `${copyFrom.title} (copie)` : "";
   $("n-body").value = src?.body || "";
+  $("n-link-url").value = src?.link_url || "";
+  $("n-link-label").value = src?.link_label || "";
   $("n-published").checked = !!n?.published;
   $("n-season").innerHTML = seasonsOf("juniors").map((s) => `<option value="${s.id}">Saison ${esc(s.label)}</option>`).join("") + '<option value="none">Sans saison (toujours visible)</option>';
   $("n-season").value = src ? (src.season_id || "none") : (newsSeason || currentSeason("juniors")?.id || "none");
@@ -7958,6 +7960,10 @@ async function saveNews(e) {
   const row = {
     title, body: $("n-body").value.trim() || null, image_url: newsImageUrl,
     audiences: [...$("n-aud").querySelectorAll("input:checked")].map((i) => i.value),
+    // Le bouton du message (db/193). Vide = pas de bouton ; on ecrit null
+    // plutot qu une chaine vide, c est la convention de la base.
+    link_url: $("n-link-url").value.trim() || null,
+    link_label: $("n-link-label").value.trim() || null,
     season_id: $("n-season").value === "none" ? null : $("n-season").value,
     published, updated_at: new Date().toISOString(),
   };
