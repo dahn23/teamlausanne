@@ -17017,9 +17017,16 @@ async function refreshMailView() {
   if (q.length >= 2) {
     // Recherche = TOUT l'historique, indépendamment des filtres actifs (boîte, reçus/envoyés,
     // statut, attribution). Seule exception : un official reste verrouillé sur tournoi@.
-    const safe = q.replace(/[,()%*]/g, " ").trim();
-    let query = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(150)
-      .or(`subject.ilike.%${safe}%,from_name.ilike.%${safe}%,from_address.ilike.%${safe}%,to_address.ilike.%${safe}%,body_text.ilike.%${safe}%`);
+    // Plusieurs mots = le mail doit contenir CHACUN d'eux, n'importe où et dans n'importe quel ordre (un mot dans
+    // l'objet, l'autre dans le texte, ça compte). Entre guillemets : « "mot1 mot2" » cherche l'expression exacte.
+    const termes = [];
+    const brut = q.replace(/"([^"]+)"/g, (_m, phrase) => { termes.push(phrase); return " "; });
+    termes.push(...brut.split(/\s+/));
+    const mots = [...new Set(termes.map((t) => t.replace(/[,()%*"]/g, " ").replace(/\s+/g, " ").trim()).filter((t) => t.length >= 2))].slice(0, 6);
+    let query = sb.from("mail_messages").select(MAIL_COLS).order("received_at", { ascending: false }).limit(150);
+    for (const m of mots.length ? mots : [q.replace(/[,()%*"]/g, " ").trim()]) {
+      query = query.or(`subject.ilike.%${m}%,from_name.ilike.%${m}%,from_address.ilike.%${m}%,to_address.ilike.%${m}%,body_text.ilike.%${m}%`);
+    }
     if (mailTournoiOnly) query = query.eq("account_address", MAIL_TOURNOI);
     const { data } = await query;
     mailView = data || [];
