@@ -5513,32 +5513,52 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 }
 
 /* ================= NOS RÉSEAUX (accueil de Mon espace) =====================
-   Quatre pastilles sur une rangée, sous le mot de bienvenue. Les couleurs sont
-   celles des marques : c'est ce qui rend l'icône reconnaissable d'un coup
-   d'oeil, donc touchable sans lire. Le glyphe reste au trait, comme toutes les
-   icônes de l'app, pour que la rangée n'ait pas l'air collée d'ailleurs. */
-.pt-rx{background:var(--card);border:1px solid var(--line);border-radius:16px;
-  padding:13px 14px 11px;margin-bottom:14px}
-.pt-rx-t{display:block;font-size:.72rem;font-weight:800;letter-spacing:.06em;
-  text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-.pt-rx-row{display:flex;gap:8px}
-.pt-rx-lien{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;
-  color:var(--ink);text-decoration:none;padding:2px 0 4px;border-radius:12px}
-.pt-rx-lien:hover,.pt-rx-lien:focus-visible{background:#f3f6fc;color:var(--blue-ink)}
-.pt-rx-pastille{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;
-  justify-content:center;flex:0 0 auto;transition:transform .12s}
-.pt-rx-lien:hover .pt-rx-pastille{transform:translateY(-2px)}
-.pt-rx-pastille svg{width:23px;height:23px;fill:none;stroke:#fff;stroke-width:1.8;
-  stroke-linecap:round;stroke-linejoin:round;display:block}
-.pt-rx-nom{font-size:.7rem;font-weight:700;line-height:1;text-align:center;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-/* Instagram : son dégradé ; TikTok : noir ; Google : son bleu ; le site : le
-   bleu du club, parce que c'est chez nous. */
-.pt-rx-lien.ig .pt-rx-pastille{background:linear-gradient(45deg,#f9ce34 2%,#ee2a7b 48%,#6228d7 96%)}
-.pt-rx-lien.tt .pt-rx-pastille{background:#111}
-.pt-rx-lien.gg .pt-rx-pastille{background:#1a73e8}
-.pt-rx-lien.web .pt-rx-pastille{background:var(--blue)}
+   Deuxième version (20.10.2026) : la première empruntait les couleurs des
+   plateformes — un dégradé Instagram, un carré noir TikTok — et la rangée
+   ressemblait à n'importe quelle app. On reprend donc la charte du club,
+   celle des calendriers : fond Prussian/Absolute Blue, filet et pictos en
+   Energizing Mint, oeil posé sur l'intertitre en capitales.
+
+   Les logos des plateformes restent reconnaissables par leur FORME (l'appareil
+   photo, la note, l'épingle, le globe) : c'est elle qu'on lit d'un coup d'oeil,
+   pas la couleur. Les nôtres peuvent donc l'emporter sans rien perdre. */
+.pt-rx{position:relative;overflow:hidden;border-radius:18px;padding:15px 14px 13px;margin-bottom:14px;
+  background:linear-gradient(145deg,var(--blue-ink) 0%,var(--prussian) 58%,#012b42 100%);
+  box-shadow:0 10px 24px -16px rgba(4,32,94,.9)}
+/* Un arc de mint en filigrane : le même geste que sur l'entête du calendrier. */
+.pt-rx::after{content:"";position:absolute;right:-58px;top:-78px;width:168px;height:168px;
+  border-radius:50%;border:16px solid var(--fluo);opacity:.1;pointer-events:none}
+.pt-rx-t{display:flex;align-items:center;gap:7px;font-size:.72rem;font-weight:800;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--fluo);margin-bottom:12px}
+.pt-rx-t::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--fluo);flex:0 0 auto}
+.pt-rx-row{display:flex;gap:8px;position:relative;z-index:1}
+.pt-rx-lien{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px;
+  color:#fff;text-decoration:none;padding:2px 0 4px;border-radius:14px}
+.pt-rx-pastille{width:50px;height:50px;border-radius:16px;display:flex;align-items:center;
+  justify-content:center;flex:0 0 auto;background:rgba(255,255,255,.1);
+  border:1px solid rgba(178,253,19,.34);
+  transition:background .14s,border-color .14s,transform .14s}
+.pt-rx-pastille svg{width:25px;height:25px;fill:none;stroke:var(--fluo);stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;display:block;transition:stroke .14s}
+.pt-rx-pastille svg [fill]{fill:var(--fluo);transition:fill .14s}
+.pt-rx-nom{font-size:.7rem;font-weight:700;line-height:1;text-align:center;letter-spacing:.01em;
+  color:rgba(255,255,255,.82);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* Au toucher, la tuile s'allume en mint : la couleur de marque sert de
+   retour visuel, plutôt qu'un gris d'appui quelconque. */
+.pt-rx-lien:hover .pt-rx-pastille,.pt-rx-lien:focus-visible .pt-rx-pastille{
+  background:var(--fluo);border-color:var(--fluo);transform:translateY(-2px)}
+.pt-rx-lien:active .pt-rx-pastille{transform:translateY(0) scale(.96)}
+.pt-rx-lien:hover .pt-rx-pastille svg,.pt-rx-lien:focus-visible .pt-rx-pastille svg{stroke:var(--blue-ink)}
+.pt-rx-lien:hover .pt-rx-pastille svg [fill],.pt-rx-lien:focus-visible .pt-rx-pastille svg [fill]{fill:var(--blue-ink)}
+.pt-rx-lien:hover .pt-rx-nom,.pt-rx-lien:focus-visible .pt-rx-nom{color:#fff}
+.pt-rx-lien:focus-visible{outline:2px solid var(--fluo);outline-offset:2px}
+/* Le site du club est chez nous : sa tuile porte le mint plein, les réseaux
+   des autres restent en retrait. Une hiérarchie, pas une décoration. */
+.pt-rx-lien.web .pt-rx-pastille{background:var(--fluo);border-color:var(--fluo)}
+.pt-rx-lien.web .pt-rx-pastille svg{stroke:var(--blue-ink)}
+.pt-rx-lien.web .pt-rx-pastille svg [fill]{fill:var(--blue-ink)}
 @media(max-width:340px){
-  .pt-rx-pastille{width:42px;height:42px}
+  .pt-rx-pastille{width:45px;height:45px;border-radius:14px}
+  .pt-rx-pastille svg{width:22px;height:22px}
   .pt-rx-nom{font-size:.65rem}
 }

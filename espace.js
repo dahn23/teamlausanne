@@ -374,13 +374,17 @@ const newsLinks = (html) => html.replace(/https:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) 
    TikTok ne soit connue, sans laisser une icône qui ne mène nulle part. */
 const RESEAUX_DEF = [
   ["instagram", "Instagram", "ig",
-    `<rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5"/><circle cx="12" cy="12" r="4.1"/><circle cx="17.1" cy="6.9" r="1.25" fill="currentColor" stroke="none"/>`],
+    `<rect x="3.4" y="3.4" width="17.2" height="17.2" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="16.9" cy="7.1" r="1.15" fill="currentColor" stroke="none"/>`],
+  // La note TikTok : le crochet part du haut à droite, le corps descend, la
+  // tête tourne en bas à gauche. C'est cette silhouette qu'on reconnaît.
   ["tiktok", "TikTok", "tt",
-    `<path d="M14.3 3.2v10.9a3.6 3.6 0 1 1-3.6-3.6c.33 0 .64.04.95.13"/><path d="M14.3 3.2c.27 1.5 1.1 2.8 2.3 3.6a5.5 5.5 0 0 0 2.9.95"/>`],
+    `<path d="M14.6 3h-2.9v11.6a2.75 2.75 0 1 1-2.1-2.67"/><path d="M14.6 3a5 5 0 0 0 1.85 3.3A5.1 5.1 0 0 0 19.5 7.4"/>`],
+  // Le « G » de Google : l'arc ouvert et sa barre. Plus parlant qu'une
+  // épingle, même si le lien mène à notre fiche sur la carte.
   ["google", "Google", "gg",
-    `<path d="M12 21s6.5-6.1 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 14.9 12 21 12 21z"/><circle cx="12" cy="10.4" r="2.4"/>`],
+    `<path d="M20 12.2a8 8 0 1 1-2.6-5.9"/><path d="M20 12.2h-7.4"/>`],
   ["site", "Site web", "web",
-    `<circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2"/><path d="M12 3.4c2.2 2.3 3.4 5.4 3.4 8.6s-1.2 6.3-3.4 8.6c-2.2-2.3-3.4-5.4-3.4-8.6S9.8 5.7 12 3.4z"/>`],
+    `<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.15 2.3 3.35 5.35 3.35 8.5S14.15 18.2 12 20.5c-2.15-2.3-3.35-5.35-3.35-8.5S9.85 5.8 12 3.5z"/>`],
 ];
 function reseauxHtml() {
   const liens = RESEAUX_DEF.filter(([cle]) => (RESEAUX[cle] || "").trim());
