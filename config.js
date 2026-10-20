@@ -11,3 +11,8 @@ export const HOUR_END   = 22;  // dernier créneau 21:00–22:00
 // n'est pas créé : le portail reste installable (PWA) sans notifs.
 // Quand tu as l'App ID OneSignal, colle-le ici → les notifs s'activent.
 export const ONESIGNAL_APP_ID = "";
+
+// Site public (teamlausanne.ch). Mon espace y pointe pour les actualités :
+// les images des articles et les liens « lire sur le site » vivent là-bas,
+// pas sur le domaine de l'app — un chemin relatif ne mènerait nulle part.
+export const SITE_PUBLIC = "https://teamlausanne.ch";

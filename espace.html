@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=343" />
+  <link rel="stylesheet" href="style.css?v=344" />
 </head>
 <body class="portal">
 
@@ -62,6 +62,10 @@
       <section id="view-physique" class="pt-view hidden"></section>
       <section id="view-contact"  class="pt-view hidden"></section>
     </main>
+
+    <!-- Lecteur d'actualité : un article du site, lu DANS l'app (on ne renvoie
+         pas la famille vers le navigateur). Rempli par espace.js. -->
+    <div id="pt-actu-read" class="pt-actu-read hidden"></div>
 
     <!-- assistant / mascotte -->
     <!-- assistant masqué pour l'instant (décision Dan 23.09.2026) : le bouton reste en place, caché -->

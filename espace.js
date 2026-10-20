@@ -1,6 +1,6 @@
 // Mon espace — portail membre (jeunes & parents). 100% responsive.
 import { sb, myRoles, hasAny, CONSOLE_ROLES, isGzManager, rememberSpace, initNativePush, releaseNativePush, openDeleteAccount } from "./common.js";
-import { ONESIGNAL_APP_ID } from "./config.js";
+import { ONESIGNAL_APP_ID, SITE_PUBLIC } from "./config.js";
 
 /* ============================================================
    PWA — installation + secours hors-ligne (service worker).
@@ -339,7 +339,11 @@ async function renderAccueil() {
         <p class="muted">Les actualités, tes cours et tes infos.</p>
       </div>
     </div>
-    <div id="pt-news"><p class="muted" style="text-align:center;padding:20px">Chargement des news…</p></div>`;
+    <div id="pt-news"><p class="muted" style="text-align:center;padding:20px">Chargement des news…</p></div>
+    <div id="pt-actus"></div>`;
+  // Les actualités du site se chargent en parallèle : un message interne lent
+  // ne doit pas les retenir, et inversement.
+  ptActus();
   const { data, error } = await sb.rpc("portal_news");
   const news = error ? [] : (data || []);
   const box = document.getElementById("pt-news");
@@ -357,6 +361,146 @@ async function renderAccueil() {
 }
 // Liens https:// d'un message (texte déjà échappé) → cliquables, ouverts dans un nouvel onglet.
 const newsLinks = (html) => html.replace(/https:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) => `<a href="${u}" target="_blank" rel="noopener" class="pt-news-link">${u.replace(/^https:\/\/(www\.)?/, "")}</a>`);
+
+/* ============================================================
+   LES ACTUALITÉS DU SITE, DANS L'ACCUEIL
+   ------------------------------------------------------------
+   Les articles de teamlausanne.ch (table news_articles) ne sont pas recopiés
+   ici : on les relit. portal_site_news() en rend les dernières SANS le corps
+   — la liste reste légère sur un téléphone — avec un drapeau « pour_moi »
+   quand la catégorie de l'article correspond à une filière de la famille
+   (db/188). Pour lire, on redemande l'article seul à news_public(slug), la
+   même fonction que le site public.
+
+   Rien n'est filtré : tout ceci est déjà public. On marque simplement ce qui
+   touche sa filière, parce que plusieurs filières n'ont pour l'instant aucun
+   article et qu'une section vide serait pire que des nouvelles du club.
+
+   Les images et les liens internes des articles sont écrits pour le site
+   (« assets/… », « #stages ») : il faut les rendre absolus, sinon ils
+   pointeraient le domaine de l'app, qui ne les sert pas.
+   ============================================================ */
+const siteUrl = (p) => {
+  const s = String(p ?? "").trim();
+  if (!s) return "";
+  return /^(https?:|data:)/i.test(s) ? s : SITE_PUBLIC + "/" + s.replace(/^\/+/, "");
+};
+const PT_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+function ptActuDate(iso) {
+  if (!iso) return "";
+  const d = new Date(String(iso).slice(0, 10) + "T12:00:00");
+  return `${d.getDate()} ${PT_MOIS[d.getMonth()]}`;
+}
+let ACTUS = null, ACTUS_CLE = "";   // cache, invalidé quand on change d'enfant
+
+async function ptActus() {
+  const box = $("pt-actus"); if (!box) return;
+  // Qui regarde : l'enfant choisi, celui de l'aperçu console, ou toute la
+  // famille (null) — auquel cas la base prend l'union de ses filières.
+  const cible = APERCU || (selYouth !== "all" ? selYouth : null);
+  const cle = cible || "famille";
+  if (ACTUS === null || ACTUS_CLE !== cle) {
+    const { data, error } = await sb.rpc("portal_site_news", { p_youth: cible, p_limit: 5 });
+    // Pas de bruit si la fonction manque ou refuse : la section disparaît.
+    if (error) { box.innerHTML = ""; return; }
+    ACTUS = data || []; ACTUS_CLE = cle;
+  }
+  if (!ACTUS.length) { box.innerHTML = ""; return; }
+  box.innerHTML = `
+    <div class="pt-actus-head">
+      <h3>Les actualités du club</h3>
+      <a href="${SITE_PUBLIC}/actualites" target="_blank" rel="noopener">Toutes ↗</a>
+    </div>
+    ${ACTUS.map((a) => `
+      <article class="pt-actu-card${a.pour_moi ? " mienne" : ""}" data-slug="${escHtml(a.slug)}" tabindex="0" role="button">
+        ${a.cover_url ? `<img class="pt-actu-cover" src="${escHtml(siteUrl(a.cover_url))}" alt="${escHtml(a.cover_alt || "")}" loading="lazy" />` : ""}
+        <div class="pt-actu-txt">
+          <span class="pt-actu-cat">${escHtml(a.category || "")}</span>
+          <h4>${escHtml(a.title || "")}</h4>
+          ${a.lede ? `<p>${escHtml(a.lede)}</p>` : ""}
+          <span class="pt-actu-meta">${escHtml(ptActuDate(a.published_on))}${a.reading_min ? ` · ${a.reading_min} min` : ""}</span>
+        </div>
+      </article>`).join("")}`;
+  box.querySelectorAll(".pt-actu-card").forEach((c) => {
+    c.addEventListener("click", () => ptActuOuvrir(c.dataset.slug));
+    c.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ptActuOuvrir(c.dataset.slug); }
+    });
+  });
+}
+
+/* Un bloc d'article → du HTML. Le corps n'est pas du HTML en base mais une
+   suite de blocs ({t:"p"|"h2"|"quote"|"img"|"lien"}) : rien de ce qui vient de
+   la base n'est injecté tel quel, et un type inconnu est ignoré plutôt que de
+   casser la page. Même règle que sur le site. */
+function ptActuBloc(b) {
+  if (!b || typeof b !== "object") return "";
+  if (b.t === "p") return `<p>${escHtml(b.x || "")}</p>`;
+  if (b.t === "h2") return `<h2>${escHtml(b.x || "")}</h2>`;
+  if (b.t === "quote")
+    return `<figure class="pt-actu-cite"><p>${escHtml(b.x || "")}</p>${
+      b.src ? `<cite>${escHtml(b.src)}</cite>` : ""}</figure>`;
+  if (b.t === "img" && b.x)
+    return `<figure class="pt-actu-fig"><img src="${escHtml(siteUrl(b.x))}" alt="${escHtml(b.alt || "")}" loading="lazy" />${
+      b.cap ? `<figcaption>${escHtml(b.cap)}</figcaption>` : ""}</figure>`;
+  if (b.t === "lien" && typeof b.x === "string") {
+    // « #stages » désigne une section du SITE : depuis l'app, il faut l'adresse
+    // complète. Seuls http(s) et ces ancres sont acceptés — une adresse
+    // « javascript: » glissée en base ne doit pas devenir un lien cliquable.
+    const u = /^#[\w-]+$/.test(b.x) ? SITE_PUBLIC + "/" + b.x
+      : (/^https?:\/\//i.test(b.x) ? b.x : "");
+    return u ? `<p><a class="pt-actu-btn" href="${escHtml(u)}" target="_blank" rel="noopener">${
+      escHtml(b.label || "Voir")} ↗</a></p>` : "";
+  }
+  return "";
+}
+
+let actuOuverte = false;
+async function ptActuOuvrir(slug) {
+  const ov = $("pt-actu-read"); if (!ov || !slug) return;
+  ov.innerHTML = `<div class="pt-actu-bar"><button type="button" class="pt-actu-retour">← Retour</button></div>
+    <div class="pt-actu-corps"><p class="muted" style="padding:20px;text-align:center">Chargement…</p></div>`;
+  ov.classList.remove("hidden");
+  document.body.classList.add("pt-noscroll");
+  if (!actuOuverte) history.pushState({ ptActu: 1 }, "");   // le bouton « retour » du téléphone ferme l'article
+  actuOuverte = true;
+  ov.querySelector(".pt-actu-retour").addEventListener("click", () => ptActuFermer());
+  const { data, error } = await sb.rpc("news_public", { p_slug: slug });
+  const a = (data || [])[0];
+  const corps = ov.querySelector(".pt-actu-corps"); if (!corps) return;
+  if (error || !a) {
+    corps.innerHTML = `<p class="muted" style="padding:20px;text-align:center">Article introuvable.
+      <a href="${SITE_PUBLIC}/actualites/${encodeURIComponent(slug)}" target="_blank" rel="noopener">Le lire sur le site ↗</a></p>`;
+    return;
+  }
+  const blocs = Array.isArray(a.body) ? a.body : [];
+  corps.innerHTML = `
+    ${a.cover_url ? `<img class="pt-actu-hero" src="${escHtml(siteUrl(a.cover_url))}" alt="${escHtml(a.cover_alt || "")}" />` : ""}
+    <div class="pt-actu-lire">
+      <span class="pt-actu-cat">${escHtml(a.category || "")}</span>
+      <h1>${escHtml(a.title || "")}</h1>
+      <p class="pt-actu-meta">${escHtml(ptActuDate(a.published_on))}${
+        a.author ? ` · ${escHtml(a.author)}` : ""}${a.reading_min ? ` · ${a.reading_min} min` : ""}</p>
+      ${a.lede ? `<p class="pt-actu-lede">${escHtml(a.lede)}</p>` : ""}
+      ${blocs.map(ptActuBloc).join("")}
+      <p class="pt-actu-fin"><a href="${SITE_PUBLIC}/actualites/${encodeURIComponent(a.slug)}"
+        target="_blank" rel="noopener">Voir sur teamlausanne.ch ↗</a></p>
+    </div>`;
+  ov.scrollTop = 0;
+}
+function ptActuFermer(parHistorique) {
+  if (!actuOuverte) return;
+  actuOuverte = false;
+  $("pt-actu-read").classList.add("hidden");
+  $("pt-actu-read").innerHTML = "";
+  document.body.classList.remove("pt-noscroll");
+  // Fermé par le bouton de l'app : on retire aussi l'étape d'historique,
+  // sinon le « retour » du téléphone ne ferait plus rien une fois.
+  if (!parHistorique && history.state && history.state.ptActu) history.back();
+}
+window.addEventListener("popstate", () => { if (actuOuverte) ptActuFermer(true); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && actuOuverte) ptActuFermer(); });
 // Petite fenêtre de confirmation (message en HTML déjà échappé) → Promise<boolean>.
 function ptConfirm(html, okLabel = "Oui") {
   return new Promise((resolve) => {
