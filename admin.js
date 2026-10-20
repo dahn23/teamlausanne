@@ -6370,7 +6370,7 @@ async function loadPortalAccess() {
    Les droits ne sont pas décidés ici. portal_apercu_eleves et
    portal_apercu_profil refusent de répondre à qui n'est ni admin ni
    secrétariat ; le panneau se cache simplement quand elles ne rendent rien. */
-let apBound = false;
+let apBound = false, apEleves = [], apSel = null;
 const apFil = () => $("ap-filiere").value;
 async function apInit() {
   const carte = $("ap-card"); if (!carte) return;
@@ -6379,35 +6379,67 @@ async function apInit() {
     $("ap-filiere").innerHTML = PA_FILIERES.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("");
     $("ap-filiere").value = "sport-etudes";
     $("ap-filiere").addEventListener("change", apChargerEleves);
-    $("ap-eleve").addEventListener("change", apAfficher);
+    // Recherche : la liste est déjà chargée, on filtre donc en mémoire — pas
+    // d'aller-retour au serveur, la liste suit la frappe.
+    $("ap-search").addEventListener("input", () => apRendreResultats());
+    // En revenant dans le champ, il contient le nom déjà choisi. On le
+    // sélectionne (la frappe le remplace) et on remontre toute la filière,
+    // sinon la liste n'offrirait que l'élève qu'on regarde déjà.
+    $("ap-search").addEventListener("focus", (e) => { e.target.select(); apRendreResultats(true); });
+    $("ap-search").addEventListener("blur", () => setTimeout(() => $("ap-results").classList.add("hidden"), 120));
     $("ap-reload").addEventListener("click", apAfficher);
     $("ap-open").addEventListener("click", () => {
-      const id = $("ap-eleve").value;
-      if (id) window.open("/espace.html?apercu=" + encodeURIComponent(id), "_blank", "noopener");
+      if (apSel) window.open("/espace.html?apercu=" + encodeURIComponent(apSel), "_blank", "noopener");
     });
   }
   await apChargerEleves();
 }
 async function apChargerEleves() {
-  const sel = $("ap-eleve"), note = $("ap-note");
   const { data, error } = await sb.rpc("portal_apercu_eleves", { p_filiere: apFil() });
   // Pas le droit, ou la fonction n'existe pas encore : le panneau disparaît
   // plutôt que d'afficher un cadre vide que personne ne saurait interpréter.
   if (error) { $("ap-card").classList.add("hidden"); return; }
-  const rows = data || [];
-  sel.innerHTML = rows.length
-    ? rows.map((r) => `<option value="${r.person_id}">${esc(r.nom)}${r.a_un_compte ? "" : " — sans compte"}</option>`).join("")
-    : `<option value="">Aucun élève dans cette filière</option>`;
-  note.textContent = rows.length ? `${rows.length} élève(s)` : "";
+  apEleves = data || [];
+  $("ap-note").textContent = apEleves.length ? `${apEleves.length} élève(s)` : "aucun élève dans cette filière";
+  // On ouvre sur le premier de la filière : le panneau sert tout de suite,
+  // sans qu'il faille d'abord chercher quelqu'un.
+  apChoisir(apEleves[0] || null);
+}
+// Sans frappe, on montre le début de la liste ; une filière à 90 élèves ne
+// tient pas à l'écran et un menu de 90 lignes ne se lit pas mieux qu'un autre.
+function apRendreResultats(tout) {
+  // norm() enlève les accents : « zoe » doit trouver Zoé, sinon la recherche
+  // rate précisément les prénoms qu'on tape le plus vite.
+  const q = tout ? "" : norm($("ap-search").value);
+  const box = $("ap-results");
+  const trouves = q ? apEleves.filter((r) => norm(r.nom).includes(q)) : apEleves;
+  const montres = trouves.slice(0, 12);
+  box.innerHTML = montres.length
+    ? montres.map((r) => `<button type="button" class="ap-hit" data-id="${r.person_id}">${esc(r.nom)}${
+        r.a_un_compte ? "" : ' <span class="muted">— sans compte</span>'}</button>`).join("")
+      + (trouves.length > montres.length
+          ? `<span class="muted ap-hit-plus">${trouves.length - montres.length} autre(s) — précisez le nom</span>` : "")
+    : '<span class="muted ap-hit-plus">Aucun élève à ce nom</span>';
+  box.classList.remove("hidden");
+  // mousedown et non click : le blur du champ ferme la liste avant qu'un clic
+  // n'ait le temps d'aboutir.
+  box.querySelectorAll(".ap-hit").forEach((b) => b.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    apChoisir(apEleves.find((r) => r.person_id === b.dataset.id) || null);
+    $("ap-results").classList.add("hidden");
+  }));
+}
+function apChoisir(eleve) {
+  apSel = eleve ? eleve.person_id : null;
+  $("ap-search").value = eleve ? eleve.nom : "";
   apAfficher();
 }
 function apAfficher() {
-  const id = $("ap-eleve").value;
   const f = $("ap-frame");
   // On remet src à vide d'abord : sans ça, recharger le même élève ne relance
   // rien et le bouton « Recharger » semble cassé.
   f.src = "about:blank";
-  if (id) setTimeout(() => { f.src = "/espace.html?apercu=" + encodeURIComponent(id); }, 30);
+  if (apSel) setTimeout(() => { f.src = "/espace.html?apercu=" + encodeURIComponent(apSel); }, 30);
 }
 
 // Comptes supprimés par leur utilisateur (bouton « Supprimer mon compte ») : le login est déjà supprimé ; si la personne

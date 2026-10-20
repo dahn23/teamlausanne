@@ -5338,3 +5338,19 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 @media (max-width: 520px) {
   .ap-phone { height: 640px; border-width: 8px; border-radius: 30px; }
 }
+
+/* Recherche d'élève dans l'aperçu : même esprit que la recherche de personne
+   de la fenêtre de facture, en plus court — la liste est déjà en mémoire. */
+.ap-pick { position: relative; }   /* .pc-f donne déjà la colonne */
+.ap-results {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 30;
+  background: #fff; border: 1px solid #d9e1ea; border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 24, 48, .14);
+  max-height: 290px; overflow: auto; padding: 4px;
+}
+.ap-hit {
+  display: block; width: 100%; text-align: left; border: 0; background: none;
+  padding: 7px 10px; border-radius: 7px; cursor: pointer; font: inherit; color: inherit;
+}
+.ap-hit:hover, .ap-hit:focus-visible { background: #eef4fb; }
+.ap-hit-plus { display: block; padding: 7px 10px; font-size: .85rem; }
