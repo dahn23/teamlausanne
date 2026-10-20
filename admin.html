@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=341" />
+  <link rel="stylesheet" href="style.css?v=342" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -300,6 +300,18 @@
               <span id="pa-status" class="muted"></span>
             </div>
             <div id="pa-list" class="table-wrap" style="margin-top:12px"></div>
+          </div>
+
+          <div class="rg-card" id="ap-card" style="margin-bottom:16px">
+            <div class="crm-head" style="margin-bottom:8px"><h2 style="margin:0">Aperçu sur téléphone</h2><span id="ap-note" class="muted"></span></div>
+            <p class="muted" style="margin:0 0 10px;max-width:760px">Mon espace tel qu'une famille le voit, sans sortir votre téléphone. Choisissez une filière puis un élève : l'app réelle s'ouvre dans le cadre, avec ses cours et ses écrans. <b>Lecture seule de fait</b> — vous voyez ce que votre rôle vous donne déjà ; les écrans auxquels vous n'avez pas droit restent vides.</p>
+            <div class="pa-actions" style="margin-bottom:12px">
+              <label class="pc-f" style="min-width:190px"><span>Filière</span><select id="ap-filiere"></select></label>
+              <label class="pc-f" style="min-width:240px"><span>Élève</span><select id="ap-eleve"></select></label>
+              <button type="button" id="ap-reload" class="ghost">↻ Recharger</button>
+              <button type="button" id="ap-open" class="ghost">↗ Ouvrir en grand</button>
+            </div>
+            <div class="ap-phone-wrap"><div class="ap-phone"><iframe id="ap-frame" title="Aperçu de Mon espace" referrerpolicy="no-referrer"></iframe></div></div>
           </div>
 
           <div class="rg-card">

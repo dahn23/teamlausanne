@@ -6360,6 +6360,54 @@ async function loadPortalAccess() {
     paLoadList();
   }));
   await paLoadList();
+  await apInit();
+}
+
+/* ---------- Aperçu de Mon espace sur téléphone (db/187) ----------
+   Le cadre affiche l'app RÉELLE dans une iframe, pas une maquette : une
+   maquette aurait dérivé dès la première retouche de l'espace privé, et on
+   l'aurait découvert en croyant vérifier autre chose.
+   Les droits ne sont pas décidés ici. portal_apercu_eleves et
+   portal_apercu_profil refusent de répondre à qui n'est ni admin ni
+   secrétariat ; le panneau se cache simplement quand elles ne rendent rien. */
+let apBound = false;
+const apFil = () => $("ap-filiere").value;
+async function apInit() {
+  const carte = $("ap-card"); if (!carte) return;
+  if (!apBound) {
+    apBound = true;
+    $("ap-filiere").innerHTML = PA_FILIERES.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("");
+    $("ap-filiere").value = "sport-etudes";
+    $("ap-filiere").addEventListener("change", apChargerEleves);
+    $("ap-eleve").addEventListener("change", apAfficher);
+    $("ap-reload").addEventListener("click", apAfficher);
+    $("ap-open").addEventListener("click", () => {
+      const id = $("ap-eleve").value;
+      if (id) window.open("/espace.html?apercu=" + encodeURIComponent(id), "_blank", "noopener");
+    });
+  }
+  await apChargerEleves();
+}
+async function apChargerEleves() {
+  const sel = $("ap-eleve"), note = $("ap-note");
+  const { data, error } = await sb.rpc("portal_apercu_eleves", { p_filiere: apFil() });
+  // Pas le droit, ou la fonction n'existe pas encore : le panneau disparaît
+  // plutôt que d'afficher un cadre vide que personne ne saurait interpréter.
+  if (error) { $("ap-card").classList.add("hidden"); return; }
+  const rows = data || [];
+  sel.innerHTML = rows.length
+    ? rows.map((r) => `<option value="${r.person_id}">${esc(r.nom)}${r.a_un_compte ? "" : " — sans compte"}</option>`).join("")
+    : `<option value="">Aucun élève dans cette filière</option>`;
+  note.textContent = rows.length ? `${rows.length} élève(s)` : "";
+  apAfficher();
+}
+function apAfficher() {
+  const id = $("ap-eleve").value;
+  const f = $("ap-frame");
+  // On remet src à vide d'abord : sans ça, recharger le même élève ne relance
+  // rien et le bouton « Recharger » semble cassé.
+  f.src = "about:blank";
+  if (id) setTimeout(() => { f.src = "/espace.html?apercu=" + encodeURIComponent(id); }, 30);
 }
 
 // Comptes supprimés par leur utilisateur (bouton « Supprimer mon compte ») : le login est déjà supprimé ; si la personne

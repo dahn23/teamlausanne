@@ -53,6 +53,15 @@ let YOUTHS = [];        // jeunes liés au compte
 let selYouth = "all";   // "all" ou person_id
 let PLAYERS = [];       // jeunes "joueurs" (filières élite) → onglet Feuille de match
 let ELITE = new Set();  // parmi eux : pro, pro U18, sport-études (db/118) → chat Prépa physique, Mental complet, pas de Stages
+// Aperçu depuis la console : « espace.html?apercu=<id du jeune> ». Le cadre de
+// téléphone de l'onglet Accès montre alors l'app telle qu'une famille la voit,
+// sans sortir son téléphone ni se connecter à la place de quelqu'un.
+//
+// Le droit n'est PAS décidé ici : les fonctions du portail refusent elles-mêmes
+// de répondre à qui n'est ni admin ni secrétariat (portal_peut_apercevoir,
+// db/187). Ce paramètre ne donne donc rien à qui n'y a pas déjà droit — une
+// famille qui le taperait dans la barre d'adresse verrait son propre espace.
+const APERCU = new URLSearchParams(location.search).get("apercu");
 let weekStart = mondayOf(new Date());
 let coursesCache = [];  // dernier chargement de la semaine
 let etudesCache = [];   // jours d'études de la semaine (13h-17h)
@@ -118,24 +127,35 @@ async function startApp() {
   $("pt-bot").innerHTML = mascot(40);
   $("pt-bot-avatar").innerHTML = mascot(28);
 
-  const { data, error } = await sb.rpc("portal_my_youths");
+  // En aperçu, les trois réponses qui donnent sa forme à l'app viennent d'un
+  // seul appel, et c'est la BASE qui dit si ce jeune est joueur ou élite —
+  // pas une copie des règles ici, qui divergerait tôt ou tard de l'originale.
+  const apercu = APERCU ? (await sb.rpc("portal_apercu_profil", { p_youth: APERCU })).data?.[0] : null;
+  if (APERCU && !apercu) { $("pt-app").innerHTML = '<p style="padding:24px">Aperçu indisponible : droits insuffisants, ou élève introuvable.</p>'; return; }
+
+  const { data, error } = apercu ? { data: [apercu] } : await sb.rpc("portal_my_youths");
   YOUTHS = error ? [] : (data || []);
-  initNativePush();   // app native : enregistre ce téléphone pour les notifications (sans effet dans un navigateur)
+  if (!apercu) initNativePush();   // app native : enregistre ce téléphone pour les notifications (sans effet dans un navigateur)
   // Compte qui a aussi un rôle staff (coach qui est joueur, parent qui est moniteur…) : bouton de bascule vers la console.
-  myRoles().then(async (roles) => {
+  // Bouton « ⇄ Staff » : inutile dans un aperçu, où l'on est déjà dans la console.
+  if (!apercu) myRoles().then(async (roles) => {
     // Rôle staff, ou responsable d'un tournoi GameZone en cours : la console lui est ouverte.
     if (!hasAny(roles, CONSOLE_ROLES) && !(await isGzManager())) return;
     const b = $("pt-to-console"); b.classList.remove("hidden");
     b.addEventListener("click", () => { rememberSpace("console"); location.href = "/console"; });
   });
   // Feuille de match : onglet visible seulement si un jeune du compte est "joueur" (filière élite).
-  const { data: pl } = await sb.rpc("portal_player_youths");
+  const { data: pl } = apercu
+    ? { data: apercu.est_joueur ? [apercu] : [] }
+    : await sb.rpc("portal_player_youths");
   PLAYERS = pl || [];
   $("pt-nav-matchs").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-comp").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-feuille").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-physique").classList.toggle("hidden", PLAYERS.length === 0);
-  const { data: el } = await sb.rpc("portal_elite_youths");
+  const { data: el } = apercu
+    ? { data: apercu.est_elite ? [apercu.person_id] : [] }
+    : await sb.rpc("portal_elite_youths");
   ELITE = new Set((el || []).map((x) => (typeof x === "string" ? x : x.portal_elite_youths)));
   // Stages : pas pour pro, pro U18 et sport-études (seulement si tous les jeunes du compte en sont).
   document.querySelector('.pt-nav-item[data-view="stages"]')?.classList.toggle("hidden", YOUTHS.length > 0 && YOUTHS.every((y) => ELITE.has(y.person_id)));
