@@ -1555,6 +1555,10 @@ function renderMfList() {
       <div class="mf-card-sub">${r.competition && r.opponent ? `vs ${escHtml(r.opponent)}${r.opponent_ranking ? ` (${escHtml(r.opponent_ranking.toUpperCase())})` : ""} · ` : ""}${st === "pre" ? '<span class="mf-todo-lbl">Après-match à remplir →</span>' : res}</div>
     </button>`;
   };
+  // Première visite : l'écran ne doit pas être un bouton et une ligne grise.
+  // Tant qu'aucune feuille n'existe, on explique à quoi ça sert et comment ça
+  // marche — c'est le seul moment où le jeune a besoin de le lire.
+  if (!mfRows.length) { renderMfVide(); return; }
   body.innerHTML = `
     <button type="button" id="mf-new" class="comp-new">+ Nouvelle feuille de match</button>
     <p class="muted" style="font-size:.82rem;margin:6px 2px 12px">Remplis l'<b>avant-match</b> avant de jouer et valide-le. Reviens après le match pour remplir l'<b>après-match</b> et envoyer ta feuille.</p>
@@ -1566,6 +1570,37 @@ function renderMfList() {
   $("mf-new").addEventListener("click", () => { mfOpen = "new"; renderMfSheet(); window.scrollTo(0, 0); });
   body.querySelectorAll(".mf-card").forEach((b) => b.addEventListener("click", () => { mfOpen = b.dataset.id; renderMfSheet(); window.scrollTo(0, 0); }));
 }
+/* L'écran d'accueil de la feuille de match, tant qu'il n'y en a aucune.
+   Une photo de match, les deux temps expliqués, et le bouton. On dit aussi ce
+   qu'on y gagne au fil de la saison — un jeune remplit un formulaire s'il
+   comprend ce qu'il en retire, pas parce qu'un bouton existe. */
+function renderMfVide() {
+  const body = $("mf-body"); if (!body) return;
+  body.innerHTML = `
+    <div class="mf-vide">
+      <img class="mf-vide-img" src="${siteUrl("assets/photos/competition-2026-s4.jpg")}"
+           alt="Deux joueurs de Team Lausanne en match sur terre battue" />
+      <div class="mf-vide-txt">
+        <h3>Ta feuille de match</h3>
+        <p>Avant de jouer, tu poses ton plan. Après, tu fais le bilan. C'est tout
+           ce que les meilleurs font, et ça se passe en deux temps.</p>
+        <div class="mf-etape"><span class="mf-etape-n">1</span>
+          <div><b>Avant le match</b>
+            <span>Ton adversaire, ton plan de jeu, ton état d'esprit. Tu valides
+              avant d'entrer sur le court — ensuite ça ne bouge plus, et c'est
+              voulu : on compare ce qu'on avait prévu à ce qui s'est passé.</span></div></div>
+        <div class="mf-etape"><span class="mf-etape-n">2</span>
+          <div><b>Après le match</b>
+            <span>Le score, ce qui a marché, ce qui a manqué, ce que tu retiens
+              pour la prochaine fois. Tu envoies, et tes coachs la lisent.</span></div></div>
+        <p class="mf-vide-plus">Au fil de la saison, tu retrouves ici tes matchs gagnés
+           et perdus, et la comparaison entre ta vision du match et celle de ton coach.</p>
+        <button type="button" id="mf-new" class="comp-new mf-vide-cta">+ Ma première feuille de match</button>
+      </div>
+    </div>`;
+  $("mf-new").addEventListener("click", () => { mfOpen = "new"; renderMfSheet(); window.scrollTo(0, 0); });
+}
+
 // Champ en lecture seule ; une réponse vide n'est pas affichée (feuille plus courte à relire).
 const mfRo = (label, val) => val ? `<div class="mf-ro"><b>${escHtml(label)}</b><p>${escHtml(val).replace(/\n/g, "<br/>")}</p></div>` : "";
 const mfTa = (id, label, hint = "") => `<label class="comp-f"><span>${escHtml(label)}</span>${hint ? `<small>${escHtml(hint)}</small>` : ""}<textarea id="${id}" rows="2"></textarea></label>`;
