@@ -2258,7 +2258,7 @@ const PL_KIND_LABEL = Object.fromEntries(PL_KINDS);
 const PL_FILIERES = [["competition", "Compétition"], ["performance", "Performance"], ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"]];
 const PL_FIL_LABEL = Object.fromEntries(PL_FILIERES);
 const PL_MONTHS = ["janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc"];
-let plInit = false, plSeasons = [], plSeason = null, plSub = "tournois", plWeekList = [];
+let plInit = false, plSeasons = [], plSeason = null, plSub = "tournois", plWeekList = [], plContenu = {};
 let plWeeks = {}, plTours = [], plOff = [], plPlayers = [], plFil = new Set(), plSel = null, plBrush = "entrainement";
 
 const plAdd = (iso, n) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return d; };
@@ -2309,12 +2309,15 @@ async function plLoadData() {
   plWeekList = plWeekStarts(plSeason);
   const a = plWeekList[0], z = isoA(plAdd(plWeekList[plWeekList.length - 1], 6));
   const [{ data: w }, { data: t }, { data: off }] = await Promise.all([
-    sb.from("plan_weeks").select("person_id,week_start,kind").gte("week_start", a).lte("week_start", z),
+    sb.from("plan_weeks").select("person_id,week_start,kind,tennis,physique,note").gte("week_start", a).lte("week_start", z),
     sb.from("plan_tournaments").select("id,person_id,week_start,start_date,end_date,name,source,created_by").gte("week_start", isoA(plAdd(a, -49))).lte("week_start", z).order("created_at"),
     sb.from("plan_days_off").select("day,label").gte("day", a).lte("day", z).order("day"),
   ]);
-  plWeeks = {};
-  for (const r of w || []) (plWeeks[r.person_id] || (plWeeks[r.person_id] = {}))[r.week_start] = r.kind;
+  plWeeks = {}; plContenu = {};
+  for (const r of w || []) {
+    (plWeeks[r.person_id] || (plWeeks[r.person_id] = {}))[r.week_start] = r.kind;
+    (plContenu[r.person_id] || (plContenu[r.person_id] = {}))[r.week_start] = r;
+  }
   plTours = t || [];
   plOff = off || [];
   plPlayers = people.filter((p) => p.is_active !== false && plFilOf(p.id))
@@ -2538,7 +2541,15 @@ function plOpenRegs(pid, ws) {
     ov.innerHTML = `<div class="ui-box" style="max-width:520px;text-align:left">
       <h3 style="margin:0 0 4px">${esc(plName(pid))}</h3>
       <p class="muted" style="margin:0 0 10px;font-size:.86rem">Semaine du ${plWkLabel(ws)}${(plWeeks[pid] || {})[ws] ? ` · « ${esc(PL_KIND_LABEL[plWeeks[pid][ws]])} »` : ""} · week-end ${zone ? "<b>en zone tournoi</b>" : "sans zone tournoi"}${plOffIn(ws).length ? `<br/>Pas d'entraînement : ${esc(plOffIn(ws).map(plOffLabel).join(", "))}` : ""}</p>
-      <div class="pl-wt-h">Inscriptions du jeune cette semaine</div>
+      <div class="pl-wt-h">Le programme de la semaine</div>
+      <div class="pl-prog">
+        <label>Tennis<input type="text" id="pl-wk-tennis" placeholder="ex. Travail tactique et schémas de jeu" value="${esc(((plContenu[pid] || {})[ws] || {}).tennis || "")}" /></label>
+        <label>Préparation physique<input type="text" id="pl-wk-phys" placeholder="ex. Prépa tournois : force, santé, symétrie" value="${esc(((plContenu[pid] || {})[ws] || {}).physique || "")}" /></label>
+        <label>Note <span class="muted" style="font-weight:400">(facultatif)</span><input type="text" id="pl-wk-note" placeholder="ex. deux tournois recommandés sur la période" value="${esc(((plContenu[pid] || {})[ws] || {}).note || "")}" /></label>
+        <div class="pl-prog-foot"><button type="button" class="primary" id="pl-wk-save">Enregistrer le programme</button>
+          <span id="pl-wk-msg" class="muted"></span></div>
+      </div>
+      <div class="pl-wt-h" style="margin-top:16px">Inscriptions du jeune cette semaine</div>
       ${regs.length ? regs.map((t) => `<div class="pl-wt"><span>${esc(t.name)} <span class="muted" style="font-size:.8rem">· ${plRange(t.start_date, t.end_date)}</span>${plRegHors(t) ? ' <span class="ps-hors">hors zone</span>' : ""}</span><button type="button" class="fam-del pl-wt-del" data-id="${t.id}" title="Retirer cette inscription">✕</button></div>`).join("") : '<p class="muted" style="margin:0 0 6px;font-size:.85rem">Aucune inscription pour l\'instant.</p>'}
       <div class="pl-wt-h" style="margin-top:14px">Ajouter une inscription</div>
       <div class="pl-reg-add"><input type="text" id="pl-wt-new" placeholder="Nom du tournoi (ex. Tournoi de Genève R3)" />
@@ -2546,6 +2557,21 @@ function plOpenRegs(pid, ws) {
         <label>Au<input type="date" id="pl-wt-to" value="${isoA(plAdd(ws, 6))}" /></label>
         <button type="button" class="primary" id="pl-wt-add">Ajouter</button></div>
       <div class="ui-actions"><button type="button" class="ghost ui-no">Fermer</button></div></div>`;
+    // Le programme de la semaine : les trois colonnes du fichier de
+    // planification annuelle, posées sur plan_weeks (db/196). On réécrit le
+    // type avec, sinon l'upsert l'effacerait — la contrainte porte sur le
+    // couple (personne, semaine), pas sur chaque champ.
+    ov.querySelector("#pl-wk-save").addEventListener("click", async () => {
+      const lu = (id) => ov.querySelector(id).value.trim() || null;
+      const row = { tennis: lu("#pl-wk-tennis"), physique: lu("#pl-wk-phys"), note: lu("#pl-wk-note") };
+      const msg = ov.querySelector("#pl-wk-msg"); msg.textContent = "Enregistrement…";
+      const { error } = await sb.from("plan_weeks")
+        .upsert({ person_id: pid, week_start: ws, kind: (plWeeks[pid] || {})[ws] || "entrainement", ...row },
+                { onConflict: "person_id,week_start" });
+      if (error) { msg.textContent = "Erreur : " + error.message; return; }
+      (plContenu[pid] || (plContenu[pid] = {}))[ws] = { ...((plContenu[pid] || {})[ws] || {}), ...row };
+      msg.textContent = "Enregistré.";
+    });
     ov.querySelectorAll(".pl-wt-del").forEach((b) => b.addEventListener("click", async () => {
       const x = plTours.find((t) => t.id === b.dataset.id);
       if (!await uiConfirm(`Es-tu sûr de vouloir retirer l'inscription${x ? ` à « ${x.name} » (${plRange(x.start_date, x.end_date)})` : ""} de ${plName(pid)} ?`)) return;

@@ -1404,13 +1404,14 @@ async function renderPortalSeason(player) {
   const weeks = []; for (let i = 0; i < s.weeks; i++) weeks.push(isoLocal(psDay(s.start_monday, 7 * i)));
   const a = weeks[0], z = isoLocal(psDay(weeks[weeks.length - 1], 6));
   const [{ data: w }, { data: t }, { data: offRows }, { data: u }] = await Promise.all([
-    sb.from("plan_weeks").select("week_start,kind").eq("person_id", player.person_id).gte("week_start", a).lte("week_start", z),
+    sb.from("plan_weeks").select("week_start,kind,tennis,physique,note").eq("person_id", player.person_id).gte("week_start", a).lte("week_start", z),
     sb.from("plan_tournaments").select("id,week_start,start_date,end_date,name,source,created_by").eq("person_id", player.person_id).gte("week_start", isoLocal(psDay(a, -49))).lte("week_start", z).order("start_date"),
     sb.from("plan_days_off").select("day,label").gte("day", a).lte("day", z).order("day"),
     sb.auth.getUser(),
   ]);
   if ($("mrp-season") !== host) return;   // l'onglet a été redessiné entre-temps
-  const kinds = {}; for (const r of w || []) kinds[r.week_start] = r.kind;
+  const kinds = {}, contenus = {};
+  for (const r of w || []) { kinds[r.week_start] = r.kind; contenus[r.week_start] = r; }
   // Jours fériés / sans entraînement (db/110) de la semaine.
   const PS_DOW = ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"];
   const offIn = (ws) => { const we = isoLocal(psDay(ws, 6)); return (offRows || []).filter((d) => d.day >= ws && d.day <= we); };
@@ -1480,8 +1481,12 @@ async function renderPortalSeason(player) {
   const showWeek = (i) => {
     const ws = weeks[i], k = kinds[ws], pl = planned(ws), rg = regsIn(ws);
     host.querySelectorAll(".ps-col").forEach((c) => c.classList.toggle("ps-col-sel", +c.dataset.i === i));
+    const c = contenus[ws] || {};
     $("ps-week").innerHTML = `<b>Semaine du ${psRange(ws, isoLocal(psDay(ws, 6)))}</b>
       <div>Programme : <b>${escHtml(PS_KINDS[k] || "rien de prévu")}</b></div>
+      ${c.tennis ? `<div class="ps-ligne ps-l-tennis"><span>Tennis</span><b>${escHtml(c.tennis)}</b></div>` : ""}
+      ${c.physique ? `<div class="ps-ligne ps-l-phys"><span>Préparation physique</span><b>${escHtml(c.physique)}</b></div>` : ""}
+      ${c.note ? `<div class="ps-ligne ps-l-note"><span>À noter</span><b>${escHtml(c.note)}</b></div>` : ""}
       ${offIn(ws).length ? `<div>Pas d'entraînement : <b>${offIn(ws).map((d) => `${PS_DOW[psDay(d.day, 0).getDay()]} ${psD(d.day)} (${escHtml(d.label)})`).join(", ")}</b></div>` : ""}
       <div>Week-end (${psWe(ws)}) : ${pl.length ? `<b>zone tournoi</b>${rg.length ? "" : " — inscris-toi à un tournoi ce week-end"}` : "pas de zone tournoi"}</div>
       <div>Mes inscriptions : ${rg.length ? rg.map((x) => `${escHtml(x.name)} (${psRange(x.start_date, x.end_date)})`).join(", ") : "aucune"}</div>

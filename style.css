@@ -4101,16 +4101,25 @@ tr.enc-ok td{background:#f4fbf6}
 .gz-ro #gz-part-search,.gz-ro #gz-fin-season{pointer-events:auto;background:#fff;color:var(--ink)}
 
 /* ===== Planning tournois (db/106) : frise de saison en double case (semaine + week-end) ===== */
-.pl-k-prepa{background:#e58fb8}.pl-k-entrainement{background:#85b7eb}.pl-k-option{background:#9fe1cb}
-.pl-k-vacances{background:#d3d1c7}.pl-k-etranger{background:#b39ddb}.pl-k-none{background:#eef1f6}
+/* Les cinq types de semaine, dans la charte 2026 et non plus en pastel.
+   Tout est bleu sauf ce qui doit sauter aux yeux : le mint des week-ends de
+   tournoi et le rouge d une inscription hors zone. On distingue par la
+   VALEUR — du plus clair (option, le moins engageant) au plus foncé
+   (étranger, le plus lourd) — ce qui reste lisible sur 16 px de haut. */
+.pl-k-entrainement{background:#073eb5}
+.pl-k-prepa{background:#137297}
+.pl-k-option{background:#9bb9ee}
+.pl-k-vacances{background:#dfe5ee}
+.pl-k-etranger{background:#003652}
+.pl-k-none{background:#f2f5fa}
 .pl-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);margin:6px 0 12px}
 .pl-legend span,.pl-brush{display:inline-flex;align-items:center;gap:6px}
 .pl-legend i,.pl-brush i{width:13px;height:13px;border-radius:4px;display:inline-block}
 .pl-legend i.pl-we-on{background:#ef9f27;height:6px;align-self:center}
 .pl-frise{display:grid;gap:1px;border-radius:7px;overflow:hidden;touch-action:none;user-select:none}
 .pl-col{display:flex;flex-direction:column;gap:1px;min-width:0}
-.pl-top{height:16px}.pl-we{height:5px;background:#eef1f6}
-.pl-we-on{background:#ef9f27}
+.pl-top{height:18px}.pl-we{height:7px;background:#eef1f6}
+.pl-we-on{background:#b2fd13}
 .pl-now .pl-top{box-shadow:inset 0 0 0 2px #1e3ad1}
 .pl-frise-big .pl-top{height:34px;cursor:crosshair}
 .pl-frise-big .pl-we{height:18px;cursor:pointer;font-size:.62rem;font-weight:800;color:#633806;display:flex;align-items:center;justify-content:center}
@@ -4151,8 +4160,8 @@ tr.enc-ok td{background:#f4fbf6}
 .ps-add select{flex:0 0 auto;max-width:100%}.ps-add input{flex:1 1 180px;min-width:0}
 .ps-del{border:0;background:transparent;color:#b3261e;font-weight:800;cursor:pointer;padding:2px 6px}
 /* Planning tournois v2 : 3e rangée « Inscrit » (inscriptions du jeune), hors zone en rouge */
-.pl-reg{height:4px;background:#eef1f6}
-.pl-reg-on{background:#1e3ad1}.pl-reg-hors{background:#d6453d}
+.pl-reg{height:6px;background:#eef1f6}
+.pl-reg-on{background:#04205e}.pl-reg-hors{background:#c0392b}
 .pl-frise-big .pl-reg{height:12px;cursor:pointer}
 .pl-frise-big .pl-reg-on:hover,.pl-frise-big .pl-reg-hors:hover{filter:brightness(1.15)}
 .pl-legend i.pl-bar{height:6px;align-self:center}
@@ -4185,7 +4194,7 @@ tr.enc-ok td{background:#f4fbf6}
 /* Mosaïque sur tablette (plus large qu'un téléphone) : deux mois côte à côte */
 @media (min-width:640px){.pl-frise.pl-mosaic{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:22px;row-gap:8px}}
 /* Planning : zone tournoi du week-end (sélection au glisser), rappel « pas encore inscrit », ajout d'inscription par le coach */
-.pl-we.pl-sel{outline:2px solid #ef9f27;outline-offset:-1px;background:#f8d9a8}
+.pl-we.pl-sel{outline:2px solid #8ac70a;outline-offset:-1px;background:#e4ffad}
 .pl-todo{background:#fff8ee;border:1px solid #f5d3a0;border-radius:12px;padding:10px 12px;margin:0 0 12px}
 .pl-todo-row{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:4px 0}
 .pl-todo-d{font-size:.8rem;font-weight:700;color:#633806;min-width:120px}
@@ -5686,3 +5695,27 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   font-size:.84rem;line-height:1.5;color:var(--muted)}
 .mf-vide-cta{width:100%;margin-top:14px}
 @media(max-width:360px){.mf-vide-img{height:140px}}
+
+/* ---- Planning tournois : le programme d une semaine ----------------------
+   Les trois colonnes du fichier de planification annuelle (Tennis, Prépa
+   physique, Note), cote console pour les ecrire et cote portail pour les lire. */
+.pl-prog{display:flex;flex-direction:column;gap:8px;background:#f5f8fd;border:1px solid var(--line);
+  border-radius:12px;padding:12px}
+.pl-prog label{display:flex;flex-direction:column;gap:3px;font-size:.78rem;font-weight:700;color:var(--muted)}
+.pl-prog input{font:inherit;font-weight:400;color:var(--ink);padding:8px 10px;
+  border:1px solid var(--line);border-radius:9px;background:#fff}
+.pl-prog-foot{display:flex;align-items:center;gap:10px;margin-top:2px}
+/* Portail : les trois lignes sous le type de semaine. Un filet de couleur les
+   distingue sans ajouter d icone a une fiche deja dense. */
+.ps-ligne{display:flex;gap:10px;align-items:baseline;margin-top:6px;padding-left:10px;
+  border-left:3px solid var(--line)}
+.ps-ligne span{flex:0 0 auto;font-size:.68rem;font-weight:800;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);min-width:84px}
+.ps-ligne b{font-weight:600;line-height:1.4}
+.ps-l-tennis{border-left-color:#073eb5}
+.ps-l-phys{border-left-color:#137297}
+.ps-l-note{border-left-color:#8ac70a}
+@media(max-width:420px){
+  .ps-ligne{flex-direction:column;gap:1px}
+  .ps-ligne span{min-width:0}
+}
