@@ -4130,21 +4130,38 @@ tr.enc-ok td{background:#f4fbf6}
 .pl-mstart .pl-top,.pl-mstart .pl-we,.pl-mstart .pl-reg{border-left:2px solid rgba(4,32,94,.32)}
 .pl-mstart .pl-top{border-top-left-radius:2px}
 
-/* La cle des trois bandes, en tete de tableau : memes hauteurs que la frise,
-   donc l ordre s apprend en le voyant. */
-.pl-key{display:flex;flex-direction:column;gap:3px;font-size:.7rem;color:var(--muted);line-height:1}
+/* ---- Frise de LECTURE : une bande par semaine -----------------------------
+   Trois filets empiles demandaient de retenir lequel disait quoi. Une seule
+   case par semaine porte maintenant le type, et le week-end devient un repere
+   a son BORD DROIT : le week-end est la fin de la semaine, la geometrie dit
+   donc deja quand il tombe. Sa couleur dit ou l on en est.
+   La frise d EDITION, elle, garde ses trois bandes : on y clique separement
+   la zone et l inscription, et elle porte ses propres etiquettes. */
+.pl-col.pl-solo{position:relative;gap:0}
+.pl-solo .pl-top{height:26px;border-radius:3px}
+.pl-mk{position:absolute;right:0;top:0;bottom:0;width:6px;border-radius:0 3px 3px 0;
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.55)}
+.pl-mk-zone{background:#b2fd13}
+.pl-mk-in{background:#04205e}
+.pl-mk-hors{background:#c0392b}
+.pl-solo.pl-mstart .pl-top{border-left:2px solid rgba(4,32,94,.32);border-radius:0 3px 3px 0}
+
+/* La cle : la case, puis les trois etats du repere de week-end. */
+.pl-key{display:flex;flex-direction:column;gap:4px;font-size:.7rem;color:var(--muted);line-height:1}
 .pl-key span{display:flex;align-items:center;gap:6px;white-space:nowrap}
-.pl-key i{flex:0 0 auto;width:16px;border-radius:2px;display:block}
-.pl-key-s{height:10px;background:linear-gradient(90deg,#073eb5 0%,#137297 55%,#dfe5ee 100%)}
-.pl-key-w{height:5px;background:#b2fd13}
-.pl-key-r{height:4px;background:#04205e}
+.pl-key i{flex:0 0 auto;width:17px;height:11px;border-radius:3px;display:block;
+  box-shadow:inset 0 0 0 1px rgba(4,32,94,.12)}
+.pl-key-s{background:linear-gradient(90deg,#073eb5 0%,#137297 55%,#dfe5ee 100%)}
+.pl-key-w{background:linear-gradient(90deg,#dfe5ee 0%,#dfe5ee 64%,#b2fd13 64%)}
+.pl-key-i{background:linear-gradient(90deg,#dfe5ee 0%,#dfe5ee 64%,#04205e 64%)}
+.pl-key-h{background:linear-gradient(90deg,#dfe5ee 0%,#dfe5ee 64%,#c0392b 64%)}
 .pl-frise-big .pl-top{height:34px;cursor:crosshair}
 .pl-frise-big .pl-we{height:18px;cursor:pointer;font-size:.62rem;font-weight:800;color:#633806;display:flex;align-items:center;justify-content:center}
 .pl-frise-big .pl-we:hover{outline:2px solid #ef9f27;outline-offset:-2px}
 .pl-top.pl-sel{outline:2px solid var(--blue-ink,#0f1f6e);outline-offset:-2px;filter:brightness(.92)}
 .pl-months{display:grid;font-size:.7rem;color:var(--muted);margin:0 0 3px}
 .pl-months span{border-left:2px solid rgba(4,32,94,.32);padding-left:4px;overflow:hidden;white-space:nowrap;font-weight:700}
-.pl-rows{display:flex;flex-direction:column;gap:6px}
+.pl-rows{display:flex;flex-direction:column;gap:5px}
 .pl-row{display:grid;grid-template-columns:170px minmax(0,1fr);gap:10px;align-items:center;padding:4px 6px;border-radius:10px;cursor:pointer}
 .pl-row:hover,.pl-row.sel{background:#eef3ff}
 .pl-row-head{cursor:default}.pl-row-head:hover{background:none}

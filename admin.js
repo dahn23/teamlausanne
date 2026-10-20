@@ -2414,6 +2414,14 @@ function plFrise(pid, big) {
     const hors = regs.some(plRegHors);
     const off = plOffIn(ws);
     const tip = `Sem. du ${plWkLabel(ws)} · ${PL_KIND_LABEL[k] || "—"}${plan.length ? " · Week-end : zone tournoi" : ""}${regs.length ? " · Inscrit : " + regs.map((t) => `${t.name} (${plRange(t.start_date, t.end_date)})`).join(", ") : ""}${hors ? " · HORS ZONE PRÉVUE" : ""}${off.length ? " · Sans entraînement : " + off.map(plOffLabel).join(", ") : ""}`;
+    // Le repère du week-end, au bord droit de la semaine : le week-end EST la
+    // fin de la semaine, la géométrie dit donc déjà quand il tombe. Sa couleur
+    // dit où l'on en est — mint : une zone est prévue, personne ne s'est encore
+    // inscrit ; bleu encre : inscrit dans la zone ; rouge : inscrit hors zone.
+    const marque = hors ? "pl-mk-hors" : regs.length ? "pl-mk-in" : plan.length ? "pl-mk-zone" : "";
+    if (!big) {
+      return `<div class="pl-col pl-solo${now ? " pl-now" : ""}${debutMois ? " pl-mstart" : ""}" title="${esc(tip)}"><div class="pl-top pl-k-${k || "none"}${off.length ? " pl-off" : ""}" data-i="${i}"></div>${marque ? `<i class="pl-mk ${marque}"></i>` : ""}</div>`;
+    }
     return `<div class="pl-col${now ? " pl-now" : ""}${debutMois ? " pl-mstart" : ""}" title="${esc(tip)}"><div class="pl-top pl-k-${k || "none"}${off.length ? " pl-off" : ""}" data-i="${i}">${mosaic ? `<span class="pl-day">${plAdd(ws, 0).getDate()}</span>` : ""}</div><div class="pl-we${plan.length ? " pl-we-on" : ""}" data-i="${i}"></div><div class="pl-reg${regs.length ? (hors ? " pl-reg-hors" : " pl-reg-on") : ""}" data-i="${i}"></div></div>`;
   });
   if (mosaic) {
@@ -2436,7 +2444,7 @@ function plRenderCal() {
   }));
   $("pl-legend").innerHTML = plLegend();
   const list = plPlayers.filter((p) => !plFil.size || plFil.has(plFilOf(p.id)));
-  $("pl-rows").innerHTML = list.length ? `<div class="pl-row pl-row-head"><span class="pl-key"><span><i class="pl-key-s"></i>Type de semaine</span><span><i class="pl-key-w"></i>Week-end</span><span><i class="pl-key-r"></i>Inscription</span></span>${plMonthsRow()}</div>` + list.map((p) => `
+  $("pl-rows").innerHTML = list.length ? `<div class="pl-row pl-row-head"><span class="pl-key"><span><i class="pl-key-s"></i>Une case = une semaine</span><span><i class="pl-key-w"></i>Week-end : tournoi prévu</span><span><i class="pl-key-i"></i>Inscrit</span><span><i class="pl-key-h"></i>Inscrit hors zone</span></span>${plMonthsRow()}</div>` + list.map((p) => `
     <div class="pl-row${plSel === p.id ? " sel" : ""}" data-pid="${p.id}">
       <span class="pl-row-name"><b>${esc(p.first_name)} ${esc(p.last_name)}</b><span class="muted">${esc(PL_FIL_LABEL[plFilOf(p.id)] || "")}</span></span>
       ${plFrise(p.id, false)}
