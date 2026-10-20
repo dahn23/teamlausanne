@@ -339,9 +339,9 @@ async function renderAccueil() {
         <p class="muted">Les actualités, tes cours et tes infos.</p>
       </div>
     </div>
-    ${reseauxHtml()}
     <div id="pt-news"><p class="muted" style="text-align:center;padding:20px">Chargement des news…</p></div>
-    <div id="pt-actus"></div>`;
+    <div id="pt-actus"></div>
+    ${reseauxHtml()}`;
   // Les actualités du site se chargent en parallèle : un message interne lent
   // ne doit pas les retenir, et inversement.
   ptActus();
