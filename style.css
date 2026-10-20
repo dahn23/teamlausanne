@@ -5511,3 +5511,34 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   .pcal-stats b{font-size:.84rem}
   .pcal-j{font-size:.8rem}
 }
+
+/* ================= NOS RÉSEAUX (accueil de Mon espace) =====================
+   Quatre pastilles sur une rangée, sous le mot de bienvenue. Les couleurs sont
+   celles des marques : c'est ce qui rend l'icône reconnaissable d'un coup
+   d'oeil, donc touchable sans lire. Le glyphe reste au trait, comme toutes les
+   icônes de l'app, pour que la rangée n'ait pas l'air collée d'ailleurs. */
+.pt-rx{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:13px 14px 11px;margin-bottom:14px}
+.pt-rx-t{display:block;font-size:.72rem;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.pt-rx-row{display:flex;gap:8px}
+.pt-rx-lien{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;
+  color:var(--ink);text-decoration:none;padding:2px 0 4px;border-radius:12px}
+.pt-rx-lien:hover,.pt-rx-lien:focus-visible{background:#f3f6fc;color:var(--blue-ink)}
+.pt-rx-pastille{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;flex:0 0 auto;transition:transform .12s}
+.pt-rx-lien:hover .pt-rx-pastille{transform:translateY(-2px)}
+.pt-rx-pastille svg{width:23px;height:23px;fill:none;stroke:#fff;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;display:block}
+.pt-rx-nom{font-size:.7rem;font-weight:700;line-height:1;text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* Instagram : son dégradé ; TikTok : noir ; Google : son bleu ; le site : le
+   bleu du club, parce que c'est chez nous. */
+.pt-rx-lien.ig .pt-rx-pastille{background:linear-gradient(45deg,#f9ce34 2%,#ee2a7b 48%,#6228d7 96%)}
+.pt-rx-lien.tt .pt-rx-pastille{background:#111}
+.pt-rx-lien.gg .pt-rx-pastille{background:#1a73e8}
+.pt-rx-lien.web .pt-rx-pastille{background:var(--blue)}
+@media(max-width:340px){
+  .pt-rx-pastille{width:42px;height:42px}
+  .pt-rx-nom{font-size:.65rem}
+}

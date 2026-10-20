@@ -1,6 +1,6 @@
 // Mon espace — portail membre (jeunes & parents). 100% responsive.
 import { sb, myRoles, hasAny, CONSOLE_ROLES, isGzManager, rememberSpace, initNativePush, releaseNativePush, openDeleteAccount } from "./common.js";
-import { ONESIGNAL_APP_ID, SITE_PUBLIC, SAISON_COURS } from "./config.js";
+import { ONESIGNAL_APP_ID, SITE_PUBLIC, SAISON_COURS, RESEAUX } from "./config.js";
 
 /* ============================================================
    PWA — installation + secours hors-ligne (service worker).
@@ -339,6 +339,7 @@ async function renderAccueil() {
         <p class="muted">Les actualités, tes cours et tes infos.</p>
       </div>
     </div>
+    ${reseauxHtml()}
     <div id="pt-news"><p class="muted" style="text-align:center;padding:20px">Chargement des news…</p></div>
     <div id="pt-actus"></div>`;
   // Les actualités du site se chargent en parallèle : un message interne lent
@@ -361,6 +362,39 @@ async function renderAccueil() {
 }
 // Liens https:// d'un message (texte déjà échappé) → cliquables, ouverts dans un nouvel onglet.
 const newsLinks = (html) => html.replace(/https:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) => `<a href="${u}" target="_blank" rel="noopener" class="pt-news-link">${u.replace(/^https:\/\/(www\.)?/, "")}</a>`);
+
+/* ---------- Nos réseaux, sous le mot de bienvenue ----------
+   Quatre pastilles, pas une liste de liens : sur un téléphone, une icône
+   reconnaissable se touche mieux qu'une ligne de texte, et quatre tiennent sur
+   une rangée même à 320 px. Chacune s'ouvre dans un nouvel onglet — on ne fait
+   pas sortir la famille de l'app sans retour.
+
+   Les adresses vivent dans config.js (RESEAUX) : une entrée vide n'affiche
+   rien du tout. C'est ce qui permet de publier le bloc avant que l'adresse
+   TikTok ne soit connue, sans laisser une icône qui ne mène nulle part. */
+const RESEAUX_DEF = [
+  ["instagram", "Instagram", "ig",
+    `<rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5"/><circle cx="12" cy="12" r="4.1"/><circle cx="17.1" cy="6.9" r="1.25" fill="currentColor" stroke="none"/>`],
+  ["tiktok", "TikTok", "tt",
+    `<path d="M14.3 3.2v10.9a3.6 3.6 0 1 1-3.6-3.6c.33 0 .64.04.95.13"/><path d="M14.3 3.2c.27 1.5 1.1 2.8 2.3 3.6a5.5 5.5 0 0 0 2.9.95"/>`],
+  ["google", "Google", "gg",
+    `<path d="M12 21s6.5-6.1 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 14.9 12 21 12 21z"/><circle cx="12" cy="10.4" r="2.4"/>`],
+  ["site", "Site web", "web",
+    `<circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2"/><path d="M12 3.4c2.2 2.3 3.4 5.4 3.4 8.6s-1.2 6.3-3.4 8.6c-2.2-2.3-3.4-5.4-3.4-8.6S9.8 5.7 12 3.4z"/>`],
+];
+function reseauxHtml() {
+  const liens = RESEAUX_DEF.filter(([cle]) => (RESEAUX[cle] || "").trim());
+  if (!liens.length) return "";
+  return `<div class="pt-rx">
+    <span class="pt-rx-t">Suivez-nous</span>
+    <div class="pt-rx-row">${liens.map(([cle, nom, cls, path]) => `
+      <a class="pt-rx-lien ${cls}" href="${escHtml(RESEAUX[cle])}" target="_blank" rel="noopener"
+         aria-label="${escHtml(nom)}">
+        <span class="pt-rx-pastille"><svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg></span>
+        <span class="pt-rx-nom">${escHtml(nom)}</span>
+      </a>`).join("")}</div>
+  </div>`;
+}
 
 /* ============================================================
    LES ACTUALITÉS DU SITE, DANS L'ACCUEIL

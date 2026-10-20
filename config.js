@@ -22,3 +22,15 @@ export const SITE_PUBLIC = "https://teamlausanne.ch";
 // administratifs : ici c'est la saison vécue, celle des calendriers PDF.
 // À mettre à jour chaque été, en même temps que les PDF.
 export const SAISON_COURS = { label: "2026-2027", reprise: "2026-08-31", fin: "2027-07-02", semaines: 35 };
+
+// Nos réseaux, affichés sur l'accueil de Mon espace. Une entrée vide n'est pas
+// affichée : mettre l'adresse ici suffit à faire apparaître l'icône, et à la
+// faire disparaître si le compte ferme.
+// TikTok : le compte existe dans le Social Media Planner mais son adresse n'a
+// jamais été notée nulle part — à compléter (ex. https://www.tiktok.com/@…).
+export const RESEAUX = {
+  instagram: "https://www.instagram.com/lausanne_sports_tennis",
+  tiktok: "",
+  google: "https://www.google.com/maps/search/?api=1&query=Team+Lausanne+Academy+Route+des+Plaines-du-Loup+7+1018+Lausanne",
+  site: "https://teamlausanne.ch",
+};
