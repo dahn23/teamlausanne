@@ -5410,3 +5410,102 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   .pt-actu-cover{width:96px;flex:0 0 96px;min-height:88px}
   .pt-actu-txt h4{font-size:.93rem}
 }
+
+/* ================= CALENDRIER DE LA SAISON (portail Mon espace) =============
+   Une grille mensuelle au pouce : les périodes traversent la semaine en barres
+   continues, les jours restent touchables (44 px de haut minimum). Les couleurs
+   reprennent celles de la légende du site public, assombries pour tenir sur
+   fond blanc de téléphone. */
+.pcal-progs{display:flex;gap:8px;margin:0 0 12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.pcal-prog{flex:0 0 auto;background:#fff;color:var(--ink);border:1px solid var(--line);
+  border-radius:999px;padding:7px 14px;font-weight:700;font-size:.84rem}
+.pcal-prog.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+.pcal-tete{background:var(--blue-ink);color:#fff;border-radius:18px;padding:16px;margin-bottom:14px}
+.pcal-eyebrow{display:block;font-size:.72rem;font-weight:800;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--fluo)}
+.pcal-tete h2{margin:4px 0 2px;font-size:1.32rem;color:#fff}
+.pcal-sous{margin:0;font-size:.82rem;color:rgba(255,255,255,.72);line-height:1.4}
+.pcal-stats{display:flex;gap:8px;margin-top:14px}
+.pcal-stats div{flex:1;background:rgba(255,255,255,.1);border-radius:12px;padding:8px 10px;min-width:0}
+.pcal-stats span{display:block;font-size:.65rem;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:rgba(255,255,255,.6)}
+.pcal-stats b{font-size:.95rem;white-space:nowrap}
+.pcal-pdf{display:inline-block;margin-top:14px;background:var(--fluo);color:var(--fluo-ink);
+  border-radius:999px;padding:9px 18px;font-weight:800;font-size:.86rem}
+.pcal-hors{margin:12px 0 0;font-size:.82rem;color:rgba(255,255,255,.75)}
+
+/* ---- Barre de navigation du mois ---- */
+.pcal-barre{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.pcal-barre strong{flex:1;text-align:center;font-size:1.02rem;color:var(--blue-ink);
+  text-transform:capitalize}
+.pcal-nav{width:38px;height:38px;flex:0 0 auto;background:#fff;border:1px solid var(--line);
+  border-radius:11px;color:var(--blue-ink);font-size:1.25rem;line-height:1;padding:0}
+.pcal-nav:hover{border-color:var(--blue);color:var(--blue)}
+.pcal-auj-btn{position:absolute;right:16px;background:transparent;border:none;
+  color:var(--blue);font-weight:700;font-size:.78rem;padding:4px 6px}
+.pcal-barre{position:relative}
+.pcal-barre strong{padding:0 54px}
+
+/* ---- La grille ---- */
+.pcal-dows{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
+.pcal-dows span{text-align:center;font-size:.7rem;font-weight:800;color:var(--muted)}
+.pcal-sem-liste{display:flex;flex-direction:column;gap:3px}
+/* Une semaine = 7 colonnes ; ligne 1 les jours, les suivantes les barres. */
+/* Les barres se posent en ligne 2 et suivantes ; grid-auto-rows les cree au
+   fur et a mesure. repeat(0,...) serait invalide une semaine sans barre. */
+.pcal-sem{display:grid;grid-template-columns:repeat(7,1fr);
+  grid-template-rows:38px;grid-auto-rows:19px;gap:2px}
+.pcal-j{grid-row:1;background:#f7f9fd;border:1px solid transparent;border-radius:9px;
+  color:var(--ink);font-size:.86rem;font-weight:600;padding:0;min-height:38px}
+.pcal-j.hors{color:#c3c9d6;background:#fcfdff}
+.pcal-j.auj{border-color:var(--blue);color:var(--blue);font-weight:800}
+.pcal-j.sel{background:var(--blue);border-color:var(--blue);color:#fff}
+.pcal-bar{display:flex;align-items:center;border:none;border-radius:5px;padding:0 7px;
+  font-size:.66rem;font-weight:800;line-height:1;overflow:hidden;min-height:0;height:19px;
+  color:#fff;text-align:left}
+.pcal-bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Une période qui déborde de la semaine : bord droit (ou gauche) coupé net,
+   pour qu'on voie qu'elle continue. */
+.pcal-bar.coupe-g{border-top-left-radius:0;border-bottom-left-radius:0}
+.pcal-bar.coupe-d{border-top-right-radius:0;border-bottom-right-radius:0}
+.pcal-bar.g-fermeture{background:#c0392b}
+.pcal-bar.g-stage{background:#1e8449}
+.pcal-bar.g-evenement{background:var(--blue)}
+.pcal-bar.g-vacances-scolaires{background:#8e9bb3}
+.pcal-bar.g-ferie{background:#b08900}
+
+.pcal-legende{list-style:none;display:flex;flex-wrap:wrap;gap:6px 14px;margin:12px 0 0;padding:0}
+.pcal-legende li{display:flex;align-items:center;gap:6px;font-size:.74rem;color:var(--muted)}
+.pcal-legende i{width:11px;height:11px;border-radius:3px;display:block}
+.pcal-legende .g-fermeture i{background:#c0392b}
+.pcal-legende .g-stage i{background:#1e8449}
+.pcal-legende .g-evenement i{background:var(--blue)}
+.pcal-legende .g-vacances-scolaires i{background:#8e9bb3}
+.pcal-legende .g-ferie i{background:#b08900}
+
+/* ---- Le détail d'un jour, et les prochaines dates ---- */
+.pcal-jour{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:12px 14px;margin-top:14px}
+.pcal-jour-t{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:8px;color:var(--blue-ink)}
+.pcal-fermer{background:transparent;border:none;color:var(--muted);font-size:1.3rem;
+  line-height:1;padding:0 4px}
+.pcal-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.pcal-items li{border-left:4px solid var(--line);padding-left:11px}
+.pcal-items li.g-fermeture{border-left-color:#c0392b}
+.pcal-items li.g-stage{border-left-color:#1e8449}
+.pcal-items li.g-evenement{border-left-color:var(--blue)}
+.pcal-items li.g-vacances-scolaires{border-left-color:#8e9bb3}
+.pcal-items li.g-ferie{border-left-color:#b08900}
+.pcal-quand{display:block;font-size:.72rem;font-weight:800;letter-spacing:.03em;
+  text-transform:uppercase;color:var(--muted)}
+.pcal-items b{display:block;color:var(--blue-ink);font-size:.95rem;line-height:1.3}
+.pcal-aussi,.pcal-detail{display:block;font-size:.8rem;color:var(--muted);line-height:1.4}
+.pcal-suite-t{margin:22px 0 10px;font-size:1.02rem;color:var(--blue-ink)}
+.pcal-suite{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 14px}
+
+@media(max-width:360px){
+  .pcal-stats b{font-size:.84rem}
+  .pcal-j{font-size:.8rem}
+}

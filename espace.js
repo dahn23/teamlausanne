@@ -1,6 +1,6 @@
 // Mon espace — portail membre (jeunes & parents). 100% responsive.
 import { sb, myRoles, hasAny, CONSOLE_ROLES, isGzManager, rememberSpace, initNativePush, releaseNativePush, openDeleteAccount } from "./common.js";
-import { ONESIGNAL_APP_ID, SITE_PUBLIC } from "./config.js";
+import { ONESIGNAL_APP_ID, SITE_PUBLIC, SAISON_COURS } from "./config.js";
 
 /* ============================================================
    PWA — installation + secours hors-ligne (service worker).
@@ -190,9 +190,9 @@ function renderYouthSelector() {
 
 /* ---------- Navigation (barre du bas) ---------- */
 let currentView = "accueil";
-const VIEW_TITLES = { accueil: "Accueil", cours: "Mes cours", matchs: "Ma saison", feuille: "Feuille de match", physique: "Physique", comp: "Mental", reserver: "Réserver", stages: "Stages", profil: "Profil", contact: "Contact" };
-// Joueurs (filières élite) : trop d'onglets pour la barre → Stages, Profil, Contact et Réserver passent dans « Plus ».
-const NAV_OVERFLOW = ["stages", "profil", "contact", "reserver"];
+const VIEW_TITLES = { accueil: "Accueil", calendrier: "Calendrier", cours: "Mes cours", matchs: "Ma saison", feuille: "Feuille de match", physique: "Physique", comp: "Mental", stages: "Stages", profil: "Profil", contact: "Contact" };
+// Joueurs (filières élite) : trop d'onglets pour la barre → Stages, Profil et Contact passent dans « Plus ».
+const NAV_OVERFLOW = ["stages", "profil", "contact"];
 function arrangeNav() {
   const nav = document.querySelector(".pt-nav"), menu = $("pt-more-menu"), more = $("pt-nav-more");
   const many = PLAYERS.length > 0;
@@ -226,7 +226,7 @@ function renderCurrentView() {
   else if (currentView === "feuille") renderFeuille();
   else if (currentView === "physique") renderPhysique();
   else if (currentView === "comp") renderComp();
-  else if (currentView === "reserver") renderReserver();
+  else if (currentView === "calendrier") renderCalendrier();
   else if (currentView === "stages") renderStages();
   else if (currentView === "profil") renderProfil();
   else if (currentView === "contact") renderContact();
@@ -309,7 +309,7 @@ function qrAnnonce() {
   botQuick([{ label: "Ouvrir mes cours", run: () => { closeBot(); switchView("cours"); } }, menuBtn]);
 }
 function qrReserver() {
-  botBubble("Tu peux réserver un court depuis l'onglet <b>Réserver</b>, ou directement sur la grille des courts.");
+  botBubble("La réservation des courts se fait sur la grille des courts du site.");
   botQuick([{ label: "Ouvrir la réservation", run: () => { location.href = "reservation.html"; } }, menuBtn]);
 }
 function qrStages() {
@@ -675,15 +675,297 @@ function declare(courseId, youthId, kind) {
 }
 
 /* ============================================================
-   RÉSERVER (renvoie vers la grille publique)
+   CALENDRIER DE LA SAISON
+   ------------------------------------------------------------
+   Remplace l'onglet « Réserver » (20.10.2026). Les deux calendriers PDF du
+   site — école de tennis et sport-études — deviennent ici une grille qu'on
+   parcourt du pouce : un mois à la fois, les périodes en BARRES continues en
+   travers de la semaine (« Vacances d'automne » se lit d'un bout à l'autre,
+   sans un clic), et le détail d'un jour sous la grille.
+
+   Les dates ne sont pas recopiées : elles viennent d'agenda_public(), la même
+   fonction que le site public — vacances scolaires vaudoises, jours fériés,
+   fermetures du club, stages, événements. Le PDF reste téléchargeable pour
+   qui veut l'imprimer et l'afficher sur le frigo.
+
+   Le programme affiché suit la filière du jeune (portal_mes_filieres, db/190) :
+   école de tennis pour kids tennis, club, compétition, performance et adultes ;
+   sport-études pour les sport-études ; les pros ont pour l'instant l'agenda du
+   club, leur calendrier propre restant à définir. Une famille à cheval sur
+   deux programmes reçoit un sélecteur.
    ============================================================ */
-function renderReserver() {
-  $("view-reserver").innerHTML = `
-    <div class="pt-panel">
-      <h2>Réserver un court</h2>
-      <p class="muted">Accède à la grille des courts pour réserver ou jouer librement.</p>
-      <a class="pt-cta" href="reservation.html">Ouvrir la réservation</a>
-    </div>`;
+const CAL_PROGRAMMES = {
+  ecole: {
+    titre: "École de tennis",
+    sous: "Kids Tennis · Club · Compétition · Performance · Adultes",
+    pdf: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+  },
+  "sport-etudes": {
+    titre: "Sport-Études",
+    sous: "Tennis · préparation physique · encadrement scolaire",
+    pdf: "assets/calendriers/calendrier-2026-27-sport-etudes.pdf",
+  },
+  // Les pros n'ont pas de calendrier scolaire : leur saison suit les tournois.
+  // En attendant leur propre mise en page, ils voient l'agenda du club, qui
+  // leur sert quand même (fermetures, Lausanne Open, stages).
+  pro: {
+    titre: "Agenda du club",
+    sous: "Fermetures, stages et rendez-vous — calendrier pro à venir",
+    pdf: null,
+  },
+};
+const CAL_DE_FILIERE = {
+  kidstennis: "ecole", club: "ecole", competition: "ecole", performance: "ecole",
+  adultes: "ecole", prive: "ecole", membre: "ecole",
+  "sport-etudes": "sport-etudes", pro: "pro", "pro-u18": "pro",
+};
+// L'ordre range les pastilles de la légende ET départage deux entrées qui
+// tombent le même jour : ce qui demande une action passe avant le décor.
+const CAL_GENRES = [
+  ["fermeture", "Club fermé"],
+  ["stage", "Stages"],
+  ["evenement", "Événements"],
+  ["vacances-scolaires", "Vacances (pas de cours)"],
+  ["ferie", "Jours fériés"],
+];
+const CAL_MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+
+// Dates manipulées en texte « AAAA-MM-JJ » et jamais en objet Date : une borne
+// de vacances comparée en UTC se décale d'un jour vue depuis Lausanne.
+const calISO = (a, m, j) => `${a}-${String(m + 1).padStart(2, "0")}-${String(j).padStart(2, "0")}`;
+const calAuj = () => { const d = new Date(); return calISO(d.getFullYear(), d.getMonth(), d.getDate()); };
+const calNbJours = (a, m) => new Date(a, m + 1, 0).getDate();
+const calPremiereCase = (a, m) => (new Date(a, m, 1).getDay() + 6) % 7;   // lundi = 0
+const calDecaler = (ym, n) => {
+  const [a, m] = ym.split("-").map(Number);
+  const d = new Date(a, m - 1 + n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+const calFr = (iso) => { const [a, m, j] = iso.split("-").map(Number); return `${j} ${CAL_MOIS_FR[m - 1]} ${a}`; };
+const calCourt = (iso) => { const [, m, j] = iso.split("-").map(Number); return `${j} ${CAL_MOIS_FR[m - 1].slice(0, 4)}.`; };
+// « Du 5 au 11 octobre 2026 » plutôt que de répéter le mois des deux côtés.
+const calPeriode = (d, f) => {
+  if (d === f) return calFr(d);
+  const [a1, m1, j1] = d.split("-").map(Number);
+  const [a2, m2] = f.split("-").map(Number);
+  if (a1 === a2 && m1 === m2) return `Du ${j1} au ${calFr(f)}`;
+  if (a1 === a2) return `Du ${j1} ${CAL_MOIS_FR[m1 - 1]} au ${calFr(f)}`;
+  return `Du ${calFr(d)} au ${calFr(f)}`;
+};
+
+let CAL_DATES = null, CAL_PROG = null, CAL_PROGS = [], CAL_MOIS = null, CAL_JOUR = null, CAL_CLE = "";
+
+// Trois sources décrivent souvent le même jour : le canton le dit férié,
+// l'école le met en vacances, et nous fermons. On regroupe ce qui couvre
+// exactement la même période en UNE entrée, qui garde le genre le plus
+// actionnable et porte les autres titres en mention.
+function calFusion(rows) {
+  const rang = (g) => { const i = CAL_GENRES.findIndex(([k]) => k === g); return i < 0 ? 99 : i; };
+  const par = new Map();
+  for (const e of rows || []) {
+    const cle = e.debut + "|" + e.fin;
+    if (!par.has(cle)) par.set(cle, []);
+    par.get(cle).push(e);
+  }
+  const out = [];
+  for (const lot of par.values()) {
+    lot.sort((a, b) => rang(a.genre) - rang(b.genre));
+    const chef = lot[0];
+    const genres = [...new Set(lot.map((e) => e.genre))];
+    const titres = [...new Set(lot.map((e) => e.titre).filter(Boolean))];
+    out.push({ debut: chef.debut, fin: chef.fin, titre: chef.titre, genre: chef.genre,
+      genres, autres: titres.slice(1), detail: chef.detail || "" });
+  }
+  return out.sort((a, b) => a.debut.localeCompare(b.debut) || rang(a.genre) - rang(b.genre));
+}
+const calDuJour = (iso) => {
+  const rang = (g) => CAL_GENRES.findIndex(([k]) => k === g);
+  return (CAL_DATES || []).filter((e) => e.debut <= iso && iso <= e.fin)
+    .sort((a, b) => rang(a.genre) - rang(b.genre));
+};
+
+async function renderCalendrier() {
+  const vue = $("view-calendrier"); if (!vue) return;
+  const cible = APERCU || (selYouth !== "all" ? selYouth : null);
+  const cle = cible || "famille";
+  if (!CAL_PROGS.length || CAL_CLE !== cle) {
+    vue.innerHTML = `<p class="muted" style="text-align:center;padding:24px">Chargement du calendrier…</p>`;
+    const { data } = await sb.rpc("portal_mes_filieres", { p_youth: cible });
+    // Sans filière connue (un parent dont l'enfant n'est pas inscrit cette
+    // saison), on montre l'école de tennis : le calendrier du plus grand nombre.
+    const progs = [...new Set((data || []).map((r) => CAL_DE_FILIERE[r.filiere]).filter(Boolean))];
+    CAL_PROGS = progs.length ? progs : ["ecole"];
+    CAL_CLE = cle;
+    if (!CAL_PROGS.includes(CAL_PROG)) CAL_PROG = CAL_PROGS[0];
+  }
+  if (!CAL_DATES) {
+    // Une fenêtre d'un an à partir du mois en cours : assez pour toute la
+    // saison, et agenda_public() ne rend que ce qui est public.
+    const d = new Date();
+    const du = calISO(d.getFullYear(), d.getMonth(), 1);
+    const au = calISO(d.getFullYear() + 1, d.getMonth(), calNbJours(d.getFullYear() + 1, d.getMonth()));
+    const { data, error } = await sb.rpc("agenda_public", { p_du: du, p_au: au });
+    if (error) {
+      vue.innerHTML = `<div class="pt-panel"><p class="muted">Le calendrier n'a pas pu être chargé. Réessaie plus tard.</p></div>`;
+      return;
+    }
+    CAL_DATES = calFusion(data);
+  }
+  if (!CAL_MOIS) CAL_MOIS = calAuj().slice(0, 7);
+  calDessiner();
+}
+
+function calDessiner() {
+  const vue = $("view-calendrier"); if (!vue) return;
+  const p = CAL_PROGRAMMES[CAL_PROG] || CAL_PROGRAMMES.ecole;
+  const auj = calAuj();
+  const horsSaison = auj < SAISON_COURS.reprise || auj > SAISON_COURS.fin;
+  vue.innerHTML = `
+    ${CAL_PROGS.length > 1 ? `<div class="pcal-progs">${CAL_PROGS.map((k) =>
+      `<button type="button" class="pcal-prog${k === CAL_PROG ? " on" : ""}" data-pcal-prog="${k}">${
+        escHtml(CAL_PROGRAMMES[k].titre)}</button>`).join("")}</div>` : ""}
+    <div class="pcal-tete">
+      <span class="pcal-eyebrow">Saison ${escHtml(SAISON_COURS.label)}</span>
+      <h2>${escHtml(p.titre)}</h2>
+      <p class="pcal-sous">${escHtml(p.sous)}</p>
+      <div class="pcal-stats">
+        <div><span>Reprise</span><b>${escHtml(calCourt(SAISON_COURS.reprise))}</b></div>
+        <div><span>Fin de saison</span><b>${escHtml(calCourt(SAISON_COURS.fin))}</b></div>
+        <div><span>Durée</span><b>${SAISON_COURS.semaines} sem.</b></div>
+      </div>
+      ${p.pdf ? `<a class="pcal-pdf" href="${SITE_PUBLIC}/${p.pdf}" target="_blank" rel="noopener">⤓ Le calendrier en PDF</a>` : ""}
+      ${horsSaison ? `<p class="pcal-hors">La saison ${escHtml(SAISON_COURS.label)} ${
+        auj < SAISON_COURS.reprise ? "n'a pas encore commencé" : "est terminée"}.</p>` : ""}
+    </div>
+    <div id="pcal-grille"></div>
+    <div id="pcal-jour" class="pcal-jour hidden"></div>
+    <div id="pcal-suite"></div>`;
+  calGrille();
+  calSuite();
+  vue.querySelectorAll("[data-pcal-prog]").forEach((b) =>
+    b.addEventListener("click", () => { CAL_PROG = b.dataset.pcalProg; CAL_JOUR = null; calDessiner(); }));
+}
+
+function calGrille() {
+  const box = $("pcal-grille"); if (!box) return;
+  const [a, m] = CAL_MOIS.split("-").map(Number);
+  const an = a, mois = m - 1, auj = calAuj();
+  const nb = calNbJours(an, mois), avant = calPremiereCase(an, mois);
+
+  // On complète le début et la fin avec les jours des mois voisins : une
+  // grille trouée se lit mal, et une période à cheval sur deux mois doit
+  // pouvoir continuer jusqu'au bord.
+  const cases = [];
+  for (let i = avant; i > 0; i--) {
+    const d = new Date(an, mois, 1 - i);
+    cases.push({ iso: calISO(d.getFullYear(), d.getMonth(), d.getDate()), j: d.getDate(), hors: true });
+  }
+  for (let j = 1; j <= nb; j++) cases.push({ iso: calISO(an, mois, j), j, hors: false });
+  while (cases.length % 7) {
+    const d = new Date(an, mois, nb + (cases.length - avant - nb) + 1);
+    cases.push({ iso: calISO(d.getFullYear(), d.getMonth(), d.getDate()), j: d.getDate(), hors: true });
+  }
+  const semaines = [];
+  for (let i = 0; i < cases.length; i += 7) semaines.push(cases.slice(i, i + 7));
+
+  const JOURS = ["L", "M", "M", "J", "V", "S", "D"];
+  const dates = CAL_DATES || [];
+  const presents = CAL_GENRES.filter(([g]) => dates.some((e) =>
+    e.genres.includes(g) && e.fin >= cases[0].iso && e.debut <= cases[cases.length - 1].iso));
+
+  box.innerHTML = `
+    <div class="pcal-barre">
+      <button type="button" class="pcal-nav" data-pcal-mois="-1" aria-label="Mois précédent">‹</button>
+      <strong aria-live="polite">${CAL_MOIS_FR[mois]} ${an}</strong>
+      <button type="button" class="pcal-nav" data-pcal-mois="1" aria-label="Mois suivant">›</button>
+      ${CAL_MOIS === auj.slice(0, 7) ? "" : `<button type="button" class="pcal-auj-btn" data-pcal-auj>Aujourd'hui</button>`}
+    </div>
+    <div class="pcal-dows" aria-hidden="true">${JOURS.map((j) => `<span>${j}</span>`).join("")}</div>
+    <div class="pcal-sem-liste">${semaines.map((sem) => {
+      const d0 = sem[0].iso, d6 = sem[6].iso;
+      // Les périodes qui touchent cette semaine, les plus longues d'abord :
+      // une barre qui traverse toute la semaine se lit mieux en haut.
+      const barres = dates.filter((e) => e.debut <= d6 && e.fin >= d0).map((e) => {
+        let d = 0; while (d < 6 && sem[d].iso < e.debut) d++;
+        let f = 6; while (f > 0 && sem[f].iso > e.fin) f--;
+        return { e, col: d + 1, span: Math.max(1, f - d + 1), coupeG: e.debut < d0, coupeD: e.fin > d6 };
+      }).sort((x, y) => y.span - x.span || x.col - y.col);
+      // Couloirs : chaque barre se pose sur la première ligne libre, donc deux
+      // périodes qui se chevauchent s'empilent au lieu de se recouvrir.
+      const couloirs = [];
+      for (const b of barres) {
+        let k = 0;
+        while (couloirs[k] && couloirs[k].some((o) => b.col < o.col + o.span && o.col < b.col + b.span)) k++;
+        (couloirs[k] = couloirs[k] || []).push(b);
+        b.lane = k;
+      }
+      return `<div class="pcal-sem">
+        ${sem.map((c, i) => `<button type="button" class="pcal-j${c.hors ? " hors" : ""}${
+          c.iso === auj ? " auj" : ""}${c.iso === CAL_JOUR ? " sel" : ""}"
+          style="grid-column:${i + 1}" data-pcal-jour="${c.iso}"
+          aria-label="${escHtml(calFr(c.iso))}">${c.j}</button>`).join("")}
+        ${barres.map((b) => `<button type="button" class="pcal-bar g-${b.e.genre}${
+          b.coupeG ? " coupe-g" : ""}${b.coupeD ? " coupe-d" : ""}"
+          style="grid-column:${b.col} / span ${b.span};grid-row:${b.lane + 2}"
+          data-pcal-jour="${b.e.debut < d0 ? d0 : b.e.debut}"
+          title="${escHtml(b.e.titre)}">${
+          // Une barre d'un seul jour fait 44 px : le titre y tiendrait en
+          // trois lettres suivies de points. On laisse la couleur parler,
+          // le détail du jour dit le reste.
+          b.span > 1 ? `<span>${escHtml(b.e.titre)}</span>` : ""}</button>`).join("")}
+      </div>`;
+    }).join("")}</div>
+    ${presents.length ? `<ul class="pcal-legende">${presents.map(([g, lbl]) =>
+      `<li class="g-${g}"><i aria-hidden="true"></i>${escHtml(lbl)}</li>`).join("")}</ul>` : ""}`;
+
+  box.querySelectorAll("[data-pcal-mois]").forEach((b) => b.addEventListener("click", () => {
+    CAL_MOIS = calDecaler(CAL_MOIS, Number(b.dataset.pcalMois)); CAL_JOUR = null; calGrille();
+  }));
+  const btnAuj = box.querySelector("[data-pcal-auj]");
+  if (btnAuj) btnAuj.addEventListener("click", () => {
+    CAL_MOIS = calAuj().slice(0, 7); CAL_JOUR = null; calGrille();
+  });
+  box.querySelectorAll("[data-pcal-jour]").forEach((b) => b.addEventListener("click", () => {
+    const iso = b.dataset.pcalJour;
+    CAL_JOUR = CAL_JOUR === iso ? null : iso;
+    // Toucher un jour d'un mois voisin ouvre ce mois : sinon le détail
+    // parlerait d'une date qu'on ne voit plus.
+    if (CAL_JOUR && CAL_JOUR.slice(0, 7) !== CAL_MOIS) CAL_MOIS = CAL_JOUR.slice(0, 7);
+    calGrille();
+  }));
+  calJour();
+}
+
+// Le détail du jour choisi, sous la grille : on touche pour en savoir PLUS,
+// pas pour découvrir qu'il se passe quelque chose — les barres le disent déjà.
+function calJour() {
+  const box = $("pcal-jour"); if (!box) return;
+  const lot = CAL_JOUR ? calDuJour(CAL_JOUR) : [];
+  if (!lot.length) { box.innerHTML = ""; box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  box.innerHTML = `<div class="pcal-jour-t"><b>${escHtml(calFr(CAL_JOUR))}</b>
+      <button type="button" class="pcal-fermer" data-pcal-fermer aria-label="Fermer">×</button></div>
+    <ul class="pcal-items">${lot.map((e) => `<li class="g-${e.genre}">
+      <span class="pcal-quand">${escHtml(calPeriode(e.debut, e.fin))}</span>
+      <b>${escHtml(e.titre)}</b>
+      ${e.autres.length ? `<span class="pcal-aussi">${escHtml(e.autres.join(" · "))}</span>` : ""}
+      ${e.detail ? `<span class="pcal-detail">${escHtml(e.detail)}</span>` : ""}</li>`).join("")}</ul>`;
+  box.querySelector("[data-pcal-fermer]").addEventListener("click", () => { CAL_JOUR = null; calGrille(); });
+}
+
+// Ce qui reste devant nous. Une période commencée mais pas finie compte comme
+// à venir : les vacances d'automne intéressent autant le 15 octobre que le 1er.
+function calSuite() {
+  const box = $("pcal-suite"); if (!box) return;
+  const auj = calAuj();
+  const suite = (CAL_DATES || []).filter((e) => e.fin >= auj).slice(0, 5);
+  if (!suite.length) { box.innerHTML = ""; return; }
+  box.innerHTML = `<h3 class="pcal-suite-t">Prochaines dates</h3>
+    <ul class="pcal-items pcal-suite">${suite.map((e) => `<li class="g-${e.genre}">
+      <span class="pcal-quand">${escHtml(calPeriode(e.debut, e.fin))}</span>
+      <b>${escHtml(e.titre)}</b>
+      ${e.detail ? `<span class="pcal-detail">${escHtml(e.detail)}</span>` : ""}</li>`).join("")}</ul>`;
 }
 
 /* ============================================================
