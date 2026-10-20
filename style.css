@@ -4249,14 +4249,42 @@ tr.enc-ok td{background:#f4fbf6}
 .pt-more-menu .pt-nav-item:hover{background:#f3f6fc}
 /* Mon espace › Physique (db/111) */
 .ph-rt{background:#fff;border:1px solid var(--line);border-radius:16px;margin:0 0 12px;overflow:hidden}
-.ph-rt summary{list-style:none;cursor:pointer;padding:13px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+/* ---- Bande d une routine (Physique et Mental) --------------------------
+   Bord a bord, elle fait l entete de la carte : tuile d icone, moment en
+   capitales, titre dessous, duree a droite. Les teintes restent dans la
+   charte — on distingue par le GLYPHE, pas par un arc-en-ciel. */
+.ph-rt summary{list-style:none;cursor:pointer}
 .ph-rt summary::-webkit-details-marker{display:none}
-.ph-rt summary b{flex:1 1 100%;font-size:1rem;color:var(--ink)}
-.ph-kind{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px;background:#e8f0fe;color:#1b2f7a}
-.ph-k-echauffement .ph-kind{background:#fff0e0;color:#8a4b08}
-.ph-k-decrassage .ph-kind{background:#e3f4ea;color:#0b6b3a}
-.ph-k-soir .ph-kind{background:#efe8fb;color:#4b2a8a}
-.ph-dur{font-size:.8rem;color:var(--muted);margin-left:auto}
+.rt-bande{display:flex;align-items:center;gap:12px;padding:13px 14px;color:#fff;
+  background:linear-gradient(135deg,var(--blue-ink) 0%,var(--prussian) 100%)}
+.rt-ico{flex:0 0 auto;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;background:rgba(255,255,255,.12);border:1px solid rgba(178,253,19,.4)}
+.rt-ico svg{width:21px;height:21px;fill:none;stroke:var(--fluo);stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round;display:block}
+.rt-txt{min-width:0;flex:1 1 auto}
+.rt-e{display:block;font-size:.66rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--fluo);line-height:1}
+.rt-txt b{display:block;font-size:1rem;line-height:1.25;margin-top:4px;color:#fff}
+.rt-d{flex:0 0 auto;font-size:.76rem;font-weight:700;color:rgba(255,255,255,.8);
+  background:rgba(255,255,255,.12);border-radius:999px;padding:4px 10px;white-space:nowrap}
+/* Le moment colore le bandeau, sans sortir du bleu du club. */
+.rt-echauffement{background:linear-gradient(135deg,var(--ocean) 0%,var(--prussian) 100%)}
+.rt-decrassage{background:linear-gradient(135deg,var(--prussian) 0%,#012231 100%)}
+.rt-soir{background:linear-gradient(135deg,#1b2b63 0%,#0a1536 100%)}
+.rt-renfo,.rt-avant{background:linear-gradient(135deg,var(--blue) 0%,var(--blue-ink) 100%)}
+.rt-pendant{background:linear-gradient(135deg,var(--ocean) 0%,var(--blue) 100%)}
+.rt-apres{background:linear-gradient(135deg,var(--blue-ink) 0%,var(--ocean) 100%)}
+/* Le chevron d un panneau depliable, a droite de la bande. */
+.ph-rt summary .rt-bande::after{content:"";flex:0 0 auto;width:9px;height:9px;margin-left:2px;
+  border-right:2px solid rgba(255,255,255,.75);border-bottom:2px solid rgba(255,255,255,.75);
+  transform:rotate(45deg) translateY(-2px);transition:transform .18s}
+.ph-rt[open] summary .rt-bande::after{transform:rotate(-135deg) translateY(-2px)}
+/* Carte de routine mentale : la bande colle aux bords, comme en physique. */
+.tips-card{overflow:hidden;padding:0}
+.tips-card .tips-intro{margin:12px 14px 0}
+.tips-card .tips-ol{margin:10px 14px 14px}
+
+.ph-rt summary::-webkit-details-marker{display:none}
 .ph-intro{margin:0 14px 10px;font-size:.88rem;color:var(--muted);line-height:1.45}
 .ph-ex{margin:0;padding:0 14px 12px 34px}
 .ph-ex li{padding:8px 0;border-top:1px solid var(--line)}
@@ -5649,10 +5677,11 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .mf-vide-txt h3{margin:0 0 6px;font-size:1.18rem;color:var(--blue-ink)}
 .mf-vide-txt > p{margin:0 0 14px;line-height:1.55;font-size:.93rem}
 .mf-etape{display:flex;gap:11px;align-items:flex-start;margin-bottom:12px}
-.mf-etape-n{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;margin-top:1px}
+.mf-etape-n{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:var(--blue);
+  color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;
+  font-size:.88rem;line-height:1;margin-top:1px}
 .mf-etape b{display:block;color:var(--blue-ink);font-size:.95rem}
-.mf-etape span{display:block;font-size:.86rem;line-height:1.5;color:var(--ink);margin-top:2px}
+.mf-etape-d{display:block;font-size:.86rem;line-height:1.5;color:var(--ink);margin-top:2px}
 .mf-vide-plus{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);
   font-size:.84rem;line-height:1.5;color:var(--muted)}
 .mf-vide-cta{width:100%;margin-top:14px}

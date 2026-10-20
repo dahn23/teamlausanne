@@ -1588,13 +1588,13 @@ function renderMfVide() {
            ce que les meilleurs font, et ça se passe en deux temps.</p>
         <div class="mf-etape"><span class="mf-etape-n">1</span>
           <div><b>Avant le match</b>
-            <span>Ton adversaire, ton plan de jeu, ton état d'esprit. Tu valides
-              avant d'entrer sur le court — ensuite ça ne bouge plus, et c'est
-              voulu : on compare ce qu'on avait prévu à ce qui s'est passé.</span></div></div>
+            <span class="mf-etape-d">Ton adversaire, ton plan de jeu, ton état d'esprit.
+              Tu valides avant d'entrer sur le court — ensuite ça ne bouge plus, et
+              c'est voulu : on compare ce qu'on avait prévu à ce qui s'est passé.</span></div></div>
         <div class="mf-etape"><span class="mf-etape-n">2</span>
           <div><b>Après le match</b>
-            <span>Le score, ce qui a marché, ce qui a manqué, ce que tu retiens
-              pour la prochaine fois. Tu envoies, et tes coachs la lisent.</span></div></div>
+            <span class="mf-etape-d">Le score, ce qui a marché, ce qui a manqué, ce que
+              tu retiens pour la prochaine fois. Tu envoies, et tes coachs la lisent.</span></div></div>
         <p class="mf-vide-plus">Au fil de la saison, tu retrouves ici tes matchs gagnés
            et perdus, et la comparaison entre ta vision du match et celle de ton coach.</p>
         <button type="button" id="mf-new" class="comp-new mf-vide-cta">+ Ma première feuille de match</button>
@@ -1735,6 +1735,36 @@ const SOUS_ICONES = {
   focus: `<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>`,
   routines: `<path d="M12 3a5 5 0 0 0-3 9c.6.5 1 1 1 2h4c0-1 .4-1.5 1-2a5 5 0 0 0-3-9z"/><path d="M9.5 20h5M10 17h4"/>`,
 };
+/* La bande d'une routine, physique ou mentale. Un seul dessin pour les deux
+   écrans : même tuile d'icône, même intertitre en capitales, même titre — ce
+   qui change est le glyphe et la teinte du bandeau. Elle prend toute la
+   largeur de la carte, bord à bord, au lieu de la pastille perdue en haut à
+   gauche qu'on avait avant.
+
+   Les glyphes disent le MOMENT : la rampe qui monte avant l'effort, celle qui
+   descend après, la lune du soir ; la boussole avant un match, le tracé d'un
+   pouls pendant, la flèche de retour après. Des émojis faisaient le travail à
+   peu près — 🎯🔥🤝 — mais ils appartiennent au téléphone, pas au club. */
+const RT_ICONES = {
+  echauffement: `<path d="M3.5 17.5 9 12l3.2 3.2L20.5 7"/><path d="M15.4 7h5.1v5.1"/>`,
+  decrassage: `<path d="M3.5 7 9 12.5l3.2-3.2 8.3 8.3"/><path d="M15.4 17.6h5.1V12.5"/>`,
+  soir: `<path d="M20.2 14.4A8.4 8.4 0 0 1 9.6 3.8a8.4 8.4 0 1 0 10.6 10.6z"/>`,
+  renfo: `<path d="M6.5 8v8M3.5 10v4M17.5 8v8M20.5 10v4M6.5 12h11"/>`,
+  autre: `<path d="M12 3v2M12 19v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3 12h2M19 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/><circle cx="12" cy="12" r="3.4"/>`,
+  // Mental
+  avant: `<circle cx="12" cy="12" r="8.4"/><path d="m14.9 9.1-1.7 4.1-4.1 1.7 1.7-4.1z"/>`,
+  pendant: `<path d="M3 12.4h3.6l2-5 3 10 2.4-6.2 1.5 3.2H21"/>`,
+  apres: `<path d="M3.6 12a8.4 8.4 0 1 0 2.6-6.1"/><path d="M3.3 4.6v4.2h4.2"/>`,
+  idee: `<path d="M9.3 17.2a6 6 0 1 1 5.4 0"/><path d="M9.6 17.2h4.8M10.3 20.4h3.4"/>`,
+};
+// Moment -> libellé affiché en intertitre, et teinte du bandeau.
+const RT_BANDE = (cle, eyebrow, titre, droite = "") => `
+  <div class="rt-bande rt-${escHtml(cle)}">
+    <span class="rt-ico"><svg viewBox="0 0 24 24" aria-hidden="true">${RT_ICONES[cle] || RT_ICONES.autre}</svg></span>
+    <span class="rt-txt"><span class="rt-e">${escHtml(eyebrow)}</span><b>${escHtml(titre)}</b></span>
+    ${droite ? `<span class="rt-d">${escHtml(droite)}</span>` : ""}
+  </div>`;
+
 const compSousOnglets = (courant, liste) => `
   <div class="comp-subtabs">${liste.map(([cle, libelle]) => `
     <button type="button" class="comp-subtab ${cle === courant ? "on" : ""}" data-s="${cle}">
@@ -1785,7 +1815,7 @@ async function renderPhRoutines() {
   if (!rows.length) { host.innerHTML = `<div class="pt-empty"><p>Pas encore de routine pour toi. Ton coach t'en attribuera bientôt.</p></div>`; return; }
   // Toutes fermées à l'arrivée : on voit d'un coup d'œil qu'il y a plusieurs routines.
   host.innerHTML = `<p class="muted ph-hint">Touche une routine pour l'ouvrir.</p>` + rows.map((r) => `<details class="ph-rt ph-k-${escHtml(r.kind)}">
-      <summary><span class="ph-kind">${escHtml(PH_KIND[r.kind] || "Programme")}</span><b>${escHtml(r.title)}</b>${r.duration ? `<span class="ph-dur">⏱ ${escHtml(r.duration)}</span>` : ""}</summary>
+      <summary>${RT_BANDE(r.kind, PH_KIND[r.kind] || "Programme", r.title, r.duration || "")}</summary>
       ${r.intro ? `<p class="ph-intro">${escHtml(r.intro).replace(/\n/g, "<br/>")}</p>` : ""}
       <div class="ph-cards">${(r.exercises || []).map(phExCard).join("")}</div>
     </details>`).join("");
@@ -1904,7 +1934,8 @@ function renderComp() {
   renderCompSub();
 }
 // Routines mentales attribuées au jeune : une carte par routine (moment, introduction, conseils numérotés).
-const MNR_ICON = { avant: "🎯", pendant: "🔥", apres: "🤝", autre: "💡" };
+const MNR_CLE = { avant: "avant", pendant: "pendant", apres: "apres", autre: "idee" };
+const MNR_MOMENT = { avant: "Avant le match", pendant: "Pendant le match", apres: "Après le match", autre: "À garder en tête" };
 async function renderCompRoutines() {
   const host = $("comp-sub"); if (!host) return;
   host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
@@ -1913,7 +1944,7 @@ async function renderCompRoutines() {
   const rows = error ? [] : (data || []);
   if (!rows.length) { host.innerHTML = `<div class="pt-empty"><p>Pas encore de routine mentale pour toi. Ton coach t'en attribuera bientôt.</p></div>`; return; }
   host.innerHTML = rows.map((r) => `<div class="mrp-card tips-card">
-      <h2 class="mrp-h">${MNR_ICON[r.kind] || "💡"} ${escHtml(r.title)}</h2>
+      ${RT_BANDE(MNR_CLE[r.kind] || "idee", MNR_MOMENT[r.kind] || "Conseils", r.title)}
       ${r.intro ? `<p class="muted tips-intro">${escHtml(r.intro)}</p>` : ""}
       <ol class="tips-ol">${(r.items || []).map((x) => `<li><b>${escHtml(x.title || "")}</b>${x.text ? `<span>${escHtml(x.text)}</span>` : ""}</li>`).join("")}</ol>
     </div>`).join("");
