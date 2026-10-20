@@ -2759,6 +2759,9 @@ function initCalendrier() {
   $("cal-form").addEventListener("submit", calEnregistrer);
   ["cal-start", "cal-end"].forEach((id) => $(id).addEventListener("change", calDecompte));
   $("cal-del").addEventListener("click", calSupprimer);
+  // Cocher une filière rend l'événement interne : la case « site public » doit
+  // le refléter tout de suite, pas à l'enregistrement.
+  $("cal-aud").addEventListener("change", calMajPublic);
   // Le choix « qui » n'a de sens que pour ce qui vise une personne.
   $("cal-kind").addEventListener("change", () => {
     const k = $("cal-kind").value;
@@ -3323,6 +3326,7 @@ function calOuvrir(ev, kind, lundi, fin) {
   // genre). La case ne concerne donc que les événements, dont la table mêle le
   // Lausanne Open et des rendez-vous nominatifs : à cocher un par un.
   $("cal-public").checked = !!ev?.public_site;
+  calRendreAud(ev?.audiences || []);
   calMajPublic();
   calDecompte();
   // Qui peut toucher à cette ligne. On reprend mot pour mot la règle de la
@@ -3346,8 +3350,34 @@ const calPlus = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.get
 function calMajPublic() {
   const k = $("cal-kind").value;
   const w = $("cal-pub-wrap"); if (!w) return;
-  w.classList.toggle("hidden", k !== "evenement");
-  if (k !== "evenement") $("cal-public").checked = false;
+  const estEv = k === "evenement";
+  w.classList.toggle("hidden", !estEv);
+  if (!estEv) $("cal-public").checked = false;
+  // Les filières ne se posent que pour un événement : une fermeture ou des
+  // vacances scolaires valent pour tout le monde, et demander à chaque fois
+  // serait un clic sans contrepartie.
+  $("cal-aud-wrap").classList.toggle("hidden", !estEv);
+  if (!estEv) calRendreAud([]);
+  // Ciblé = interne. Un événement qui vise une filière ne sort pas sur le
+  // site public : la case est alors décochée et verrouillée, plutôt que de
+  // laisser deux réglages se contredire.
+  const cible = calAudChoisies().length > 0;
+  $("cal-public").disabled = cible;
+  if (cible) $("cal-public").checked = false;
+  $("cal-pub-wrap").classList.toggle("cal-pub-off", cible);
+  const em = $("cal-pub-wrap").querySelector("em");
+  if (em) em.textContent = cible
+    ? "Un événement réservé à une filière reste interne au club."
+    : "Le titre et la remarque seront lisibles par tout le monde.";
+}
+// Les chips de filières, repris mot pour mot des messages internes : c'est le
+// même geste, il n'y a aucune raison qu'il se fasse autrement ici.
+const calAudChoisies = () => [...$("cal-aud").querySelectorAll("input:checked")].map((i) => i.value);
+function calRendreAud(sel) {
+  const box = $("cal-aud"); if (!box) return;
+  box.innerHTML = NEWS_AUDIENCES.map(([v, l]) =>
+    `<label class="news-aud-chk"><input type="checkbox" value="${v}"${
+      sel.includes(v) ? " checked" : ""} /> ${esc(l)}</label>`).join("");
 }
 
 async function calOuvrirId(id) {
@@ -3383,6 +3413,9 @@ async function calEnregistrer(e) {
     // ou privés par nature, et laisser un drapeau traîner sur des vacances
     // serait un piège si agenda_public venait à évoluer.
     public_site: kind === "evenement" ? $("cal-public").checked : false,
+    // Les filières visées, pour Mon espace. Vide = toutes les familles ; on
+    // écrit null plutôt qu'un tableau vide, c'est la convention de la base.
+    audiences: kind === "evenement" && calAudChoisies().length ? calAudChoisies() : null,
     created_by: sess?.session?.user?.id || null,
   };
   // Une demande de vacances naît « à valider » — sauf posée par un valideur,

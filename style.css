@@ -2382,12 +2382,14 @@ body.portal{background:var(--bg)}
 .news-aud-lbl{font-weight:600;font-size:.9rem}
 .news-aud-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 /* Destinataires = pastilles cliquables (case cachée) ; « #news-form » pour passer devant « #news-form label » */
-#news-form .news-aud-chk{position:relative;display:inline-flex;flex-direction:row;margin:0;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);font-size:.86rem;font-weight:600;cursor:pointer;user-select:none;transition:background .12s,border-color .12s}
-#news-form .news-aud-chk:hover{border-color:var(--blue)}
-#news-form .news-aud-chk input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
-#news-form .news-aud-chk:has(input:checked){background:var(--blue);border-color:var(--blue);color:#fff}
-#news-form .news-aud-chk:has(input:checked)::before{content:"✓";font-weight:800}
-#news-form .news-aud-chk:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:2px}
+#news-form .news-aud-chk, #cal-form .news-aud-chk {position:relative;display:inline-flex;flex-direction:row;margin:0;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);font-size:.86rem;font-weight:600;cursor:pointer;user-select:none;transition:background .12s,border-color .12s}
+#news-form .news-aud-chk:hover, #cal-form .news-aud-chk:hover {border-color:var(--blue)}
+#news-form .news-aud-chk input, #cal-form .news-aud-chk input {position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+#news-form .news-aud-chk:has(input:checked), #cal-form .news-aud-chk:has(input:checked) {background:var(--blue);border-color:var(--blue);color:#fff}
+#news-form .news-aud-chk:has(input:checked)::before, #cal-form .news-aud-chk:has(input:checked)::before {content:"✓";font-weight:800}
+#news-form .news-aud-chk:has(input:focus-visible), #cal-form .news-aud-chk:has(input:focus-visible) {outline:2px solid var(--blue);outline-offset:2px}
+.cal-pub-off{opacity:.55}
+.cal-pub-off input{cursor:not-allowed}
 .news-pub{flex-direction:row !important;align-items:center;gap:8px;font-weight:700}
 .news-pub input{width:auto}
 #news-form .news-pub{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;margin:6px 0 10px;color:var(--ink)}

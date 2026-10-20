@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=345" />
+  <link rel="stylesheet" href="style.css?v=346" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -1016,6 +1016,15 @@
             <p id="cal-decompte" class="cal-decompte" hidden></p>
             <label class="mailc-f">Remarque <span class="muted" style="font-weight:400">(facultatif)</span>
               <textarea id="cal-note" rows="2"></textarea></label>
+            <!-- Qui voit l'événement dans Mon espace. Rien de coché = toutes
+                 les familles : le cas courant ne coûte donc aucun clic. Seuls
+                 les événements posent la question ; fermetures, camps et
+                 vacances valent pour tout le monde (db/191). -->
+            <div class="news-aud-wrap hidden" id="cal-aud-wrap">
+              <span class="news-aud-lbl">Qui le voit dans Mon espace
+                <span class="muted">— touche les filières concernées ; aucune sélection = toutes les familles</span></span>
+              <div id="cal-aud" class="news-aud-grid"></div>
+            </div>
             <!-- Publication sur le site. Décochée par défaut : le calendrier
                  contient des rendez-vous nominatifs avec des familles. -->
             <label class="cal-pub hidden" id="cal-pub-wrap">

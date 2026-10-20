@@ -796,16 +796,21 @@ async function renderCalendrier() {
     // saison), on montre l'école de tennis : le calendrier du plus grand nombre.
     const progs = [...new Set((data || []).map((r) => CAL_DE_FILIERE[r.filiere]).filter(Boolean))];
     CAL_PROGS = progs.length ? progs : ["ecole"];
+    // L'agenda dépend de l'enfant regardé : il porte les événements qui visent
+    // SA filière. Changer d'enfant doit donc le relire, pas réutiliser l'autre.
+    if (CAL_CLE !== cle) CAL_DATES = null;
     CAL_CLE = cle;
     if (!CAL_PROGS.includes(CAL_PROG)) CAL_PROG = CAL_PROGS[0];
   }
   if (!CAL_DATES) {
     // Une fenêtre d'un an à partir du mois en cours : assez pour toute la
-    // saison, et agenda_public() ne rend que ce qui est public.
+    // saison. agenda_famille() rend le calendrier public PLUS les événements
+    // qui visent une filière de la famille (db/191) — « Activité joueurs de
+    // l'academy » n'apparaît que chez les sport-études.
     const d = new Date();
     const du = calISO(d.getFullYear(), d.getMonth(), 1);
     const au = calISO(d.getFullYear() + 1, d.getMonth(), calNbJours(d.getFullYear() + 1, d.getMonth()));
-    const { data, error } = await sb.rpc("agenda_public", { p_du: du, p_au: au });
+    const { data, error } = await sb.rpc("agenda_famille", { p_du: du, p_au: au, p_youth: cible });
     if (error) {
       vue.innerHTML = `<div class="pt-panel"><p class="muted">Le calendrier n'a pas pu être chargé. Réessaie plus tard.</p></div>`;
       return;
