@@ -4222,7 +4222,12 @@ tr.enc-ok td{background:#f4fbf6}
 .pl-frise.pl-frise-big.pl-mosaic .pl-we,.pl-frise.pl-frise-big.pl-mosaic .pl-reg{height:14px;font-size:.62rem}
 .pl-mosaic .pl-now{box-shadow:0 0 0 2px #1e3ad1}
 .pl-mosaic .pl-now .pl-top{box-shadow:none}
-.pl-day{font-size:.82rem;font-weight:800;color:#1f2a4d;opacity:.75;pointer-events:none}
+/* Le numero du jour, dans la case d une semaine (vue telephone). Il etait
+   d un bleu nuit : juste sur les anciens pastels, illisible depuis que les
+   semaines portent les bleus pleins de la charte. Il suit donc le fond :
+   blanc sur les trois teintes sombres, encre sur les claires. */
+.pl-day{font-size:.82rem;font-weight:800;color:#1f2a4d;opacity:.8;pointer-events:none}
+.pl-k-entrainement .pl-day,.pl-k-prepa .pl-day,.pl-k-etranger .pl-day{color:#fff;opacity:.95}
 .pl-mosaic .ps-col-sel{box-shadow:0 0 0 3px #0f1f6e}
 .pl-mosaic .ps-col-sel .pl-top{outline:none}
 /* Mosaïque sur tablette (plus large qu'un téléphone) : deux mois côte à côte */
