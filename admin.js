@@ -2457,6 +2457,29 @@ function plRenderCal() {
 //  • rangée Semaine : peindre les zones (glisser, ou deux touchers sur téléphone) ;
 //  • rangée Week-end : poser / retirer une ZONE TOURNOI (sans nom) — le jeune voit qu'il doit s'inscrire ce week-end ;
 //  • rangée Inscrit : fenêtre des inscriptions du jeune, où le coach peut aussi en ajouter une.
+// Le programme écrit semaine par semaine (db/196), en un seul tableau. La
+// semaine en cours est marquée : c'est elle qu'on cherche neuf fois sur dix.
+function plProgramme(pid) {
+  const today = isoA(new Date());
+  const lignes = plWeekList
+    .map((ws) => ({ ws, c: (plContenu[pid] || {})[ws] || {} }))
+    .filter((x) => x.c.tennis || x.c.physique || x.c.note);
+  if (!lignes.length) {
+    return '<p class="muted" style="font-size:.82rem;margin:12px 0 0">Aucun programme écrit pour l\'instant. Clique une semaine de la frise pour y noter le tennis et la prépa physique.</p>';
+  }
+  return `<details class="pl-prog-liste" open>
+    <summary>Programme de la saison <span class="muted">— ${lignes.length} semaine(s) renseignée(s)</span></summary>
+    <table><thead><tr><th>Semaine</th><th>Tennis</th><th>Préparation physique</th></tr></thead><tbody>
+    ${lignes.map(({ ws, c }) => {
+      const maintenant = ws <= today && today <= isoA(plAdd(ws, 6));
+      return `<tr${maintenant ? ' class="pl-prog-now"' : ""}>
+        <td class="pl-prog-sem"><b>${esc(plWkLabel(ws))}</b>${maintenant ? '<span class="pl-prog-tag">cette semaine</span>' : ""}</td>
+        <td>${esc(c.tennis || "—")}${c.note ? `<span class="pl-prog-note">${esc(c.note)}</span>` : ""}</td>
+        <td>${esc(c.physique || "—")}</td></tr>`;
+    }).join("")}
+    </tbody></table></details>`;
+}
+
 function plRenderEditor() {
   const box = $("pl-editor");
   if (!plSel) { box.innerHTML = '<p class="muted" style="margin:0 0 10px;font-size:.86rem">Clique sur un jeune pour ouvrir sa frise : glisse sur les semaines pour poser une zone, sur les week-ends pour poser une zone tournoi.</p>'; return; }
@@ -2470,6 +2493,7 @@ function plRenderEditor() {
     <p class="muted" id="pl-tap-hint" style="font-size:.8rem;margin:8px 0 0">${plNarrow()
       ? "Choisis un type, touche la 1re semaine puis la dernière. Touche la bande du week-end pour poser ou retirer une zone tournoi, la bande « inscrit » pour les inscriptions du jeune."
       : "Choisis un type puis glisse sur les semaines. Clique ou glisse sur les week-ends pour poser ou retirer une zone tournoi (le jeune verra qu'il doit s'inscrire). Clique sur la rangée « Inscrit » pour voir ou ajouter les inscriptions du jeune (en rouge : hors zone tournoi)."}</p>
+    ${plProgramme(plSel)}
   </div>`;
   box.querySelectorAll(".pl-brush").forEach((b) => b.addEventListener("click", () => { plBrush = b.dataset.k; plRenderEditor(); }));
   $("pl-close").addEventListener("click", () => { plSel = null; plRenderCal(); });
