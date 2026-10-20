@@ -5562,3 +5562,17 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   .pt-rx-pastille svg{width:22px;height:22px}
   .pt-rx-nom{font-size:.65rem}
 }
+
+/* ---- Calendrier console : où va une ligne ----------------------------------
+   Une pastille sur les lignes qui SORTENT de la console (mint = site public,
+   bleu = familles d une filiere). Rien sur l interne, qui est le cas courant :
+   marquer le normal aurait fait du bruit. */
+.cal-vis{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;
+  vertical-align:middle;flex:0 0 auto}
+.cal-vis-pub{background:var(--fluo);box-shadow:0 0 0 1px rgba(0,0,0,.18)}
+.cal-vis-fam{background:#fff;box-shadow:0 0 0 2px var(--blue) inset,0 0 0 1px rgba(0,0,0,.18)}
+/* La phrase de verite du formulaire : un bandeau, pas une note de bas de page. */
+.cal-visi{margin:4px 0 10px;padding:9px 12px;border-radius:10px;font-size:.84rem;line-height:1.45}
+.cal-visi-int{background:#eef1f6;color:var(--ink);border-left:4px solid var(--muted)}
+.cal-visi-fam{background:#eef4ff;color:var(--blue-ink);border-left:4px solid var(--blue)}
+.cal-visi-pub{background:#f3fde0;color:var(--fluo-ink);border-left:4px solid var(--fluo-d)}

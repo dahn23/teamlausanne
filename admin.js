@@ -2762,6 +2762,9 @@ function initCalendrier() {
   // Cocher une filière rend l'événement interne : la case « site public » doit
   // le refléter tout de suite, pas à l'enregistrement.
   $("cal-aud").addEventListener("change", calMajPublic);
+  // Cocher ou décocher « site public » doit réécrire la phrase de visibilité
+  // tout de suite : c'est elle qu'on lit avant d'enregistrer.
+  $("cal-public").addEventListener("change", calMajPublic);
   // Le choix « qui » n'a de sens que pour ce qui vise une personne.
   $("cal-kind").addEventListener("change", () => {
     const k = $("cal-kind").value;
@@ -2918,8 +2921,14 @@ async function calRenderMois() {
             // Dans une case de mois la place est comptée : on n'affiche que
             // l'heure de début, la plage complète reste dans l'infobulle.
             const txt = h ? `<b class="cal-h">${esc(calHm(e.start_time))}</b> ${base}` : base;
+            // Ce qui sort de la console porte une marque : sans elle, il
+            // fallait ouvrir chaque ligne pour savoir si une réunion d'équipe
+            // s'affichait sur le site. Rien = interne, et c'est le cas courant.
+            const vis = calVisibilite(e.kind, e.public_site, e.audiences);
+            const marque = calEstPublic(e) ? `<i class="cal-vis cal-vis-pub" aria-hidden="true"></i>`
+              : calEstCible(e) ? `<i class="cal-vis cal-vis-fam" aria-hidden="true"></i>` : "";
             return `<button type="button" class="cal-ev cal-k-${esc(e.kind)}${att}" data-ev="${e.id}"${style}
-                      title="${esc(e.title)} — ${frDate(e.start_date)} → ${frDate(e.end_date)}${h ? ` · ${esc(h)}` : ""}">${txt}</button>`;
+                      title="${esc(e.title)} — ${frDate(e.start_date)} → ${frDate(e.end_date)}${h ? ` · ${esc(h)}` : ""}&#10;${esc(vis.txt)}">${marque}${txt}</button>`;
           }).join("")}
         </div>`;
       }).join("")
@@ -3369,7 +3378,42 @@ function calMajPublic() {
   if (em) em.textContent = cible
     ? "Un événement réservé à une filière reste interne au club."
     : "Le titre et la remarque seront lisibles par tout le monde.";
+  // La phrase de vérité, pour tous les types : on la met à jour à chaque
+  // changement, de sorte qu'elle décrive toujours la ligne en cours.
+  const v = calVisibilite(k, $("cal-public").checked, calAudChoisies());
+  const p = $("cal-visi");
+  if (p) { p.className = "cal-visi cal-visi-" + v.ton; p.textContent = v.txt; }
 }
+// Où va une ligne du calendrier. La règle n'est pas inventée ici : c'est
+// exactement ce que font agenda_public() et agenda_famille() en base.
+//
+//   · fermeture et camp      → le site public, d'office et par leur genre ;
+//   · événement publié       → le site public et toutes les familles ;
+//   · événement ciblé        → les familles de ces filières, et rien d'autre ;
+//   · événement non publié   → personne hors de la console ;
+//   · vacances, absence, test → personne hors de la console, jamais.
+//
+// Les réunions, rendez-vous et déjeuners se saisissent en « Événement » sans
+// rien cocher : c'est l'état par défaut, donc l'interne l'est sans effort.
+function calVisibilite(kind, publie, audiences) {
+  const aud = audiences || [];
+  if (kind === "fermeture" || kind === "camp")
+    return { ton: "pub", txt: kind === "camp"
+      ? "Les camps sont annoncés d'office : cette ligne paraîtra sur le calendrier public du site et dans Mon espace."
+      : "Les fermetures sont annoncées d'office : cette ligne paraîtra sur le calendrier public du site et dans Mon espace." };
+  if (kind === "evenement" && aud.length)
+    return { ton: "fam", txt: `Visible dans Mon espace par les familles ${aud.map(newsAudLabel).join(", ")} — et par personne d'autre. Pas sur le site public.` };
+  if (kind === "evenement" && publie)
+    return { ton: "pub", txt: "Visible sur le calendrier public du site et par toutes les familles dans Mon espace." };
+  if (kind === "evenement")
+    return { ton: "int", txt: "Interne au club : visible seulement dans la console. Ni le site, ni Mon espace, ni les familles." };
+  return { ton: "int", txt: "Interne au club : visible seulement dans la console. Ce type ne sort jamais du calendrier d'équipe." };
+}
+// Une ligne est-elle visible hors de la console ? Sert à marquer la grille.
+const calEstPublic = (e) => e.kind === "fermeture" || e.kind === "camp"
+  || (e.kind === "evenement" && e.public_site && !(e.audiences || []).length);
+const calEstCible = (e) => e.kind === "evenement" && (e.audiences || []).length > 0;
+
 // Les chips de filières, repris mot pour mot des messages internes : c'est le
 // même geste, il n'y a aucune raison qu'il se fasse autrement ici.
 const calAudChoisies = () => [...$("cal-aud").querySelectorAll("input:checked")].map((i) => i.value);
