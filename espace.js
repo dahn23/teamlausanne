@@ -352,10 +352,12 @@ async function renderAccueil() {
   if (!news.length) { box.innerHTML = `<div class="pt-empty"><p>Aucune actualité pour le moment.</p></div>`; return; }
   box.innerHTML = news.map((n) => `
     <article class="pt-news-card">
-      ${n.image_url ? `<img class="pt-news-img" src="${escHtml(n.image_url)}" alt="" loading="lazy" />` : ""}
+      ${n.image_url ? `<div class="pt-news-visuel">
+        <img class="pt-news-img" src="${escHtml(n.image_url)}" alt="" loading="lazy" />
+        ${n.logo_url ? `<span class="pt-news-logo"><img src="${escHtml(n.logo_url)}" alt="" /></span>` : ""}
+      </div>` : ""}
       <div class="pt-news-body">
         <h3>${escHtml(n.title)}</h3>
-        <div class="pt-news-date">${frShort((n.published_at || "").slice(0, 10))}</div>
         ${newsCorps(n.body)}
         ${newsBouton(n)}
       </div>
@@ -1711,6 +1713,35 @@ function renderMfSheet() {
   });
 }
 
+/* ---------- Entête et sous-onglets de marque (Physique, Mental) ----------
+   Les deux écrans étaient une rangée de pilules grises posées sur du blanc :
+   justes, et parfaitement muets. Ils portent maintenant la même bande que le
+   calendrier et les réseaux — bleu Prussian, pastille mint, intertitre en
+   capitales — et des sous-onglets à icône, pour qu'on sache où l'on est sans
+   lire. Rien ne change au contenu : c'est l'enveloppe qui parle.
+   ------------------------------------------------------------------------- */
+const compTete = (eyebrow, titre, sous) => `
+  <div class="comp-tete">
+    <span class="comp-tete-e">${escHtml(eyebrow)}</span>
+    <h2>${escHtml(titre)}</h2>
+    <p>${escHtml(sous)}</p>
+  </div>`;
+// Les glyphes des sous-onglets. Au trait, comme la barre du bas, pour que
+// l'ensemble ait l'air dessiné par la même main.
+const SOUS_ICONES = {
+  routine: `<path d="M6.5 8v8M3.5 10v4M17.5 8v8M20.5 10v4M6.5 12h11"/>`,
+  prepa: `<path d="M20 15a3 3 0 0 1-3 3H8l-4 3V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3z"/>`,
+  messages: `<path d="M20 15a3 3 0 0 1-3 3H8l-4 3V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3z"/>`,
+  focus: `<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>`,
+  routines: `<path d="M12 3a5 5 0 0 0-3 9c.6.5 1 1 1 2h4c0-1 .4-1.5 1-2a5 5 0 0 0-3-9z"/><path d="M9.5 20h5M10 17h4"/>`,
+};
+const compSousOnglets = (courant, liste) => `
+  <div class="comp-subtabs">${liste.map(([cle, libelle]) => `
+    <button type="button" class="comp-subtab ${cle === courant ? "on" : ""}" data-s="${cle}">
+      <svg viewBox="0 0 24 24" aria-hidden="true">${SOUS_ICONES[cle] || ""}</svg>
+      <span>${escHtml(libelle)}</span>
+    </button>`).join("")}</div>`;
+
 /* ---------- Onglet « Physique » (db/111) ----------
    • Routine : les programmes que le staff m'a attribués (échauffement, décrassage, routine du soir…).
    • Prépa physique : fil type chat avec le staff (texte, lien, photo, vidéo, document). */
@@ -1723,16 +1754,13 @@ function renderPhysique() {
   // Compétition et performance : routines seules, pas de discussion Prépa physique (db/118).
   if (!ELITE.has(phSel)) {
     phSub = "routine";
-    host.innerHTML = playerSelHtml(phSel) + `<div id="ph-sub"></div>`;
+    host.innerHTML = playerSelHtml(phSel) + compTete("Préparation physique", "Ton corps", "T échauffer avant, tenir pendant, récupérer après.") + `<div id="ph-sub"></div>`;
     host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { phSel = b.dataset.id; renderPhysique(); }));
     renderPhRoutines(); return;
   }
-  host.innerHTML = playerSelHtml(phSel) + `
-    <div class="comp-subtabs">
-      <button type="button" class="comp-subtab ${phSub === "routine" ? "on" : ""}" data-s="routine">Routine</button>
-      <button type="button" class="comp-subtab ${phSub === "prepa" ? "on" : ""}" data-s="prepa">Prépa physique</button>
-    </div>
-    <div id="ph-sub"></div>`;
+  host.innerHTML = playerSelHtml(phSel) + compTete("Préparation physique", "Ton corps", "T échauffer avant, tenir pendant, récupérer après.")
+    + compSousOnglets(phSub, [["routine", "Routine"], ["prepa", "Prépa physique"]])
+    + `<div id="ph-sub"></div>`;
   host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { phSel = b.dataset.id; renderPhysique(); }));
   host.querySelectorAll(".comp-subtab").forEach((b) => b.addEventListener("click", () => {
     phSub = b.dataset.s;
@@ -1859,18 +1887,14 @@ function renderComp() {
   // Compétition et performance : pas de Messages ni d'Après séance, seulement les routines mentales (db/119),
   // conseils rédigés et attribués par le coach mental dans la console (Mental › Routines).
   if (!ELITE.has(compSel)) {
-    host.innerHTML = playerSelHtml(compSel) + `<div id="comp-sub"></div>`;
+    host.innerHTML = playerSelHtml(compSel) + compTete("Préparation mentale", "Ta tête", "Te préparer, gérer les moments durs, faire le bilan.") + `<div id="comp-sub"></div>`;
     host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { compSel = b.dataset.id; renderComp(); }));
     renderCompRoutines(); return;
   }
   if (!["messages", "focus", "routines"].includes(compSub)) compSub = "messages";
-  host.innerHTML = playerSelHtml(compSel) + `
-    <div class="comp-subtabs">
-      <button type="button" class="comp-subtab ${compSub === "messages" ? "on" : ""}" data-s="messages">Messages</button>
-      <button type="button" class="comp-subtab ${compSub === "focus" ? "on" : ""}" data-s="focus">Focus de la semaine</button>
-      <button type="button" class="comp-subtab ${compSub === "routines" ? "on" : ""}" data-s="routines">Routines</button>
-    </div>
-    <div id="comp-sub"></div>`;
+  host.innerHTML = playerSelHtml(compSel) + compTete("Préparation mentale", "Ta tête", "Te préparer, gérer les moments durs, faire le bilan.")
+    + compSousOnglets(compSub, [["messages", "Messages"], ["focus", "Focus"], ["routines", "Routines"]])
+    + `<div id="comp-sub"></div>`;
   host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { compSel = b.dataset.id; renderComp(); }));
   host.querySelectorAll(".comp-subtab").forEach((b) => b.addEventListener("click", () => {
     compSub = b.dataset.s;

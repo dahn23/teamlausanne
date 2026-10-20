@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=353" />
+  <link rel="stylesheet" href="style.css?v=354" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -3515,6 +3515,8 @@ Team Lausanne Tennis</textarea></label>
         saison, match, physique, mental, stages, profil, contact.</p>
       <!-- Un bouton plutôt qu'une adresse en clair au fil du texte (db/193).
            Laisser vide : aucun bouton ne s'affiche. -->
+      <label>Logo pose sur l image <span class="muted" style="font-weight:400">(facultatif, adresse complete)</span>
+        <input id="n-logo-url" type="url" placeholder="https://teamlausanne.ch/assets/logo-gamezone-blanc.png" /></label>
       <div class="news-lien">
         <label>Bouton — adresse <span class="muted" style="font-weight:400">(facultatif)</span>
           <input id="n-link-url" type="url" placeholder="https://teamlausanne.ch/#gamezone" /></label>

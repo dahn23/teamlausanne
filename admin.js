@@ -7921,6 +7921,7 @@ function openNews(n, copyFrom) {
   $("n-id").value = n?.id || "";
   $("n-title").value = n ? n.title : copyFrom ? `${copyFrom.title} (copie)` : "";
   $("n-body").value = src?.body || "";
+  $("n-logo-url").value = src?.logo_url || "";
   $("n-link-url").value = src?.link_url || "";
   $("n-link-label").value = src?.link_label || "";
   $("n-published").checked = !!n?.published;
@@ -7962,6 +7963,7 @@ async function saveNews(e) {
     audiences: [...$("n-aud").querySelectorAll("input:checked")].map((i) => i.value),
     // Le bouton du message (db/193). Vide = pas de bouton ; on ecrit null
     // plutot qu une chaine vide, c est la convention de la base.
+    logo_url: $("n-logo-url").value.trim() || null,
     link_url: $("n-link-url").value.trim() || null,
     link_label: $("n-link-label").value.trim() || null,
     season_id: $("n-season").value === "none" ? null : $("n-season").value,
