@@ -4114,8 +4114,9 @@ tr.enc-ok td{background:#f4fbf6}
 .pl-k-none{background:#f2f5fa}
 .pl-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);margin:6px 0 12px}
 .pl-legend span,.pl-brush{display:inline-flex;align-items:center;gap:6px}
-.pl-legend i,.pl-brush i{width:13px;height:13px;border-radius:4px;display:inline-block}
-.pl-legend i.pl-we-on{background:#ef9f27;height:6px;align-self:center}
+.pl-legend i,.pl-brush i{width:14px;height:14px;border-radius:4px;display:inline-block;
+  box-shadow:inset 0 0 0 1px rgba(4,32,94,.14)}
+.pl-legend i.pl-we-on{height:6px;align-self:center}   /* la couleur vient de .pl-we-on */
 .pl-frise{display:grid;gap:1px;border-radius:7px;overflow:hidden;touch-action:none;user-select:none}
 .pl-col{display:flex;flex-direction:column;gap:1px;min-width:0}
 .pl-top{height:18px}.pl-we{height:7px;background:#eef1f6}
