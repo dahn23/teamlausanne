@@ -4109,7 +4109,7 @@ tr.enc-ok td{background:#f4fbf6}
 .pl-k-entrainement{background:#073eb5}
 .pl-k-prepa{background:#137297}
 .pl-k-option{background:#9bb9ee}
-.pl-k-vacances{background:#dfe5ee}
+.pl-k-vacances{background:#c2410c}
 .pl-k-etranger{background:#003652}
 .pl-k-none{background:#f2f5fa}
 .pl-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);margin:6px 0 12px}
@@ -4151,10 +4151,10 @@ tr.enc-ok td{background:#f4fbf6}
 .pl-key span{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .pl-key i{flex:0 0 auto;width:17px;height:11px;border-radius:3px;display:block;
   box-shadow:inset 0 0 0 1px rgba(4,32,94,.12)}
-.pl-key-s{background:linear-gradient(90deg,#073eb5 0%,#137297 55%,#dfe5ee 100%)}
-.pl-key-w{background:linear-gradient(90deg,#dfe5ee 0%,#dfe5ee 64%,#b2fd13 64%)}
-.pl-key-i{background:linear-gradient(90deg,#dfe5ee 0%,#dfe5ee 64%,#04205e 64%)}
-.pl-key-h{background:linear-gradient(90deg,#dfe5ee 0%,#dfe5ee 64%,#c0392b 64%)}
+.pl-key-s{background:linear-gradient(90deg,#073eb5 0%,#137297 45%,#c2410c 100%)}
+.pl-key-w{background:linear-gradient(90deg,#e8edf6 0%,#e8edf6 64%,#b2fd13 64%)}
+.pl-key-i{background:linear-gradient(90deg,#e8edf6 0%,#e8edf6 64%,#04205e 64%)}
+.pl-key-h{background:linear-gradient(90deg,#e8edf6 0%,#e8edf6 64%,#c0392b 64%)}
 .pl-frise-big .pl-top{height:34px;cursor:crosshair}
 .pl-frise-big .pl-we{height:18px;cursor:pointer;font-size:.62rem;font-weight:800;color:#633806;display:flex;align-items:center;justify-content:center}
 .pl-frise-big .pl-we:hover{outline:2px solid #ef9f27;outline-offset:-2px}
@@ -4227,7 +4227,8 @@ tr.enc-ok td{background:#f4fbf6}
    semaines portent les bleus pleins de la charte. Il suit donc le fond :
    blanc sur les trois teintes sombres, encre sur les claires. */
 .pl-day{font-size:.82rem;font-weight:800;color:#1f2a4d;opacity:.8;pointer-events:none}
-.pl-k-entrainement .pl-day,.pl-k-prepa .pl-day,.pl-k-etranger .pl-day{color:#fff;opacity:.95}
+.pl-k-entrainement .pl-day,.pl-k-prepa .pl-day,.pl-k-etranger .pl-day,
+.pl-k-vacances .pl-day{color:#fff;opacity:.95}
 .pl-mosaic .ps-col-sel{box-shadow:0 0 0 3px #0f1f6e}
 .pl-mosaic .ps-col-sel .pl-top{outline:none}
 /* Mosaïque sur tablette (plus large qu'un téléphone) : deux mois côte à côte */
