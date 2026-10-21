@@ -85,6 +85,20 @@ const gras = (t) => t.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
 //  Le widget
 // ---------------------------------------------------------------------------
 
+// La marque de l'assistant : une balle de tennis en forme de bulle.
+//
+// Ce n'est PAS l'écusson de l'académie, et c'est voulu. L'écusson porte trois
+// lignes de texte — « TEAM LAUSANNE ACADEMY » — qui, réduites à 34 px, ne font
+// plus qu'une tache illisible. Vérifié en le rendant à la taille réelle.
+//
+// Dessinée en SVG dans le fichier plutôt que chargée depuis /assets : une
+// image qui ne charge pas laisse l'icône de vignette cassée au coin de
+// l'écran, sur toutes les pages du site. Ici il n'y a rien à charger, donc
+// rien à rater, et c'est net sur tous les écrans.
+const SVG_MARQUE = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+  + '<path fill="#fff" d="M12 2.6c-5.08 0-9.2 3.52-9.2 7.86 0 2.2 1.06 4.19 2.78 5.63.05 1.63-.48 3.1-1.6 4.4-.3.35 0 .89.45.8 2.3-.42 4.07-1.3 5.3-2.3.73.14 1.5.22 2.27.22 5.08 0 9.2-3.52 9.2-7.86S17.08 2.6 12 2.6z"/>'
+  + '<path fill="none" stroke="#073EB5" stroke-width="1.5" stroke-linecap="round"'
+  + ' d="M5.4 4.9c1.7 1.75 1.7 7.2 0 9.5M18.6 4.9c-1.7 1.75-1.7 7.2 0 9.5"/></svg>';
 const SVG_FERMER = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const SVG_POUCE = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 11v8H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h3zm0 0 4.5-8a2 2 0 0 1 3.8 1.2L14.5 8h4.3a2 2 0 0 1 2 2.5l-1.8 7A2 2 0 0 1 17 19H7" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>';
 
@@ -148,11 +162,11 @@ async function envoyer(texte) {
 
 function construire() {
   const bouton = el(`<button type="button" class="bot-rond" aria-label="Ouvrir l'assistant">
-    <img src="assets/logo-academie-blanc.png" alt="" /></button>`);
+    ${SVG_MARQUE}</button>`);
 
   panneau = el(`<div class="bot-panneau" role="dialog" aria-modal="false" aria-label="Assistant Team Lausanne" hidden>
     <header class="bot-tete">
-      <img src="assets/logo-academie-blanc.png" alt="" />
+      ${SVG_MARQUE}
       <div><b>Team Lausanne</b><span>en ligne</span></div>
       <button type="button" class="bot-x" aria-label="Fermer">${SVG_FERMER}</button>
     </header>

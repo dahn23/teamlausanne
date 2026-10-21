@@ -3357,7 +3357,7 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
   background:var(--blue);box-shadow:0 8px 24px rgba(7,62,181,.34);
   display:flex;align-items:center;justify-content:center;
   transition:transform .16s ease,box-shadow .16s ease}
-.bot-rond img{width:34px;height:34px;object-fit:contain;pointer-events:none}
+.bot-rond svg{width:34px;height:34px;display:block;pointer-events:none}
 .bot-rond:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 12px 30px rgba(7,62,181,.42)}
 .bot-rond:focus-visible{outline:3px solid var(--fluo);outline-offset:3px}
 
@@ -3382,7 +3382,7 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 
 .bot-tete{display:flex;align-items:center;gap:10px;padding:12px 14px;
   background:var(--blue);color:#fff;flex:0 0 auto}
-.bot-tete img{width:32px;height:32px;object-fit:contain}
+.bot-tete > svg{width:30px;height:30px;display:block;flex:0 0 auto}
 .bot-tete div{display:flex;flex-direction:column;line-height:1.15;flex:1}
 .bot-tete b{font-size:.95rem}
 /* « en ligne » : le point vert dit que ça répond, sans le mot « IA ». */
