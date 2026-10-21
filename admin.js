@@ -21626,7 +21626,7 @@ async function socChargerHist() {
 // n'importe pas config.js.
 const BOT_API = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/chatbot";
 let botCfg = null, botConvs = [], botMsgs = [], botJours = 30,
-    botFiltre = "", botRech = "", botTestConv = null, botVersions = [];
+    botFiltre = "", botRech = "", botTestConv = null, botVersions = [], botEvalDejaFaite = false;
 
 // Les garde-fous, recopiés du code de l'edge function pour être AFFICHÉS.
 // Ils ne servent à rien d'autre : la vérité vit dans la fonction. S'ils
@@ -21683,12 +21683,55 @@ async function loadAssistant() {
   botCfg = cfg || {};
   botConvs = convs || [];
   botVersions = vers || [];
+  const { count: nEvals } = await sb.from("bot_evals")
+    .select("id", { count: "exact", head: true }).eq("statut", "terminee");
+  botEvalDejaFaite = (nEvals || 0) > 0;
   const ids = new Set(botConvs.map((c) => c.id));
   botMsgs = (msgs || []).filter((m) => ids.has(m.conversation_id));
   botRemplirReglages();
   renderBotStats();
   renderBotConvs();
   $("bot-gardefous").textContent = BOT_GARDE_FOUS;
+  await botEtat();
+}
+
+/* ---- L'état, et ce qui manque pour ouvrir -------------------------------
+   Deux choses que la console ne pouvait pas dire jusqu'ici : est-il en ligne,
+   et que reste-t-il à faire avant de l'ouvrir au public.
+
+   La clé Anthropic vit dans l'edge function, pas en base : on la demande à la
+   fonction elle-même. Elle répond « maison » quand l'assistant est allumé ET
+   que la clé existe ; « aucun » sinon. Allumé + « aucun » = la clé manque, et
+   c'est la seule déduction que cette route permet.
+   ------------------------------------------------------------------------- */
+async function botEtat() {
+  const el = $("bot-etat"); if (!el) return;
+  const actif = !!botCfg.actif;
+  let cleManque = false;
+  try {
+    const r = await fetch(`${BOT_API}/config`);
+    const j = await r.json();
+    cleManque = actif && j?.bot !== "maison";
+  } catch { /* la fonction ne répond pas : on ne conclut rien */ }
+
+  el.className = "bot-etat " + (cleManque ? "bot-etat-ko" : actif ? "bot-etat-on" : "bot-etat-off");
+  el.textContent = cleManque ? "Il manque la clé Anthropic"
+    : actif ? "En ligne sur le site" : "En pause — rien ne s'affiche";
+
+  // Ce qui reste avant d'ouvrir. On ne liste que ce qui bloque vraiment, et on
+  // dit où cliquer : une liste de reproches sans chemin ne sert à personne.
+  const aEvalue = botEvalDejaFaite;
+  const manques = [
+    cleManque && "La clé Anthropic n'est pas posée sur l'edge function : sans elle, rien ne s'affiche.",
+    !String(botCfg.prompt || "").trim() && "Le prompt est vide : l'assistant répondrait sans consignes. Onglet Consignes.",
+    !aEvalue && "Aucune évaluation n'a encore été passée. Onglet Tester, « Lancer l'évaluation » — une cinquantaine de questions notées.",
+    !actif && "L'assistant est en pause : personne ne le voit. Onglet Consignes, « Afficher l'assistant sur le site ».",
+  ].filter(Boolean);
+
+  $("bot-alerte").innerHTML = manques.length
+    ? `<div class="bot-aouvrir"><b>Avant d'ouvrir au public</b><ul>${
+        manques.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></div>`
+    : "";
 }
 
 // ---- Statistiques ---------------------------------------------------------
@@ -21969,7 +22012,7 @@ function initAssistant() {
     document.querySelectorAll("#view-assistant .bot-subtab").forEach((x) => x.classList.toggle("active", x === b));
     document.querySelectorAll("#view-assistant .fac-sub").forEach((s) =>
       s.classList.toggle("hidden", s.id !== "bot-sub-" + b.dataset.bsub));
-    if (b.dataset.bsub === "eval") botChargerEval();
+    if (b.dataset.bsub === "test") botChargerEval();
   }));
   $("bot-refresh").addEventListener("click", loadAssistant);
   $("bot-save").addEventListener("click", botSaveReglages);

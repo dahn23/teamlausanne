@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=362" />
+  <link rel="stylesheet" href="style.css?v=363" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -1088,7 +1088,9 @@
               <p class="dash-lead">Il répond aux visiteurs à partir du site, et de rien d'autre :
                 il ne voit aucun dossier, aucune facture, aucune inscription nominative.</p>
             </div>
-            <div class="dash-hero-a"><button type="button" id="bot-refresh" class="ghost">↻ Actualiser</button></div>
+            <div class="dash-hero-a">
+              <span id="bot-etat" class="bot-etat"></span>
+              <button type="button" id="bot-refresh" class="ghost">↻ Actualiser</button></div>
           </div>
 
           <div id="bot-alerte"></div>
@@ -1097,10 +1099,8 @@
           <div class="fac-subtabs">
             <button type="button" class="subtab bot-subtab active" data-bsub="stats">Statistiques</button>
             <button type="button" class="subtab bot-subtab" data-bsub="convs">Conversations</button>
-            <button type="button" class="subtab bot-subtab" data-bsub="reglages">Réglages &amp; prompt</button>
-            <button type="button" class="subtab bot-subtab" data-bsub="test">Test</button>
-            <button type="button" class="subtab bot-subtab" data-bsub="eval">Évaluation</button>
-            <button type="button" class="subtab bot-subtab" data-bsub="savoir">Ce qu'il sait</button>
+            <button type="button" class="subtab bot-subtab" data-bsub="reglages">Consignes</button>
+            <button type="button" class="subtab bot-subtab" data-bsub="test">Tester</button>
           </div>
 
           <!-- ---- Statistiques ---- -->
@@ -1191,6 +1191,20 @@
                 y mettre des règles de forme les ferait contredire ce que tu écris au-dessus.</p>
               <pre id="bot-gardefous" class="bot-gardefous"></pre>
             </div>
+
+            <!-- Ce que l'assistant sait : on le lit au moment où l'on écrit ce
+                 qu'il doit en faire, pas dans un onglet séparé. -->
+            <div class="rg-card" style="margin-top:18px">
+              <div class="stg-card-head">
+                <h3 style="margin:0">Ce que l'assistant reçoit à chaque question</h3>
+                <button type="button" id="bot-savoir-load" class="ghost">Charger</button>
+              </div>
+              <p class="muted" style="margin:6px 0 10px;font-size:.86rem">
+                Le texte exact, reconstruit à l'instant. S'il manque quelque chose ici,
+                le bot ne peut pas le savoir — et c'est au site qu'il faut l'ajouter.</p>
+              <p id="bot-savoir-meta" class="muted" style="font-size:.86rem"></p>
+              <pre id="bot-savoir" class="bot-savoir"></pre>
+            </div>
           </div>
 
           <!-- ---- Test ---- -->
@@ -1217,27 +1231,11 @@
                 <button type="submit">Envoyer</button>
               </form>
             </div>
+            <!-- Les cinquante questions notées : même onglet que le bac à
+                 sable, puisque c'est le même geste à une autre échelle. -->
+            <div id="bot-eval-zone" style="margin-top:18px"></div>
           </div>
 
-          <!-- ---- Évaluation ---- -->
-          <div id="bot-sub-eval" class="fac-sub hidden">
-            <div id="bot-eval-zone"></div>
-          </div>
-
-          <!-- ---- Ce qu'il sait ---- -->
-          <div id="bot-sub-savoir" class="fac-sub hidden">
-            <div class="rg-card">
-              <div class="stg-card-head">
-                <h3 style="margin:0">Ce que l'assistant reçoit à chaque question</h3>
-                <button type="button" id="bot-savoir-load" class="ghost">Charger</button>
-              </div>
-              <p class="muted" style="margin:6px 0 10px;font-size:.86rem">
-                Le texte exact, reconstruit à l'instant. S'il manque quelque chose ici,
-                le bot ne peut pas le savoir — et c'est au site qu'il faut l'ajouter.</p>
-              <p id="bot-savoir-meta" class="muted" style="font-size:.86rem"></p>
-              <pre id="bot-savoir" class="bot-savoir"></pre>
-            </div>
-          </div>
         </div>
         <div id="view-newsletter" class="view hidden">
           <header class="dash-hero">
