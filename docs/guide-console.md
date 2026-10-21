@@ -258,7 +258,7 @@ Sous-onglets « Planning » et « Types de cours ».
 - « + Nouveau cours » crée un cours ; « Ajouter » valide.
 - « Copier la semaine » recopie une semaine entière sur une autre : c'est le
   geste qui fait gagner le plus de temps en début de saison.
-- « ❄ Abonnements d'hiver » et « + Déplacement ».
+- « + Déplacement » pose un déplacement.
 
 Les leçons se posent au quart d'heure et **bloquent le court** : un cours
 occupe le court comme une réservation.

@@ -5393,8 +5393,6 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   border-top:1px solid #e3e8ef;padding-top:10px}
 
 /* Abonnements d'hiver posés sur le planning (db/166) */
-.hivp-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:0 0 12px}
-.hivp-row label{display:flex;flex-direction:column;gap:4px;font-size:.86rem;font-weight:700}
 
 /* Relire une relance avant qu'elle ne parte. Le dernier rappel annonce des
    poursuites : il doit se voir avant qu'on clique, pas après. */
