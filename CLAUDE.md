@@ -63,6 +63,7 @@ Tout est dans la **console** (`admin.html`) sauf mention, menu latéral groupé.
 - **Champs date** : `pretty-date.js` cache l'`<input type=date>` natif et affiche un widget `.pd-wrap`. Pour contraindre sa largeur, viser `.pd-wrap`, pas l'input natif.
 - **Selects de saison** : après avoir réinjecté les `<option>`, **forcer** `el.value = …` (sinon pretty-select n'applique pas la valeur au 1er rendu).
 - **Numéro des fichiers `db/`** : ce sont des traces des changements déjà appliqués en base (l'ordre sert à les relire, rien ne les rejoue). Dan et Raphael travaillent en parallèle : **faire `git pull` puis prendre le numéro libre suivant juste avant de créer le fichier** (deux fichiers avaient partagé les numéros 113 et 120 ; renumérotés 123 et 122 le 30.09.2026).
+- **Insert groupé (PostgREST)** : dans un `.insert([a, b])`, **`a` et `b` doivent avoir exactement les mêmes clés**, sinon tout est refusé par `PGRST102 : All object keys must match` — avant même la RLS. Et comme personne ne lisait l'erreur, l'assistant a répondu des semaines sans enregistrer un seul message (console vide). Donc : mêmes colonnes sur toutes les lignes, et **toujours lire `error`**.
 - **Encodage** : éditer les fichiers avec les outils d'édition — **ne jamais réécrire les HTML via PowerShell `Set-Content`** (ça ajoute un BOM et double-encode les accents). Avant de committer, vérifier qu'aucun HTML n'a pris de BOM.
 - **Commits en français**, finir par `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
 

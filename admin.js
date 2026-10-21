@@ -21742,7 +21742,12 @@ function renderBotStats() {
   const convs = botConvs.filter((c) => botDansPeriode(c.started_at));
   const ids = new Set(convs.map((c) => c.id));
   const msgs = botMsgs.filter((m) => ids.has(m.conversation_id));
-  const questions = msgs.filter((m) => m.role === "user");
+  // « Questions » = ce à quoi le modèle a vraiment répondu. Les messages
+  // écartés par le tri d'entrée (bonjour, émojis, charabia) sont comptés à
+  // part : les mêler aux vraies questions gonflerait le chiffre sans rien
+  // apprendre.
+  const questions = msgs.filter((m) => m.role === "user" && !m.filtre);
+  const ecartees = msgs.filter((m) => m.role === "user" && m.filtre);
   const reponses = msgs.filter((m) => m.role === "assistant");
   const sansRep = reponses.filter((m) => m.unanswered);
   const pouceH = reponses.filter((m) => m.feedback === 1).length;
@@ -21760,6 +21765,8 @@ function renderBotStats() {
     dashStat({ label: "Questions", value: dashNum(questions.length), tone: "blue",
                sub: convs.length ? (questions.length / convs.length).toFixed(1) + " par conversation" : "—" }),
     dashStat({ label: "Visiteurs distincts", value: dashNum(visiteurs), tone: "blue", sub: "empreintes d'IP" }),
+    dashStat({ label: "Écartées", value: dashNum(ecartees.length), tone: "ok",
+               sub: "bonjour, charabia — gratuit" }),
     dashStat({ label: "Sans réponse", value: dashNum(sansRep.length), tone: sansRep.length ? "warn" : "ok",
                sub: "à ajouter au site" }),
     dashStat({ label: "Pouces", value: `${pouceH} / ${pouceB}`, tone: pouceB > pouceH ? "warn" : "ok", sub: "haut / bas" }),
@@ -21866,7 +21873,7 @@ function botOuvrirConv(id) {
         ${m.feedback === 1 ? "👍 " : m.feedback === -1 ? "👎 " : ""}
         ${pages.length ? `pages lues : ${pages.map(esc).join(", ")} · ` : ""}
         ${flag.length ? "signalée sans réponse · " : ""}
-        ${botChf(m.cost_usd)}</div></div>`;
+        ${m.filtre ? `écartée (${esc(m.filtre)}) — sans appel au modèle` : botChf(m.cost_usd)}</div></div>`;
   }).join("");
   botModal(`<div class="bot-fil bot-fil-modal">${fil}</div>`, "Conversation");
 }

@@ -30,7 +30,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = {
   "access-control-allow-origin": "*",
-  "access-control-allow-headers": "authorization, apikey, content-type, x-client-info, x-supabase-api-version, *",
+  "access-control-allow-headers": "authorization, apikey, content-type, x-client-info, x-supabase-api-version, x-bot-jwt, *",
   "access-control-allow-methods": "POST, GET, OPTIONS",
 };
 const json = (o: unknown, s = 200) =>
@@ -350,6 +350,153 @@ const hacher = async (s: string) => {
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s + "|teamlausanne-bot"));
   return [...new Uint8Array(b)].slice(0, 16).map((x) => x.toString(16).padStart(2, "0")).join("");
 };
+
+// Les deux lignes d'un échange, écrites ensemble.
+//
+// DEUX PIÈGES, et le second nous a coûté tout l'historique du bot.
+//
+// PostgREST exige que TOUTES les lignes d'un insert groupé portent exactement
+// les mêmes clés. Deux objets qui n'ont pas le même jeu de champs — l'un sans
+// `tools`, l'autre avec — sont refusés d'un bloc par « PGRST102 : All object
+// keys must match », AVANT même la RLS. Et comme l'erreur n'était pas lue, le
+// bot a répondu pendant des semaines sans jamais enregistrer un seul message :
+// la console comptait les conversations et le coût, mais n'avait aucune
+// question à montrer. D'où les deux règles tenues ici, et nulle part ailleurs :
+// on passe toujours les MÊMES colonnes sur les deux lignes, et on LIT l'erreur.
+async function ecrireEchange(supa: ReturnType<typeof createClient>, lignes: Record<string, unknown>[]) {
+  const cles = lignes.map((l) => Object.keys(l).sort().join(","));
+  if (new Set(cles).size > 1) {
+    console.error("chatbot: lignes aux clés différentes, PostgREST refuserait :", cles);
+  }
+  const { error } = await supa.from("bot_messages").insert(lignes);
+  if (error) console.error("chatbot: échange non enregistré —", error.code, error.message);
+  return !error;
+}
+
+
+// ---------------------------------------------------------------------------
+//  Le tri d'entrée : répondre sans appeler le modèle
+// ---------------------------------------------------------------------------
+//
+// « bonjour », « merci », « 😀😀 », « asdfgh » : trois mots qui n'attendent pas
+// de réponse coûtent autant qu'une vraie question. Ces cas-là se reconnaissent
+// par le code, et le code répond.
+//
+// LE RISQUE EST À SENS UNIQUE. Avaler « combien ça coûte ? » serait grave ;
+// envoyer « bonjour » au modèle ne coûte qu'un demi-centime. Donc chaque règle
+// est écrite pour se taire au moindre doute, et trois verrous passent AVANT
+// elles :
+//
+//  1. un point d'interrogation, un mot interrogatif ou un mot du club
+//     (tennis, stage, prix…) → c'est une vraie question, on n'y touche pas ;
+//  2. plus de trois mots → on n'y touche pas ;
+//  3. l'assistant vient de poser une question → « 7 », « oui », « non » sont
+//     des réponses, pas du charabia.
+//
+// Les textes sont fixes et courts. Le prompt dit déjà au modèle de répondre
+// aux provocations par une phrase neutre et toujours la même ; ici on dit la
+// même phrase, gratuitement.
+
+const SANS_MODELE = {
+  neutre: "Je suis là pour les questions sur l'académie.",
+  bonjour: "Bonjour ! Qu'est-ce que tu veux savoir sur l'académie ?",
+  merci: "Avec plaisir. Si tu as une autre question, je suis là.",
+};
+
+// Minuscules, sans accents, sans ponctuation : « Ça va ?! » et « ca va » se
+// comparent.
+const aplatir = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9' ]+/g, " ").replace(/\s+/g, " ").trim();
+
+// Un mot du club, un mot interrogatif : on passe la main au modèle.
+// On ne met ici que des mots qui PORTENT du sens. « a », « ce », « est », « un »
+// sont dans toutes les phrases, y compris dans les insultes : les garder
+// reviendrait à désarmer les règles qui suivent.
+const MOTS_VRAIS = new Set(`qui que quoi quel quelle quels quelles quand comment combien pourquoi
+  ou pouvez avez
+  what when where how why who which price cost
+  tennis cours court courts stage stages camp camps ecole academie club
+  inscription inscrire inscrit prix tarif tarifs cotisation abonnement
+  horaire horaires planning calendrier saison semaine samedi dimanche lundi
+  mardi mercredi jeudi vendredi matin apres midi soir heure heures
+  coach coachs prof profs entraineur entrainement entrainements
+  enfant enfants fils fille ado junior juniors adulte adultes debutant
+  competition performance kidstennis mini age ans niveau groupe groupes
+  reservation reserver raquette balle balles vestiaire parking acces adresse
+  contact telephone mail email essai essais place places liste attente
+  licence tournoi tournois interclubs membre membres famille rabais`
+  .split(/\s+/).filter(Boolean));
+
+// Salutations, remerciements, acquiescements : seuls, ils n'attendent rien.
+const MOTS_BONJOUR = new Set(
+  "bonjour bonsoir salut hello hi hey yo coucou ciao hola bjr slt re allo bonne journee".split(" "));
+const MOTS_MERCI = new Set(`merci mercii thanks thx ok oki okay okey dac daccord d'accord
+  super parfait nickel top cool genial bravo bien tres chouette impeccable
+  compris vu note a+ bye au revoir aurevoir bonne soiree`.split(/\s+/).filter(Boolean));
+
+// Un mécontentement, même en deux mots, mérite une vraie réponse.
+const MOTS_FACHE = new Set(`nul nulle mauvais mauvaise decu decue decevant honte scandale
+  inadmissible arnaque cher chere trop plainte probleme souci marche pas rien
+  jamais personne attends attente annule annulation rembourse remboursement`
+  .split(/\s+/).filter(Boolean));
+
+// Des insultes ADRESSÉES, et rien d'autre. Pas « merde », « putain », « shit » :
+// ce sont des jurons d'agacement, et quelqu'un d'agacé mérite une vraie
+// réponse. Pas « retard » non plus — « j'ai du retard » n'insulte personne.
+// Pas « ta » ni « ferme », trop courants seuls : les expressions en plusieurs
+// mots sont traitées à part, ci-dessous.
+const MOTS_INSULTE = new Set(`con cons conne connard connards connasse salope pute
+  merdique encule encules batard batards debile debiles idiot idiots imbecile
+  cretin abruti gueule tg fdp ntm bitch fuck fucking asshole bastard`
+  .split(/\s+/).filter(Boolean));
+const PHRASES_INSULTE = [/\bferme ta gueule\b/, /\bta gueule\b/, /\bva te faire\b/, /\bfuck (you|off)\b/];
+
+// Du charabia : un mot sans voyelle, une lettre répétée, une rangée de clavier.
+function charabia(mots: string[]): boolean {
+  const CLAVIER = ["qwert", "azert", "asdf", "qsdf", "zxcv", "wxcv", "hjkl", "uiop", "1234"];
+  return mots.every((m) => {
+    if (m.length < 4) return false;                       // trop court pour conclure
+    if (!/[aeiouy]/.test(m)) return true;                 // « zbgkt »
+    if (/(.)\1{2,}/.test(m)) return true;                 // « aaaah », « lolll »
+    return CLAVIER.some((r) => m.includes(r.slice(0, 4))); // « asdfgh »
+  });
+}
+
+/** Une réponse fixe, ou null pour laisser le modèle répondre. */
+function triage(message: string, historique: Tour[]): { texte: string; motif: string } | null {
+  const plat = aplatir(message);
+  const mots = plat ? plat.split(" ") : [];
+
+  // Verrou 3 : l'assistant vient de poser une question, tout est une réponse.
+  const dernier = [...historique].reverse().find((t) => t.role === "assistant");
+  if (dernier && /\?\s*$/.test(String(dernier.content).trim())) return null;
+
+  // Rien de lisible : émojis ou ponctuation seuls. Les CHIFFRES seuls passent
+  // au modèle : « 7 » tout court est peut-être l'âge d'un enfant, et c'est au
+  // modèle de demander pour quoi.
+  if (!plat) return { texte: SANS_MODELE.neutre, motif: "sans texte" };
+  if (!/[a-z0-9]/.test(plat)) return { texte: SANS_MODELE.neutre, motif: "sans texte" };
+  if (!/[a-z]/.test(plat)) return null;
+
+  // Verrou 1 : un mot du club ou un mot interrogatif, ou un « ? ».
+  if (message.includes("?") || mots.some((m) => MOTS_VRAIS.has(m))) return null;
+
+  // Une insulte reste une insulte, même dans une longue phrase.
+  if (mots.some((m) => MOTS_INSULTE.has(m)) || PHRASES_INSULTE.some((r) => r.test(plat)))
+    return { texte: SANS_MODELE.neutre, motif: "insulte" };
+
+  // Verrou 2 : au-delà de trois mots, on ne juge plus.
+  if (mots.length > 3) return null;
+  if (mots.some((m) => MOTS_FACHE.has(m))) return null;
+
+  if (mots.every((m) => MOTS_BONJOUR.has(m))) return { texte: SANS_MODELE.bonjour, motif: "salutation" };
+  if (mots.every((m) => MOTS_BONJOUR.has(m) || MOTS_MERCI.has(m)))
+    return { texte: SANS_MODELE.merci, motif: "remerciement" };
+  if (charabia(mots)) return { texte: SANS_MODELE.neutre, motif: "charabia" };
+
+  return null;
+}
 
 
 // ---------------------------------------------------------------------------
@@ -781,8 +928,12 @@ Deno.serve(async (req) => {
       if ((recentes || 0) > 12) return json({ error: "Trop de questions d'un coup. Réessaie dans un moment." }, 429);
 
       const minuit = new Date(); minuit.setHours(0, 0, 0, 0);
+      // Le plafond ne compte que les questions PAYÉES. Sans le `is("filtre")`,
+      // trois cents émojis fermeraient l'assistant jusqu'à minuit sans avoir
+      // coûté un centime.
       const { count: duJour } = await supa.from("bot_messages")
-        .select("id", { count: "exact", head: true }).eq("role", "user").gte("created_at", minuit.toISOString());
+        .select("id", { count: "exact", head: true }).eq("role", "user")
+        .is("filtre", null).gte("created_at", minuit.toISOString());
       if ((duJour || 0) >= Number(cfg?.plafond_jour || 300)) {
         return json({ error: "L'assistant a atteint sa limite du jour. Écris-nous à info@teamlausanne.ch." }, 429);
       }
@@ -800,19 +951,49 @@ Deno.serve(async (req) => {
           .select().single();
         conv = data; convId = String(conv!.id);
       }
-      if (Number(conv!.n_questions) >= 20) {
+      const { data: anciens } = await supa.from("bot_messages")
+        .select("idx,role,content,filtre").eq("conversation_id", convId).order("idx");
+      const idx0 = (anciens || []).length;
+
+      // Deux limites, et non une. `n_questions` ne compte que les questions
+      // payées : sans la seconde, trois cents « bonjour » gratuits dans le même
+      // fil n'y changeraient rien et personne ne les arrêterait.
+      if (Number(conv!.n_questions) >= 20 || idx0 >= 80) {
         return json({ error: "Cette conversation est un peu longue. Recharge la page pour en commencer une nouvelle." }, 429);
       }
 
-      const { data: anciens } = await supa.from("bot_messages")
-        .select("idx,role,content").eq("conversation_id", convId).order("idx");
-      const historique: Tour[] = (anciens || []).map((m: Record<string, unknown>) =>
-        ({ role: m.role as "user" | "assistant", content: String(m.content) }));
+      // L'historique envoyé au modèle EXCLUT les échanges filtrés : « bonjour »
+      // et sa réponse fixe n'apprennent rien, et les laisser passer rendrait un
+      // fil de salutations gratuites coûteux à la première vraie question.
+      // Le tri d'entrée lit le même historique, donc son verrou « l'assistant
+      // vient de poser une question » ne se déclenche que sur une VRAIE
+      // question du modèle — pas sur l'invitation fixe qui finit par « ? ».
+      const historique: Tour[] = (anciens || [])
+        .filter((m: Record<string, unknown>) => !m.filtre)
+        .map((m: Record<string, unknown>) =>
+          ({ role: m.role as "user" | "assistant", content: String(m.content) }));
+
+      // Le tri d'entrée. S'il répond, on s'arrête là : pas de connaissances à
+      // reconstruire, pas d'appel au modèle, pas un centime. On enregistre
+      // quand même l'échange — le staff doit pouvoir lire ce qu'on a écarté —
+      // avec le motif, qui exclut aussi ces messages du plafond du jour.
+      const tri = triage(message, historique);
+      if (tri) {
+        await ecrireEchange(supa, [
+          { conversation_id: convId, idx: idx0, role: "user", content: message,
+            tools: [], usage: {}, cost_usd: 0, unanswered: false, filtre: tri.motif },
+          { conversation_id: convId, idx: idx0 + 1, role: "assistant", content: tri.texte,
+            tools: [], usage: {}, cost_usd: 0, unanswered: false, filtre: tri.motif },
+        ]);
+        await supa.from("bot_conversations").update({ last_at: new Date().toISOString() }).eq("id", convId);
+        return json({ ok: true, conversation_id: convId, index: idx0 + 1, reponse: tri.texte,
+                      modele: "aucun", filtre: tri.motif, jetons: {}, cout_usd: 0 });
+      }
 
       const { texte: connaissances } = await construireConnaissances(supa);
       // Le bac a sable de la console peut imposer un modele, pour comparer.
       const modele = String(b?.modele || cfg?.modele || "claude-haiku-5-5");
-      const idx = (anciens || []).length;
+      const idx = idx0;
 
       const out = await repondre(client, {
         modele, effort: String(cfg?.effort || "low"),
@@ -821,10 +1002,11 @@ Deno.serve(async (req) => {
       });
       const prix = cout(modele, out.usage);
 
-      await supa.from("bot_messages").insert([
-        { conversation_id: convId, idx, role: "user", content: message },
+      await ecrireEchange(supa, [
+        { conversation_id: convId, idx: idx, role: "user", content: message,
+          tools: [], usage: {}, cost_usd: 0, unanswered: false, filtre: null },
         { conversation_id: convId, idx: idx + 1, role: "assistant", content: out.texte,
-          tools: out.outils, usage: out.usage, cost_usd: prix, unanswered: !!out.sansReponse },
+          tools: out.outils, usage: out.usage, cost_usd: prix, unanswered: !!out.sansReponse, filtre: null },
       ]);
       await supa.from("bot_conversations").update({
         last_at: new Date().toISOString(),
