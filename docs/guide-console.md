@@ -215,7 +215,7 @@ Quatre sous-onglets : « Statistiques », « Conversations », « Consignes »,
 
 ### Réglages
 
-Deux sous-onglets : « Accès & rôles » et « Saisons ».
+Trois sous-onglets : « Accès & rôles », « Saisons » et « Suivi de l'Aide ».
 
 **Accès & rôles** : le tableau « Accès des onglets par rôle » dit quel rôle
 voit quel onglet ; « Enregistrer les accès » valide. « Comptes & rôles »
@@ -224,6 +224,18 @@ liste les comptes.
 **Saisons** : « + Créer » ouvre une saison. On y règle la « Cotisation
 (membre) » et les « Cours juniors ». « Bascule / reconduction » prépare la
 saison suivante, « Appliquer la reconduction » l'exécute.
+
+**Suivi de l'Aide** : ce que l'équipe demande à l'Aide sur 30 jours. Quatre
+chiffres en haut — Conversations, Questions, **Pas dans le guide**, Coût —
+puis le tableau des conversations. Un clic sur une ligne ouvre tout l'échange,
+avec en tête les questions que le guide ne couvrait pas.
+
+La pastille « Pas dans le guide » est celle qui sert : chaque ligne y est une
+question restée sans réponse, donc un morceau de guide à écrire. Le champ de
+recherche cherche dans la question, le nom et l'écran.
+
+Réservé aux administrateurs : les autres comptes voient la rubrique mais pas
+son contenu.
 
 ### Réserv.
 

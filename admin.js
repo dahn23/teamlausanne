@@ -1282,6 +1282,7 @@ function initRoles() {
       document.querySelectorAll("#view-roles .rg-subtab").forEach((x) => x.classList.toggle("active", x === b));
       document.querySelectorAll("#view-roles .rg-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "rg-sub-" + b.dataset.sub));
       if (b.dataset.sub === "seasons") loadSeasonsManage();
+      if (b.dataset.sub === "aide") loadAideSuivi();
     }));
   $("rg-cot-add").addEventListener("click", () => addRoleSeason("cotisation"));
   $("rg-jun-add").addEventListener("click", () => addRoleSeason("juniors"));
@@ -23310,4 +23311,126 @@ async function aideEnvoyer(question, panneau) {
   envoi.disabled = false;
   aideOccupee = false;
   fil.scrollTop = fil.scrollHeight;
+}
+
+
+/* ===========================================================================
+   Suivi de l'Aide  (Réglages › Suivi de l'Aide)
+   ===========================================================================
+
+   À quoi ça sert, en une phrase : savoir ce que le guide ne couvre pas.
+
+   Le reste — qui a demandé, depuis quel écran, combien ça a coûté — n'est là
+   que pour donner du contexte à cette question-là. On lit « Pas dans le
+   guide », on complète docs/guide-console.md, et l'Aide s'améliore. C'est
+   toute la boucle.
+
+   Les droits ne sont pas tenus ici : aide_suivi() renvoie vide si l'appelant
+   n'est pas administrateur, et la RLS des tables dit la même chose. L'écran
+   ne fait qu'afficher joliment ce que le serveur veut bien donner.
+   ======================================================================== */
+
+let asConvs = [], asFiltre = "tout", asRech = "", asBound = false;
+
+function asBind() {
+  if (asBound) return;
+  asBound = true;
+  $("as-reload").addEventListener("click", loadAideSuivi);
+  document.querySelectorAll("#rg-sub-aide [data-asf]").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#rg-sub-aide [data-asf]").forEach((x) => x.classList.toggle("sel", x === b));
+      asFiltre = b.dataset.asf; renderAideSuivi();
+    }));
+  let t;
+  $("as-search").addEventListener("input", (e) => {
+    clearTimeout(t);
+    t = setTimeout(() => { asRech = e.target.value.trim(); renderAideSuivi(); }, 200);
+  });
+}
+
+async function loadAideSuivi() {
+  asBind();
+  const { data, error } = await sb.rpc("aide_suivi", { p_jours: 30 });
+  const refus = $("as-refus"), zone = $("as-zone");
+  if (error) {
+    // Un refus du serveur n'est pas une panne : la rubrique est visible par
+    // tous, son contenu non. On le dit, sans écran d'erreur.
+    refus.hidden = false; zone.hidden = true;
+    $("as-chiffres").innerHTML = "";
+    return;
+  }
+  asConvs = data || [];
+  refus.hidden = true; zone.hidden = false;
+  renderAideSuivi();
+}
+
+function renderAideSuivi() {
+  const convs = asConvs;
+  const questions = convs.reduce((a, c) => a + Number(c.n_questions || 0), 0);
+  const hors = convs.filter((c) => c.hors_guide).length;
+  const cout = convs.reduce((a, c) => a + Number(c.cost_usd || 0), 0);
+  const gens = new Set(convs.map((c) => c.qui)).size;
+
+  $("as-chiffres").innerHTML = [
+    dashStat({ label: "Conversations", value: dashNum(convs.length), tone: "ocean",
+               sub: gens + (gens > 1 ? " personnes" : " personne") }),
+    dashStat({ label: "Questions", value: dashNum(questions), tone: "blue",
+               sub: "30 derniers jours" }),
+    dashStat({ label: "Pas dans le guide", value: dashNum(hors), tone: hors ? "warn" : "ok",
+               sub: hors ? "à écrire dans le guide" : "le guide répondait à tout" }),
+    dashStat({ label: "Coût", value: botChf(cout), tone: "ocean", sub: "sur la période" }),
+  ].join("");
+
+  const q = asRech.toLowerCase();
+  const vues = convs.filter((c) => {
+    if (asFiltre === "hors" && !c.hors_guide) return false;
+    if (!q) return true;
+    return [c.qui, c.premiere, (c.ecrans || []).join(" ")]
+      .some((x) => String(x || "").toLowerCase().includes(q));
+  });
+
+  $("as-lignes").innerHTML = vues.length ? vues.map((c) => `
+    <tr class="as-ligne" data-conv="${c.id}" style="cursor:pointer">
+      <td class="muted" style="white-space:nowrap">${frDateTime(c.started_at)}</td>
+      <td>${esc(c.qui || "—")}</td>
+      <td class="muted">${esc((c.ecrans || []).join(" · ") || "—")}</td>
+      <td>${esc(String(c.premiere || "—").slice(0, 90))}</td>
+      <td style="text-align:right">${c.n_questions}</td>
+      <td>${c.hors_guide ? '<span class="ss-tag ss-role">pas dans le guide</span>' : ""}</td>
+      <td style="text-align:right">${botChf(c.cost_usd)}</td>
+    </tr>`).join("")
+    : '<tr><td colspan="7" class="muted" style="padding:18px">'
+      + (convs.length ? "Rien ne correspond à cette recherche."
+                      : "Personne n'a encore posé de question à l'Aide.")
+      + "</td></tr>";
+
+  document.querySelectorAll("#as-lignes .as-ligne").forEach((tr) =>
+    tr.addEventListener("click", () => asOuvrirFil(tr.dataset.conv)));
+}
+
+async function asOuvrirFil(id) {
+  const { data, error } = await sb.rpc("aide_suivi_fil", { p_conv: id });
+  if (error) { alert("Lecture impossible : " + error.message); return; }
+  const msgs = data || [];
+  const c = asConvs.find((x) => x.id === id);
+  const hors = msgs.filter((m) => m.hors_guide);
+
+  // En tête, ce qu'on est venu chercher : les questions que le guide ne
+  // couvrait pas. La conversation vient après, pour le contexte.
+  const encadre = hors.length ? `
+    <div class="bot-aouvrir" style="margin-bottom:14px">
+      <b>Pas dans le guide</b>
+      <ul>${msgs.map((m, i) => m.hors_guide && msgs[i - 1]
+        ? "<li>" + esc(msgs[i - 1].content) + "</li>" : "").join("")}</ul>
+    </div>` : "";
+
+  const fil = msgs.map((m) => m.role === "user"
+    ? `<div class="bot-msg bot-moi"><div class="bot-bulle">${esc(m.content)}</div>
+        <div class="bot-meta">${esc(m.ecran || "")} · ${frDateTime(m.created_at).slice(-5)}</div></div>`
+    : `<div class="bot-msg bot-bot"><div class="bot-bulle">${botMd(m.content)}</div>
+        <div class="bot-meta">${m.hors_guide ? "pas dans le guide · " : ""}${botChf(m.cost_usd)}</div></div>`
+  ).join("");
+
+  botModal(encadre + `<div class="bot-fil bot-fil-modal">${fil}</div>`,
+    "Aide — " + (c ? c.qui : "conversation"));
 }

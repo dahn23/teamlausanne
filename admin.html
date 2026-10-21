@@ -460,6 +460,7 @@
           <div class="subnav">
             <button class="subtab rg-subtab active" data-sub="acces">Accès & rôles</button>
             <button class="subtab rg-subtab" data-sub="seasons">Saisons</button>
+            <button class="subtab rg-subtab" data-sub="aide">Suivi de l'Aide</button>
           </div>
 
           <div id="rg-sub-acces" class="rg-sub">
@@ -520,6 +521,44 @@
               <div id="bsc-foot" class="rg-foot hidden" style="margin-top:12px">
                 <button id="bsc-apply">Appliquer la reconduction</button>
                 <span id="bsc-status" class="muted"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Suivi de l'Aide. La rubrique est visible par tous ; son contenu
+               ne l'est que pour les administrateurs, et c'est le serveur qui
+               tranche (aide_suivi leve si can_aide_suivi est faux). -->
+          <div id="rg-sub-aide" class="rg-sub hidden">
+            <div class="rg-card">
+              <div class="stg-card-head">
+                <h2 style="margin:0">Suivi de l'Aide</h2>
+                <button type="button" id="as-reload" class="ghost">↻ Actualiser</button>
+              </div>
+              <p class="muted" style="margin:6px 0 14px;font-size:.88rem">
+                Ce que l'équipe demande à l'Aide, sur 30 jours. La colonne qui compte est
+                <b>« pas dans le guide »</b> : chaque ligne y est une question à laquelle
+                <code>docs/guide-console.md</code> ne répondait pas. C'est la liste de ce
+                qu'il reste à écrire.</p>
+              <div id="as-chiffres" class="dash-stats"></div>
+              <div id="as-refus" class="muted" hidden style="padding:18px 0">
+                Réservé aux administrateurs.</div>
+              <div id="as-zone" hidden>
+                <div class="people-filters" style="margin:16px 0 10px">
+                  <button type="button" class="chip filt sel" data-asf="tout">Conversations</button>
+                  <button type="button" class="chip filt" data-asf="hors">Pas dans le guide</button>
+                  <input type="text" id="as-search" class="cs-search" style="flex:1;min-width:180px"
+                         placeholder="Chercher une question, une personne, un écran…" autocomplete="off" />
+                </div>
+                <div class="table-wrap">
+                  <table class="crm-table">
+                    <thead><tr>
+                      <th>Quand</th><th>Qui</th><th>Écran(s)</th><th>Première question</th>
+                      <th style="text-align:right">Questions</th><th></th>
+                      <th style="text-align:right">Coût</th>
+                    </tr></thead>
+                    <tbody id="as-lignes"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
