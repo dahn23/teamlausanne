@@ -149,7 +149,6 @@ async function startApp() {
     ? { data: apercu.est_joueur ? [apercu] : [] }
     : await sb.rpc("portal_player_youths");
   PLAYERS = pl || [];
-  $("pt-nav-matchs").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-comp").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-feuille").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-physique").classList.toggle("hidden", PLAYERS.length === 0);
@@ -157,6 +156,13 @@ async function startApp() {
     ? { data: apercu.est_elite ? [apercu.person_id] : [] }
     : await sb.rpc("portal_elite_youths");
   ELITE = new Set((el || []).map((x) => (typeof x === "string" ? x : x.portal_elite_youths)));
+  // « Saison » — la frise du planning tournois — ne s'affiche que pour pro,
+  // pro U18 et sport-études. Compétition et Performance ne la voient pas :
+  // leurs familles n'ont pas de délégation à organiser, et une frise de
+  // prépa/option/vacances les embrouille plus qu'elle ne les renseigne.
+  // C'est donc ELITE et non PLAYERS, d'où la ligne placée ici et non plus
+  // au-dessus avec les autres onglets de joueur.
+  $("pt-nav-matchs").classList.toggle("hidden", ELITE.size === 0);
   // Stages : pas pour pro, pro U18 et sport-études (seulement si tous les jeunes du compte en sont).
   document.querySelector('.pt-nav-item[data-view="stages"]')?.classList.toggle("hidden", YOUTHS.length > 0 && YOUTHS.every((y) => ELITE.has(y.person_id)));
   arrangeNav();
