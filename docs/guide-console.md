@@ -11,6 +11,13 @@ sait pas plutôt que d'inventer un bouton.
 Les libellés exacts sont entre guillemets : « Enregistrer », « + Nouveau ».
 Les chemins s'écrivent « Onglet → Sous-onglet → bouton ».
 
+**Comment un écran est décrit ici** — toujours dans le même ordre, parce que
+c'est l'ordre des questions qu'on se pose : *ce que c'est* · *qui peut
+écrire* · *les sous-onglets* · *comment lire l'écran* · *comment faire la
+chose principale*, en étapes numérotées · *ce que chaque champ veut dire* ·
+*ce que l'autre côté voit* (la famille, le jeune) · *bon à savoir*, les pièges
+et ce qui demande du jugement.
+
 ---
 
 ## 1. Se connecter et s'y retrouver
@@ -26,7 +33,7 @@ administrateur qui peut l'ouvrir dans « Réglages → Accès & rôles ».
 
 Un bouton **« Aide »** flotte en bas à droite de chaque écran. Il connaît
 l'écran sur lequel on se trouve, donc on peut poser la question sans préciser
-où on est.
+où on est. « − » le réduit en gardant la conversation, « ✕ » la referme.
 
 ---
 
@@ -45,7 +52,7 @@ où on est.
 | Newsletter | Envois groupés | admin, secrétariat |
 | Social Media Planner | Publications réseaux sociaux | admin, secrétariat |
 | Assistant | Le bot du site public | admin, secrétariat |
-| Réglages | Rôles, accès, saisons, tarifs | admin |
+| Réglages | Rôles, accès, saisons, suivi de l'Aide | admin |
 | Réserv. | La grille des courts | admin, secrétariat, head coach |
 | Saison hiver | Abonnements d'hiver | admin, secrétariat |
 | Casiers | Attribution des casiers | admin, secrétariat |
@@ -70,297 +77,265 @@ où on est.
 
 ---
 
-## 3. Les écrans, un par un
+## 3. Planning tournois
 
-### Dashboard
+### Ce que c'est
 
-La page d'accueil de la console : ce qui se passe aujourd'hui. Le bouton
-« ↻ Actualiser » recharge les chiffres sans recharger la page.
+La planification de la saison d'un joueur, semaine par semaine : ce qu'il
+travaille, quand il est censé jouer un tournoi, et ce à quoi il s'est inscrit.
 
-### Calendrier
+Une seule saison de 52 semaines, un seul écran. Les coachs écrivent, le jeune
+lit la même chose dans **Mon espace › Saison** et y ajoute ses propres
+inscriptions.
 
-Le calendrier de l'académie. On y pose les événements, les vacances, les
-fermetures et les absences.
+**Qui peut écrire** : head coach, coach, admin, superadmin. Les autres ne
+voient pas l'onglet.
 
-**Ajouter quelque chose**
-1. Bouton « ＋ Ajouter un événement ».
-2. Remplir le formulaire « Nouvel événement ».
-3. « Enregistrer ».
+### Les deux sous-onglets
 
-**Qui verra cette ligne.** C'est le point le plus important de cet écran.
-Par défaut une entrée est **interne** : elle reste dans la console. Seuls les
-**événements** peuvent viser des filières ; les fermetures, camps, vacances et
-jours fériés valent pour tout le monde.
+- **« Prochains tournois »** — la liste des tournois à venir, regroupés quand
+  plusieurs jeunes vont au même endroit. C'est l'écran des délégations : qui
+  part où, et avec qui.
+- **« Calendriers »** — la frise de la saison, une ligne par joueur. C'est là
+  qu'on planifie.
 
-- Rien de coché → interne. C'est le cas des réunions, des RDV, des déjeuners.
-- « Afficher sur le calendrier public » coché → visible sur le site.
-- Une ou plusieurs filières cochées → visible par ces familles dans Mon
-  espace, et **retiré du site public**.
+### Lire la frise
 
-Le formulaire écrit en toutes lettres où va la ligne. Dans la grille, une
-pastille signale ce qui sort de la console : verte pour le site public, bleue
-pour les familles d'une filière. Pas de pastille = interne.
+Une ligne par joueur, **une case par semaine**, de gauche à droite sur
+l'année.
 
-**Vacances et absences.** « 🏖 Demander des vacances » et « 🤒 Déclarer une
-absence » sont les deux boutons du haut. Les vues « Mois », « Année » et
-« Liste des semaines » changent l'affichage ; « Aujourd'hui » revient à la
-date du jour.
+La **couleur de la case** dit le type de semaine :
 
-### Répertoire
+| Couleur | Type |
+|---|---|
+| Bleu foncé | Entraînement |
+| Bleu-vert | Prépa physique |
+| Bleu clair | Entraînement en option |
+| Gris pâle | Vacances |
+| Bleu nuit | Tournoi à l'étranger |
+| Presque blanc | Rien de prévu |
 
-Les fiches de toutes les personnes : membres, juniors, parents, staff.
+Le **repère au bord droit** de la case dit où en est le week-end :
 
-Deux sous-onglets : « Personnes » et « Locations de courts ».
+| Repère | Ce que ça veut dire |
+|---|---|
+| Vert fluo | Une zone tournoi est prévue, le jeune ne s'est pas encore inscrit |
+| Bleu encre | Le jeune s'est inscrit, dans la zone prévue |
+| Rouge | Le jeune s'est inscrit **hors** de toute zone prévue — à en parler avec lui |
+| Rien | Ni zone, ni inscription |
 
-**Créer une fiche** : « + Nouveau ».
-**Chercher** : le champ de recherche en haut de la liste.
+Le repère est à droite parce que le week-end est la fin de la semaine : sa
+place sur la case dit déjà quand il tombe.
 
-**Les rôles d'une fiche.** Attention, il y a trois notions différentes :
-- les **étiquettes** de la fiche : ce que la personne est (junior, parent…) ;
-- les **accès** : ce que le compte peut ouvrir, c'est ce que lit la sécurité ;
-- le **rôle de filière par saison** : kidstennis, club, compétition,
-  performance, sport-études, pro, pro U18, adultes.
+**Pour se repérer dans l'année** : un trait vertical marque chaque début de
+mois et traverse toutes les lignes ; la semaine en cours est cerclée. Passer
+la souris sur une case donne tout le détail de la semaine.
 
-La fiche synchronise les deux premiers : poser une étiquette ouvre l'accès
-correspondant. L'onglet « Saisons » de la fiche garde l'historique.
+### Planifier une saison
 
-**Licences et mytennis** : « Retrouver les licences », « Chercher sur
-mytennis », « Importer (Excel) ».
+Cliquer sur la ligne d'un joueur ouvre sa frise en grand, en dessous.
 
-### Inscriptions
+1. **Choisir un pinceau** : « Prépa physique », « Entraînement »,
+   « Entraînement en option », « Vacances », « Tournoi à l'étranger » — ou
+   « Effacer ».
+2. **Glisser sur les semaines** de la rangée du haut pour poser ce type. Sur
+   téléphone : toucher la première semaine, puis la dernière.
+3. **La rangée du milieu, c'est le week-end.** Cliquer ou glisser dessus pose
+   une zone tournoi — le jeune verra qu'il doit s'inscrire. Recliquer la
+   retire.
+4. **La rangée du bas, ce sont les inscriptions du jeune.** Cliquer dessus
+   ouvre la fenêtre de la semaine : on y voit ses inscriptions, on peut en
+   ajouter ou en retirer.
 
-Les demandes arrivées par le formulaire public du site. On les lit, on les
-traite, et la personne passe ensuite au Répertoire.
+**« Copier vers… »** reprend la planification d'un joueur et la pose sur
+d'autres, pour toute la saison. Leurs inscriptions ne sont pas touchées,
+seules les zones de semaine sont remplacées.
 
-### Accès Mon espace
+**« Jours sans entraînement »** (en haut de l'onglet) note les jours fériés et
+les fermetures de la saison. Ils apparaissent en coin sombre sur les semaines
+concernées, pour tous les joueurs.
 
-Pour donner aux familles l'accès à l'app « Mon espace ».
+### Écrire le programme d'une semaine
 
-- « Inviter les comptes sans accès » envoie l'invitation à ceux qui n'en ont
-  pas encore.
-- « Aperçu sur téléphone » montre ce que la famille verra ; « ↗ Ouvrir en
-  grand » l'ouvre en plus grand, « ↻ Recharger » le rafraîchit.
-- « Le mail d'invitation » se modifie puis « Enregistrer le texte » ;
-  « M'envoyer un test » l'envoie à soi-même d'abord.
+Dans la fenêtre d'une semaine, trois champs :
 
-### Prospects
+- **Tennis** — ce qui est travaillé sur le court. Ex. « Travail tactique et
+  schémas de jeu ».
+- **Préparation physique** — le programme physique de la semaine. Ex. « Prépa
+  tournois : réactivité et technique ».
+- **Note** — une remarque libre, facultative. Ex. « Deux tournois recommandés
+  au total sur la période du 05.10 au 25.10 ».
 
-Les joueurs repérés qui ne sont pas (encore) à l'académie.
+C'est ce qu'on trouvait jusqu'ici dans le tableur de planification annuelle.
+Écrit ici, le jeune le lit dans son espace.
 
-Sous-onglets « Liste », « Suivi », « Import / outils ».
-« ➕ Nouveau prospect » pour en ajouter un à la main.
-Les outils d'import : « Importer les classements (mytennis) », « Scanner les
-résultats récents (exploits) », « Récupérer des coordonnées (portail
-licences) », et « Calculer les distances ».
+### Voir tout le programme d'un coup
 
-### Accueil espace privé
+Sous la frise d'un joueur, le tableau **« Programme de la saison »** donne une
+ligne par semaine renseignée : la date, le tennis, la prépa physique, et la
+note s'il y en a une. La semaine en cours y est surlignée.
 
-Les messages qui s'affichent en haut de Mon espace, par saison et par filière.
-« + Nouveau message ».
+C'est l'écran à ouvrir pour répondre à « sur quoi il travaille en ce
+moment ? » sans cliquer semaine par semaine.
 
-Une ligne écrite « @saison Saison — description » s'affiche avec l'icône de
-l'onglet correspondant, reprise de la barre du bas de l'app.
+### Ce que le jeune voit
 
-### Messagerie
+Dans **Mon espace › Saison** : la même frise, pour lui seul ; en touchant une
+semaine, le type, le tennis, la prépa physique, la note et l'état du
+week-end ; un formulaire pour **ajouter ses propres inscriptions** ; et un
+avertissement si une inscription tombe hors des zones prévues.
 
-La boîte info@teamlausanne.ch, dans la console.
+Il ne peut ni modifier la planification, ni toucher aux inscriptions saisies
+par un coach. Il ajoute et retire les siennes.
 
-- Écrire : « ✉ Nouveau message » (ou « ✉ Nouveau »), puis « Envoyer ».
-  « Enregistrer le brouillon » met de côté ; on les retrouve sous
-  « Brouillons ».
-- Répondre : « ↩ Répondre ».
-- Relever le courrier : « Relever ». Pour aller chercher plus loin en
-  arrière : « Importer 6 mois », « Tout importer », « Importer autres
-  boîtes ».
-- « Filtres ▾ » restreint la liste.
-- « ✨ Fiche IA » propose une fiche à partir du message.
+⚠️ L'onglet « Saison » n'existe que pour **pro, pro U18 et sport-études**.
+Compétition et performance ne l'ont pas : la frise déroutait leurs familles.
 
-**La recherche à plusieurs mots** trouve les messages qui contiennent *chacun*
-des mots, n'importe où et dans n'importe quel ordre : objet, expéditeur,
-destinataire, texte. Entre guillemets, elle cherche l'expression exacte.
+### Bon à savoir
 
-### Newsletter
+- **Une zone tournoi est une intention, pas une inscription.** Elle dit « ce
+  week-end-là, tu devrais jouer ». C'est au jeune d'inscrire le tournoi qu'il
+  a choisi.
+- **Le rouge mérite une conversation.** Il signale une inscription en dehors
+  de ce qui était prévu : ce n'est pas une erreur en soi, mais ça n'a pas été
+  planifié.
+- **Ne pas laisser de zones au-delà de la planification réelle.** Une zone
+  posée sur un week-end dont personne ne s'est occupé promet un tournoi qui
+  n'existe pas.
+- **La planification de Célyan Lorival sert de modèle** : reprise du tableur
+  annuel, du 28 septembre au 29 mars, avec le tennis et la prépa physique de
+  chaque semaine.
 
-Les envois groupés. « ✉ Nouvelle newsletter » pour en composer une,
-« ↻ Actualiser » pour recharger la liste.
+---
 
-### Social Media Planner
+## 4. Cours
 
-La préparation des publications.
+### Ce que c'est
 
-« ＋ Nouvelle publication » ; les vues « Calendrier », « Tableau », « Grille »
-et « Rushes » ; « Aujourd'hui » recentre. Sur une publication :
-« ✓ Approuver », « ✕ Demander une reprise », « ⧉ Copier la légende »,
-« Enregistrer », « Supprimer ».
+Le planning de tous les cours de l'académie, et les modèles qui servent à les
+créer. C'est l'écran le plus utilisé de la console.
 
-Un accord écrit est obligatoire pour passer en « Programmé » : beaucoup des
-personnes filmées sont mineures.
+**Qui peut écrire** : tout l'encadrement. Un moniteur voit « Cours » et
+« Heures », rien d'autre.
 
-### Assistant
+### Les deux sous-onglets
 
-Le bot qui répond aux **visiteurs du site public**. Rien à voir avec l'Aide :
-l'Assistant ne connaît que les pages publiques, l'Aide ne connaît que ce
-guide.
+- **« Planning »** — la grille des cours. Vues « Jour » et « Semaine ».
+- **« Types de cours »** — les modèles réutilisables, pour ne pas ressaisir
+  les mêmes réglages à chaque fois.
 
-Quatre sous-onglets : « Statistiques », « Conversations », « Consignes »,
-« Tester ».
+### Créer un cours
 
-- « Consignes » : le prompt, les garde-fous (non modifiables) et
-  « Ce que l'assistant reçoit à chaque question ». Boutons « Enregistrer le
-  prompt » et « ↺ Rétablir le prompt d'origine ».
-- « Tester » : poser une question comme le ferait un visiteur, sans que ça
-  compte dans les statistiques. « Nouvelle conversation » repart de zéro.
-- Pour l'afficher sur le site : la case « Afficher l'assistant sur le site »
-  dans « Consignes », puis « Enregistrer ».
+1. Se placer sur la bonne date (le champ date, ou les flèches « ‹ » et « › »).
+2. « + Nouveau cours ».
+3. Remplir, puis « Ajouter ».
 
-### Réglages
+Les leçons se posent **au quart d'heure** et **bloquent le court** : un cours
+occupe le court exactement comme une réservation. Inutile de poser une
+réservation en plus — ce serait un double.
 
-Trois sous-onglets : « Accès & rôles », « Saisons » et « Suivi de l'Aide ».
+### Recopier une semaine
 
-**Accès & rôles** : le tableau « Accès des onglets par rôle » dit quel rôle
-voit quel onglet ; « Enregistrer les accès » valide. « Comptes & rôles »
-liste les comptes.
+« Copier la semaine » reprend une semaine entière et la pose sur une autre.
+C'est le geste qui fait gagner le plus de temps en début de saison.
 
-**Saisons** : « + Créer » ouvre une saison. On y règle la « Cotisation
-(membre) » et les « Cours juniors ». « Bascule / reconduction » prépare la
-saison suivante, « Appliquer la reconduction » l'exécute.
+1. Afficher la semaine à recopier.
+2. « Copier la semaine ».
+3. Donner une date de la semaine cible — n'importe quel jour de cette
+   semaine-là suffit.
+4. « Vérifier » montre ce qui serait créé avant que quoi que ce soit ne parte.
 
-**Suivi de l'Aide** : ce que l'équipe demande à l'Aide sur 30 jours. Quatre
-chiffres en haut — Conversations, Questions, **Pas dans le guide**, Coût —
-puis le tableau des conversations. Un clic sur une ligne ouvre tout l'échange,
-avec en tête les questions que le guide ne couvrait pas.
+### L'appel
 
-La pastille « Pas dans le guide » est celle qui sert : chaque ligne y est une
-question restée sans réponse, donc un morceau de guide à écrire. Le champ de
-recherche cherche dans la question, le nom et l'écran.
+L'appel d'un cours **s'ouvre 25 minutes avant le début** et reste ouvert deux
+semaines. Avant cette fenêtre, les pastilles ne réagissent pas : ce n'est pas
+une panne.
 
-Réservé aux administrateurs : les autres comptes voient la rubrique mais pas
-son contenu.
+Qui peut marquer quoi :
 
-### Réserv.
+- **head coach, admin, superadmin** : tout, tout le temps.
+- **un coach du cours** : les élèves de son cours, dans la fenêtre ; et sa
+  propre présence, qu'il peut annoncer à l'avance (absence anticipée).
+- **un coach qui n'est pas sur le cours** : rien.
 
-La grille des courts.
+Les quatre états sont « Présent », « Absent », « En retard » (élèves) et
+« En attente ».
 
-Sous-onglets « Jour » et « Réglages ».
+### Autres boutons
 
-- « Aujourd'hui » revient au jour courant.
-- « + Déplacement » pose un déplacement.
-- Les vues « La semaine », « Le jour affiché », « Le mois ».
-- « Réglages » contient « Saison d'hiver », « Quotas & règles », « Visibilité
-  des noms », « Tarifs (CHF) » et « Email de confirmation », puis
-  « Enregistrer les réglages ».
+- **« + Déplacement »** pose un déplacement.
+- **« Filtrer par coach ou joueur… »** réduit la grille à une personne.
 
-Le nombre de courts suit la saison : 12 en été (10 extérieurs + 2 intérieurs),
-6 en hiver. Le filtre se fait tout seul.
+### Bon à savoir
 
-### Saison hiver
+- **Un cours détaillé sans segment compte zéro heure.** Si un coach apparaît
+  avec « 0 h » dans Heures alors qu'il a donné cours, c'est presque toujours
+  ça : le cours existe, mais ses segments ne sont pas renseignés.
+- **Le nombre de courts suit la saison** : 12 en été (10 extérieurs + 2
+  intérieurs), 6 en hiver. Le filtre est automatique.
 
-Les abonnements d'hiver.
+---
 
-### Casiers
+## 5. Stages
 
-L'attribution des casiers, séparée en « Hommes » et « Femmes ».
+### Ce que c'est
 
-### Cours
+Les camps de vacances : les semaines, les formules proposées, les inscrits.
 
-Sous-onglets « Planning » et « Types de cours ».
+### Les quatre sous-onglets
 
-**Planning des cours**
-- Vues « Jour » et « Semaine ».
-- « + Nouveau cours » crée un cours ; « Ajouter » valide.
-- « Copier la semaine » recopie une semaine entière sur une autre : c'est le
-  geste qui fait gagner le plus de temps en début de saison.
-- « + Déplacement » pose un déplacement.
+« Stages » (les semaines) · « Catégories » (les formules) · « Mails » ·
+« Questionnaires » (satisfaction).
 
-Les leçons se posent au quart d'heure et **bloquent le court** : un cours
-occupe le court comme une réservation.
+### Ouvrir une semaine de stage
 
-**L'appel** s'ouvre 25 minutes avant le début du cours.
+1. « + Nouveau stage ».
+2. Donner le titre et les dates.
+3. Enregistrer, puis rattacher les catégories proposées **cette
+   semaine-là**.
 
-**Types de cours** : les modèles réutilisables.
+Une semaine n'apparaît sur le site public que si elle a **au moins une
+catégorie ouverte**. Les catégories proposées viennent du rattachement, pas de
+la liste générale : une formule non rattachée n'est pas proposée cette
+semaine-là.
 
-### Feuille de match
+« Modifier le stage » rouvre une semaine, « ← Retour à la liste » en sort.
 
-Quatre sous-onglets : « Remplir en tant que coach », « Formulaires remplis en
-tant que coach », « Toutes les feuilles », « Correspondances à valider ».
+### Inscrire quelqu'un à la main
 
-Côté jeune, la feuille se remplit dans Mon espace en deux temps : l'avant-match
-est validé d'abord, l'après-match est envoyé ensuite. Une fois envoyés, les
-deux sont figés. Le coach mental et le secrétariat lisent toutes les feuilles.
+Ouvrir la semaine → **« + Ajouter un inscrit »**.
 
-### Last scores
+### Les catégories
 
-Les derniers résultats enregistrés.
+« + Nouvelle catégorie » crée une formule : son nom, son **prix**, si le
+**repas de midi** est compris, et le prix d'une éventuelle **option 3 h de
+privé**.
 
-### Planning tournois
+**Le prix d'une semaine écourtée est calculé au prorata des jours, plafonné à
+cinq.** Une semaine de 3 jours à 500.– se facture 300.–. C'est automatique :
+ne pas recalculer à la main.
 
-La frise de la saison des jeunes élite.
+### Bon à savoir
 
-Sous-onglets « Prochains tournois » et « Calendriers », plus
-« Jours sans entraînement ».
+- ⚠️ **Aucun mail de stage n'est automatique.** Les modèles de l'onglet
+  « Mails » sont éditables, mais il n'y a ni tâche planifiée, ni déclencheur,
+  ni bouton d'envoi en série. Les mails de stage partent à la main.
+- **Le nombre d'inscrits ne dit rien des places restantes** et n'est jamais
+  communiqué au public.
 
-Chaque semaine se lit en deux cases : la semaine (prépa, entraînement, option,
-vacances, tournoi à l'étranger) et le week-end (tournois). Le head coach, les
-coachs et l'administration éditent ; le jeune ajoute ses propres tournois
-depuis Mon espace → Saison.
+---
 
-« Prochains tournois » regroupe les tournois aux noms proches, pour organiser
-les délégations.
+## 6. Factures
 
-### Tests phys.
+### Ce que c'est
 
-Sous-onglets « Tests remplis » et « Créer / éditer ».
-« + Remplir un test » saisit un test ; « + Nouveau test » crée un modèle.
+Toute la facturation, émise et reçue. La facturation est **maison** :
+QR-facture suisse, rapprochement par import CAMT. Aucun identifiant bancaire
+ne passe par la console.
 
-### Physique
+**Qui le voit** : administrateurs seulement.
 
-Deux vues : « Par jeune » et « Routines ». On attribue des routines jeune par
-jeune, et le fil « Prépa physique » relie le staff et le jeune.
-
-### Anniversaires
-
-Qui fête son anniversaire, et quand.
-
-### Études
-
-Le sport-études. Sous-onglets « Calendrier », « Par jeune », « Profs »,
-« Réglages ».
-
-- « Planning de présence » puis « Appliquer le planning ».
-- « Attribuer un prof à des jours » : « Attribuer » et « Retirer ».
-- « Générer le calendrier d'une saison » : bouton « Générer le calendrier ».
-- « ← Retour à la liste » quand on est dans la fiche d'un jeune.
-
-### Mental
-
-Sous-onglets « Calendrier », « Participants », « Routines ».
-« + Ajouter une séance ». La fiche d'un jeune contient « Suivi mental »,
-« Discussion avec le jeune » et « Focus de la semaine ».
-
-### CSEL
-
-Sous-onglets « Repas de midi », « Études », « Totaux repas ».
-« Réinitialiser selon le contrat » remet les valeurs du contrat ;
-« Exporter en PDF » sort le document.
-
-### GameZone
-
-Les tournois juniors. Sept sous-onglets : « Tournois », « Participants »,
-« Financier », « Communication », « Sondages », « Site public », « Réglages ».
-
-- « Gérer le tournoi » ouvre un tournoi ; « ← Retour aux tournois » en sort.
-- « Nommer responsable », « Ajouter ».
-- Caisse : « J'ai pris » / « Pas encore pris » pour le cash au secrétariat.
-- « Clôturer le tournoi » le ferme.
-- L'import « 1 clic » se fait avec le bookmarklet : « Copier le code ».
-
-### Caisse
-
-La caisse du secrétariat. « Ajouter un mouvement ».
-
-### Factures
-
-Toute la facturation. Huit sous-onglets :
+### Les huit sous-onglets
 
 | Sous-onglet | Ce qu'on y fait |
 |---|---|
@@ -373,111 +348,296 @@ Toute la facturation. Huit sous-onglets :
 | Produits | Le catalogue |
 | Tarifs | Les prix |
 
-- « ➕ Nouvelle facture » en crée une.
-- « Préparer un lot de factures » et « Lot par filière » facturent en série.
-- « ✉ Envoyer la sélection » envoie les factures cochées.
-- « 🏦 Générer paiement » prépare le paiement d'une facture reçue.
-- « ⬇ Export ZIP » télécharge un lot.
+### Facturer quelqu'un
 
-La facturation est **maison** : QR-facture suisse, et rapprochement par import
-CAMT. Aucun identifiant bancaire ne passe par la console.
+- **Une facture isolée** : « ➕ Nouvelle facture ».
+- **Une filière entière** : « Lot par filière », puis « Préparer un lot de
+  factures ».
 
-### Heures
+Une facture naît au statut **« à envoyer »** : elle existe, rien n'est parti.
+Pour l'envoyer, la cocher dans « Émises — à encaisser » puis
+**« ✉ Envoyer la sélection »**.
 
-Les heures des coachs et des profs, pour la paie.
+### Ce que porte une facture
 
-Sous-onglets « Décompte » et « Privé-adultes ». Les sections « Coachs —
-cours » et « Profs — études ».
+- Un **numéro** de la forme `2026-0364`, qui se suit dans l'année.
+- Une **référence QR** de la forme `RF27…`, calculée à partir du numéro. Elle
+  ne se saisit pas à la main : une référence fausse est une facture que la
+  banque refuse.
+- Un **débiteur** : la personne qui paie. Pour un mineur c'est un parent ;
+  pour un majeur, lui-même.
+- Une **échéance**, par convention le 20 du mois suivant.
 
-- « Exporter (CSV) » pour le tableur.
-- « ⬇ Décompte PDF » sort le décompte.
-- « ✉ Envoyer à la fiduciaire » transmet.
+### Payer une facture reçue
 
-Les coordonnées bancaires et les tarifs d'un coach se règlent dans son
-sous-onglet Coach.
+« 🏦 Générer paiement » prépare le paiement d'une facture fournisseur.
+« ⬇ Export ZIP » télécharge un lot.
 
-### Serrures
+### Bon à savoir
 
-Les serrures connectées, avec un « Journal récent ».
-« + Ajouter une serrure ».
-
-### Arrosage
-
-L'arrosage des courts, avec un « Journal récent ».
-« + Ajouter une zone ».
-
-### Stages
-
-Les camps de vacances. Sous-onglets « Stages », « Catégories », « Mails »,
-« Questionnaires ».
-
-- « + Nouveau stage » crée une semaine ; « Modifier le stage » la change.
-- « + Ajouter un inscrit » inscrit quelqu'un à la main.
-- « + Nouvelle catégorie » crée une formule (prix, repas, option privé).
-- « + Nouveau questionnaire » crée un questionnaire de satisfaction.
-- « ← Retour à la liste » revient en arrière.
-
-**Attention** : les modèles de mails de stage sont éditables, mais **aucun
-envoi n'est automatique**. Il n'y a ni tâche planifiée, ni déclencheur, ni
-bouton d'envoi en série : les mails de stage partent à la main.
-
-Le prix d'une semaine écourtée est calculé **au prorata** des jours, plafonné
-à cinq.
-
-### Stats
-
-Les chiffres : « Type de joueur », « Occupation par court », « Réservations
-par heure », « Par jour de semaine », « Recettes par jour (CHF) », et le suivi
-par domaine (« Réservations », « Cours », « Tennis », « Tests physiques »,
-« Études », « Matchs feuilles », « Mental », « Prépa physique »).
-
-« Tout l'historique » élargit la période, « Actualiser » recharge.
+- **Rien ne part tout seul.** Préparer un lot ne l'envoie pas.
+- **Une adresse postale incomplète bloque la QR-facture.** Rue, code postal et
+  localité sont nécessaires : c'est la fiche du Répertoire qu'il faut
+  compléter, pas la facture.
 
 ---
 
-## 4. Ce que la console fait toute seule
+## 7. Heures
+
+### Ce que c'est
+
+Les heures des coachs et des profs, pour la paie. Deux sous-onglets :
+« Décompte » et « Privé-adultes ». Deux sections : « Coachs — cours » et
+« Profs — études ».
+
+### Sortir un décompte
+
+1. Choisir la période.
+2. « ⬇ Décompte PDF » pour le document, ou « Exporter (CSV) » pour le tableur.
+3. « ✉ Envoyer à la fiduciaire » transmet.
+
+### Bon à savoir
+
+- **Un coach à 0 h qui a donné cours** : voir Cours → « un cours détaillé sans
+  segment compte zéro ».
+- Les coordonnées bancaires et les tarifs d'un coach se règlent dans son
+  sous-onglet Coach, pas ici.
+
+---
+
+## 8. Réserv.
+
+### Ce que c'est
+
+La grille des courts. Sous-onglets « Jour » et « Réglages ».
+
+### Réserver et se repérer
+
+- « Aujourd'hui » revient au jour courant.
+- « + Déplacement » pose un déplacement.
+- Les vues « La semaine », « Le jour affiché », « Le mois ».
+- La bande du haut montre **qui est hors du club** ce jour-là : on la lit
+  avant de chercher un créneau.
+
+### Les réglages
+
+« Saison d'hiver », « Quotas & règles », « Visibilité des noms »,
+« Tarifs (CHF) », « Email de confirmation », puis « Enregistrer les
+réglages ».
+
+### Bon à savoir
+
+- **Un cours bloque déjà le court.** Ne pas doubler d'une réservation.
+- **Le nombre de courts suit la saison**, sans rien régler : 12 en été, 6 en
+  hiver.
+
+---
+
+## 9. Répertoire
+
+### Ce que c'est
+
+Les fiches de toutes les personnes : membres, juniors, parents, staff.
+Sous-onglets « Personnes » et « Locations de courts ».
+
+### Créer et retrouver
+
+« + Nouveau » crée une fiche. Le champ de recherche filtre la liste.
+« + Nouveau locataire » pour une location de court.
+
+### Les trois notions de rôle
+
+C'est le point qui prête le plus à confusion :
+
+1. les **étiquettes** de la fiche : ce que la personne est (junior, parent…) ;
+2. les **accès** : ce que le compte peut ouvrir — c'est ce que lit la
+   sécurité ;
+3. le **rôle de filière par saison** : kidstennis, club, compétition,
+   performance, sport-études, pro, pro U18, adultes.
+
+La fiche synchronise les deux premiers : poser une étiquette ouvre l'accès
+correspondant. L'onglet « Saisons » de la fiche garde l'historique.
+
+### Licences et mytennis
+
+« Retrouver les licences », « Chercher sur mytennis », « Importer (Excel) ».
+
+### Bon à savoir
+
+- **Une fiche sans code postal bloque la facturation.** C'est ici qu'on
+  complète, pas dans Factures.
+
+---
+
+## 10. Calendrier
+
+### Ce que c'est
+
+Le calendrier de l'académie : événements, vacances, fermetures, absences.
+
+### Ajouter une entrée
+
+1. « ＋ Ajouter un événement ».
+2. Remplir « Nouvel événement ».
+3. « Enregistrer ».
+
+### Qui verra cette ligne — le point important
+
+Par défaut une entrée est **interne** : elle reste dans la console.
+
+- Rien de coché → **interne**. Réunions, RDV, déjeuners : rien à faire.
+- « Afficher sur le calendrier public » coché → visible **sur le site**.
+- Une ou plusieurs **filières** cochées → visible par ces familles dans Mon
+  espace, et **retiré du site public**.
+
+Seuls les **événements** peuvent viser des filières. Les fermetures, camps,
+vacances et jours fériés valent pour tout le monde.
+
+Le formulaire écrit en toutes lettres où va la ligne. Dans la grille, une
+pastille signale ce qui sort de la console : **verte** pour le site public,
+**bleue** pour les familles d'une filière. **Pas de pastille = interne**,
+l'état par défaut.
+
+### Vacances et absences
+
+« 🏖 Demander des vacances » et « 🤒 Déclarer une absence ».
+Vues « Mois », « Année », « Liste des semaines » ; « Aujourd'hui » recentre.
+
+---
+
+## 11. Accès Mon espace
+
+Pour donner aux familles l'accès à l'app « Mon espace ».
+
+1. « Inviter les comptes sans accès » envoie l'invitation à ceux qui n'en ont
+   pas encore.
+2. « Aperçu sur téléphone » montre ce que la famille verra ; « ↗ Ouvrir en
+   grand », « ↻ Recharger ».
+3. Le texte du « mail d'invitation » se modifie puis « Enregistrer le
+   texte » ; « M'envoyer un test » l'envoie à soi-même d'abord.
+
+**Bon à savoir** : les robots d'aperçu de WhatsApp peuvent consommer un lien
+d'activation avant la personne. C'est pour ça que le jeton vit dans le `#` de
+l'adresse.
+
+---
+
+## 12. Réglages
+
+Trois sous-onglets : « Accès & rôles », « Saisons », « Suivi de l'Aide ».
+
+### Accès & rôles
+
+« Accès des onglets par rôle » dit quel rôle voit quel onglet ;
+« Enregistrer les accès » valide. « Comptes & rôles » liste les comptes.
+
+### Saisons
+
+« + Créer » ouvre une saison. On y règle la « Cotisation (membre) » et les
+« Cours juniors ». « Bascule / reconduction » prépare la saison suivante,
+« Appliquer la reconduction » l'exécute.
+
+### Suivi de l'Aide
+
+Ce que l'équipe demande à l'Aide sur 30 jours. Quatre chiffres —
+Conversations, Questions, **Pas dans le guide**, Coût — puis le tableau des
+conversations. Un clic ouvre tout l'échange, avec en tête les questions que le
+guide ne couvrait pas.
+
+La pastille **« Pas dans le guide »** est celle qui sert : chaque ligne y est
+un morceau de guide à écrire. Réservé aux administrateurs.
+
+---
+
+## 13. Les autres écrans
+
+Ces écrans ne sont pas encore décrits au même niveau de détail. L'Aide y
+répondra qu'elle ne sait pas, et la question remontera dans
+**Réglages → Suivi de l'Aide**, ce qui dira lesquels écrire en premier.
+
+- **Dashboard** — vue d'ensemble du jour. « ↻ Actualiser ».
+- **Inscriptions** — les demandes venues du formulaire public du site.
+- **Prospects** — joueurs repérés hors académie. Sous-onglets « Liste »,
+  « Suivi », « Import / outils ». « ➕ Nouveau prospect ».
+- **Accueil espace privé** — messages affichés dans Mon espace, par saison et
+  par filière. « + Nouveau message ». Une ligne « @saison Saison —
+  description » s'affiche avec l'icône de l'onglet correspondant.
+- **Messagerie** — la boîte info@. « ✉ Nouveau message », « ↩ Répondre »,
+  « Relever », « Brouillons », « Filtres ▾ ». La recherche à plusieurs mots
+  trouve les messages contenant *chacun* des mots ; entre guillemets,
+  l'expression exacte.
+- **Newsletter** — « ✉ Nouvelle newsletter ».
+- **Social Media Planner** — « ＋ Nouvelle publication », vues « Calendrier »,
+  « Tableau », « Grille », « Rushes ». Un accord écrit est obligatoire pour
+  passer en « Programmé » : beaucoup des personnes filmées sont mineures.
+- **Assistant** — le bot du **site public**, à ne pas confondre avec l'Aide.
+  Sous-onglets « Statistiques », « Conversations », « Consignes », « Tester ».
+- **Saison hiver**, **Casiers**, **Last scores**, **Anniversaires** — écrans
+  simples, sans geste particulier.
+- **Feuille de match** — « Remplir en tant que coach », « Formulaires remplis
+  en tant que coach », « Toutes les feuilles », « Correspondances à valider ».
+- **Tests phys.** — « + Remplir un test », « + Nouveau test ».
+- **Physique** — « Par jeune » et « Routines ».
+- **Études** — « Calendrier », « Par jeune », « Profs », « Réglages ».
+  « Appliquer le planning », « Attribuer », « Générer le calendrier ».
+- **Mental** — « Calendrier », « Participants », « Routines ».
+  « + Ajouter une séance ».
+- **CSEL** — « Repas de midi », « Études », « Totaux repas ».
+  « Réinitialiser selon le contrat », « Exporter en PDF ».
+- **GameZone** — tournois juniors, sept sous-onglets. « Gérer le tournoi »,
+  « Nommer responsable », « J'ai pris » / « Pas encore pris »,
+  « Clôturer le tournoi ».
+- **Caisse** — « Ajouter un mouvement ».
+- **Serrures** / **Arrosage** — « + Ajouter une serrure », « + Ajouter une
+  zone ». Journal récent.
+- **Stats** — les chiffres, par domaine. « Tout l'historique ».
+
+---
+
+## 14. Ce que la console fait toute seule
 
 - **L'appel d'un cours** s'ouvre 25 minutes avant le début.
-- **Le nombre de courts** suit la saison, sans rien régler.
-- **Un cours bloque le court** : pas besoin de poser une réservation en plus.
-- **Les rôles d'accès** se mettent à jour quand on change les étiquettes
-  d'une fiche.
+- **Le nombre de courts** suit la saison.
+- **Un cours bloque le court** : pas besoin de réservation en plus.
+- **Les rôles d'accès** suivent les étiquettes d'une fiche.
 - **Le prix d'un stage écourté** se calcule au prorata, plafonné à cinq jours.
-- **Les factures** se préparent en lots ; l'envoi, lui, reste un geste
-  volontaire.
+- **La référence QR d'une facture** se calcule depuis son numéro.
 - **Rien ne part tout seul par mail** sauf ce qui est écrit comme tel. En
-  particulier, les mails de stage ne sont pas automatisés.
+  particulier, les mails de stage ne sont pas automatisés, et préparer un lot
+  de factures ne l'envoie pas.
 
 ---
 
-## 5. Questions fréquentes
+## 15. Questions fréquentes
 
 **Je ne vois pas un onglet dont on me parle.**
 C'est le rôle de votre compte. Un administrateur l'ouvre dans « Réglages →
 Accès & rôles ».
 
-**J'ai mis un rendez-vous dans le calendrier, est-ce que les parents le
-voient ?**
+**J'ai mis un rendez-vous dans le calendrier, les parents le voient ?**
 Non, sauf si vous avez coché « Afficher sur le calendrier public » ou une
 filière. Sans rien cocher, une entrée reste interne.
-
-**Comment inscrire un enfant à un stage à la main ?**
-Stages → ouvrir la semaine → « + Ajouter un inscrit ».
 
 **Comment recopier le planning d'une semaine sur la suivante ?**
 Cours → Planning → « Copier la semaine ».
 
-**Où sont les heures d'un coach pour la paie ?**
-Heures → « Décompte », section « Coachs — cours ». Puis « ⬇ Décompte PDF »
-ou « ✉ Envoyer à la fiduciaire ».
+**Comment inscrire un enfant à un stage à la main ?**
+Stages → ouvrir la semaine → « + Ajouter un inscrit ».
 
-**Un élève apparaît avec 0 heure alors qu'il a eu des cours.**
-Vérifiez que le cours a bien des segments renseignés : un cours détaillé sans
-segment comptait zéro. Si le compte est faux, signalez-le à un administrateur.
+**Où sont les heures d'un coach pour la paie ?**
+Heures → « Décompte », section « Coachs — cours », puis « ⬇ Décompte PDF ».
+
+**Un coach apparaît avec 0 h alors qu'il a donné cours.**
+Le cours est détaillé mais ses segments ne sont pas renseignés. C'est dans
+Cours qu'on corrige.
 
 **Comment donner à une famille l'accès à Mon espace ?**
 Accès Mon espace → « Inviter les comptes sans accès ».
 
-**L'assistant du site ne s'affiche pas.**
-Assistant → « Consignes » → cocher « Afficher l'assistant sur le site », puis
-« Enregistrer ».
+**Une facture refuse de partir / la QR ne passe pas.**
+Vérifier l'adresse de la fiche : rue, code postal et localité sont
+nécessaires.
+
+**Comment planifier la saison d'un joueur élite ?**
+Planning tournois → « Calendriers » → cliquer sa ligne, puis choisir un
+pinceau et glisser sur les semaines. Voir la section 3.
