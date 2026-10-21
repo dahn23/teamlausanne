@@ -5830,7 +5830,7 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .aide-tete button{border:0;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;
   border-radius:7px;padding:5px 9px;font-family:inherit;font-weight:600;font-size:.76rem}
 .aide-tete button:hover{background:rgba(255,255,255,.28)}
-.aide-tete .aide-x{background:transparent;padding:4px 6px;font-size:1rem;line-height:1}
+.aide-tete .aide-x,.aide-tete .aide-min{background:transparent;padding:4px 7px;font-size:1.05rem;line-height:1}
 
 .aide-fil{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;
   background:var(--bg)}

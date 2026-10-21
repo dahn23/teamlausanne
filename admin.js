@@ -23315,7 +23315,8 @@ function aideMonter() {
     <div class="aide-tete">
       <div><b>Aide de la console</b><span>réservé à l'équipe</span></div>
       <button type="button" class="aide-neuve">Nouvelle</button>
-      <button type="button" class="aide-x" aria-label="Fermer">✕</button>
+      <button type="button" class="aide-min" aria-label="Réduire" title="Réduire — la conversation est gardée">−</button>
+      <button type="button" class="aide-x" aria-label="Fermer" title="Fermer et effacer la conversation">✕</button>
     </div>
     <div class="aide-ecran"></div>
     <div class="aide-fil"></div>
@@ -23350,22 +23351,28 @@ function aideMonter() {
     if (!fil.children.length) accueil();
     champ.focus();
   };
-  const fermer = () => { panneau.hidden = true; bouton.hidden = false; };
-
-  bouton.addEventListener("click", ouvrir);
-  panneau.querySelector(".aide-x").addEventListener("click", fermer);
-  panneau.querySelector(".aide-neuve").addEventListener("click", () => {
+  // Reduire : on range le panneau, on garde tout. C'est le geste courant —
+  // on va voir l'ecran dont l'Aide vient de parler, puis on revient.
+  const reduire = () => { panneau.hidden = true; bouton.hidden = false; };
+  // Fermer : on range ET on oublie. La prochaine ouverture repart a neuf.
+  const neuve = () => {
     aideConv = null;
     try { sessionStorage.removeItem("tl-aide-conv"); } catch (_) {}
     accueil();
-  });
+  };
+  const fermer = () => { neuve(); reduire(); };
+
+  bouton.addEventListener("click", ouvrir);
+  panneau.querySelector(".aide-min").addEventListener("click", reduire);
+  panneau.querySelector(".aide-x").addEventListener("click", fermer);
+  panneau.querySelector(".aide-neuve").addEventListener("click", neuve);
   panneau.querySelector("form").addEventListener("submit", (e) => {
     e.preventDefault();
     const q = champ.value.trim();
     if (q) { champ.value = ""; aideEnvoyer(q, panneau); }
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !panneau.hidden) fermer();
+    if (e.key === "Escape" && !panneau.hidden) reduire();
   });
 
   // La conversation suit l'onglet du navigateur : on reprend le fil en
