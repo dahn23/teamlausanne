@@ -5810,7 +5810,7 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .aide-rond{position:fixed;right:18px;bottom:18px;z-index:70;
   display:flex;align-items:center;gap:8px;
   padding:10px 16px 10px 13px;border:0;border-radius:999px;cursor:pointer;
-  background:var(--ocean);color:#fff;font:600 .88rem/1 inherit;
+  background:var(--ocean);color:#fff;font-family:inherit;font-weight:600;font-size:.88rem;line-height:1;
   box-shadow:0 8px 24px rgba(19,114,151,.34);
   transition:transform .16s ease,box-shadow .16s ease}
 .aide-rond svg{width:19px;height:19px;display:block}
@@ -5828,7 +5828,7 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .aide-tete b{font-size:.94rem}
 .aide-tete span{font-size:.73rem;opacity:.85}
 .aide-tete button{border:0;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;
-  border-radius:7px;padding:5px 9px;font:600 .76rem inherit}
+  border-radius:7px;padding:5px 9px;font-family:inherit;font-weight:600;font-size:.76rem}
 .aide-tete button:hover{background:rgba(255,255,255,.28)}
 .aide-tete .aide-x{background:transparent;padding:4px 6px;font-size:1rem;line-height:1}
 
@@ -5852,19 +5852,24 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 
 .aide-sugg{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px;background:var(--bg)}
 .aide-sugg button{border:1px solid var(--line);background:var(--card);cursor:pointer;
-  border-radius:999px;padding:6px 11px;font:500 .79rem inherit;color:var(--blue-ink);text-align:left}
+  border-radius:999px;padding:6px 11px;font-family:inherit;font-weight:500;font-size:.79rem;color:var(--blue-ink);text-align:left}
 .aide-sugg button:hover{border-color:var(--ocean);color:var(--ocean)}
 
 .aide-pied{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);
   background:var(--card);flex:0 0 auto}
 .aide-pied input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;
-  padding:9px 11px;font:inherit;font-size:.88rem}
+  padding:9px 11px;font-family:inherit;font-weight:400;font-size:.88rem}
 .aide-pied input:focus{outline:2px solid var(--ocean);outline-offset:-1px;border-color:transparent}
 .aide-pied button{border:0;background:var(--ocean);color:#fff;border-radius:9px;
-  padding:9px 15px;font:600 .84rem inherit;cursor:pointer}
+  padding:9px 15px;font-family:inherit;font-weight:600;font-size:.84rem;cursor:pointer}
 .aide-pied button:disabled{opacity:.5;cursor:default}
 
 .aide-ecran{font-size:.72rem;color:var(--muted);padding:6px 14px 0;background:var(--bg)}
+
+/* `hidden` seul ne ferme rien ici : la regle de classe pose display:flex,
+   et une classe l'emporte sur le [hidden] de la feuille du navigateur.
+   Sans cette ligne, le panneau reste ouvert et le bouton ne revient pas. */
+.aide-rond[hidden],.aide-panneau[hidden]{display:none!important}
 
 @media print{ .aide-rond,.aide-panneau{display:none!important} }
 @media (max-width:480px){
