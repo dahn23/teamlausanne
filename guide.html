@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Guide de la console — Team Lausanne Academy</title>
+<link rel="icon" href="assets/pwa/admin-icon-192.png?v=2" />
+<link rel="stylesheet" href="style.css?v=368" />
+<!--
+  Le guide de la console, rendu depuis docs/guide-console.md.
+
+  UNE SEULE SOURCE. Cette page ne contient aucun texte du guide : elle lit le
+  même fichier Markdown que l'Aide. Un guide recopié ici aurait divergé au
+  premier renommage, et l'Aide et la page auraient raconté deux consoles
+  différentes.
+
+  Chaque titre de niveau 2 reçoit une ancre stable, calculée depuis son texte
+  (« 3. Planning tournois » → #planning-tournois). C'est ce que l'Aide met
+  dans ses réponses : elle explique, puis renvoie à la section entière.
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+<style>
+  body{background:var(--bg);margin:0}
+  .gd-wrap{max-width:1180px;margin:0 auto;display:flex;gap:28px;
+    padding:0 max(16px,env(safe-area-inset-left,0px)) 60px}
+  .gd-tete{background:var(--blue);color:#fff;padding:20px 0 18px;margin-bottom:24px}
+  .gd-tete .gd-in{max-width:1180px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left,0px));
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .gd-tete img{width:38px;height:38px;object-fit:contain}
+  .gd-tete h1{margin:0;font-size:1.35rem;letter-spacing:-.01em}
+  .gd-tete p{margin:2px 0 0;font-size:.85rem;opacity:.85}
+  .gd-tete a{margin-left:auto;color:#fff;background:rgba(255,255,255,.16);
+    text-decoration:none;border-radius:8px;padding:7px 13px;font-size:.84rem;font-weight:600}
+  .gd-tete a:hover{background:rgba(255,255,255,.28)}
+
+  .gd-toc{flex:0 0 232px;position:sticky;top:18px;align-self:flex-start;
+    max-height:calc(100vh - 36px);overflow:auto}
+  .gd-toc h2{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 8px}
+  .gd-toc a{display:block;padding:5px 9px;border-radius:7px;color:var(--blue-ink);
+    text-decoration:none;font-size:.86rem;line-height:1.3}
+  .gd-toc a:hover{background:var(--card)}
+  .gd-toc a.actif{background:var(--blue);color:#fff;font-weight:600}
+
+  .gd-doc{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:28px 32px}
+  .gd-doc h1{font-size:1.5rem;margin:0 0 4px}
+  .gd-doc h2{font-size:1.18rem;margin:34px 0 10px;padding-top:14px;
+    border-top:1px solid var(--line);scroll-margin-top:18px}
+  .gd-doc h2:first-of-type{border-top:0;padding-top:0}
+  .gd-doc h3{font-size:1rem;margin:22px 0 6px;color:var(--ocean);scroll-margin-top:18px}
+  .gd-doc p,.gd-doc li{font-size:.92rem;line-height:1.6}
+  .gd-doc ul,.gd-doc ol{padding-left:22px}
+  .gd-doc li{margin:4px 0}
+  .gd-doc code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:.88em}
+  .gd-doc blockquote{margin:14px 0;padding:10px 14px;border-left:3px solid var(--fluo);
+    background:var(--bg);border-radius:0 8px 8px 0}
+  .gd-doc blockquote p{margin:0;font-size:.88rem}
+  .gd-doc table{border-collapse:collapse;width:100%;margin:12px 0;font-size:.88rem}
+  .gd-doc th{background:var(--bg);text-align:left;padding:7px 10px;
+    border-bottom:2px solid var(--line);font-size:.78rem;text-transform:uppercase;
+    letter-spacing:.04em;color:var(--muted)}
+  .gd-doc td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  .gd-doc hr{border:0;border-top:1px solid var(--line);margin:28px 0}
+  .gd-tw{overflow-x:auto}
+  .gd-lien{float:right;margin-left:10px;font-size:.72rem;color:var(--muted);
+    text-decoration:none;opacity:0;transition:opacity .12s}
+  .gd-doc h2:hover .gd-lien,.gd-doc h3:hover .gd-lien{opacity:1}
+
+  @media (max-width:860px){
+    .gd-wrap{flex-direction:column;gap:16px}
+    .gd-toc{position:static;flex:none;max-height:none;
+      background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+    .gd-doc{padding:20px 18px}
+  }
+  @media print{ .gd-toc,.gd-tete a{display:none} .gd-doc{border:0;padding:0} }
+</style>
+</head>
+<body>
+
+<header class="gd-tete">
+  <div class="gd-in">
+    <img src="assets/logo-academie.webp" alt="" />
+    <div>
+      <h1>Guide de la console</h1>
+      <p>Team Lausanne Academy — mode d'emploi, écran par écran</p>
+    </div>
+    <a href="/console">← Retour à la console</a>
+  </div>
+</header>
+
+<div class="gd-wrap">
+  <nav class="gd-toc" id="gd-toc"><h2>Les écrans</h2></nav>
+  <main class="gd-doc" id="gd-doc"><p class="muted">Chargement du guide…</p></main>
+</div>
+
+<script>
+// L'ancre d'un titre : son texte, sans le numéro de section, sans accent.
+// « 3. Planning tournois » → « planning-tournois ». C'est l'adresse que
+// l'Aide donne dans ses réponses, donc elle doit rester stable : si vous
+// renommez une section, l'ancien lien cesse de pointer quelque part.
+function ancre(texte) {
+  return String(texte)
+    .replace(/^\s*\d+\.\s*/, "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+(async function () {
+  const doc = document.getElementById("gd-doc");
+  const toc = document.getElementById("gd-toc");
+  let md;
+  try {
+    const r = await fetch("docs/guide-console.md", { cache: "no-cache" });
+    if (!r.ok) throw new Error(r.status);
+    md = await r.text();
+  } catch (e) {
+    doc.innerHTML = '<p class="error">Le guide est momentanément introuvable. '
+      + "Réessayez dans un moment.</p>";
+    return;
+  }
+
+  doc.innerHTML = marked.parse(md, { mangle: false, headerIds: false });
+
+  // Les tableaux larges défilent dans leur boîte plutôt que d'élargir la page.
+  doc.querySelectorAll("table").forEach((t) => {
+    const box = document.createElement("div");
+    box.className = "gd-tw";
+    t.parentNode.insertBefore(box, t);
+    box.appendChild(t);
+  });
+
+  // Les ancres, et le sommaire construit depuis les titres de niveau 2.
+  const titres = [...doc.querySelectorAll("h2, h3")];
+  titres.forEach((h) => {
+    h.id = ancre(h.textContent);
+    const a = document.createElement("a");
+    a.className = "gd-lien"; a.href = "#" + h.id; a.textContent = "#";
+    a.setAttribute("aria-label", "Lien vers cette section");
+    h.appendChild(a);
+  });
+  toc.innerHTML = '<h2>Les écrans</h2>' + titres.filter((h) => h.tagName === "H2")
+    .map((h) => '<a href="#' + h.id + '">'
+      + h.textContent.replace(/#$/, "").replace(/^\s*\d+\.\s*/, "") + "</a>").join("");
+
+  // Suivre la lecture : la section visible s'allume dans le sommaire.
+  const liens = [...toc.querySelectorAll("a")];
+  const obs = new IntersectionObserver((entrees) => {
+    entrees.forEach((e) => {
+      if (!e.isIntersecting) return;
+      liens.forEach((l) => l.classList.toggle("actif", l.getAttribute("href") === "#" + e.target.id));
+    });
+  }, { rootMargin: "0px 0px -72% 0px" });
+  titres.filter((h) => h.tagName === "H2").forEach((h) => obs.observe(h));
+
+  // Arrivée par un lien de l'Aide : on va droit à la section.
+  if (location.hash) {
+    const cible = document.getElementById(location.hash.slice(1));
+    if (cible) cible.scrollIntoView();
+  }
+})();
+</script>
+</body>
+</html>
