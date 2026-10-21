@@ -103,6 +103,9 @@ if (!session) {
       : roles.includes("prof") ? "Espace prof"
       : roles.includes("coach_mental") ? "Espace mental"
       : "Console";
+    // L'Aide pour toute l'equipe, sauf l'ecran du hall : « affichage » est un
+    // poste sans surveillance, une fenetre de chat n'a rien a y faire.
+    if (!(roles.length === 1 && roles[0] === "affichage")) aideMonter();
     meId = session.user.id;
     meEmail = session.user.email;
     meName = meEmail;
@@ -460,8 +463,21 @@ async function init(roles) {
 // Promesse du dernier chargement de la messagerie : « écrire à » l'attend pour
 // que les comptes d'envoi soient prêts avant d'ouvrir un brouillon.
 let mailChargement = null;
+
+/* ---- L'Aide de la console ------------------------------------------------
+   Le bot qui explique OU CLIQUER. Il ne lit aucune donnee : il donne le
+   chemin, jamais le contenu. Sa seule source est docs/guide-console.md.
+
+   On retient l'ecran courant ici plutot que de le deviner au moment de la
+   question : c'est showView qui sait ce qui est affiche, et l'Aide repond
+   bien mieux quand elle sait d'ou part la personne.
+   ------------------------------------------------------------------------- */
+const AIDE_API = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/aide";
+let aideVue = "", aideConv = null, aideOccupee = false;
+
 function showView(view) {
   if (view === "bientot") return;
+  aideVue = view;
   try { localStorage.setItem("tl-view", view); } catch (_) {}   // mémorise l'onglet pour le prochain rechargement
   // Toujours revenir à la liste : referme les fiches pleine page ouvertes
   closePerson();
@@ -23236,4 +23252,165 @@ async function suiviNoter(kind) {
   });
   if (error) { uiAlert(error.message); return; }
   await suiviCharger();
+}
+
+
+/* ===========================================================================
+   L'Aide de la console
+   ===========================================================================
+
+   Trois choses la distinguent de l'assistant du site :
+
+   · elle parle a l'equipe, pas aux visiteurs ;
+   · sa source est le guide du depot, pas les pages publiques ;
+   · elle sait sur quel ecran on se trouve, donc on peut demander « comment
+     j'ajoute quelqu'un ? » sans preciser ou.
+
+   Elle ne lit AUCUNE donnee de l'academie, et c'est ce qui permet de
+   l'ouvrir a tout le monde sans se poser de question de droits.
+   ======================================================================== */
+
+// « Factures → A generer » : le titre de l'onglet, puis le sous-onglet actif
+// s'il y en a un. C'est le format des titres du guide, pour que le modele
+// retrouve la bonne section.
+function aideEcran() {
+  const onglet = (ADMIN_TABS.find((t) => t[0] === aideVue) || [])[1] || "";
+  const vue = document.getElementById("view-" + aideVue);
+  let sous = "";
+  if (vue) {
+    // Les sous-onglets portent des noms d'attribut varies selon l'ecran
+    // (data-bsub, data-sub, data-fsub...). On prend le premier bouton actif.
+    const b = vue.querySelector("[class*='sub'].active, .fac-tab.active, .sub-tab.active");
+    if (b && b.textContent) sous = b.textContent.trim().slice(0, 40);
+  }
+  return sous && sous !== onglet ? onglet + " → " + sous : onglet;
+}
+
+const AIDE_SUGGESTIONS = [
+  "Comment copier le planning d'une semaine ?",
+  "Comment inscrire un enfant à un stage ?",
+  "Mon rendez-vous sera-t-il visible par les parents ?",
+  "Où sont les heures d'un coach pour la paie ?",
+];
+
+function aideMonter() {
+  if (document.querySelector(".aide-rond")) return;
+
+  const bouton = document.createElement("button");
+  bouton.type = "button";
+  bouton.className = "aide-rond";
+  bouton.setAttribute("aria-label", "Ouvrir l'Aide de la console");
+  bouton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">'
+    + '<circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.8"/>'
+    + '<path d="M9.3 9.2a2.8 2.8 0 0 1 5.4.9c0 1.9-2.7 2.2-2.7 4" stroke="currentColor"'
+    + ' stroke-width="1.8" stroke-linecap="round"/>'
+    + '<circle cx="12" cy="17.4" r="1.1" fill="currentColor"/></svg><span>Aide</span>';
+
+  const panneau = document.createElement("div");
+  panneau.className = "aide-panneau";
+  panneau.hidden = true;
+  panneau.setAttribute("role", "dialog");
+  panneau.setAttribute("aria-label", "Aide de la console");
+  panneau.innerHTML = `
+    <div class="aide-tete">
+      <div><b>Aide de la console</b><span>réservé à l'équipe</span></div>
+      <button type="button" class="aide-neuve">Nouvelle</button>
+      <button type="button" class="aide-x" aria-label="Fermer">✕</button>
+    </div>
+    <div class="aide-ecran"></div>
+    <div class="aide-fil"></div>
+    <div class="aide-sugg"></div>
+    <form class="aide-pied">
+      <input type="text" placeholder="Comment je fais pour…" autocomplete="off" />
+      <button type="submit">Envoyer</button>
+    </form>`;
+
+  document.body.appendChild(bouton);
+  document.body.appendChild(panneau);
+
+  const fil = panneau.querySelector(".aide-fil");
+  const sugg = panneau.querySelector(".aide-sugg");
+  const champ = panneau.querySelector("input");
+
+  const accueil = () => {
+    fil.innerHTML = '<div class="aide-msg bot">Je n\'ai pas accès aux données : '
+      + 'je t\'explique où cliquer. Dis-moi ce que tu cherches à faire.</div>';
+    sugg.innerHTML = "";
+    AIDE_SUGGESTIONS.forEach((q) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = q;
+      b.addEventListener("click", () => aideEnvoyer(q, panneau));
+      sugg.appendChild(b);
+    });
+  };
+
+  const ouvrir = () => {
+    panneau.hidden = false; bouton.hidden = true;
+    panneau.querySelector(".aide-ecran").textContent = aideEcran() ? "Écran : " + aideEcran() : "";
+    if (!fil.children.length) accueil();
+    champ.focus();
+  };
+  const fermer = () => { panneau.hidden = true; bouton.hidden = false; };
+
+  bouton.addEventListener("click", ouvrir);
+  panneau.querySelector(".aide-x").addEventListener("click", fermer);
+  panneau.querySelector(".aide-neuve").addEventListener("click", () => {
+    aideConv = null;
+    try { sessionStorage.removeItem("tl-aide-conv"); } catch (_) {}
+    accueil();
+  });
+  panneau.querySelector("form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = champ.value.trim();
+    if (q) { champ.value = ""; aideEnvoyer(q, panneau); }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !panneau.hidden) fermer();
+  });
+
+  // La conversation suit l'onglet du navigateur : on reprend le fil en
+  // changeant d'ecran, on repart a zero dans un nouvel onglet.
+  try { aideConv = sessionStorage.getItem("tl-aide-conv") || null; } catch (_) {}
+}
+
+async function aideEnvoyer(question, panneau) {
+  if (aideOccupee) return;
+  aideOccupee = true;
+  const fil = panneau.querySelector(".aide-fil");
+  panneau.querySelector(".aide-sugg").innerHTML = "";
+  const envoi = panneau.querySelector(".aide-pied button");
+  envoi.disabled = true;
+
+  fil.insertAdjacentHTML("beforeend", '<div class="aide-msg moi">' + esc(question) + "</div>");
+  const attente = document.createElement("div");
+  attente.className = "aide-msg bot aide-points";
+  attente.innerHTML = "<i></i><i></i><i></i>";
+  fil.appendChild(attente);
+  fil.scrollTop = fil.scrollHeight;
+
+  try {
+    const jwt = (await sb.auth.getSession()).data?.session?.access_token || "";
+    const r = await fetch(AIDE_API + "/message", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jwt: "Bearer " + jwt, message: question,
+                             conversation_id: aideConv, ecran: aideEcran() }),
+    });
+    const d = await r.json();
+    attente.remove();
+    if (d?.reponse) {
+      aideConv = d.conversation_id;
+      try { sessionStorage.setItem("tl-aide-conv", aideConv); } catch (_) {}
+      fil.insertAdjacentHTML("beforeend", '<div class="aide-msg bot">' + botMd(d.reponse) + "</div>");
+    } else {
+      fil.insertAdjacentHTML("beforeend",
+        '<div class="aide-msg ko">' + esc(d?.error || "Pas de réponse.") + "</div>");
+    }
+  } catch (_) {
+    attente.remove();
+    fil.insertAdjacentHTML("beforeend",
+      '<div class="aide-msg ko">Connexion impossible. Réessaie dans un moment.</div>');
+  }
+  envoi.disabled = false;
+  aideOccupee = false;
+  fil.scrollTop = fil.scrollHeight;
 }

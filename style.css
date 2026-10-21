@@ -5802,3 +5802,75 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .bot-aouvrir b{display:block;color:var(--blue-ink);margin-bottom:6px}
 .bot-aouvrir ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:5px;
   font-size:.88rem;line-height:1.45}
+
+/* ---- Aide de la console --------------------------------------------------
+   Le bouton flotte sur CHAQUE ecran : c'est une aide contextuelle, elle doit
+   etre la ou la personne bloque, pas dans un onglet qu'il faut penser a
+   ouvrir. Masquee a l'impression : elle n'a rien a faire sur un decompte. */
+.aide-rond{position:fixed;right:18px;bottom:18px;z-index:70;
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px 10px 13px;border:0;border-radius:999px;cursor:pointer;
+  background:var(--ocean);color:#fff;font:600 .88rem/1 inherit;
+  box-shadow:0 8px 24px rgba(19,114,151,.34);
+  transition:transform .16s ease,box-shadow .16s ease}
+.aide-rond svg{width:19px;height:19px;display:block}
+.aide-rond:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(19,114,151,.42)}
+.aide-rond:focus-visible{outline:3px solid var(--fluo);outline-offset:3px}
+
+.aide-panneau{position:fixed;right:18px;bottom:18px;z-index:71;
+  width:min(390px,calc(100vw - 36px));height:min(560px,calc(100vh - 36px));
+  display:flex;flex-direction:column;overflow:hidden;
+  background:var(--card);border-radius:16px;
+  box-shadow:0 20px 60px rgba(20,26,46,.26)}
+.aide-tete{display:flex;align-items:center;gap:10px;padding:12px 14px;
+  background:var(--ocean);color:#fff;flex:0 0 auto}
+.aide-tete div{display:flex;flex-direction:column;line-height:1.2;flex:1;min-width:0}
+.aide-tete b{font-size:.94rem}
+.aide-tete span{font-size:.73rem;opacity:.85}
+.aide-tete button{border:0;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;
+  border-radius:7px;padding:5px 9px;font:600 .76rem inherit}
+.aide-tete button:hover{background:rgba(255,255,255,.28)}
+.aide-tete .aide-x{background:transparent;padding:4px 6px;font-size:1rem;line-height:1}
+
+.aide-fil{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;
+  background:var(--bg)}
+.aide-msg{max-width:88%;padding:9px 12px;border-radius:13px;font-size:.88rem;line-height:1.5}
+.aide-msg.moi{align-self:flex-end;background:var(--ocean);color:#fff;border-bottom-right-radius:4px}
+.aide-msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line);
+  border-bottom-left-radius:4px}
+.aide-msg.ko{align-self:flex-start;background:#fdecea;border:1px solid #f5c6c0;color:#8b1a10}
+.aide-msg p{margin:0 0 7px} .aide-msg p:last-child{margin:0}
+.aide-msg ul{margin:5px 0;padding-left:17px} .aide-msg li{margin:2px 0}
+.aide-msg ol{margin:5px 0;padding-left:19px}
+.aide-msg code{background:var(--bg);padding:1px 4px;border-radius:4px;font-size:.92em}
+.aide-points{display:flex;gap:4px;align-items:center}
+.aide-points i{width:6px;height:6px;border-radius:50%;background:var(--muted);
+  animation:aidePoint 1.1s infinite ease-in-out}
+.aide-points i:nth-child(2){animation-delay:.15s}
+.aide-points i:nth-child(3){animation-delay:.3s}
+@keyframes aidePoint{0%,60%,100%{opacity:.3}30%{opacity:1}}
+
+.aide-sugg{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px;background:var(--bg)}
+.aide-sugg button{border:1px solid var(--line);background:var(--card);cursor:pointer;
+  border-radius:999px;padding:6px 11px;font:500 .79rem inherit;color:var(--blue-ink);text-align:left}
+.aide-sugg button:hover{border-color:var(--ocean);color:var(--ocean)}
+
+.aide-pied{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);
+  background:var(--card);flex:0 0 auto}
+.aide-pied input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;
+  padding:9px 11px;font:inherit;font-size:.88rem}
+.aide-pied input:focus{outline:2px solid var(--ocean);outline-offset:-1px;border-color:transparent}
+.aide-pied button{border:0;background:var(--ocean);color:#fff;border-radius:9px;
+  padding:9px 15px;font:600 .84rem inherit;cursor:pointer}
+.aide-pied button:disabled{opacity:.5;cursor:default}
+
+.aide-ecran{font-size:.72rem;color:var(--muted);padding:6px 14px 0;background:var(--bg)}
+
+@media print{ .aide-rond,.aide-panneau{display:none!important} }
+@media (max-width:480px){
+  .aide-panneau{right:10px;left:10px;bottom:10px;width:auto;height:min(80vh,560px)}
+  .aide-rond{right:12px;bottom:12px}
+}
+@media (prefers-reduced-motion: reduce){
+  .aide-rond{transition:none} .aide-points i{animation:none}
+}
