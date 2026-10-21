@@ -191,7 +191,10 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .people-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%;
   margin:0 0 16px;padding:12px 14px;background:#f6f8fc;border:1px solid var(--line);border-radius:12px}
 .filters-lbl{font-size:.8rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-right:2px}
-.chip.filt{flex:0 0 auto;white-space:nowrap;font-size:.8rem;padding:6px 12px}
+/* .chip est une puce de 14×14 ; .filt en fait un bouton. Défaire la taille
+   ici, et non dans chaque conteneur, évite qu'un nouvel écran l'oublie. */
+.chip.filt{flex:0 0 auto;white-space:nowrap;font-size:.8rem;padding:6px 12px;
+  width:auto;height:auto;min-width:0}
 .chip.filt.reset{background:#fff}
 .chip.filt.reset.sel{background:var(--blue);color:#fff}
 /* Les filtres du répertoire se cumulent : la coche dit que la catégorie
@@ -4860,13 +4863,13 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
    règle de réinitialisation plus haut : « .chip » désigne AUSSI la pastille
    de couleur 14×14 de la légende des réservations (collision de noms
    ancienne). Une règle non portée repeignait ces carrés en blanc. */
-.people-filters .chip,.fac-filters .chip,.chip-select .chip{
+.people-filters .chip,.fac-filters .chip,.chip-select .chip,.chip.filt{
   border-radius:999px;padding:7px 15px;font-weight:600;font-size:.86rem;
   background:#fff;border:1px solid var(--line);color:var(--muted);
   transition:background .14s ease,color .14s ease,border-color .14s ease}
-.people-filters .chip:hover,.fac-filters .chip:hover,.chip-select .chip:hover{
+.people-filters .chip:hover,.fac-filters .chip:hover,.chip-select .chip:hover,.chip.filt:hover{
   border-color:#c6d5ec;color:var(--blue-ink)}
-.people-filters .chip.sel,.fac-filters .chip.sel,.chip-select .chip.sel{
+.people-filters .chip.sel,.fac-filters .chip.sel,.chip-select .chip.sel,.chip.filt.sel{
   background:var(--ocean);border-color:var(--ocean);color:#fff}
 
 /* ---- Encadré « À ton attention » ---------------------------------------- */
