@@ -5777,9 +5777,13 @@ async function renderGzMailActions(tid) {
     const doneN = (sent || []).filter((s) => s.template_key === "annulation" && (entries || []).some((e) => e.participant_id === s.participant_id && (e.epreuve || "—") === ep)).length;
     return row(`Annuler « ${ep} »`, "", annulIdsFor(ep), doneN, "annulation", ep);
   }).join("") : '<p class="muted" style="font-size:.84rem">Aucun tableau annulé (tous ont au moins un sélectionné).</p>';
-  html += `<div class="gz-send-sub">Après le tournoi</div>`;
-  html += row("Remerciements — sélectionnés présents", "auto lundi 11h", idsFor("remerciement"), doneKey("remerciement").size, "remerciement");
-  html += row("Vainqueurs — avec photo", "auto lundi 11h", idsFor("vainqueur"), doneKey("vainqueur").size, "vainqueur");
+  // Remerciements / Vainqueurs : bloqués tant que le tournoi n'a pas eu lieu (22.10.2026 : 27 remerciements partis
+  // deux jours avant). gz-notify refuse aussi de son côté.
+  const auj = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Zurich" });
+  const avant = !!tt?.tournament_date && tt.tournament_date > auj;
+  html += `<div class="gz-send-sub">Après le tournoi${avant ? ` <span class="muted" style="font-weight:400">— disponible dès le ${esc(frDate(tt.tournament_date))}</span>` : ""}</div>`;
+  html += row("Remerciements — sélectionnés présents", "auto lundi 11h", avant ? [] : idsFor("remerciement"), doneKey("remerciement").size, "remerciement");
+  html += row("Vainqueurs — avec photo", "auto lundi 11h", avant ? [] : idsFor("vainqueur"), doneKey("vainqueur").size, "vainqueur");
   box.innerHTML = html;
   box.querySelectorAll(".gz-send-count-link").forEach((b) => b.addEventListener("click", () => gzShowRecipients(lists[b.dataset.list] || [], pInfo, nm)));
   box.querySelectorAll(".gz-send-btn").forEach((b) => b.addEventListener("click", () => gzSend(tid, b.dataset.key, b, b.dataset.epreuve || null, +b.dataset.n || 0)));

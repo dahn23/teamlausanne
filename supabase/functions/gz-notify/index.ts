@@ -63,8 +63,14 @@ function recipientIds(key: string, entries: any[], status: any[], epreuve: strin
 
 // deno-lint-ignore no-explicit-any
 async function sendForTournament(supa: any, tx: any, tId: string, key: string, origin: string, surveyId: string, limit: number, epreuve: string | null, preview: { to: string; pid: string } | null = null) {
-  const { data: t } = await supa.from("gz_tournaments").select("id,name,registration_url,is_gamezone,swiss_id").eq("id", tId).maybeSingle();
+  const { data: t } = await supa.from("gz_tournaments").select("id,name,registration_url,is_gamezone,swiss_id,tournament_date").eq("id", tId).maybeSingle();
   if (!t) return { sent: 0, remaining: 0 };
+  // Remerciement / Vainqueurs : jamais avant le jour du tournoi (22.10.2026 : 27 « Merci d'avoir participé » partis
+  // deux jours avant, sur un clic). Le jour même, l'envoi manuel reste possible ; l'aperçu à soi aussi.
+  const auj = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Zurich" });
+  if (!preview && (key === "remerciement" || key === "vainqueur") && t.tournament_date && t.tournament_date > auj) {
+    return { sent: 0, remaining: 0, error: "le tournoi n'a pas encore eu lieu : remerciements et vainqueurs partent après le tournoi" };
+  }
   // Tournoi NON GameZone (30.09.2026) : non-sélection, annulation et remerciement prennent le modèle « <clé>_autre »
   // (même texte sans le lien vers les tournois GameZone). L'envoi reste noté sous la clé de base (compteurs console).
   const tplKey = (!t.is_gamezone && AUTRE_KEYS.includes(key)) ? `${key}_autre` : key;
