@@ -2273,7 +2273,17 @@ function winterFocusBox(needle, label, chf, tile) {
 // ===================================================================
 const PL_KINDS = [["prepa", "Prépa physique"], ["entrainement", "Entraînement"], ["option", "Entraînement en option"], ["vacances", "Vacances"], ["etranger", "Tournoi à l'étranger"]];
 const PL_KIND_LABEL = Object.fromEntries(PL_KINDS);
-const PL_FILIERES = [["competition", "Compétition"], ["performance", "Performance"], ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"]];
+// Les filières qui ont une planification de saison. Cette liste fait TOUT :
+// elle décide qui apparaît dans l'onglet (plFilOf ne reconnaît qu'elle), les
+// pastilles de filtre, et la liste de « Copier vers… ». Y ajouter une filière
+// l'ouvre partout d'un coup.
+//
+// Compétition et Performance en sont sorties le 22.10.2026 : leurs familles
+// n'ont pas de délégation à organiser, et la frise les embrouillait — même
+// raison qu'au portail, où l'onglet « Saison » leur est déjà caché. Aucune
+// semaine n'avait été saisie pour elles, donc rien n'a été perdu ; les
+// remettre dans cette liste les ramène telles quelles.
+const PL_FILIERES = [["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"]];
 const PL_FIL_LABEL = Object.fromEntries(PL_FILIERES);
 const PL_MONTHS = ["janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc"];
 let plInit = false, plSeasons = [], plSeason = null, plSub = "tournois", plWeekList = [], plContenu = {};
