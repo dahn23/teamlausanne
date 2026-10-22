@@ -91,6 +91,11 @@ inscriptions.
 **Qui peut écrire** : head coach, coach, admin, superadmin. Les autres ne
 voient pas l'onglet.
 
+**Qui y figure** : les jeunes en **sport-études, pro U18 et pro**. Compétition
+et performance n'y sont pas — leurs familles n'ont pas de délégation à
+organiser, et c'est la même règle qu'au portail, où l'onglet « Saison » leur
+est caché.
+
 ### Les deux sous-onglets
 
 - **« Prochains tournois »** — la liste des tournois à venir, regroupés quand
