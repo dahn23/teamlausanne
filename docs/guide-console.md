@@ -439,7 +439,73 @@ chaque matin à 40.–, soit 600.–, à la place du forfait de 350.–.*
 
 ---
 
-## 8. Réserv.
+## 8. Note de frais
+
+### Ce que c'est
+
+Les dépenses que vous avancez de votre poche pour l'académie : carburant,
+fournitures, repas, affranchissement. Vous les saisissez, vous joignez le
+justificatif, et l'académie vous rembourse.
+
+**Qui voit quoi** : chacun voit **ses** dépenses. Dan, Raphaël et Arsalan
+voient celles de tout le monde et peuvent les corriger — Arsalan vérifie que
+chaque dépense est rangée sous le bon compte.
+
+### Ajouter une dépense — la bonne façon
+
+1. **« ⬆ Déposer un justificatif »** et choisir le PDF.
+2. La fiche s'ouvre **déjà remplie** : date, montant, n° de transaction,
+   catégorie, lus dans le document.
+3. **Vérifier**, corriger si besoin, puis « Enregistrer ».
+
+Ce qui n'a pas pu être lu reste vide plutôt que deviné. Le bandeau en haut de
+la fiche dit ce qui a été lu et avec quelle confiance.
+
+« + Saisir à la main » fait la même chose sans PDF — le justificatif pourra
+être ajouté ensuite.
+
+### Le cycle d'une dépense
+
+| État | Ce que ça veut dire |
+|---|---|
+| **À valider** | Saisie, pas encore confirmée. Modifiable et supprimable. |
+| **Validée** | Confirmée par son auteur. **Le justificatif est obligatoire ici.** |
+| **Remboursée** | Versée. Son auteur ne peut plus la modifier. |
+
+« Valider » n'apparaît que si un justificatif est joint : c'est la règle de la
+note de frais, pas un caprice de l'écran. « Remboursée » est réservé à Dan,
+Raphaël et Arsalan.
+
+### Le total
+
+En bas à droite, en gros. **Il porte sur les lignes affichées**, et son
+libellé suit le filtre : « À rembourser », « Déjà remboursé », « En attente
+de validation ». Si le chiffre vous surprend, regardez d'abord quel filtre est
+actif.
+
+### Sortir la note de frais
+
+- **« ⬇ Excel »** — le tableau complet avec le total, pour la comptabilité.
+- **« ⬇ PDF »** — le même récapitulatif, à imprimer ou à envoyer.
+- **« ⬇ Justificatifs (PDF unique) »** — un seul fichier : le récapitulatif en
+  page de garde, puis **tous les justificatifs à la suite**, chacun coiffé
+  d'un bandeau « Dépense n° · date · montant ».
+
+Les dépenses sont numérotées 1, 2, 3… dans les trois sorties. C'est ce qui
+permet de retrouver le justificatif d'une ligne sans comparer les montants.
+
+### Bon à savoir
+
+- **Les trois exports disent ce que montre l'écran** : mêmes lignes, même
+  ordre, même total. Filtrez avant d'exporter.
+- **Une dépense sans justificatif** apparaît « manquant » en rouge, est
+  comptée dans le total, mais ne peut pas être validée — et le PDF le
+  signale.
+- **Supprimer une dépense supprime aussi son justificatif.**
+
+---
+
+## 9. Réserv.
 
 ### Ce que c'est
 
@@ -467,7 +533,7 @@ réglages ».
 
 ---
 
-## 9. Répertoire
+## 10. Répertoire
 
 ### Ce que c'est
 
@@ -503,7 +569,7 @@ correspondant. L'onglet « Saisons » de la fiche garde l'historique.
 
 ---
 
-## 10. Calendrier
+## 11. Calendrier
 
 ### Ce que c'est
 
@@ -539,7 +605,7 @@ Vues « Mois », « Année », « Liste des semaines » ; « Aujourd'hui » rece
 
 ---
 
-## 11. Accès Mon espace
+## 12. Accès Mon espace
 
 Pour donner aux familles l'accès à l'app « Mon espace ».
 
@@ -556,7 +622,7 @@ l'adresse.
 
 ---
 
-## 12. Réglages
+## 13. Réglages
 
 Trois sous-onglets : « Accès & rôles », « Saisons », « Suivi de l'Aide ».
 
@@ -583,7 +649,7 @@ un morceau de guide à écrire. Réservé aux administrateurs.
 
 ---
 
-## 13. Les autres écrans
+## 14. Les autres écrans
 
 Ces écrans ne sont pas encore décrits au même niveau de détail. L'Aide y
 répondra qu'elle ne sait pas, et la question remontera dans
@@ -628,7 +694,7 @@ répondra qu'elle ne sait pas, et la question remontera dans
 
 ---
 
-## 14. Ce que la console fait toute seule
+## 15. Ce que la console fait toute seule
 
 - **L'appel d'un cours** s'ouvre 25 minutes avant le début.
 - **Le nombre de courts** suit la saison.
@@ -642,7 +708,7 @@ répondra qu'elle ne sait pas, et la question remontera dans
 
 ---
 
-## 15. Questions fréquentes
+## 16. Questions fréquentes
 
 **Je ne vois pas un onglet dont on me parle.**
 C'est le rôle de votre compte. Un administrateur l'ouvre dans « Réglages →

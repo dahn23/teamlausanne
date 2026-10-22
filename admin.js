@@ -23534,6 +23534,9 @@ function nfBind() {
   $("nf-form").addEventListener("submit", nfEnregistrer);
   $("nf-suppr").addEventListener("click", nfSupprimer);
   $("nf-personne").addEventListener("change", () => { nfQui = $("nf-personne").value; renderNoteFrais(); });
+  $("nf-xlsx").addEventListener("click", nfExportXlsx);
+  $("nf-pdf").addEventListener("click", nfExportPdf);
+  $("nf-justifs").addEventListener("click", nfExportJustifs);
   document.querySelectorAll("#nf-filtres [data-nff]").forEach((b) =>
     b.addEventListener("click", () => {
       document.querySelectorAll("#nf-filtres [data-nff]").forEach((x) => x.classList.toggle("sel", x === b));
@@ -23777,4 +23780,198 @@ async function nfDeposer() {
     lue.textContent = "Le PDF est déposé, mais il n'a pas pu être lu ("
       + souci + "). Les champs sont à saisir à la main.";
   }
+}
+
+/* ---- Exports de la note de frais ----------------------------------------
+   Trois sorties, et elles doivent dire la MÊME CHOSE que l'écran : les lignes
+   affichées, dans l'ordre affiché, avec le même total. Un export qui ne
+   correspond pas à ce qu'on vient de regarder est un piège.
+
+   Les dépenses sont NUMÉROTÉES 1..n dans les trois sorties. C'est ce qui
+   permet de rapprocher une ligne du tableau de son justificatif dans le PDF
+   combiné, sans avoir à lire les montants.
+   ------------------------------------------------------------------------- */
+
+// Séparateur de milliers posé à la main, avec l'apostrophe DROITE.
+// toLocaleString("fr-CH") rend une apostrophe typographique (U+2019) absente
+// de l'Helvetica standard de jsPDF : 1500 sortirait « 1/500 ». Leçon déjà
+// payée sur le décompte mensuel, on ne la repaie pas.
+function nfNb(n) {
+  const v = Math.round(Number(n) * 100) / 100;
+  const [ent, dec] = Math.abs(v).toFixed(2).split(".");
+  return (v < 0 ? "-" : "") + ent.replace(/\B(?=(\d{3})+(?!\d))/g, "'") + "." + dec;
+}
+const nfChfPdf = (n) => nfNb(n) + " CHF";
+
+// Le nom de fichier : la personne et le jour, pour qu'un dossier de notes de
+// frais reste lisible six mois plus tard.
+function nfNomFichier(ext) {
+  const g = nfGens.find((x) => x.id === nfQui);
+  const qui = g ? (g.first_name + " " + g.last_name) : "mes-frais";
+  return "Note de frais - " + qui.replace(/[^\w\s\-À-ÿ]/g, "") + " - "
+       + new Date().toISOString().slice(0, 10) + "." + ext;
+}
+
+function nfTelecharger(blob, nom) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nom;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+// Ce que les trois exports partagent : les lignes visibles, numérotées.
+function nfPourExport() {
+  const vues = nfVisibles();
+  const g = nfGens.find((x) => x.id === nfQui);
+  return {
+    qui: g ? (g.first_name + " " + g.last_name) : "Mes frais",
+    libelle: $("nf-total-label").textContent,
+    lignes: vues.map((x, i) => ({ n: i + 1, x })),
+    somme: vues.reduce((a, x) => a + Number(x.amount || 0), 0),
+  };
+}
+
+// --- Excel ------------------------------------------------------------------
+async function nfExportXlsx() {
+  const d = nfPourExport();
+  if (!d.lignes.length) { uiAlert("Aucune dépense à exporter."); return; }
+  if (!window.XLSX) {
+    await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+  }
+  const entetes = ["N°", "Date", "N° transaction", "Catégorie", "Note",
+                   "Montant CHF", "État", "Justificatif"];
+  const etats = { a_valider: "À valider", valide: "Validée", rembourse: "Remboursée" };
+  const corps = d.lignes.map(({ n, x }) => [
+    n, x.expense_date, x.transaction_no || "", nfCatLabel(x.category), x.note || "",
+    Number(x.amount), etats[x.statut] || x.statut, x.pdf_path ? "oui" : "MANQUANT",
+  ]);
+  // Une ligne vide, puis le total : il doit sauter aux yeux dans le tableur
+  // comme il saute aux yeux à l'écran.
+  corps.push([]);
+  corps.push(["", "", "", "", d.libelle, d.somme, "", ""]);
+
+  const ws = window.XLSX.utils.aoa_to_sheet([
+    ["Note de frais — " + d.qui],
+    ["Édité le " + frDate(new Date()) + " · " + d.lignes.length + " dépense(s)"],
+    [],
+    entetes, ...corps,
+  ]);
+  ws["!cols"] = [{ wch: 5 }, { wch: 12 }, { wch: 18 }, { wch: 26 }, { wch: 40 },
+                 { wch: 13 }, { wch: 12 }, { wch: 12 }];
+  const wb = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(wb, ws, "Note de frais");
+  const octets = window.XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  nfTelecharger(new Blob([octets],
+    { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+    nfNomFichier("xlsx"));
+}
+
+// --- Le récapitulatif en PDF -------------------------------------------------
+async function nfConstruirePdf() {
+  if (!window.jspdf) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  if (!window.jspdf?.jsPDF?.API?.autoTable) {
+    await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
+  }
+  const d = nfPourExport();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const etats = { a_valider: "À valider", valide: "Validée", rembourse: "Remboursée" };
+
+  doc.setFontSize(15);
+  doc.text("Note de frais — " + d.qui, 14, 16);
+  doc.setFontSize(9); doc.setTextColor(110);
+  doc.text("Team Lausanne Academy · édité le " + frDate(new Date())
+           + " · " + d.lignes.length + " dépense(s)", 14, 22);
+  doc.setTextColor(0);
+
+  doc.autoTable({
+    startY: 28,
+    head: [["N°", "Date", "N° transaction", "Catégorie", "Note", "Montant", "État", "Justif."]],
+    body: d.lignes.map(({ n, x }) => [
+      n, frDate(x.expense_date), x.transaction_no || "—", nfCatLabel(x.category),
+      String(x.note || ""), nfChfPdf(x.amount), etats[x.statut] || x.statut,
+      x.pdf_path ? "oui" : "manquant",
+    ]),
+    styles: { fontSize: 8.5, cellPadding: 2 },
+    headStyles: { fillColor: [7, 62, 181], textColor: 255, fontSize: 8 },
+    columnStyles: { 0: { cellWidth: 8 }, 5: { halign: "right" } },
+    margin: { left: 14, right: 14 },
+  });
+
+  // Le total, en bas à droite du tableau — au même endroit qu'à l'écran.
+  const y = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 28) + 10;
+  const large = doc.internal.pageSize.getWidth();
+  doc.setFontSize(9); doc.setTextColor(110);
+  doc.text(d.libelle, large - 14, y, { align: "right" });
+  doc.setTextColor(0); doc.setFontSize(15);
+  doc.text(nfChfPdf(d.somme), large - 14, y + 7, { align: "right" });
+
+  const manquants = d.lignes.filter(({ x }) => !x.pdf_path).length;
+  if (manquants) {
+    doc.setFontSize(9); doc.setTextColor(150, 60, 0);
+    doc.text(manquants + " dépense(s) sans justificatif.", 14, y + 7);
+    doc.setTextColor(0);
+  }
+  return { doc, d };
+}
+
+async function nfExportPdf() {
+  const d0 = nfPourExport();
+  if (!d0.lignes.length) { uiAlert("Aucune dépense à exporter."); return; }
+  const { doc } = await nfConstruirePdf();
+  nfTelecharger(doc.output("blob"), nfNomFichier("pdf"));
+}
+
+// --- Le PDF unique : récapitulatif + tous les justificatifs ------------------
+async function nfExportJustifs() {
+  const d0 = nfPourExport();
+  const avec = d0.lignes.filter(({ x }) => x.pdf_path);
+  if (!avec.length) { uiAlert("Aucun justificatif à regrouper."); return; }
+
+  const btn = $("nf-justifs"); const avant = btn.textContent;
+  btn.disabled = true; btn.textContent = "Assemblage…";
+  try {
+    if (!window.PDFLib) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js");
+    const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+
+    // Le récapitulatif sert de page de garde : on lit le tableau, puis on
+    // retrouve chaque justificatif au même numéro.
+    const { doc } = await nfConstruirePdf();
+    const sortie = await PDFDocument.load(doc.output("arraybuffer"));
+    const police = await sortie.embedFont(StandardFonts.Helvetica);
+
+    const rates = [];
+    for (const { n, x } of avec) {
+      const dl = await sb.storage.from("notes-de-frais").download(x.pdf_path);
+      if (dl.error || !dl.data) { rates.push(n + " (introuvable)"); continue; }
+      let src;
+      try { src = await PDFDocument.load(await dl.data.arrayBuffer()); }
+      catch (_) { rates.push(n + " (PDF illisible)"); continue; }
+      const pages = await sortie.copyPages(src, src.getPageIndices());
+      pages.forEach((p, i) => {
+        sortie.addPage(p);
+        // Le bandeau n'est posé que sur la PREMIÈRE page d'un justificatif :
+        // répété sur chaque page d'une facture de dix pages, il salirait le
+        // document sans rien apprendre.
+        if (i > 0) return;
+        const { width, height } = p.getSize();
+        const texte = "Dépense " + n + "  ·  " + frDate(x.expense_date)
+                    + "  ·  " + nfChfPdf(x.amount);
+        p.drawRectangle({ x: 0, y: height - 16, width, height: 16, color: rgb(0.03, 0.24, 0.71) });
+        p.drawText(texte, { x: 8, y: height - 12, size: 8, font: police, color: rgb(1, 1, 1) });
+      });
+    }
+
+    const octets = await sortie.save();
+    nfTelecharger(new Blob([octets], { type: "application/pdf" }),
+      nfNomFichier("pdf").replace(".pdf", " - justificatifs.pdf"));
+    if (rates.length) {
+      uiAlert("Assemblé, mais " + rates.length + " justificatif(s) n'ont pas pu être joints : "
+              + rates.join(", ") + ".");
+    }
+  } catch (e) {
+    uiAlert("Assemblage impossible : " + (e && e.message ? e.message : e));
+  }
+  btn.disabled = false; btn.textContent = avant;
 }
