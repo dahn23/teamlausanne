@@ -5877,3 +5877,31 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 @media (prefers-reduced-motion: reduce){
   .aide-rond{transition:none} .aide-points i{animation:none}
 }
+
+/* ---- Note de frais -------------------------------------------------------
+   Le total se lit en bas a droite, gros : c'est le seul chiffre que la
+   personne vient chercher. Les exports sont a gauche du meme pied, parce
+   qu'on exporte apres avoir verifie le total, jamais avant. */
+.nf-pied{display:flex;flex-wrap:wrap;gap:14px;align-items:center;
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.nf-exports{display:flex;gap:8px;flex-wrap:wrap}
+.nf-total{margin-left:auto;text-align:right;display:flex;flex-direction:column;gap:2px}
+.nf-total span{font-size:.74rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.nf-total b{font-size:1.45rem;color:var(--blue-ink);font-variant-numeric:tabular-nums;line-height:1}
+
+.nf-grille{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.nf-grille label{display:flex;flex-direction:column;gap:4px;font-size:.86rem;font-weight:600}
+@media (max-width:560px){ .nf-grille{grid-template-columns:1fr} }
+
+/* Ce que l'IA a lu dans le PDF, annonce avant la correction. */
+.nf-lu{background:var(--accent-doux,#eaf0fd);border:1px solid #cfe0fb;color:var(--blue-ink);
+  border-radius:9px;padding:9px 12px;font-size:.85rem;margin:0 0 12px}
+
+/* L'etat d'une depense : a valider (ambre), validee (bleu), remboursee (vert). */
+.nf-etat{display:inline-block;padding:2px 9px;border-radius:999px;
+  font-size:.74rem;font-weight:700;white-space:nowrap}
+.nf-etat.att{background:#fdf0d5;color:#9a5b00}
+.nf-etat.val{background:#e7eefc;color:var(--blue)}
+.nf-etat.rem{background:#e3f5ea;color:#1b6b45}
+.nf-mt{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.nf-sans{color:#b3261e;font-size:.8rem}

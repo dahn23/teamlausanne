@@ -216,16 +216,16 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats"],
-  secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "social", "assistant", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats"],
-  head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "heures"],
-  coach:      ["cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "heures"],
-  coach_physique: ["cours", "phystests", "physique", "heures"],
-  moniteur:   ["cours", "heures"],
+  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
+  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
+  secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "social", "assistant", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats", "notefrais"],
+  head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "heures", "notefrais"],
+  coach:      ["cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "heures", "notefrais"],
+  coach_physique: ["cours", "phystests", "physique", "heures", "notefrais"],
+  moniteur:   ["cours", "heures", "notefrais"],
   affichage:  ["resa"],                      // ecran du club : grille des courts, lecture seule
-  prof:       ["etudes"],
-  coach_mental: ["mental", "matchs"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
+  prof:       ["etudes", "notefrais"],
+  coach_mental: ["mental", "matchs", "notefrais"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
   // GameZone en lecture seule (db/135) : tout l'onglet visible, aucune
@@ -233,7 +233,7 @@ const DEFAULT_TAB_ACCESS = {
   // tables gz_* reste ouverte à is_staff() en écriture.
   gz_lecture:   ["gamezone"],
 };
-const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["acces", "Accès Mon espace"], ["prospects", "Prospects"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["social", "Social Media Planner"], ["assistant", "Assistant"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["acces", "Accès Mon espace"], ["prospects", "Prospects"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["social", "Social Media Planner"], ["assistant", "Assistant"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["notefrais", "Note de frais"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -517,6 +517,7 @@ function showView(view) {
   if (view === "social") loadSocial();
   if (view === "locks") loadLocks();
   if (view === "irrigation") loadIrrigation();
+  if (view === "notefrais") loadNoteFrais();
 }
 
 // ===================================================================
@@ -23451,4 +23452,325 @@ async function asOuvrirFil(id) {
 
   botModal(encadre + `<div class="bot-fil bot-fil-modal">${fil}</div>`,
     "Aide — " + (c ? c.qui : "conversation"));
+}
+
+
+/* ===========================================================================
+   NOTE DE FRAIS  (db/200)
+   ===========================================================================
+
+   Les dépenses avancées par l'équipe. Chacun saisit les siennes ; Dan,
+   Raphael et Arsalan voient et corrigent celles de tout le monde.
+
+   TROIS CHOSES À SAVOIR AVANT DE TOUCHER À CE CODE.
+
+   · Les droits ne sont pas tenus ici. La RLS de la table expenses décide :
+     on ne reçoit que ses propres lignes, ou toutes si on en a le droit.
+     L'écran n'affiche que ce que la base a bien voulu donner.
+
+   · Le justificatif n'est exigé qu'à la VALIDATION. On dépose le PDF, on lit
+     ce qu'il contient, on corrige, on valide. Exiger le PDF d'abord
+     obligerait à ressaisir ce qu'il contient déjà.
+
+   · Le total du pied est celui des lignes AFFICHÉES, et son libellé le dit.
+     Un total qui ne correspond pas au filtre en cours est un mensonge poli.
+   ======================================================================== */
+
+let nfLignes = [], nfCats = [], nfGens = [], nfQui = null,
+    nfFiltre = "du", nfRech = "", nfTousDroits = false, nfBound = false,
+    nfPdfEnAttente = null, nfExtraitEnAttente = null;
+
+const NF_API = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/notes-frais-lire";
+
+const nfChf = (v) => (Number(v) || 0).toLocaleString("fr-CH",
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " CHF";
+
+async function loadNoteFrais() {
+  nfBind();
+  const [cats, exp] = await Promise.all([
+    sb.from("expense_categories").select("*").eq("active", true).order("sort"),
+    sb.from("expenses").select("*").order("expense_date", { ascending: false }),
+  ]);
+  nfCats = cats.data || [];
+  nfLignes = exp.data || [];
+
+  const { data: moi } = await sb.rpc("my_person_id");
+  const { data: sess } = await sb.auth.getSession();
+  try {
+    const { data: tout } = await sb.rpc("can_notes_frais_all", { uid: sess?.session?.user?.id });
+    nfTousDroits = tout === true;
+  } catch (_) {
+    // Si la question ne passe pas, on déduit du contenu reçu : plusieurs
+    // personnes dans les lignes, c'est qu'on a le droit de les voir.
+    nfTousDroits = [...new Set(nfLignes.map((x) => x.person_id))].length > 1;
+  }
+
+  if (nfTousDroits) {
+    const ids = [...new Set(nfLignes.map((x) => x.person_id))];
+    if (moi && !ids.includes(moi)) ids.push(moi);
+    const { data: gens } = await sb.from("people").select("id,first_name,last_name")
+      .in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+    nfGens = (gens || []).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+    if (!nfQui || !nfGens.some((g) => g.id === nfQui)) nfQui = moi || (nfGens[0] && nfGens[0].id) || null;
+  } else {
+    nfGens = [];
+    nfQui = moi || null;
+  }
+  renderNoteFrais();
+}
+
+function nfBind() {
+  if (nfBound) return;
+  nfBound = true;
+  $("nf-new").addEventListener("click", () => nfOuvrir(null));
+  $("nf-depot").addEventListener("click", () => $("nf-fichier").click());
+  $("nf-fichier").addEventListener("change", nfDeposer);
+  $("nf-close").addEventListener("click", nfFermer);
+  $("nf-modal").addEventListener("click", (e) => { if (e.target === $("nf-modal")) nfFermer(); });
+  $("nf-form").addEventListener("submit", nfEnregistrer);
+  $("nf-suppr").addEventListener("click", nfSupprimer);
+  $("nf-personne").addEventListener("change", () => { nfQui = $("nf-personne").value; renderNoteFrais(); });
+  document.querySelectorAll("#nf-filtres [data-nff]").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#nf-filtres [data-nff]").forEach((x) => x.classList.toggle("sel", x === b));
+      nfFiltre = b.dataset.nff; renderNoteFrais();
+    }));
+  let t;
+  $("nf-search").addEventListener("input", (e) => {
+    clearTimeout(t);
+    t = setTimeout(() => { nfRech = e.target.value.trim().toLowerCase(); renderNoteFrais(); }, 200);
+  });
+}
+
+const nfCatLabel = (code) => (nfCats.find((c) => c.code === code) || {}).label || code || "—";
+
+function nfVisibles() {
+  return nfLignes.filter((x) => {
+    if (nfQui && x.person_id !== nfQui) return false;
+    if (nfFiltre === "du" && x.statut === "rembourse") return false;
+    if (nfFiltre === "a_valider" && x.statut !== "a_valider") return false;
+    if (nfFiltre === "rembourse" && x.statut !== "rembourse") return false;
+    if (!nfRech) return true;
+    const foin = [x.transaction_no, nfCatLabel(x.category), x.note, x.expense_date]
+      .join(" ").toLowerCase();
+    // Même règle que les factures : le montant se compare en nombre, jamais
+    // en texte, sinon « 50 » répondrait pour une dépense de 1500.
+    return foin.includes(nfRech)
+        || (/^\d+(\.\d+)?$/.test(nfRech) && Math.abs(Number(nfRech) - Number(x.amount)) < 0.005);
+  });
+}
+
+function renderNoteFrais() {
+  const sel = $("nf-personne");
+  sel.classList.toggle("hidden", !nfTousDroits);
+  if (nfTousDroits) {
+    sel.innerHTML = nfGens.map((g) =>
+      '<option value="' + g.id + '">' + esc(g.first_name + " " + g.last_name) + "</option>").join("");
+    sel.value = nfQui || "";
+  }
+  const gen = nfGens.find((g) => g.id === nfQui);
+  $("nf-titre").textContent = nfTousDroits && gen
+    ? "Frais de " + gen.first_name + " " + gen.last_name : "Mes frais";
+
+  const vues = nfVisibles();
+  $("nf-vide").hidden = vues.length > 0;
+  $("nf-lignes").innerHTML = vues.map((x) => {
+    const etat = x.statut === "rembourse" ? ["rem", "Remboursée"]
+               : x.statut === "valide" ? ["val", "Validée"]
+               : ["att", "À valider"];
+    const corrigible = x.statut !== "rembourse" || nfTousDroits;
+    const justif = x.pdf_path
+      ? '<button type="button" class="ghost nf-voir" data-path="' + esc(x.pdf_path) + '">📄 Voir</button>'
+      : '<span class="nf-sans">manquant</span>';
+    const actions =
+      (x.statut === "a_valider" && x.pdf_path
+        ? '<button type="button" class="ghost nf-valider" data-id="' + x.id + '">Valider</button>' : "")
+      + (x.statut === "valide" && nfTousDroits
+        ? '<button type="button" class="ghost nf-rembourser" data-id="' + x.id + '">Remboursée</button>' : "")
+      + (corrigible
+        ? '<button type="button" class="ghost nf-edit" data-id="' + x.id + '">Modifier</button>' : "");
+    return "<tr>"
+      + '<td style="white-space:nowrap">' + frDate(x.expense_date) + "</td>"
+      + "<td>" + esc(x.transaction_no || "—") + "</td>"
+      + "<td>" + esc(nfCatLabel(x.category)) + "</td>"
+      + "<td>" + esc(String(x.note || "").slice(0, 60)) + "</td>"
+      + "<td>" + justif + "</td>"
+      + '<td class="nf-mt">' + nfChf(x.amount) + "</td>"
+      + '<td><span class="nf-etat ' + etat[0] + '">' + etat[1] + "</span></td>"
+      + '<td style="white-space:nowrap">' + actions + "</td></tr>";
+  }).join("");
+
+  // Le total porte sur ce qui est affiché, et le libellé le dit.
+  const somme = vues.reduce((a, x) => a + Number(x.amount || 0), 0);
+  $("nf-total").textContent = nfChf(somme);
+  $("nf-total-label").textContent =
+    nfFiltre === "du" ? "À rembourser"
+    : nfFiltre === "rembourse" ? "Déjà remboursé"
+    : nfFiltre === "a_valider" ? "En attente de validation" : "Total affiché";
+
+  document.querySelectorAll("#nf-lignes .nf-edit").forEach((b) =>
+    b.addEventListener("click", () => nfOuvrir(nfLignes.find((x) => x.id === b.dataset.id))));
+  document.querySelectorAll("#nf-lignes .nf-voir").forEach((b) =>
+    b.addEventListener("click", () => nfVoir(b.dataset.path)));
+  document.querySelectorAll("#nf-lignes .nf-valider").forEach((b) =>
+    b.addEventListener("click", () => nfStatut(b.dataset.id, "valide")));
+  document.querySelectorAll("#nf-lignes .nf-rembourser").forEach((b) =>
+    b.addEventListener("click", () => nfStatut(b.dataset.id, "rembourse")));
+}
+
+async function nfVoir(path) {
+  const { data, error } = await sb.storage.from("notes-de-frais").createSignedUrl(path, 120);
+  if (error || !(data && data.signedUrl)) {
+    uiAlert("Justificatif illisible : " + ((error && error.message) || "introuvable")); return;
+  }
+  window.open(data.signedUrl, "_blank", "noopener");
+}
+
+async function nfStatut(id, statut) {
+  const x = nfLignes.find((r) => r.id === id);
+  if (statut === "rembourse" && !(await uiConfirm(
+      "Marquer cette dépense de " + nfChf(x.amount) + " comme remboursée ?\n\n"
+      + "Elle sortira du total à rembourser, et son auteur ne pourra plus la corriger."))) return;
+  const { data: sess } = await sb.auth.getSession();
+  const uid = (sess && sess.session && sess.session.user.id) || null;
+  const maj = { statut, updated_at: new Date().toISOString(), updated_by: uid };
+  if (statut === "rembourse") { maj.reimbursed_at = new Date().toISOString(); maj.reimbursed_by = uid; }
+  const { error } = await sb.from("expenses").update(maj).eq("id", id);
+  if (error) { uiAlert("Changement impossible : " + error.message); return; }
+  await loadNoteFrais();
+}
+
+// --- La fiche d'une dépense -------------------------------------------------
+
+function nfOuvrir(x) {
+  $("nf-id").value = x ? x.id : "";
+  $("nf-modal-titre").textContent = x ? "Corriger la dépense" : "Nouvelle dépense";
+  $("nf-cat").innerHTML = '<option value="">—</option>'
+    + nfCats.map((c) => '<option value="' + c.code + '">' + esc(c.label) + "</option>").join("");
+  $("nf-date").value = x ? x.expense_date : new Date().toISOString().slice(0, 10);
+  $("nf-montant").value = x ? Number(x.amount) : "";
+  $("nf-cat").value = x ? (x.category || "") : "";
+  $("nf-no").value = x ? (x.transaction_no || "") : "";
+  $("nf-note").value = x ? (x.note || "") : "";
+  $("nf-suppr").hidden = !x || (x.statut !== "a_valider" && !nfTousDroits);
+  $("nf-err").hidden = true;
+  $("nf-lu").hidden = true;
+  $("nf-justif").textContent = (x && x.pdf_path) || (!x && nfPdfEnAttente)
+    ? "Justificatif déposé."
+    : "Aucun justificatif : il en faudra un avant de valider.";
+  $("nf-modal").classList.remove("hidden");
+  $("nf-date").focus();
+}
+
+function nfFermer() {
+  $("nf-modal").classList.add("hidden");
+  $("nf-fichier").value = "";
+  nfPdfEnAttente = null; nfExtraitEnAttente = null;
+}
+
+async function nfEnregistrer(e) {
+  e.preventDefault();
+  const err = $("nf-err"); err.hidden = true;
+  const id = $("nf-id").value;
+  const { data: sess } = await sb.auth.getSession();
+  const uid = (sess && sess.session && sess.session.user.id) || null;
+  const ligne = {
+    expense_date: $("nf-date").value,
+    amount: Number($("nf-montant").value),
+    category: $("nf-cat").value || null,
+    transaction_no: $("nf-no").value.trim() || null,
+    note: $("nf-note").value.trim() || null,
+    updated_at: new Date().toISOString(), updated_by: uid,
+  };
+  if (!(ligne.amount > 0)) {
+    err.hidden = false; err.textContent = "Le montant doit être supérieur à zéro."; return;
+  }
+  let r;
+  if (id) r = await sb.from("expenses").update(ligne).eq("id", id);
+  else {
+    if (!nfQui) { err.hidden = false; err.textContent = "Aucune personne sélectionnée."; return; }
+    r = await sb.from("expenses").insert(Object.assign({}, ligne, {
+      person_id: nfQui, created_by: uid,
+      pdf_path: nfPdfEnAttente || null, extraction: nfExtraitEnAttente || null,
+    }));
+  }
+  if (r.error) { err.hidden = false; err.textContent = r.error.message; return; }
+  nfFermer();
+  await loadNoteFrais();
+}
+
+async function nfSupprimer() {
+  const id = $("nf-id").value;
+  if (!id) return;
+  const x = nfLignes.find((r) => r.id === id);
+  if (!(await uiConfirm("Supprimer cette dépense de " + nfChf(x.amount) + " ?"))) return;
+  // Le justificatif part avec la ligne : un PDF orphelin dans le bucket ne
+  // sert plus à rien et reste pourtant lisible.
+  if (x.pdf_path) await sb.storage.from("notes-de-frais").remove([x.pdf_path]);
+  const { error } = await sb.from("expenses").delete().eq("id", id);
+  if (error) { uiAlert("Suppression impossible : " + error.message); return; }
+  nfFermer();
+  await loadNoteFrais();
+}
+
+/* ---- Déposer un justificatif, et le laisser se lire ----------------------
+   Le PDF part d'abord au stockage, puis une fonction serveur le relit et
+   propose les champs. Dans cet ordre pour deux raisons : le fichier est
+   sauvé même si la lecture échoue, et la fonction le reprend dans le bucket
+   au lieu qu'on envoie les octets deux fois.
+
+   Le nom du fichier est tiré au sort : la ligne n'existe pas encore au
+   moment du dépôt, donc on ne peut pas le nommer d'après elle.
+   ------------------------------------------------------------------------- */
+async function nfDeposer() {
+  const f = $("nf-fichier").files && $("nf-fichier").files[0];
+  if (!f) return;
+  $("nf-fichier").value = "";
+  if (f.type !== "application/pdf") { uiAlert("Le justificatif doit être un PDF."); return; }
+  if (f.size > 10 * 1024 * 1024) { uiAlert("Ce PDF dépasse 10 Mo."); return; }
+  if (!nfQui) { uiAlert("Aucune personne sélectionnée."); return; }
+
+  const btn = $("nf-depot"); const avant = btn.textContent;
+  btn.disabled = true; btn.textContent = "Dépôt…";
+  const nom = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())) + ".pdf";
+  const chemin = nfQui + "/" + nom;
+  const up = await sb.storage.from("notes-de-frais").upload(chemin, f, { contentType: "application/pdf" });
+  if (up.error) {
+    btn.disabled = false; btn.textContent = avant;
+    uiAlert("Dépôt impossible : " + up.error.message); return;
+  }
+  nfPdfEnAttente = chemin; nfExtraitEnAttente = null;
+
+  btn.textContent = "Lecture…";
+  let lu = null, souci = "";
+  try {
+    const sess = await sb.auth.getSession();
+    const jwt = (sess.data && sess.data.session && sess.data.session.access_token) || "";
+    const r = await fetch(NF_API, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jwt: "Bearer " + jwt, path: chemin }),
+    });
+    const d = await r.json();
+    if (d && d.ok) { lu = d.champs || null; nfExtraitEnAttente = d.champs || null; }
+    else souci = (d && d.error) || "lecture impossible";
+  } catch (_) { souci = "service de lecture injoignable"; }
+  btn.disabled = false; btn.textContent = avant;
+
+  // Réussie ou non, on ouvre la fiche : le PDF est déposé, il ne reste qu'à
+  // compléter. Une lecture ratée ne doit jamais bloquer la saisie.
+  nfOuvrir(null);
+  const lue = $("nf-lu");
+  lue.hidden = false;
+  if (lu) {
+    if (lu.date) $("nf-date").value = lu.date;
+    if (lu.montant) $("nf-montant").value = lu.montant;
+    if (lu.categorie) $("nf-cat").value = lu.categorie;
+    if (lu.transaction) $("nf-no").value = lu.transaction;
+    if (lu.note) $("nf-note").value = lu.note;
+    lue.textContent = "Lu dans le PDF — vérifie avant d'enregistrer."
+      + (lu.confiance ? " Confiance : " + lu.confiance + "." : "");
+  } else {
+    lue.textContent = "Le PDF est déposé, mais il n'a pas pu être lu ("
+      + souci + "). Les champs sont à saisir à la main.";
+  }
 }

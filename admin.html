@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=368" />
+  <link rel="stylesheet" href="style.css?v=369" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2029,6 +2029,62 @@
           </div><!-- /heures-recap -->
         </div>
 
+        <!-- ---- Vue Note de frais ----
+             Chacun voit la sienne ; Dan, Raphael et Arsalan voient celle de
+             tout le monde et peuvent corriger. Le selecteur de personne
+             n'apparait que pour eux. -->
+        <div id="view-notefrais" class="view hidden">
+          <div class="crm-head"><h1>Note de frais</h1></div>
+
+          <div class="rg-card">
+            <div class="stg-card-head">
+              <h2 style="margin:0" id="nf-titre">Mes frais</h2>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <select id="nf-personne" class="bot-vsel hidden"></select>
+                <button type="button" id="nf-depot">⬆ Déposer un justificatif</button>
+                <button type="button" id="nf-new" class="ghost">+ Saisir à la main</button>
+              </div>
+            </div>
+            <p class="muted" style="margin:6px 0 14px;font-size:.88rem">
+              Les dépenses avancées pour l'académie. Dépose le justificatif en PDF :
+              la date, le montant, le n° de transaction et la catégorie en sont tirés
+              automatiquement, tu n'as qu'à vérifier avant de valider.</p>
+
+            <div class="people-filters" id="nf-filtres" style="margin-bottom:12px">
+              <button type="button" class="chip filt sel" data-nff="du">À rembourser</button>
+              <button type="button" class="chip filt" data-nff="a_valider">À valider</button>
+              <button type="button" class="chip filt" data-nff="rembourse">Remboursées</button>
+              <button type="button" class="chip filt" data-nff="tout">Tout</button>
+              <input type="search" id="nf-search" class="cs-search" style="flex:1;min-width:170px"
+                     placeholder="Chercher : catégorie, n°, note, montant…" autocomplete="off" />
+            </div>
+
+            <div class="table-wrap">
+              <table class="crm-table">
+                <thead><tr>
+                  <th>Date</th><th>N° transaction</th><th>Catégorie</th><th>Note</th>
+                  <th>Justificatif</th><th style="text-align:right">Montant</th>
+                  <th>État</th><th></th>
+                </tr></thead>
+                <tbody id="nf-lignes"></tbody>
+              </table>
+            </div>
+            <p id="nf-vide" class="muted" hidden style="padding:16px 0">Aucune dépense.</p>
+
+            <div class="nf-pied">
+              <div class="nf-exports">
+                <button type="button" id="nf-xlsx" class="ghost">⬇ Excel</button>
+                <button type="button" id="nf-pdf" class="ghost">⬇ PDF</button>
+                <button type="button" id="nf-justifs" class="ghost">⬇ Justificatifs (PDF unique)</button>
+              </div>
+              <div class="nf-total">
+                <span id="nf-total-label">À rembourser</span>
+                <b id="nf-total">—</b>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ---- Vue Serrures ---- -->
         <div id="view-locks" class="view hidden">
           <div class="crm-head">
@@ -3372,6 +3428,32 @@ Team Lausanne Tennis</textarea></label>
       <p class="muted" id="rod-meta" style="margin:0 0 14px"></p>
       <div id="rod-body"></div>
     </div>
+  </div>
+
+  <!-- Saisie et correction d'une dépense. Les champs arrivent pré-remplis
+       par la lecture du PDF ; tout reste modifiable avant validation. -->
+  <input type="file" id="nf-fichier" accept="application/pdf" hidden />
+  <div id="nf-modal" class="modal hidden">
+    <form class="card" id="nf-form">
+      <button type="button" id="nf-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="nf-modal-titre" style="margin-top:0">Dépense</h2>
+      <p id="nf-lu" class="nf-lu" hidden></p>
+      <input type="hidden" id="nf-id" />
+      <div class="nf-grille">
+        <label>Date de la dépense<input type="date" id="nf-date" required /></label>
+        <label>Montant (CHF)<input type="number" id="nf-montant" step="0.05" min="0.05" required /></label>
+        <label>Catégorie<select id="nf-cat" required></select></label>
+        <label>N° de transaction<input type="text" id="nf-no" placeholder="(facultatif)" /></label>
+      </div>
+      <label>Note<input type="text" id="nf-note" placeholder="À quoi servait cette dépense ?" /></label>
+      <p id="nf-justif" class="muted" style="font-size:.86rem;margin:10px 0 0"></p>
+      <div class="form-foot">
+        <button type="button" id="nf-suppr" class="danger-ghost">Supprimer</button>
+        <span class="spacer"></span>
+        <button type="submit" id="nf-save">Enregistrer</button>
+      </div>
+      <p id="nf-err" class="error" hidden></p>
+    </form>
   </div>
 
   <div id="copyweek-modal" class="modal hidden">
