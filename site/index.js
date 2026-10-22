@@ -76,7 +76,9 @@ const partLogo = (p) => `assets/partenaires/${p.l}.${p.svg ? "svg" : "png"}`;
 // page, lui, appartient a l'academie et ne porte que ses deux partenaires. Une
 // seule liste de donnees, deux sous-ensembles.
 const PARTENAIRES_ACADEMIE = ["garage-plaine", "bs-architectes"]
-  .map((l) => PARTENAIRES.find((p) => p.l === l)).filter(Boolean);
+  .map((l) => PARTENAIRES.find((p) => p.l === l)).filter(Boolean)
+  // Partenaire de l'academie seulement, donc hors de la liste du tournoi (22.10.2026).
+  .concat([{ n: "Tennis-Point", l: "tennis-point", w: 200, h: 63, u: "https://www.tennis-point.ch/", svg: true }]);
 
 
 // ===================================================================
