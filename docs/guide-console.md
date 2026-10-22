@@ -65,7 +65,7 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | Anniversaires | Qui fête quoi | admin, secrétariat, head coach |
 | Études | Sport-études | admin, profs |
 | Mental | Suivi mental | admin, coach mental |
-| CSEL | Repas et études CSEL | admin |
+| CSEL | Repas et études CSEL | admin ; Séline et Arsalan en lecture (repas seulement) |
 | GameZone | Tournois juniors | admin, organisateur |
 | Caisse | Caisse du secrétariat | admin, secrétariat |
 | Factures | Toute la facturation | admin |
@@ -685,10 +685,17 @@ répondra qu'elle ne sait pas, et la question remontera dans
 - **Physique** — « Par jeune » et « Routines ».
 - **Études** — « Calendrier », « Par jeune », « Profs », « Réglages ».
   « Appliquer le planning », « Attribuer », « Générer le calendrier ».
+  La grille du Calendrier ne montre que les élèves qui viennent en étude : un
+  jeune « pas prévu » tous les jours de la saison (planning posé dans « Par
+  jeune ») n'y a pas de colonne. Ses leçons privées restent écrites sous la
+  date, à gauche, pour que les profs les voient.
 - **Mental** — « Calendrier », « Participants », « Routines ».
   « + Ajouter une séance ».
 - **CSEL** — « Repas de midi », « Études », « Totaux repas ».
   « Réinitialiser selon le contrat », « Exporter en PDF ».
+  Le secrétariat (Séline, Arsalan) voit les repas et les totaux sans pouvoir
+  les changer : pas de clic sur les cases, pas de « Réinitialiser », pas de
+  sous-onglet Études. Les changements de la semaine restent à l'admin.
 - **GameZone** — tournois juniors, sept sous-onglets. « Gérer le tournoi »,
   « Nommer responsable », « J'ai pris » / « Pas encore pris »,
   « Clôturer le tournoi ».

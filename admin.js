@@ -18086,6 +18086,11 @@ async function loadBirthdays() {
 const CSEL_ROLES = ["sport-etudes", "pro", "pro-u18"];
 const CSEL_ROLE_LBL = { "sport-etudes": "Sport-études", "pro": "Pro", "pro-u18": "Pro U18" };
 let cselSub = "repas", cselMonday = null, cselDefaults = {};
+// Le secrétariat (onglet ouvert nominativement, Réglages › tab_allow) LIT le planning des repas sans le
+// modifier : les exceptions par semaine restent réservées aux admins (RLS csel_meal_overrides, db/202).
+// Le sous-onglet Études leur est retiré : les tables etudes_* ne leur sont pas lisibles.
+const cselCanEdit = () => hasAny(myAppRoles, ["superadmin", "admin"]);
+const cselCanEtudes = () => hasAny(myAppRoles, ["superadmin", "admin", "head_coach", "prof"]);
 
 const cselMondayOf = (iso) => { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoA(d); };
 function cselWeekDates() { return PC_DAYS.map((_, i) => { const d = new Date(cselMonday + "T00:00:00"); d.setDate(d.getDate() + i); return isoA(d); }); }
@@ -18100,6 +18105,8 @@ async function loadCsel() {
   const wk = $("csel-week");
   if (!wk.dataset.wired) {
     wk.dataset.wired = "1";
+    if (!cselCanEdit()) { $("csel-reset").remove(); $("csel-repas-hint").textContent = "Défaut = contrat du jeune, avec les changements de la semaine faits par l'administration. ✔ = mange au CSEL."; }
+    if (!cselCanEtudes()) document.querySelector('#view-csel .csel-subtab[data-sub="etudes"]')?.remove();
     wk.addEventListener("change", () => { cselMonday = cselMondayOf(wk.value || isoA(new Date())); renderCsel(); });
     $("csel-prev").addEventListener("click", () => cselShift(-7));
     $("csel-next").addEventListener("click", () => cselShift(7));
@@ -18111,7 +18118,7 @@ async function loadCsel() {
       $("csel-sub-repas").classList.toggle("hidden", cselSub !== "repas");
       $("csel-sub-etudes").classList.toggle("hidden", cselSub !== "etudes");
       $("csel-sub-totaux").classList.toggle("hidden", cselSub !== "totaux");
-      $("csel-reset").classList.toggle("hidden", cselSub !== "repas");
+      $("csel-reset")?.classList.toggle("hidden", cselSub !== "repas");
       // Totaux = vue par mois : la navigation par semaine et le PDF hebdo n'ont pas de sens ici.
       ["csel-prev", "csel-next", "csel-week", "csel-range", "csel-pdf"].forEach((id) => { const e = $(id); if (e) e.classList.toggle("hidden", cselSub === "totaux"); });
       renderCsel();
@@ -18161,7 +18168,7 @@ async function renderCselRepas(dates) {
       const dow = i + 1, ov = ovrMap[p.id]?.[dow];
       const on = ov === undefined ? dflt : ov;
       if (on) { totals[i]++; cnt++; }
-      return `<td class="csel-c ${on ? "csel-yes" : "csel-no"}" data-p="${p.id}" data-dow="${dow}" title="Cliquer pour changer">${on ? "✔" : "—"}</td>`;
+      return `<td class="csel-c ${on ? "csel-yes" : "csel-no"}" data-p="${p.id}" data-dow="${dow}"${cselCanEdit() ? ' title="Cliquer pour changer"' : ""}>${on ? "✔" : "—"}</td>`;
     }).join("");
     const sub = isCoach ? "Coach" : (roleByPerson[p.id] || []).map((r) => CSEL_ROLE_LBL[r] || r).join(", ");
     return `<tr><td><b>${esc(p.last_name)} ${esc(p.first_name)}</b></td><td class="muted">${esc(sub)}</td>${cells}<td class="csel-c"><b>${cnt}</b></td></tr>`;
@@ -18175,7 +18182,7 @@ async function renderCselRepas(dates) {
     <thead><tr><th>Nom</th><th>Filière</th>${PC_DAYS.map(([, l], i) => `<th>${l}<br><span class="csel-dh">${dates[i].slice(8, 10)}.${dates[i].slice(5, 7)}</span></th>`).join("")}<th>Sem.</th></tr></thead>
     <tbody>${youthRows ? sep("Jeunes") + youthRows : ""}${coachRows ? sep("Coachs / staff") + coachRows : ""}</tbody>
     <tfoot>${foot}</tfoot></table></div>`;
-  body.querySelectorAll(".csel-c[data-p]").forEach((c) => c.addEventListener("click", () => cselToggle(c)));
+  if (cselCanEdit()) body.querySelectorAll(".csel-c[data-p]").forEach((c) => c.addEventListener("click", () => cselToggle(c)));
 }
 
 async function cselToggle(cell) {
@@ -18382,7 +18389,7 @@ async function loadEtudesCalendar() {
   const seasonId = $("et-season").value;
   const cont = $("et-calendar");
   if (!seasonId) { cont.innerHTML = '<p class="muted" style="font-size:.85rem">Crée d\'abord une saison juniors (Réglages › Saisons).</p>'; return; }
-  const youths = await etYouthsForSeason(seasonId);
+  const tous = await etYouthsForSeason(seasonId);
   const { data: days } = await sb.from("etudes_days").select("*").eq("season_id", seasonId).order("day");
   const dayIds = (days || []).map((d) => d.id);
   let profs = [], att = [], etvals = [];
@@ -18395,6 +18402,10 @@ async function loadEtudesCalendar() {
   }
   const priv = await etPrivees(days || []);
   const attOf = (dayId, yid) => att.find((a) => a.day_id === dayId && a.youth_person_id === yid)?.status || "";
+  // Colonnes = les élèves qui viennent en étude : un sport-études « pas prévu » TOUS les jours de la saison
+  // (planning posé dans « Par jeune ») n'a rien à faire dans la grille du prof (22.10.2026 : 3 élèves sur 11).
+  // Ses leçons privées restent dans la colonne de gauche (« tous »), où les profs les voient.
+  const youths = tous.filter((y) => (days || []).some((d) => attOf(d.id, y.id) !== "not_planned"));
   // Colonnes triées : jeunes qui viennent le plus souvent d'abord (moins de « pas prévu »), puis prénom.
   const npCount = {};
   for (const a of att) if (a.status === "not_planned") npCount[a.youth_person_id] = (npCount[a.youth_person_id] || 0) + 1;
@@ -18432,11 +18443,11 @@ async function loadEtudesCalendar() {
     // lettres plutôt que laissé à une infobulle : au doigt, une infobulle ne
     // s'ouvre pas, et c'est justement l'information qui évite l'inquiétude.
     const creneaux = Object.values(priv.parJour[d.day] || {})
-      .filter((c) => c.eleves.some((id) => youths.some((y) => y.id === id)))
+      .filter((c) => c.eleves.some((id) => tous.some((y) => y.id === id)))
       .sort((a, b) => a.h1.localeCompare(b.h1));
     const ligneP = creneaux.length ? `<div class="et-priv" title="Leçon privée de tennis — ces élèves ne sont pas en étude sur ce créneau">
         ${creneaux.map((c) => `<div class="et-priv-l">${ICO_BALLE}<b>${esc(c.h1)}${c.h2 ? `\u2013${esc(c.h2)}` : ""}</b>
-          <span>${esc(c.eleves.filter((id) => youths.some((y) => y.id === id)).map(nmF).join(", "))}</span></div>`).join("")}
+          <span>${esc(c.eleves.filter((id) => tous.some((y) => y.id === id)).map(nmF).join(", "))}</span></div>`).join("")}
       </div>` : "";
     html += `<tr class="${notMine ? "et-notmine" : ""}"><td class="et-datecell"><div><b>${etDow(d.day)}</b> ${frDate(d.day)}</div><div class="et-dprofs">${dprofs}${editBtn}</div>${ligneP}</td>`
       + youths.map((y) => {
