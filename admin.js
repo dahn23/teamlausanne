@@ -18087,9 +18087,10 @@ const CSEL_ROLES = ["sport-etudes", "pro", "pro-u18"];
 const CSEL_ROLE_LBL = { "sport-etudes": "Sport-études", "pro": "Pro", "pro-u18": "Pro U18" };
 let cselSub = "repas", cselMonday = null, cselDefaults = {};
 // Le secrétariat (onglet ouvert nominativement, Réglages › tab_allow) LIT le planning des repas sans le
-// modifier : les exceptions par semaine restent réservées aux admins (RLS csel_meal_overrides, db/202).
+// modifier : les exceptions par semaine restent réservées aux admins (RLS csel_meal_overrides, db/202)…
+// … et aux personnes nommées dans app_settings.csel_editors (Séline, db/203 ; même liste que la RLS).
 // Le sous-onglet Études leur est retiré : les tables etudes_* ne leur sont pas lisibles.
-const cselCanEdit = () => hasAny(myAppRoles, ["superadmin", "admin"]);
+const cselCanEdit = () => hasAny(myAppRoles, ["superadmin", "admin"]) || (settings.csel_editors || []).includes(meId);
 const cselCanEtudes = () => hasAny(myAppRoles, ["superadmin", "admin", "head_coach", "prof"]);
 
 const cselMondayOf = (iso) => { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoA(d); };

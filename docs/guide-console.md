@@ -65,7 +65,7 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | Anniversaires | Qui fête quoi | admin, secrétariat, head coach |
 | Études | Sport-études | admin, profs |
 | Mental | Suivi mental | admin, coach mental |
-| CSEL | Repas et études CSEL | admin ; Séline et Arsalan en lecture (repas seulement) |
+| CSEL | Repas et études CSEL | admin, Séline (repas) ; Arsalan en lecture (repas) |
 | GameZone | Tournois juniors | admin, organisateur |
 | Caisse | Caisse du secrétariat | admin, secrétariat |
 | Factures | Toute la facturation | admin |
@@ -693,9 +693,9 @@ répondra qu'elle ne sait pas, et la question remontera dans
   « + Ajouter une séance ».
 - **CSEL** — « Repas de midi », « Études », « Totaux repas ».
   « Réinitialiser selon le contrat », « Exporter en PDF ».
-  Le secrétariat (Séline, Arsalan) voit les repas et les totaux sans pouvoir
-  les changer : pas de clic sur les cases, pas de « Réinitialiser », pas de
-  sous-onglet Études. Les changements de la semaine restent à l'admin.
+  Séline voit les repas et les totaux et peut changer les cases de la semaine
+  comme un admin (« Réinitialiser » compris). Arsalan les voit sans pouvoir
+  les changer. Ni l'un ni l'autre n'a le sous-onglet Études.
 - **GameZone** — tournois juniors, sept sous-onglets. « Gérer le tournoi »,
   « Nommer responsable », « J'ai pris » / « Pas encore pris »,
   « Clôturer le tournoi ».
