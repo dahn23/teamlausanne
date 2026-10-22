@@ -396,12 +396,36 @@ Les heures des coachs et des profs, pour la paie. Deux sous-onglets :
 2. « ⬇ Décompte PDF » pour le document, ou « Exporter (CSV) » pour le tableur.
 3. « ✉ Envoyer à la fiduciaire » transmet.
 
+### Payer un camp à l'heure plutôt qu'au forfait
+
+L'encadrement d'un camp se paie normalement **au forfait** : le montant est
+posé sur la fiche du coach dans le camp, et une semaine de stage ne produit
+aucun cours. Quand on convient exceptionnellement de le payer **à l'heure**,
+il faut faire les deux gestes, dans cet ordre :
+
+1. **Poser les heures.** Créer un cours par demi-journée dans Cours →
+   Planning, aux vraies heures, avec le coach dessus — et **le marquer
+   présent**. Sans la présence, le cours existe mais compte **zéro heure** :
+   c'est la règle du décompte, pas un bug.
+2. **Retirer le forfait du camp.** Dans la fiche du camp, mettre son forfait à
+   **0** et écrire pourquoi dans la note.
+
+**Le deuxième geste est celui qu'on oublie.** Le forfait et les heures
+s'additionnent : un coach à qui l'on pose 15 h à 40.– sans toucher à son
+forfait de 350.– reçoit 950.– au lieu de 600.–, et rien à l'écran ne le
+signale.
+
+*Exemple réel — Yann Perez, camp d'automne semaine 2 (19–23.10.2026) : 3 h
+chaque matin à 40.–, soit 600.–, à la place du forfait de 350.–.*
+
 ### Bon à savoir
 
 - **Un coach à 0 h qui a donné cours** : voir Cours → « un cours détaillé sans
   segment compte zéro ».
 - Les coordonnées bancaires et les tarifs d'un coach se règlent dans son
   sous-onglet Coach, pas ici.
+- **Le tarif horaire** d'un coach est enregistré une fois et s'applique tout
+  seul au décompte : il n'y a rien à ressaisir chaque mois.
 
 ---
 
