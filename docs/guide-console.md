@@ -358,6 +358,16 @@ Une facture naît au statut **« à envoyer »** : elle existe, rien n'est parti
 Pour l'envoyer, la cocher dans « Émises — à encaisser » puis
 **« ✉ Envoyer la sélection »**.
 
+### Retrouver une facture
+
+Le champ de recherche cherche dans le **numéro**, le **destinataire**, le
+**joueur**, l'**e-mail**, le **libellé** et le **montant**. Plusieurs mots se
+cumulent : « loit 1500 » ne rend que cette facture-là.
+
+Pour le montant, toutes les écritures marchent — « 1500 », « 1'500 »,
+« 1 500 », « 1500.00 », « 1500,00 ». Le montant est comparé **en entier** :
+taper « 50 » ne sort pas les factures de 1 500.–.
+
 ### Ce que porte une facture
 
 - Un **numéro** de la forme `2026-0364`, qui se suit dans l'année.

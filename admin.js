@@ -11897,13 +11897,31 @@ function oiBrancherRecherche() {
 // Comparaison sans accents ni casse : « devaud » doit trouver « Dévaud ».
 const oiNorm = (v) => String(v || "").normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
+// Un mot qui porte un chiffre est peut-être un montant. On enlève les
+// séparateurs de milliers et on ramène la virgule décimale au point, pour que
+// « 1'500 », « 1 500 » et « 1500,00 » cherchent tous la même chose. Les mots
+// sans chiffre ne sont pas touchés : un nom garde ses apostrophes.
+const oiNombre = (m) => (/\d/.test(m) ? m.replace(/['’\s]/g, "").replace(",", ".") : m);
+
 function oiCorrespond(f) {
   if (!oiRech) return true;
-  const mots = oiNorm(oiRech).split(/\s+/).filter(Boolean);
+  // « 1 500 » doit rester un seul mot. On ne recolle QUE des groupes de
+  // milliers — un espace suivi d'exactement trois chiffres — pour ne pas
+  // souder deux nombres voisins : « 3 10 » et « 2026 0364 » sont intacts.
+  const brut = oiNorm(oiRech).replace(/(\d)\s(?=\d{3}\b)/g, "$1");
+  const mots = brut.split(/\s+/).filter(Boolean).map(oiNombre);
   const foin = oiNorm([f.number, f.player_name, f.debtor_name, f.debtor_email, f.label, f.filiere,
                        Array.isArray(f.items) ? f.items.map((i) => i.label).join(" ") : ""].join(" "));
+  const mt = Number(f.amount);
+  // Le montant se compare en NOMBRE, pas en texte. Jeté dans la botte de foin,
+  // « 1500.00 » répondrait à « 50 » — un bout de montant n'est pas un montant.
+  // Au nombre, « 1500 » et « 1500.00 » trouvent la facture, « 50 » non.
+  const estLeMontant = (m) => {
+    if (!/^\d+(\.\d+)?$/.test(m) || !Number.isFinite(mt)) return false;
+    return Math.abs(Number(m) - mt) < 0.005;
+  };
   // Tous les mots doivent être présents : « picci 3/10 » ne rend que cette échéance.
-  return mots.every((m) => foin.includes(m));
+  return mots.every((m) => foin.includes(m) || estLeMontant(m));
 }
 
 // Un filtre vaut pour l'ensemble : « Toutes » (valeur vide) vide l'ensemble,
