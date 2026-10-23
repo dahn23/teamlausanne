@@ -9335,6 +9335,8 @@ async function phxRenderYouth() {
       <h3 class="phx-h">Routine</h3>
       <div class="phx-assign">${phxRoutines.map((r) => `<label class="rg-check"><input type="checkbox" class="phx-as" value="${r.id}"${mine.some((m) => m.id === r.id) ? " checked" : ""} /> ${esc(r.title)}</label>`).join("") || '<span class="muted">Aucune routine : crée-en une dans « Routines ».</span>'}</div>
       <div id="phx-preview">${mine.length ? mine.map((r) => phxRoutineHtml(r, false)).join("") : '<p class="muted" style="margin:6px 0 0">Aucune routine attribuée : le jeune voit « Pas encore de routine ».</p>'}</div>
+      <h3 class="phx-h" style="margin-top:18px">Vidéos et photos <span class="muted" style="font-weight:400;font-size:.8rem">— le jeune les voit dans Mon espace › Physique › Vidéos</span></h3>
+      <div id="phx-media"></div>
       <h3 class="phx-h" style="margin-top:18px">Prépa physique <span class="muted" style="font-weight:400;font-size:.8rem">— discussion avec le jeune</span></h3>
       <div id="phx-thread"></div>
     </div>`;
@@ -9348,7 +9350,66 @@ async function phxRenderYouth() {
     else phxAssign = phxAssign.filter((a) => !(a.routine_id === c.value && a.person_id === pid));
     phxRenderYouth();
   }));
+  physMedia("phx-media", pid);
   physThread("phx-thread", pid);
+}
+
+// ---- Vidéos et photos du coach, par jeune (db/204) ----
+// Ce que le coach filme ou photographie pour UN jeune, avec son commentaire : le jeune le retrouve dans
+// Mon espace › Physique › Vidéos. Bucket privé « physique », dossier « <jeune>/media/ » : la policy de stockage
+// ouvre ces fichiers au staff physique et à la famille du jeune, à personne d'autre. Toutes les filières de
+// Physique (compétition et performance comprises), à la différence de la discussion Prépa physique.
+async function physMedia(mountId, youthId) {
+  const el = $(mountId); if (!el) return;
+  const { data, error } = await sb.from("phys_media").select("*").eq("youth_person_id", youthId).order("created_at", { ascending: false });
+  if ($(mountId) !== el) return;
+  if (error) { el.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  const rows = data || [], edit = canPhysEdit();
+  el.innerHTML = (edit ? `<div class="phm-add">
+      <label class="mt-file-lbl">📎 Choisir une vidéo ou une photo<input type="file" class="phm-file" accept="video/*,image/*" hidden></label>
+      <span class="phm-fname muted"></span>
+      <textarea class="phm-com" rows="2" placeholder="Commentaire pour le jeune (ce qu'il doit regarder, corriger…)"></textarea>
+      <div class="mt-crow"><span class="phm-st muted"></span><span class="spacer"></span><button type="button" class="phm-go">Ajouter</button></div>
+    </div>` : "")
+    + (rows.length ? `<div class="media-grid">${rows.map((m) => `<div class="media-card" data-id="${m.id}">
+        <div class="media-thumb">${m.kind === "video" ? `<video class="phm-m" data-path="${esc(m.storage_path)}" controls playsinline preload="metadata"></video>` : `<img class="phm-m" data-path="${esc(m.storage_path)}" alt="">`}</div>
+        ${edit ? `<textarea class="media-comment phm-c" rows="2" placeholder="Commentaire…">${esc(m.comment || "")}</textarea>` : (m.comment ? `<p class="phm-ctxt">${esc(m.comment)}</p>` : "")}
+        <div class="phm-meta muted">${frDate(m.created_at)}${m.author_name ? " · " + esc(m.author_name) : ""}</div>
+        ${edit ? `<button type="button" class="media-del phm-del">Supprimer</button>` : ""}
+      </div>`).join("")}</div>` : '<p class="obj-empty">Aucune vidéo ni photo pour ce jeune.</p>');
+  el.querySelectorAll(".phm-m").forEach(async (m) => {
+    const { data: u } = await sb.storage.from("physique").createSignedUrl(m.dataset.path, 3600);
+    if (u?.signedUrl) m.src = u.signedUrl;
+  });
+  if (!edit) return;
+  const fi = el.querySelector(".phm-file");
+  fi.addEventListener("change", () => { el.querySelector(".phm-fname").textContent = fi.files[0]?.name || ""; });
+  el.querySelector(".phm-go").addEventListener("click", async (e) => {
+    const f = fi.files[0], st = el.querySelector(".phm-st");
+    if (!f) { st.textContent = "Choisis d'abord une vidéo ou une photo."; return; }
+    if (f.size > 50 * 1024 * 1024) { st.textContent = "Fichier trop lourd (50 Mo au maximum) : filme en 1080p plutôt qu'en 4K, ou plus court."; return; }
+    const kind = f.type.startsWith("video") ? "video" : "image";
+    e.currentTarget.disabled = true; st.textContent = "Envoi…";
+    const path = `${youthId}/media/${crypto.randomUUID()}_${f.name.replace(/[^\w.\-]/g, "_")}`;
+    const up = await sb.storage.from("physique").upload(path, f, { contentType: f.type || undefined });
+    if (up.error) { st.textContent = "Échec du fichier : " + up.error.message; e.currentTarget.disabled = false; return; }
+    const { error: ie } = await sb.from("phys_media").insert({ youth_person_id: youthId, storage_path: path, file_name: f.name, kind,
+      comment: el.querySelector(".phm-com").value.trim() || null, author_person_id: myPersonId, author_name: meName, created_by: meId });
+    if (ie) { await sb.storage.from("physique").remove([path]); st.textContent = "Erreur : " + ie.message; e.currentTarget.disabled = false; return; }
+    physMedia(mountId, youthId);
+  });
+  el.querySelectorAll(".phm-c").forEach((t) => t.addEventListener("blur", async () => {
+    const { error: ue } = await sb.from("phys_media").update({ comment: t.value.trim() || null, updated_at: new Date().toISOString() }).eq("id", t.closest(".media-card").dataset.id);
+    if (ue) uiAlert("Commentaire : " + ue.message);
+  }));
+  el.querySelectorAll(".phm-del").forEach((b) => b.addEventListener("click", async () => {
+    const m = rows.find((x) => x.id === b.closest(".media-card").dataset.id); if (!m) return;
+    if (!await uiConfirm("Supprimer cette vidéo / photo ? Le jeune ne la verra plus.")) return;
+    const { error: de } = await sb.from("phys_media").delete().eq("id", m.id);
+    if (de) { uiAlert(de.message); return; }
+    await sb.storage.from("physique").remove([m.storage_path]);
+    physMedia(mountId, youthId);
+  }));
 }
 
 // ---- Fil « Prépa physique » (console et fiche du jeune) : texte, lien, photo, vidéo, document ----

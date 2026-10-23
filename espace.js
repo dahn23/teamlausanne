@@ -1,5 +1,5 @@
 // Mon espace — portail membre (jeunes & parents). 100% responsive.
-import { sb, myRoles, hasAny, CONSOLE_ROLES, isGzManager, rememberSpace, initNativePush, releaseNativePush, openDeleteAccount } from "./common.js";
+import { sb, myRoles, hasAny, CONSOLE_ROLES, isGzManager, rememberSpace, initNativePush, releaseNativePush, openDeleteAccount, frDate } from "./common.js";
 import { ONESIGNAL_APP_ID, SITE_PUBLIC, SAISON_COURS, RESEAUX } from "./config.js";
 
 /* ============================================================
@@ -1742,6 +1742,7 @@ const compTete = (eyebrow, titre, sous) => `
 const SOUS_ICONES = {
   routine: `<path d="M6.5 8v8M3.5 10v4M17.5 8v8M20.5 10v4M6.5 12h11"/>`,
   prepa: `<path d="M20 15a3 3 0 0 1-3 3H8l-4 3V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3z"/>`,
+  videos: `<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m10 9.2 5 2.8-5 2.8z"/>`,
   messages: `<path d="M20 15a3 3 0 0 1-3 3H8l-4 3V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3z"/>`,
   focus: `<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>`,
   routines: `<path d="M12 3a5 5 0 0 0-3 9c.6.5 1 1 1 2h4c0-1 .4-1.5 1-2a5 5 0 0 0-3-9z"/><path d="M9.5 20h5M10 17h4"/>`,
@@ -1792,15 +1793,12 @@ function renderPhysique() {
   const host = $("view-physique");
   if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>Réservé aux joueurs de compétition.</p></div>`; return; }
   phSel = playerPick(phSel);
-  // Compétition et performance : routines seules, pas de discussion Prépa physique (db/118).
-  if (!ELITE.has(phSel)) {
-    phSub = "routine";
-    host.innerHTML = playerSelHtml(phSel) + compTete("Préparation physique", "Ton corps", "T échauffer avant, tenir pendant, récupérer après.") + `<div id="ph-sub"></div>`;
-    host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { phSel = b.dataset.id; renderPhysique(); }));
-    renderPhRoutines(); return;
-  }
+  // Compétition et performance : routines et vidéos, pas de discussion Prépa physique (db/118).
+  const onglets = [["routine", "Routine"], ["videos", "Vidéos"]];
+  if (ELITE.has(phSel)) onglets.push(["prepa", "Prépa physique"]);
+  else if (phSub === "prepa") phSub = "routine";
   host.innerHTML = playerSelHtml(phSel) + compTete("Préparation physique", "Ton corps", "T échauffer avant, tenir pendant, récupérer après.")
-    + compSousOnglets(phSub, [["routine", "Routine"], ["prepa", "Prépa physique"]])
+    + compSousOnglets(phSub, onglets)
     + `<div id="ph-sub"></div>`;
   host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { phSel = b.dataset.id; renderPhysique(); }));
   host.querySelectorAll(".comp-subtab").forEach((b) => b.addEventListener("click", () => {
@@ -1816,7 +1814,28 @@ const phExCard = (x, i) => `<div class="ph-card">
     <div class="ph-card-b"><div class="ph-card-t"><span class="ph-num">${i + 1}</span><b>${escHtml(x.name || "")}</b></div>
       ${x.dose && x.dose !== "—" ? `<span class="ph-dose">${escHtml(x.dose)}</span>` : ""}
       ${x.how ? `<p>${escHtml(x.how)}</p>` : ""}</div></div>`;
-function renderPhSub() { if (phSub === "prepa") renderPhThread(); else renderPhRoutines(); }
+function renderPhSub() { if (phSub === "prepa") renderPhThread(); else if (phSub === "videos") renderPhVideos(); else renderPhRoutines(); }
+// « Vidéos » (db/204) : ce que le coach physique a filmé ou photographié pour ce jeune, avec son commentaire.
+// Fichiers du bucket privé « physique » (dossier <jeune>/media/), lus par liens signés.
+async function renderPhVideos() {
+  const host = $("ph-sub"); if (!host) return;
+  host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
+  const { data, error } = await sb.from("phys_media").select("id,kind,comment,storage_path,author_name,created_at")
+    .eq("youth_person_id", phSel).order("created_at", { ascending: false });
+  if ($("ph-sub") !== host) return;
+  const rows = error ? [] : (data || []);
+  if (!rows.length) { host.innerHTML = `<div class="pt-empty"><p>Pas encore de vidéo pour toi. Ton coach physique t'en mettra ici, avec ses conseils.</p></div>`; return; }
+  host.innerHTML = rows.map((m) => `<div class="ph-vid">
+      ${m.kind === "video" ? `<video class="ph-vid-m" data-path="${escHtml(m.storage_path)}" controls playsinline preload="metadata"></video>`
+        : `<img class="ph-vid-m" data-path="${escHtml(m.storage_path)}" alt="">`}
+      ${m.comment ? `<p class="ph-vid-c">${escHtml(m.comment).replace(/\n/g, "<br/>")}</p>` : ""}
+      <div class="ph-vid-meta">${m.author_name ? escHtml(m.author_name) + " · " : ""}${frDate(m.created_at)}</div>
+    </div>`).join("");
+  host.querySelectorAll(".ph-vid-m").forEach(async (el) => {
+    const { data: u } = await sb.storage.from("physique").createSignedUrl(el.dataset.path, 3600);
+    if (u?.signedUrl) el.src = u.signedUrl;
+  });
+}
 async function renderPhRoutines() {
   const host = $("ph-sub"); if (!host) return;
   host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';

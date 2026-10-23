@@ -5920,3 +5920,14 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .voir-bandeau{display:flex;flex-direction:column;gap:2px;margin:0 0 14px;padding:9px 12px;border-radius:10px;
   background:#fff7e6;border:1px solid #f0c774;color:#6b4a00;font-size:.82rem;line-height:1.35}
 .voir-bandeau b{font-size:.88rem;color:#4a3300}
+
+/* Physique › Vidéos et photos (db/204). Console : ajout + vignettes du coach ; Mon espace : une carte par vidéo,
+   pleine largeur, le commentaire du coach dessous — c'est lui qui dit quoi regarder. */
+.phm-add{display:flex;flex-direction:column;gap:8px;padding:12px;margin:0 0 12px;border:1px dashed var(--line);border-radius:12px;background:#fafbfd}
+.phm-add .phm-com{width:100%;box-sizing:border-box}
+.phm-meta{font-size:.74rem;padding:4px 10px 6px}
+.phm-ctxt{margin:0;padding:8px 10px 0;font-size:.84rem}
+.ph-vid{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin:0 0 14px;box-shadow:0 1px 2px rgba(16,24,40,.05)}
+.ph-vid-m{display:block;width:100%;max-height:70vh;background:#000;object-fit:contain}
+.ph-vid-c{margin:0;padding:12px 14px 4px;font-size:.95rem;line-height:1.45}
+.ph-vid-meta{padding:4px 14px 12px;font-size:.78rem;color:var(--muted)}

@@ -703,7 +703,14 @@ répondra qu'elle ne sait pas, et la question remontera dans
 - **Feuille de match** — « Remplir en tant que coach », « Formulaires remplis
   en tant que coach », « Toutes les feuilles », « Correspondances à valider ».
 - **Tests phys.** — « + Remplir un test », « + Nouveau test ».
-- **Physique** — « Par jeune » et « Routines ».
+- **Physique** — « Par jeune » et « Routines ». La page d'un jeune a trois
+  parties : ses routines (cases à cocher), « Vidéos et photos » (choisir un
+  fichier, écrire un commentaire, « Ajouter » ; 50 Mo au plus, donc filmer en
+  1080p plutôt qu'en 4K) et la discussion « Prépa physique ». Les vidéos et
+  photos sont privées : seuls le staff physique et le jeune (et sa famille) les
+  voient, dans Mon espace › Physique › Vidéos, avec le commentaire. C'est là
+  qu'on met une vidéo destinée au joueur, pas dans Fiche › Photos / vidéos
+  (que le joueur ne voit pas).
 - **Études** — « Calendrier », « Par jeune », « Profs », « Réglages ».
   « Appliquer le planning », « Attribuer », « Générer le calendrier ».
   La grille du Calendrier ne montre que les élèves qui viennent en étude : un
