@@ -171,6 +171,9 @@ async function startApp() {
   bindBot();
   // Ouvert depuis une notification (« ?vue=physique ») : on va droit à l'onglet, s'il existe pour ce compte.
   const vue = new URLSearchParams(location.search).get("vue") || "";
+  // « &sous=videos » (notification d'une nouvelle vidéo, db/205) : on ouvre Physique directement sur ce sous-onglet.
+  const sous = new URLSearchParams(location.search).get("sous") || "";
+  if (vue === "physique" && ["routine", "videos", "prepa"].includes(sous)) phSub = sous;
   const btnVue = VIEW_TITLES[vue] && document.querySelector(`.pt-nav-item[data-view="${vue}"]`);
   switchView(btnVue && !btnVue.classList.contains("hidden") ? vue : "accueil");
 
