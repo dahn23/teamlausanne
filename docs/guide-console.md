@@ -547,7 +547,10 @@ Sous-onglets « Personnes » et « Locations de courts ».
 
 ### Créer et retrouver
 
-« + Nouveau » crée une fiche. Le champ de recherche filtre la liste.
+« + Nouveau » crée une fiche. Le champ de recherche filtre la liste : nom,
+e-mail, téléphone **ou adresse** (rue, code postal, localité). Plusieurs mots
+se combinent et les accents ne comptent pas : « pully cour » trouve les gens
+de l'avenue de Cour à Pully.
 « + Nouveau locataire » pour une location de court.
 
 ### Les trois notions de rôle

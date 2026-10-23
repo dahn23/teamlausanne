@@ -1693,17 +1693,20 @@ async function confirmImport() {
 }
 
 function renderRows() {
-  const q = $("search").value.trim().toLowerCase();
+  // Chaque mot tapé doit se trouver quelque part sur la fiche (nom, e-mail, téléphone ou adresse), sans tenir
+  // compte des accents : « pully cour » trouve « Avenue de Cour, 1009 Pully ».
+  const mots = norm($("search").value).split(/\s+/).filter(Boolean);
   const rows = people.filter((p) => {
     const roles = peopleRoles[p.id] || [];
     // « some » et non « every » : cocher Kids Tennis et Club doit donner les
     // deux listes réunies. Avec « every » on n'aurait gardé que les personnes
     // appartenant aux DEUX à la fois — presque toujours personne.
     if (activeFilters.size && !roles.some((r) => activeFilters.has(r))) return false;
-    if (!q) return true;
+    if (!mots.length) return true;
     const emails = [p.email, ...(p.emails || [])].join(" ");
     const phones = [p.phone, ...(p.phones || [])].join(" ");
-    return (`${p.first_name} ${p.last_name} ${emails} ${phones}`).toLowerCase().includes(q);
+    const texte = norm(`${p.first_name} ${p.last_name} ${emails} ${phones} ${p.address || ""} ${p.postal_code || ""} ${p.city || ""}`);
+    return mots.every((m) => texte.includes(m));
   });
   const n = rows.length;
   // « ou » et non une virgule : avec plusieurs catégories, une virgule se lit
