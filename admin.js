@@ -51,6 +51,14 @@ let meName = null;
 let meRoles = [];                // rôles d'accès du compte connecté (user_roles), remplis à la connexion
 let myPersonId = null;
 let isGzManager = false;         // responsable d'au moins un tournoi non clôturé
+// Aperçu « Voir comme » (voir voirComme plus bas) : déclaré ici, le démarrage le lit dès la connexion.
+const VOIR_ROLES = { coach_physique: "Coach physique", coach_mental: "Coach mental", coach: "Coach",
+  head_coach: "Head coach", moniteur: "Moniteur", prof: "Prof" };
+const VOIR = (() => {
+  const q = new URLSearchParams(location.search), r = q.get("voir");
+  return VOIR_ROLES[r] ? { role: r, qui: q.get("qui") || "" } : null;
+})();
+let VOIR_ACTIF = false;
 const pad2 = (n) => String(n).padStart(2, "0");
 // Rôles qui donnent accès à la console (staff + rôles à onglet dédié).
 // Un responsable de tournoi (rôle « responsable ») n'est pas staff mais a droit
@@ -80,14 +88,14 @@ if (!session) {
   });
 } else {
   $("who").textContent = session.user.email;
-  const roles = await myRoles();
+  const roles = voirComme(await myRoles());
   meRoles = roles;
   // « Responsable de tournoi » = être nommé responsable d'un tournoi NON clôturé
   // (table gz_managers). Ça ouvre l'accès GameZone (limité à ses tournois),
   // sans rôle app à attribuer : une seule et même notion.
   try {
     const { data: gzMgr } = await sb.rpc("gz_is_manager");
-    isGzManager = gzMgr === true;
+    isGzManager = gzMgr === true && !VOIR_ACTIF;
   } catch (_) {}
   $("loader").classList.add("hidden");
   if (!hasAny(roles, CONSOLE_ROLES) && !isGzManager) {
@@ -117,6 +125,7 @@ if (!session) {
         if (me) meName = `${me.first_name || ""} ${me.last_name || ""}`.trim() || meEmail;
       }
     } catch (_) {}
+    if (VOIR_ACTIF) await voirCommeIdentite();
     // Barre du haut : le nom cliquable ouvre « Mon profil ».
     $("who").textContent = meName;
     $("who").addEventListener("click", openMyProfile);
@@ -124,6 +133,61 @@ if (!session) {
     $("me-modal").addEventListener("click", (e) => { if (e.target === $("me-modal")) $("me-modal").classList.add("hidden"); });
     init(roles);
   }
+}
+
+// ---- Aperçu « Voir comme » : la console telle qu'un membre de l'encadrement la voit ----
+// « /console?voir=coach_physique&qui=<id de sa fiche> », ouvert dans le cadre de téléphone de l'onglet
+// Accès Mon espace. Sert à travailler la mise en page des écrans d'un rôle sans emprunter son téléphone.
+// - Réservé à l'admin : pour tout autre compte le paramètre est ignoré. Il ne fait d'ailleurs que RETIRER
+//   des onglets : les données restent celles que la RLS ouvre au compte connecté (l'admin), donc plus
+//   larges que celles du coach. Juste pour la mise en page, pas pour vérifier ses droits.
+// - « qui » remplace la fiche connectée (myPersonId), pour que les écrans filtrés sur « mes cours » ou
+//   « mes jours » montrent ceux du coach choisi.
+// - LECTURE SEULE, verrouillée ici : ce qui s'écrit depuis la console porte souvent myPersonId comme
+//   auteur — sans verrou, un clic dans l'aperçu publierait un message AU NOM du coach.
+// (VOIR_ROLES, VOIR et VOIR_ACTIF sont déclarés en tête de fichier : le démarrage les lit avant d'arriver ici.)
+function voirComme(vraisRoles) {
+  if (!VOIR || !hasAny(vraisRoles || [], ["superadmin", "admin"])) return vraisRoles;
+  VOIR_ACTIF = true;
+  voirVerrouiller();
+  return [VOIR.role];
+}
+async function voirCommeIdentite() {
+  if (/^[0-9a-f-]{36}$/i.test(VOIR.qui)) {
+    const { data: p } = await sb.from("people").select("id,first_name,last_name").eq("id", VOIR.qui).maybeSingle();
+    if (p) { myPersonId = p.id; meName = `${p.first_name || ""} ${p.last_name || ""}`.trim(); }
+  }
+  // Une déconnexion depuis le cadre fermerait la session de l'admin dans tout le navigateur.
+  $("logout")?.classList.add("hidden");
+  $("to-espace")?.remove();
+  // Construit sans innerHTML : on est encore au démarrage, avant que esc() soit déclaré plus bas.
+  const b = document.createElement("div"), t = document.createElement("b"), s = document.createElement("span");
+  b.className = "voir-bandeau";
+  t.textContent = `Aperçu · ${VOIR_ROLES[VOIR.role]}${VOIR.qui === myPersonId ? " · " + meName : ""}`;
+  s.textContent = "Ses onglets et ses boutons, avec vos données. Lecture seule : rien n'est enregistré.";
+  b.append(t, s);
+  document.querySelector(".admin-main")?.prepend(b);
+}
+function voirVerrouiller() {
+  const MSG = "Aperçu « Voir comme » : lecture seule, rien n'est enregistré.";
+  const refus = { data: null, error: { message: MSG } };
+  // Une chaîne PostgREST (.update().eq().select()…) qui aboutit toujours au refus, quelle que soit sa longueur.
+  const chaine = () => { const p = new Proxy(function () {}, { get: (_t, k) => (k === "then" ? (ok) => ok(refus) : () => p), apply: () => p }); return p; };
+  const from = sb.from.bind(sb);
+  sb.from = (t) => { const q = from(t); for (const m of ["insert", "update", "upsert", "delete"]) q[m] = chaine; return q; };
+  // RPC : celles dont le nom dit qu'elles écrivent. Les autres agissent sous l'identité RÉELLE (auth.uid()),
+  // donc jamais au nom du coach.
+  const ECRIT = /(^|_)(set|add|remove|delete|del|insert|update|upsert|save|send|post|create|apply|generate|mark|toggle|validate|resolve|link|assign|book|cancel|close|reopen|move|copy|import|confirm|record|reset|clear|archive|restore|write|submit|attach|upload|purge)(_|$)/i;
+  const rpc = sb.rpc.bind(sb);
+  sb.rpc = (n, a, o) => (ECRIT.test(n) ? chaine() : rpc(n, a, o));
+  // supabase-js v2 refabrique storage et functions à chaque accès (accesseurs) : on fige UNE instance
+  // retouchée, sinon la retouche serait perdue au prochain « sb.storage ».
+  const storage = sb.storage, sto = storage.from.bind(storage);
+  storage.from = (b) => { const s = sto(b); for (const m of ["upload", "update", "remove", "move", "copy"]) s[m] = async () => refus; return s; };
+  Object.defineProperty(sb, "storage", { value: storage, configurable: true });
+  const functions = sb.functions;
+  functions.invoke = async () => refus;
+  Object.defineProperty(sb, "functions", { value: functions, configurable: true });
 }
 
 // ---- Mon profil (staff connecté) : fiche lecture seule ouverte depuis la barre ----
@@ -308,9 +372,10 @@ function applyTabAccess(roles) {
   const known = new Set(Object.values(access).flat());
   const allowedFor = (v) => roles.some((r) =>
     (known.has(v) ? (access[r] || []) : (DEFAULT_TAB_ACCESS[r] || [])).includes(v));
-  const finTag = !!(myPersonId && (peopleRoles[myPersonId] || []).includes("finance"));  // tag CRM "finance" → onglet Factures
-  const refuses = tabDenyFor(meId);   // retraits nominatifs, prioritaires sur les rôles
-  const ajoutes = tabAllowFor(meId);  // ajouts nominatifs, par-dessus les rôles
+  // En aperçu « Voir comme », seuls comptent les onglets du rôle : pas ceux ajoutés ou retirés à l'admin.
+  const finTag = !VOIR_ACTIF && !!(myPersonId && (peopleRoles[myPersonId] || []).includes("finance"));  // tag CRM "finance" → onglet Factures
+  const refuses = VOIR_ACTIF ? [] : tabDenyFor(meId);   // retraits nominatifs, prioritaires sur les rôles
+  const ajoutes = VOIR_ACTIF ? [] : tabAllowFor(meId);  // ajouts nominatifs, par-dessus les rôles
   let first = null; const allowedSet = new Set();
   document.querySelectorAll(".side-item[data-view]").forEach((b) => {
     const v = b.dataset.view;
@@ -6478,6 +6543,47 @@ async function loadPortalAccess() {
   }));
   await paLoadList();
   await apInit();
+  vcInit();
+}
+
+/* ---------- La console d'un coach, sur téléphone (« Voir comme », voir voirComme) ----------
+   Même cadre que l'aperçu de Mon espace, ouvert sur /console?voir=<rôle>&qui=<fiche>. La personne
+   proposée = les fiches qui portent l'étiquette du rôle ; sans elle, les écrans « mes cours » restent vides. */
+const VC_TAG = { coach_physique: "coach_physique", coach_mental: "coach-mental", coach: "coach",
+  head_coach: "head-coach", moniteur: "moniteur", prof: "prof" };
+let vcBound = false;
+function vcUrl() {
+  const r = $("vc-role").value, q = $("vc-qui").value;
+  return `/console?voir=${encodeURIComponent(r)}${q ? "&qui=" + encodeURIComponent(q) : ""}`;
+}
+function vcRemplirPersonnes() {
+  const tag = VC_TAG[$("vc-role").value];
+  const gens = people.filter((p) => (peopleRoles[p.id] || []).includes(tag))
+    .sort((a, b) => (a.first_name || "").localeCompare(b.first_name || ""));
+  $("vc-qui").innerHTML = (gens.length ? "" : '<option value="">— personne avec ce rôle —</option>')
+    + gens.map((p) => `<option value="${p.id}">${esc(p.first_name)} ${esc(p.last_name)}</option>`).join("");
+  if (gens.length) $("vc-qui").value = gens[0].id;   // pretty-select : forcer la valeur au 1er rendu
+}
+function vcAfficher() {
+  const f = $("vc-frame");
+  f.src = "about:blank";
+  setTimeout(() => { f.src = vcUrl(); }, 30);
+}
+function vcInit() {
+  if (!$("vc-card")) return;
+  // Réservé à l'admin, comme le paramètre lui-même : pour un autre compte la console l'ignorerait.
+  if (!hasAny(myAppRoles, ["superadmin", "admin"]) || VOIR_ACTIF) { $("vc-card").classList.add("hidden"); return; }
+  if (!vcBound) {
+    vcBound = true;
+    $("vc-role").innerHTML = Object.entries(VOIR_ROLES).map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("");
+    $("vc-role").value = "coach_physique";
+    $("vc-role").addEventListener("change", () => { vcRemplirPersonnes(); vcAfficher(); });
+    $("vc-qui").addEventListener("change", vcAfficher);
+    $("vc-reload").addEventListener("click", vcAfficher);
+    $("vc-open").addEventListener("click", () => window.open(vcUrl(), "_blank", "noopener"));
+    vcRemplirPersonnes();
+  }
+  vcAfficher();
 }
 
 /* ---------- Aperçu de Mon espace sur téléphone (db/187) ----------

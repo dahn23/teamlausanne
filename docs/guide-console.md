@@ -634,6 +634,13 @@ Pour donner aux familles l'accès à l'app « Mon espace ».
    grand », « ↻ Recharger ».
 3. Le texte du « mail d'invitation » se modifie puis « Enregistrer le
    texte » ; « M'envoyer un test » l'envoie à soi-même d'abord.
+4. « La console d'un coach, sur téléphone » (admin seulement) : choisir un
+   rôle (coach physique, coach mental, coach, head coach, moniteur, prof) et
+   une personne, et la console s'affiche dans le cadre telle qu'elle la voit :
+   ses onglets, ses boutons, ses cours. Les données restent celles de l'admin,
+   donc souvent plus larges : c'est pour la mise en page, pas pour vérifier
+   des droits. Lecture seule : rien de ce qu'on fait dans le cadre n'est
+   enregistré, un bandeau jaune le rappelle.
 
 **Bon à savoir** : les robots d'aperçu de WhatsApp peuvent consommer un lien
 d'activation avant la personne. C'est pour ça que le jeton vit dans le `#` de

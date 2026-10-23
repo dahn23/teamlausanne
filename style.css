@@ -5905,3 +5905,9 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .nf-etat.rem{background:#e3f5ea;color:#1b6b45}
 .nf-mt{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .nf-sans{color:#b3261e;font-size:.8rem}
+
+/* Aperçu « Voir comme » (console ouverte dans le cadre de téléphone de l'onglet Accès Mon espace) :
+   bandeau qui rappelle qu'on regarde l'écran d'un autre, avec ses onglets mais nos données, en lecture seule. */
+.voir-bandeau{display:flex;flex-direction:column;gap:2px;margin:0 0 14px;padding:9px 12px;border-radius:10px;
+  background:#fff7e6;border:1px solid #f0c774;color:#6b4a00;font-size:.82rem;line-height:1.35}
+.voir-bandeau b{font-size:.88rem;color:#4a3300}

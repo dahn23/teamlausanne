@@ -19,7 +19,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=369" />
+  <link rel="stylesheet" href="style.css?v=370" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -315,6 +315,18 @@
               <button type="button" id="ap-open" class="ghost">↗ Ouvrir en grand</button>
             </div>
             <div class="ap-phone-wrap"><div class="ap-phone"><iframe id="ap-frame" title="Aperçu de Mon espace" referrerpolicy="no-referrer"></iframe></div></div>
+          </div>
+
+          <div class="rg-card" id="vc-card" style="margin-bottom:16px">
+            <div class="crm-head" style="margin-bottom:8px"><h2 style="margin:0">La console d'un coach, sur téléphone</h2></div>
+            <p class="muted" style="margin:0 0 10px;max-width:760px">Ce que voit un membre de l'encadrement quand il ouvre l'app : ses onglets, ses boutons, ses cours. Les données restent les vôtres (souvent plus larges que les siennes) : c'est pour travailler la mise en page, pas pour vérifier ses droits. <b>Lecture seule</b> : rien de ce qu'on fait dans le cadre n'est enregistré.</p>
+            <div class="pa-actions" style="margin-bottom:12px">
+              <label class="pc-f" style="min-width:190px"><span>Rôle</span><select id="vc-role"></select></label>
+              <label class="pc-f" style="min-width:240px"><span>Personne</span><select id="vc-qui"></select></label>
+              <button type="button" id="vc-reload" class="ghost">↻ Recharger</button>
+              <button type="button" id="vc-open" class="ghost">↗ Ouvrir en grand</button>
+            </div>
+            <div class="ap-phone-wrap"><div class="ap-phone"><iframe id="vc-frame" title="Aperçu de la console d'un coach" referrerpolicy="no-referrer"></iframe></div></div>
           </div>
 
           <div class="rg-card">
