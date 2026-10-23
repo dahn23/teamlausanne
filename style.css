@@ -5209,6 +5209,15 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   .fac-subtabs::-webkit-scrollbar { display: none; }
   .crm-actions > *, .subnav > *, .fac-filters > *, .cs-toolbar > *, .fac-subtabs > * { flex: 0 0 auto; }
   .crm-actions input, .crm-actions .search-wrap { min-width: 190px; }
+  /* Sauf la barre du Planning des cours : ses éléments sont toujours les mêmes, rien n'y arrive en cours
+     de route, donc rien ne « saute » en passant à la ligne. Et défilant, elle cachait la date et « › »
+     hors de l'écran sans que rien n'indique qu'on pouvait glisser (vu dans l'aperçu coach, 23.10.2026).
+     Rangées : Jour/Semaine, puis ‹ date › sur toute la largeur, puis la recherche et les boutons. */
+  .cs-toolbar { flex-wrap: wrap; overflow: visible; }
+  .cs-toolbar > .cs-daynav { flex: 1 1 100%; }
+  .cs-daynav .pd-wrap { flex: 1 1 auto; width: auto; }
+  .cs-daynav .nav { flex: 0 0 auto; }
+  .cs-toolbar > .cs-search { flex: 1 1 100%; max-width: none; }
 
   /* ---- 5. Des cibles qu'on peut viser ------------------------------
      Les boutons « ghost » faisaient 6 px de haut de rembourrage : à peine
