@@ -9374,7 +9374,7 @@ async function physMedia(mountId, youthId) {
     + (rows.length ? `<div class="media-grid">${rows.map((m) => `<div class="media-card" data-id="${m.id}">
         <div class="media-thumb">${m.kind === "video" ? `<video class="phm-m" data-path="${esc(m.storage_path)}" controls playsinline preload="metadata"></video>` : `<img class="phm-m" data-path="${esc(m.storage_path)}" alt="">`}</div>
         ${edit ? `<textarea class="media-comment phm-c" rows="2" placeholder="Commentaire…">${esc(m.comment || "")}</textarea>` : (m.comment ? `<p class="phm-ctxt">${esc(m.comment)}</p>` : "")}
-        <div class="phm-meta muted">${frDate(m.created_at)}${m.author_name ? " · " + esc(m.author_name) : ""}</div>
+        <div class="phm-meta muted">${frDate(m.created_at)}${m.author_name ? " · " + esc(m.author_name) : ""}${m.source_thread_id ? " · via la discussion" : ""}</div>
         ${edit ? `<button type="button" class="media-del phm-del">Supprimer</button>` : ""}
       </div>`).join("")}</div>` : '<p class="obj-empty">Aucune vidéo ni photo pour ce jeune.</p>');
   el.querySelectorAll(".phm-m").forEach(async (m) => {
@@ -9404,10 +9404,14 @@ async function physMedia(mountId, youthId) {
   }));
   el.querySelectorAll(".phm-del").forEach((b) => b.addEventListener("click", async () => {
     const m = rows.find((x) => x.id === b.closest(".media-card").dataset.id); if (!m) return;
-    if (!await uiConfirm("Supprimer cette vidéo / photo ? Le jeune ne la verra plus.")) return;
+    // Venue de la discussion (db/206) : le fichier est celui du message, qui l'affiche encore — on ne retire
+    // que la carte des Vidéos. Pour tout effacer, c'est le ✕ du message dans « Prépa physique ».
+    const duFil = !!m.source_thread_id;
+    if (!await uiConfirm(duFil ? "Retirer cette vidéo / photo des Vidéos du jeune ? Elle reste dans la discussion Prépa physique."
+      : "Supprimer cette vidéo / photo ? Le jeune ne la verra plus.")) return;
     const { error: de } = await sb.from("phys_media").delete().eq("id", m.id);
     if (de) { uiAlert(de.message); return; }
-    await sb.storage.from("physique").remove([m.storage_path]);
+    if (!duFil) await sb.storage.from("physique").remove([m.storage_path]);
     physMedia(mountId, youthId);
   }));
 }

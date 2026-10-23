@@ -710,7 +710,12 @@ répondra qu'elle ne sait pas, et la question remontera dans
   photos sont privées : seuls le staff physique et le jeune (et sa famille) les
   voient, dans Mon espace › Physique › Vidéos, avec le commentaire ; le jeune
   et ses parents reçoivent une notification sur leur téléphone (« Physique —
-  nouvelle vidéo », avec le commentaire), qui ouvre directement les vidéos. C'est là
+  nouvelle vidéo », avec le commentaire), qui ouvre directement les vidéos.
+  Une photo ou une vidéo envoyée dans la discussion « Prépa physique » arrive
+  aussi toute seule dans ses Vidéos (le texte du message sert de commentaire,
+  « via la discussion » dans la console, une seule notification). La retirer
+  des Vidéos la laisse dans la discussion ; effacer le message l'enlève des
+  deux. C'est là
   qu'on met une vidéo destinée au joueur, pas dans Fiche › Photos / vidéos
   (que le joueur ne voit pas).
 - **Études** — « Calendrier », « Par jeune », « Profs », « Réglages ».
