@@ -1778,6 +1778,7 @@ function openPerson(p) {
   // dès qu'il reçoit un rôle). showPersonTab() applique ce filtre, y compris aux onglets affichés plus tard.
   personGzOnly = !!p && roles.length > 0 && roles.every((r) => EXTERNAL_TAGS.includes(r));   // GameZone et/ou stage seulement
   loadPersonGz(p ? p.id : null);
+  loadPersonInvoices(p);
   // Onglet Réservations : visible si membre/client (ou si des résas existent — persistance)
   const resaByRole = roles.includes("membre") || roles.includes("client");
   const coursByRole = COURSE_ROLES.some((r) => roles.includes(r));
@@ -1889,6 +1890,56 @@ async function loadPersonGz(pid) {
           <td>${result(r)}</td></tr>`).join("")
       + "</tbody></table>";
   }).join("");
+}
+
+// ---- Onglet « Factures » de la fiche : toutes les factures émises qui la concernent, toutes saisons ----
+// Une facture concerne la fiche si elle est POUR ce joueur (person_id), ADRESSÉE à cette personne
+// (debtor_person_id), ou envoyée à l'une de ses adresses e-mail : la plupart des factures d'un junior partent
+// à l'adresse d'un parent sans que debtor_person_id soit rempli — c'est ainsi que la fiche du parent les retrouve.
+// Lecture = out_invoices_solde (état réel, versements déduits). La RLS (can_billing) ne laisse lire que
+// l'admin et le tag « finance » : l'onglet n'est montré qu'à eux, sinon il serait vide pour les autres sans
+// dire pourquoi. Base de la future vue « Mes factures » de Mon espace.
+const meCanBilling = () => hasAny(myAppRoles, ["superadmin", "admin"])
+  || !!(myPersonId && (peopleRoles[myPersonId] || []).includes("finance"));
+async function loadPersonInvoices(p) {
+  $("pf-list").innerHTML = ""; $("pf-summary").textContent = "";
+  if (!p || !meCanBilling()) { showPersonTab("factures", false); return; }
+  showPersonTab("factures", true);
+  $("pf-list").innerHTML = '<p class="muted">Chargement…</p>';
+  const emails = [p.email, ...(p.emails || [])].map((e) => String(e || "").trim().toLowerCase()).filter((e) => /^[^\s@",()]+@[^\s@",()]+$/.test(e));
+  const filtre = [`person_id.eq.${p.id}`, `debtor_person_id.eq.${p.id}`, ...emails.map((e) => `debtor_email.ilike."${e}"`)].join(",");
+  const { data, error } = await sb.from("out_invoices_solde")
+    .select("id,number,label,person_id,debtor_name,amount,reste,issue_date,due_date,status,statut_reel,pdf_path,instalment_no,instalment_total")
+    .or(filtre).order("issue_date", { ascending: false });
+  if ($("p-id").value !== p.id) return;   // une autre fiche a été ouverte entre-temps
+  if (error) { $("pf-list").innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  const rows = data || [];
+  if (!rows.length) { $("pf-list").innerHTML = '<p class="muted" style="font-size:.85rem">Aucune facture pour cette personne.</p>'; return; }
+  const chf = (n) => (Math.round(Number(n || 0) * 100) / 100).toLocaleString("fr-CH", { minimumFractionDigits: 2 });
+  const actives = rows.filter((f) => oiEtat(f) !== "annulee");
+  const total = actives.reduce((a, f) => a + Number(f.amount || 0), 0);
+  const reste = actives.filter((f) => f.status !== "a_envoyer").reduce((a, f) => a + Math.max(0, Number(f.reste || 0)), 0);
+  $("pf-summary").innerHTML = `${rows.length} facture(s) · ${chf(total)} CHF facturés · `
+    + (reste > 0.004 ? `<b>${chf(reste)} CHF restant dû</b>` : "tout est réglé");
+  const parAnnee = {};
+  for (const f of rows) (parAnnee[(f.issue_date || "").slice(0, 4) || "—"] ||= []).push(f);
+  $("pf-list").innerHTML = Object.keys(parAnnee).sort().reverse().map((an) => `<h4 style="margin:12px 0 6px">${esc(an)}</h4>
+    <table class="crm-table"><thead><tr><th>N°</th><th>Date</th><th>Libellé</th><th style="text-align:right">Montant</th><th style="text-align:right">Reste</th><th>État</th><th></th></tr></thead><tbody>`
+    + parAnnee[an].map((f) => {
+        const [lbl, cls] = OI_ST[oiEtat(f)] || [f.status, ""];
+        const pour = f.person_id && f.person_id !== p.id ? ` <span class="muted" style="font-size:.78rem">· pour ${esc(pName(f.person_id))}</span>` : "";
+        const tranche = f.instalment_total > 1 ? ` <span class="muted" style="font-size:.78rem">(${f.instalment_no}/${f.instalment_total})</span>` : "";
+        return `<tr><td>${esc(f.number || "—")}</td><td>${frDate(f.issue_date)}</td><td>${esc(f.label || "")}${tranche}${pour}</td>
+          <td style="text-align:right">${chf(f.amount)}</td>
+          <td style="text-align:right">${oiEtat(f) === "annulee" ? "—" : chf(Math.max(0, Number(f.reste || 0)))}</td>
+          <td><span class="fac-st ${cls}">${esc(lbl)}</span></td>
+          <td>${f.pdf_path ? `<button type="button" class="ghost pf-pdf" data-path="${esc(f.pdf_path)}" title="Voir le PDF">📄</button>` : ""}</td></tr>`;
+      }).join("") + "</tbody></table>").join("");
+  $("pf-list").querySelectorAll(".pf-pdf").forEach((b) => b.addEventListener("click", async () => {
+    const { data: u, error: e } = await sb.storage.from("out_invoices").createSignedUrl(b.dataset.path, 600);
+    if (e || !u?.signedUrl) { uiAlert("PDF indisponible : " + (e?.message || "")); return; }
+    window.open(u.signedUrl, "_blank", "noopener");
+  }));
 }
 
 // ---- Joueurs GameZone « à vérifier » : ressemblance avec une fiche sans certitude (db/101) ----

@@ -566,6 +566,17 @@ C'est le point qui prête le plus à confusion :
 La fiche synchronise les deux premiers : poser une étiquette ouvre l'accès
 correspondant. L'onglet « Saisons » de la fiche garde l'historique.
 
+### Onglet « Factures » de la fiche
+
+Toutes les factures émises qui concernent la personne, toutes années
+confondues, de la plus récente à la plus ancienne : n°, date, libellé,
+montant, reste à payer, état, et 📄 pour ouvrir le PDF. En tête, le total
+facturé et ce qui reste dû. Une facture y figure si elle est pour ce joueur,
+adressée à cette personne, ou envoyée à l'une de ses adresses e-mail : la
+fiche d'un parent montre donc les factures de ses enfants (« pour … »).
+Visible seulement pour l'admin et le tag « Finance », comme l'onglet Factures.
+Lecture seule : on modifie ou encaisse une facture dans Factures.
+
 ### Licences et mytennis
 
 « Retrouver les licences », « Chercher sur mytennis », « Importer (Excel) ».
