@@ -55,7 +55,7 @@
         "@id": "https://teamlausanne.ch/#academy",
         "name": "Team Lausanne Academy",
         "alternateName": ["Team Lausanne", "École de tennis Team Lausanne"],
-        "description": "Centre de formation de tennis à Lausanne, aux Plaines-du-Loup. École de tennis dès 4 ans, filières compétition et performance, sport-études, cours adultes et stages pendant les vacances scolaires.",
+        "description": "Centre de formation de tennis du TC Lausanne-Sports, aux Plaines-du-Loup à Lausanne. École de tennis dès 4 ans, filières compétition et performance, sport-études, programmes Pro U18 et Pro, cours adultes et stages. 12 courts en été, dont 6 couverts en hiver. Organisateur du Lausanne Open (ITF M25).",
         "url": "https://teamlausanne.ch/",
         "logo": "https://teamlausanne.ch/assets/logo-academie.webp",
         "image": "https://teamlausanne.ch/assets/og-teamlausanne.jpg",
@@ -77,6 +77,15 @@
           { "@type": "AdministrativeArea", "name": "Canton de Vaud" }
         ],
         "knowsLanguage": ["fr", "en"],
+        "amenityFeature": [
+          { "@type": "LocationFeatureSpecification", "name": "Courts de tennis (été)", "value": 12 },
+          { "@type": "LocationFeatureSpecification", "name": "Courts couverts (hiver, mi-octobre à mi-avril)", "value": 6 }
+        ],
+        "subjectOf": {
+          "@type": "WebPage",
+          "name": "Lausanne Open — tournoi ITF M25 organisé par Team Lausanne",
+          "url": "https://teamlausanne.ch/lausanne-open"
+        },
         "parentOrganization": {
           "@type": "SportsClub",
           "name": "TC Lausanne-Sports",
@@ -104,52 +113,52 @@
           { "@type": "ListItem", "position": 1, "item": {
             "@type": "Course", "name": "Kids Tennis",
             "description": "Le tennis dès 4 ans, dans un cadre ludique, structuré et bienveillant.",
-            "typicalAgeRange": "4-10", "url": "https://teamlausanne.ch/#kids",
+            "typicalAgeRange": "4-10", "url": "https://teamlausanne.ch/kids-tennis",
             "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
           { "@type": "ListItem", "position": 2, "item": {
             "@type": "Course", "name": "Club",
             "description": "Une à deux fois par semaine, pour progresser à son rythme et prendre du plaisir.",
-            "url": "https://teamlausanne.ch/#club-academy",
+            "url": "https://teamlausanne.ch/club",
             "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
           { "@type": "ListItem", "position": 3, "item": {
             "@type": "Course", "name": "Cours adultes et privés",
             "description": "Cours privés, semi-privés et de groupe, adaptés à votre rythme.",
-            "url": "https://teamlausanne.ch/#adultes",
+            "url": "https://teamlausanne.ch/cours-adultes",
             "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
           { "@type": "ListItem", "position": 4, "item": {
             "@type": "Course", "name": "Compétition",
             "description": "Entraînement structuré et matchs, pour les jeunes prêts à passer un cap. Seize places.",
-            "typicalAgeRange": "10-13", "url": "https://teamlausanne.ch/#competition",
+            "typicalAgeRange": "10-13", "url": "https://teamlausanne.ch/competition",
             "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
           { "@type": "ListItem", "position": 5, "item": {
             "@type": "Course", "name": "Performance",
             "description": "Le lien entre la Compétition et le Sport-études : charge d'entraînement renforcée, préparation physique intégrée. Huit places.",
-            "typicalAgeRange": "12-15", "url": "https://teamlausanne.ch/#performance",
+            "typicalAgeRange": "12-15", "url": "https://teamlausanne.ch/performance",
             "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
           { "@type": "ListItem", "position": 6, "item": {
             "@type": "Course", "name": "Sport-études",
             "description": "Deux heures de tennis, une heure de préparation physique et quatre heures de cours par jour, avec l'Institut DOMI, l'EPSU ou le CNED. Maturité fédérale suisse ou baccalauréat français.",
-            "typicalAgeRange": "14-19", "url": "https://teamlausanne.ch/#sport-etudes",
+            "typicalAgeRange": "14-19", "url": "https://teamlausanne.ch/sport-etudes",
             "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
           { "@type": "ListItem", "position": 7, "item": {
             "@type": "Course", "name": "Pro U18",
             "description": "L'entraînement devient le métier : deux sessions par jour et le circuit.",
-            "url": "https://teamlausanne.ch/#pro-u18",
+            "url": "https://teamlausanne.ch/pro-u18",
             "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
           { "@type": "ListItem", "position": 8, "item": {
             "@type": "Course", "name": "Pro",
             "description": "Pas d'offre standard : un calendrier, des objectifs et un encadrement sur mesure, dès 18 ans.",
-            "url": "https://teamlausanne.ch/#pro",
+            "url": "https://teamlausanne.ch/pro",
             "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
           { "@type": "ListItem", "position": 9, "item": {
             "@type": "Course", "name": "Stages de tennis",
             "description": "Pendant les vacances scolaires, de la découverte ludique à la semaine intensive, pour les 4 à 18 ans et pour les adultes.",
-            "typicalAgeRange": "4-18", "url": "https://teamlausanne.ch/#stages",
+            "typicalAgeRange": "4-18", "url": "https://teamlausanne.ch/stages",
             "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } },
           { "@type": "ListItem", "position": 10, "item": {
             "@type": "Course", "name": "Game Zone",
             "description": "Des tournois juniors presque chaque week-end, sur une journée, deux matchs garantis.",
-            "url": "https://teamlausanne.ch/#gamezone",
+            "url": "https://teamlausanne.ch/gamezone",
             "inLanguage": "fr", "provider": { "@id": "https://teamlausanne.ch/#academy" } } }
         ]
       }

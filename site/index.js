@@ -1599,10 +1599,16 @@ const TITLES = {
   academie: ["Team Lausanne Academy — Tennis à Lausanne, du Kids Tennis au Pro", "Team Lausanne Academy : le centre de formation tennis des Plaines-du-Loup à Lausanne. Kids Tennis, Club, Compétition, Performance, Sport-études, Pro U18, Pro, stages et tournois GameZone."],
   tournoi: ["Lausanne Open — ITF M25, prochaine édition août 2027", "Lausanne Open : l’unique tournoi international de tennis masculin du canton de Vaud. ITF M25, 30 000 $ de dotation, entrée libre. Prochaine édition en août 2027 aux Plaines-du-Loup."],
 };
-function setTitle(world, sub) {
+// `page` : la fiche ou le monde affiché. S'il porte metaTitle / metaDescription, ce sont
+// ceux de la page servie par build.mjs — Google exécute ce script, et un titre réécrit
+// ici l'emporterait sur celui qu'on a choisi pour la recherche (25.10.2026).
+function setTitle(world, sub, page) {
   const t = TITLES[world] || TITLES.academie;
-  document.title = sub ? `${sub} — ${world === "tournoi" ? "Lausanne Open" : "Team Lausanne Academy"}` : t[0];
-  const m = document.querySelector('meta[name="description"]'); if (m) m.setAttribute("content", t[1]);
+  const fiche = page || (sub ? null : WORLDS[world]);
+  document.title = (fiche && fiche.metaTitle)
+    || (sub ? `${sub} — ${world === "tournoi" ? "Lausanne Open" : "Team Lausanne Academy"}` : t[0]);
+  const m = document.querySelector('meta[name="description"]');
+  if (m) m.setAttribute("content", (fiche && fiche.metaDescription) || t[1]);
   // Texte du formulaire « Nous écrire » selon le monde affiché
   const cs = document.querySelector("#contact-lo .wsec-sub");
   if (cs) cs.textContent = world === "tournoi"
@@ -1688,7 +1694,7 @@ function route() {
   // dans DETAILS puisqu'elles viennent de la base, pas de contenu.js.
   if (!LO_ONLY && h === "actualites") { renderActus(); setTitle("academie", "Actualités"); }
   else if (!LO_ONLY && h.startsWith("actu-")) { renderActu(h.slice(5)); }
-  else if (DETAILS[h] && WORLDS[DETAILS[h].world] && (!LO_ONLY || DETAILS[h].world === "tournoi")) { renderDetail(h); setTitle(DETAILS[h].world, DETAILS[h].title); }
+  else if (DETAILS[h] && WORLDS[DETAILS[h].world] && (!LO_ONLY || DETAILS[h].world === "tournoi")) { renderDetail(h); setTitle(DETAILS[h].world, DETAILS[h].title, DETAILS[h]); }
   else if (WORLDS[h] && !LO_ONLY) { renderWorld(h); setTitle(h); }
   else { renderWorld(DEFAULT_WORLD); setTitle(DEFAULT_WORLD); }
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });

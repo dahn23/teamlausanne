@@ -401,6 +401,9 @@ export function descriptionDe(cle, page) {
 // « Sport-études — Team Lausanne Academy », et pour la racine le titre large
 // qui vise la requête qu'on tape vraiment.
 export function titreDe(cle, page) {
+  // Comme metaDescription : un titre écrit pour la requête (« sport-études tennis Lausanne »),
+  // quand le nom de la filière seul ne dit ni le sport ni la ville (25.10.2026).
+  if (page.metaTitle) return page.metaTitle;
   if (cle === "academie") return "École de tennis à Lausanne — Team Lausanne Academy";
   const { titre } = enTeteDe(cle, page);
   const base = titre || cle;

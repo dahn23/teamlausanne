@@ -210,9 +210,11 @@ worlds:
 {
   academie: {
     tag: "Academy", retour: "à l'Academy",
+    metaTitle: "Tennis à Lausanne : école, sport-études, club | Team Lausanne",
+    metaDescription: "Tennis à Lausanne : cours enfants dès 4 ans, compétition, sport-études et pro. 12 courts aux Plaines-du-Loup, dont 6 couverts l'hiver.",
     logo: "assets/logo-academie.webp", heroLogo: "assets/logo-academie-blanc.png",
     slogan: "Jouer. Progresser. Ensemble.",
-    desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 5 ans.",
+    desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 4 ans.",
     hero: "assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
     cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Notre programme Sport-Études", type: "sport-etudes" }],
     sections: [
@@ -261,6 +263,27 @@ worlds:
           { name: "Stages", photo: "assets/photos/stages-2026.jpg", href: "#stages" },
           { name: "Adultes et privés", photo: "assets/photos/adultes-2026.jpg", href: "#adultes" },
         ] },
+      // Les installations et le club : ce qu'on cherche en tapant « tennis Lausanne »
+      // (où jouer, même l'hiver ?), et ce qu'aucune autre page ne disait (25.10.2026).
+      // Chiffres : db/02_seed_courts.sql — 10 extérieurs (1-4 sous bulle l'hiver) + 2 intérieurs.
+      { type: "features", anchor: "installations", title: "12 courts, toute l'année", items: [
+        ["12 courts en été", "Au TC Lausanne-Sports, route des Plaines-du-Loup 7 : 10 courts extérieurs et 2 courts intérieurs, de mi-avril à mi-octobre."],
+        ["6 courts couverts l'hiver", "De mi-octobre à mi-avril, 6 courts couverts — les 2 courts intérieurs et 4 courts sous bulle. Les cours continuent tout l'hiver."],
+        ["Un vrai club", "Team Lausanne est le centre de formation du TC Lausanne-Sports : les membres réservent leurs courts et disputent les interclubs."],
+        ["Le Lausanne Open", "Chaque été, nous organisons sur nos courts le Lausanne Open, tournoi international ITF M25 à entrée libre."],
+      ], link: { label: "Devenir membre du club ↗", href: "https://www.lstennis.ch" } },
+      // Les questions qu'on pose à Google ou à ChatGPT, avec une réponse courte et
+      // vérifiable : c'est le format que les moteurs de réponse citent. build.mjs en
+      // tire aussi la FAQPage de l'accueil.
+      { type: "faq", anchor: "faq", eyebrow: "Questions fréquentes",
+        title: "Le tennis à Lausanne, en bref", items: [
+          ["Où jouer au tennis à Lausanne ?", "Au TC Lausanne-Sports, route des Plaines-du-Loup 7, 1018 Lausanne : 12 courts en été, dont 6 couverts en hiver. Team Lausanne y donne ses cours, de l'enfant de 4 ans au joueur professionnel."],
+          ["Peut-on jouer au tennis en hiver à Lausanne ?", "Oui. De mi-octobre à mi-avril, 6 courts sont couverts — 2 courts intérieurs et 4 sous bulle : les cours, les entraînements et les réservations des membres continuent tout l'hiver."],
+          ["Dès quel âge un enfant peut-il commencer le tennis ?", "Dès 4 ans, en Kids Tennis : un cadre ludique et structuré pour apprendre les bases. Un cours d'essai est possible sur demande."],
+          ["Existe-t-il un sport-études tennis à Lausanne ?", "Oui. Le Sport-études Team Lausanne accueille les 14 à 19 ans : deux heures de tennis, une heure de préparation physique et quatre heures de cours encadrés par jour, jusqu'à la maturité fédérale ou au baccalauréat français. Les programmes Pro U18 et Pro prolongent le parcours jusqu'au circuit professionnel — une filière complète, rare en Suisse."],
+          ["Comment devenir membre du club et réserver un court ?", "Les membres du TC Lausanne-Sports réservent leurs courts et peuvent jouer les interclubs. L'adhésion se fait auprès du club, sur lstennis.ch."],
+          ["Qu'est-ce que le Lausanne Open ?", "Le tournoi international ITF M25 de Lausanne, doté de 30 000 $ et organisé chaque été par Team Lausanne sur ses courts. C'est l'unique tournoi international de tennis masculin du canton de Vaud, et l'entrée est libre."],
+        ]},
       // Les actualités vivent au bout d'un menu déroulant : personne ne va les
       // y chercher. Ce bloc met les trois derniers articles sur le chemin, là
       // où les gens passent déjà.
@@ -282,6 +305,8 @@ worlds:
 
   tournoi: {
     tag: "Lausanne Open", retour: "au Lausanne Open",
+    metaTitle: "Lausanne Open — tournoi ITF M25 de tennis à Lausanne",
+    metaDescription: "Tournoi ITF M25 doté de 30 000 $, l'unique tournoi international de tennis masculin du canton de Vaud. Entrée libre. Prochaine édition : août 2027.",
     logo: "assets/logo-open.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
     desc: "Lausanne Open — l'unique tournoi international de tennis masculin du canton de Vaud. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
@@ -345,6 +370,7 @@ details:
 {
   "journee-team-lausanne": {
     world: "tournoi", title: "Journée Team Lausanne", subtitle: "Samedi, en marge du Lausanne Open — ouvert à toutes et tous",
+    metaTitle: "Journée Team Lausanne au Lausanne Open — tennis en famille",
     metaDescription: "La Journée Team Lausanne, en marge du Lausanne Open : jouez avec nos meilleurs joueurs, testez votre service au radar, initiation pour les enfants. Accès libre.",
     hero: "assets/photos/open-kids.jpg",
     sections: [
@@ -363,6 +389,8 @@ details:
   },
   stages: {
     world: "academie", title: "Nos stages",
+    metaTitle: "Stages de tennis à Lausanne pendant les vacances | Team Lausanne",
+    metaDescription: "Stages de tennis pendant les vacances scolaires à Lausanne, pour les 4 à 18 ans et pour les adultes : de la découverte ludique à la semaine intensive.",
     subtitle: "Pendant les vacances scolaires, des stages de tennis pour les 4 à 18 ans et pour les adultes : de la découverte ludique à la semaine intensive, encadrés par nos coachs aux Plaines-du-Loup.",
     hero: "assets/photos/stages-2026.jpg",
     cta: { label: "Choisir mon stage", scroll: "stagesec" },
@@ -399,6 +427,8 @@ details:
   },
   "sport-etudes": {
     world: "academie", title: "Sport-études",
+    metaTitle: "Sport-études tennis à Lausanne (14-19 ans) | Team Lausanne",
+    metaDescription: "Sport-études tennis à Lausanne, de 14 à 19 ans : 2 h de tennis, 1 h de physique et 4 h de cours encadrés par jour, jusqu'à la maturité ou au bac. Repas inclus.",
     subtitle: "Concilier les études et un entraînement quotidien, de 14 à 19 ans : deux heures de tennis, une heure de physique et quatre heures de cours encadrés par jour, avec un suivi individuel du premier jour au diplôme.",
     // Cadrage : le joueur est a gauche de l'image. En largeur d'ecran, la photo
     // deborde en hauteur et seule la valeur verticale compte — 40 % garde la
@@ -533,6 +563,8 @@ details:
   },
   competition: {
     world: "academie", title: "Compétition",
+    metaTitle: "Tennis compétition juniors à Lausanne (10-13 ans) | Team Lausanne",
+    metaDescription: "Filière compétition pour les 10-13 ans à Lausanne : entraînement structuré, matchs et tournois pour les jeunes prêts à passer un cap. Seize places.",
     subtitle: "Entraînement structuré et matchs, pour les jeunes prêts à passer un cap : gagner en régularité, en confiance et en esprit de compétition, sur un parcours de progression clair.",
     hero: "assets/photos/competition-2026.jpg",
     cta: { label: "Demander des informations", scroll: "enroll-sec" },
@@ -610,6 +642,8 @@ details:
   },
   performance: {
     world: "academie", title: "Performance",
+    metaTitle: "Tennis performance juniors à Lausanne (12-15 ans) | Team Lausanne",
+    metaDescription: "Filière performance pour les 12-15 ans à Lausanne : charge d'entraînement renforcée et préparation physique intégrée, le lien vers le sport-études. Huit places.",
     subtitle: "La filière qui fait le lien entre la Compétition et le Sport-études : charge d'entraînement renforcée, préparation physique intégrée et exigence du match, pour les jeunes prêts à passer à la vitesse supérieure.",
     hero: "assets/photos/performance-2026.jpg",
     cta: { label: "Demander des informations", scroll: "enroll-sec" },
@@ -692,6 +726,8 @@ details:
   },
   "pro-u18": {
     world: "academie", title: "Pro U18",
+    metaTitle: "Programme tennis Pro U18 à Lausanne | Team Lausanne",
+    metaDescription: "Après l'école obligatoire, le tennis devient le métier : deux sessions par jour, le physique chaque matin et le circuit ITF junior en ligne de mire.",
     subtitle: "Après la scolarité obligatoire, l'entraînement devient le métier : deux sessions de tennis par jour, le physique tous les matins et le circuit ITF junior en ligne de mire, pour celles et ceux qui veulent voir jusqu'où ça peut aller.",
     hero: "assets/photos/pro-u18-2026.jpg", heroPos: "55% 12%",
     cta: { label: "Recevoir le dossier", scroll: "brochure" },
@@ -752,6 +788,8 @@ details:
   },
   pro: {
     world: "academie", title: "Pro",
+    metaTitle: "Programme tennis professionnel à Lausanne | Team Lausanne",
+    metaDescription: "Un encadrement sur mesure pour joueuses et joueurs du circuit professionnel, dès 18 ans : calendrier, objectifs de classement, coaching et physique, à Lausanne.",
     subtitle: "À ce niveau, il n'y a pas d'offre standard : chaque joueuse et joueur a son calendrier, ses objectifs de classement et son encadrement. Nous construisons le programme autour de vous — jeu, corps, tête, logistique et financement.",
     hero: "assets/photos/pro-2026.jpg", heroPos: "center 42%",
     cta: { label: "Recevoir le dossier", scroll: "brochure" },
@@ -828,6 +866,8 @@ details:
   },
   kids: {
     world: "academie", title: "Kids Tennis", subtitle: "Le tennis dès 4 ans, dans un cadre ludique, structuré et bienveillant : nos cours posent des bases solides et donnent le goût du jeu dès les toutes premières séances.",
+    metaTitle: "Cours de tennis enfants à Lausanne dès 4 ans | Team Lausanne",
+    metaDescription: "Cours de tennis pour enfants de 4 à 10 ans à Lausanne, aux Plaines-du-Loup : un cadre ludique, structuré et bienveillant pour apprendre les bases. Cours d'essai.",
     hero: "assets/photos/kidstennis-2026.jpg",
     cta: { label: "Demander un cours d'essai", scroll: "enroll-sec" },
     sections: [
@@ -888,6 +928,8 @@ details:
   },
   "club-academy": {
     world: "academie", title: "Club",
+    metaTitle: "Cours de tennis loisir à Lausanne, tous niveaux | Team Lausanne",
+    metaDescription: "Cours de tennis à Lausanne, une à deux fois par semaine et pour tous les niveaux : progresser à son rythme, toute l'année, avec les interclubs pour les membres.",
     subtitle: "Des entraînements encadrés, une à deux fois par semaine, pour tous les niveaux : progresser à son rythme, rester en mouvement et prendre du plaisir sur le court, toute l'année.",
     hero: "assets/photos/club-2026.jpg",
     cta: { label: "Demander des informations", scroll: "enroll-sec" },
@@ -951,6 +993,7 @@ details:
   },
   adultes: {
     world: "academie", title: "Cours adultes et privés", subtitle: "Saison 2026-2027 — cours privés, semi-privés et de groupe, tous niveaux",
+    metaTitle: "Cours de tennis adultes et privés à Lausanne | Team Lausanne",
     metaDescription: "Cours de tennis pour adultes à Lausanne : leçons privées, semi-privées et en groupe, tous niveaux, en français ou en anglais, au TC Lausanne-Sports.",
     hero: "assets/photos/adultes-2026.jpg", heroPos: "center 45%",
     sections: [
@@ -985,6 +1028,8 @@ details:
   },
   gamezone: {
     world: "academie", title: "Game Zone",
+    metaTitle: "Game Zone — tournois de tennis juniors à Lausanne",
+    metaDescription: "Des tournois de tennis juniors presque tous les week-ends à Lausanne : une seule journée, deux matchs garantis, une médaille à chaque victoire.",
     subtitle: "Des tournois juniors presque tous les week-ends, sur une seule journée et deux matchs garantis. Une médaille à chaque victoire, une coupe dès la cinquième, et la grande coupe à la dixième — de quoi se lancer en compétition sans pression.",
     hero: "assets/photos/gamezone-2026.jpg", heroPos: "55% 45%",
     heroLogo: "assets/logo-gamezone-blanc.png",
@@ -1008,6 +1053,7 @@ details:
   // site, et les familles cherchent celui-la.
   coaches: {
     world: "academie", title: "Nos coachs",
+    metaTitle: "Coachs de tennis à Lausanne — l'équipe | Team Lausanne",
     subtitle: "Notre équipe réunit des expériences qui couvrent le Kids Tennis, le Club, la Compétition, la Performance, le Sport-études et le Pro. Chaque coach construit un cadre où l'on progresse avec clarté, régularité et confiance.",
     hero: "assets/photos/coaches-hero.webp", heroPos: "center 35%",
     cta: { label: "Nous écrire", contact: "Nos coachs" },
