@@ -341,7 +341,7 @@ ${actusEcrites.map((a) => `  <url>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>`).join("\n")}` : ""}
-${["samedi-famille", "tennis-lunchs", "confidentialite"].map((s) => `  <url>
+${["confidentialite"].map((s) => `  <url>
     <loc>${SITE}/${s}</loc>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>

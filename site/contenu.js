@@ -345,6 +345,7 @@ details:
 {
   "journee-team-lausanne": {
     world: "tournoi", title: "Journée Team Lausanne", subtitle: "Samedi, en marge du Lausanne Open — ouvert à toutes et tous",
+    metaDescription: "La Journée Team Lausanne, en marge du Lausanne Open : jouez avec nos meilleurs joueurs, testez votre service au radar, initiation pour les enfants. Accès libre.",
     hero: "assets/photos/open-kids.jpg",
     sections: [
       { type: "rich", title: "Une journée de fête autour du tennis", body: [
@@ -950,6 +951,7 @@ details:
   },
   adultes: {
     world: "academie", title: "Cours adultes et privés", subtitle: "Saison 2026-2027 — cours privés, semi-privés et de groupe, tous niveaux",
+    metaDescription: "Cours de tennis pour adultes à Lausanne : leçons privées, semi-privées et en groupe, tous niveaux, en français ou en anglais, au TC Lausanne-Sports.",
     hero: "assets/photos/adultes-2026.jpg", heroPos: "center 45%",
     sections: [
       { type: "rich", title: "Cours adultes et privés, toute la saison", body: [

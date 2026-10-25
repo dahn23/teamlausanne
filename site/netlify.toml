@@ -16,27 +16,28 @@
 #  Ce même dossier est déployé sur DEUX sites Netlify : teamlausanne.ch (site public)
 #  et lausanneopen.ch (ancien site du tournoi). Les règles « par domaine » ci-dessous ne
 #  s'appliquent qu'aux requêtes arrivant sur lausanneopen.ch : la page d'accueil part sur
-#  l'onglet Lausanne Open, les autres adresses (formulaires…) gardent leur chemin.
+#  la page /lausanne-open (une vraie page : Google ignore le « #tournoi » d'une adresse, 25.10.2026),
+#  les autres adresses (formulaires…) gardent leur chemin.
 #  players.lausanneopen.ch (Player Hub) et welcome.lausanneopen.ch sont des sites à part : intouchés.
 # ============================================================
 [[redirects]]
   from = "https://lausanneopen.ch/"
-  to = "https://teamlausanne.ch/#tournoi"
+  to = "https://teamlausanne.ch/lausanne-open"
   status = 301
   force = true
 [[redirects]]
   from = "https://www.lausanneopen.ch/"
-  to = "https://teamlausanne.ch/#tournoi"
+  to = "https://teamlausanne.ch/lausanne-open"
   status = 301
   force = true
 [[redirects]]
   from = "http://lausanneopen.ch/"
-  to = "https://teamlausanne.ch/#tournoi"
+  to = "https://teamlausanne.ch/lausanne-open"
   status = 301
   force = true
 [[redirects]]
   from = "http://www.lausanneopen.ch/"
-  to = "https://teamlausanne.ch/#tournoi"
+  to = "https://teamlausanne.ch/lausanne-open"
   status = 301
   force = true
 # Adresses techniques Netlify (15.10.2026) : elles servaient une copie complète du site, que Google
@@ -51,20 +52,20 @@
   to = "https://teamlausanne.ch/:splat"
   status = 301
   force = true
-# Anciennes adresses Wix du tournoi (mails, flyers, Google) → onglet Lausanne Open
+# Anciennes adresses Wix du tournoi (mails, flyers, Google) → page /lausanne-open
 [[redirects]]
   from = "https://lausanneopen.ch/partenariats"
-  to = "https://teamlausanne.ch/#tournoi"
+  to = "https://teamlausanne.ch/lausanne-open"
   status = 301
   force = true
 [[redirects]]
   from = "https://lausanneopen.ch/programmedujour"
-  to = "https://teamlausanne.ch/#tournoi"
+  to = "https://teamlausanne.ch/lausanne-open"
   status = 301
   force = true
 [[redirects]]
   from = "https://lausanneopen.ch/apropos"
-  to = "https://teamlausanne.ch/#tournoi"
+  to = "https://teamlausanne.ch/lausanne-open"
   status = 301
   force = true
 [[redirects]]

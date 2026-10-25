@@ -388,6 +388,9 @@ export function descriptionArticle(a) {
 // 155 signes sur une frontière de mot : au-delà Google tronque, et une
 // description coupée au milieu d'un mot a l'air cassée.
 export function descriptionDe(cle, page) {
+  // Une page peut porter sa propre description pour Google (`metaDescription`) quand son sous-titre est trop
+  // court pour en servir : 62 et 75 signes pour Journée Team Lausanne et Cours adultes (audit SEO, 25.10.2026).
+  if (page.metaDescription) return page.metaDescription;
   const { chapo } = enTeteDe(cle, page);
   const brut = (chapo || "").replace(/\s+/g, " ").trim();
   if (brut.length <= 155) return brut;
