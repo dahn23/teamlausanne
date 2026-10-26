@@ -830,6 +830,12 @@ body[data-world="academie"] .sw.active{color:var(--fluo-ink)}
    et plein ecran au telephone. Les trois premieres colonnes portent les memes
    intitules que la grille des programmes de l'accueil : un seul rangement. */
 .sw-wrap{position:relative;display:flex}
+/* 4e pastille (le Cercle) : les quatre libelles longs ne tiennent sur une
+   ligne qu'a partir de 1100px — en dessous la barre passe a deux lignes et
+   l'entete collante mange 50px de plus sur chaque page. Sous ce seuil, le
+   Cercle reste accessible par le menu de l'Academy, ou il figure aussi. */
+.sw-cercle{display:none}
+@media (min-width:1100px){.sw-cercle{display:flex}}
 .sw-menu{position:absolute;top:100%;left:50%;transform:translateX(-50%) translateY(-4px);
   background:#fff;border:1px solid var(--line);border-radius:16px;
   box-shadow:0 18px 44px rgba(20,26,46,.18);padding:18px 20px;
