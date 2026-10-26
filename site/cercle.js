@@ -32,7 +32,7 @@ $("cp-form").addEventListener("submit", async (e) => {
   });
 
   btn.disabled = false; btn.firstChild.textContent = "Envoyer ma demande ";
-  if (error) { err.textContent = "L'envoi a échoué (" + error.message + "). Appelez-nous au 079 955 06 94."; err.hidden = false; return; }
+  if (error) { err.textContent = "L'envoi a échoué (" + error.message + "). Appelez-nous au 021 646 13 50."; err.hidden = false; return; }
   $("cp-form").hidden = true;
   $("cp-done").hidden = false;
   $("cp-done").scrollIntoView({ behavior: "smooth", block: "center" });
