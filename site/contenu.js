@@ -525,10 +525,10 @@ details:
           // Propos recueillis aupres de Max, remis a la 3e personne comme les
           // autres portraits. Sa formule sur l'equipe est gardee telle quelle :
           // c'est la plus parlante des siennes.
-          { nom: "Max Marten", age: "16 ans", classement: "R3",
+          { nom: "Max Marten", age: "16 ans", classement: "R2",
             photo: "assets/photos/eleve-max-marten.jpg",
             mytennis: "19781973",
-            mot: "Seize ans, classé R3. Il se dépasse chaque jour à l'entraînement pour aller chercher son objectif, et aime repousser ses limites. Surtout, il adore jouer en équipe : c'est ensemble qu'on va le plus loin. Motivé, travailleur, toujours prêt à progresser." },
+            mot: "Seize ans, classé R2. Il se dépasse chaque jour à l'entraînement pour aller chercher son objectif, et aime repousser ses limites. Surtout, il adore jouer en équipe : c'est ensemble qu'on va le plus loin. Motivé, travailleur, toujours prêt à progresser." },
         ]},
       // Le calendrier de la saison, à imprimer. Les mêmes dates vivent sur
       // l'accueil, filtrables et tenues à jour ; ici c'est la version qu'on
