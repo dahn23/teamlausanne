@@ -1,5 +1,6 @@
 import nodemailer from "npm:nodemailer@6.9.14";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { Buffer } from "node:buffer";
 
 const CORS = {
   "access-control-allow-origin": "*",
@@ -126,10 +127,25 @@ async function sendForTournament(supa: any, tx: any, tId: string, key: string, o
     const subject = fillVars(tpl.subject || "", vars, girl);
     const bodyTxt = fillVars(tpl.body || "", vars, girl);
     const imgUrl = key === "vainqueur" ? (photoById[id] || tpl.image_url) : tpl.image_url;
-    const img = imgUrl ? `<div style="margin-top:14px"><img src="${imgUrl}" style="max-width:100%"/></div>` : "";
+    // L'image part en VRAIE pièce jointe, affichée dans le mail par cid (26.10.2026) : une simple adresse d'image
+    // est bloquée par Outlook et les messageries d'entreprise (« la photo n'était pas jointe », FEI). Si le
+    // téléchargement échoue, on garde l'ancienne image en lien plutôt que de ne rien envoyer.
+    let img = "", attachments: { filename: string; content: Buffer; cid: string; contentType: string }[] = [];
+    if (imgUrl) {
+      try {
+        const r = await fetch(imgUrl);
+        if (!r.ok) throw new Error(String(r.status));
+        const type = r.headers.get("content-type") || "image/jpeg";
+        const ext = /png/i.test(type) ? "png" : /webp/i.test(type) ? "webp" : "jpg";
+        attachments = [{ filename: key === "vainqueur" ? `photo-vainqueur.${ext}` : `image.${ext}`, content: Buffer.from(await r.arrayBuffer()), cid: "photo-tl", contentType: type }];
+        img = `<div style="margin-top:14px"><img src="cid:photo-tl" style="max-width:100%"/></div>`;
+      } catch (_) {
+        img = `<div style="margin-top:14px"><img src="${imgUrl}" style="max-width:100%"/></div>`;
+      }
+    }
     const html = `<div style="font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111">${toHtml(bodyTxt)}${img}</div>`;
     try {
-      await tx.sendMail({ from: `\"Tournoi - Team Lausanne\" <${TOURNOI}>`, to: preview ? preview.to : p.email, subject, text: bodyTxt, html });
+      await tx.sendMail({ from: `\"Tournoi - Team Lausanne\" <${TOURNOI}>`, to: preview ? preview.to : p.email, subject, text: bodyTxt, html, attachments });
       if (!preview) await supa.from("gz_mail_sent").upsert({ tournament_id: tId, participant_id: id, template_key: key, email: p.email });
       sentN++;
     } catch (e) { if (preview) return { sent: 0, remaining: 0, error: String((e as Error)?.message || e) }; /* sinon on reessaiera au prochain passage */ }

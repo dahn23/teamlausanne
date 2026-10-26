@@ -733,7 +733,10 @@ répondra qu'elle ne sait pas, et la question remontera dans
   les changer. Ni l'un ni l'autre n'a le sous-onglet Études.
 - **GameZone** — tournois juniors, sept sous-onglets. « Gérer le tournoi »,
   « Nommer responsable », « J'ai pris » / « Pas encore pris »,
-  « Clôturer le tournoi ».
+  « Clôturer le tournoi ». Dans « Envois e-mails », « Remerciements » et
+  « Vainqueurs » restent grisés avant le jour du tournoi (« disponible dès
+  le … ») ; ils partent aussi tout seuls le lundi à 11 h. Le mail
+  « Vainqueurs » porte la photo du vainqueur en pièce jointe.
 - **Caisse** — « Ajouter un mouvement ».
 - **Serrures** / **Arrosage** — « + Ajouter une serrure », « + Ajouter une
   zone ». Journal récent.
