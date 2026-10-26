@@ -227,13 +227,29 @@
     .eco-card p{margin:0;color:var(--muted);font-size:.95rem}
 
     /* --- calendrier --- */
-    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);border:1px solid var(--line);
-      border-radius:16px;overflow:hidden;margin-top:44px}
-    .cal-m{background:#fff;padding:20px 18px}
-    .cal-m b{display:block;font-family:var(--accent);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
-    .cal-m span{display:inline-block;font-family:var(--accent);font-weight:700;font-size:.95rem;color:var(--nuit);
-      background:#f1f3f8;border-radius:8px;padding:5px 9px;margin:0 4px 6px 0}
-    .cal-note{color:var(--muted);font-size:.9rem;margin-top:18px}
+    /* Un dégradé très léger vers le bleu : la section se détache de l'écosystème
+       (fond papier) juste au-dessus, sans assombrir la page. */
+    .cal{background:linear-gradient(180deg,#fff 0%,#eff3ff 100%)}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-top:44px}
+    .cal-m{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 16px;
+      transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+    .cal-m:hover{transform:translateY(-3px);border-color:rgba(7,62,181,.3);
+      box-shadow:0 16px 32px -20px rgba(7,62,181,.65)}
+    .cal-m b{display:block;position:relative;font-family:var(--accent);font-size:.78rem;letter-spacing:.14em;
+      text-transform:uppercase;color:var(--blue);padding-bottom:11px;margin-bottom:13px}
+    .cal-m b::after{content:"";position:absolute;left:0;bottom:0;width:24px;height:2px;background:var(--fluo)}
+    .cal-m span{display:inline-block;font-family:var(--accent);font-weight:700;font-size:.95rem;
+      color:var(--blue-ink);background:#eaf0ff;border-radius:9px;padding:5px 10px;margin:0 5px 7px 0;
+      transition:background .16s ease,color .16s ease,transform .16s ease}
+    /* :active en plus de :hover — au doigt il n'y a pas de survol, et sans lui
+       la case ne répondrait pas du tout sur téléphone. */
+    .cal-m span:hover,.cal-m span:active{background:var(--fluo);color:var(--fluo-ink);transform:translateY(-2px)}
+    /* Le premier vendredi de la saison : repère de lecture, pas un bouton. */
+    .cal-m .premier{background:var(--blue);color:#fff}
+    .cal-m .premier:hover{background:var(--blue-ink);color:#fff}
+    .cal-note{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+      color:var(--muted);font-size:.9rem;margin-top:22px}
+    .cal-note i{display:inline-block;width:14px;height:14px;border-radius:5px;background:var(--blue);flex:0 0 auto}
 
     /* --- FAQ --- */
     .faq .wrap{display:grid;grid-template-columns:.8fr 1.2fr;gap:clamp(36px,6vw,90px)}
@@ -282,7 +298,8 @@
     /* Masqué seulement si le script d'apparition tourne (classe posée par lui) : sans JS, tout reste visible. */
     .rv-on .rv{opacity:0;transform:translateY(22px);transition:opacity .9s ease,transform .9s ease}
     .rv-on .rv.vu{opacity:1;transform:none}
-    @media (prefers-reduced-motion:reduce){.rv-on .rv{opacity:1;transform:none}.hero-bg{animation:none;transform:none}}
+    @media (prefers-reduced-motion:reduce){.rv-on .rv{opacity:1;transform:none}.hero-bg{animation:none;transform:none}
+      .cal-m,.cal-m span{transition:none}.cal-m:hover,.cal-m span:hover{transform:none}}
 
     /* --- responsive --- */
     @media (max-width:1000px){
@@ -542,7 +559,7 @@
   </section>
 
   <!-- ============ CALENDRIER ============ -->
-  <section id="calendrier">
+  <section id="calendrier" class="cal">
     <div class="wrap">
       <div class="rv">
         <p class="eyebrow">La saison de lancement</p>
@@ -550,7 +567,7 @@
         <p class="lead">Premier vendredi le 15 janvier 2027. Hors vacances scolaires vaudoises et jours fériés. Vous choisissez vos dates : vos 10 crédits se réservent directement dans l'application Team Lausanne.</p>
       </div>
       <div class="cal-grid rv">
-        <div class="cal-m"><b>Janvier 2027</b><span>15</span><span>22</span><span>29</span></div>
+        <div class="cal-m"><b>Janvier 2027</b><span class="premier">15</span><span>22</span><span>29</span></div>
         <div class="cal-m"><b>Février</b><span>5</span><span>19</span><span>26</span></div>
         <div class="cal-m"><b>Mars</b><span>5</span><span>12</span><span>19</span></div>
         <div class="cal-m"><b>Avril</b><span>16</span><span>23</span><span>30</span></div>
@@ -558,6 +575,7 @@
         <div class="cal-m"><b>Juin</b><span>4</span><span>11</span><span>18</span><span>25</span></div>
         <div class="cal-m"><b>Juillet</b><span>2</span></div>
       </div>
+      <p class="cal-note rv"><i aria-hidden="true"></i> Le premier vendredi de la saison. Chaque case est une matinée, de 10h00 à 12h30.</p>
     </div>
   </section>
 
