@@ -120,6 +120,19 @@
   from = "/tennis-lunchs"
   to = "/tennis-lunchs.html"
   status = 200
+# Le Cercle du Président (page autonome, 26.10.2026) + les noms qu'on lui a donnés avant.
+[[redirects]]
+  from = "/cercle-du-president"
+  to = "/cercle-du-president.html"
+  status = 200
+[[redirects]]
+  from = "/club-des-presidents"
+  to = "/cercle-du-president"
+  status = 301
+[[redirects]]
+  from = "/presidents"
+  to = "/cercle-du-president"
+  status = 301
 
 
 [[redirects]]
