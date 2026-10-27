@@ -5184,7 +5184,7 @@ function attChip(course, coachIds, pid, isCoach, status) {
   const nm = `${bdayChip(pid, course.course_date)}${esc(personName(pid))}${ageTxt}`;
   const chip = `<button type="button" class="att-chip ${cls}" data-course="${course.id}" data-person="${pid}"
     data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}" data-cstart="${course.course_date}T${course.start_time}"
-    title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${bday ? " · anniversaire" : ""}">${nm}</button>`;
+    title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${estSonAnniversaire(pid, course.course_date) ? " · anniversaire" : ""}">${nm}</button>`;
   // chip + ↗ regroupés dans .att-unit → 1 seul enfant par joueur (ne casse pas le masquage « > 4 »).
   const annonce = isCoach ? "" : annBadge(course.id, pid);
   // Le bouton d'annonce n'apparait que pour ceux qui ont le droit d'annoncer,
