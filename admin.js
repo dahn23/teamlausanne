@@ -5024,19 +5024,14 @@ function allKidsMarked(courseId) {
 // 1 à 3 = il vient de passer. La fenêtre existe parce qu'un anniversaire tombé
 // un samedi ne se voyait nulle part : l'élève revenait le lundi et personne ne
 // le savait. Au-delà de trois jours, le souhait n'a plus lieu d'être.
-const BDAY_FENETRE = 3;
-function bdayJours(pid, dateIso) {
+// Le gâteau ne s'affiche QUE le jour même. Une fenêtre de quelques jours avait
+// été essayée pour rattraper les anniversaires du week-end : on y renonce —
+// souhaiter un anniversaire qui n'est pas le jour même est pire que de ne rien
+// dire (27.10.2026).
+const estSonAnniversaire = (pid, dateIso) => {
   const p = people.find((x) => x.id === pid);
-  if (!p || !p.birthdate || !dateIso) return null;
-  const mj = p.birthdate.slice(5, 10);
-  const ref = new Date(dateIso + "T12:00:00");
-  for (let k = 0; k <= BDAY_FENETRE; k++) {
-    const d = new Date(ref); d.setDate(d.getDate() - k);
-    const q = String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-    if (q === mj) return k;
-  }
-  return null;
-}
+  return !!(p && p.birthdate && dateIso && p.birthdate.slice(5, 10) === dateIso.slice(5, 10));
+};
 // Âge (en années) à la date du cours — pour l'afficher entre parenthèses aux coachs.
 const ageAt = (birthdate, refIso) => {
   if (!birthdate) return null;
@@ -5065,11 +5060,9 @@ const ICO_TL_GALERIE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 // pas « anniversaire » au premier coup d'œil.
 const ICO_TL_GATEAU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.8 20.6h16.4"/><path d="M5.6 20.6v-6.1a2 2 0 0 1 2-2h8.8a2 2 0 0 1 2 2v6.1"/><path d="M5.6 16.4c1.2 0 1.2 1.2 2.4 1.2s1.2-1.2 2.4-1.2 1.2 1.2 2.4 1.2 1.2-1.2 2.4-1.2 1.2 1.2 2.4 1.2"/><path d="M12 12.5V9.7"/><path d="M12 6.5c.85.95.85 1.85 0 2.5-.85-.65-.85-1.55 0-2.5Z"/></svg>';
 // Pastille anniversaire (non cliquable) : même gabarit que la pastille « matchs ».
-const bdayBadge = (n = 0) => `<span class="tl-ico tl-ico-bday${n ? " tl-ico-bday-passe" : ""}" title="${
-  n === 0 ? "C'est son anniversaire aujourd'hui — pense à le lui souhaiter"
-          : `Anniversaire il y a ${n} jour${n > 1 ? "s" : ""} — pense à le lui souhaiter`}">${ICO_TL_GATEAU}</span>`;
+const bdayBadge = () => `<span class="tl-ico tl-ico-bday" title="C'est son anniversaire aujourd'hui — pense à le lui souhaiter">${ICO_TL_GATEAU}</span>`;
 // Le gâteau à coller devant un nom, ou rien du tout.
-const bdayChip = (pid, dateIso) => { const n = bdayJours(pid, dateIso); return n === null ? "" : bdayBadge(n) + " "; };
+const bdayChip = (pid, dateIso) => (estSonAnniversaire(pid, dateIso) ? bdayBadge() + " " : "");
 function rmBadge(pid) {
   const list = rmMap[pid]; if (!list || !list.length) return "";
   const perf = list.some((m) => m.is_perf);
@@ -5354,15 +5347,14 @@ async function loadCoursesWeek() {
     // Prénoms déjà échappés ici : la pastille anniversaire est du HTML, elle ne peut pas passer par esc() ensuite.
     const coachNames = coachIds.filter(firstOf).map((id) => bdayChip(id, c.course_date) + esc(firstOf(id)));
     const coachStr = coachNames.slice(0, 3).join(", ") + (coachNames.length > 3 ? ` +${coachNames.length - 3}c` : "");
-    const bdayJs = childIds.map((id) => bdayJours(id, c.course_date)).filter((n) => n !== null);
-    const childBday = bdayJs.length ? Math.min.apply(null, bdayJs) : null;
+    const childBday = childIds.some((id) => estSonAnniversaire(id, c.course_date));
     const search = esc([c.title || "", type?.name || "", ...coachIds.map(nmeOf), ...childIds.map(nmeOf)].join(" ").toLowerCase());
     const mySt = myAttOf[c.id];
     const stCls = mySt === "present" ? " cw-present" : mySt === "absent" ? " cw-absent" : "";
     return `<div class="cw-ev${stCls}" data-id="${c.id}" data-date="${c.course_date}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cw-ev-t">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
       <div class="cw-ev-n">${esc(c.title || type?.name || "Cours")}</div>
-      <div class="cw-ev-m muted">${cts || "—"}${childIds.length ? " · " + childIds.length + "j" : ""}${childBday === null ? "" : " " + bdayBadge(childBday)}</div>
+      <div class="cw-ev-m muted">${cts || "—"}${childIds.length ? " · " + childIds.length + "j" : ""}${childBday ? " " + bdayBadge() : ""}</div>
       ${coachStr ? `<div class="cw-ev-co">${coachStr}</div>` : ""}
     </div>`;
   };

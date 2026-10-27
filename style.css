@@ -3826,9 +3826,6 @@ tr.rm-loss td{background:#fde8e8}
 .tl-ico-perf{background:var(--fluo);color:var(--fluo-ink);box-shadow:0 0 0 1.5px var(--fluo-d) inset}
 .tl-ico-bday{background:var(--blue);color:var(--fluo);width:20px;height:20px}
 .tl-ico-bday svg{width:12px;height:12px}
-/* Anniversaire des jours précédents : même gâteau, en retrait, pour qu'on
-   distingue d'un coup d'œil « c'est aujourd'hui » de « c'était samedi ». */
-.tl-ico-bday-passe{background:#dfe6f5;color:var(--blue)}
 .att-rm.tl-ico{filter:none;font-size:0;cursor:pointer;transition:transform .12s}
 .att-rm.tl-ico:hover{transform:scale(1.15)}
 .att-rm.tl-ico.tl-ico-match:hover{background:#d3defa}
