@@ -281,7 +281,9 @@ export function corpsHTML(cle, page, pages) {
     ? `<figure><img src="${esc(page.hero)}" alt="${esc(titre)} — Team Lausanne Academy, école de tennis à Lausanne" /></figure>`
     : "";
   const nav = pages ? naviguerHTML(cle, pages) : "";
-  return absolutiser(`<article>\n${h(1, titre)}\n${p(chapo)}\n${hero}\n${sections}\n</article>\n${nav}`);
+  // <h2> et non <h1> : le titre principal de la page est désormais écrit dans
+  // le <h1> du hero par build.mjs. Deux <h1> identiques se faisaient concurrence.
+  return absolutiser(`<article>\n${h(2, titre)}\n${p(chapo)}\n${hero}\n${sections}\n</article>\n${nav}`);
 }
 
 // Les questions-réponses d'une page, pour le balisage FAQPage.
@@ -347,7 +349,7 @@ export function articleHTML(a, nav = "") {
   const couv = a.cover_url
     ? `<figure><img src="${esc(a.cover_url)}" alt="${esc(a.cover_alt || a.title || "")}" /></figure>` : "";
   return absolutiser(`<article>
-${h(1, a.title)}
+${h(2, a.title)}
 ${date}
 ${p(a.lede)}
 ${couv}
@@ -367,7 +369,7 @@ export function listeActusHTML(articles) {
     </article>
   </li>`).join("\n");
   return absolutiser(`<article>
-<h1>Actualités</h1>
+<h2>Actualités</h2>
 <p>La vie de l'académie, semaine après semaine : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club.</p>
 <ul>
 ${items}

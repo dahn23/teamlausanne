@@ -210,6 +210,11 @@ worlds:
 {
   academie: {
     tag: "Academy", retour: "à l'Academy",
+    // Titre de la page servie (le <h1>). « Academy » seul ne dit ni le métier
+    // ni la ville : les robots qui n'exécutent pas de JavaScript n'avaient donc
+    // aucun mot utile dans le titre principal de l'accueil. À l'écran, le
+    // slogan reprend la main dès que index.js démarre.
+    h1: "École de tennis à Lausanne",
     metaTitle: "Tennis à Lausanne : école, sport-études, club | Team Lausanne",
     metaDescription: "Tennis à Lausanne : cours enfants dès 4 ans, compétition, sport-études et pro. 12 courts aux Plaines-du-Loup, dont 6 couverts l'hiver.",
     logo: "assets/logo-academie.webp", heroLogo: "assets/logo-academie-blanc.png",

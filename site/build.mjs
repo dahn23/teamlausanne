@@ -25,7 +25,7 @@ import { fileURLToPath } from "node:url";
 import { CONTENU } from "./contenu.js";
 import {
   pagesDe, corpsHTML, titreDe, descriptionDe, esc, faqDe, naviguerHTML,
-  articleHTML, listeActusHTML, descriptionArticle,
+  articleHTML, listeActusHTML, descriptionArticle, enTeteDe,
 } from "./rendu-statique.js";
 import { SLUGS, urlDe } from "./adresses.js";
 
@@ -173,6 +173,17 @@ for (const [cle, page] of Object.entries(pages)) {
   // vers Kids Tennis arrivaient avec la même vignette sur WhatsApp.
   html = imagePartage(html, page.hero ? SITE + "/" + page.hero.replace(/^\//, "") : IMAGE);
 
+  // Le titre principal de la page, écrit DANS le HTML servi.
+  //
+  // Le gabarit porte un <h1> vide que index.js remplit au chargement. Google
+  // exécute le JavaScript et le voyait donc rempli ; GPTBot, ClaudeBot et
+  // PerplexityBot, non — ils trouvaient un titre principal vide, suivi d'un
+  // second <h1> dans le corps. On le remplit ici, et le corps passe en <h2>
+  // (voir corpsHTML) : un seul <h1> par page, rempli, dans les deux cas.
+  html = remplacer(html, /<h1 class="hero-slogan" id="hero-slogan"><\/h1>/,
+    `<h1 class="hero-slogan" id="hero-slogan">${esc(page.h1 || enTeteDe(cle, page).titre)}</h1>`,
+    "<h1> du hero");
+
   // Les données structurées de la page viennent S'AJOUTER à celles du site
   // (organisation, lieu, programmes), qui restent dans le gabarit.
   html = html.replace("</head>",
@@ -236,8 +247,14 @@ const actus = await lireActus();
 const actusEcrites = [];
 
 if (actus) {
-  const pageActu = (titre, description, url, corps, jsonld) => {
+  const pageActu = (titre, description, url, corps, jsonld, h1) => {
     let html = gabarit;
+    // Même règle que les pages de filière : un seul <h1>, rempli, dans le HTML
+    // servi (voir plus haut). Les pages d'actualités passaient par ici et
+    // gardaient donc le <h1> vide du gabarit.
+    html = remplacer(html, /<h1 class="hero-slogan" id="hero-slogan"><\/h1>/,
+      `<h1 class="hero-slogan" id="hero-slogan">${esc(h1 || "Actualités")}</h1>`,
+      "<h1> du hero (actualités)");
     html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(titre)}</title>`);
     html = html.replace(/<meta name="description" content="[^"]*"\s*\/>/,
       `<meta name="description" content="${esc(description)}" />`);
@@ -287,7 +304,7 @@ if (actus) {
       publisher: { "@id": SITE + "/#academy" },
     }, null, 2);
     await writeFile(join(ICI, "actualites", a.slug + ".html"),
-      pageActu(`${a.title} — Team Lausanne Academy`, description, url, articleHTML(a, navCommune), jsonld), "utf8");
+      pageActu(`${a.title} — Team Lausanne Academy`, description, url, articleHTML(a, navCommune), jsonld, a.title), "utf8");
     actusEcrites.push({ slug: a.slug, date: a.published_on });
   }
 }
@@ -300,11 +317,13 @@ if (actus) {
 // statut 404, dès qu'un fichier 404.html existe à la racine.
 {
   const corps = `<article>
-<h1>Cette page n'existe pas</h1>
+<h2>Cette page n'existe pas</h2>
 <p>L'adresse demandée n'existe pas, ou n'existe plus. Voici par où reprendre.</p>
 </article>
 ${naviguerHTML(null, pages)}`;
   let html = gabarit;
+  html = remplacer(html, /<h1 class="hero-slogan" id="hero-slogan"><\/h1>/,
+    '<h1 class="hero-slogan" id="hero-slogan">Page introuvable</h1>', "<h1> du hero (404)");
   html = html.replace(/<title>[\s\S]*?<\/title>/, "<title>Page introuvable — Team Lausanne Academy</title>");
   html = html.replace(/<meta name="description" content="[^"]*"\s*\/>/,
     '<meta name="description" content="Cette page n\'existe pas. Retrouvez les programmes, les stages et les actualités de Team Lausanne Academy." />');
@@ -343,6 +362,7 @@ ${actusEcrites.map((a) => `  <url>
   </url>`).join("\n")}` : ""}
 ${["cercle-du-president", "confidentialite"].map((s) => `  <url>
     <loc>${SITE}/${s}</loc>
+    <lastmod>${aujourdhui}</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>`).join("\n")}
