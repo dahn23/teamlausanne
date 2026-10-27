@@ -266,6 +266,18 @@ Qui peut marquer quoi :
 Les quatre états sont « Présent », « Absent », « En retard » (élèves) et
 « En attente ».
 
+### Le gâteau d'anniversaire
+
+Un **🎂 gâteau devant un nom** veut dire : c'est son anniversaire. Pensez à le
+lui souhaiter quand il arrive au cours.
+
+Le gâteau **vif** = c'est aujourd'hui. Le gâteau **pâle** = c'était dans les
+trois jours précédents, parce qu'un anniversaire tombé un samedi doit encore
+se voir à la leçon du lundi. Passez la souris dessus pour lire le jour exact.
+
+Il apparaît sur les élèves comme sur les coachs, dans l'appel et dans la vue
+« Semaine ». Rien à saisir : la date vient de la fiche du Répertoire.
+
 ### Autres boutons
 
 - **« + Déplacement »** pose un déplacement.

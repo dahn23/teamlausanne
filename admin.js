@@ -5020,7 +5020,23 @@ function allKidsMarked(courseId) {
   return [...card.querySelectorAll('.att-chip[data-coach="0"]')].every((k) => k.dataset.status);
 }
 
-const isBirthday = (pid, dateIso) => { const p = people.find((x) => x.id === pid); return !!(p?.birthdate && dateIso && p.birthdate.slice(5, 10) === dateIso.slice(5, 10)); };
+// Combien de jours séparent la leçon de l'anniversaire : 0 = c'est le jour même,
+// 1 à 3 = il vient de passer. La fenêtre existe parce qu'un anniversaire tombé
+// un samedi ne se voyait nulle part : l'élève revenait le lundi et personne ne
+// le savait. Au-delà de trois jours, le souhait n'a plus lieu d'être.
+const BDAY_FENETRE = 3;
+function bdayJours(pid, dateIso) {
+  const p = people.find((x) => x.id === pid);
+  if (!p || !p.birthdate || !dateIso) return null;
+  const mj = p.birthdate.slice(5, 10);
+  const ref = new Date(dateIso + "T12:00:00");
+  for (let k = 0; k <= BDAY_FENETRE; k++) {
+    const d = new Date(ref); d.setDate(d.getDate() - k);
+    const q = String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    if (q === mj) return k;
+  }
+  return null;
+}
 // Âge (en années) à la date du cours — pour l'afficher entre parenthèses aux coachs.
 const ageAt = (birthdate, refIso) => {
   if (!birthdate) return null;
@@ -5045,8 +5061,16 @@ const ICO_TL_RAQUETTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 const ICO_TL_PHOTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 8h3l1.4-2.2h6.2L16.5 8h3A1.5 1.5 0 0 1 21 9.500V18a1.500 1.500 0 0 1-1.500 1.500h-15A1.500 1.500 0 0 1 3 18V9.500A1.500 1.500 0 0 1 4.500 8z"/><circle cx="12" cy="13.4" r="3.4"/></svg>';
 const ICO_TL_GALERIE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6.500" width="14.500" height="13" rx="2"/><path d="M6.500 3.500h12A2.500 2.500 0 0 1 21 6v10"/><circle cx="7.600" cy="10.800" r="1.300"/><path d="M3.500 17.500l4-3.800 3 2.800 2.600-2.300 4.200 3.800"/></svg>';
 const ICO_TL_CADEAU ='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8" width="17" height="4.5" rx="1.2"/><path d="M5.2 12.5V19a1.5 1.5 0 0 0 1.5 1.5h10.6a1.5 1.5 0 0 0 1.5-1.5v-6.5"/><path d="M12 8v12.5"/><path d="M12 8C10.6 4.3 6.4 4 6.4 6.3 6.4 8 9.6 8 12 8zM12 8c1.4-3.7 5.6-4 5.6-1.7C17.6 8 14.4 8 12 8z"/></svg>';
+// Gâteau d'anniversaire : une bougie, un glaçage, une assiette. Même trait que
+// les autres pastilles. Le cadeau d'avant se lisait mal à 12 px et ne disait
+// pas « anniversaire » au premier coup d'œil.
+const ICO_TL_GATEAU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.8 20.6h16.4"/><path d="M5.6 20.6v-6.1a2 2 0 0 1 2-2h8.8a2 2 0 0 1 2 2v6.1"/><path d="M5.6 16.4c1.2 0 1.2 1.2 2.4 1.2s1.2-1.2 2.4-1.2 1.2 1.2 2.4 1.2 1.2-1.2 2.4-1.2 1.2 1.2 2.4 1.2"/><path d="M12 12.5V9.7"/><path d="M12 6.5c.85.95.85 1.85 0 2.5-.85-.65-.85-1.55 0-2.5Z"/></svg>';
 // Pastille anniversaire (non cliquable) : même gabarit que la pastille « matchs ».
-const bdayBadge = () => `<span class="tl-ico tl-ico-bday" title="C'est son anniversaire">${ICO_TL_CADEAU}</span>`;
+const bdayBadge = (n = 0) => `<span class="tl-ico tl-ico-bday${n ? " tl-ico-bday-passe" : ""}" title="${
+  n === 0 ? "C'est son anniversaire aujourd'hui — pense à le lui souhaiter"
+          : `Anniversaire il y a ${n} jour${n > 1 ? "s" : ""} — pense à le lui souhaiter`}">${ICO_TL_GATEAU}</span>`;
+// Le gâteau à coller devant un nom, ou rien du tout.
+const bdayChip = (pid, dateIso) => { const n = bdayJours(pid, dateIso); return n === null ? "" : bdayBadge(n) + " "; };
 function rmBadge(pid) {
   const list = rmMap[pid]; if (!list || !list.length) return "";
   const perf = list.some((m) => m.is_perf);
@@ -5160,13 +5184,12 @@ function attChip(course, coachIds, pid, isCoach, status) {
   const can = canMarkBox(course, coachIds, pid, isCoach);
   const cls = status === "present" ? "st-present" : status === "late" ? "st-late"
     : status === "absent" ? "st-absent" : (can ? "st-none" : "st-locked");
-  const bday = isBirthday(pid, course.course_date);
   // Âge entre parenthèses pour les élèves (pas les coachs).
   const p = people.find((x) => x.id === pid);
   const age = (!isCoach && p?.birthdate) ? ageAt(p.birthdate, course.course_date) : null;
   const ageTxt = age != null ? ` <span class="att-age">(${age})</span>` : "";
   const reach = !isCoach && tennisReachable(pid);   // ↗ vers la fiche Tennis
-  const nm = `${bday ? bdayBadge() + " " : ""}${esc(personName(pid))}${ageTxt}`;
+  const nm = `${bdayChip(pid, course.course_date)}${esc(personName(pid))}${ageTxt}`;
   const chip = `<button type="button" class="att-chip ${cls}" data-course="${course.id}" data-person="${pid}"
     data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}" data-cstart="${course.course_date}T${course.start_time}"
     title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${bday ? " · anniversaire" : ""}">${nm}</button>`;
@@ -5240,7 +5263,7 @@ async function loadCoursesDay() {
     const courtCount = books.filter((b) => b.course_id === c.id).length;
     const detailed = !!type && TR_TYPE_RE.test(type.name || "") && (courtCount > 1 || coachIds.length > 1);
     const elevesCol = detailed
-      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); const sp = `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${isBirthday(pid, c.course_date) ? bdayBadge() + " " : ""}${esc(personName(pid))}${agT}</span>`; const ex = rmBadge(pid) + annBadge(c.id, pid)
+      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); const sp = `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${bdayChip(pid, c.course_date)}${esc(personName(pid))}${agT}</span>`; const ex = rmBadge(pid) + annBadge(c.id, pid)
             + (canAnnoncer() ? `<button type="button" class="att-ann" data-person="${pid}" data-course="${c.id}" title="Annoncer une absence ou un retard">✎</button>` : "")
             + (reach ? `<button type="button" class="att-goto" data-person="${pid}" data-course="${c.id}" title="Ouvrir la fiche › Tennis">↗</button>` : ""); return ex ? `<span class="att-unit">${sp}${ex}</span>` : sp; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
       : col(c, coachIds, childIds, false, "Élèves");
@@ -5330,16 +5353,17 @@ async function loadCoursesWeek() {
     const childIds = parts.filter((x) => x.course_id === c.id).map((x) => x.child_person_id);
     const type = courseTypes.find((t) => t.id === c.course_type_id);
     // Prénoms déjà échappés ici : la pastille anniversaire est du HTML, elle ne peut pas passer par esc() ensuite.
-    const coachNames = coachIds.filter(firstOf).map((id) => (isBirthday(id, c.course_date) ? bdayBadge() + " " : "") + esc(firstOf(id)));
+    const coachNames = coachIds.filter(firstOf).map((id) => bdayChip(id, c.course_date) + esc(firstOf(id)));
     const coachStr = coachNames.slice(0, 3).join(", ") + (coachNames.length > 3 ? ` +${coachNames.length - 3}c` : "");
-    const childBday = childIds.some((id) => isBirthday(id, c.course_date));
+    const bdayJs = childIds.map((id) => bdayJours(id, c.course_date)).filter((n) => n !== null);
+    const childBday = bdayJs.length ? Math.min.apply(null, bdayJs) : null;
     const search = esc([c.title || "", type?.name || "", ...coachIds.map(nmeOf), ...childIds.map(nmeOf)].join(" ").toLowerCase());
     const mySt = myAttOf[c.id];
     const stCls = mySt === "present" ? " cw-present" : mySt === "absent" ? " cw-absent" : "";
     return `<div class="cw-ev${stCls}" data-id="${c.id}" data-date="${c.course_date}" data-search="${search}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
       <div class="cw-ev-t">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
       <div class="cw-ev-n">${esc(c.title || type?.name || "Cours")}</div>
-      <div class="cw-ev-m muted">${cts || "—"}${childIds.length ? " · " + childIds.length + "j" : ""}${childBday ? " " + bdayBadge() : ""}</div>
+      <div class="cw-ev-m muted">${cts || "—"}${childIds.length ? " · " + childIds.length + "j" : ""}${childBday === null ? "" : " " + bdayBadge(childBday)}</div>
       ${coachStr ? `<div class="cw-ev-co">${coachStr}</div>` : ""}
     </div>`;
   };
