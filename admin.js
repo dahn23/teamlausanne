@@ -6513,7 +6513,8 @@ async function addMovement() {
 
 // ===================================================================
 //  Accès Mon espace — invitations des utilisateurs (pilote sport-études + pro, puis ouverture générale)
-//  Un compte = l'e-mail principal de la fiche. RPC portal_access_list ; envoi par la fonction portal-invite,
+//  Un compte = l'e-mail principal de la fiche, ou une adresse des champs « Parent 1 / 2 » pour un mineur (db/201,
+//  marquée « · parent »). RPC portal_access_list ; envoi par la fonction portal-invite,
 //  VERROUILLÉE côté serveur tant que portal_invite_config.sending_enabled est éteint (superadmin seul).
 // ===================================================================
 const PA_FILIERES = [["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"], ["performance", "Performance"],
@@ -6733,7 +6734,8 @@ function paRenderList() {
     const st = paState(r);
     const fil = (r.filieres || "").split(", ").map(roleLabel).join(", ");
     const invite = st.key === "ok" ? "" : `<button type="button" class="ghost pa-one" data-i="${i}" ${on ? "" : "disabled"}>${st.key === "wait" ? "Réinviter" : "Inviter"}</button>`;
-    return `<tr><td><b>${esc(r.children)}</b></td><td>${esc(r.email)}</td><td class="muted">${esc(fil)}</td><td>${st.html}</td>
+    const src = r.source === "parent" ? ` <span class="muted" title="Adresse lue dans « Parent 1 / Parent 2 » de la fiche">· parent</span>` : "";
+    return `<tr><td><b>${esc(r.children)}</b></td><td>${esc(r.email)}${src}</td><td class="muted">${esc(fil)}</td><td>${st.html}</td>
       <td style="text-align:right;white-space:nowrap">${invite}
       <button type="button" class="ghost pa-sample" data-i="${i}" title="M'envoyer le mail tel que cet utilisateur le recevrait (à MON adresse)">Aperçu</button></td></tr>`;
   };
@@ -9644,76 +9646,356 @@ async function renderPhysNotes() {
 // ===================================================================
 //  Prospects › Suivi (saisie manuelle) + bloc Dashboard « Prospects »
 // ===================================================================
-const PF_MODES = [["surveiller", "À surveiller (alerte 1 mois)"], ["mail", "Contact pris par mail (1 sem.)"], ["tel", "Contact pris par téléphone (1 sem.)"], ["attente", "En attente d'un retour (1 sem.)"], ["standby", "En standby (3 mois)"], ["aucune", "Pas de relance pour le moment"]];
-const pfModeLbl = (m) => (PF_MODES.find(([k]) => k === m) || [m, m])[1];
-function pfAlertDate(mode, last) {
-  if (!last || mode === "aucune") return null;
-  const d = new Date(last + "T00:00:00");
-  if (mode === "surveiller") d.setMonth(d.getMonth() + 1); else if (mode === "standby") d.setMonth(d.getMonth() + 3); else d.setDate(d.getDate() + 7);
-  return d.toISOString().slice(0, 10);
+// L'ancien écran était un tableau de douze colonnes de champs : tout y était
+// modifiable et rien n'y était lisible. On le remplace par un entonnoir —
+// une étape par colonne, une famille par carte — précédé de la seule chose
+// qui compte vraiment : la liste de ce qu'il faut faire aujourd'hui.
+//
+// `mode` (l'ancien rythme de relance) n'est plus édité ici : la date de la
+// prochaine action la remplace. La colonne reste en base, et le Dashboard
+// retombe dessus pour les fiches qui n'auraient pas encore de date.
+const PF_STAGES = [
+  ["nouveau", "Nouveau", "Arrivé, pas encore contacté"],
+  ["contacte", "Contacté", "Premier échange fait"],
+  ["discussion", "En discussion", "Questions, infos envoyées"],
+  ["visite", "Visite / essai", "Venue au club prévue ou faite"],
+  ["dossier", "Dossier", "Inscription en cours"],
+];
+const PF_FINS = [["inscrit", "Inscrit 🎉"], ["perdu", "Perdu"]];
+const PF_PRIO = [["chaud", "🔥", "Chaud"], ["tiede", "•", "Tiède"], ["froid", "❄", "Froid"]];
+const PF_SOURCES = ["Site web", "Formulaire d'inscription", "Bouche-à-oreille", "Tournoi",
+  "Lausanne Open", "Réseaux sociaux", "Club / partenaire", "Autre"];
+const PF_PROGS = ["Sport-études", "Pro U18", "Pro", "Compétition", "Performance",
+  "École de tennis", "Adultes", "Pas encore défini"];
+const PF_KINDS = [["appel", "📞 Appel"], ["mail", "✉️ Mail"], ["whatsapp", "💬 WhatsApp"],
+  ["rdv", "📅 RDV"], ["visite", "🎾 Visite"], ["note", "📝 Note"]];
+
+const pfStageLbl = (s) => {
+  const t = PF_STAGES.concat(PF_FINS.map((f) => [f[0], f[1], ""])).find((x) => x[0] === s);
+  return t ? t[1] : s;
+};
+const pfPrioIcon = (p) => (PF_PRIO.find((x) => x[0] === p) || PF_PRIO[1])[1];
+const pfToday = () => new Date().toISOString().slice(0, 10);
+const pfPlus = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+// « dans 3 jours », « il y a 2 semaines » — un délai se lit plus vite qu'une date.
+function pfQuand(iso) {
+  if (!iso) return "";
+  const j = Math.round((new Date(iso + "T12:00:00") - new Date(pfToday() + "T12:00:00")) / 864e5);
+  if (j === 0) return "aujourd'hui";
+  if (j === 1) return "demain";
+  if (j === -1) return "hier";
+  const n = Math.abs(j);
+  const txt = n < 14 ? `${n} jours` : n < 60 ? `${Math.round(n / 7)} semaines` : `${Math.round(n / 30)} mois`;
+  return j > 0 ? `dans ${txt}` : `il y a ${txt}`;
 }
-let pfList = [], pfInit = false;
+
+let pfList = [], pfEvents = {}, pfInit = false, pfStageFiltre = "", pfVue = "board";
+
 async function loadProspectFollowups() {
   if (!pfInit) {
     pfInit = true;
-    $("pf-add").addEventListener("click", async () => {
-      const { data: sess } = await sb.auth.getSession();
-      const { error } = await sb.from("prospect_followups").insert({ created_by: sess?.session?.user?.id || null, last_contact: new Date().toISOString().slice(0, 10) });
-      if (error) { uiAlert(error.message); return; }
-      await loadProspectFollowups();
-      const first = $("pf-rows").querySelector('input[data-k="first_name"]'); if (first) first.focus();
-    });
+    $("pf-add").addEventListener("click", pfNouvelle);
     $("pf-show-done").addEventListener("change", renderProspectFollowups);
     $("pf-search").addEventListener("input", renderProspectFollowups);
+    $("pf-filtre-prio").addEventListener("change", renderProspectFollowups);
+    $("pf-close").addEventListener("click", () => { $("pf-drawer").hidden = true; });
+    $("pf-drawer").addEventListener("click", (e) => { if (e.target.id === "pf-drawer") $("pf-drawer").hidden = true; });
+    document.querySelectorAll(".pf-vue").forEach((b) => b.addEventListener("click", () => {
+      pfVue = b.dataset.vue;
+      document.querySelectorAll(".pf-vue").forEach((x) => x.classList.toggle("active", x === b));
+      renderProspectFollowups();
+    }));
   }
-  const { data, error } = await sb.from("prospect_followups").select("*").order("created_at", { ascending: false });
-  if (error) { $("pf-rows").innerHTML = `<tr><td colspan="12" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
+  const [{ data, error }, { data: ev }] = await Promise.all([
+    sb.from("prospect_followups").select("*").order("next_action_at", { ascending: true, nullsFirst: false }),
+    sb.from("prospect_events").select("*").order("at", { ascending: false }),
+  ]);
+  if (error) { $("pf-board").innerHTML = `<p class="muted">Erreur : ${esc(error.message)}</p>`; return; }
   pfList = data || [];
+  pfEvents = {};
+  (ev || []).forEach((e) => { (pfEvents[e.prospect_id] || (pfEvents[e.prospect_id] = [])).push(e); });
   renderProspectFollowups();
 }
-function renderProspectFollowups() {
-  const showDone = $("pf-show-done").checked, q = $("pf-search").value.trim().toLowerCase();
-  const today = new Date().toISOString().slice(0, 10);
-  const rows = pfList.filter((r) => (showDone || !r.done) && (!q || [r.first_name, r.last_name, r.description, r.email, r.phone, r.license_no, r.ranking, r.status_text].some((v) => (v || "").toLowerCase().includes(q))));
-  $("pf-empty").hidden = pfList.length > 0;
-  const inp = (r, k, extra = "") => `<input class="pf-f" data-k="${k}" value="${esc(r[k] || "")}" ${extra} />`;
-  $("pf-rows").innerHTML = rows.map((r) => {
-    const al = pfAlertDate(r.mode, r.last_contact);
-    const due = al && al <= today, soon = al && !due && al <= new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
-    return `<tr class="${r.done ? "muted" : due ? "pf-due" : ""}" data-id="${r.id}">
-      <td>${inp(r, "first_name", 'placeholder="Prénom" style="width:110px"')}</td>
-      <td>${inp(r, "last_name", 'placeholder="Nom" style="width:120px"')}</td>
-      <td>${inp(r, "description", 'placeholder="ex. Garçon 12 ans" style="width:150px"')}</td>
-      <td>${inp(r, "license_no", 'placeholder="n° licence" style="width:110px" title="Licence Swiss Tennis (facultatif)"')}</td>
-      <td>${inp(r, "email", 'type="email" placeholder="—" style="width:180px"')}</td>
-      <td>${inp(r, "phone", 'placeholder="—" style="width:120px"')}</td>
-      <td>${inp(r, "ranking", 'placeholder="R5…" style="width:64px"')}</td>
-      <td><select class="pf-f" data-k="mode">${PF_MODES.map(([k, l]) => `<option value="${k}"${r.mode === k ? " selected" : ""}>${l}</option>`).join("")}</select></td>
-      <td><input class="pf-f" data-k="last_contact" type="date" value="${r.last_contact || ""}" style="width:130px" /></td>
-      <td style="white-space:nowrap">${al ? `<span class="${due ? "dash-red" : soon ? "pf-soon" : "muted"}">${due ? "⚠️ " : ""}${frDate(al)}</span>` : '<span class="muted">—</span>'}</td>
-      <td><textarea class="pf-f" data-k="status_text" rows="2" placeholder="Où ça en est…" style="width:220px">${esc(r.status_text || "")}</textarea></td>
-      <td class="he-acts"><button type="button" class="ghost pf-done" title="${r.done ? "Réactiver" : "Archiver (plus suivi)"}">${r.done ? "↩" : "✓"}</button><button type="button" class="ghost pf-del" title="Supprimer">✕</button></td></tr>`;
-  }).join("");
-  const R = $("pf-rows");
-  R.querySelectorAll(".pf-f").forEach((el) => el.addEventListener("change", async () => {
-    const id = el.closest("tr").dataset.id, r = pfList.find((x) => x.id === id); if (!r) return;
-    const k = el.dataset.k, v = el.value.trim() === "" ? (k === "last_contact" ? r.last_contact : null) : el.value.trim();
-    const { error } = await sb.from("prospect_followups").update({ [k]: v, updated_at: new Date().toISOString() }).eq("id", id);
-    if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
-    r[k] = v; if (k === "mode" || k === "last_contact") renderProspectFollowups();
-  }));
-  R.querySelectorAll(".pf-done").forEach((b) => b.addEventListener("click", async () => {
-    const id = b.closest("tr").dataset.id, r = pfList.find((x) => x.id === id); if (!r) return;
-    await sb.from("prospect_followups").update({ done: !r.done, updated_at: new Date().toISOString() }).eq("id", id);
-    r.done = !r.done; renderProspectFollowups();
-  }));
-  R.querySelectorAll(".pf-del").forEach((b) => b.addEventListener("click", async () => {
-    const id = b.closest("tr").dataset.id, r = pfList.find((x) => x.id === id); if (!r) return;
-    if (!(await uiConfirm(`Supprimer ${r.first_name || ""} ${r.last_name || ""} ? (définitif — sinon utilise ✓ pour archiver)`))) return;
-    await sb.from("prospect_followups").delete().eq("id", id);
-    pfList = pfList.filter((x) => x.id !== id); renderProspectFollowups();
-  }));
+
+// Les fiches visibles, une fois la recherche et les filtres appliqués.
+function pfVisibles() {
+  const q = $("pf-search").value.trim().toLowerCase();
+  const prio = $("pf-filtre-prio").value;
+  const arch = $("pf-show-done").checked;
+  return pfList.filter((r) => {
+    if (!arch && (r.done || r.stage === "inscrit" || r.stage === "perdu")) return false;
+    if (prio && r.priorite !== prio) return false;
+    if (q && ![r.first_name, r.last_name, r.description, r.email, r.phone, r.license_no,
+      r.ranking, r.status_text, r.location, r.source, r.programme, r.next_action]
+      .some((v) => (v || "").toLowerCase().includes(q))) return false;
+    return true;
+  });
 }
+
+function renderProspectFollowups() {
+  const rows = pfVisibles(), today = pfToday();
+  $("pf-empty").hidden = pfList.length > 0;
+
+  // --- l'entonnoir ---
+  const actifs = pfList.filter((r) => !r.done);
+  $("pf-funnel").innerHTML = PF_STAGES.map(([k, lbl]) => {
+    const n = actifs.filter((r) => r.stage === k).length;
+    const retard = actifs.filter((r) => r.stage === k && r.next_action_at && r.next_action_at < today).length;
+    return `<button type="button" class="pf-fstep${pfStageFiltre === k ? " on" : ""}${n ? "" : " vide"}" data-stage="${k}">
+      <b>${n}</b><span>${esc(lbl)}</span>${retard ? `<em>${retard} en retard</em>` : ""}</button>`;
+  }).join("");
+  $("pf-funnel").querySelectorAll(".pf-fstep").forEach((b) => b.addEventListener("click", () => {
+    pfStageFiltre = pfStageFiltre === b.dataset.stage ? "" : b.dataset.stage;
+    renderProspectFollowups();
+  }));
+
+  // --- la file de relance : en retard, aujourd'hui, puis les 7 jours ---
+  const aRelancer = actifs
+    .filter((r) => r.stage !== "inscrit" && r.stage !== "perdu" && r.next_action_at && r.next_action_at <= pfPlus(7))
+    .sort((a, b) => a.next_action_at.localeCompare(b.next_action_at));
+  $("pf-queue").innerHTML = aRelancer.length ? `
+    <div class="pf-qhead"><h3>À relancer</h3>
+      <span>${aRelancer.filter((r) => r.next_action_at < today).length} en retard · ${aRelancer.length} d'ici 7 jours</span></div>
+    <div class="pf-qlist">${aRelancer.map((r) => {
+      const cls = r.next_action_at < today ? "retard" : r.next_action_at === today ? "auj" : "";
+      return `<div class="pf-qrow ${cls}" data-id="${r.id}">
+        <span class="qn">${esc(pfNom(r))}</span>
+        <span class="qa">${esc(r.next_action || "À relancer")}</span>
+        <span class="qd">${esc(pfQuand(r.next_action_at))}</span>
+        <span class="pf-qacts">
+          ${r.phone ? `<a class="ghost" href="tel:${esc(r.phone)}" title="Appeler">📞</a>` : ""}
+          ${r.email ? `<a class="ghost" href="mailto:${esc(r.email)}" title="Écrire">✉️</a>` : ""}
+          <button type="button" class="ghost pf-q-open" title="Ouvrir la fiche">Ouvrir</button>
+        </span></div>`;
+    }).join("")}</div>` : "";
+  $("pf-queue").querySelectorAll(".pf-q-open").forEach((b) => b.addEventListener("click", () =>
+    pfOuvrir(b.closest(".pf-qrow").dataset.id)));
+
+  // --- l'entonnoir en colonnes ---
+  const etapes = $("pf-show-done").checked
+    ? PF_STAGES.concat(PF_FINS.map((f) => [f[0], f[1], ""])) : PF_STAGES;
+  const visibles = pfStageFiltre ? etapes.filter((e) => e[0] === pfStageFiltre) : etapes;
+  $("pf-board").className = "pf-board" + (pfVue === "liste" ? " liste" : "");
+  $("pf-board").innerHTML = visibles.map(([k, lbl]) => {
+    const cartes = rows.filter((r) => r.stage === k);
+    return `<div class="pf-col"><h4>${esc(lbl)} <i>${cartes.length}</i></h4>
+      <div class="pf-cards">${cartes.map(pfCarte).join("") ||
+        '<p class="muted" style="margin:4px;font-size:.8rem">—</p>'}</div></div>`;
+  }).join("");
+  $("pf-board").querySelectorAll(".pf-card").forEach((c) =>
+    c.addEventListener("click", () => pfOuvrir(c.dataset.id)));
+}
+
+const pfNom = (r) => `${r.first_name || ""} ${r.last_name || ""}`.trim() || "Sans nom";
+
+function pfCarte(r) {
+  const today = pfToday();
+  const retard = r.next_action_at && r.next_action_at < today;
+  const auj = r.next_action_at === today;
+  const meta = [r.description, r.location].filter(Boolean).join(" · ");
+  return `<button type="button" class="pf-card${retard ? " retard" : ""}" data-id="${r.id}">
+    <span class="pf-cn"><span class="pf-prio" title="${esc((PF_PRIO.find((p) => p[0] === r.priorite) || [])[2] || "")}">${pfPrioIcon(r.priorite)}</span>${esc(pfNom(r))}</span>
+    ${meta ? `<p class="pf-cmeta">${esc(meta)}</p>` : ""}
+    <span class="pf-chips">
+      ${r.programme ? `<span class="pf-chip prog">${esc(r.programme)}</span>` : ""}
+      ${r.saison_cible ? `<span class="pf-chip">${esc(r.saison_cible)}</span>` : ""}
+      ${r.source ? `<span class="pf-chip src">${esc(r.source)}</span>` : ""}
+      ${r.ranking ? `<span class="pf-chip">${esc(r.ranking)}</span>` : ""}
+    </span>
+    <span class="pf-cnext ${retard ? "retard" : auj ? "auj" : r.next_action_at ? "" : "calme"}">
+      ${r.next_action_at
+        ? `${retard ? "⚠️ " : ""}<b>${esc(pfQuand(r.next_action_at))}</b> — ${esc(r.next_action || "relance")}`
+        : "Pas de relance prévue"}
+    </span></button>`;
+}
+
+async function pfNouvelle() {
+  const { data: sess } = await sb.auth.getSession();
+  const { data, error } = await sb.from("prospect_followups").insert({
+    created_by: sess && sess.session ? sess.session.user.id : null,
+    last_contact: pfToday(), stage: "nouveau", priorite: "chaud",
+    next_action_at: pfToday(), next_action: "Premier contact",
+  }).select().single();
+  if (error) { uiAlert(error.message); return; }
+  pfList.unshift(data);
+  renderProspectFollowups();
+  pfOuvrir(data.id);
+}
+
+// ---- la fiche -------------------------------------------------------------
+function pfOuvrir(id) {
+  const r = pfList.find((x) => x.id === id); if (!r) return;
+  const ev = pfEvents[id] || [];
+  const champ = (k, lbl, type, large) => `<div${large ? ' class="wide"' : ""}><label>${lbl}</label>
+    <input data-k="${k}" type="${type || "text"}" value="${esc(r[k] || "")}" /></div>`;
+  const choix = (k, lbl, opts, large) => `<div${large ? ' class="wide"' : ""}><label>${lbl}</label>
+    <select data-k="${k}"><option value="">—</option>${opts.map((o) => {
+      const v = Array.isArray(o) ? o[0] : o, t = Array.isArray(o) ? o[1] : o;
+      return `<option value="${esc(v)}"${r[k] === v ? " selected" : ""}>${esc(t)}</option>`;
+    }).join("")}</select></div>`;
+
+  $("pf-fiche").innerHTML = `
+    <h2 class="pf-fh">${esc(pfNom(r))}</h2>
+    <p class="pf-fsub">${esc(pfStageLbl(r.stage))}${r.last_contact ? ` · dernière interaction ${pfQuand(r.last_contact)}` : ""}</p>
+
+    <p class="pf-sec">Prochaine action</p>
+    <div class="pf-grid">
+      <div class="wide"><label>Quoi</label><input data-k="next_action" value="${esc(r.next_action || "")}" placeholder="ex. Rappeler pour fixer une visite" /></div>
+      <div><label>Quand</label><input data-k="next_action_at" type="date" value="${r.next_action_at || ""}" /></div>
+      <div><label>Priorité</label><select data-k="priorite">${PF_PRIO.map(([k, i, l]) =>
+        `<option value="${k}"${r.priorite === k ? " selected" : ""}>${i} ${l}</option>`).join("")}</select></div>
+    </div>
+
+    <p class="pf-sec">Où en est la famille</p>
+    <div class="pf-grid">
+      ${choix("stage", "Étape", PF_STAGES.map((s) => [s[0], s[1]]).concat(PF_FINS))}
+      ${choix("programme", "Programme visé", PF_PROGS)}
+      ${choix("source", "Source", PF_SOURCES)}
+      ${champ("saison_cible", "Saison visée")}
+      ${r.stage === "perdu" ? `<div class="wide"><label>Raison</label><input data-k="lost_reason" value="${esc(r.lost_reason || "")}" placeholder="Pourquoi ça ne s'est pas fait" /></div>` : ""}
+    </div>
+
+    <p class="pf-sec">La famille</p>
+    <div class="pf-grid">
+      ${champ("first_name", "Prénom")}${champ("last_name", "Nom")}
+      ${champ("description", "L'enfant", "text", true)}
+      ${champ("email", "E-mail", "email")}${champ("phone", "Téléphone")}
+      ${champ("location", "Où elle vit")}${champ("ranking", "Classement")}
+      ${champ("license_no", "N° licence")}
+      <div><label>Dernière interaction</label><input data-k="last_contact" type="date" value="${r.last_contact || ""}" /></div>
+    </div>
+
+    <p class="pf-sec">Noter un échange</p>
+    <div class="pf-log">${PF_KINDS.map(([k, l]) =>
+      `<button type="button" class="ghost pf-logbtn" data-kind="${k}">${l}</button>`).join("")}</div>
+
+    <p class="pf-sec">Historique (${ev.length})</p>
+    <ul class="pf-tl">${ev.length ? ev.map((e) => {
+      const kind = (PF_KINDS.find((x) => x[0] === e.kind) || ["", e.kind])[1];
+      return `<li><span class="tk">${esc(kind)}</span><span class="td">${esc(frDate(String(e.at).slice(0, 10)))}</span>
+        ${e.note ? `<p>${esc(e.note)}</p>` : ""}</li>`;
+    }).join("") : '<li><p class="muted">Rien de noté pour l\'instant.</p></li>'}</ul>
+
+    <p class="pf-sec" style="margin-top:22px">Clore</p>
+    <div class="pf-log">
+      <button type="button" class="ghost" id="pf-gagne">🎉 Inscrit</button>
+      <button type="button" class="ghost" id="pf-perdu">Perdu</button>
+      <button type="button" class="ghost" id="pf-arch">${r.done ? "Réactiver" : "Archiver"}</button>
+      <button type="button" class="ghost" id="pf-del">Supprimer</button>
+    </div>`;
+
+  $("pf-drawer").hidden = false;
+
+  // Chaque champ s'enregistre en sortant, comme avant.
+  $("pf-fiche").querySelectorAll("[data-k]").forEach((el) => el.addEventListener("change", async () => {
+    const k = el.dataset.k;
+    const v = el.value.trim() === "" ? null : el.value.trim();
+    const patch = { [k]: v, updated_at: new Date().toISOString() };
+    if (k === "stage") {
+      patch.stage_changed_at = new Date().toISOString();
+      await pfNoter(id, "etape", `Étape : ${pfStageLbl(v)}`, null);
+    }
+    const { error } = await sb.from("prospect_followups").update(patch).eq("id", id);
+    if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
+    Object.assign(r, patch);
+    renderProspectFollowups();
+    if (k === "stage" || k === "first_name" || k === "last_name") pfOuvrir(id);
+  }));
+
+  $("pf-fiche").querySelectorAll(".pf-logbtn").forEach((b) => b.addEventListener("click", () => pfDemanderNote(id, b.dataset.kind)));
+  $("pf-gagne").addEventListener("click", () => pfClore(id, "inscrit"));
+  $("pf-perdu").addEventListener("click", () => pfClore(id, "perdu"));
+  $("pf-arch").addEventListener("click", async () => {
+    await sb.from("prospect_followups").update({ done: !r.done, updated_at: new Date().toISOString() }).eq("id", id);
+    r.done = !r.done; renderProspectFollowups(); pfOuvrir(id);
+  });
+  $("pf-del").addEventListener("click", async () => {
+    if (!(await uiConfirm(`Supprimer ${pfNom(r)} ? Définitif — l'historique part avec.`))) return;
+    await sb.from("prospect_followups").delete().eq("id", id);
+    pfList = pfList.filter((x) => x.id !== id);
+    $("pf-drawer").hidden = true; renderProspectFollowups();
+  });
+}
+
+// Noter un échange : ce qui a été dit, et quand on reprend contact.
+// Les deux vont ensemble — c'est l'oubli de la seconde moitié qui fait
+// qu'un prospect retombe dans l'oubli.
+function pfDemanderNote(id, kind) {
+  const r = pfList.find((x) => x.id === id); if (!r) return;
+  const lbl = (PF_KINDS.find((x) => x[0] === kind) || ["", kind])[1];
+  const ov = document.createElement("div");
+  ov.className = "ui-modal";
+  ov.innerHTML = `<div class="ui-box" style="max-width:460px">
+    <h3 style="margin:0 0 10px">${esc(lbl)} — ${esc(pfNom(r))}</h3>
+    <label style="display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px">Ce qui s'est dit</label>
+    <textarea id="pfn-note" rows="4" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit"></textarea>
+    <label style="display:block;font-size:.8rem;color:var(--muted);margin:12px 0 4px">On reprend contact</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      ${[["3 jours", 3], ["1 semaine", 7], ["2 semaines", 14], ["1 mois", 30], ["3 mois", 90]].map(([l, n]) =>
+        `<button type="button" class="ghost pfn-d" data-j="${n}">${l}</button>`).join("")}
+      <button type="button" class="ghost pfn-d" data-j="">Pas de relance</button>
+    </div>
+    <input id="pfn-date" type="date" value="${pfPlus(7)}" style="padding:7px;border:1px solid var(--line);border-radius:8px;font:inherit" />
+    <input id="pfn-quoi" placeholder="Prochaine action (ex. envoyer le dossier)" style="width:100%;margin-top:8px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font:inherit" value="${esc(r.next_action || "")}" />
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button type="button" class="ghost" id="pfn-x">Annuler</button>
+      <button type="button" id="pfn-ok">Enregistrer</button>
+    </div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll(".pfn-d").forEach((b) => b.addEventListener("click", () => {
+    $("pfn-date").value = b.dataset.j === "" ? "" : pfPlus(Number(b.dataset.j));
+  }));
+  const fermer = () => ov.remove();
+  ov.querySelector("#pfn-x").addEventListener("click", fermer);
+  ov.querySelector("#pfn-ok").addEventListener("click", async () => {
+    await pfNoter(id, kind, $("pfn-note").value.trim() || null, {
+      next_action_at: $("pfn-date").value || null,
+      next_action: $("pfn-quoi").value.trim() || null,
+      last_contact: pfToday(),
+    });
+    fermer(); pfOuvrir(id);
+  });
+  setTimeout(() => { const t = $("pfn-note"); if (t) t.focus(); }, 30);
+}
+
+// Écrit une ligne d'historique, et met la fiche à jour si on lui passe un patch.
+async function pfNoter(id, kind, note, patch) {
+  const { data: sess } = await sb.auth.getSession();
+  const { error } = await sb.from("prospect_events").insert({
+    prospect_id: id, kind, note,
+    created_by: sess && sess.session ? sess.session.user.id : null,
+  });
+  if (error) { uiAlert("Note non enregistrée : " + error.message); return; }
+  if (patch) {
+    const p = Object.assign({ updated_at: new Date().toISOString() }, patch);
+    const { error: e2 } = await sb.from("prospect_followups").update(p).eq("id", id);
+    if (e2) { uiAlert("Fiche non mise à jour : " + e2.message); return; }
+    const r = pfList.find((x) => x.id === id); if (r) Object.assign(r, p);
+  }
+  const { data: ev } = await sb.from("prospect_events").select("*").eq("prospect_id", id).order("at", { ascending: false });
+  pfEvents[id] = ev || [];
+  renderProspectFollowups();
+}
+
+async function pfClore(id, stage) {
+  const r = pfList.find((x) => x.id === id); if (!r) return;
+  let raison = null;
+  if (stage === "perdu") {
+    raison = await uiPrompt("Pourquoi ça ne s'est pas fait ?", r.lost_reason || "");
+    if (raison === null) return;
+  } else if (!(await uiConfirm(`Marquer ${pfNom(r)} comme inscrit ? La fiche sort de l'entonnoir.`))) return;
+  const patch = {
+    stage, stage_changed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    next_action_at: null, next_action: null,
+  };
+  if (stage === "perdu") patch.lost_reason = raison || null;
+  await sb.from("prospect_followups").update(patch).eq("id", id);
+  Object.assign(r, patch);
+  await pfNoter(id, "etape", stage === "inscrit" ? "Inscrit 🎉" : `Perdu${raison ? " — " + raison : ""}`, null);
+  $("pf-drawer").hidden = true;
+  renderProspectFollowups();
+}
+
 // Bloc Dashboard « Prospects » : alertes échues / à venir (7 j) + les deux mises à jour d'import liées aux prospects.
 function dashProspects(p) {
   const today = new Date().toISOString().slice(0, 10);
@@ -9721,7 +10003,10 @@ function dashProspects(p) {
   const due = alerts.filter((a) => a.alert_at <= today);
   const soon = alerts.filter((a) => a.alert_at > today);
   const li = (a, quand) => dPer(a.name || "—",
-    `${a.ranking ? `${esc(a.ranking)} · ` : ""}${esc(pfModeLbl(a.mode))} · dernière interaction ${dFD(a.last_contact)}`
+    // `status_text` porte désormais la prochaine action décidée (cf. dash_prospects,
+    // db/207) : on l'affiche telle quelle plutôt que l'ancien rythme de relance,
+    // qui ne se règle plus depuis l'onglet.
+    `${a.ranking ? `${esc(a.ranking)} · ` : ""}dernière interaction ${dFD(a.last_contact)}`
     + (a.status_text ? `<br>${esc(a.status_text)}` : ""), quand);
   return dCard("Prospects", dTabs([
     ["À relancer", due.length, due.length

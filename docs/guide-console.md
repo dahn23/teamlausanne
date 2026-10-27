@@ -683,8 +683,9 @@ répondra qu'elle ne sait pas, et la question remontera dans
 
 - **Dashboard** — vue d'ensemble du jour. « ↻ Actualiser ».
 - **Inscriptions** — les demandes venues du formulaire public du site.
-- **Prospects** — joueurs repérés hors académie. Sous-onglets « Liste »,
-  « Suivi », « Import / outils ». « ➕ Nouveau prospect ».
+- **Prospects** — joueurs repérés hors académie. Sous-onglets « Liste »
+  (détection par classement et résultats), « Import / outils », et
+  **« Suivi »**, décrit au chapitre suivant.
 - **Accueil espace privé** — messages affichés dans Mon espace, par saison et
   par filière. « + Nouveau message ». Une ligne « @saison Saison —
   description » s'affiche avec l'icône de l'onglet correspondant.
@@ -744,7 +745,75 @@ répondra qu'elle ne sait pas, et la question remontera dans
 
 ---
 
-## 15. Ce que la console fait toute seule
+## 15. Prospects › Suivi
+
+### Ce que c'est
+
+Les familles qui se sont manifestées pour un programme — le plus souvent le
+Sport-études — avant toute inscription. L'écran sert à une seule chose : ne
+perdre aucune d'elles faute d'avoir rappelé au bon moment.
+
+**Qui y accède** : admin et superadmin.
+
+### Lire l'écran, de haut en bas
+
+1. **L'entonnoir** — cinq cases : Nouveau, Contacté, En discussion,
+   Visite / essai, Dossier. Chacune donne le nombre de familles et, en rouge,
+   combien sont **en retard**. Cliquer une case n'affiche que cette étape ;
+   cliquer à nouveau enlève le filtre.
+2. **« À relancer »** — ce qu'il faut faire : les retards d'abord, puis
+   aujourd'hui, puis les sept jours qui viennent. **Si ce bloc est vide, le
+   suivi est à jour.** Chaque ligne porte le téléphone et l'e-mail de la
+   famille, cliquables directement.
+3. **Les colonnes** — une carte par famille, rangée sous son étape. La carte
+   dit l'essentiel : l'enfant, où la famille vit, le programme visé, la
+   saison, d'où elle vient, et quand il faut la relancer.
+
+Le bouton **Entonnoir / Liste** change la disposition : en colonnes pour voir
+où ça coince, en liste pour tout lire d'affilée.
+
+### Noter un échange — la bonne façon
+
+Cliquer une carte ouvre la fiche. Sous **« Noter un échange »**, choisir
+Appel, Mail, WhatsApp, RDV, Visite ou Note. Une fenêtre demande deux choses :
+
+1. **Ce qui s'est dit.**
+2. **Quand on reprend contact** — 3 jours, 1 semaine, 2 semaines, 1 mois,
+   3 mois, une date au choix, ou « Pas de relance ».
+
+Les deux vont ensemble, et c'est tout l'intérêt : noter sans fixer la suite,
+c'est ainsi qu'une famille retombe dans l'oubli. La date de dernière
+interaction se met à jour toute seule.
+
+### Les champs de la fiche
+
+- **Prochaine action** : quoi, quand, et la priorité (🔥 chaud, tiède, ❄ froid).
+- **Où en est la famille** : étape, programme visé, source, saison visée.
+- **La famille** : prénom, nom, l'enfant, e-mail, téléphone, où elle vit,
+  classement, n° de licence.
+- **Historique** : tous les échanges, du plus récent au plus ancien. Rien ne
+  s'efface — l'ancien champ « Où ça en est » est devenu la première ligne.
+
+### Clore
+
+**« 🎉 Inscrit »** ou **« Perdu »** (qui demande pourquoi — c'est ce qui
+permet de savoir, après une saison, ce qui fait échouer les dossiers). La
+fiche sort de l'entonnoir et cesse de réclamer des relances. **« Archiver »**
+met simplement de côté. La case « Archivés » les réaffiche.
+
+### Bon à savoir
+
+- Le **Dashboard** reprend les relances échues et celles des 7 jours : c'est
+  le même calcul, à partir de la date de prochaine action.
+- Tout s'enregistre en sortant d'un champ ; il n'y a pas de bouton
+  « Enregistrer ».
+- Le rythme de relance automatique d'avant (« à surveiller → 1 mois »…) a
+  disparu de l'écran : la date de prochaine action, choisie à chaque échange,
+  le remplace.
+
+---
+
+## 16. Ce que la console fait toute seule
 
 - **L'appel d'un cours** s'ouvre 25 minutes avant le début.
 - **Le nombre de courts** suit la saison.
@@ -758,7 +827,7 @@ répondra qu'elle ne sait pas, et la question remontera dans
 
 ---
 
-## 16. Questions fréquentes
+## 17. Questions fréquentes
 
 **Je ne vois pas un onglet dont on me parle.**
 C'est le rôle de votre compte. Un administrateur l'ouvre dans « Réglages →

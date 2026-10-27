@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=372" />
+  <link rel="stylesheet" href="style.css?v=373" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -364,14 +364,41 @@
             <button type="button" class="prosp-subtab" data-psub="import">Import / outils</button>
           </div>
           <div id="prosp-sub-suivi" class="hidden">
-            <p class="muted" style="margin:-6px 0 12px">Prospects suivis à la main. Le <b>mode de suivi</b> programme une alerte dans le Dashboard à partir de la <b>dernière interaction</b> : à surveiller → 1 mois · contact par mail / téléphone · en attente d'un retour → 1 semaine · standby → 3 mois · pas de relance → aucune alerte. Tout s'enregistre automatiquement.</p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-              <button type="button" id="pf-add">➕ Nouveau prospect</button>
-              <label class="check" style="margin:0"><input type="checkbox" id="pf-show-done" /> Afficher les archivés</label>
-              <input id="pf-search" placeholder="Rechercher…" style="min-width:200px" />
+            <!-- L'entonnoir : combien de familles à chaque étape, et combien
+                 sont en retard. Cliquer une étape filtre le tableau en dessous. -->
+            <div class="pf-funnel" id="pf-funnel"></div>
+
+            <!-- Ce qui doit être fait. C'est le cœur de l'onglet : si cette
+                 file est vide, le suivi est à jour. -->
+            <section class="pf-queue" id="pf-queue"></section>
+
+            <div class="pf-tools">
+              <button type="button" id="pf-add">➕ Nouvelle famille</button>
+              <input id="pf-search" placeholder="Rechercher un nom, une ville, une note…" />
+              <select id="pf-filtre-prio" aria-label="Filtrer par priorité">
+                <option value="">Toutes les priorités</option>
+                <option value="chaud">🔥 Chaud</option>
+                <option value="tiede">Tiède</option>
+                <option value="froid">Froid</option>
+              </select>
+              <label class="check" style="margin:0"><input type="checkbox" id="pf-show-done" /> Archivés</label>
+              <span class="pf-vues">
+                <button type="button" class="pf-vue active" data-vue="board">Entonnoir</button>
+                <button type="button" class="pf-vue" data-vue="liste">Liste</button>
+              </span>
             </div>
-            <div class="table-wrap"><table class="crm-table pf-table"><thead><tr><th>Prénom</th><th>Nom</th><th>Description</th><th>Licence</th><th>E-mail</th><th>Tél.</th><th>Class.</th><th>Suivi</th><th>Dernière interaction</th><th>Alerte</th><th>Où ça en est</th><th></th></tr></thead><tbody id="pf-rows"></tbody></table></div>
-            <p id="pf-empty" class="muted" hidden>Aucun prospect suivi. Clique « Nouveau prospect ».</p>
+
+            <div class="pf-board" id="pf-board"></div>
+            <p id="pf-empty" class="muted" hidden>Aucune famille suivie. Clique « Nouvelle famille ».</p>
+
+            <!-- La fiche : tout ce qu'on sait d'une famille, et l'historique
+                 complet des échanges. S'ouvre au clic sur une carte. -->
+            <div id="pf-drawer" class="pf-drawer" hidden>
+              <div class="pf-drawer-in" role="dialog" aria-label="Fiche prospect">
+                <button type="button" class="pf-close" id="pf-close" aria-label="Fermer">✕</button>
+                <div id="pf-fiche"></div>
+              </div>
+            </div>
           </div>
           <div id="prosp-sub-liste">
           <p class="muted" style="margin:-6px 0 12px">Repérage des jeunes joueurs suisses (moins de 19 ans, R7 ou mieux). Données issues des classements &amp; matchs Swiss Tennis.</p>
