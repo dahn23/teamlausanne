@@ -769,6 +769,15 @@ perdre aucune d'elles faute d'avoir rappelé au bon moment.
    dit l'essentiel : l'enfant, où la famille vit, le programme visé, la
    saison, d'où elle vient, et quand il faut la relancer.
 
+Les sept étapes se suivent **sur une seule ligne**, de gauche à droite,
+« Inscrit » et « Perdu » comprises : la bande défile horizontalement s'il n'y
+a pas la place à l'écran.
+
+**Pour faire avancer une famille, attrapez sa carte et déposez-la dans une
+autre colonne.** Le déplacement est noté dans son historique. Au doigt, le
+glisser-déposer n'existe pas : passez par « Étape » dans la fiche, qui fait
+exactement la même chose.
+
 Le bouton **Entonnoir / Liste** change la disposition : en colonnes pour voir
 où ça coince, en liste pour tout lire d'affilée.
 

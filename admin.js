@@ -9723,7 +9723,9 @@ function pfVisibles() {
   const prio = $("pf-filtre-prio").value;
   const arch = $("pf-show-done").checked;
   return pfList.filter((r) => {
-    if (!arch && (r.done || r.stage === "inscrit" || r.stage === "perdu")) return false;
+    // Les fiches closes (Inscrit / Perdu) restent visibles : elles ont leur
+    // colonne au bout de l'entonnoir. Seules les archivées se cachent.
+    if (!arch && r.done) return false;
     if (prio && r.priorite !== prio) return false;
     if (q && ![r.first_name, r.last_name, r.description, r.email, r.phone, r.license_no,
       r.ranking, r.status_text, r.location, r.source, r.programme, r.next_action]
@@ -9772,18 +9774,60 @@ function renderProspectFollowups() {
     pfOuvrir(b.closest(".pf-qrow").dataset.id)));
 
   // --- l'entonnoir en colonnes ---
-  const etapes = $("pf-show-done").checked
-    ? PF_STAGES.concat(PF_FINS.map((f) => [f[0], f[1], ""])) : PF_STAGES;
+  // Les sept étapes sont TOUJOURS là, dans l'ordre, sur une seule ligne :
+  // « Inscrit » et « Perdu » sont la fin de l'entonnoir, pas un ailleurs.
+  // Sans elles, on ne peut pas y déposer une carte.
+  const etapes = PF_STAGES.concat(PF_FINS.map((f) => [f[0], f[1], ""]));
   const visibles = pfStageFiltre ? etapes.filter((e) => e[0] === pfStageFiltre) : etapes;
   $("pf-board").className = "pf-board" + (pfVue === "liste" ? " liste" : "");
   $("pf-board").innerHTML = visibles.map(([k, lbl]) => {
     const cartes = rows.filter((r) => r.stage === k);
-    return `<div class="pf-col"><h4>${esc(lbl)} <i>${cartes.length}</i></h4>
+    return `<div class="pf-col" data-stage="${k}"><h4>${esc(lbl)} <i>${cartes.length}</i></h4>
       <div class="pf-cards">${cartes.map(pfCarte).join("") ||
         '<p class="muted" style="margin:4px;font-size:.8rem">—</p>'}</div></div>`;
   }).join("");
-  $("pf-board").querySelectorAll(".pf-card").forEach((c) =>
-    c.addEventListener("click", () => pfOuvrir(c.dataset.id)));
+  pfBrancherGlisser();
+}
+
+// Déplacer une carte d'une étape à l'autre à la souris. Le <select> de la
+// fiche fait la même chose — c'est lui qui sert au doigt, le glisser-déposer
+// natif n'existant pas sur téléphone.
+let pfGlisse = null;
+function pfBrancherGlisser() {
+  const B = $("pf-board");
+  B.querySelectorAll(".pf-card").forEach((c) => {
+    c.setAttribute("draggable", "true");
+    c.addEventListener("click", () => { if (!pfGlisse) pfOuvrir(c.dataset.id); });
+    c.addEventListener("dragstart", (e) => {
+      pfGlisse = c.dataset.id;
+      c.classList.add("porte");
+      if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", c.dataset.id); }
+    });
+    c.addEventListener("dragend", () => {
+      c.classList.remove("porte");
+      // Laisser le clic de fin de glisser passer avant de rouvrir la fiche.
+      setTimeout(() => { pfGlisse = null; }, 60);
+    });
+  });
+  B.querySelectorAll(".pf-col").forEach((col) => {
+    col.addEventListener("dragover", (e) => { e.preventDefault(); col.classList.add("survol"); });
+    col.addEventListener("dragleave", () => col.classList.remove("survol"));
+    col.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      col.classList.remove("survol");
+      const id = pfGlisse || (e.dataTransfer && e.dataTransfer.getData("text/plain"));
+      const vers = col.dataset.stage;
+      const r = pfList.find((x) => x.id === id);
+      if (!r || !vers || r.stage === vers) return;
+      const patch = { stage: vers, stage_changed_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      // Une fiche close ne réclame plus de relance.
+      if (vers === "inscrit" || vers === "perdu") { patch.next_action_at = null; patch.next_action = null; }
+      const { error } = await sb.from("prospect_followups").update(patch).eq("id", id);
+      if (error) { uiAlert("Déplacement impossible : " + error.message); return; }
+      Object.assign(r, patch);
+      await pfNoter(id, "etape", `Étape : ${pfStageLbl(vers)}`, null);
+    });
+  });
 }
 
 const pfNom = (r) => `${r.first_name || ""} ${r.last_name || ""}`.trim() || "Sans nom";
