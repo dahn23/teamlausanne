@@ -801,6 +801,25 @@ permet de savoir, après une saison, ce qui fait échouer les dossiers). La
 fiche sort de l'entonnoir et cesse de réclamer des relances. **« Archiver »**
 met simplement de côté. La case « Archivés » les réaffiche.
 
+### Les mails se notent tout seuls
+
+Vous n'avez **rien à saisir quand vous écrivez à une famille**. Tout message
+qui passe par la messagerie — celui que vous envoyez comme la réponse qui
+arrive — se range automatiquement dans l'historique de la fiche dès que
+l'adresse correspond à celle du prospect, et « dernière interaction » avance
+à la date du message.
+
+Les lignes automatiques portent **« Envoyé : »** ou **« Reçu : »** suivi de
+l'objet du mail. Le texte complet reste dans la Messagerie.
+
+Ce que cela ne fait **pas** : décider de la suite. La prochaine action et
+l'étape ne bougent jamais toutes seules — envoyer un mail n'est pas décider
+quand relancer. C'est à vous, depuis la fiche.
+
+Si une famille n'a pas l'air de remonter : vérifiez que l'adresse de la fiche
+est bien celle à laquelle vous écrivez. Le rapprochement se fait sur
+l'adresse e-mail, exactement.
+
 ### Bon à savoir
 
 - Le **Dashboard** reprend les relances échues et celles des 7 jours : c'est
