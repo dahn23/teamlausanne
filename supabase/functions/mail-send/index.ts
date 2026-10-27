@@ -75,9 +75,15 @@ Deno.serve(async (req) => {
     if (id) {
       const { data: m } = await supa.from("mail_messages").select("*").eq("id", id).single();
       if (!m) return json({ error: "message introuvable" }, 404);
-      if (!m.from_address) return json({ error: "pas d'adresse de reponse" }, 400);
       account = (m.account_address || "").toLowerCase();
-      toAddr = m.from_address;
+      // Repondre a un mail RECU, c'est ecrire a son expediteur. Repondre a un
+      // mail qu'on a ENVOYE, c'est relancer son destinataire — sinon on
+      // s'ecrivait a soi-meme. Le destinataire peut porter un nom et plusieurs
+      // adresses (« Nom <a@b>, c@d ») : on garde la premiere, nettoyee.
+      const sortant = (m.direction || "in") === "out";
+      const brut = sortant ? (m.to_address || "") : (m.from_address || "");
+      toAddr = String(brut).split(",")[0].replace(/^.*<|>.*$/g, "").trim();
+      if (!toAddr) return json({ error: "pas d'adresse de reponse" }, 400);
       subject = /^re:/i.test(m.subject || "") ? m.subject : "Re: " + (m.subject || "(sans objet)");
       inReplyTo = m.message_id || undefined; refs = m.message_id || undefined; replyId = m.id;
     } else {

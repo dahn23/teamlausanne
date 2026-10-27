@@ -693,6 +693,10 @@ répondra qu'elle ne sait pas, et la question remontera dans
   « Relever », « Brouillons », « Filtres ▾ ». La recherche à plusieurs mots
   trouve les messages contenant *chacun* des mots ; entre guillemets,
   l'expression exacte.
+  Un fil se continue depuis **n'importe quel message, reçu ou envoyé** : le
+  cadre de réponse est aussi sous les mails que vous avez envoyés, et écrit
+  au destinataire du fil — utile quand votre dernier mot est resté sans
+  réponse et qu'il faut relancer.
 - **Newsletter** — « ✉ Nouvelle newsletter ».
 - **Social Media Planner** — « ＋ Nouvelle publication », vues « Calendrier »,
   « Tableau », « Grille », « Rushes ». Un accord écrit est obligatoire pour

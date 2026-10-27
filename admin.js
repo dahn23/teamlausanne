@@ -17799,7 +17799,9 @@ function mailWireCompose() {
   });
   $("mail-d-send").addEventListener("click", () => mailSendReply($("mail-d-send").dataset.mid));
   $("mail-d-send").dataset.mid = mailSelId;
-  $("mail-d-suggest").addEventListener("click", mailSuggest);
+  // Absent sur un mail envoyé : proposer une « réponse » à son propre message
+  // n'aurait rien donné de sensé.
+  $("mail-d-suggest")?.addEventListener("click", mailSuggest);
 }
 
 // ---- Fiche de connaissances de l'IA (« Proposer une réponse ») ----
@@ -18291,7 +18293,16 @@ async function openMail(id) {
       <div class="mail-stbtns">${MAIL_ORDER.map((k) => `<button type="button" class="mail-fbtn ${MAIL_STATUS[k][1]}${m.status === k ? " sel" : ""}" data-st="${k}">${MAIL_STATUS[k][0]}</button>`).join("")}${m.status === "traite" && m.treated_by ? `<span class="mail-treatedby">✓ par ${esc(pName(m.treated_by))}</span>` : ""}</div>
       ${statusInfo ? `<div class="mail-statusinfo muted">${statusInfo}</div>` : ""}
     </div>`;
-  const reply = isOut ? "" : `
+  // Le destinataire de ce qu'on va écrire : l'expéditeur si le mail est reçu,
+  // le destinataire s'il est envoyé (on relance alors dans le même fil).
+  const destFil = isOut
+    ? String(m.to_address || "").split(",")[0].replace(/^.*<|>.*$/g, "").trim()
+    : (m.from_address || "");
+  // Un fil qu'on a soi-même terminé n'avait aucun moyen de continuer : le
+  // bloc de réponse n'existait que sur les mails reçus. On cherchait alors le
+  // dernier message entrant pour pouvoir écrire — ou on repartait d'un
+  // nouveau message, hors du fil.
+  const reply = `
     <div class="mail-d-reply">
       <div class="rt-toolbar">
         <button type="button" class="rt-btn" data-cmd="bold" title="Gras"><b>G</b></button>
@@ -18300,18 +18311,18 @@ async function openMail(id) {
         <button type="button" class="rt-btn" id="mail-d-link" title="Insérer un lien (surligner un mot puis cliquer)">🔗</button>
         <label class="rt-color" title="Couleur du texte">A<input type="color" id="mail-d-color" value="#000000" /></label>
         <label class="rt-attach" title="Joindre un fichier">📎 Joindre<input type="file" id="mail-d-file" multiple hidden /></label>
-        <button type="button" id="mail-d-suggest" class="rt-suggest" title="Rédiger une réponse automatiquement">✨ Proposer une réponse</button>
+        ${isOut ? "" : `<button type="button" id="mail-d-suggest" class="rt-suggest" title="Rédiger une réponse automatiquement">✨ Proposer une réponse</button>`}
       </div>
       <div class="mail-d-cc">
         <input id="mail-d-cc" type="text" autocomplete="off" placeholder="Cc (copie, optionnel)" />
         <input id="mail-d-bcc" type="text" autocomplete="off" placeholder="Cci (copie cachée, optionnel)" />
       </div>
-      <div id="mail-d-replyhtml" class="rt-edit" contenteditable="true" data-ph="Répondre à ${esc(m.from_address || "")}…"></div>
+      <div id="mail-d-replyhtml" class="rt-edit" contenteditable="true" data-ph="${isOut ? "Relancer" : "Répondre à"} ${esc(destFil)}…"></div>
       <div id="mail-d-files" class="rt-files"></div>
       <div class="mail-d-reply-foot"><span class="muted" style="font-size:.8rem">Envoi depuis ${esc(m.account_address)}</span>
         <span id="mail-d-draft" class="mail-draft muted" style="font-size:.78rem"></span>
         <span class="spacer"></span>
-        <button type="button" id="mail-d-send">Envoyer la réponse</button></div>
+        <button type="button" id="mail-d-send">${isOut ? "Envoyer dans ce fil" : "Envoyer la réponse"}</button></div>
       <p id="mail-d-sendstatus" class="muted" style="font-size:.8rem;margin:6px 0 0"></p>
     </div>`;
   $("mail-detail").innerHTML = `
@@ -18335,7 +18346,7 @@ async function openMail(id) {
   // Mobile : maitre-detail facon appli mail — on ouvre le message en plein ecran
   // (la liste + la barre de filtres sont masquees) avec un bouton retour.
   $("view-mail").classList.add("mail-showdetail");
-  $("view-mail").classList.toggle("mail-canreply", !isOut);  // FAB « Répondre » seulement sur un mail entrant
+  $("view-mail").classList.add("mail-canreply");  // on peut écrire depuis un mail reçu ET depuis un mail envoyé
   $("mail-d-back").addEventListener("click", mailBackToList);
   $("mail-d-forward").addEventListener("click", () => mailForward(m));  // transfert (in ET out)
   // Mail trop lourd pour la relève : import complet à la demande (mail-import-one, 13.10.2026).
