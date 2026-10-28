@@ -24124,7 +24124,8 @@ async function asOuvrirFil(id) {
 
 let nfLignes = [], nfCats = [], nfGens = [], nfQui = null,
     nfFiltre = "du", nfRech = "", nfTousDroits = false, nfBound = false,
-    nfPdfEnAttente = null, nfExtraitEnAttente = null;
+    nfPdfEnAttente = null, nfExtraitEnAttente = null,
+    nfNotes = [], nfNote = "";   // les notes de frais, et celle qui est ouverte
 
 const NF_API = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/notes-frais-lire";
 
@@ -24133,12 +24134,14 @@ const nfChf = (v) => (Number(v) || 0).toLocaleString("fr-CH",
 
 async function loadNoteFrais() {
   nfBind();
-  const [cats, exp] = await Promise.all([
+  const [cats, exp, notes] = await Promise.all([
     sb.from("expense_categories").select("*").eq("active", true).order("sort"),
     sb.from("expenses").select("*").order("expense_date", { ascending: false }),
+    sb.from("expense_reports").select("*").order("created_at", { ascending: false }),
   ]);
   nfCats = cats.data || [];
   nfLignes = exp.data || [];
+  nfNotes = notes.data || [];
 
   const { data: moi } = await sb.rpc("my_person_id");
   const { data: sess } = await sb.auth.getSession();
@@ -24175,7 +24178,12 @@ function nfBind() {
   $("nf-modal").addEventListener("click", (e) => { if (e.target === $("nf-modal")) nfFermer(); });
   $("nf-form").addEventListener("submit", nfEnregistrer);
   $("nf-suppr").addEventListener("click", nfSupprimer);
-  $("nf-personne").addEventListener("change", () => { nfQui = $("nf-personne").value; renderNoteFrais(); });
+  $("nf-personne").addEventListener("change", () => { nfQui = $("nf-personne").value; nfNote = ""; renderNoteFrais(); });
+  $("nf-choix-note").addEventListener("change", () => { nfNote = $("nf-choix-note").value; renderNoteFrais(); });
+  $("nf-note-new").addEventListener("click", nfNouvelleNote);
+  $("nf-note-envoyer").addEventListener("click", () => nfNoteStatut("envoyee"));
+  $("nf-note-rembourse").addEventListener("click", () => nfNoteStatut("remboursee"));
+  $("nf-note-suppr").addEventListener("click", nfSupprimerNote);
   $("nf-xlsx").addEventListener("click", nfExportXlsx);
   $("nf-pdf").addEventListener("click", nfExportPdf);
   $("nf-justifs").addEventListener("click", nfExportJustifs);
@@ -24193,9 +24201,90 @@ function nfBind() {
 
 const nfCatLabel = (code) => (nfCats.find((c) => c.code === code) || {}).label || code || "—";
 
+// ---- Les notes : un regroupement de lignes, un seul remboursement --------
+const NF_ETATS = { ouverte: ["À compléter", "att"], envoyee: ["Envoyée", "val"], remboursee: ["Remboursée", "rem"] };
+const nfNoteCourante = () => nfNotes.find((n) => n.id === nfNote) || null;
+
+async function nfNouvelleNote() {
+  const titre = await uiPrompt("Nom de la note de frais\n(ex. « Déplacement Bologne », « Matériel octobre »)", "");
+  if (titre === null) return;
+  const t = String(titre).trim();
+  if (!t) { uiAlert("Il faut un nom pour s'y retrouver."); return; }
+  const { data: sess } = await sb.auth.getSession();
+  const { data, error } = await sb.from("expense_reports").insert({
+    person_id: nfQui, title: t.slice(0, 120),
+    created_by: sess && sess.session ? sess.session.user.id : null,
+  }).select().single();
+  if (error) { uiAlert("Note impossible à créer : " + error.message); return; }
+  nfNotes.unshift(data);
+  nfNote = data.id;
+  renderNoteFrais();
+}
+
+async function nfNoteStatut(statut) {
+  const n = nfNoteCourante(); if (!n) return;
+  const lignes = nfLignes.filter((x) => x.report_id === n.id);
+  if (statut === "envoyee") {
+    if (!lignes.length) { uiAlert("La note est vide : ajoute au moins une ligne."); return; }
+    const sans = lignes.filter((x) => !x.pdf_path).length;
+    if (sans && !(await uiConfirm(`${sans} ligne(s) sans justificatif. Envoyer quand même ?`))) return;
+  }
+  if (statut === "remboursee" && !(await uiConfirm(
+    `Marquer « ${n.title} » remboursée ? Les ${lignes.length} ligne(s) passeront aussi en remboursées.`))) return;
+
+  const { data: sess } = await sb.auth.getSession();
+  const uid = sess && sess.session ? sess.session.user.id : null;
+  const patch = { statut };
+  if (statut === "envoyee") patch.submitted_at = new Date().toISOString();
+  if (statut === "remboursee") { patch.reimbursed_at = new Date().toISOString(); patch.reimbursed_by = uid; }
+  const { error } = await sb.from("expense_reports").update(patch).eq("id", n.id);
+  if (error) { uiAlert(error.message); return; }
+  // Un remboursement unique vaut pour toutes les lignes qu'il paie.
+  if (statut === "remboursee" && lignes.length) {
+    await sb.from("expenses").update({ statut: "rembourse", reimbursed_at: patch.reimbursed_at, reimbursed_by: uid })
+      .eq("report_id", n.id);
+  }
+  await loadNoteFrais();
+}
+
+async function nfSupprimerNote() {
+  const n = nfNoteCourante(); if (!n) return;
+  const lignes = nfLignes.filter((x) => x.report_id === n.id).length;
+  if (!(await uiConfirm(`Supprimer la note « ${n.title} » ?${
+    lignes ? `\n\nSes ${lignes} ligne(s) ne sont PAS supprimées : elles redeviennent des dépenses isolées.` : ""}`))) return;
+  const { error } = await sb.from("expense_reports").delete().eq("id", n.id);
+  if (error) { uiAlert(error.message); return; }
+  nfNote = "";
+  await loadNoteFrais();
+}
+
+// Le sélecteur de notes, l'état de celle qui est ouverte, et ses boutons.
+function nfRenderNotes() {
+  const miennes = nfNotes.filter((n) => n.person_id === nfQui);
+  const sel = $("nf-choix-note");
+  if (nfNote && !miennes.some((n) => n.id === nfNote)) nfNote = "";
+  sel.innerHTML = '<option value="">Toutes les dépenses</option>'
+    + miennes.map((n) => `<option value="${n.id}"${n.id === nfNote ? " selected" : ""}>${esc(n.title)}</option>`).join("");
+  sel.value = nfNote;
+
+  const n = nfNoteCourante();
+  const etat = $("nf-note-etat");
+  etat.hidden = !n;
+  if (n) {
+    const [lbl, cls] = NF_ETATS[n.statut] || NF_ETATS.ouverte;
+    etat.className = "nf-etat nf-e-" + cls;
+    etat.textContent = lbl;
+  }
+  // « Envoyer » tant qu'elle est ouverte ; « Remboursée » réservé à qui paie.
+  $("nf-note-envoyer").hidden = !n || n.statut !== "ouverte";
+  $("nf-note-rembourse").hidden = !n || n.statut === "remboursee" || !nfTousDroits;
+  $("nf-note-suppr").hidden = !n || n.statut === "remboursee";
+}
+
 function nfVisibles() {
   return nfLignes.filter((x) => {
     if (nfQui && x.person_id !== nfQui) return false;
+    if (nfNote && x.report_id !== nfNote) return false;
     if (nfFiltre === "du" && x.statut === "rembourse") return false;
     if (nfFiltre === "a_valider" && x.statut !== "a_valider") return false;
     if (nfFiltre === "rembourse" && x.statut !== "rembourse") return false;
@@ -24220,6 +24309,7 @@ function renderNoteFrais() {
   const gen = nfGens.find((g) => g.id === nfQui);
   $("nf-titre").textContent = nfTousDroits && gen
     ? "Frais de " + gen.first_name + " " + gen.last_name : "Mes frais";
+  nfRenderNotes();
 
   const vues = nfVisibles();
   $("nf-vide").hidden = vues.length > 0;
@@ -24340,6 +24430,9 @@ async function nfEnregistrer(e) {
     if (!nfQui) { err.hidden = false; err.textContent = "Aucune personne sélectionnée."; return; }
     r = await sb.from("expenses").insert(Object.assign({}, ligne, {
       person_id: nfQui, created_by: uid,
+      // Une note ouverte ramasse les lignes qu'on saisit : c'est tout
+      // l'intérêt du regroupement, et ça évite de les rattacher après coup.
+      report_id: nfNote || null,
       pdf_path: nfPdfEnAttente || null, extraction: nfExtraitEnAttente || null,
     }));
   }

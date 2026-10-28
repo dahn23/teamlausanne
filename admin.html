@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=378" />
+  <link rel="stylesheet" href="style.css?v=379" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2094,6 +2094,20 @@
               Les dépenses avancées pour l'académie. Dépose le justificatif en PDF :
               la date, le montant, le n° de transaction et la catégorie en sont tirés
               automatiquement, tu n'as qu'à vérifier avant de valider.</p>
+
+            <!-- La note regroupe plusieurs lignes pour UN seul remboursement
+                 (28.10.2026). Sans elle, trois achats = trois virements. -->
+            <div class="nf-notebar">
+              <label class="nf-notesel">Note de frais
+                <select id="nf-choix-note"></select>
+              </label>
+              <button type="button" id="nf-note-new" class="ghost">+ Nouvelle note</button>
+              <span id="nf-note-etat" class="nf-etat" hidden></span>
+              <span class="spacer"></span>
+              <button type="button" id="nf-note-envoyer" class="ghost" hidden>Envoyer la note</button>
+              <button type="button" id="nf-note-rembourse" class="ghost" hidden>Marquer remboursée</button>
+              <button type="button" id="nf-note-suppr" class="danger-ghost" hidden>Supprimer la note</button>
+            </div>
 
             <div class="people-filters" id="nf-filtres" style="margin-bottom:12px">
               <button type="button" class="chip filt sel" data-nff="du">À rembourser</button>

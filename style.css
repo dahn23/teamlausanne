@@ -6047,6 +6047,17 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .nf-grille{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
 .nf-grille label{display:flex;flex-direction:column;gap:4px;font-size:.86rem;font-weight:600}
 .nf-grille .nf-large{grid-column:1/-1}
+/* La barre des notes : choisir la note en cours, voir où elle en est, l'envoyer. */
+.nf-notebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;
+  padding:10px 12px;background:var(--bg);border-radius:12px}
+.nf-notesel{display:flex;align-items:center;gap:8px;font-size:.84rem;font-weight:700;color:var(--muted)}
+.nf-notesel select{min-width:220px}
+.nf-notebar .spacer{flex:1}
+.nf-etat{font-size:.76rem;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.nf-e-att{background:#fef3c7;color:#92400e}
+.nf-e-val{background:#dbeafe;color:#1e40af}
+.nf-e-rem{background:#dcfce7;color:#166534}
+@media (max-width:640px){ .nf-notesel{width:100%} .nf-notesel select{flex:1;min-width:0} }
 /* Le champ occupe toute sa colonne : la liste déroulante épouse sa largeur,
    et c'est elle qui décide si « Port et affranchissement » tient ou non. */
 .nf-grille input,.nf-grille select,.nf-grille .ps-wrap{min-width:0;width:100%}

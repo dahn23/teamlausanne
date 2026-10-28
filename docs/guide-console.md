@@ -469,6 +469,27 @@ justificatif, et l'académie vous rembourse.
 voient celles de tout le monde et peuvent les corriger — Arsalan vérifie que
 chaque dépense est rangée sous le bon compte.
 
+### Regrouper plusieurs dépenses en une note
+
+Pour éviter un virement par ticket, les dépenses se rangent dans une **note**
+que vous nommez vous-même : « Déplacement Bologne », « Matériel octobre ».
+Tout ce qui est saisi pendant qu'une note est ouverte y est rattaché.
+
+1. **« + Nouvelle note »**, donnez-lui un nom.
+2. Ajoutez vos dépenses normalement : chacune devient une ligne de la note.
+3. **« Envoyer la note »** quand elle est complète. Le secrétariat la voit
+   prête, et la rembourse **en un seul paiement**.
+
+Le menu déroulant en haut choisit la note affichée ; « Toutes les dépenses »
+montre tout, notes confondues. L'état se lit à côté : **À compléter**,
+**Envoyée**, **Remboursée**.
+
+« Marquer remboursée » n'apparaît que pour qui paie (Arsalan, Dan, Raphaël) :
+elle passe la note ET toutes ses lignes en remboursées, d'un coup.
+
+Supprimer une note ne supprime pas ses dépenses : elles redeviennent des
+dépenses isolées, et peuvent être rangées dans une autre note.
+
 ### Ajouter une dépense — la bonne façon
 
 1. **« ⬆ Déposer un justificatif »** et choisir le PDF.
