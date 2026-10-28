@@ -146,6 +146,25 @@ coachs:
       "Enseigne depuis deux ans : Kids Tennis, Club, Compétition et stages.",
     ]},
 
+  // Bio écrite par Augustin, reprise à la 3e personne comme les autres fiches,
+  // et resserrée. Pas de rubrique « Formations » : il n'en a pas donné, et un
+  // titre vide vaut mieux qu'un diplôme supposé.
+  { slug: "augustin-tarouat", role: "Coach", nom: "Augustin Tarouat",
+    portrait: "assets/photos/coaches/augustin-tarouat.jpg", portraitPos: "center 20%",
+    resume: "Formé en sport-études à Lyon, il aime décortiquer la technique et la tactique pour faire progresser chaque joueur à son rythme.",
+    tags: ["Kids Tennis", "Club", "Compétition"],
+    bio: [
+      "Originaire de Lyon, Augustin Tarouat a suivi un parcours sport-études en tennis et en football, qui lui a donné très tôt une culture sportive et le goût de la compétition. Joueur, il a atteint le classement 2/6 et pris part à de nombreux rassemblements régionaux et fédéraux en France, avant d'arrêter la compétition plus tôt que prévu.",
+      "Passionné de technique et de tactique, il aime analyser le jeu et comprendre les mécanismes de progression, pour accompagner chaque joueur selon son niveau et ses objectifs.",
+    ],
+    citation: "Transmettre ma passion du tennis, partager ce que j'ai appris, et aider chacun à développer son potentiel — tout en prenant du plaisir sur le court.",
+    classement: ["Meilleur classement : 2/6 (France)."],
+    parcours: [
+      "Parcours sport-études en tennis et en football, à Lyon.",
+      "Rassemblements régionaux et fédéraux en France comme jeune joueur.",
+      "Encadre le Kids Tennis, le Club et la Compétition.",
+    ]},
+
   { slug: "talia-picci", role: "Coach junior", nom: "Talia Picci",
     resume: "Compétitrice R1 en activité, elle accompagne les jeunes dans des séances vivantes, détendues et motivantes, centrées sur l'engagement et le plaisir.",
     tags: ["Kids Tennis", "Club", "Stages"],
