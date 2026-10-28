@@ -867,6 +867,11 @@ l'adresse e-mail, exactement.
   le même calcul, à partir de la date de prochaine action.
 - Tout s'enregistre en sortant d'un champ ; il n'y a pas de bouton
   « Enregistrer ».
+- L'écran **se relit tout seul** quand vous y revenez : en rouvrant l'onglet
+  Prospects, et en revenant sur la console après être allé ailleurs. Un mail
+  parti entre-temps est donc déjà pris en compte. Une seule exception : tant
+  qu'une **fiche est ouverte**, rien ne bouge — on ne change pas l'écran sous
+  les doigts de quelqu'un en train d'écrire.
 - Le rythme de relance automatique d'avant (« à surveiller → 1 mois »…) a
   disparu de l'écran : la date de prochaine action, choisie à chaque échange,
   le remplace.

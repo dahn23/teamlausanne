@@ -567,7 +567,9 @@ function showView(view) {
   if (view === "news") loadNews();
   if (view === "physique") loadPhysique();
   if (view === "inscriptions") loadInscriptions();
-  if (view === "prospects") loadProspects();
+  // Le Suivi se relit en revenant dessus : un mail parti entre-temps a pu
+  // avancer une fiche, et l'écran affichait encore l'état d'avant.
+  if (view === "prospects") { loadProspects(); if (pfSuiviOuvert()) loadProspectFollowups(); }
   if (view === "heures") loadHeures();
   if (view === "factures") loadFactures();
   if (view === "winter") loadWinter();
@@ -9725,6 +9727,13 @@ function pfRelanceTxt(r) {
 
 let pfList = [], pfEvents = {}, pfInit = false, pfStageFiltre = "", pfVue = "board";
 
+// Le Suivi est-il réellement sous les yeux ? (onglet Prospects ouvert, sous-onglet
+// Suivi affiché). Sert à ne relire la base que quand ça se voit.
+function pfSuiviOuvert() {
+  const v = $("view-prospects"), s = $("prosp-sub-suivi");
+  return !!(v && s && !v.classList.contains("hidden") && !s.classList.contains("hidden"));
+}
+
 async function loadProspectFollowups() {
   if (!pfInit) {
     pfInit = true;
@@ -9739,6 +9748,15 @@ async function loadProspectFollowups() {
       document.querySelectorAll(".pf-vue").forEach((x) => x.classList.toggle("active", x === b));
       renderProspectFollowups();
     }));
+    // Revenir sur la console après avoir écrit ailleurs (webmail, autre onglet) :
+    // on relit. Pas pendant qu'une fiche est ouverte — on ne va pas changer
+    // l'écran sous les doigts de quelqu'un en train d'écrire dedans.
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") return;
+      if (!pfSuiviOuvert()) return;
+      if (!$("pf-drawer").hidden) return;
+      loadProspectFollowups();
+    });
   }
   const [{ data, error }, { data: ev }] = await Promise.all([
     sb.from("prospect_followups").select("*").order("next_action_at", { ascending: true, nullsFirst: false }),
