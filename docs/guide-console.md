@@ -775,7 +775,10 @@ répondra qu'elle ne sait pas, et la question remontera dans
   « Clôturer le tournoi ». Dans « Envois e-mails », « Remerciements » et
   « Vainqueurs » restent grisés avant le jour du tournoi (« disponible dès
   le … ») ; ils partent aussi tout seuls le lundi à 11 h. Le mail
-  « Vainqueurs » porte la photo du vainqueur en pièce jointe.
+  « Vainqueurs » porte la photo du vainqueur en pièce jointe. Pour clôturer,
+  chaque tableau joué doit avoir son vainqueur coché (« Victoire »), sauf les
+  tableaux dont le nom contient « consolante » : c'est un tableau de
+  rattrapage, on n'y coche pas de victoire.
 - **Caisse** — « Ajouter un mouvement ».
 - **Serrures** / **Arrosage** — « + Ajouter une serrure », « + Ajouter une
   zone ». Journal récent.

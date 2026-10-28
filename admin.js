@@ -6445,6 +6445,8 @@ async function closeTournament() {
       if (!e.confirmed) continue;
       const s = st.get(e.participant_id) || {};
       const k = e.epreuve || "Tableau";
+      // Consolante = tableau de rattrapage : pas de vainqueur demandé, une victoire en consolante ne compte pas (Dan, 28.10.2026).
+      if (/consol/i.test(k)) continue;
       const t = tabs[k] || (tabs[k] = { present: 0, winners: 0 });
       if (!s.absent) t.present++;
       if (s.is_winner) t.winners++;
