@@ -2957,6 +2957,11 @@ button.mail-att{cursor:pointer;font-weight:600;font-family:inherit}
 .pf-cnext.retard{color:#b42318}
 .pf-cnext.auj{color:#b54708}
 .pf-cnext.calme{color:var(--muted)}
+/* Le dernier échange, sous la relance : c'est lui qui montre qu'un mail est
+   parti. Sans cette ligne, une relance due « depuis 6 semaines » se lisait
+   comme « sans nouvelles depuis 6 semaines ». */
+.pf-clast{display:block;margin-top:4px;font-size:.76rem;color:var(--muted)}
+.pf-qrow .qlast{font-style:normal;opacity:.75}
 
 /* --- la fiche ------------------------------------------------------------ */
 .pf-drawer{position:fixed;inset:0;z-index:70;background:rgba(5,11,31,.42);

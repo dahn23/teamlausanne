@@ -9693,15 +9693,34 @@ const pfPrioIcon = (p) => (PF_PRIO.find((x) => x[0] === p) || PF_PRIO[1])[1];
 const pfToday = () => new Date().toISOString().slice(0, 10);
 const pfPlus = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 // « dans 3 jours », « il y a 2 semaines » — un délai se lit plus vite qu'une date.
+const pfEcart = (iso) => Math.round((new Date(iso + "T12:00:00") - new Date(pfToday() + "T12:00:00")) / 864e5);
+// La durée seule (« 6 semaines »), pour écrire « À relancer depuis … ».
+const pfDuree = (iso) => {
+  const n = Math.abs(pfEcart(iso));
+  if (n === 0) return "aujourd'hui";
+  if (n === 1) return "1 jour";
+  return n < 14 ? `${n} jours` : n < 60 ? `${Math.round(n / 7)} semaines` : `${Math.round(n / 30)} mois`;
+};
 function pfQuand(iso) {
   if (!iso) return "";
-  const j = Math.round((new Date(iso + "T12:00:00") - new Date(pfToday() + "T12:00:00")) / 864e5);
+  const j = pfEcart(iso);
   if (j === 0) return "aujourd'hui";
   if (j === 1) return "demain";
   if (j === -1) return "hier";
-  const n = Math.abs(j);
-  const txt = n < 14 ? `${n} jours` : n < 60 ? `${Math.round(n / 7)} semaines` : `${Math.round(n / 30)} mois`;
-  return j > 0 ? `dans ${txt}` : `il y a ${txt}`;
+  return (j > 0 ? "dans " : "il y a ") + pfDuree(iso);
+}
+// Ce que la carte et la file disent de la relance.
+//
+// Avant, les deux affichaient la date de relance en relatif : une relance due
+// il y a six semaines s'écrivait « il y a 6 semaines », ce qui se lisait
+// « sans nouvelles depuis six semaines » — faux dès qu'un mail était parti
+// entre-temps. On nomme donc ce qu'on mesure (28.10.2026).
+function pfRelanceTxt(r) {
+  if (!r.next_action_at) return "Pas de relance prévue";
+  const j = pfEcart(r.next_action_at);
+  if (j < 0) return `⚠️ À relancer depuis ${pfDuree(r.next_action_at)}`;
+  if (j === 0) return "À relancer aujourd'hui";
+  return `Relance ${pfQuand(r.next_action_at)}`;
 }
 
 let pfList = [], pfEvents = {}, pfInit = false, pfStageFiltre = "", pfVue = "board";
@@ -9777,8 +9796,8 @@ function renderProspectFollowups() {
       const cls = r.next_action_at < today ? "retard" : r.next_action_at === today ? "auj" : "";
       return `<div class="pf-qrow ${cls}" data-id="${r.id}">
         <span class="qn">${esc(pfNom(r))}</span>
-        <span class="qa">${esc(r.next_action || "À relancer")}</span>
-        <span class="qd">${esc(pfQuand(r.next_action_at))}</span>
+        <span class="qa">${esc(r.next_action || "À relancer")} <i class="qlast">· dernier échange ${esc(pfQuand(r.last_contact))}</i></span>
+        <span class="qd">${esc(pfRelanceTxt(r).replace("⚠️ ", ""))}</span>
         <span class="pf-qacts">
           ${r.phone ? `<a class="ghost" href="tel:${esc(r.phone)}" title="Appeler">📞</a>` : ""}
           ${r.email ? `<a class="ghost" href="mailto:${esc(r.email)}" title="Écrire">✉️</a>` : ""}
@@ -9862,10 +9881,9 @@ function pfCarte(r) {
       ${r.ranking ? `<span class="pf-chip">${esc(r.ranking)}</span>` : ""}
     </span>
     <span class="pf-cnext ${retard ? "retard" : auj ? "auj" : r.next_action_at ? "" : "calme"}">
-      ${r.next_action_at
-        ? `${retard ? "⚠️ " : ""}<b>${esc(pfQuand(r.next_action_at))}</b> — ${esc(r.next_action || "relance")}`
-        : "Pas de relance prévue"}
-    </span></button>`;
+      <b>${esc(pfRelanceTxt(r))}</b>${r.next_action_at ? ` — ${esc(r.next_action || "relance")}` : ""}
+    </span>
+    <span class="pf-clast">Dernier échange ${esc(pfQuand(r.last_contact))}</span></button>`;
 }
 
 async function pfNouvelle() {

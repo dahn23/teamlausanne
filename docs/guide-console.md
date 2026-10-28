@@ -785,6 +785,11 @@ perdre aucune d'elles faute d'avoir rappelé au bon moment.
    dit l'essentiel : l'enfant, où la famille vit, le programme visé, la
    saison, d'où elle vient, et quand il faut la relancer.
 
+   Chaque carte porte **deux** dates, à ne pas confondre : « **À relancer
+   depuis 6 semaines** » (l'échéance est passée) et, en dessous, « **dernier
+   échange il y a 2 jours** » — c'est cette seconde ligne qui montre qu'un
+   mail est parti.
+
 Les sept étapes se suivent **sur une seule ligne**, de gauche à droite,
 « Inscrit » et « Perdu » comprises : la bande défile horizontalement s'il n'y
 a pas la place à l'écran.
