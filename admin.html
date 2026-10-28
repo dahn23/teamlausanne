@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=377" />
+  <link rel="stylesheet" href="style.css?v=378" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -3486,7 +3486,10 @@ Team Lausanne Tennis</textarea></label>
        par la lecture du PDF ; tout reste modifiable avant validation. -->
   <input type="file" id="nf-fichier" accept="application/pdf" hidden />
   <div id="nf-modal" class="modal hidden">
-    <form class="card" id="nf-form">
+    <!-- « wide » (640px) et non la largeur par défaut (420px) : à l'étroit, la
+         liste des catégories, qui suit la largeur de son champ, coupait les
+         libellés — « Port et affranchissem… » (28.10.2026). -->
+    <form class="card wide" id="nf-form">
       <button type="button" id="nf-close" class="modal-close" aria-label="Fermer">×</button>
       <h2 id="nf-modal-titre" style="margin-top:0">Dépense</h2>
       <p id="nf-lu" class="nf-lu" hidden></p>
@@ -3494,8 +3497,9 @@ Team Lausanne Tennis</textarea></label>
       <div class="nf-grille">
         <label>Date de la dépense<input type="date" id="nf-date" required /></label>
         <label>Montant (CHF)<input type="number" id="nf-montant" step="0.05" min="0.05" required /></label>
-        <label>Catégorie<select id="nf-cat" required></select></label>
-        <label>N° de transaction<input type="text" id="nf-no" placeholder="(facultatif)" /></label>
+        <!-- Pleine largeur : c'est le champ aux libellés les plus longs. -->
+        <label class="nf-large">Catégorie<select id="nf-cat" required></select></label>
+        <label class="nf-large">N° de transaction<input type="text" id="nf-no" placeholder="(facultatif)" /></label>
       </div>
       <label>Note<input type="text" id="nf-note" placeholder="À quoi servait cette dépense ?" /></label>
       <p id="nf-justif" class="muted" style="font-size:.86rem;margin:10px 0 0"></p>

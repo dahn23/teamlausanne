@@ -70,6 +70,7 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | Caisse | Caisse du secrétariat | admin, secrétariat |
 | Factures | Toute la facturation | admin |
 | Heures | Heures des coachs et profs | admin, encadrement |
+| Note de frais | Vos dépenses à se faire rembourser | tout le monde |
 | Serrures | Serrures connectées | admin, secrétariat |
 | Arrosage | Arrosage des courts | admin, secrétariat |
 | Stages | Camps de vacances | admin, secrétariat |
