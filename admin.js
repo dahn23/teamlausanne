@@ -18378,8 +18378,14 @@ async function openMail(id) {
   });
   $("mail-detail").scrollTop = 0;
   window.scrollTo(0, 0);
+  // Le cadre d'écriture existe sous TOUS les messages depuis qu'on peut
+  // relancer dans un fil (27.10.2026) : son câblage doit sortir du `if (!isOut)`,
+  // sinon la barre d'outils, le lien, les pièces jointes ET le bouton d'envoi
+  // restent muets sur un mail envoyé — l'écran s'affiche, rien ne répond.
+  mailWireCompose();
+  attachEmailAC($("mail-d-cc")); attachEmailAC($("mail-d-bcc"));  // autocomplétion Cc/Cci
+  loadMailDraft(id);                                              // brouillon repris, dans les deux sens
   if (!isOut) {
-    mailWireCompose();
     $("mail-detail").querySelectorAll(".mail-stbtns .mail-fbtn").forEach((b) => b.addEventListener("click", () => mailSetStatus(m, b.dataset.st)));
     $("mail-d-notspam")?.addEventListener("click", async () => {
       const upd = { is_spam: false, status: "a_traiter", is_read: false };
@@ -18388,8 +18394,6 @@ async function openMail(id) {
       mailStatusF = "a_traiter"; renderMailAccts(); renderMailToolbar(); refreshMailView(); openMail(id);
     });
     $("mail-d-unread").addEventListener("click", async () => { m.is_read = false; mailSyncCache(m); await sb.from("mail_messages").update({ is_read: false }).eq("id", id); renderMailAccts(); refreshMailView(); });
-    attachEmailAC($("mail-d-cc")); attachEmailAC($("mail-d-bcc"));  // autocompletion Cc/Cci de la réponse
-    loadMailDraft(id);
   }
   renderMailList();
 }
