@@ -837,9 +837,20 @@ l'adresse correspond à celle du prospect, et « dernière interaction » avance
 Les lignes automatiques portent **« Envoyé : »** ou **« Reçu : »** suivi de
 l'objet du mail. Le texte complet reste dans la Messagerie.
 
-Ce que cela ne fait **pas** : décider de la suite. La prochaine action et
-l'étape ne bougent jamais toutes seules — envoyer un mail n'est pas décider
-quand relancer. C'est à vous, depuis la fiche.
+**Écrire à une famille coche sa relance.** Si sa relance était due, elle est
+reportée d'une semaine, en « Relancer — sans réponse » : la ligne quitte
+« À relancer », et revient si la famille ne répond pas. Vous n'avez rien à
+pointer.
+
+Trois garde-fous, pour que la boîte mail ne décide pas à votre place :
+
+- une relance prévue **plus tard** n'est pas touchée — c'est un plan ;
+- une fiche **sans date** de relance le reste : « pas de relance prévue » est
+  aussi une décision ;
+- une fiche **close** (Inscrit, Perdu) ou archivée ne bouge plus.
+
+L'**étape** ne change jamais toute seule : passer de « En discussion » à
+« Visite » reste votre geste.
 
 Si une famille n'a pas l'air de remonter : vérifiez que l'adresse de la fiche
 est bien celle à laquelle vous écrivez. Le rapprochement se fait sur
