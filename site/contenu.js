@@ -183,7 +183,11 @@ coachs:
   // Seul coach de l'équipe à ne pas enseigner le tennis : pas de bloc
   // « Classement », qui n'aurait aucun sens pour un préparateur physique.
   // La fiche ne l'affiche pas quand la liste est absente.
+  // La fiche réutilise la photo de la carte : le cliché en t-shirt noir n'existe
+  // qu'en 776×680, et un fichier -large fabriqué par agrandissement serait plus
+  // lourd sans être plus net. Le -large en t-shirt blanc reste pour son article.
   { slug: "andreas-egger", role: "Coach physique", nom: "Andreas Egger",
+    portrait: "assets/photos/coaches/andreas-egger.jpg", portraitPos: "center 10%",
     resume: "Préparateur physique, il accompagne les joueurs toute la saison et les pousse à se surpasser au quotidien.",
     tags: ["Sport-études & Pro"],
     bio: [
