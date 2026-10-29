@@ -2822,7 +2822,7 @@ function plOpenCopy() {
   const others = plPlayers.filter((p) => p.id !== src);
   ov.innerHTML = `<div class="ui-box" style="max-width:560px;text-align:left">
     <h3 style="margin:0 0 4px">Copier la planification de ${esc(plName(src))}</h3>
-    <p class="muted" style="margin:0 0 10px;font-size:.85rem">Les zones de semaine des jeunes choisis sont <b>remplacées</b> par celles-ci, sur toute la saison ${esc(plSeason.label)}. Leurs inscriptions ne sont pas touchées.</p>
+    <p class="muted" style="margin:0 0 10px;font-size:.85rem">La semaine entière est copiée — son type, le programme tennis, la préparation physique et la note. Ce que les jeunes choisis avaient est <b>remplacé</b>, sur toute la saison ${esc(plSeason.label)}. Leurs inscriptions ne sont pas touchées.</p>
     <label class="rg-check"><input type="checkbox" id="pl-cp-tours" checked /> Copier aussi les zones tournoi du week-end (elles remplacent celles des jeunes choisis)</label>
     <div class="pl-cp-list">${PL_FILIERES.map(([f, l]) => {
       const ps = others.filter((p) => plFilOf(p.id) === f); if (!ps.length) return "";
@@ -2836,24 +2836,40 @@ function plOpenCopy() {
     const targets = [...ov.querySelectorAll(".pl-cp:checked")].map((x) => x.value);
     if (!targets.length) { uiAlert("Coche au moins un jeune."); return; }
     const withTours = ov.querySelector("#pl-cp-tours").checked;
-    const srcWeeks = Object.entries(plWeeks[src] || {});
+    // On copie la semaine ENTIÈRE : son type, mais aussi le programme tennis,
+    // la préparation physique et la note (db/196). Sans cela, « copier » ne
+    // transmettait qu'une couleur, et le jeune héritait d'une frise sans
+    // contenu — ce qui vide l'intérêt de partir d'une planification validée.
+    const srcRows = plWeekList.filter((ws) => (plWeeks[src] || {})[ws]).map((ws) => {
+      const c = (plContenu[src] || {})[ws] || {};
+      return { week_start: ws, kind: plWeeks[src][ws], tennis: c.tennis || null, physique: c.physique || null, note: c.note || null };
+    });
     const a = plWeekList[0], z = plWeekList[plWeekList.length - 1];
     try {
       for (const t of targets) {
         const d = await sb.from("plan_weeks").delete().eq("person_id", t).gte("week_start", a).lte("week_start", z);
         if (d.error) throw d.error;
-        if (srcWeeks.length) {
-          const ins = await sb.from("plan_weeks").insert(srcWeeks.map(([ws, kind]) => ({ person_id: t, week_start: ws, kind })));
+        if (srcRows.length) {
+          // Mêmes clés sur toutes les lignes, sinon PostgREST refuse tout l'insert.
+          const ins = await sb.from("plan_weeks").insert(srcRows.map((r) => ({ person_id: t, ...r })));
           if (ins.error) throw ins.error;
         }
-        plWeeks[t] = Object.fromEntries(srcWeeks);
+        plWeeks[t] = {}; plContenu[t] = {};
+        for (const r of srcRows) { plWeeks[t][r.week_start] = r.kind; plContenu[t][r.week_start] = { person_id: t, ...r }; }
         if (withTours) {
           // Les zones tournoi de la saison du jeune choisi sont remplacées par celles de la frise copiée.
           const dz = await sb.from("plan_tournaments").delete().eq("person_id", t).eq("source", "staff").in("week_start", plWeekList);
           if (dz.error) throw dz.error;
           plTours = plTours.filter((y) => !(y.person_id === t && y.source === "staff" && plWeekList.includes(y.week_start)));
-          const srcZones = [...new Set(plTours.filter((x) => x.person_id === src && x.source === "staff").map((x) => x.week_start))];
-          const rows = srcZones.map((ws) => ({ person_id: t, week_start: ws, name: PL_ZONE, source: "staff" }));
+          // Le nom de la zone suit : « Tournoi », « Tournoi possible »,
+          // « Tournoi / interclubs » disent chacun autre chose, et les écraser
+          // tous par « Zone tournoi » perdrait l'intention du planning.
+          const parSemaine = new Map();
+          for (const x of plTours) {
+            if (x.person_id !== src || x.source !== "staff" || !plWeekList.includes(x.week_start)) continue;
+            if (!parSemaine.has(x.week_start)) parSemaine.set(x.week_start, x.name || PL_ZONE);
+          }
+          const rows = [...parSemaine].map(([ws, name]) => ({ person_id: t, week_start: ws, name, source: "staff" }));
           if (rows.length) {
             const r = await sb.from("plan_tournaments").insert(rows).select();
             if (r.error) throw r.error;

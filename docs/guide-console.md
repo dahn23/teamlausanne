@@ -154,8 +154,14 @@ Cliquer sur la ligne d'un joueur ouvre sa frise en grand, en dessous.
    ajouter ou en retirer.
 
 **« Copier vers… »** reprend la planification d'un joueur et la pose sur
-d'autres, pour toute la saison. Leurs inscriptions ne sont pas touchées,
-seules les zones de semaine sont remplacées.
+d'autres, pour toute la saison. La semaine entière suit : son type, le
+programme tennis, la préparation physique et la note. En cochant la case, les
+zones tournoi du week-end partent aussi, avec leur nom — « Tournoi »,
+« Tournoi possible », « Tournoi / interclubs ».
+
+C'est la façon normale de travailler : on finalise **un** joueur, on le relit,
+puis on le copie sur le reste du groupe. Ce que les joueurs choisis avaient est
+remplacé ; leurs propres inscriptions à des tournois ne sont jamais touchées.
 
 **« Jours sans entraînement »** (en haut de l'onglet) note les jours fériés et
 les fermetures de la saison. Ils apparaissent en coin sombre sur les semaines
