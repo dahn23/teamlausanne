@@ -83,3 +83,20 @@
   to = "/"
   status = 301
   force = true
+
+# db/ et supabase/ ne sont PAS du site : ce sont nos migrations et nos
+# fonctions. Comme publish = ".", ils étaient servis tels quels — il suffisait
+# de deviner un nom de fichier pour lire nos migrations, dont certaines
+# nomment des jeunes (29.10.2026). force = true est indispensable : sans lui,
+# un fichier réellement présent l'emporte sur la règle.
+# docs/ reste servi : l'edge function « aide » y lit le guide de la console.
+[[redirects]]
+  from = "/db/*"
+  to = "/"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/supabase/*"
+  to = "/"
+  status = 301
+  force = true
