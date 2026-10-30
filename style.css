@@ -6053,6 +6053,13 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .nf-notesel{display:flex;align-items:center;gap:8px;font-size:.84rem;font-weight:700;color:var(--muted)}
 .nf-notesel select{min-width:220px}
 .nf-notebar .spacer{flex:1}
+/* La note vide explique la suite : c'est là qu'on se demandait où taper le
+   montant et la date (30.10.2026). */
+.nf-note-vide{border:1px dashed var(--line);border-radius:12px;padding:20px;
+  margin:4px 0 8px;text-align:center}
+.nf-note-vide p{margin:0 0 14px;color:var(--muted);font-size:.9rem;line-height:1.5}
+.nf-note-vide b{color:var(--ink)}
+.nf-note-vide-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .nf-etat{font-size:.76rem;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
 .nf-e-att{background:#fef3c7;color:#92400e}
 .nf-e-val{background:#dbeafe;color:#1e40af}

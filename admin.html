@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=379" />
+  <link rel="stylesheet" href="style.css?v=380" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2102,6 +2102,10 @@
                 <select id="nf-choix-note"></select>
               </label>
               <button type="button" id="nf-note-new" class="ghost">+ Nouvelle note</button>
+              <!-- Le même geste que « + Saisir à la main » de l'entête, mais ici,
+                   à côté de la note : c'est là qu'on le cherche une fois la note
+                   créée (30.10.2026). -->
+              <button type="button" id="nf-note-ligne" class="primary" hidden>+ Ajouter une dépense</button>
               <span id="nf-note-etat" class="nf-etat" hidden></span>
               <span class="spacer"></span>
               <button type="button" id="nf-note-envoyer" class="ghost" hidden>Envoyer la note</button>
@@ -2129,6 +2133,18 @@
               </table>
             </div>
             <p id="nf-vide" class="muted" hidden style="padding:16px 0">Aucune dépense.</p>
+            <!-- Une note fraîchement créée est vide, et l'écran ne disait pas
+                 quoi faire ensuite : on a vu quelqu'un créer sa note et
+                 s'arrêter là (30.10.2026). -->
+            <div id="nf-note-vide" class="nf-note-vide" hidden>
+              <p><b>Cette note est vide.</b> Ajoute tes dépenses une par une : chacune
+                 (date, montant, catégorie) viendra se ranger dedans, et le tout sera
+                 remboursé en un seul virement.</p>
+              <div class="nf-note-vide-actions">
+                <button type="button" id="nf-vide-depot">⬆ Déposer un justificatif</button>
+                <button type="button" id="nf-vide-main" class="ghost">+ Saisir à la main</button>
+              </div>
+            </div>
 
             <div class="nf-pied">
               <div class="nf-exports">

@@ -24199,6 +24199,9 @@ function nfBind() {
   $("nf-personne").addEventListener("change", () => { nfQui = $("nf-personne").value; nfNote = ""; renderNoteFrais(); });
   $("nf-choix-note").addEventListener("change", () => { nfNote = $("nf-choix-note").value; renderNoteFrais(); });
   $("nf-note-new").addEventListener("click", nfNouvelleNote);
+  $("nf-note-ligne").addEventListener("click", () => nfOuvrir(null));
+  $("nf-vide-main").addEventListener("click", () => nfOuvrir(null));
+  $("nf-vide-depot").addEventListener("click", () => $("nf-fichier").click());
   $("nf-note-envoyer").addEventListener("click", () => nfNoteStatut("envoyee"));
   $("nf-note-rembourse").addEventListener("click", () => nfNoteStatut("remboursee"));
   $("nf-note-suppr").addEventListener("click", nfSupprimerNote);
@@ -24293,6 +24296,8 @@ function nfRenderNotes() {
     etat.className = "nf-etat nf-e-" + cls;
     etat.textContent = lbl;
   }
+  // Ajouter une ligne n'a de sens que dans une note encore ouverte.
+  $("nf-note-ligne").hidden = !n || n.statut !== "ouverte";
   // « Envoyer » tant qu'elle est ouverte ; « Remboursée » réservé à qui paie.
   $("nf-note-envoyer").hidden = !n || n.statut !== "ouverte";
   $("nf-note-rembourse").hidden = !n || n.statut === "remboursee" || !nfTousDroits;
@@ -24330,7 +24335,11 @@ function renderNoteFrais() {
   nfRenderNotes();
 
   const vues = nfVisibles();
-  $("nf-vide").hidden = vues.length > 0;
+  // Note ouverte et encore vide : on explique la suite plutôt que d'afficher
+  // « Aucune dépense », qui ne dit pas où saisir le montant et la date.
+  const noteVide = !!nfNoteCourante() && vues.length === 0 && !nfRech;
+  $("nf-note-vide").hidden = !noteVide;
+  $("nf-vide").hidden = vues.length > 0 || noteVide;
   $("nf-lignes").innerHTML = vues.map((x) => {
     const etat = x.statut === "rembourse" ? ["rem", "Remboursée"]
                : x.statut === "valide" ? ["val", "Validée"]

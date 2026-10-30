@@ -482,8 +482,13 @@ que vous nommez vous-même : « Déplacement Bologne », « Matériel octobre »
 Tout ce qui est saisi pendant qu'une note est ouverte y est rattaché.
 
 1. **« + Nouvelle note »**, donnez-lui un nom.
-2. Ajoutez vos dépenses normalement : chacune devient une ligne de la note.
-3. **« Envoyer la note »** quand elle est complète. Le secrétariat la voit
+2. **« + Ajouter une dépense »**, juste à côté, ouvre la fiche : date, montant,
+   catégorie, n° de transaction, remarque. C'est là que se saisit le détail.
+   Avec un reçu en PDF, « ⬆ Déposer un justificatif » remplit la fiche tout
+   seul. Une note encore vide affiche ces deux boutons en grand au milieu.
+3. Recommencez pour chaque ticket : tant que la note est choisie dans le menu,
+   chaque dépense s'y range.
+4. **« Envoyer la note »** quand elle est complète. Le secrétariat la voit
    prête, et la rembourse **en un seul paiement**.
 
 Le menu déroulant en haut choisit la note affichée ; « Toutes les dépenses »
