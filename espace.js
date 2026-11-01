@@ -1749,6 +1749,7 @@ const SOUS_ICONES = {
   messages: `<path d="M20 15a3 3 0 0 1-3 3H8l-4 3V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3z"/>`,
   focus: `<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>`,
   routines: `<path d="M12 3a5 5 0 0 0-3 9c.6.5 1 1 1 2h4c0-1 .4-1.5 1-2a5 5 0 0 0-3-9z"/><path d="M9.5 20h5M10 17h4"/>`,
+  tests: `<circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.6M9.6 3h4.8M18.6 7.4l1.3-1.3"/>`,
 };
 /* La bande d'une routine, physique ou mentale. Un seul dessin pour les deux
    écrans : même tuile d'icône, même intertitre en capitales, même titre — ce
@@ -1781,7 +1782,7 @@ const RT_BANDE = (cle, eyebrow, titre, droite = "") => `
   </div>`;
 
 const compSousOnglets = (courant, liste) => `
-  <div class="comp-subtabs">${liste.map(([cle, libelle]) => `
+  <div class="comp-subtabs ${liste.length > 3 ? "serre" : ""}">${liste.map(([cle, libelle]) => `
     <button type="button" class="comp-subtab ${cle === courant ? "on" : ""}" data-s="${cle}">
       <svg viewBox="0 0 24 24" aria-hidden="true">${SOUS_ICONES[cle] || ""}</svg>
       <span>${escHtml(libelle)}</span>
@@ -1797,7 +1798,7 @@ function renderPhysique() {
   if (!PLAYERS.length) { host.innerHTML = `<div class="pt-empty"><p>Réservé aux joueurs de compétition.</p></div>`; return; }
   phSel = playerPick(phSel);
   // Compétition et performance : routines et vidéos, pas de discussion Prépa physique (db/118).
-  const onglets = [["routine", "Routine"], ["videos", "Vidéos"]];
+  const onglets = [["routine", "Routine"], ["tests", "Tests"], ["videos", "Vidéos"]];
   if (ELITE.has(phSel)) onglets.push(["prepa", "Prépa physique"]);
   else if (phSub === "prepa") phSub = "routine";
   host.innerHTML = playerSelHtml(phSel) + compTete("Préparation physique", "Ton corps", "T échauffer avant, tenir pendant, récupérer après.")
@@ -1817,7 +1818,80 @@ const phExCard = (x, i) => `<div class="ph-card">
     <div class="ph-card-b"><div class="ph-card-t"><span class="ph-num">${i + 1}</span><b>${escHtml(x.name || "")}</b></div>
       ${x.dose && x.dose !== "—" ? `<span class="ph-dose">${escHtml(x.dose)}</span>` : ""}
       ${x.how ? `<p>${escHtml(x.how)}</p>` : ""}</div></div>`;
-function renderPhSub() { if (phSub === "prepa") renderPhThread(); else if (phSub === "videos") renderPhVideos(); else renderPhRoutines(); }
+function renderPhSub() {
+  if (phSub === "prepa") renderPhThread();
+  else if (phSub === "videos") renderPhVideos();
+  else if (phSub === "tests") renderPhTests();
+  else renderPhRoutines();
+}
+
+/* « Tests » (db/215) : les tests physiques passés ~4× par saison.
+   Chaque mesure montre sa vignette, sa valeur du dernier passage et l'écart avec le passage
+   précédent ; on l'ouvre pour lire le protocole — ce que le jeune a fait exactement — et
+   l'historique complet. Sans ce texte, « Épaules corde : 35 » ne veut rien dire pour lui,
+   et une valeur qui baisse n'est pas forcément une mauvaise nouvelle (better = 'down').
+   Lecture par portal_phys_tests, la seule porte : phys_results est fermé aux familles. */
+const ptsIco = (k) => k ? `<img class="ptst-ico" src="/assets/phys/tests/${escHtml(k)}.svg" alt="" loading="lazy">` : "";
+const ptsVal = (a, unite) => a == null ? ""
+  : (a.value_num != null ? String(a.value_num).replace(".", ",") + (unite ? " " + unite : "") : (a.value_text || ""));
+
+async function renderPhTests() {
+  const host = $("ph-sub"); if (!host) return;
+  host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
+  const { data, error } = await sb.rpc("portal_phys_tests", { p_youth: phSel });
+  if ($("ph-sub") !== host) return;
+  const lignes = error ? [] : (data || []);
+  if (!lignes.length) {
+    host.innerHTML = `<div class="pt-empty"><p>Pas encore de test physique pour toi. Ton préparateur physique en organise plusieurs par saison : tes résultats arriveront ici, avec ses commentaires.</p></div>`;
+    return;
+  }
+  // Les lignes arrivent à plat (une par mesure mesurée) : on les regroupe en batteries, puis
+  // en passages, du plus récent au plus ancien.
+  const batteries = new Map();
+  for (const l of lignes) {
+    if (!batteries.has(l.test_id)) batteries.set(l.test_id, { nom: l.test_name, passages: new Map(), mesures: new Map() });
+    const b = batteries.get(l.test_id);
+    if (!b.passages.has(l.result_id))
+      b.passages.set(l.result_id, { date: l.session_date, comment: l.comment, coach: l.coach_name, rep: new Map() });
+    b.passages.get(l.result_id).rep.set(l.question_id, l);
+    if (!b.mesures.has(l.question_id))
+      b.mesures.set(l.question_id, { label: l.label, description: l.description, icon: l.icon, unit: l.unit, better: l.better, ordre: l.sort_order });
+  }
+  host.innerHTML = [...batteries.values()].map((b) => {
+    const passages = [...b.passages.values()].sort((x, y) => (y.date || "").localeCompare(x.date || ""));
+    const dernier = passages[0], avant = passages[1];
+    const mesures = [...b.mesures.entries()].sort((x, y) => (x[1].ordre || 0) - (y[1].ordre || 0));
+    const cartes = mesures.map(([qid, m]) => {
+      const a = dernier.rep.get(qid), p = avant?.rep.get(qid);
+      const v = ptsVal(a, m.unit);
+      const ev = (a?.value_num != null && p?.value_num != null && m.better !== "neutral")
+        ? ptsEvol(Number(a.value_num) - Number(p.value_num), m.better) : "";
+      const hist = passages.filter((x) => x.rep.get(qid)).map((x) =>
+        `<li><span>${frDate(x.date)}</span><b>${escHtml(ptsVal(x.rep.get(qid), m.unit))}</b></li>`).join("");
+      return `<details class="ptst-m">
+        <summary>${ptsIco(m.icon)}<span class="ptst-l">${escHtml(m.label)}</span>
+          <span class="ptst-v">${v ? escHtml(v) : "—"}${ev}</span></summary>
+        ${m.description ? `<p class="ptst-d">${escHtml(m.description)}</p>` : ""}
+        ${passages.length > 1 ? `<ul class="ptst-h">${hist}</ul>` : ""}
+      </details>`;
+    }).join("");
+    const coms = passages.filter((x) => x.comment).map((x) =>
+      `<div class="ptst-com"><b>${frDate(x.date)}</b> — ${escHtml(x.comment)}${x.coach ? ` <span class="muted">${escHtml(x.coach)}</span>` : ""}</div>`).join("");
+    return `<section class="ptst-bat">
+      <div class="ptst-head"><h3>${escHtml(b.nom || "Tests")}</h3>
+        <span>${frDate(dernier.date)}${avant ? ` <span class="muted">· comparé au ${frDate(avant.date)}</span>` : ""}</span></div>
+      ${coms}
+      <div class="ptst-list">${cartes}</div>
+    </section>`;
+  }).join("");
+}
+// L'écart avec le passage précédent. Le signe ne suffit pas : sur la corde, « moins » est un progrès.
+function ptsEvol(delta, better) {
+  if (!delta) return "";
+  const mieux = better === "down" ? delta < 0 : delta > 0;
+  const txt = (delta > 0 ? "+" : "") + String(Math.round(delta * 100) / 100).replace(".", ",");
+  return `<span class="ptst-ev ${mieux ? "up" : "down"}">${mieux ? "▲" : "▼"} ${escHtml(txt)}</span>`;
+}
 // « Vidéos » (db/204) : ce que le coach physique a filmé ou photographié pour ce jeune, avec son commentaire.
 // Fichiers du bucket privé « physique » (dossier <jeune>/media/), lus par liens signés.
 async function renderPhVideos() {

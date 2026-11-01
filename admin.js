@@ -16043,8 +16043,29 @@ async function uploadStageMailAttach(catId, type, file) {
 // ===================================================================
 //  Tests physiques
 // ===================================================================
+// Une « batterie » (phys_tests) = une liste de mesures (phys_test_questions), passée ~4× par
+// saison. Un passage (phys_results) = un jeune, une batterie, une DATE — pas l'heure de saisie :
+// les feuilles arrivent souvent plusieurs jours après, et c'est la date du test qui ordonne
+// la progression. Les valeurs sont dans phys_answers (db/215, db/216).
 const PHYS_YOUTH_ROLES = COURSE_ROLES; // tests physiques = tous les jeunes (toutes filières)
 let physTests = [];
+// Vignettes disponibles (/assets/phys/tests/<clé>.svg, tools/pictos-tests.js).
+const PTS_PICTOS = [["lancer_mur", "Lancer contre un mur"], ["lancer_droite", "Lancer bras droit"],
+  ["lancer_gauche", "Lancer bras gauche"], ["lancer_tete", "Lancer par-dessus la tête"],
+  ["saut_horizontal", "Saut horizontal"], ["saut_vertical", "Saut vertical"],
+  ["prehension_d", "Poigne main droite"], ["prehension_g", "Poigne main gauche"],
+  ["souplesse_assise", "Souplesse assis"], ["souplesse_escalier", "Souplesse debout sur une marche"],
+  ["dist_epaules", "Distance entre les épaules"], ["epaules_corde", "Épaules à la corde"],
+  ["epaules_poignets", "Épaules et poignets (bâton)"], ["tronc_cou", "Tronc et cou"]];
+const ptsIco = (k) => k ? `<img class="pts-ico" src="/assets/phys/tests/${esc(k)}.svg" alt="" loading="lazy">` : "";
+// Une mesure accepte un nombre OU un mot (« blessé ») : on ne perd pas la ligne parce que le
+// jeune n'a pas pu passer le test ce jour-là.
+const ptsNum = (v) => {
+  const s = (v || "").trim().replace(",", ".");
+  if (!s) return null;
+  return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : null;
+};
+const ptsCell = (a) => a == null ? "" : (a.value_num != null ? String(a.value_num).replace(".", ",") : (a.value_text || ""));
 
 function initPhys() {
   // Créer / éditer des modèles de test = head coach / admin / superadmin. Un coach remplit seulement.
@@ -16054,6 +16075,7 @@ function initPhys() {
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-phystests .phys-subtab").forEach((x) => x.classList.toggle("active", x === b));
       document.querySelectorAll("#view-phystests .phys-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "phys-sub-" + b.dataset.sub));
+      if (b.dataset.sub === "saisie") loadPhysSaisie();
       if (b.dataset.sub === "results") loadPhysResults();
       if (b.dataset.sub === "templates") loadPhysTemplates();
     }));
@@ -16069,17 +16091,129 @@ function initPhys() {
   $("phys-result-close").addEventListener("click", () => $("phys-result-modal").classList.add("hidden"));
   $("phys-result-modal").addEventListener("click", (e) => { if (e.target === $("phys-result-modal")) $("phys-result-modal").classList.add("hidden"); });
   $("pr-del").addEventListener("click", () => deletePhysResult($("pr-del").dataset.id));
+  $("pr-save").addEventListener("click", () => savePhysResultComment($("pr-del").dataset.id));
+  $("pts-test").addEventListener("change", renderPtsGrid);
+  $("pts-date").addEventListener("change", renderPtsGrid);
+  $("pts-fil").addEventListener("change", renderPtsGrid);
+  $("pts-save").addEventListener("click", savePtsGrid);
+}
+
+// ---- Saisie en série : une batterie, une date, tous les joueurs ----
+// Les résultats arrivent par séance (une douzaine de jeunes le même jour). Les saisir un par
+// un dans la modale, c'est une heure de clics ; ici c'est une grille, comme la feuille du coach.
+const PTS_FILIERES = [["", "Toutes les filières"], ["sport-etudes", "Sport-études"], ["pro", "Pro"],
+  ["pro-u18", "Pro U18"], ["competition", "Compétition"], ["performance", "Performance"], ["club", "Club"]];
+let ptsQuestions = [];
+
+async function loadPhysSaisie() {
+  const { data: tests } = await sb.from("phys_tests").select("*").eq("active", true).order("sort_order").order("created_at");
+  physTests = tests || [];
+  const sel = $("pts-test"), garde = sel.value;
+  sel.innerHTML = physTests.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+  sel.value = physTests.some((t) => t.id === garde) ? garde : (physTests[0]?.id || "");
+  if (!$("pts-fil").options.length) {
+    $("pts-fil").innerHTML = PTS_FILIERES.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("");
+    $("pts-fil").value = "";
+  }
+  if (!$("pts-date").value) $("pts-date").value = todayISO();
+  renderPtsGrid();
+}
+
+async function renderPtsGrid() {
+  const tid = $("pts-test").value, jour = $("pts-date").value, fil = $("pts-fil").value;
+  const host = $("pts-grid");
+  $("pts-status").textContent = "";
+  if (!tid) { host.innerHTML = '<p class="muted">Aucune batterie active. Crée-la dans « Créer / éditer ».</p>'; return; }
+  host.innerHTML = '<p class="muted">Chargement…</p>';
+  const roles = fil ? [fil] : PHYS_YOUTH_ROLES;
+  const joueurs = people.filter((p) => hasRoleIn(p.id, roles))
+    .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+  const [{ data: qs }, { data: res }] = await Promise.all([
+    sb.from("phys_test_questions").select("*").eq("test_id", tid).order("sort_order"),
+    jour ? sb.from("phys_results").select("id,person_id,comment").eq("test_id", tid).eq("session_date", jour)
+         : Promise.resolve({ data: [] }),
+  ]);
+  ptsQuestions = qs || [];
+  if ($("pts-test").value !== tid || $("pts-date").value !== jour) return; // réponse d'un choix abandonné
+  const parJoueur = {};
+  for (const r of res || []) parJoueur[r.person_id] = { id: r.id, comment: r.comment || "", rep: {} };
+  const ids = (res || []).map((r) => r.id);
+  if (ids.length) {
+    const { data: ans } = await sb.from("phys_answers").select("result_id,question_id,value_num,value_text").in("result_id", ids);
+    for (const a of ans || []) {
+      const j = (res || []).find((r) => r.id === a.result_id);
+      if (j) parJoueur[j.person_id].rep[a.question_id] = a;
+    }
+  }
+  if (!ptsQuestions.length) { host.innerHTML = '<p class="muted">Cette batterie n\'a pas encore de mesure.</p>'; return; }
+  if (!joueurs.length) { host.innerHTML = '<p class="muted">Aucun joueur dans cette filière.</p>'; return; }
+  host.innerHTML = `<table class="crm-table pts-table">
+    <thead><tr><th class="pts-nom">Joueur</th>
+      ${ptsQuestions.map((q) => `<th title="${esc(q.description || q.label)}">${ptsIco(q.icon)}<span class="pts-th-l">${esc(q.label)}</span>${q.unit ? `<span class="pts-th-u">${esc(q.unit)}</span>` : ""}</th>`).join("")}
+      <th class="pts-com">Commentaire du coach</th></tr></thead>
+    <tbody>${joueurs.map((p) => {
+      const d = parJoueur[p.id];
+      return `<tr data-pid="${p.id}"><td class="pts-nom">${esc(p.last_name)} ${esc(p.first_name)}</td>
+        ${ptsQuestions.map((q) => `<td><input class="pts-c" data-qid="${q.id}" value="${esc(ptsCell(d?.rep[q.id]))}" inputmode="decimal" /></td>`).join("")}
+        <td class="pts-com"><input class="pts-k" value="${esc(d?.comment || "")}" placeholder="—" /></td></tr>`;
+    }).join("")}</tbody></table>`;
+}
+
+async function savePtsGrid() {
+  const tid = $("pts-test").value, jour = $("pts-date").value, st = $("pts-status");
+  if (!tid || !jour) { st.textContent = "Choisis une batterie et une date."; return; }
+  const lignes = [...$("pts-grid").querySelectorAll("tbody tr")].map((tr) => ({
+    pid: tr.dataset.pid,
+    comment: tr.querySelector(".pts-k").value.trim(),
+    cases: [...tr.querySelectorAll(".pts-c")].map((i) => ({ qid: i.dataset.qid, v: i.value.trim() })),
+  })).filter((l) => l.comment || l.cases.some((c) => c.v));
+  if (!lignes.length) { st.textContent = "Rien à enregistrer."; return; }
+  $("pts-save").disabled = true; st.textContent = "Enregistrement…";
+  const nom = physTests.find((t) => t.id === tid)?.name || "Test";
+  // Toutes les lignes portent exactement les mêmes clés : un insert groupé dont deux objets
+  // diffèrent est refusé en bloc par PostgREST (PGRST102), avant même la RLS.
+  const { data: res, error } = await sb.from("phys_results").upsert(
+    lignes.map((l) => ({
+      test_id: tid, test_name: nom, person_id: l.pid, session_date: jour,
+      comment: l.comment || null, coach_person_id: myPersonId, coach_name: meName, created_by: meId,
+    })), { onConflict: "person_id,test_id,session_date" }).select("id,person_id");
+  if (error) { st.textContent = "Erreur : " + error.message; $("pts-save").disabled = false; return; }
+  const idDe = {};
+  for (const r of res || []) idDe[r.person_id] = r.id;
+  const ids = Object.values(idDe);
+  // On réécrit les réponses du passage plutôt que de les modifier une par une : vider une case
+  // doit effacer la mesure, et une mise à jour ligne à ligne ne le ferait pas.
+  if (ids.length) await sb.from("phys_answers").delete().in("result_id", ids);
+  const reponses = [];
+  for (const l of lignes) {
+    l.cases.forEach((c) => {
+      if (!c.v) return;
+      const q = ptsQuestions.find((x) => x.id === c.qid);
+      const n = ptsNum(c.v);
+      reponses.push({
+        result_id: idDe[l.pid], question_id: c.qid, label: q?.label || "", answer_type: "number",
+        value_num: n, value_text: n == null ? c.v : null, sort_order: q?.sort_order ?? 0,
+      });
+    });
+  }
+  if (reponses.length) {
+    const { error: ae } = await sb.from("phys_answers").insert(reponses);
+    if (ae) { st.textContent = "Erreur : " + ae.message; $("pts-save").disabled = false; return; }
+  }
+  $("pts-save").disabled = false;
+  st.textContent = `Enregistré ✓ — ${lignes.length} joueur${lignes.length > 1 ? "s" : ""}`;
+  setTimeout(() => (st.textContent = ""), 4000);
 }
 
 async function loadPhysResults() {
-  const { data, error } = await sb.from("phys_results").select("*").order("filled_at", { ascending: false });
+  const { data, error } = await sb.from("phys_results").select("*").order("session_date", { ascending: false }).order("filled_at", { ascending: false });
   const rows = error ? [] : (data || []);
   $("phys-results-rows").innerHTML = rows.length ? rows.map((r) => `
     <tr class="phys-res-row" data-id="${r.id}">
       <td><b>${esc(personName(r.person_id))}</b></td>
       <td>${esc(r.test_name || "—")}</td>
       <td>${esc(r.coach_name || "—")}</td>
-      <td>${frDateTime(r.filled_at)}</td>
+      <td>${frDate(r.session_date || r.filled_at)}</td>
     </tr>`).join("") : '<tr><td colspan="4" class="muted">Aucun test rempli.</td></tr>';
   $("phys-results-rows").querySelectorAll(".phys-res-row").forEach((tr) =>
     tr.addEventListener("click", () => openPhysResult(tr.dataset.id)));
@@ -16088,15 +16222,32 @@ async function loadPhysResults() {
 async function openPhysResult(id) {
   const r = (await sb.from("phys_results").select("*").eq("id", id).single()).data;
   if (!r) return;
-  const answers = (await sb.from("phys_answers").select("*").eq("result_id", id).order("sort_order")).data || [];
+  const [{ data: answers }, { data: qs }] = await Promise.all([
+    sb.from("phys_answers").select("*").eq("result_id", id).order("sort_order"),
+    sb.from("phys_test_questions").select("id,icon,unit,description").eq("test_id", r.test_id),
+  ]);
+  const meta = {};
+  for (const q of qs || []) meta[q.id] = q;
   $("pr-title").textContent = r.test_name || "Test";
-  $("pr-meta").innerHTML = `${esc(personName(r.person_id))} · rempli par <b>${esc(r.coach_name || "—")}</b> · ${frDateTime(r.filled_at)}`;
-  $("pr-answers").innerHTML = answers.length ? answers.map((a) => {
-    const v = a.answer_type === "number" ? (a.value_num ?? "—") : (a.value_text || "—");
-    return `<div class="phys-ans"><span class="phys-ans-q">${esc(a.label || "")}</span><span class="phys-ans-v">${esc(v)}</span></div>`;
+  $("pr-meta").innerHTML = `${esc(personName(r.person_id))} · ${frDate(r.session_date || r.filled_at)}`
+    + (r.coach_name ? ` · rempli par <b>${esc(r.coach_name)}</b>` : "");
+  $("pr-answers").innerHTML = (answers || []).length ? (answers || []).map((a) => {
+    const m = meta[a.question_id] || {};
+    const v = a.value_num != null ? String(a.value_num).replace(".", ",") + (m.unit ? " " + m.unit : "") : (a.value_text || "—");
+    return `<div class="phys-ans" title="${esc(m.description || "")}">${ptsIco(m.icon)}<span class="phys-ans-q">${esc(a.label || "")}</span><span class="phys-ans-v">${esc(v)}</span></div>`;
   }).join("") : '<p class="muted">Aucune réponse.</p>';
+  $("pr-comment").value = r.comment || "";
+  $("pr-status").textContent = "";
   $("pr-del").dataset.id = id;
   $("phys-result-modal").classList.remove("hidden");
+}
+
+async function savePhysResultComment(id) {
+  if (!id) return;
+  $("pr-status").textContent = "…";
+  const { error } = await sb.from("phys_results").update({ comment: $("pr-comment").value.trim() || null }).eq("id", id);
+  $("pr-status").textContent = error ? "Erreur : " + error.message : "Enregistré ✓";
+  if (!error) setTimeout(() => ($("pr-status").textContent = ""), 2500);
 }
 
 async function deletePhysResult(id) {
@@ -16118,20 +16269,20 @@ async function loadPhysTemplates() {
   $("phys-tpl-list").innerHTML = physTests.length ? physTests.map((t) => `
     <div class="phys-tpl-card" data-id="${t.id}">
       <div class="phys-tpl-head">
-        <input type="text" class="phys-tpl-name" value="${esc(t.name)}" placeholder="Nom du test" />
-        <label class="stg-inline"><input type="checkbox" class="phys-tpl-active" ${t.active ? "checked" : ""}/> Actif</label>
+        <input type="text" class="phys-tpl-name" value="${esc(t.name)}" placeholder="Nom de la batterie" />
+        <label class="stg-inline"><input type="checkbox" class="phys-tpl-active" ${t.active ? "checked" : ""}/> Active</label>
       </div>
-      <div class="phys-q-rows">${(qByTest[t.id] || []).map((q) => physQRow(q.label, q.answer_type)).join("")}</div>
-      <button type="button" class="ghost phys-q-add">+ Question</button>
+      <div class="phys-q-rows">${(qByTest[t.id] || []).map(physQRow).join("")}</div>
+      <button type="button" class="ghost phys-q-add">+ Mesure</button>
       <div class="phys-tpl-foot">
         <button type="button" class="primary phys-tpl-save">Enregistrer</button>
         <button type="button" class="fam-del phys-tpl-del">Supprimer</button>
       </div>
-    </div>`).join("") : '<p class="muted">Aucun test. Cliquez « + Nouveau test ».</p>';
+    </div>`).join("") : '<p class="muted">Aucune batterie. Cliquez « + Nouveau test ».</p>';
   $("phys-tpl-list").querySelectorAll(".phys-tpl-card").forEach((card) => {
     const id = card.dataset.id;
     card.querySelector(".phys-q-add").addEventListener("click", () => {
-      card.querySelector(".phys-q-rows").insertAdjacentHTML("beforeend", physQRow("", "text"));
+      card.querySelector(".phys-q-rows").insertAdjacentHTML("beforeend", physQRow({}));
       wirePhysQRows(card);
     });
     card.querySelector(".phys-tpl-save").addEventListener("click", () => savePhysTemplate(id, card));
@@ -16140,49 +16291,86 @@ async function loadPhysTemplates() {
   });
 }
 
-function physQRow(label, type) {
-  return `<div class="phys-q-row">
-    <input type="text" class="phys-q-label" value="${esc(label)}" placeholder="Question (ex. Sprint 20 m)" />
-    <select class="phys-q-type">
-      <option value="text"${type === "text" ? " selected" : ""}>Texte</option>
-      <option value="number"${type === "number" ? " selected" : ""}>Numérique</option>
-    </select>
-    <button type="button" class="fam-del phys-q-del">✕</button>
+// Une mesure : son libellé, son unité, sa vignette, le sens du progrès, et son protocole —
+// le texte que le jeune lit dans Mon espace sous le dessin.
+function physQRow(q) {
+  const k = q.icon || "";
+  return `<div class="phys-q-row" data-qid="${q.id || ""}">
+    <div class="phys-q-pic">${ptsIco(k) || '<span class="pts-ico pts-ico-vide"></span>'}</div>
+    <div class="phys-q-f">
+      <div class="phys-q-l1">
+        <input type="text" class="phys-q-label" value="${esc(q.label || "")}" placeholder="Mesure (ex. Saut horizontal)" />
+        <input type="text" class="phys-q-unit" value="${esc(q.unit || "")}" placeholder="unité" />
+        <select class="phys-q-icon">
+          <option value="">— vignette —</option>
+          ${PTS_PICTOS.map(([v, l]) => `<option value="${v}"${v === k ? " selected" : ""}>${esc(l)}</option>`).join("")}
+        </select>
+        <select class="phys-q-better">
+          <option value="up"${(q.better || "up") === "up" ? " selected" : ""}>Mieux = plus grand</option>
+          <option value="down"${q.better === "down" ? " selected" : ""}>Mieux = plus petit</option>
+          <option value="neutral"${q.better === "neutral" ? " selected" : ""}>Mesure de référence</option>
+        </select>
+        <button type="button" class="fam-del phys-q-del">✕</button>
+      </div>
+      <textarea class="phys-q-desc" rows="2" placeholder="Protocole lu par le jeune : comment on fait le test, avec quoi, ce qu'on mesure…">${esc(q.description || "")}</textarea>
+    </div>
   </div>`;
 }
 function wirePhysQRows(card) {
   card.querySelectorAll(".phys-q-del").forEach((b) => { b.onclick = () => b.closest(".phys-q-row").remove(); });
+  card.querySelectorAll(".phys-q-icon").forEach((s) => {
+    s.onchange = () => {
+      const pic = s.closest(".phys-q-row").querySelector(".phys-q-pic");
+      pic.innerHTML = ptsIco(s.value) || '<span class="pts-ico pts-ico-vide"></span>';
+    };
+  });
 }
 
 async function createPhysTemplate() {
   const sort = (physTests.at(-1)?.sort_order || physTests.length) + 1;
-  const { error } = await sb.from("phys_tests").insert({ name: "Nouveau test", sort_order: sort });
+  const { error } = await sb.from("phys_tests").insert({ name: "Nouvelle batterie", sort_order: sort });
   if (error) { alert(error.message); return; }
   await loadPhysTemplates();
   const last = $("phys-tpl-list").querySelector(".phys-tpl-card:last-child .phys-tpl-name");
   if (last) { last.focus(); last.select(); }
 }
 
+// Les mesures sont mises à jour EN PLACE, pas supprimées puis recréées : phys_answers garde
+// le question_id de chaque valeur déjà saisie, et une recréation leur retirerait d'un coup
+// leur protocole, leur vignette et leur unité (elles se rattacheraient à des mesures disparues).
 async function savePhysTemplate(id, card) {
-  const name = card.querySelector(".phys-tpl-name").value.trim() || "Test";
+  const name = card.querySelector(".phys-tpl-name").value.trim() || "Batterie";
   const active = card.querySelector(".phys-tpl-active").checked;
-  const questions = [...card.querySelectorAll(".phys-q-row")].map((row, i) => ({
-    test_id: id,
-    label: row.querySelector(".phys-q-label").value.trim(),
-    answer_type: row.querySelector(".phys-q-type").value,
-    sort_order: i,
-  })).filter((q) => q.label);
+  const lignes = [...card.querySelectorAll(".phys-q-row")].map((row, i) => ({
+    qid: row.dataset.qid || null,
+    champs: {
+      test_id: id,
+      label: row.querySelector(".phys-q-label").value.trim(),
+      description: row.querySelector(".phys-q-desc").value.trim() || null,
+      icon: row.querySelector(".phys-q-icon").value || null,
+      unit: row.querySelector(".phys-q-unit").value.trim() || null,
+      better: row.querySelector(".phys-q-better").value,
+      answer_type: "number",
+      sort_order: i,
+    },
+  })).filter((l) => l.champs.label);
   const btn = card.querySelector(".phys-tpl-save");
   btn.textContent = "…";
   await sb.from("phys_tests").update({ name, active }).eq("id", id);
-  await sb.from("phys_test_questions").delete().eq("test_id", id);
-  if (questions.length) await sb.from("phys_test_questions").insert(questions);
+  const gardes = lignes.filter((l) => l.qid).map((l) => l.qid);
+  let q = sb.from("phys_test_questions").delete().eq("test_id", id);
+  if (gardes.length) q = q.not("id", "in", `(${gardes.join(",")})`);
+  await q;
+  for (const l of lignes.filter((x) => x.qid)) await sb.from("phys_test_questions").update(l.champs).eq("id", l.qid);
+  const neuves = lignes.filter((l) => !l.qid).map((l) => l.champs);
+  if (neuves.length) await sb.from("phys_test_questions").insert(neuves);
   btn.textContent = "Enregistré ✓";
   setTimeout(() => (btn.textContent = "Enregistrer"), 1500);
+  loadPhysTemplates();
 }
 
 async function deletePhysTemplate(id) {
-  if (!await uiConfirm("Supprimer ce modèle de test ? (les tests déjà remplis sont conservés)")) return;
+  if (!await uiConfirm("Supprimer cette batterie ? (les tests déjà remplis sont conservés)")) return;
   const { error } = await sb.from("phys_tests").delete().eq("id", id);
   if (error) { alert(error.message); return; }
   loadPhysTemplates();
@@ -16198,9 +16386,11 @@ async function openPhysFill(preselectId) {
   $("pf-person-search").value = pre ? pfName(pre) : "";
   $("pf-person-search").disabled = !!pre;
   $("pf-person-list").hidden = true;
+  $("pf-date").value = todayISO();
+  $("pf-comment").value = "";
   const { data: tests } = await sb.from("phys_tests").select("*").eq("active", true).order("sort_order").order("created_at");
   physTests = tests || [];
-  $("pf-test").innerHTML = '<option value="">— Choisir un test —</option>'
+  $("pf-test").innerHTML = '<option value="">— Choisir une batterie —</option>'
     + physTests.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
   $("pf-questions").innerHTML = "";
   $("phys-fill-modal").classList.remove("hidden");
@@ -16238,31 +16428,31 @@ async function renderPhysFillQuestions() {
   if (!tid) { $("pf-questions").innerHTML = ""; return; }
   const qs = (await sb.from("phys_test_questions").select("*").eq("test_id", tid).order("sort_order")).data || [];
   $("pf-questions").innerHTML = qs.length ? qs.map((q) => `
-    <label class="pf-q">${esc(q.label)}${q.answer_type === "number" ? ' <span class="muted">(nombre)</span>' : ""}
-      <input class="pf-a" data-qid="${q.id}" data-type="${q.answer_type}" data-label="${esc(q.label)}"
-        type="${q.answer_type === "number" ? "number" : "text"}" step="any" />
-    </label>`).join("") : '<p class="muted" style="font-size:.85rem">Ce test n\'a pas encore de questions.</p>';
+    <label class="pf-q">${ptsIco(q.icon)}<span class="pf-q-t">${esc(q.label)}${q.unit ? ` <span class="muted">(${esc(q.unit)})</span>` : ""}
+      ${q.description ? `<span class="pf-q-d">${esc(q.description)}</span>` : ""}</span>
+      <input class="pf-a" data-qid="${q.id}" data-label="${esc(q.label)}" data-sort="${q.sort_order}" type="text" inputmode="decimal" />
+    </label>`).join("") : '<p class="muted" style="font-size:.85rem">Cette batterie n\'a pas encore de mesure.</p>';
 }
 
 async function savePhysFill(e) {
   e.preventDefault();
   const err = $("pf-error"); err.hidden = true;
-  const pid = $("pf-person").value, tid = $("pf-test").value;
-  if (!pid || !tid) { err.textContent = "Choisis un joueur et un test."; err.hidden = false; return; }
+  const pid = $("pf-person").value, tid = $("pf-test").value, jour = $("pf-date").value;
+  if (!pid || !tid || !jour) { err.textContent = "Choisis un joueur, une batterie et une date."; err.hidden = false; return; }
   const testName = $("pf-test").options[$("pf-test").selectedIndex]?.textContent || "Test";
-  const res = await sb.from("phys_results").insert({
-    test_id: tid, test_name: testName, person_id: pid,
+  const res = await sb.from("phys_results").upsert({
+    test_id: tid, test_name: testName, person_id: pid, session_date: jour,
+    comment: $("pf-comment").value.trim() || null,
     coach_person_id: myPersonId, coach_name: meName, created_by: meId,
-  }).select("id").single();
+  }, { onConflict: "person_id,test_id,session_date" }).select("id").single();
   if (res.error) { err.textContent = res.error.message; err.hidden = false; return; }
-  const answers = [...$("pf-questions").querySelectorAll(".pf-a")].map((inp, i) => {
-    const num = inp.dataset.type === "number";
+  await sb.from("phys_answers").delete().eq("result_id", res.data.id);
+  const answers = [...$("pf-questions").querySelectorAll(".pf-a")].filter((i) => i.value.trim()).map((inp) => {
+    const n = ptsNum(inp.value);
     return {
       result_id: res.data.id, question_id: inp.dataset.qid, label: inp.dataset.label,
-      answer_type: inp.dataset.type,
-      value_text: num ? null : (inp.value.trim() || null),
-      value_num: num ? (inp.value === "" ? null : Number(inp.value)) : null,
-      sort_order: i,
+      answer_type: "number", value_num: n, value_text: n == null ? inp.value.trim() : null,
+      sort_order: Number(inp.dataset.sort) || 0,
     };
   });
   if (answers.length) await sb.from("phys_answers").insert(answers);
@@ -16272,16 +16462,61 @@ async function savePhysFill(e) {
   if (!$("people-detail").classList.contains("hidden") && $("p-id").value === pid) loadPersonPhys(pid);
 }
 
-// ---- Onglets Tests physiques & Études de la fiche ----
+// ---- Onglet Tests physiques de la fiche : la progression, pas la liste ----
+// Une ligne par mesure, une colonne par passage : c'est la comparaison dans le temps qui
+// intéresse le coach, pas la énième feuille de septembre prise isolément.
 async function loadPersonPhys(personId, byRole) {
   if (!personId) { $("pp-results").innerHTML = ""; return; }
-  const { data } = await sb.from("phys_results").select("*").eq("person_id", personId).order("filled_at", { ascending: false });
+  const { data } = await sb.from("phys_results").select("*").eq("person_id", personId)
+    .order("session_date", { ascending: false }).order("filled_at", { ascending: false });
   const rows = data || [];
   showPersonTab("phys", byRole || rows.length > 0);
-  $("pp-results").innerHTML = rows.length ? '<table class="crm-table"><thead><tr><th>Test</th><th>Rempli par</th><th>Date</th></tr></thead><tbody>'
-    + rows.map((r) => `<tr class="pp-row" data-id="${r.id}"><td><b>${esc(r.test_name || "—")}</b></td><td>${esc(r.coach_name || "—")}</td><td>${frDateTime(r.filled_at)}</td></tr>`).join("")
-    + "</tbody></table>" : '<p class="muted" style="font-size:.85rem">Aucun test rempli.</p>';
-  $("pp-results").querySelectorAll(".pp-row").forEach((tr) => tr.addEventListener("click", () => openPhysResult(tr.dataset.id)));
+  if (!rows.length) { $("pp-results").innerHTML = '<p class="muted" style="font-size:.85rem">Aucun test rempli.</p>'; return; }
+  const [{ data: ans }, { data: qs }] = await Promise.all([
+    sb.from("phys_answers").select("*").in("result_id", rows.map((r) => r.id)),
+    sb.from("phys_test_questions").select("*").in("test_id", [...new Set(rows.map((r) => r.test_id))]).order("sort_order"),
+  ]);
+  $("pp-results").innerHTML = physProgressionHtml(rows, ans || [], qs || [], true);
+  $("pp-results").querySelectorAll(".pp-open").forEach((b) => b.addEventListener("click", () => openPhysResult(b.dataset.id)));
+}
+
+// Tableau de progression partagé par la fiche (console) — mesures en lignes, passages en colonnes.
+function physProgressionHtml(rows, ans, qs, avecLien) {
+  const parRes = {};
+  for (const a of ans) (parRes[a.result_id] = parRes[a.result_id] || {})[a.question_id] = a;
+  const qMeta = {};
+  for (const q of qs) qMeta[q.id] = q;
+  const batteries = [...new Set(rows.map((r) => r.test_id))];
+  return batteries.map((tid) => {
+    const passages = rows.filter((r) => r.test_id === tid);         // déjà du plus récent au plus ancien
+    const mesures = qs.filter((q) => q.test_id === tid);
+    const nom = passages[0]?.test_name || "Batterie";
+    const lignes = mesures.map((q) => {
+      const cells = passages.map((p, i) => {
+        const a = (parRes[p.id] || {})[q.id];
+        const v = ptsCell(a);
+        // La flèche compare au passage PRÉCÉDENT, qui est la colonne suivante (ordre antéchronologique).
+        const prec = (parRes[passages[i + 1]?.id] || {})[q.id];
+        const ev = (a?.value_num != null && prec?.value_num != null && q.better !== "neutral")
+          ? physEvol(Number(a.value_num) - Number(prec.value_num), q.better) : "";
+        return `<td>${v ? esc(v) : '<span class="muted">—</span>'}${ev}</td>`;
+      }).join("");
+      return `<tr><td class="pp-mes" title="${esc(q.description || "")}">${ptsIco(q.icon)}<span>${esc(q.label)}${q.unit ? ` <span class="muted">(${esc(q.unit)})</span>` : ""}</span></td>${cells}</tr>`;
+    }).join("");
+    const coms = passages.filter((p) => p.comment).map((p) =>
+      `<p class="pp-com"><b>${frDate(p.session_date || p.filled_at)}</b> — ${esc(p.comment)}${p.coach_name ? ` <span class="muted">(${esc(p.coach_name)})</span>` : ""}</p>`).join("");
+    return `<div class="pp-bat"><h4 class="pp-bat-t">${esc(nom)}</h4>
+      <table class="crm-table pp-table"><thead><tr><th class="pp-mes">Mesure</th>
+        ${passages.map((p) => `<th>${avecLien ? `<button type="button" class="pp-open" data-id="${p.id}">${frDate(p.session_date || p.filled_at)}</button>` : frDate(p.session_date || p.filled_at)}</th>`).join("")}
+      </tr></thead><tbody>${lignes}</tbody></table>${coms}</div>`;
+  }).join("");
+}
+// Flèche de progression : le signe seul ne suffit pas, « moins » est un progrès sur la corde.
+function physEvol(delta, better) {
+  if (!delta) return "";
+  const mieux = better === "down" ? delta < 0 : delta > 0;
+  const txt = (delta > 0 ? "+" : "") + String(Math.round(delta * 100) / 100).replace(".", ",");
+  return `<span class="pp-ev ${mieux ? "up" : "down"}">${mieux ? "▲" : "▼"} ${esc(txt)}</span>`;
 }
 
 // ===================================================================

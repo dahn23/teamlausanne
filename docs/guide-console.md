@@ -752,7 +752,45 @@ répondra qu'elle ne sait pas, et la question remontera dans
   simples, sans geste particulier.
 - **Feuille de match** — « Remplir en tant que coach », « Formulaires remplis
   en tant que coach », « Toutes les feuilles », « Correspondances à valider ».
-- **Tests phys.** — « + Remplir un test », « + Nouveau test ».
+- **Tests phys.** — les tests physiques passés environ quatre fois par saison.
+  Trois sous-onglets : **« Saisie »**, **« Tests remplis »**, **« Créer / éditer »**.
+  Le vocabulaire : une **batterie** est une liste de **mesures** (« Force et
+  souplesse » contient Préhension gauche, Souplesse assise, Épaules corde…) ;
+  un **passage** est une batterie faite par un joueur à une **date** donnée.
+  - **Saisie** — la façon normale d'entrer une séance de tests. On choisit la
+    batterie, la date du test et, si on veut, une filière pour raccourcir la
+    liste ; on obtient une grille, une ligne par joueur, une colonne par
+    mesure, plus une colonne « Commentaire du coach ». On tape, on clique
+    « Enregistrer ». Revenir sur la même batterie et la même date recharge ce
+    qui est déjà saisi : on corrige et on complète sans rien créer en double.
+    Une case accepte un mot au lieu d'un chiffre — écrire `blessé` garde la
+    ligne du joueur sans fausser la progression.
+  - **La date, c'est celle du test**, pas celle de la saisie. Les feuilles
+    arrivent souvent plusieurs jours après ; c'est la date du test qui range
+    les passages et calcule les progressions.
+  - **Tests remplis** — la liste de tous les passages. Cliquer une ligne
+    ouvre le détail, où l'on peut écrire ou corriger le commentaire du coach
+    et supprimer le passage. « + Remplir un test » reste là pour un joueur
+    isolé (un rattrapage, par exemple).
+  - **Créer / éditer** — réservé aux head coachs et aux admins. Chaque mesure
+    porte son libellé, son **unité**, une **vignette** (le petit dessin du
+    geste), le **sens du progrès** et son **protocole**. Le protocole est le
+    texte que le jeune lit dans Mon espace sous le dessin : il décrit le geste
+    (avec quoi, dans quelle position, ce qu'on mesure), pas seulement le nom
+    du test. Le sens du progrès commande la flèche de progression :
+    « Mieux = plus grand » pour un lancer, « Mieux = plus petit » pour la
+    distance entre les mains à la corde, « Mesure de référence » pour une
+    mesure qu'on ne juge pas (la distance entre les épaules). Modifier une
+    mesure ne touche pas aux résultats déjà saisis.
+  - **Dans la fiche d'un joueur** (Répertoire → sa fiche → onglet « Tests
+    physiques ») : un tableau de progression, une ligne par mesure, une
+    colonne par passage, du plus récent au plus ancien, avec la flèche d'écart
+    et les commentaires du coach. Cliquer une date ouvre le passage.
+  - **Ce que le jeune voit** — Mon espace › Physique › **Tests** : pour chaque
+    mesure, sa vignette, sa dernière valeur et l'écart avec le test précédent.
+    Il touche une mesure pour lire le protocole et voir tout son historique.
+    Le commentaire du coach s'affiche en haut de la batterie. Sa famille le
+    voit aussi ; personne d'autre.
 - **Physique** — « Par jeune » et « Routines ». La page d'un jeune a trois
   parties : ses routines (cases à cocher), « Vidéos et photos » (choisir un
   fichier, écrire un commentaire, « Ajouter » ; 50 Mo au plus, donc filmer en

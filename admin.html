@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=380" />
+  <link rel="stylesheet" href="style.css?v=381" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -869,12 +869,29 @@
         <div id="view-phystests" class="view hidden">
           <div class="crm-head"><h1>Tests physiques</h1></div>
           <div class="subnav">
-            <button class="subtab phys-subtab active" data-sub="results">Tests remplis</button>
+            <button class="subtab phys-subtab active" data-sub="saisie">Saisie</button>
+            <button class="subtab phys-subtab" data-sub="results">Tests remplis</button>
             <button class="subtab phys-subtab" data-sub="templates">Créer / éditer</button>
           </div>
 
+          <!-- Sous-onglet Saisie : une batterie, une date, tous les joueurs d'un coup.
+               Les résultats arrivent par séance (une douzaine de jeunes le même jour) : les
+               saisir un par un dans une modale, c'est une heure de clics pour rien. -->
+          <div id="phys-sub-saisie" class="phys-sub">
+            <div class="crm-actions pts-bar">
+              <label class="bsc-lbl">Batterie<select id="pts-test"></select></label>
+              <label class="bsc-lbl">Date du test<input type="date" id="pts-date" /></label>
+              <label class="bsc-lbl">Filière<select id="pts-fil"></select></label>
+              <span class="spacer"></span>
+              <span id="pts-status" class="muted"></span>
+              <button type="button" id="pts-save" class="primary">Enregistrer</button>
+            </div>
+            <p class="muted pts-hint">Une colonne par mesure, une ligne par joueur. Les cases déjà remplies pour cette date sont rechargées : on corrige, on complète, on enregistre. Un mot comme « blessé » se met dans la case au lieu d'un chiffre.</p>
+            <div id="pts-grid" class="table-wrap"></div>
+          </div>
+
           <!-- Sous-onglet Tests remplis -->
-          <div id="phys-sub-results" class="phys-sub">
+          <div id="phys-sub-results" class="phys-sub hidden">
             <div class="stg-card-head">
               <h2 style="margin:0">Tests remplis</h2>
               <button id="phys-fill-new" class="primary">+ Remplir un test</button>
@@ -893,7 +910,7 @@
               <h2 style="margin:0">Modèles de test</h2>
               <button id="phys-tpl-new" class="ghost">+ Nouveau test</button>
             </div>
-            <p class="muted" style="font-size:.86rem;margin:.3rem 0 12px">Chaque test a un nom et une liste de questions (réponse texte ou numérique). Un test est rempli par un coach envers un jeune (sport-études, pro, compétition, performance, pro U18).</p>
+            <p class="muted" style="font-size:.86rem;margin:.3rem 0 12px">Une batterie porte un nom et une liste de mesures. Pour chaque mesure : son libellé, son unité, sa vignette et son protocole — c'est ce texte que le jeune lit dans Mon espace, donc il explique le geste, pas seulement son nom. « Mieux » dit dans quel sens va le progrès : la flèche de progression du joueur en dépend.</p>
             <div id="phys-tpl-list"></div>
           </div>
         </div>
@@ -3237,9 +3254,12 @@ Team Lausanne Tennis</textarea></label>
             <div id="pf-person-list" class="combo-list" hidden></div>
           </div>
         </label>
-        <label>Test *<select id="pf-test" required></select></label>
+        <label>Batterie *<select id="pf-test" required></select></label>
+        <label>Date du test *<input type="date" id="pf-date" required /></label>
       </div>
       <div id="pf-questions" style="margin-top:6px"></div>
+      <label style="display:block;margin-top:10px">Commentaire du coach <span class="muted">— lu par le jeune et sa famille</span>
+        <textarea id="pf-comment" rows="2" placeholder="Ce qui progresse, ce sur quoi travailler d'ici au prochain test…"></textarea></label>
       <div class="form-foot"><span class="spacer"></span><button type="submit">Enregistrer le test</button></div>
       <p id="pf-error" class="error" hidden></p>
     </form>
@@ -3252,7 +3272,11 @@ Team Lausanne Tennis</textarea></label>
       <h2 id="pr-title" style="margin-top:0"></h2>
       <div id="pr-meta" class="muted" style="font-size:.9rem;margin-bottom:12px"></div>
       <div id="pr-answers" class="phys-answers"></div>
-      <div class="form-foot"><button type="button" id="pr-del" class="danger">Supprimer</button><span class="spacer"></span></div>
+      <label style="display:block;margin-top:14px">Commentaire du coach <span class="muted">— lu par le jeune et sa famille</span>
+        <textarea id="pr-comment" rows="2" placeholder="Ce qui progresse, ce sur quoi travailler d'ici au prochain test…"></textarea></label>
+      <div class="form-foot"><button type="button" id="pr-del" class="danger">Supprimer</button><span class="spacer"></span>
+        <span id="pr-status" class="muted" style="margin-right:10px"></span>
+        <button type="button" id="pr-save" class="primary">Enregistrer le commentaire</button></div>
     </div>
   </div>
 

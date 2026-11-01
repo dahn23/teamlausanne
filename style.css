@@ -663,15 +663,54 @@ input.pd-native{display:none}
 .phys-tpl-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .phys-tpl-name{flex:1;font-weight:800}
 .phys-q-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
-.phys-q-row{display:flex;align-items:center;gap:8px}
-.phys-q-row .phys-q-label{flex:1;min-width:140px}
-.phys-q-row .phys-q-type{width:150px;flex-shrink:0}
-/* le menu "type" est embelli (pretty-select) → son conteneur ne doit pas manger toute la largeur */
-.phys-q-row .ps-wrap{flex:0 0 150px;width:150px}
+/* Une mesure : sa vignette, son libellé, son unité, le sens du progrès, et dessous son protocole. */
+.phys-q-row{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px}
+.phys-q-pic{flex:0 0 58px;display:flex;align-items:center;justify-content:center}
+.phys-q-f{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.phys-q-l1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.phys-q-row .phys-q-label{flex:1;min-width:150px}
+.phys-q-row .phys-q-unit{width:76px;flex:0 0 76px}
+/* les menus sont embellis (pretty-select) → leur conteneur ne doit pas manger toute la largeur */
+.phys-q-row .ps-wrap{flex:0 0 184px;width:184px}
+.phys-q-row .phys-q-desc{width:100%;font-size:.86rem}
+.pts-ico{width:52px;height:36px;flex:0 0 52px;object-fit:contain;display:block}
+.pts-ico-vide{border:1px dashed var(--line);border-radius:8px;height:36px}
 .phys-tpl-foot{display:flex;gap:10px}
-.pf-q{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:.9rem;margin-bottom:12px}
+/* Remplir un test : la vignette et le protocole à côté de la case, pour tester sans la feuille. */
+.pf-q{display:flex;align-items:flex-start;gap:10px;font-size:.9rem;margin-bottom:12px}
+.pf-q .pts-ico{margin-top:2px}
+.pf-q-t{flex:1;min-width:0;font-weight:700;display:flex;flex-direction:column;gap:3px}
+.pf-q-d{font-weight:400;font-size:.8rem;color:var(--muted);line-height:1.35}
+.pf-q .pf-a{flex:0 0 110px;width:110px}
 .phys-answers{display:flex;flex-direction:column;gap:2px}
-.phys-ans{display:flex;justify-content:space-between;gap:16px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.phys-ans{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.phys-ans .phys-ans-q{flex:1;min-width:0}
+
+/* Saisie en série : une batterie, une date, tous les joueurs — la feuille du coach, à l'écran. */
+.pts-bar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.pts-hint{font-size:.84rem;margin:0 0 12px;max-width:72ch}
+.pts-table th{vertical-align:bottom;text-align:center;padding:8px 6px}
+.pts-table th .pts-ico{margin:0 auto 4px}
+.pts-th-l{display:block;font-size:.76rem;line-height:1.2;max-width:90px;margin:0 auto;white-space:normal}
+.pts-th-u{display:block;font-size:.72rem;font-weight:400;color:var(--muted)}
+.pts-table td{padding:4px 5px}
+.pts-table .pts-nom{text-align:left;white-space:nowrap;font-weight:700;position:sticky;left:0;background:#fff;z-index:1}
+.pts-table thead .pts-nom{background:#eef1f7;z-index:2}
+.pts-table .pts-c{width:76px;text-align:center;padding:6px 4px}
+.pts-table .pts-com{min-width:200px;text-align:left}
+.pts-table .pts-k{width:100%;min-width:180px;padding:6px 8px;font-size:.86rem}
+
+/* Progression d'un jeune : mesures en lignes, passages en colonnes, du plus récent au plus ancien. */
+.pp-bat+.pp-bat{margin-top:22px}
+.pp-bat-t{margin:0 0 8px;font-size:1rem;color:var(--blue-ink)}
+.pp-table td,.pp-table th{text-align:center;white-space:nowrap}
+.pp-table .pp-mes{text-align:left;white-space:normal}
+.pp-table td.pp-mes{display:flex;align-items:center;gap:9px;min-width:210px}
+.pp-open{background:none;border:0;padding:0;font:inherit;font-weight:800;color:var(--blue);cursor:pointer;text-decoration:underline}
+.pp-ev{display:block;font-size:.74rem;font-weight:700}
+.pp-ev.up{color:#1c7d38}
+.pp-ev.down{color:#b23838}
+.pp-com{font-size:.86rem;margin:8px 0 0;padding:8px 11px;background:#f6f8fd;border-radius:9px}
 .phys-ans-q{color:var(--ink)}
 .phys-ans-v{font-weight:800;color:var(--blue-ink);text-align:right}
 /* ===== Études (calendrier + par jeune) ===== */
@@ -1151,6 +1190,12 @@ html{-webkit-tap-highlight-color:transparent}
 .comp-subtab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;
   stroke-linecap:round;stroke-linejoin:round;display:block}
 .comp-subtab span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* À 4 onglets (Physique : Routine, Tests, Vidéos, Prépa physique), « Prépa physique » n'entre
+   plus sur une ligne de téléphone et se coupait en « Prépa phy… ». On laisse alors le libellé
+   passer sur deux lignes plutôt que de le rogner. */
+.comp-subtabs.serre .comp-subtab{padding-left:2px;padding-right:2px;font-size:.71rem}
+.comp-subtabs.serre .comp-subtab span{white-space:normal;text-overflow:clip;line-height:1.1;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.2em}
 .comp-subtab:hover{color:var(--blue)}
 .comp-subtab.on{background:var(--blue);color:#fff;box-shadow:0 6px 14px -8px rgba(7,62,181,.9)}
 
@@ -6099,3 +6144,33 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .ph-vid-m{display:block;width:100%;max-height:70vh;background:#000;object-fit:contain}
 .ph-vid-c{margin:0;padding:12px 14px 4px;font-size:.95rem;line-height:1.45}
 .ph-vid-meta{padding:4px 14px 12px;font-size:.78rem;color:var(--muted)}
+
+/* Mon espace › Physique › Tests (db/215). Une mesure = une carte qu'on ouvre : fermée elle donne
+   le chiffre et l'écart avec le test précédent, ouverte elle explique le geste et montre
+   l'historique. Préfixe « ptst- » : « pts- » appartient déjà à la saisie de la console, et les
+   deux écrans partagent cette feuille. */
+.ptst-bat{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin:0 0 14px;box-shadow:0 1px 2px rgba(16,24,40,.05)}
+.ptst-head{display:flex;flex-direction:column;gap:2px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.ptst-head h3{margin:0;font-size:1.02rem;color:var(--blue-ink)}
+.ptst-head>span{font-size:.8rem;color:var(--ink)}
+.ptst-com{margin:12px 14px 2px;padding:10px 12px;background:#f6f8fd;border-radius:11px;font-size:.88rem;line-height:1.45}
+.ptst-com b{color:var(--blue-ink)}
+.ptst-list{padding:8px 6px 10px}
+.ptst-m{border-radius:12px}
+.ptst-m+.ptst-m{border-top:1px solid var(--line)}
+.ptst-m summary{display:flex;align-items:center;gap:10px;padding:9px 10px;cursor:pointer;list-style:none}
+.ptst-m summary::-webkit-details-marker{display:none}
+.ptst-m[open] summary{background:#f6f8fd;border-radius:10px}
+.ptst-ico{width:46px;height:32px;flex:0 0 46px;object-fit:contain}
+.ptst-l{flex:1;min-width:0;font-weight:700;font-size:.9rem;line-height:1.25}
+.ptst-v{flex:0 0 auto;text-align:right;font-weight:800;color:var(--blue-ink);font-size:.95rem}
+.ptst-ev{display:block;font-size:.72rem;font-weight:700}
+.ptst-ev.up{color:#1c7d38}
+.ptst-ev.down{color:#b23838}
+.ptst-d{margin:2px 10px 8px;padding:0 0 0 56px;font-size:.84rem;line-height:1.45;color:var(--muted)}
+.ptst-h{list-style:none;margin:0 10px 10px;padding:0 0 0 56px;display:flex;flex-direction:column;gap:3px}
+.ptst-h li{display:flex;justify-content:space-between;gap:12px;font-size:.82rem;border-bottom:1px dashed var(--line);padding:3px 0}
+.ptst-h li span{color:var(--muted)}
+@media (max-width:430px){
+  .ptst-d,.ptst-h{padding-left:12px}
+}
