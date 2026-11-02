@@ -738,6 +738,12 @@ répondra qu'elle ne sait pas, et la question remontera dans
 - **Accueil espace privé** — messages affichés dans Mon espace, par saison et
   par filière. « + Nouveau message ». Une ligne « @saison Saison —
   description » s'affiche avec l'icône de l'onglet correspondant.
+  Sous ces messages, Mon espace affiche aussi les **actualités du site**,
+  classées selon la filière du jeune. Elles ne se règlent pas depuis cet écran :
+  elles viennent de teamlausanne.ch. Pour qu'un article passé (un événement
+  terminé, un stage fini) cesse de remonter dans l'app **sans disparaître du
+  site**, il porte un drapeau `portal_hidden` en base (db/217) — il n'y a pas
+  encore de bouton pour ça, demandez à Dan ou Raphael.
 - **Messagerie** — la boîte info@. « ✉ Nouveau message », « ↩ Répondre »,
   « Relever », « Brouillons », « Filtres ▾ ». La recherche à plusieurs mots
   trouve les messages contenant *chacun* des mots ; entre guillemets,
