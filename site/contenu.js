@@ -335,7 +335,10 @@ worlds:
     tag: "Lausanne Open", retour: "au Lausanne Open",
     metaTitle: "Lausanne Open — tournoi ITF M25 de tennis à Lausanne",
     metaDescription: "Tournoi ITF M25 doté de 30 000 $, l'unique tournoi international de tennis masculin du canton de Vaud. Entrée libre. 3ᵉ édition du 21 au 29 août 2027.",
-    logo: "assets/logo-open.webp",
+    // Deux versions, comme pour l'académie : la couleur pour la barre de
+    // navigation (fond clair), la blanche pour le hero, posé sur une photo —
+    // le logo bleu s'y noyait, on ne lisait plus l'année.
+    logo: "assets/logo-open-2027.webp", heroLogo: "assets/logo-open-2027-blanc.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
     desc: "3ᵉ édition du 21 au 29 août 2027. L'unique tournoi international de tennis masculin du canton de Vaud : le circuit professionnel, chez nous, aux Plaines-du-Loup.",
     hero: "assets/photos/open-2026-6.jpg", heroPos: "center 30%",
