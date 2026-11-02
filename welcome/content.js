@@ -22,7 +22,7 @@ export const LIENS = {
 /* ------------------------------------------------------------ TOURNOI */
 export const TOURNOI = {
   titre: "Bienvenue au Lausanne Open",
-  chapo: "L'unique tournoi international de tennis masculin du canton de Vaud. Huit jours de circuit professionnel aux Plaines-du-Loup — et l'entrée est libre.",
+  chapo: "Le tournoi international de tennis masculin de Lausanne. Huit jours de circuit professionnel aux Plaines-du-Loup — et l'entrée est libre.",
   badges: ["ITF M25", "23–30 août 2026", "30 000 $", "Entrée libre"],
   infos: [
     ["Dates", "Du dimanche 23 au dimanche 30 août 2026"],

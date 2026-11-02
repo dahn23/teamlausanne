@@ -1601,7 +1601,7 @@ const DEFAULT_WORLD = LO_ONLY ? "tournoi" : "academie";
 if (LO_ONLY) document.body.classList.add("lo-only");
 const TITLES = {
   academie: ["Team Lausanne Academy — Tennis à Lausanne, du Kids Tennis au Pro", "Team Lausanne Academy : le centre de formation tennis des Plaines-du-Loup à Lausanne. Kids Tennis, Club, Compétition, Performance, Sport-études, Pro U18, Pro, stages et tournois GameZone."],
-  tournoi: ["Lausanne Open — ITF M25, 3ᵉ édition du 21 au 29 août 2027", "Lausanne Open : l’unique tournoi international de tennis masculin du canton de Vaud. ITF M25, 30 000 $ de dotation, entrée libre. 3ᵉ édition du 21 au 29 août 2027 aux Plaines-du-Loup."],
+  tournoi: ["Lausanne Open — ITF M25, 3ᵉ édition du 21 au 29 août 2027", "Lausanne Open : le tournoi international de tennis masculin de Lausanne. ITF M25, 30 000 $ de dotation, entrée libre. 3ᵉ édition du 21 au 29 août 2027 aux Plaines-du-Loup."],
 };
 // `page` : la fiche ou le monde affiché. S'il porte metaTitle / metaDescription, ce sont
 // ceux de la page servie par build.mjs — Google exécute ce script, et un titre réécrit

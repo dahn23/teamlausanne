@@ -73,7 +73,7 @@ en: {
   ]},
   open: {
     hero: { title: "Lausanne Open 2026",
-      text: "The only international men's tennis tournament in the canton of Vaud. Professional tennis, at home, at the Plaines-du-Loup.",
+      text: "Lausanne's international men's tennis tournament. Professional tennis, at home, at the Plaines-du-Loup.",
       badges: ["ITF M25", "23–30 August 2026", "$30,000", "Free entry"] },
     cards: [
       { icon: "trophy", title: "2025 champions", kv: [
@@ -160,7 +160,7 @@ fr: {
   ]},
   open: {
     hero: { title: "Lausanne Open 2026",
-      text: "L'unique tournoi international de tennis masculin du canton de Vaud. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
+      text: "Le tournoi international de tennis masculin de Lausanne. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
       badges: ["ITF M25", "23–30 août 2026", "30 000 $", "Entrée libre"] },
     cards: [
       { icon: "trophy", title: "Vainqueurs 2025", kv: [
@@ -247,7 +247,7 @@ de: {
   ]},
   open: {
     hero: { title: "Lausanne Open 2026",
-      text: "Das einzige internationale Herrenturnier im Kanton Waadt. Profitennis, bei uns, an den Plaines-du-Loup.",
+      text: "Das internationale Herrenturnier von Lausanne. Profitennis, bei uns, an den Plaines-du-Loup.",
       badges: ["ITF M25", "23.–30. August 2026", "30 000 $", "Freier Eintritt"] },
     cards: [
       { icon: "trophy", title: "Sieger 2025", kv: [
@@ -334,7 +334,7 @@ it: {
   ]},
   open: {
     hero: { title: "Lausanne Open 2026",
-      text: "L'unico torneo internazionale maschile del Canton Vaud. Il circuito professionistico, a casa nostra, alle Plaines-du-Loup.",
+      text: "Il torneo internazionale maschile di Losanna. Il circuito professionistico, a casa nostra, alle Plaines-du-Loup.",
       badges: ["ITF M25", "23–30 agosto 2026", "30 000 $", "Ingresso libero"] },
     cards: [
       { icon: "trophy", title: "Vincitori 2025", kv: [
@@ -421,7 +421,7 @@ es: {
   ]},
   open: {
     hero: { title: "Lausanne Open 2026",
-      text: "El único torneo internacional masculino del cantón de Vaud. El circuito profesional, en casa, en Plaines-du-Loup.",
+      text: "El torneo internacional masculino de Lausana. El circuito profesional, en casa, en Plaines-du-Loup.",
       badges: ["ITF M25", "23–30 agosto 2026", "30 000 $", "Entrada libre"] },
     cards: [
       { icon: "trophy", title: "Campeones 2025", kv: [

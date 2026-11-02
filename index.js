@@ -138,7 +138,7 @@ const WORLDS = {
   tournoi: {
     tag: "Lausanne Open", retour: "au Lausanne Open", logo: "assets/logo-open.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
-    desc: "Lausanne Open — l'unique tournoi international de tennis masculin du canton de Vaud. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
+    desc: "Lausanne Open — le tournoi international de tennis masculin de Lausanne. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
     hero: "assets/photos/open-serve.jpg",
     cta: [],
     sections: [

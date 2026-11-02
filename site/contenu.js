@@ -310,7 +310,7 @@ worlds:
           ["Dès quel âge un enfant peut-il commencer le tennis ?", "Dès 4 ans, en Kids Tennis : un cadre ludique et structuré pour apprendre les bases. Un cours d'essai est possible sur demande."],
           ["Existe-t-il un sport-études tennis à Lausanne ?", "Oui. Le Sport-études Team Lausanne accueille les 14 à 19 ans : deux heures de tennis, une heure de préparation physique et quatre heures de cours encadrés par jour, jusqu'à la maturité fédérale ou au baccalauréat français. Les programmes Pro U18 et Pro prolongent le parcours jusqu'au circuit professionnel — une filière complète, rare en Suisse."],
           ["Comment devenir membre du club et réserver un court ?", "Les membres du TC Lausanne-Sports réservent leurs courts et peuvent jouer les interclubs. L'adhésion se fait auprès du club, sur lstennis.ch."],
-          ["Qu'est-ce que le Lausanne Open ?", "Le tournoi international ITF M25 de Lausanne, doté de 30 000 $ et organisé chaque été par Team Lausanne sur ses courts. C'est l'unique tournoi international de tennis masculin du canton de Vaud, et l'entrée est libre."],
+          ["Qu'est-ce que le Lausanne Open ?", "Le tournoi international ITF M25 de Lausanne, doté de 30 000 $ et organisé chaque été par Team Lausanne sur ses courts. Une semaine de circuit professionnel masculin aux Plaines-du-Loup, et l'entrée est libre."],
         ]},
       // Les actualités vivent au bout d'un menu déroulant : personne ne va les
       // y chercher. Ce bloc met les trois derniers articles sur le chemin, là
@@ -334,13 +334,13 @@ worlds:
   tournoi: {
     tag: "Lausanne Open", retour: "au Lausanne Open",
     metaTitle: "Lausanne Open — tournoi ITF M25 de tennis à Lausanne",
-    metaDescription: "Tournoi ITF M25 doté de 30 000 $, l'unique tournoi international de tennis masculin du canton de Vaud. Entrée libre. 3ᵉ édition du 21 au 29 août 2027.",
+    metaDescription: "Tournoi international ITF M25 doté de 30 000 $, le rendez-vous du tennis masculin professionnel à Lausanne. Entrée libre. 3ᵉ édition du 21 au 29 août 2027.",
     // Deux versions, comme pour l'académie : la couleur pour la barre de
     // navigation (fond clair), la blanche pour le hero, posé sur une photo —
     // le logo bleu s'y noyait, on ne lisait plus l'année.
     logo: "assets/logo-open-2027.webp", heroLogo: "assets/logo-open-2027-blanc.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
-    desc: "3ᵉ édition du 21 au 29 août 2027. L'unique tournoi international de tennis masculin du canton de Vaud : le circuit professionnel, chez nous, aux Plaines-du-Loup.",
+    desc: "3ᵉ édition du 21 au 29 août 2027. Le tournoi international de tennis masculin de Lausanne : le circuit professionnel, chez nous, aux Plaines-du-Loup.",
     hero: "assets/photos/open-2026-6.jpg", heroPos: "center 30%",
     cta: [],
     sections: [

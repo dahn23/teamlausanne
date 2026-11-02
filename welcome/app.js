@@ -303,7 +303,7 @@ function vPartenaires(v) {
         <span>${esc(p.nom)}</span>
       </a>`).join("")}</div>
     ${carte("trend", "Devenir partenaire",
-      `<p>Associer votre entreprise au seul tournoi international masculin du canton, c'est possible —
+      `<p>Associer votre entreprise au tournoi international de tennis masculin de Lausanne, c'est possible —
           de la formule visibilité au partenariat sur mesure.</p>
        <a class="btn block" style="margin-top:12px" href="${LIENS.site}/partenariats" target="_blank" rel="noopener">
          Découvrir les formules</a>`)}`;
