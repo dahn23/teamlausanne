@@ -448,7 +448,11 @@ function sectionHTML(sec) {
       const C = sec.variant === "board" ? "sbc" : "stat";
       const cellule = (it) => {
         const [b, s, opts] = Array.isArray(it) ? it : [it.v, it.l, it];
-        const m = /^(\d[\d\u00a0 ]*)(.*)$/.exec(String(b));
+        // \u00ab compte: false \u00bb \u00e9teint le compteur. Une tuile peut commencer par un
+        // chiffre sans \u00eatre une quantit\u00e9 : \u00ab 21\u201329 ao\u00fbt \u00bb comptait de 0 \u00e0 21 et
+        // affichait au passage \u00ab 4\u201329 ao\u00fbt \u00bb, une date fausse le temps de
+        // l'animation. On ne compte que ce qui se compte.
+        const m = opts && opts.compte === false ? null : /^(\d[\d\u00a0 ]*)(.*)$/.exec(String(b));
         // Le compteur ne tourne que sur un vrai nombre : « 30 000 » porte une
         // espace insecable, qu'il faut retirer avant de le compter.
         const brut = m ? m[1].replace(/[^\d]/g, "") : "";
@@ -1597,7 +1601,7 @@ const DEFAULT_WORLD = LO_ONLY ? "tournoi" : "academie";
 if (LO_ONLY) document.body.classList.add("lo-only");
 const TITLES = {
   academie: ["Team Lausanne Academy — Tennis à Lausanne, du Kids Tennis au Pro", "Team Lausanne Academy : le centre de formation tennis des Plaines-du-Loup à Lausanne. Kids Tennis, Club, Compétition, Performance, Sport-études, Pro U18, Pro, stages et tournois GameZone."],
-  tournoi: ["Lausanne Open — ITF M25, prochaine édition août 2027", "Lausanne Open : l’unique tournoi international de tennis masculin du canton de Vaud. ITF M25, 30 000 $ de dotation, entrée libre. Prochaine édition en août 2027 aux Plaines-du-Loup."],
+  tournoi: ["Lausanne Open — ITF M25, 3ᵉ édition du 21 au 29 août 2027", "Lausanne Open : l’unique tournoi international de tennis masculin du canton de Vaud. ITF M25, 30 000 $ de dotation, entrée libre. 3ᵉ édition du 21 au 29 août 2027 aux Plaines-du-Loup."],
 };
 // `page` : la fiche ou le monde affiché. S'il porte metaTitle / metaDescription, ce sont
 // ceux de la page servie par build.mjs — Google exécute ce script, et un titre réécrit

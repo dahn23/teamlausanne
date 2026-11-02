@@ -334,15 +334,15 @@ worlds:
   tournoi: {
     tag: "Lausanne Open", retour: "au Lausanne Open",
     metaTitle: "Lausanne Open — tournoi ITF M25 de tennis à Lausanne",
-    metaDescription: "Tournoi ITF M25 doté de 30 000 $, l'unique tournoi international de tennis masculin du canton de Vaud. Entrée libre. Prochaine édition : août 2027.",
+    metaDescription: "Tournoi ITF M25 doté de 30 000 $, l'unique tournoi international de tennis masculin du canton de Vaud. Entrée libre. 3ᵉ édition du 21 au 29 août 2027.",
     logo: "assets/logo-open.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
-    desc: "Lausanne Open — l'unique tournoi international de tennis masculin du canton de Vaud. Le circuit professionnel, chez nous, aux Plaines-du-Loup.",
+    desc: "3ᵉ édition du 21 au 29 août 2027. L'unique tournoi international de tennis masculin du canton de Vaud : le circuit professionnel, chez nous, aux Plaines-du-Loup.",
     hero: "assets/photos/open-2026-6.jpg", heroPos: "center 30%",
     cta: [],
     sections: [
       { type: "stats", anchor: "tournoi", variant: "board", items: [
-        { v: "Août 2027", l: "prochaine édition", ico: "date",     scroll: "infos" },
+        { v: "21–29 août", l: "3ᵉ édition, en 2027", ico: "date",  scroll: "infos", compte: false },
         { v: "30 000 $",  l: "dotation",          ico: "coupe" },
         { v: "Gratuit",   l: "entrée libre",      ico: "billet",   scroll: "infos" },
         { v: "ITF M25",   l: "catégorie",         ico: "ecusson",  href: "@itf_url" },
@@ -381,7 +381,7 @@ worlds:
         "assets/photos/open-2026-7.jpg",
       ]},
       { type: "features", anchor: "infos", title: "Infos pratiques", items: [
-        ["Dates", "Prochaine édition : août 2027."],
+        ["Dates", "3ᵉ édition : du samedi 21 au dimanche 29 août 2027."],
         ["Entrée libre", "Accès gratuit toute la semaine, sans billet."],
         ["Lieu", "TC Lausanne-Sports, Plaines-du-Loup, 1018 Lausanne."],
         ["Une question ?", "Écrivez-nous, nous répondons rapidement."],
