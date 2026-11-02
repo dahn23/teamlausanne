@@ -3051,8 +3051,16 @@ function actuBloc(b) {
   if (b.t === "lien" && typeof b.x === "string") {
     // Un lien INTERNE (« #stages ») reste dans l'onglet : on ne chasse pas le
     // lecteur hors du site pour l'envoyer sur une autre page du site.
-    if (/^#[\w-]+$/.test(b.x))
-      return `<p class="actu-lien"><a class="btn-cta" href="${esc(b.x)}">${esc(b.label || "En savoir plus")} →</a></p>`;
+    //
+    // Mais une ancre seule ne route PAS depuis un article : cleCourante() rend
+    // « actu-<slug> » d'après le chemin, sans jamais regarder le hash. Le
+    // bouton « Découvrir nos stages » ne faisait donc rien du tout. Quand
+    // l'ancre désigne une vraie page, on écrit son chemin : le gestionnaire de
+    // clics interne prend le relais, et on reste sans rechargement.
+    if (/^#[\w-]+$/.test(b.x)) {
+      const chemin = cheminDe(b.x.slice(1));
+      return `<p class="actu-lien"><a class="btn-cta" href="${esc(chemin || b.x)}">${esc(b.label || "En savoir plus")} →</a></p>`;
+    }
     if (/^https?:\/\//i.test(b.x))
       return `<p class="actu-lien"><a class="btn-cta" href="${esc(b.x)}"
         target="_blank" rel="noopener">${esc(b.label || "Voir")} ↗</a></p>`;
