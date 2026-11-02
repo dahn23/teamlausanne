@@ -9262,7 +9262,9 @@ async function exportHeuresPdf() {
   btn.disabled = false;
 }
 // Envoi du décompte à la fiduciaire : PDF généré + mail depuis info@ (visible dans Envoyés après la relève).
-const FIDU_TO = "sara.ninetti@fimisa.ch", FIDU_FROM = "info@teamlausanne.ch";
+// Sara reçoit le décompte sur son adresse personnelle et non sur celle du bureau (02.11.2026) :
+// adresse donnée par Dan, à ne pas « corriger » en sara.ninetti@fimisa.ch, l'ancienne.
+const FIDU_TO = "saraninetti@gmail.com", FIDU_FROM = "info@teamlausanne.ch";
 async function sendHeuresToFiduciaire() {
   const c = heuresData.coaches || [], p = heuresData.profs || [];
   const nCoachPending = c.filter((x) => x.total_courses > 0 && x.courses !== x.total_courses).length;

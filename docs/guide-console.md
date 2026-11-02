@@ -428,7 +428,11 @@ Les heures des coachs et des profs, pour la paie. Deux sous-onglets :
 
 1. Choisir la période.
 2. « ⬇ Décompte PDF » pour le document, ou « Exporter (CSV) » pour le tableur.
-3. « ✉ Envoyer à la fiduciaire » transmet.
+3. « ✉ Envoyer à la fiduciaire » transmet le PDF par mail à Sara
+   (saraninetti@gmail.com), depuis info@teamlausanne.ch. Le bouton prévient
+   d'abord si des coachs ou des profs n'ont pas tout validé — leurs heures
+   partiraient incomplètes. Le mail se retrouve ensuite dans
+   Messagerie › Envoyés, à la prochaine relève.
 
 ### Payer un camp à l'heure plutôt qu'au forfait
 
