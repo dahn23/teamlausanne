@@ -738,12 +738,27 @@ répondra qu'elle ne sait pas, et la question remontera dans
 - **Accueil espace privé** — messages affichés dans Mon espace, par saison et
   par filière. « + Nouveau message ». Une ligne « @saison Saison —
   description » s'affiche avec l'icône de l'onglet correspondant.
-  Sous ces messages, Mon espace affiche aussi les **actualités du site**,
-  classées selon la filière du jeune. Elles ne se règlent pas depuis cet écran :
-  elles viennent de teamlausanne.ch. Pour qu'un article passé (un événement
-  terminé, un stage fini) cesse de remonter dans l'app **sans disparaître du
-  site**, il porte un drapeau `portal_hidden` en base (db/217) — il n'y a pas
-  encore de bouton pour ça, demandez à Dan ou Raphael.
+  Deux sous-onglets : **« Messages »** (ci-dessus) et
+  **« Actualités du site »**.
+  - **Actualités du site** — sous les messages, Mon espace affiche aussi les
+    articles de teamlausanne.ch, classés selon la filière du jeune. On ne les
+    écrit pas ici : on règle seulement **jusqu'à quand ils restent dans l'app**.
+    Un tableau les liste, du plus récent au plus ancien, avec deux réglages :
+    - **« Visible dans l'app jusqu'au »** — à poser en écrivant l'article,
+      pendant qu'on connaît encore la fin de l'événement : le dernier jour du
+      stage, la date de la fête, la clôture des inscriptions. L'article s'en va
+      tout seul le lendemain, sans que personne n'y repense. **Laisser vide
+      pour un article intemporel** (un portrait de coach, par exemple) : il
+      reste, et c'est très bien — une famille qui arrive en mars a tout intérêt
+      à le lire.
+    - **« Dans l'app »** — l'interrupteur de secours, pour retirer un article
+      aujourd'hui sans attendre une date.
+    La colonne **« État »** dit ce que les familles voient en ce moment, et
+    pourquoi : « Dans l'app », « Dans l'app jusqu'au … », « Périmée le … »,
+    « Retirée de l'app », « Pas encore publiée sur le site ».
+    Dans tous les cas **l'article reste publié sur teamlausanne.ch** : ces deux
+    réglages ne touchent que l'app. Une page d'événement passé garde sa place
+    dans les archives du site.
 - **Messagerie** — la boîte info@. « ✉ Nouveau message », « ↩ Répondre »,
   « Relever », « Brouillons », « Filtres ▾ ». La recherche à plusieurs mots
   trouve les messages contenant *chacun* des mots ; entre guillemets,

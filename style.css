@@ -2440,6 +2440,15 @@ body.portal{background:var(--bg)}
 .invite-linkrow button{flex:0 0 auto;padding:8px 14px}
 
 /* ================= NEWS (console admin) ================= */
+/* Actualités du site : régler jusqu'à quand chaque article reste dans Mon espace (db/218). */
+.actu-table td,.actu-table th{vertical-align:middle}
+.actu-table .actu-until{width:150px}
+.actu-table .actu-until .pd-wrap{width:150px}
+.actu-table .actu-chk{text-align:center}
+.actu-table .actu-chk .check{justify-content:center;margin:0}
+.actu-etat{white-space:nowrap;font-size:.84rem}
+.actu-on{color:#1c7d38;font-weight:700}
+.actu-off{color:var(--muted);font-weight:700}
 .news-adm-list{display:flex;flex-direction:column;gap:10px}
 .news-adm-card{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--line);
   border-radius:12px;padding:10px;cursor:pointer}

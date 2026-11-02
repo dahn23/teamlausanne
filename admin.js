@@ -8022,6 +8022,14 @@ function initNews() {
   $("n-img-clear").addEventListener("click", () => { newsImageUrl = null; updateNewsImg(); });
   $("n-aud").addEventListener("change", () => renderNewsWho(null));
   $("n-season").addEventListener("change", () => renderNewsWho(null));
+  // Deux sous-onglets : les messages qu'on écrit ici, et la durée de vie des actualités du site.
+  document.querySelectorAll("#view-news .news-subtab").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("#view-news .news-subtab").forEach((x) => x.classList.toggle("active", x === b));
+    document.querySelectorAll("#view-news .news-sub").forEach((v) => v.classList.toggle("hidden", v.id !== "news-sub-" + b.dataset.sub));
+    // La saison et « + Nouveau message » ne commandent que les messages.
+    $("news-msg-actions").hidden = b.dataset.sub !== "messages";
+    if (b.dataset.sub === "actus") loadNewsActus();
+  }));
 }
 
 async function loadNews() {
@@ -8064,6 +8072,70 @@ async function loadNews() {
   }).join("");
   box.querySelectorAll(".news-adm-card").forEach((c) =>
     c.addEventListener("click", () => openNews(newsList.find((x) => x.id === c.dataset.id))));
+}
+
+// ---- Sous-onglet « Actualités du site » (db/217, db/218) ----------------
+// Les articles s'écrivent sur teamlausanne.ch ; ici on règle seulement leur durée de vie
+// DANS L'APP. Deux leviers, et c'est voulu :
+//   • la date « jusqu'au » se pose en écrivant l'article, au moment où on connaît déjà la fin
+//     de l'événement — l'article s'en va tout seul, sans que personne n'y revienne ;
+//   • « Dans l'app » est l'interrupteur de secours, pour retirer quelque chose aujourd'hui.
+// Vide = intemporel : un portrait de coach doit rester lisible en mars.
+// Dans tous les cas l'article reste publié sur le site : on ne touche jamais à son `status`.
+let actusList = [];
+
+async function loadNewsActus() {
+  const box = $("actu-list");
+  box.innerHTML = '<p class="muted">Chargement…</p>';
+  const { data, error } = await sb.from("news_articles")
+    .select("id,slug,title,category,status,published_on,portal_hidden,portal_until")
+    .order("published_on", { ascending: false, nullsFirst: false });
+  if (error) { box.innerHTML = `<p class="error">Lecture impossible : ${esc(error.message)}</p>`; return; }
+  actusList = data || [];
+  if (!actusList.length) { box.innerHTML = '<p class="muted">Aucune actualité sur le site pour l\'instant.</p>'; return; }
+  box.innerHTML = `<table class="crm-table actu-table">
+    <thead><tr><th>Article</th><th>Catégorie</th><th>Publié le</th>
+      <th>Visible dans l'app jusqu'au</th><th>Dans l'app</th><th>État</th></tr></thead>
+    <tbody>${actusList.map(actuRow).join("")}</tbody></table>`;
+  box.querySelectorAll(".actu-until").forEach((i) =>
+    i.addEventListener("change", () => saveActu(i.dataset.id, { portal_until: i.value || null })));
+  box.querySelectorAll(".actu-show").forEach((c) =>
+    c.addEventListener("change", () => saveActu(c.dataset.id, { portal_hidden: !c.checked })));
+}
+
+function actuRow(a) {
+  return `<tr data-id="${a.id}">
+    <td><b>${esc(a.title)}</b>${a.status !== "publie" ? ' <span class="news-state draft">Brouillon</span>' : ""}</td>
+    <td>${esc(a.category || "—")}</td>
+    <td>${a.published_on ? frDate(a.published_on) : '<span class="muted">—</span>'}</td>
+    <td><input type="date" class="actu-until" data-id="${a.id}" value="${esc(a.portal_until || "")}"
+          title="Dernier jour où l'article remonte dans Mon espace. Vide = il reste." /></td>
+    <td class="actu-chk"><label class="check"><input type="checkbox" class="actu-show" data-id="${a.id}"
+          ${a.portal_hidden ? "" : "checked"} /></label></td>
+    <td class="actu-etat">${actuEtat(a)}</td>
+  </tr>`;
+}
+
+// L'état dit ce que la famille voit AUJOURD'HUI, et pourquoi — sinon une ligne cochée mais
+// périmée se lit comme un bug.
+function actuEtat(a) {
+  if (a.status !== "publie") return '<span class="muted">Pas encore publiée sur le site</span>';
+  if (a.portal_hidden) return '<span class="actu-off">Retirée de l\'app</span>';
+  if (a.portal_until && a.portal_until < todayISO())
+    return `<span class="actu-off">Périmée le ${frDate(a.portal_until)}</span>`;
+  if (a.portal_until) return `<span class="actu-on">Dans l'app jusqu'au ${frDate(a.portal_until)}</span>`;
+  return '<span class="actu-on">Dans l\'app</span>';
+}
+
+async function saveActu(id, patch) {
+  const tr = $("actu-list").querySelector(`tr[data-id="${id}"]`);
+  const cell = tr?.querySelector(".actu-etat");
+  if (cell) cell.innerHTML = '<span class="muted">…</span>';
+  const { error } = await sb.from("news_articles").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id);
+  const a = actusList.find((x) => x.id === id);
+  if (error) { if (cell) cell.innerHTML = `<span class="actu-off">Erreur : ${esc(error.message)}</span>`; return; }
+  Object.assign(a, patch);
+  if (cell) cell.innerHTML = actuEtat(a);
 }
 
 function renderNewsAud(sel) {

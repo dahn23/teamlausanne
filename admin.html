@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=381" />
+  <link rel="stylesheet" href="style.css?v=382" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -493,10 +493,24 @@
         <div id="view-news" class="view hidden">
           <div class="crm-head">
             <h1>Accueil espace privé</h1>
-            <div class="crm-actions"><select id="news-season" title="Saison juniors"></select><button id="news-new">+ Nouveau message</button></div>
+            <div class="crm-actions" id="news-msg-actions"><select id="news-season" title="Saison juniors"></select><button id="news-new">+ Nouveau message</button></div>
           </div>
-          <p class="muted" style="margin:-6px 0 12px">Les messages affichés sur l'accueil de « Mon espace », pour les filières ciblées. Mon espace ne montre que ceux de la saison en cours ; le plus récent en haut.</p>
-          <div id="news-list" class="news-adm-list"></div>
+          <div class="subnav">
+            <button class="subtab news-subtab active" data-sub="messages">Messages</button>
+            <button class="subtab news-subtab" data-sub="actus">Actualités du site</button>
+          </div>
+
+          <div id="news-sub-messages" class="news-sub">
+            <p class="muted" style="margin:-6px 0 12px">Les messages affichés sur l'accueil de « Mon espace », pour les filières ciblées. Mon espace ne montre que ceux de la saison en cours ; le plus récent en haut.</p>
+            <div id="news-list" class="news-adm-list"></div>
+          </div>
+
+          <!-- Les actualités de teamlausanne.ch remontent aussi dans Mon espace. On ne les écrit pas
+               ici : on règle seulement jusqu'à quand elles y restent (db/217, db/218). -->
+          <div id="news-sub-actus" class="news-sub hidden">
+            <p class="muted" style="margin:-6px 0 12px">Sous les messages, Mon espace affiche les <b>actualités du site</b>, classées selon la filière du jeune. Elles s'écrivent sur teamlausanne.ch — ici on décide seulement <b>jusqu'à quand</b> chacune reste dans l'app. Dans tous les cas l'article reste sur le site : une page d'événement passé garde sa place dans les archives.</p>
+            <div id="actu-list" class="table-wrap"></div>
+          </div>
         </div>
 
         <!-- ---- Vue Réglages (admin/superadmin) ---- -->
