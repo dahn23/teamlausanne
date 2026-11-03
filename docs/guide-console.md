@@ -816,10 +816,23 @@ répondra qu'elle ne sait pas, et la question remontera dans
     colonne par passage, du plus récent au plus ancien, avec la flèche d'écart
     et les commentaires du coach. Cliquer une date ouvre le passage.
   - **Ce que le jeune voit** — Mon espace › Physique › **Tests** : pour chaque
-    mesure, sa vignette, sa dernière valeur et l'écart avec le test précédent.
-    Il touche une mesure pour lire le protocole et voir tout son historique.
+    mesure, sa vignette, sa dernière valeur, l'écart avec le test précédent et,
+    si la mesure a un barème, son **palier**. Il touche une mesure pour lire le
+    protocole, voir l'échelle complète et tout son historique.
     Le commentaire du coach s'affiche en haut de la batterie. Sa famille le
     voit aussi ; personne d'autre.
+  - **Le barème** — six paliers, du tableau du préparateur physique :
+    Excellent, Très bon, Bon, Moyen, Passable, Faible. Chacun a sa couleur, du
+    vert au rouge, **toujours accompagnée de son mot** : la couleur seule ne
+    dirait rien à qui la distingue mal. En ouvrant la mesure, le jeune lit
+    l'échelle entière avec son palier surligné — c'est ce qui lui donne le
+    prochain seuil à viser.
+    Le barème peut dépendre du **sexe** et de l'**âge**, ou valoir pour tout le
+    monde ; l'âge retenu est celui qu'avait le jeune **le jour du test**. Il
+    n'y a pas encore d'écran pour le saisir : les seuils sont posés en base.
+    **Une mesure sans barème n'affiche aucun palier** — rien plutôt qu'un
+    jugement inventé. C'est aussi le cas des mesures de référence (la distance
+    entre les épaules) : on ne les juge pas.
 - **Physique** — « Par jeune » et « Routines ». La page d'un jeune a trois
   parties : ses routines (cases à cocher), « Vidéos et photos » (choisir un
   fichier, écrire un commentaire, « Ajouter » ; 50 Mo au plus, donc filmer en

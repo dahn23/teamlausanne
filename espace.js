@@ -1835,6 +1835,35 @@ const ptsIco = (k) => k ? `<img class="ptst-ico" src="/assets/phys/tests/${escHt
 const ptsVal = (a, unite) => a == null ? ""
   : (a.value_num != null ? String(a.value_num).replace(".", ",") + (unite ? " " + unite : "") : (a.value_text || ""));
 
+/* Le barème (db/221). Six paliers, ceux du tableau du préparateur physique. Sans eux, un
+   jeune qui ouvre « Préhension droite : 37,7 kg » n'a aucun moyen de savoir si c'est bien —
+   et au premier test il n'a même pas d'écart avec la fois d'avant pour s'y raccrocher.
+   Une mesure sans barème n'affiche rien : pas de couleur plutôt qu'un jugement inventé. */
+const PTS_PALIERS = [["excellent", "Excellent"], ["tres_bon", "Très bon"], ["bon", "Bon"],
+  ["moyen", "Moyen"], ["passable", "Passable"], ["faible", "Faible"]];
+const ptsPalierLbl = (b) => (PTS_PALIERS.find((x) => x[0] === b) || ["", ""])[1];
+const ptsPastille = (b) => b ? `<span class="ptst-b ptst-b-${escHtml(b)}">${escHtml(ptsPalierLbl(b))}</span>` : "";
+
+/* L'échelle écrite en toutes lettres, sous le protocole : « Excellent : 48 kg et plus ».
+   C'est elle qui donne le palier suivant à viser — une pastille seule ne le dit pas.
+   Le sens se lit sur `better` : sur la corde, moins c'est grand, mieux c'est. */
+function ptsEchelle(norm, m, bandeActuelle) {
+  if (!norm) return "";
+  const seuils = [["excellent", norm.s_excellent], ["tres_bon", norm.s_tres_bon], ["bon", norm.s_bon],
+    ["moyen", norm.s_moyen], ["passable", norm.s_passable]].filter(([, v]) => v != null);
+  if (!seuils.length) return "";
+  const u = m.unit ? " " + m.unit : "";
+  const nb = (v) => String(v).replace(".", ",") + u;
+  const sens = m.better === "down" ? " et moins" : " et plus";
+  const lignes = seuils.map(([k, v]) =>
+    `<li class="ptst-s-${escHtml(k)}${k === bandeActuelle ? " on" : ""}"><span>${escHtml(ptsPalierLbl(k))}</span><b>${escHtml(nb(v) + sens)}</b></li>`);
+  // Le dernier palier n'a pas de seuil à lui : c'est « tout le reste ».
+  const dernier = seuils[seuils.length - 1][1];
+  lignes.push(`<li class="ptst-s-faible${bandeActuelle === "faible" ? " on" : ""}"><span>Faible</span><b>${escHtml(
+    (m.better === "down" ? "plus de " : "moins de ") + nb(dernier))}</b></li>`);
+  return `<ul class="ptst-bar">${lignes.join("")}</ul>`;
+}
+
 async function renderPhTests() {
   const host = $("ph-sub"); if (!host) return;
   host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
@@ -1855,7 +1884,10 @@ async function renderPhTests() {
       b.passages.set(l.result_id, { date: l.session_date, comment: l.comment, coach: l.coach_name, rep: new Map() });
     b.passages.get(l.result_id).rep.set(l.question_id, l);
     if (!b.mesures.has(l.question_id))
-      b.mesures.set(l.question_id, { label: l.label, description: l.description, icon: l.icon, unit: l.unit, better: l.better, ordre: l.sort_order });
+      b.mesures.set(l.question_id, { label: l.label, description: l.description, icon: l.icon, unit: l.unit, better: l.better, ordre: l.sort_order, norm: l.norm });
+    // Le barème peut avoir changé de tranche d'âge entre deux passages : on garde celui du
+    // passage le plus récent, qui est celui affiché en haut de la carte.
+    if (l.norm && !b.mesures.get(l.question_id).norm) b.mesures.get(l.question_id).norm = l.norm;
   }
   host.innerHTML = [...batteries.values()].map((b) => {
     const passages = [...b.passages.values()].sort((x, y) => (y.date || "").localeCompare(x.date || ""));
@@ -1866,12 +1898,15 @@ async function renderPhTests() {
       const v = ptsVal(a, m.unit);
       const ev = (a?.value_num != null && p?.value_num != null && m.better !== "neutral")
         ? ptsEvol(Number(a.value_num) - Number(p.value_num), m.better) : "";
-      const hist = passages.filter((x) => x.rep.get(qid)).map((x) =>
-        `<li><span>${frDate(x.date)}</span><b>${escHtml(ptsVal(x.rep.get(qid), m.unit))}</b></li>`).join("");
+      const hist = passages.filter((x) => x.rep.get(qid)).map((x) => {
+        const l = x.rep.get(qid);
+        return `<li><span>${frDate(x.date)}</span><b>${escHtml(ptsVal(l, m.unit))}</b>${ptsPastille(l.band)}</li>`;
+      }).join("");
       return `<details class="ptst-m">
         <summary>${ptsIco(m.icon)}<span class="ptst-l">${escHtml(m.label)}</span>
-          <span class="ptst-v">${v ? escHtml(v) : "—"}${ev}</span></summary>
+          <span class="ptst-v">${v ? escHtml(v) : "—"}${ev}${ptsPastille(a?.band)}</span></summary>
         ${m.description ? `<p class="ptst-d">${escHtml(m.description)}</p>` : ""}
+        ${ptsEchelle(m.norm, m, a?.band)}
         ${passages.length > 1 ? `<ul class="ptst-h">${hist}</ul>` : ""}
       </details>`;
     }).join("");

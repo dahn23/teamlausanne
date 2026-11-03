@@ -6203,6 +6203,41 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .ptst-h{list-style:none;margin:0 10px 10px;padding:0 0 0 56px;display:flex;flex-direction:column;gap:3px}
 .ptst-h li{display:flex;justify-content:space-between;gap:12px;font-size:.82rem;border-bottom:1px dashed var(--line);padding:3px 0}
 .ptst-h li span{color:var(--muted)}
+.ptst-h li .ptst-b{flex:0 0 auto}
+
+/* Le barème (db/221) : six paliers, du vert au rouge. Les couleurs sont lisibles
+   AVEC leur mot — « Excellent », « Faible » — et jamais seules : un daltonien, ou
+   un œil pressé, lit l'étiquette. */
+.ptst-b{display:inline-block;margin-left:7px;padding:1px 8px;border-radius:999px;
+  font-size:.68rem;font-weight:800;letter-spacing:.02em;text-transform:uppercase;
+  vertical-align:middle;white-space:nowrap}
+.ptst-v .ptst-b{display:block;margin:3px 0 0}
+.ptst-b-excellent{background:#065f46;color:#fff}
+.ptst-b-tres_bon {background:#10893e;color:#fff}
+.ptst-b-bon      {background:#d6f5c8;color:#2c6b17}
+.ptst-b-moyen    {background:#fdf0c3;color:#8a5a00}
+.ptst-b-passable {background:#fde0c6;color:#9a4a09}
+.ptst-b-faible   {background:#fcdada;color:#9f2020}
+
+/* L'échelle dépliée : chaque palier avec son seuil, celui du jeune surligné.
+   C'est elle qui donne le prochain objectif — la pastille dit seulement où il est. */
+.ptst-bar{list-style:none;margin:2px 10px 10px;padding:0 0 0 56px;
+  display:flex;flex-direction:column;gap:2px}
+.ptst-bar li{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  font-size:.78rem;padding:3px 9px;border-radius:7px;border-left:4px solid transparent}
+.ptst-bar li span{color:var(--muted)}
+.ptst-bar li b{font-weight:700;white-space:nowrap}
+.ptst-bar li.on{background:#eef3ff;box-shadow:inset 0 0 0 1px #c9d8ff}
+.ptst-bar li.on span{color:var(--blue-ink);font-weight:800}
+/* Sélecteurs complets : `.ptst-bar li` pose déjà une bordure transparente, et
+   un simple `.ptst-s-bon` ne pèse pas assez lourd pour la recolorer. */
+.ptst-bar .ptst-s-excellent{border-left-color:#065f46}
+.ptst-bar .ptst-s-tres_bon {border-left-color:#10893e}
+.ptst-bar .ptst-s-bon      {border-left-color:#8fce6b}
+.ptst-bar .ptst-s-moyen    {border-left-color:#f0c143}
+.ptst-bar .ptst-s-passable {border-left-color:#ef9850}
+.ptst-bar .ptst-s-faible   {border-left-color:#e07070}
+
 @media (max-width:430px){
-  .ptst-d,.ptst-h{padding-left:12px}
+  .ptst-d,.ptst-h,.ptst-bar{padding-left:12px}
 }
