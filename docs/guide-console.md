@@ -794,6 +794,26 @@ répondra qu'elle ne sait pas, et la question remontera dans
     qui est déjà saisi : on corrige et on complète sans rien créer en double.
     Une case accepte un mot au lieu d'un chiffre — écrire `blessé` garde la
     ligne du joueur sans fausser la progression.
+    **Entrée** et les flèches **↑ ↓** descendent la colonne : on saisit une
+    mesure pour tout le monde, puis la suivante. **Tab** parcourt la ligne.
+  - **Coller depuis Excel** — c'est la façon prévue pour qui remplit d'abord
+    une feuille de calcul. Sélectionner dans la feuille **la colonne des noms
+    et les mesures**, copier, cliquer la **première case** de la grille,
+    coller. Tout le bloc se répartit d'un coup.
+    Les joueurs sont retrouvés **par leur nom**, pas par leur position :
+    l'ordre de la feuille n'a aucune importance, et la grille est de toute
+    façon triée par nom de famille. Les accents et une faute de frappe sont
+    tolérés (« Hecktor » retrouve Hektor) ; en revanche « Max » ne devient
+    jamais Maxime. **Ce qui n'est pas reconnu n'est pas collé** : le nom est
+    affiché à côté du bouton plutôt que posé sur la fiche de quelqu'un
+    d'autre. Un nom qui pourrait désigner deux joueurs est signalé de même.
+    Les cases qui viennent d'être remplies passent au vert quelques secondes :
+    c'est le moment de vérifier. **Rien n'est enregistré par le collage** — on
+    relit, puis on clique « Enregistrer ». Un collage de travers se répare en
+    rechargeant la page.
+    Si la première colonne copiée contient des chiffres et non des noms, le
+    collage se fait **à la position**, à partir de la case cliquée ; le
+    message le dit, car c'est alors à vous de vérifier l'ordre des lignes.
   - **La date, c'est celle du test**, pas celle de la saisie. Les feuilles
     arrivent souvent plusieurs jours après ; c'est la date du test qui range
     les passages et calcule les progressions.

@@ -16751,6 +16751,10 @@ function initPhys() {
   $("pts-date").addEventListener("change", renderPtsGrid);
   $("pts-fil").addEventListener("change", renderPtsGrid);
   $("pts-save").addEventListener("click", savePtsGrid);
+  // La grille est redessinée à chaque changement de batterie ou de date : on écoute sur le
+  // conteneur, qui lui ne bouge pas.
+  $("pts-grid").addEventListener("paste", ptsColler);
+  $("pts-grid").addEventListener("keydown", ptsClavier);
 }
 
 // ---- Saisie en série : une batterie, une date, tous les joueurs ----
@@ -16812,6 +16816,152 @@ async function renderPtsGrid() {
         ${ptsQuestions.map((q) => `<td><input class="pts-c" data-qid="${q.id}" value="${esc(ptsCell(d?.rep[q.id]))}" inputmode="decimal" /></td>`).join("")}
         <td class="pts-com"><input class="pts-k" value="${esc(d?.comment || "")}" placeholder="—" /></td></tr>`;
     }).join("")}</tbody></table>`;
+}
+
+// ---- Saisie : coller un bloc venu d'Excel ---------------------------------
+// Andreas remplit sa feuille pendant les tests et recopie le tout le soir. Retaper
+// quatre-vingt-seize cases, c'est quatre-vingt-seize occasions de se tromper de ligne.
+//
+// LE DANGER, et toute la raison du code qui suit : l'ordre des joueurs dans SA feuille
+// n'est pas celui de la grille, triée par nom de famille. Un collage « à la position »
+// mettrait les mesures de Loris sur la fiche de quelqu'un d'autre — des chiffres faux sur
+// le dossier d'un enfant, et rien à l'écran pour le signaler. Donc : si la première colonne
+// collée porte des NOMS, on retrouve chaque joueur par son nom et l'ordre n'a plus
+// d'importance. Ce qu'on ne reconnaît pas n'est pas collé, et on le dit.
+//
+// Rien n'est enregistré au collage : les cases se remplissent, on relit, on clique
+// « Enregistrer ». Un collage de travers se corrige en rechargeant la page.
+
+// Distance de Levenshtein, bornée : « Hecktor » doit retrouver Hektor, « Max » ne doit
+// JAMAIS retrouver Maxime. Une faute de frappe, pas deux.
+function ptsDist(a, b) {
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > 1) return 9;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++)
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+// Ce qu'on garde d'une cellule de nom : « Celyan 19 » → « celyan », « Lorival, C. » → « lorival c ».
+// Les âges écrits à côté des prénoms dans la feuille ne servent pas ici — l'app a les dates
+// de naissance.
+const ptsCleNom = (s) => norm(String(s || "").replace(/\d+/g, " ").replace(/[^\p{L}\s]+/gu, " ")).replace(/\s+/g, " ").trim();
+
+// Retrouve la ligne de la grille qui correspond à un nom collé.
+// Renvoie { tr } si c'est sûr, { ambigu: true } si plusieurs joueurs répondent, null sinon.
+function ptsLigneDe(cell, lignes) {
+  const cle = ptsCleNom(cell);
+  if (!cle) return null;
+  const mots = cle.split(" ").filter(Boolean);
+  const exacts = lignes.filter((l) => l.cles.includes(cle) || mots.some((m) => l.cles.includes(m)));
+  if (exacts.length === 1) return { tr: exacts[0].tr };
+  if (exacts.length > 1) return { ambigu: true };
+  // Pas de correspondance exacte : on tolère UNE faute de frappe, et seulement si elle ne
+  // désigne qu'un joueur.
+  const proches = lignes.filter((l) => l.cles.some((k) => k.length > 3 && mots.some((m) => ptsDist(k, m) <= 1)));
+  if (proches.length === 1) return { tr: proches[0].tr };
+  if (proches.length > 1) return { ambigu: true };
+  return null;
+}
+
+function ptsColler(e) {
+  const cible = e.target;
+  if (!cible || !cible.classList.contains("pts-c")) return;   // le champ Commentaire garde le collage normal
+  const brut = (e.clipboardData || window.clipboardData)?.getData("text");
+  if (!brut || !/[\t\n\r]/.test(brut)) return;                 // une seule valeur : collage normal
+  e.preventDefault();
+
+  const bloc = brut.replace(/\r\n?/g, "\n").replace(/\n+$/, "").split("\n").map((l) => l.split("\t"));
+  const trs = [...$("pts-grid").querySelectorAll("tbody tr")];
+  const lignes = trs.map((tr) => {
+    const p = people.find((x) => x.id === tr.dataset.pid) || {};
+    const pr = ptsCleNom(p.first_name), nm = ptsCleNom(p.last_name);
+    return { tr, cles: [pr, nm, `${pr} ${nm}`, `${nm} ${pr}`].filter(Boolean) };
+  });
+
+  // Mode « noms » ou mode « positions » ? On regarde la première colonne du bloc : si elle
+  // ne contient pas de nombres et qu'au moins une de ses cellules retrouve un joueur, c'est
+  // qu'Andreas a copié la colonne des noms avec ses mesures.
+  const col0 = bloc.map((r) => (r[0] || "").trim()).filter(Boolean);
+  const parNom = col0.length > 0
+    && col0.every((v) => ptsNum(v) === null)
+    && col0.some((v) => { const m = ptsLigneDe(v, lignes); return m && m.tr; });
+
+  const cases = (tr) => [...tr.querySelectorAll(".pts-c")];
+  const colAncre = cases(cible.closest("tr")).indexOf(cible);
+  const remplies = [];
+  let nJoueurs = 0;
+  const inconnus = [], ambigus = [];
+
+  if (parNom) {
+    for (const r of bloc) {
+      const nom = (r[0] || "").trim();
+      if (!nom) continue;
+      const m = ptsLigneDe(nom, lignes);
+      if (!m) { inconnus.push(nom); continue; }
+      if (m.ambigu) { ambigus.push(nom); continue; }
+      const boites = cases(m.tr);
+      let pose = false;
+      for (let j = 1; j < r.length; j++) {
+        const b = boites[colAncre + j - 1];
+        if (!b) break;
+        b.value = (r[j] || "").trim();
+        remplies.push(b); pose = true;
+      }
+      if (pose) nJoueurs++;
+    }
+  } else {
+    // Pas de colonne de noms : on colle là où le curseur est, ligne après ligne. C'est à
+    // Andreas de vérifier que l'ordre correspond — d'où le message qui le lui rappelle.
+    const ligneAncre = trs.indexOf(cible.closest("tr"));
+    bloc.forEach((r, i) => {
+      const tr = trs[ligneAncre + i];
+      if (!tr) return;
+      const boites = cases(tr);
+      let pose = false;
+      r.forEach((v, j) => {
+        const b = boites[colAncre + j];
+        if (!b) return;
+        b.value = (v || "").trim();
+        remplies.push(b); pose = true;
+      });
+      if (pose) nJoueurs++;
+    });
+  }
+
+  // Montrer ce qui vient d'atterrir : sans ça, un collage de travers passe inaperçu.
+  remplies.forEach((b) => b.classList.add("pts-colle"));
+  setTimeout(() => remplies.forEach((b) => b.classList.remove("pts-colle")), 6000);
+
+  const st = $("pts-status");
+  const bouts = [`${remplies.length} case${remplies.length > 1 ? "s" : ""} remplie${remplies.length > 1 ? "s" : ""}`,
+    `${nJoueurs} joueur${nJoueurs > 1 ? "s" : ""}`];
+  if (!parNom) bouts.push("collé à la position — vérifie l'ordre des lignes");
+  if (inconnus.length) bouts.push(`non reconnu${inconnus.length > 1 ? "s" : ""} : ${inconnus.join(", ")}`);
+  if (ambigus.length) bouts.push(`ambigu${ambigus.length > 1 ? "s" : ""} : ${ambigus.join(", ")}`);
+  st.textContent = bouts.join(" · ") + " — rien n'est enregistré, relis puis clique « Enregistrer ».";
+  st.classList.toggle("pts-alerte", inconnus.length > 0 || ambigus.length > 0 || !parNom);
+}
+
+// Entrée et les flèches haut/bas descendent la COLONNE : on saisit une mesure pour tout le
+// monde, pas toutes les mesures d'un joueur. Tab continue de parcourir la ligne.
+function ptsClavier(e) {
+  const c = e.target;
+  if (!c || !c.classList.contains("pts-c")) return;
+  if (e.key !== "Enter" && e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  const tr = c.closest("tr"), trs = [...$("pts-grid").querySelectorAll("tbody tr")];
+  const col = [...tr.querySelectorAll(".pts-c")].indexOf(c);
+  const vers = trs[trs.indexOf(tr) + (e.key === "ArrowUp" ? -1 : 1)];
+  if (!vers) return;
+  const b = vers.querySelectorAll(".pts-c")[col];
+  if (!b) return;
+  e.preventDefault();
+  b.focus(); b.select();
 }
 
 async function savePtsGrid() {

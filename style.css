@@ -689,6 +689,8 @@ input.pd-native{display:none}
 /* Saisie en série : une batterie, une date, tous les joueurs — la feuille du coach, à l'écran. */
 .pts-bar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:6px}
 .pts-hint{font-size:.84rem;margin:0 0 12px;max-width:72ch}
+.pts-hint-coller{background:#f2f6ff;border-left:3px solid var(--blue);
+  border-radius:0 8px 8px 0;padding:8px 12px;margin:-4px 0 12px}
 .pts-table th{vertical-align:bottom;text-align:center;padding:8px 6px}
 .pts-table th .pts-ico{margin:0 auto 4px}
 .pts-th-l{display:block;font-size:.76rem;line-height:1.2;max-width:90px;margin:0 auto;white-space:normal}
@@ -699,6 +701,12 @@ input.pd-native{display:none}
 .pts-table .pts-c{width:76px;text-align:center;padding:6px 4px}
 .pts-table .pts-com{min-width:200px;text-align:left}
 .pts-table .pts-k{width:100%;min-width:180px;padding:6px 8px;font-size:.86rem}
+/* Ce qui vient d'être collé, le temps d'un coup d'œil : sans ce flash, un bloc tombé
+   une ligne trop bas passe inaperçu jusqu'à ce qu'un parent s'en étonne. */
+.pts-table .pts-c.pts-colle{background:#eafaf0;border-color:#4caf7d;
+  box-shadow:0 0 0 2px rgba(76,175,125,.2);transition:background .3s,box-shadow .3s}
+.pts-table .pts-c:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(53,99,233,.18);outline:none}
+#pts-status.pts-alerte{color:#b54708;font-weight:700}
 
 /* Progression d'un jeune : mesures en lignes, passages en colonnes, du plus récent au plus ancien. */
 .pp-bat+.pp-bat{margin-top:22px}

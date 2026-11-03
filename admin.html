@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=384" />
+  <link rel="stylesheet" href="style.css?v=385" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -950,7 +950,8 @@
               <span id="pts-status" class="muted"></span>
               <button type="button" id="pts-save" class="primary">Enregistrer</button>
             </div>
-            <p class="muted pts-hint">Une colonne par mesure, une ligne par joueur. Les cases déjà remplies pour cette date sont rechargées : on corrige, on complète, on enregistre. Un mot comme « blessé » se met dans la case au lieu d'un chiffre.</p>
+            <p class="muted pts-hint">Une colonne par mesure, une ligne par joueur. Les cases déjà remplies pour cette date sont rechargées : on corrige, on complète, on enregistre. Un mot comme « blessé » se met dans la case au lieu d'un chiffre. <b>Entrée</b> et les flèches <b>↑ ↓</b> descendent la colonne.</p>
+            <p class="muted pts-hint pts-hint-coller"><b>Depuis Excel :</b> sélectionne dans ta feuille <b>la colonne des noms et les mesures</b>, copie, clique la première case de la grille et colle. Les joueurs sont retrouvés par leur nom — l'ordre de ta feuille n'a aucune importance, et ce qui n'est pas reconnu est signalé plutôt que posé au hasard. Rien n'est enregistré avant que tu cliques « Enregistrer ».</p>
             <div id="pts-grid" class="table-wrap"></div>
           </div>
 
