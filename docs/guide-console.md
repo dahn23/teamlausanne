@@ -827,9 +827,14 @@ répondra qu'elle ne sait pas, et la question remontera dans
     dirait rien à qui la distingue mal. En ouvrant la mesure, le jeune lit
     l'échelle entière avec son palier surligné — c'est ce qui lui donne le
     prochain seuil à viser.
-    Le barème peut dépendre du **sexe** et de l'**âge**, ou valoir pour tout le
-    monde ; l'âge retenu est celui qu'avait le jeune **le jour du test**. Il
-    n'y a pas encore d'écran pour le saisir : les seuils sont posés en base.
+    Les six paliers sont les **mêmes pour toutes les mesures** (décision Dan,
+    03.11.2026) : le tableau du préparateur en comptait cinq, six ou huit selon
+    la colonne, et un jeune qui lit « Presque ok » sur un test et « Passable »
+    sur un autre ne sait pas lequel est le moins bon. Un barème qui ne compte
+    que cinq paliers saute simplement celui qui lui manque.
+    Un barème peut dépendre du **sexe** (« Épaules corde » en a un par sexe) ;
+    il ne dépend pas de l'âge. Il n'y a pas encore d'écran pour le saisir : les
+    seuils sont posés en base.
     **Une mesure sans barème n'affiche aucun palier** — rien plutôt qu'un
     jugement inventé. C'est aussi le cas des mesures de référence (la distance
     entre les épaules) : on ne les juge pas.
