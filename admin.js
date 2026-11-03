@@ -9877,6 +9877,31 @@ function pfRelanceTxt(r) {
   return `Relance ${pfQuand(r.next_action_at)}`;
 }
 
+// Rendre la ligne ENTIÈRE cliquable (file « À faire » et tableau Visibilité).
+// En réunion on parcourt la liste de haut en bas : viser le petit « Ouvrir » tout
+// à droite fait perdre la ligne des yeux. Le bouton reste, il dit juste ce que
+// fait le clic.
+// Deux gardes indispensables : un clic sur un lien (tél., e-mail, site) ou un
+// bouton garde SON action, et on n'ouvre rien si on vient de sélectionner du
+// texte pour le copier — sinon tout copier-coller ouvre un panneau.
+function ligneOuvrable(hote, sel, ouvrir) {
+  if (!hote) return;
+  hote.querySelectorAll(sel).forEach((el) => {
+    el.classList.add("ligne-cliquable");
+    el.tabIndex = 0;
+    el.addEventListener("click", (e) => {
+      if (e.target.closest("a, button, input, select, textarea, label")) return;
+      if (String(window.getSelection() || "")) return;
+      ouvrir(el.dataset.id);
+    });
+    el.addEventListener("keydown", (e) => {
+      if (e.target !== el || (e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault();                       // Espace ne doit pas faire défiler
+      ouvrir(el.dataset.id);
+    });
+  });
+}
+
 let pfList = [], pfEvents = {}, pfInit = false, pfStageFiltre = "", pfVue = "board";
 
 // Le Suivi est-il réellement sous les yeux ? (onglet Prospects ouvert, sous-onglet
@@ -9976,6 +10001,7 @@ function renderProspectFollowups() {
     }).join("")}</div>` : "";
   $("pf-queue").querySelectorAll(".pf-q-open").forEach((b) => b.addEventListener("click", () =>
     pfOuvrir(b.closest(".pf-qrow").dataset.id)));
+  ligneOuvrable($("pf-queue"), ".pf-qrow", pfOuvrir);
 
   // --- l'entonnoir en colonnes ---
   // Les sept étapes sont TOUJOURS là, dans l'ordre, sur une seule ligne :
@@ -10394,6 +10420,7 @@ function renderVisibilite() {
     }).join("")}</div>` : "";
   $("vz-queue").querySelectorAll(".vz-q-open").forEach((b) => b.addEventListener("click", () =>
     vzOuvrir(b.closest(".pf-qrow").dataset.id)));
+  ligneOuvrable($("vz-queue"), ".pf-qrow", vzOuvrir);
 
   // --- liste ou entonnoir -------------------------------------------------
   // La liste est la vue par défaut : c'est celle qu'on parcourt ligne à ligne
@@ -10454,6 +10481,7 @@ function vzRenderListe(rows, today) {
   }).join("") : '<tr><td colspan="7" class="muted">Aucune piste ne correspond aux filtres.</td></tr>';
   $("vz-rows").querySelectorAll(".vz-open").forEach((b) => b.addEventListener("click", () =>
     vzOuvrir(b.closest(".vz-row").dataset.id)));
+  ligneOuvrable($("vz-rows"), ".vz-row", vzOuvrir);
 }
 
 function vzRenderBoard(rows) {

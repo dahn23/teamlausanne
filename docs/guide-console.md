@@ -921,7 +921,9 @@ perdre aucune d'elles faute d'avoir rappelé au bon moment.
 2. **« À relancer »** — ce qu'il faut faire : les retards d'abord, puis
    aujourd'hui, puis les sept jours qui viennent. **Si ce bloc est vide, le
    suivi est à jour.** Chaque ligne porte le téléphone et l'e-mail de la
-   famille, cliquables directement.
+   famille, cliquables directement. **La ligne entière s'ouvre d'un clic** —
+   le « Ouvrir » à droite n'est qu'un repère ; le téléphone et l'e-mail,
+   eux, gardent leur propre action.
 3. **Les colonnes** — une carte par famille, rangée sous son étape. La carte
    dit l'essentiel : l'enfant, où la famille vit, le programme visé, la
    saison, d'où elle vient, et quand il faut la relancer.
@@ -1048,6 +1050,14 @@ le reste de l'onglet Prospects.
 3. **La liste** — une ligne par organisation : le site, la ville, le contact,
    où ça en est, la prochaine action et qui s'en occupe. Les plus urgentes
    sont en haut, les closes en bas. C'est la vue à parcourir en réunion.
+
+**Partout dans ces deux blocs, la ligne entière s'ouvre d'un clic** — pas
+besoin de viser le petit « Ouvrir » à droite, qui reste là pour dire ce que
+fait le clic. Les raccourcis gardent leur propre action : cliquer le
+téléphone appelle, l'e-mail ouvre le courrier, l'adresse du site ouvre le
+site. Et sélectionner du texte pour le copier n'ouvre rien. Au clavier,
+`Tab` passe de ligne en ligne et `Entrée` ouvre celle qui est sous le
+curseur.
 
 Le bouton **Liste / Entonnoir** change la disposition. En entonnoir, **pour
 faire avancer une piste, attrapez sa carte et déposez-la dans une autre
