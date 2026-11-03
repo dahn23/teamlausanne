@@ -2930,6 +2930,10 @@ button.mail-att{cursor:pointer;font-weight:600;font-family:inherit}
 /* Une étape = une colonne. La barre du haut sert de résumé ET de filtre :
    c'est le seul endroit où l'on voit d'un coup où ça coince. */
 .pf-funnel{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:0 0 16px}
+/* Visibilité : quatre étapes ouvertes, pas cinq. Déclaré ICI et non en bas du
+   bloc, pour que les media queries de `.pf-funnel` (plus loin) continuent de
+   replier la bande sur téléphone — sinon elle y resterait à quatre colonnes. */
+.vz-funnel{grid-template-columns:repeat(4,1fr)}
 /* `color` et le `background` du survol sont indispensables : la règle globale
    `button{background:var(--green);color:#fff}` s'applique aussi à ces cartes.
    Sans eux, le texte est blanc sur blanc et n'apparaît qu'au survol, quand le
@@ -2974,6 +2978,9 @@ button.mail-att{cursor:pointer;font-weight:600;font-family:inherit}
 /* --- le tableau de l'entonnoir ------------------------------------------ */
 .pf-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .pf-tools #pf-search{min-width:240px;flex:1 1 240px;max-width:420px}
+/* pretty-select enveloppe chaque <select> dans un .ps-wrap large de 100 % :
+   dans une barre en flex, chaque filtre prenait donc une ligne à lui seul. */
+.pf-tools .ps-wrap{flex:0 0 auto;width:auto;min-width:168px}
 .pf-vues{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
 .pf-vue{background:#fff;border:0;padding:7px 14px;font:inherit;font-size:.85rem;cursor:pointer;color:var(--muted)}
 .pf-vue.active{background:var(--blue);color:#fff;font-weight:700}
@@ -3068,6 +3075,22 @@ button.mail-att{cursor:pointer;font-weight:600;font-family:inherit}
   .pf-drawer-in{padding:22px 16px 34px}
   .pf-grid{grid-template-columns:1fr}
 }
+
+/* --- Prospects › Visibilité ----------------------------------------------
+   Réutilise tout le vêtement du Suivi (.pf-funnel, .pf-card, .pf-drawer…).
+   Ne reste ici que ce qui lui est propre : le tableau, qui est la vue par
+   défaut parce que c'est celle qu'on parcourt ligne à ligne en réunion. */
+.pf-tools #vz-search{min-width:240px;flex:1 1 240px;max-width:420px}
+.vz-table td{vertical-align:top;padding:7px 9px;font-size:.88rem;line-height:1.45}
+.vz-table th{white-space:nowrap}
+.vz-table tr.pf-due td{background:#fff3f0}
+.vz-table .vz-sub{font-style:normal;font-size:.79rem;color:var(--muted)}
+.vz-table .vz-retard b{color:#b42318}
+.vz-table .vz-site{font-size:.79rem;word-break:break-all}
+.vz-table .pf-chip{display:inline-block}
+.vz-table tr:hover td{background:#f7f9ff}
+.vz-table tr.pf-due:hover td{background:#ffeeea}
+
 /* Cours : 🔥 perf / 🎾 a joué (7 jours) à côté du joueur */
 .att-rm{background:none;border:0;padding:0 2px;font-size:.95rem;line-height:1;cursor:pointer;vertical-align:middle;filter:drop-shadow(0 1px 1px rgba(0,0,0,.15))}
 .att-rm:hover{transform:scale(1.25);background:none}

@@ -280,10 +280,10 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
-  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
-  secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "news", "mail", "newsletter", "social", "assistant", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats", "notefrais"],
-  head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "heures", "notefrais"],
+  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
+  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
+  secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "visibilite", "news", "mail", "newsletter", "social", "assistant", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats", "notefrais"],
+  head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "visibilite", "heures", "notefrais"],
   coach:      ["cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "heures", "notefrais"],
   coach_physique: ["cours", "phystests", "physique", "heures", "notefrais"],
   moniteur:   ["cours", "heures", "notefrais"],
@@ -297,7 +297,7 @@ const DEFAULT_TAB_ACCESS = {
   // tables gz_* reste ouverte à is_staff() en écriture.
   gz_lecture:   ["gamezone"],
 };
-const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["acces", "Accès Mon espace"], ["prospects", "Prospects"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["social", "Social Media Planner"], ["assistant", "Assistant"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["notefrais", "Note de frais"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["acces", "Accès Mon espace"], ["prospects", "Prospects"], ["visibilite", "Prospects › Visibilité"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["social", "Social Media Planner"], ["assistant", "Assistant"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["notefrais", "Note de frais"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -364,6 +364,11 @@ const tabDenyFor = (uid) => (settings.tab_deny || {})[uid] || [];
 // Forme : { "<user_id>": ["pm", …] }.
 const tabAllowFor = (uid) => (settings.tab_allow || {})[uid] || [];
 
+// Les deux moitiés de l'onglet Prospects, autorisées séparément :
+// `joueurs` = Liste / Suivi / Import (scouting de mineurs), `visi` =
+// Visibilité (prospection d'organisations). Renseigné par applyTabAccess().
+let accesProsp = { joueurs: true, visi: true };
+
 function applyTabAccess(roles) {
   const access = tabAccessMap();
   // Onglets déjà configurés dans le réglage stocké (toutes rôles confondus).
@@ -376,6 +381,14 @@ function applyTabAccess(roles) {
   const finTag = !VOIR_ACTIF && !!(myPersonId && (peopleRoles[myPersonId] || []).includes("finance"));  // tag CRM "finance" → onglet Factures
   const refuses = VOIR_ACTIF ? [] : tabDenyFor(meId);   // retraits nominatifs, prioritaires sur les rôles
   const ajoutes = VOIR_ACTIF ? [] : tabAllowFor(meId);  // ajouts nominatifs, par-dessus les rôles
+  // « visibilite » n'a pas d'entrée de menu : c'est le 3ᵉ sous-onglet de
+  // Prospects. Il s'autorise donc à part — le secrétariat obtient la
+  // prospection visibilité SANS voir le scouting des joueurs, qui est une
+  // liste de mineurs. L'entrée Prospects s'ouvre dès que l'un OU l'autre
+  // des deux droits est accordé, et prospSousOnglets() règle ensuite les
+  // sous-onglets visibles.
+  const ouvert = (v) => (allowedFor(v) || ajoutes.includes(v)) && !refuses.includes(v);
+  accesProsp = { joueurs: ouvert("prospects"), visi: ouvert("visibilite") };
   let first = null; const allowedSet = new Set();
   document.querySelectorAll(".side-item[data-view]").forEach((b) => {
     const v = b.dataset.view;
@@ -383,7 +396,8 @@ function applyTabAccess(roles) {
     // Le retrait reste prioritaire : si un onglet figure dans les deux listes,
     // c'est qu'on a voulu l'enlever à quelqu'un — on ne le lui redonne pas.
     const allowed = (allowedFor(v) || ajoutes.includes(v)
-                     || (v === "gamezone" && isGzManager) || (v === "factures" && finTag))
+                     || (v === "gamezone" && isGzManager) || (v === "factures" && finTag)
+                     || (v === "prospects" && accesProsp.visi))
                     && !refuses.includes(v);
     b.classList.toggle("hidden", !allowed);
     if (allowed) { allowedSet.add(v); if (!first) first = v; }
@@ -397,6 +411,8 @@ function applyTabAccess(roles) {
   // Le menu ET le contenu n'apparaissent qu'une fois la bonne vue choisie
   // (évite le flash de la vue Répertoire par défaut avant l'aiguillage par rôle).
   // On restaure le dernier onglet vu (si toujours autorisé), sinon le 1er.
+  initProspSubtabs();
+  prospSousOnglets();
   let saved = null; try { saved = localStorage.getItem("tl-view"); } catch (_) {}
   const target = (saved && allowedSet.has(saved)) ? saved : first;
   // showView ouvre l'onglet ET lance son chargement : si quoi que ce soit y
@@ -569,7 +585,11 @@ function showView(view) {
   if (view === "inscriptions") loadInscriptions();
   // Le Suivi se relit en revenant dessus : un mail parti entre-temps a pu
   // avancer une fiche, et l'écran affichait encore l'état d'avant.
-  if (view === "prospects") { loadProspects(); if (pfSuiviOuvert()) loadProspectFollowups(); }
+  if (view === "prospects") {
+    if (accesProsp.joueurs) loadProspects();
+    if (pfSuiviOuvert()) loadProspectFollowups();
+    if (vzOuvert()) loadVisibilite();
+  }
   if (view === "heures") loadHeures();
   if (view === "factures") loadFactures();
   if (view === "winter") loadWinter();
@@ -8335,18 +8355,58 @@ let prospList = [], prospInit = false, prospSort = { key: "class", dir: "desc" }
 const ageOf = (bd) => { if (!bd) return null; const d = new Date(bd), n = new Date(); let a = n.getFullYear() - d.getFullYear(); if (n.getMonth() < d.getMonth() || (n.getMonth() === d.getMonth() && n.getDate() < d.getDate())) a--; return a; };
 const classTier = (c) => { c = (c || "").toUpperCase(); if (/^N/.test(c)) return "N"; const m = c.match(/^R([1-9])/); return m ? "R" + m[1] : ""; };
 
+// Les sous-onglets de Prospects sont câblés À PART du scouting : quelqu'un qui
+// n'a QUE la Visibilité n'appelle jamais initProspects(), et sans cette
+// séparation ses boutons de sous-onglet ne répondaient à rien.
+const PROSP_SUBS = ["liste", "suivi", "visi", "import"];
+let prospSubInit = false;
+function initProspSubtabs() {
+  if (prospSubInit) return; prospSubInit = true;
+  document.querySelectorAll(".prosp-subtab").forEach((b) => b.addEventListener("click", () => {
+    prospOuvrirSous(b.dataset.psub);
+  }));
+}
+
+function prospOuvrirSous(sub) {
+  document.querySelectorAll(".prosp-subtab").forEach((x) => x.classList.toggle("active", x.dataset.psub === sub));
+  PROSP_SUBS.forEach((s) => {
+    const el = $(s === "visi" ? "prosp-sub-visi" : "prosp-sub-" + s);
+    if (el) el.classList.toggle("hidden", s !== sub);
+  });
+  // Ne rien charger si l'onglet n'est pas à l'écran : prospSousOnglets() passe
+  // ici à l'ouverture de la console, avant même de savoir sur quel onglet on
+  // atterrit. C'est showView("prospects") qui lance les chargements.
+  if ($("view-prospects").classList.contains("hidden")) return;
+  if (sub === "suivi") loadProspectFollowups();
+  if (sub === "visi") loadVisibilite();
+}
+
+// Masque les sous-onglets non autorisés et ouvre le premier qui reste.
+function prospSousOnglets() {
+  const vu = { liste: accesProsp.joueurs, suivi: accesProsp.joueurs, import: accesProsp.joueurs, visi: accesProsp.visi };
+  let premier = null, n = 0;
+  document.querySelectorAll(".prosp-subtab").forEach((b) => {
+    const ok = !!vu[b.dataset.psub];
+    b.classList.toggle("hidden", !ok);
+    if (ok) { n++; if (!premier) premier = b.dataset.psub; }
+  });
+  // Une rangée d'un seul sous-onglet ne dit rien : on l'efface.
+  const barre = document.querySelector(".prosp-subtabs");
+  if (barre) barre.classList.toggle("hidden", n < 2);
+  // Le chapô parle des joueurs repérés en tournoi. Pour qui n'a que la
+  // Visibilité, il décrirait un écran qu'il ne voit pas.
+  if (!accesProsp.joueurs) {
+    const lead = document.querySelector("#prosp-list-wrap .crm-lead");
+    if (lead) lead.textContent = "Les organisations, les sites, les plateformes et les événements où l'académie peut gagner en visibilité.";
+  }
+  if (premier) prospOuvrirSous(premier);
+}
+
 function initProspects() {
   if (prospInit) return; prospInit = true;
   ["prosp-search", "prosp-fclass", "prosp-fage", "prosp-fstatus", "prosp-fcanton", "prosp-fsex", "prosp-fdist"].forEach((id) => $(id).addEventListener("input", renderProspRows));
   $("prosp-fupset").addEventListener("change", renderProspRows);
   $("prosp-geocode").addEventListener("click", geocodeDistances);
-  document.querySelectorAll(".prosp-subtab").forEach((b) => b.addEventListener("click", () => {
-    document.querySelectorAll(".prosp-subtab").forEach((x) => x.classList.toggle("active", x === b));
-    $("prosp-sub-liste").classList.toggle("hidden", b.dataset.psub !== "liste");
-    $("prosp-sub-import").classList.toggle("hidden", b.dataset.psub !== "import");
-    $("prosp-sub-suivi").classList.toggle("hidden", b.dataset.psub !== "suivi");
-    if (b.dataset.psub === "suivi") loadProspectFollowups();
-  }));
   document.querySelectorAll(".prosp-table th[data-sort]").forEach((th) => th.addEventListener("click", () => {
     const k = th.dataset.sort;
     if (prospSort.key === k) prospSort.dir = prospSort.dir === "asc" ? "desc" : "asc";
@@ -10181,6 +10241,527 @@ async function pfClore(id, stage) {
   await pfNoter(id, "etape", stage === "inscrit" ? "Inscrit 🎉" : `Perdu${raison ? " — " + raison : ""}`, null);
   $("pf-drawer").hidden = true;
   renderProspectFollowups();
+}
+
+// ===================================================================
+//  Prospects › Visibilité — « où peut-on parler de nous ? »
+// ===================================================================
+// Les trois autres sous-onglets suivent des JOUEURS ; celui-ci suit des
+// ORGANISATIONS : sites, annuaires, plateformes, associations, clubs, écoles,
+// commerces, médias, événements. Même grammaire visuelle que le Suivi — mêmes
+// classes .pf-*, même entonnoir, même fiche à tiroir — pour qu'on sache s'en
+// servir sans rien réapprendre. Les helpers de dates (pfToday, pfQuand…) sont
+// partagés : ce sont les mêmes notions de retard et de relance.
+// Base : db/219.
+
+const VZ_STAGES = [
+  ["a_contacter", "À contacter"],
+  ["contacte", "Contacté"],
+  ["discussion", "En discussion"],
+  ["proposition", "Proposition"],
+];
+const VZ_FINS = [["accord", "Accord 🎉"], ["refus", "Refus"], ["sans_suite", "Sans suite"]];
+const VZ_TYPES = [
+  ["site", "Site web"], ["annuaire", "Annuaire / référencement"], ["plateforme", "Plateforme"],
+  ["reseau", "Réseau social"], ["media", "Média / presse"], ["association", "Association"],
+  ["club", "Club de sport"], ["ecole", "École"], ["commerce", "Commerce local"],
+  ["entreprise", "Entreprise"], ["institution", "Institution / commune"],
+  ["evenement", "Événement"], ["autre", "Autre"],
+];
+const VZ_KINDS = [["appel", "📞 Appel"], ["mail", "✉️ Mail"], ["linkedin", "🔗 LinkedIn"],
+  ["rdv", "🤝 Rendez-vous"], ["visite", "📍 Visite"], ["proposition", "📄 Proposition"], ["note", "📝 Note"]];
+
+const vzStageLbl = (s) => (VZ_STAGES.concat(VZ_FINS).find((x) => x[0] === s) || ["", s || "—"])[1];
+const vzTypeLbl = (t) => (VZ_TYPES.find((x) => x[0] === t) || ["", t || "—"])[1];
+const vzNom = (r) => (r.org || "").trim() || `${r.first_name || ""} ${r.last_name || ""}`.trim() || "Sans nom";
+const vzContact = (r) => `${r.first_name || ""} ${r.last_name || ""}`.trim();
+// Le texte affiché d'un site : on enlève le protocole et le www, qui ne
+// servent qu'à faire déborder la colonne.
+const vzSiteTxt = (u) => (u || "").replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
+const vzHref = (u) => (/^https?:\/\//i.test(u || "") ? u : "https://" + (u || ""));
+
+let vzList = [], vzEvents = {}, vzInit = false, vzStageFiltre = "", vzVue = "liste";
+
+// L'onglet est-il réellement sous les yeux ? Sert à ne relire la base que
+// quand ça se voit.
+function vzOuvert() {
+  const v = $("view-prospects"), s = $("prosp-sub-visi");
+  return !!(v && s && !v.classList.contains("hidden") && !s.classList.contains("hidden"));
+}
+
+async function loadVisibilite() {
+  if (!vzInit) {
+    vzInit = true;
+    $("vz-filtre-type").innerHTML = '<option value="">Tous les types</option>'
+      + VZ_TYPES.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("");
+    $("vz-add").addEventListener("click", vzNouvelle);
+    $("vz-csv").addEventListener("click", vzCsv);
+    $("vz-show-done").addEventListener("change", renderVisibilite);
+    $("vz-search").addEventListener("input", renderVisibilite);
+    $("vz-filtre-type").addEventListener("change", renderVisibilite);
+    $("vz-filtre-prio").addEventListener("change", renderVisibilite);
+    $("vz-filtre-owner").addEventListener("change", renderVisibilite);
+    $("vz-close").addEventListener("click", () => { $("vz-drawer").hidden = true; });
+    $("vz-drawer").addEventListener("click", (e) => { if (e.target.id === "vz-drawer") $("vz-drawer").hidden = true; });
+    document.querySelectorAll(".vz-vue").forEach((b) => b.addEventListener("click", () => {
+      vzVue = b.dataset.vue;
+      document.querySelectorAll(".vz-vue").forEach((x) => x.classList.toggle("active", x === b));
+      renderVisibilite();
+    }));
+    // Revenir sur la console après avoir écrit un mail ailleurs : on relit.
+    // Pas pendant qu'une fiche est ouverte — on ne change pas l'écran sous
+    // les doigts de quelqu'un en train d'y écrire.
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") return;
+      if (!vzOuvert() || !$("vz-drawer").hidden) return;
+      loadVisibilite();
+    });
+  }
+  const [{ data, error }, { data: ev }] = await Promise.all([
+    sb.from("visibility_leads").select("*").order("next_action_at", { ascending: true, nullsFirst: false }),
+    sb.from("visibility_events").select("*").order("at", { ascending: false }),
+  ]);
+  if (error) { $("vz-rows").innerHTML = `<tr><td colspan="7" class="muted">Erreur : ${esc(error.message)}</td></tr>`; return; }
+  vzList = data || [];
+  vzEvents = {};
+  (ev || []).forEach((e) => { (vzEvents[e.lead_id] || (vzEvents[e.lead_id] = [])).push(e); });
+  renderVisibilite();
+}
+
+// Les fiches visibles, une fois la recherche et les filtres appliqués.
+function vzVisibles() {
+  const q = $("vz-search").value.trim().toLowerCase();
+  const typ = $("vz-filtre-type").value, prio = $("vz-filtre-prio").value, own = $("vz-filtre-owner").value;
+  const arch = $("vz-show-done").checked;
+  return vzList.filter((r) => {
+    if (!arch && r.done) return false;
+    if (typ && r.kind !== typ) return false;
+    if (prio && r.priorite !== prio) return false;
+    if (own && (r.owner || "") !== own) return false;
+    if (q && ![r.org, r.first_name, r.last_name, r.fonction, r.email, r.phone, r.website,
+      r.location, r.owner, r.opportunite, r.proposition, r.next_action]
+      .some((v) => (v || "").toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+function renderVisibilite() {
+  const today = pfToday();
+  const actifs = vzList.filter((r) => !r.done);
+
+  // Le filtre « qui s'en occupe » se construit sur les noms réellement saisis :
+  // une liste figée d'Arsalan et Céline serait fausse dès la première
+  // personne qui reprend une piste.
+  const sel = $("vz-filtre-owner"), garde = sel.value;
+  const gens = [...new Set(vzList.map((r) => (r.owner || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"));
+  sel.innerHTML = '<option value="">Tout le monde</option>'
+    + gens.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join("");
+  sel.value = gens.includes(garde) ? garde : "";   // pretty-select n'applique pas la valeur seul
+
+  const rows = vzVisibles();
+  $("vz-empty").hidden = vzList.length > 0;
+
+  // --- l'entonnoir ---
+  $("vz-funnel").innerHTML = VZ_STAGES.map(([k, lbl]) => {
+    const n = actifs.filter((r) => r.stage === k).length;
+    const retard = actifs.filter((r) => r.stage === k && r.next_action_at && r.next_action_at < today).length;
+    return `<button type="button" class="pf-fstep${vzStageFiltre === k ? " on" : ""}${n ? "" : " vide"}" data-stage="${k}">
+      <b>${n}</b><span>${esc(lbl)}</span>${retard ? `<em>${retard} en retard</em>` : ""}</button>`;
+  }).join("");
+  $("vz-funnel").querySelectorAll(".pf-fstep").forEach((b) => b.addEventListener("click", () => {
+    vzStageFiltre = vzStageFiltre === b.dataset.stage ? "" : b.dataset.stage;
+    renderVisibilite();
+  }));
+
+  // --- la file de relance : en retard, aujourd'hui, puis les 7 jours ---
+  const aRelancer = actifs
+    .filter((r) => !["accord", "refus", "sans_suite"].includes(r.stage) && r.next_action_at && r.next_action_at <= pfPlus(7))
+    .sort((a, b) => a.next_action_at.localeCompare(b.next_action_at));
+  $("vz-queue").innerHTML = aRelancer.length ? `
+    <div class="pf-qhead"><h3>À faire</h3>
+      <span>${aRelancer.filter((r) => r.next_action_at < today).length} en retard · ${aRelancer.length} d'ici 7 jours</span></div>
+    <div class="pf-qlist">${aRelancer.map((r) => {
+      const cls = r.next_action_at < today ? "retard" : r.next_action_at === today ? "auj" : "";
+      return `<div class="pf-qrow ${cls}" data-id="${r.id}">
+        <span class="qn">${esc(vzNom(r))}</span>
+        <span class="qa">${esc(r.next_action || "À relancer")}${r.owner ? ` <i class="qlast">· ${esc(r.owner)}</i>` : ""}</span>
+        <span class="qd">${esc(vzRelanceTxt(r).replace("⚠️ ", ""))}</span>
+        <span class="pf-qacts">
+          ${r.phone ? `<a class="ghost" href="tel:${esc(r.phone)}" title="Appeler">📞</a>` : ""}
+          ${r.email ? `<a class="ghost" href="mailto:${esc(r.email)}" title="Écrire">✉️</a>` : ""}
+          <button type="button" class="ghost vz-q-open" title="Ouvrir la fiche">Ouvrir</button>
+        </span></div>`;
+    }).join("")}</div>` : "";
+  $("vz-queue").querySelectorAll(".vz-q-open").forEach((b) => b.addEventListener("click", () =>
+    vzOuvrir(b.closest(".pf-qrow").dataset.id)));
+
+  // --- liste ou entonnoir -------------------------------------------------
+  // La liste est la vue par défaut : c'est celle qu'on parcourt ligne à ligne
+  // en réunion d'équipe. L'entonnoir sert à voir la forme du portefeuille.
+  const liste = vzVue === "liste";
+  $("vz-liste-wrap").hidden = !liste;
+  $("vz-board").hidden = liste;
+  if (liste) vzRenderListe(rows, today); else vzRenderBoard(rows);
+}
+
+function vzRelanceTxt(r) {
+  if (["accord", "refus", "sans_suite"].includes(r.stage)) return vzStageLbl(r.stage);
+  if (!r.next_action_at) return "Rien de prévu";
+  const j = pfEcart(r.next_action_at);
+  if (j < 0) return `⚠️ En retard de ${pfDuree(r.next_action_at)}`;
+  if (j === 0) return "Aujourd'hui";
+  return pfQuand(r.next_action_at);
+}
+
+function vzRenderListe(rows, today) {
+  const vus = vzStageFiltre ? rows.filter((r) => r.stage === vzStageFiltre) : rows;
+  // Les plus urgentes en haut, les closes en bas : la ligne du haut est
+  // toujours celle qu'il faut traiter.
+  const rang = (r) => (["accord", "refus", "sans_suite"].includes(r.stage) ? 2 : r.next_action_at ? 0 : 1);
+  const tri = vus.slice().sort((a, b) =>
+    rang(a) - rang(b) || (a.next_action_at || "9999").localeCompare(b.next_action_at || "9999")
+    || vzNom(a).localeCompare(vzNom(b), "fr"));
+  $("vz-rows").innerHTML = tri.length ? tri.map((r) => {
+    const retard = r.next_action_at && r.next_action_at < today && !["accord", "refus", "sans_suite"].includes(r.stage);
+    const argent = r.montant != null ? Number(r.montant).toLocaleString("fr-CH") + ".–" : "";
+    return `<tr class="vz-row${retard ? " pf-due" : ""}" data-id="${r.id}">
+      <td>
+        <b>${esc(vzNom(r))}</b>${r.done ? ' <span class="pf-chip">archivé</span>' : ""}
+        ${r.website ? `<br><a href="${esc(vzHref(r.website))}" target="_blank" rel="noopener" class="vz-site">${esc(vzSiteTxt(r.website))}</a>` : ""}
+        ${r.location ? `<br><i class="vz-sub">${esc(r.location)}</i>` : ""}
+      </td>
+      <td><span class="pf-chip">${esc(vzTypeLbl(r.kind))}</span></td>
+      <td>
+        ${vzContact(r) ? `${esc(vzContact(r))}${r.fonction ? `<br><i class="vz-sub">${esc(r.fonction)}</i>` : ""}` : '<i class="vz-sub">—</i>'}
+        ${r.email ? `<br><a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : ""}
+        ${r.phone ? `<br><a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>` : ""}
+      </td>
+      <td>
+        <b>${esc(vzStageLbl(r.stage))}</b>
+        ${r.proposition ? `<br><i class="vz-sub">${esc(r.proposition.slice(0, 90))}${r.proposition.length > 90 ? "…" : ""}</i>` : ""}
+        ${argent ? `<br><b class="vz-sub">${esc(argent)}</b>` : ""}
+        <br><i class="vz-sub">${(vzEvents[r.id] || []).length} échange(s)${r.last_contact ? ` · ${esc(pfQuand(r.last_contact))}` : ""}</i>
+      </td>
+      <td class="${retard ? "vz-retard" : ""}">
+        <b>${esc(vzRelanceTxt(r))}</b>
+        ${r.next_action ? `<br><i class="vz-sub">${esc(r.next_action)}</i>` : ""}
+      </td>
+      <td>${esc(r.owner || "—")}</td>
+      <td style="text-align:right;white-space:nowrap">
+        <span class="pf-prio" title="${esc((PF_PRIO.find((p) => p[0] === r.priorite) || [])[2] || "")}">${pfPrioIcon(r.priorite)}</span>
+        <button type="button" class="ghost vz-open">Ouvrir</button>
+      </td></tr>`;
+  }).join("") : '<tr><td colspan="7" class="muted">Aucune piste ne correspond aux filtres.</td></tr>';
+  $("vz-rows").querySelectorAll(".vz-open").forEach((b) => b.addEventListener("click", () =>
+    vzOuvrir(b.closest(".vz-row").dataset.id)));
+}
+
+function vzRenderBoard(rows) {
+  const etapes = VZ_STAGES.concat(VZ_FINS);
+  const visibles = vzStageFiltre ? etapes.filter((e) => e[0] === vzStageFiltre) : etapes;
+  $("vz-board").innerHTML = visibles.map(([k, lbl]) => {
+    const cartes = rows.filter((r) => r.stage === k);
+    return `<div class="pf-col" data-stage="${k}"><h4>${esc(lbl)} <i>${cartes.length}</i></h4>
+      <div class="pf-cards">${cartes.map(vzCarte).join("") ||
+        '<p class="muted" style="margin:4px;font-size:.8rem">—</p>'}</div></div>`;
+  }).join("");
+  vzBrancherGlisser();
+}
+
+function vzCarte(r) {
+  const today = pfToday();
+  const retard = r.next_action_at && r.next_action_at < today;
+  const auj = r.next_action_at === today;
+  const meta = [vzContact(r), r.location].filter(Boolean).join(" · ");
+  return `<button type="button" class="pf-card${retard ? " retard" : ""}" data-id="${r.id}">
+    <span class="pf-cn"><span class="pf-prio">${pfPrioIcon(r.priorite)}</span>${esc(vzNom(r))}</span>
+    ${meta ? `<p class="pf-cmeta">${esc(meta)}</p>` : ""}
+    <span class="pf-chips">
+      <span class="pf-chip">${esc(vzTypeLbl(r.kind))}</span>
+      ${r.owner ? `<span class="pf-chip src">${esc(r.owner)}</span>` : ""}
+      ${r.montant != null ? `<span class="pf-chip prog">${esc(Number(r.montant).toLocaleString("fr-CH"))}.–</span>` : ""}
+    </span>
+    <span class="pf-cnext ${retard ? "retard" : auj ? "auj" : r.next_action_at ? "" : "calme"}">
+      <b>${esc(vzRelanceTxt(r))}</b>${r.next_action ? ` — ${esc(r.next_action)}` : ""}
+    </span>
+    <span class="pf-clast">${r.last_contact ? "Dernier échange " + esc(pfQuand(r.last_contact)) : "Pas encore de contact"}</span></button>`;
+}
+
+let vzGlisse = null;
+function vzBrancherGlisser() {
+  const B = $("vz-board");
+  B.querySelectorAll(".pf-card").forEach((c) => {
+    c.setAttribute("draggable", "true");
+    c.addEventListener("click", () => { if (!vzGlisse) vzOuvrir(c.dataset.id); });
+    c.addEventListener("dragstart", (e) => {
+      vzGlisse = c.dataset.id;
+      c.classList.add("porte");
+      if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", c.dataset.id); }
+    });
+    c.addEventListener("dragend", () => {
+      c.classList.remove("porte");
+      setTimeout(() => { vzGlisse = null; }, 60);   // laisser passer le clic de fin de glisser
+    });
+  });
+  B.querySelectorAll(".pf-col").forEach((col) => {
+    col.addEventListener("dragover", (e) => { e.preventDefault(); col.classList.add("survol"); });
+    col.addEventListener("dragleave", () => col.classList.remove("survol"));
+    col.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      col.classList.remove("survol");
+      const id = vzGlisse || (e.dataTransfer && e.dataTransfer.getData("text/plain"));
+      const vers = col.dataset.stage;
+      const r = vzList.find((x) => x.id === id);
+      if (!r || !vers || r.stage === vers) return;
+      const patch = { stage: vers, stage_changed_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      if (["accord", "refus", "sans_suite"].includes(vers)) { patch.next_action_at = null; patch.next_action = null; }
+      const { error } = await sb.from("visibility_leads").update(patch).eq("id", id);
+      if (error) { uiAlert("Déplacement impossible : " + error.message); return; }
+      Object.assign(r, patch);
+      await vzNoter(id, "etape", `Étape : ${vzStageLbl(vers)}`, null);
+    });
+  });
+}
+
+async function vzNouvelle() {
+  const { data: sess } = await sb.auth.getSession();
+  // Le prénom de qui crée la piste part comme propriétaire : c'est presque
+  // toujours la bonne réponse, et ça évite une colonne « Qui » vide partout.
+  const moi = meName && !meName.includes("@") ? meName.split(" ")[0] : "";
+  const { data, error } = await sb.from("visibility_leads").insert({
+    created_by: sess && sess.session ? sess.session.user.id : null,
+    stage: "a_contacter", priorite: "tiede", kind: "autre", owner: moi || null,
+    next_action: "Trouver le bon contact", next_action_at: pfPlus(7),
+  }).select().single();
+  if (error) { uiAlert(error.message); return; }
+  vzList.unshift(data);
+  renderVisibilite();
+  vzOuvrir(data.id);
+}
+
+// ---- la fiche -------------------------------------------------------------
+function vzOuvrir(id) {
+  const r = vzList.find((x) => x.id === id); if (!r) return;
+  const ev = vzEvents[id] || [];
+  const champ = (k, lbl, type, large, ph) => `<div${large ? ' class="wide"' : ""}><label>${lbl}</label>
+    <input data-k="${k}" type="${type || "text"}" value="${esc(r[k] == null ? "" : r[k])}"${ph ? ` placeholder="${esc(ph)}"` : ""} /></div>`;
+  const zone = (k, lbl, ph) => `<div class="wide"><label>${lbl}</label>
+    <textarea data-k="${k}" rows="3"${ph ? ` placeholder="${esc(ph)}"` : ""}>${esc(r[k] || "")}</textarea></div>`;
+  const choix = (k, lbl, opts, large) => `<div${large ? ' class="wide"' : ""}><label>${lbl}</label>
+    <select data-k="${k}">${opts.map((o) => {
+      const v = Array.isArray(o) ? o[0] : o, t = Array.isArray(o) ? o[1] : o;
+      return `<option value="${esc(v)}"${r[k] === v ? " selected" : ""}>${esc(t)}</option>`;
+    }).join("")}</select></div>`;
+
+  $("vz-fiche").innerHTML = `
+    <h2 class="pf-fh">${esc(vzNom(r))}</h2>
+    <p class="pf-fsub">${esc(vzTypeLbl(r.kind))} · ${esc(vzStageLbl(r.stage))}${r.last_contact ? ` · dernier échange ${pfQuand(r.last_contact)}` : ""}</p>
+    ${r.website ? `<p style="margin:-10px 0 16px"><a href="${esc(vzHref(r.website))}" target="_blank" rel="noopener">${esc(vzSiteTxt(r.website))} ↗</a></p>` : ""}
+
+    <p class="pf-sec">Prochaine action</p>
+    <div class="pf-grid">
+      <div class="wide"><label>Quoi</label><input data-k="next_action" value="${esc(r.next_action || "")}" placeholder="ex. envoyer la plaquette de présentation" /></div>
+      <div><label>Quand</label><input data-k="next_action_at" type="date" value="${r.next_action_at || ""}" /></div>
+      <div><label>Priorité</label><select data-k="priorite">${PF_PRIO.map(([k, i, l]) =>
+        `<option value="${k}"${r.priorite === k ? " selected" : ""}>${i} ${l}</option>`).join("")}</select></div>
+    </div>
+
+    <p class="pf-sec">Où ça en est</p>
+    <div class="pf-grid">
+      ${choix("stage", "Étape", VZ_STAGES.concat(VZ_FINS))}
+      ${champ("owner", "Qui s'en occupe", "text", false, "Prénom")}
+      ${zone("proposition", "Ce qui a été proposé / l'accord", "ex. logo sur leur site en échange de deux cours offerts")}
+      ${champ("montant", "Montant (CHF)", "number")}
+      <div><label>Dernier échange</label><input data-k="last_contact" type="date" value="${r.last_contact || ""}" /></div>
+    </div>
+
+    <p class="pf-sec">L'organisation</p>
+    <div class="pf-grid">
+      ${champ("org", "Nom", "text", true)}
+      ${choix("kind", "Type", VZ_TYPES)}
+      ${champ("location", "Ville / région")}
+      ${champ("website", "Site web", "text", true, "exemple.ch")}
+      ${zone("opportunite", "Ce qu'on pourrait y faire", "ex. être listés dans leur annuaire des clubs, un stand à leur fête de quartier…")}
+    </div>
+
+    <p class="pf-sec">Le contact</p>
+    <div class="pf-grid">
+      ${champ("first_name", "Prénom")}${champ("last_name", "Nom")}
+      ${champ("fonction", "Fonction", "text", true, "ex. responsable communication")}
+      ${champ("email", "E-mail", "email")}${champ("phone", "Téléphone")}
+    </div>
+
+    <p class="pf-sec">Noter un échange</p>
+    <div class="pf-log">${VZ_KINDS.map(([k, l]) =>
+      `<button type="button" class="ghost vz-logbtn" data-kind="${k}">${l}</button>`).join("")}</div>
+
+    <p class="pf-sec">Historique (${ev.length})</p>
+    <ul class="pf-tl">${ev.length ? ev.map((e) => {
+      const kind = (VZ_KINDS.find((x) => x[0] === e.kind) || ["", e.kind])[1];
+      return `<li><span class="tk">${esc(kind)}</span><span class="td">${esc(frDate(String(e.at).slice(0, 10)))}</span>
+        ${e.note ? `<p>${esc(e.note)}</p>` : ""}</li>`;
+    }).join("") : '<li><p class="muted">Rien de noté pour l\'instant.</p></li>'}</ul>
+
+    <p class="pf-sec" style="margin-top:22px">Clore</p>
+    <div class="pf-log">
+      <button type="button" class="ghost" id="vz-gagne">🎉 Accord</button>
+      <button type="button" class="ghost" id="vz-refus">Refus</button>
+      <button type="button" class="ghost" id="vz-sanssuite">Sans suite</button>
+      <button type="button" class="ghost" id="vz-arch">${r.done ? "Réactiver" : "Archiver"}</button>
+      <button type="button" class="ghost" id="vz-del">Supprimer</button>
+    </div>`;
+
+  $("vz-drawer").hidden = false;
+
+  // Chaque champ s'enregistre en sortant.
+  $("vz-fiche").querySelectorAll("[data-k]").forEach((el) => el.addEventListener("change", async () => {
+    const k = el.dataset.k;
+    let v = el.value.trim() === "" ? null : el.value.trim();
+    if (k === "montant" && v != null) {
+      const n = Number(v.replace(",", "."));
+      if (!isFinite(n)) { uiAlert("Montant : il faut un nombre."); el.value = r.montant == null ? "" : r.montant; return; }
+      v = n;
+    }
+    const patch = { [k]: v, updated_at: new Date().toISOString() };
+    if (k === "stage") {
+      patch.stage_changed_at = new Date().toISOString();
+      await vzNoter(id, "etape", `Étape : ${vzStageLbl(v)}`, null);
+    }
+    const { error } = await sb.from("visibility_leads").update(patch).eq("id", id);
+    if (error) { uiAlert("Enregistrement impossible : " + error.message); return; }
+    Object.assign(r, patch);
+    renderVisibilite();
+    if (["stage", "kind", "org", "website", "first_name", "last_name"].includes(k)) vzOuvrir(id);
+  }));
+
+  $("vz-fiche").querySelectorAll(".vz-logbtn").forEach((b) => b.addEventListener("click", () => vzDemanderNote(id, b.dataset.kind)));
+  $("vz-gagne").addEventListener("click", () => vzClore(id, "accord"));
+  $("vz-refus").addEventListener("click", () => vzClore(id, "refus"));
+  $("vz-sanssuite").addEventListener("click", () => vzClore(id, "sans_suite"));
+  $("vz-arch").addEventListener("click", async () => {
+    const { error } = await sb.from("visibility_leads").update({ done: !r.done, updated_at: new Date().toISOString() }).eq("id", id);
+    if (error) { uiAlert(error.message); return; }
+    r.done = !r.done; renderVisibilite(); vzOuvrir(id);
+  });
+  $("vz-del").addEventListener("click", async () => {
+    if (!(await uiConfirm(`Supprimer « ${vzNom(r)} » ? Définitif — l'historique part avec.`))) return;
+    const { error } = await sb.from("visibility_leads").delete().eq("id", id);
+    if (error) { uiAlert(error.message); return; }
+    vzList = vzList.filter((x) => x.id !== id);
+    $("vz-drawer").hidden = true; renderVisibilite();
+  });
+}
+
+// Noter un échange : ce qui a été dit, et quand on reprend contact. Les deux
+// vont ensemble — c'est l'oubli de la seconde moitié qui fait qu'une piste
+// retombe dans l'oubli.
+function vzDemanderNote(id, kind) {
+  const r = vzList.find((x) => x.id === id); if (!r) return;
+  const lbl = (VZ_KINDS.find((x) => x[0] === kind) || ["", kind])[1];
+  const ov = document.createElement("div");
+  ov.className = "ui-modal";
+  ov.innerHTML = `<div class="ui-box" style="max-width:460px">
+    <h3 style="margin:0 0 10px">${esc(lbl)} — ${esc(vzNom(r))}</h3>
+    <label style="display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px">Ce qui s'est dit</label>
+    <textarea id="vzn-note" rows="4" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit"></textarea>
+    <label style="display:block;font-size:.8rem;color:var(--muted);margin:12px 0 4px">On reprend contact</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      ${[["3 jours", 3], ["1 semaine", 7], ["2 semaines", 14], ["1 mois", 30], ["3 mois", 90]].map(([l, n]) =>
+        `<button type="button" class="ghost vzn-d" data-j="${n}">${l}</button>`).join("")}
+      <button type="button" class="ghost vzn-d" data-j="">Rien de prévu</button>
+    </div>
+    <input id="vzn-date" type="date" value="${pfPlus(7)}" style="padding:7px;border:1px solid var(--line);border-radius:8px;font:inherit" />
+    <input id="vzn-quoi" placeholder="Prochaine action (ex. rappeler pour la proposition)" style="width:100%;margin-top:8px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font:inherit" value="${esc(r.next_action || "")}" />
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button type="button" class="ghost" id="vzn-x">Annuler</button>
+      <button type="button" id="vzn-ok">Enregistrer</button>
+    </div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll(".vzn-d").forEach((b) => b.addEventListener("click", () => {
+    $("vzn-date").value = b.dataset.j === "" ? "" : pfPlus(Number(b.dataset.j));
+  }));
+  const fermer = () => ov.remove();
+  ov.querySelector("#vzn-x").addEventListener("click", fermer);
+  ov.querySelector("#vzn-ok").addEventListener("click", async () => {
+    // Noter un échange fait forcément avancer une piste « à contacter ».
+    const patch = {
+      next_action_at: $("vzn-date").value || null,
+      next_action: $("vzn-quoi").value.trim() || null,
+      last_contact: pfToday(),
+    };
+    if (r.stage === "a_contacter" && kind !== "note") {
+      patch.stage = "contacte"; patch.stage_changed_at = new Date().toISOString();
+    }
+    await vzNoter(id, kind, $("vzn-note").value.trim() || null, patch);
+    fermer(); vzOuvrir(id);
+  });
+  setTimeout(() => { const t = $("vzn-note"); if (t) t.focus(); }, 30);
+}
+
+// Écrit une ligne d'historique, et met la fiche à jour si on lui passe un patch.
+async function vzNoter(id, kind, note, patch) {
+  const { data: sess } = await sb.auth.getSession();
+  const { error } = await sb.from("visibility_events").insert({
+    lead_id: id, kind, note,
+    created_by: sess && sess.session ? sess.session.user.id : null,
+  });
+  if (error) { uiAlert("Note non enregistrée : " + error.message); return; }
+  if (patch) {
+    const p = Object.assign({ updated_at: new Date().toISOString() }, patch);
+    const { error: e2 } = await sb.from("visibility_leads").update(p).eq("id", id);
+    if (e2) { uiAlert("Fiche non mise à jour : " + e2.message); return; }
+    const r = vzList.find((x) => x.id === id); if (r) Object.assign(r, p);
+  }
+  const { data: ev } = await sb.from("visibility_events").select("*").eq("lead_id", id).order("at", { ascending: false });
+  vzEvents[id] = ev || [];
+  renderVisibilite();
+}
+
+async function vzClore(id, stage) {
+  const r = vzList.find((x) => x.id === id); if (!r) return;
+  let mot = null;
+  if (stage === "accord") {
+    mot = await uiPrompt("Qu'est-ce qui a été conclu ?", r.proposition || "");
+    if (mot === null) return;
+  } else {
+    mot = await uiPrompt("Pourquoi ça ne s'est pas fait ?", "");
+    if (mot === null) return;
+  }
+  const patch = {
+    stage, stage_changed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    next_action_at: null, next_action: null, last_contact: pfToday(),
+  };
+  if (stage === "accord" && mot) patch.proposition = mot;
+  const { error } = await sb.from("visibility_leads").update(patch).eq("id", id);
+  if (error) { uiAlert(error.message); return; }
+  Object.assign(r, patch);
+  await vzNoter(id, "etape", `${vzStageLbl(stage)}${mot ? " — " + mot : ""}`, null);
+  $("vz-drawer").hidden = true;
+  renderVisibilite();
+}
+
+// L'export sert à la réunion d'équipe : la liste telle qu'elle est filtrée,
+// avec le dernier échange noté — c'est lui qui dit si ça avance.
+function vzCsv() {
+  const rows = vzVisibles();
+  const lignes = [["Organisation", "Type", "Site", "Ville", "Contact", "Fonction", "E-mail", "Téléphone",
+    "Étape", "Priorité", "Qui", "Opportunité", "Proposition", "Montant",
+    "Prochaine action", "Pour le", "Dernier échange", "Nb échanges", "Dernière note"]];
+  rows.forEach((r) => {
+    const ev = (vzEvents[r.id] || [])[0];
+    lignes.push([vzNom(r), vzTypeLbl(r.kind), r.website || "", r.location || "",
+      vzContact(r), r.fonction || "", r.email || "", r.phone || "",
+      vzStageLbl(r.stage), (PF_PRIO.find((p) => p[0] === r.priorite) || ["", "", ""])[2],
+      r.owner || "", r.opportunite || "", r.proposition || "", r.montant == null ? "" : r.montant,
+      r.next_action || "", r.next_action_at || "", r.last_contact || "",
+      (vzEvents[r.id] || []).length, ev && ev.note ? ev.note : ""]);
+  });
+  const csv = lignes.map((l) => l.map((v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`).join(";")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `visibilite-${pfToday()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 // Bloc Dashboard « Prospects » : alertes échues / à venir (7 j) + les deux mises à jour d'import liées aux prospects.

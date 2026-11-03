@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=382" />
+  <link rel="stylesheet" href="style.css?v=383" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -365,8 +365,58 @@
           <div class="prosp-subtabs">
             <button type="button" class="prosp-subtab active" data-psub="liste">Liste</button>
             <button type="button" class="prosp-subtab" data-psub="suivi">Suivi</button>
+            <button type="button" class="prosp-subtab" data-psub="visi">Visibilité</button>
             <button type="button" class="prosp-subtab" data-psub="import">Import / outils</button>
           </div>
+
+          <!-- ---- Visibilité : prospection « où peut-on parler de nous ? » ----
+               Les autres sous-onglets suivent des JOUEURS ; celui-ci suit des
+               ORGANISATIONS. Même grammaire visuelle que le Suivi (classes
+               .pf-*) pour qu'on sache s'en servir sans rien réapprendre. -->
+          <div id="prosp-sub-visi" class="hidden">
+            <p class="muted" style="margin:-6px 0 14px">Tous les endroits où l'académie pourrait gagner en visibilité : sites, annuaires, plateformes, associations, clubs, écoles, commerces, médias, événements. Une fiche par organisation, son contact, et l'historique complet des échanges.</p>
+
+            <div class="pf-funnel vz-funnel" id="vz-funnel"></div>
+            <section class="pf-queue" id="vz-queue"></section>
+
+            <div class="pf-tools">
+              <button type="button" id="vz-add">➕ Nouvelle piste</button>
+              <input id="vz-search" placeholder="Rechercher une organisation, un contact, une note…" />
+              <select id="vz-filtre-type" aria-label="Filtrer par type"></select>
+              <select id="vz-filtre-prio" aria-label="Filtrer par priorité">
+                <option value="">Toutes les priorités</option>
+                <option value="chaud">🔥 Chaud</option>
+                <option value="tiede">Tiède</option>
+                <option value="froid">❄ Froid</option>
+              </select>
+              <select id="vz-filtre-owner" aria-label="Qui s'en occupe"></select>
+              <label class="check" style="margin:0"><input type="checkbox" id="vz-show-done" /> Archivés</label>
+              <span class="pf-vues">
+                <button type="button" class="pf-vue vz-vue active" data-vue="liste">Liste</button>
+                <button type="button" class="pf-vue vz-vue" data-vue="board">Entonnoir</button>
+              </span>
+              <button type="button" class="ghost" id="vz-csv" title="Télécharger la liste affichée">⬇ CSV</button>
+            </div>
+
+            <div class="table-wrap" id="vz-liste-wrap">
+              <table class="crm-table vz-table">
+                <thead><tr>
+                  <th>Organisation</th><th>Type</th><th>Contact</th><th>Où ça en est</th>
+                  <th>Prochaine action</th><th>Qui</th><th></th>
+                </tr></thead>
+                <tbody id="vz-rows"></tbody>
+              </table>
+            </div>
+            <div class="pf-board" id="vz-board" hidden></div>
+            <p id="vz-empty" class="muted" hidden>Aucune piste pour l'instant. Clique « Nouvelle piste ».</p>
+
+            <div id="vz-drawer" class="pf-drawer" hidden>
+              <div class="pf-drawer-in" role="dialog" aria-label="Fiche visibilité">
+                <button type="button" class="pf-close" id="vz-close" aria-label="Fermer">✕</button>
+                <div id="vz-fiche"></div>
+              </div>
+            </div>
+          </div><!-- /prosp-sub-visi -->
           <div id="prosp-sub-suivi" class="hidden">
             <!-- L'entonnoir : combien de familles à chaque étape, et combien
                  sont en retard. Cliquer une étape filtre le tableau en dessous. -->

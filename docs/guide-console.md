@@ -46,7 +46,7 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | Répertoire | Les fiches des personnes | admin, secrétariat |
 | Inscriptions | Demandes venues du formulaire public | admin, secrétariat |
 | Accès Mon espace | Inviter les familles dans l'app | admin |
-| Prospects | Joueurs repérés, hors académie | admin |
+| Prospects | Joueurs repérés hors académie, et la prospection visibilité | admin, head coach ; sous-onglet Visibilité aussi pour le secrétariat |
 | Accueil espace privé | Messages affichés dans Mon espace | admin, secrétariat |
 | Messagerie | La boîte info@ | admin, secrétariat |
 | Newsletter | Envois groupés | admin, secrétariat |
@@ -732,9 +732,10 @@ répondra qu'elle ne sait pas, et la question remontera dans
 
 - **Dashboard** — vue d'ensemble du jour. « ↻ Actualiser ».
 - **Inscriptions** — les demandes venues du formulaire public du site.
-- **Prospects** — joueurs repérés hors académie. Sous-onglets « Liste »
-  (détection par classement et résultats), « Import / outils », et
-  **« Suivi »**, décrit au chapitre suivant.
+- **Prospects** — quatre sous-onglets. « Liste » (détection des joueurs par
+  classement et résultats) et « Import / outils » ; **« Suivi »** (les
+  familles qui se sont manifestées) et **« Visibilité »** (les organisations
+  où l'on pourrait parler de nous), décrits aux deux chapitres suivants.
 - **Accueil espace privé** — messages affichés dans Mon espace, par saison et
   par filière. « + Nouveau message ». Une ligne « @saison Saison —
   description » s'affiche avec l'icône de l'onglet correspondant.
@@ -977,7 +978,108 @@ l'adresse e-mail, exactement.
 
 ---
 
-## 16. Ce que la console fait toute seule
+## 16. Prospects › Visibilité
+
+### Ce que c'est
+
+La liste de tous les endroits où l'académie pourrait **gagner en
+visibilité** : sites web, annuaires, plateformes, réseaux sociaux, médias,
+associations, clubs, écoles, commerces du quartier, entreprises, communes,
+événements. Une fiche par organisation, avec son contact et l'historique
+complet des échanges.
+
+C'est le seul sous-onglet de Prospects qui ne parle **pas de joueurs** : les
+autres suivent des enfants repérés en tournoi, celui-ci suit des
+organisations.
+
+**Qui y accède** : admin, superadmin, head coach et **le secrétariat**.
+Quelqu'un qui n'a que la Visibilité n'y voit que ce sous-onglet — la
+détection des joueurs lui reste fermée.
+
+### Lire l'écran, de haut en bas
+
+1. **L'entonnoir** — quatre cases : À contacter, Contacté, En discussion,
+   Proposition. Chacune donne le nombre de pistes et, en rouge, combien sont
+   **en retard**. Cliquer une case n'affiche que cette étape ; cliquer à
+   nouveau enlève le filtre.
+2. **« À faire »** — les retards d'abord, puis aujourd'hui, puis les sept
+   jours qui viennent. **Si ce bloc est vide, rien ne traîne.** Chaque ligne
+   porte le téléphone et l'e-mail du contact, cliquables directement.
+3. **La liste** — une ligne par organisation : le site, la ville, le contact,
+   où ça en est, la prochaine action et qui s'en occupe. Les plus urgentes
+   sont en haut, les closes en bas. C'est la vue à parcourir en réunion.
+
+Le bouton **Liste / Entonnoir** change la disposition. En entonnoir, **pour
+faire avancer une piste, attrapez sa carte et déposez-la dans une autre
+colonne** ; le déplacement est noté dans son historique. Au doigt, passez par
+« Étape » dans la fiche, qui fait la même chose.
+
+### Ajouter une piste
+
+**« ➕ Nouvelle piste »** crée une fiche vide et l'ouvre. Elle part à « À
+contacter », avec « Trouver le bon contact » dans une semaine, et votre
+prénom dans « Qui s'en occupe ». Remplissez au moins le **nom de
+l'organisation** : c'est lui qui s'affiche partout.
+
+Rien d'autre n'est obligatoire. Une piste trouvée un soir sans le moindre
+contact a sa place dans la liste — c'est justement ce qu'il faudra chercher.
+
+### Noter un échange — la bonne façon
+
+Sous **« Noter un échange »**, choisir Appel, Mail, LinkedIn, Rendez-vous,
+Visite, Proposition ou Note. Une fenêtre demande deux choses :
+
+1. **Ce qui s'est dit.**
+2. **Quand on reprend contact** — 3 jours, 1 semaine, 2 semaines, 1 mois,
+   3 mois, une date au choix, ou « Rien de prévu ».
+
+Les deux vont ensemble, et c'est tout l'intérêt : noter sans fixer la suite,
+c'est ainsi qu'une piste s'éteint. La date du dernier échange se met à jour
+toute seule, et une piste encore « À contacter » passe à « Contacté ».
+
+### Les champs de la fiche
+
+- **Prochaine action** : quoi, quand, et la priorité (🔥 chaud, tiède, ❄ froid).
+- **Où ça en est** : étape, qui s'en occupe, **ce qui a été proposé ou
+  l'accord conclu**, le montant s'il y en a un, la date du dernier échange.
+- **L'organisation** : nom, type, ville, site web, et **ce qu'on pourrait y
+  faire** — la ligne qui dit pourquoi cette piste est dans la liste.
+- **Le contact** : prénom, nom, fonction, e-mail, téléphone.
+- **Historique** : tous les échanges, du plus récent au plus ancien. Rien ne
+  s'efface.
+
+### Clore
+
+**« 🎉 Accord »** (qui demande ce qui a été conclu), **« Refus »** ou
+**« Sans suite »** (qui demandent pourquoi — c'est ce qui permet de savoir,
+après quelques mois, ce qui ne prend pas). La fiche sort de l'entonnoir et
+cesse de réclamer des relances. **« Archiver »** met simplement de côté ; la
+case « Archivés » les réaffiche.
+
+### Pour la réunion d'équipe
+
+- Les filtres **type**, **priorité** et **qui s'en occupe** permettent de ne
+  voir que la part d'une personne. La liste « qui s'en occupe » se construit
+  sur les prénoms réellement saisis.
+- **« ⬇ CSV »** télécharge la liste **telle qu'elle est filtrée**, avec la
+  dernière note de chaque piste — de quoi dérouler le point hebdomadaire sans
+  être devant la console.
+
+### Bon à savoir
+
+- Tout s'enregistre en sortant d'un champ ; il n'y a pas de bouton
+  « Enregistrer ».
+- L'écran **se relit tout seul** quand vous y revenez. Exception : tant
+  qu'une **fiche est ouverte**, rien ne bouge.
+- Contrairement au Suivi des familles, **les mails ne se rangent pas tout
+  seuls** ici : la messagerie info@ rapproche les adresses des fiches de
+  personnes, pas celles des organisations. Ce qui s'est dit, on le note.
+- Rien de cet écran n'apparaît dans le Dashboard : c'est une liste qu'on
+  regarde en réunion, pas une alerte du jour.
+
+---
+
+## 17. Ce que la console fait toute seule
 
 - **L'appel d'un cours** s'ouvre 25 minutes avant le début.
 - **Le nombre de courts** suit la saison.
@@ -991,7 +1093,7 @@ l'adresse e-mail, exactement.
 
 ---
 
-## 17. Questions fréquentes
+## 18. Questions fréquentes
 
 **Je ne vois pas un onglet dont on me parle.**
 C'est le rôle de votre compte. Un administrateur l'ouvre dans « Réglages →
