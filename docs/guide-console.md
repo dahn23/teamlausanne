@@ -46,7 +46,7 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | Répertoire | Les fiches des personnes | admin, secrétariat |
 | Inscriptions | Demandes venues du formulaire public | admin, secrétariat |
 | Accès Mon espace | Inviter les familles dans l'app | admin |
-| Prospects | Joueurs repérés hors académie, et la prospection visibilité | admin, head coach ; sous-onglet Visibilité aussi pour le secrétariat |
+| Prospects | Joueurs repérés hors académie, et la prospection visibilité | admin, head coach, secrétariat |
 | Accueil espace privé | Messages affichés dans Mon espace | admin, secrétariat |
 | Messagerie | La boîte info@ | admin, secrétariat |
 | Newsletter | Envois groupés | admin, secrétariat |
@@ -736,6 +736,9 @@ répondra qu'elle ne sait pas, et la question remontera dans
   classement et résultats) et « Import / outils » ; **« Suivi »** (les
   familles qui se sont manifestées) et **« Visibilité »** (les organisations
   où l'on pourrait parler de nous), décrits aux deux chapitres suivants.
+  « Import / outils » sert à alimenter la détection depuis mytennis ; il
+  affiche « Clé d'import indisponible » si votre compte n'a pas aussi
+  GameZone, où cette clé est rangée.
 - **Accueil espace privé** — messages affichés dans Mon espace, par saison et
   par filière. « + Nouveau message ». Une ligne « @saison Saison —
   description » s'affiche avec l'icône de l'onglet correspondant.
@@ -869,7 +872,7 @@ Les familles qui se sont manifestées pour un programme — le plus souvent le
 Sport-études — avant toute inscription. L'écran sert à une seule chose : ne
 perdre aucune d'elles faute d'avoir rappelé au bon moment.
 
-**Qui y accède** : admin et superadmin.
+**Qui y accède** : admin, superadmin, head coach et le secrétariat.
 
 ### Lire l'écran, de haut en bas
 
@@ -992,9 +995,8 @@ C'est le seul sous-onglet de Prospects qui ne parle **pas de joueurs** : les
 autres suivent des enfants repérés en tournoi, celui-ci suit des
 organisations.
 
-**Qui y accède** : admin, superadmin, head coach et **le secrétariat**.
-Quelqu'un qui n'a que la Visibilité n'y voit que ce sous-onglet — la
-détection des joueurs lui reste fermée.
+**Qui y accède** : admin, superadmin, head coach et le secrétariat — comme
+le reste de l'onglet Prospects.
 
 ### Lire l'écran, de haut en bas
 
