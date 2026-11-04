@@ -5617,6 +5617,16 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .pay-payee{background:#dcfce7;color:#14532d}
 .pay-partielle{background:#fef3c7;color:#78350f}
 .pay-annulee{background:#fdecea;color:#b3261e}
+/* Reporter l'échéance, juste sous le solde : les deux seules choses qui se
+   corrigent sans rien renvoyer à la famille sont alors côte à côte.
+   .pd-wrap = l'habillage posé par pretty-date sur l'input natif ; sans la
+   largeur automatique il prendrait toute la ligne et pousserait le bouton
+   dessous. */
+.pay-ech{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:12px;
+  padding:11px 13px;border:1px solid var(--line,#e4e8f0);border-radius:12px;background:#fbfcff}
+.pay-ech label{display:flex;flex-direction:column;gap:4px;font-size:.84rem;font-weight:600}
+.pay-ech .pd-wrap{width:auto;min-width:168px}
+.pay-ech-info{flex:1 1 180px;font-size:.84rem;align-self:center}
 .pay-lignes{margin-top:4px}
 
 /* ---- Factures › Relances (db/164) ---------------------------------

@@ -12790,6 +12790,7 @@ function renderImpayees() {
         ${f.bloque ? `<br /><span class="muted" style="font-size:.74rem">${esc(f.bloque)}</span>`
                    : `<br /><span class="imp-next">${esc(OI_REL[f.prochain_niveau][0])} à envoyer</span>`}</td>
       <td class="he-acts">
+        <button class="ghost imp-pay" data-id="${f.id}" title="Versement reçu, avoir, ou échéance à reporter — rien n'est renvoyé à la famille">💰</button>
         <button class="ghost imp-un" data-id="${f.id}" title="Envoyer ce rappel"${f.bloque ? " disabled" : ""}>✉</button>
         <button class="ghost imp-pause" data-id="${f.id}" title="Arrangement pris : ne pas relancer avant une date">⏸</button>
       </td>
@@ -12801,6 +12802,9 @@ function renderImpayees() {
   }));
   $("imp-rows").querySelectorAll(".imp-un").forEach((b) => b.addEventListener("click", () => impOuvrirEnvoi([b.dataset.id])));
   $("imp-rows").querySelectorAll(".imp-pause").forEach((b) => b.addEventListener("click", () => impPause(b.dataset.id)));
+  // Depuis les relances, la même fenêtre que depuis les factures — et c'est la
+  // liste des relances qu'on recharge après, pas celle des factures.
+  $("imp-rows").querySelectorAll(".imp-pay").forEach((b) => b.addEventListener("click", () => payOuvrir(b.dataset.id, loadImpayees)));
   impMajBouton();
 }
 
@@ -13589,17 +13593,65 @@ async function renderOiResume() {
 //    chez la famille ; le modifier en base, c'est créer deux vérités. Une
 //    annulation partielle est donc un avoir, enregistré à côté.
 let payFac = null;
+// Ce qu'il faut recharger après coup. La fenêtre s'ouvre depuis deux endroits
+// (la liste des factures, et les relances) : chacun passe SA fonction, sinon on
+// enregistre un versement dans les relances et la ligne reste là, inchangée,
+// à réclamer un montant déjà reçu.
+let payRetour = null;
 
-async function payOuvrir(id) {
-  const f = oiList.find((x) => x.id === id); if (!f) return;
+async function payOuvrir(id, retour) {
+  // Depuis les relances, la facture n'est pas dans oiList (autre vue, autres
+  // filtres) : on va la chercher. Sans ce repli, le bouton ne ferait rien.
+  let f = oiList.find((x) => x.id === id);
+  if (!f) {
+    const { data } = await sb.from("out_invoices")
+      .select("id,number,debtor_name,status,sent_at,due_date").eq("id", id).maybeSingle();
+    f = data;
+  }
+  if (!f) { uiAlert("Facture introuvable."); return; }
+  payRetour = retour || loadOutInvoices;
   payFac = f;
   $("pay-title").textContent = `Facture ${f.number} — ${f.debtor_name || ""}`;
   $("pay-date").value = new Date().toISOString().slice(0, 10);
   $("pay-montant").value = ""; $("pay-note").value = "";
   $("pay-av-montant").value = ""; $("pay-av-motif").value = "";
   $("pay-status").textContent = "";
+  payEchAffiche();
   $("pay-modal").classList.remove("hidden");
   await payRafraichir();
+}
+
+// L'échéance telle qu'elle est, et ce qu'elle vaut aujourd'hui : « en retard de
+// 35 jours » ou « dans 12 jours ». Sans ce rappel sous les yeux, on reporte une
+// date sans savoir de combien on la bouge.
+function payEchAffiche() {
+  const d = payFac?.due_date || "";
+  $("pay-ech").value = d;
+  const info = $("pay-ech-info");
+  if (!d) { info.textContent = "Aucune échéance : la facture n'entre pas dans les relances."; return; }
+  const j = Math.round((new Date(d + "T00:00:00") - new Date(new Date().toISOString().slice(0, 10) + "T00:00:00")) / 86400000);
+  info.textContent = j < 0 ? `En retard de ${-j} jour${-j > 1 ? "s" : ""}.`
+    : j === 0 ? "Échoit aujourd'hui." : `Échoit dans ${j} jour${j > 1 ? "s" : ""}.`;
+}
+
+// Reporter l'échéance. On ne touche ni au montant, ni au PDF, ni à rien qui
+// reparte chez la famille : c'est la date que la console surveille, et elle
+// seule. Le document déjà reçu garde la sienne — d'où l'avertissement.
+async function payEcheance() {
+  const v = $("pay-ech").value || null;
+  if (v === (payFac.due_date || null)) { $("pay-status").textContent = "L'échéance n'a pas changé."; return; }
+  const avant = payFac.due_date ? frDate(payFac.due_date) : "aucune";
+  if (!(await uiConfirm(`Reporter l'échéance de la facture ${payFac.number}\n`
+    + `de ${avant} à ${v ? frDate(v) : "aucune"} ?\n\n`
+    + `Rien n'est renvoyé à la famille et le montant ne bouge pas. Le PDF qu'elle a reçu `
+    + `continue d'indiquer ${avant} : c'est ici que la console lira désormais la date pour `
+    + `décider du retard et des relances.`))) return;
+  const { error } = await sb.from("out_invoices").update({ due_date: v }).eq("id", payFac.id);
+  if (error) { $("pay-status").textContent = "Erreur : " + error.message; return; }
+  payFac.due_date = v;
+  payEchAffiche();
+  $("pay-status").textContent = "✓ Échéance reportée";
+  await payRetour();
 }
 
 async function payRafraichir() {
@@ -13673,7 +13725,7 @@ async function payAjouter(montant, note) {
   $("pay-montant").value = ""; $("pay-note").value = "";
   $("pay-status").textContent = "✓ Versement enregistré";
   await payRafraichir();
-  await loadOutInvoices();
+  await payRetour();
 }
 
 async function payAvoir() {
@@ -13694,7 +13746,7 @@ async function payAvoir() {
   $("pay-av-montant").value = ""; $("pay-av-motif").value = "";
   $("pay-status").textContent = "✓ Avoir enregistré";
   await payRafraichir();
-  await loadOutInvoices();
+  await payRetour();
 }
 
 async function paySupprimer(t, id) {
@@ -13703,13 +13755,14 @@ async function paySupprimer(t, id) {
   const { error } = await sb.from(table).delete().eq("id", id);
   if (error) { $("pay-status").textContent = "Erreur : " + error.message; return; }
   await payRafraichir();
-  await loadOutInvoices();
+  await payRetour();
 }
 
 function initPaiements() {
   $("pay-close").addEventListener("click", () => $("pay-modal").classList.add("hidden"));
   $("pay-modal").addEventListener("click", (e) => { if (e.target === $("pay-modal")) $("pay-modal").classList.add("hidden"); });
   $("pay-add").addEventListener("click", () => payAjouter($("pay-montant").value));
+  $("pay-ech-save").addEventListener("click", payEcheance);
   $("pay-av-add").addEventListener("click", payAvoir);
   $("pay-solder").addEventListener("click", async () => {
     const { data: s } = await sb.from("out_invoices_solde").select("reste").eq("id", payFac.id).maybeSingle();

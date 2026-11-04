@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=386" />
+  <link rel="stylesheet" href="style.css?v=387" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2381,6 +2381,7 @@
               </tr></thead><tbody id="imp-rows"></tbody></table>
             </div>
             <p id="imp-empty" class="muted" hidden>Aucune facture en retard. </p>
+            <p class="muted" style="font-size:.84rem">Un versement reçu ou une échéance à repousser se saisit ici même : <b>💰</b> ouvre la facture. Rien n'est renvoyé à la famille, et la ligne quitte la liste d'elle-même dès qu'elle est soldée ou reportée.</p>
           </div>
 
           <!-- Historique des relances parties (vue out_relances). On en a
@@ -2679,6 +2680,14 @@
             <button type="button" id="pay-close" class="modal-close" aria-label="Fermer">×</button>
             <h2 style="margin-top:0" id="pay-title">Versements</h2>
             <div id="pay-solde" class="pay-solde"></div>
+            <!-- Reporter l'échéance : rien ne repart à la famille. C'est la date
+                 que la console surveille pour décider qui est en retard et qui
+                 entre dans les relances. Le PDF déjà reçu, lui, ne change pas. -->
+            <div class="pay-ech">
+              <label>Échéance<input id="pay-ech" type="date" /></label>
+              <button type="button" id="pay-ech-save" class="ghost">Reporter l'échéance</button>
+              <span id="pay-ech-info" class="pay-ech-info muted"></span>
+            </div>
             <h3 style="margin:16px 0 6px;font-size:.98rem">Enregistrer un versement</h3>
             <div class="form-grid">
               <label>Montant reçu (CHF)<input id="pay-montant" type="number" step="0.05" min="0" /></label>

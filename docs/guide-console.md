@@ -402,6 +402,34 @@ taper « 50 » ne sort pas les factures de 1 500.–.
   pour un majeur, lui-même.
 - Une **échéance**, par convention le 20 du mois suivant.
 
+### Corriger une facture déjà envoyée — sans rien renvoyer
+
+Dans **Relances**, chaque ligne porte un **💰** qui ouvre la facture. Le même
+bouton existe dans « Émises — à encaisser ». Rien de ce qui s'y fait ne
+repart chez la famille : aucun mail, aucun nouveau PDF, aucun nouveau numéro.
+
+- **Un versement reçu** — montant, date, moyen (virement, TWINT, SumUp,
+  espèces). Le reste à payer se recalcule, et la relance suivante réclamera ce
+  reste, pas le montant d'origine. « Solder le reste » saisit d'un coup ce qui
+  manque. Dès que le solde tombe à zéro, la facture quitte la liste des
+  relances toute seule.
+- **Reporter l'échéance** — la date, puis « Reporter l'échéance ». C'est elle
+  que la console lit pour décider qui est en retard : la repousser sort la
+  facture des relances jusqu'à la nouvelle date. ⚠️ **Le PDF que la famille a
+  reçu garde l'ancienne date** — la console n'a aucun moyen de le réécrire
+  chez elle. Si la nouvelle date doit être opposable, il faut le lui écrire.
+- **Annuler une partie** — un avoir, qui diminue le dû sans toucher au montant
+  facturé. Le PDF chez la famille reste vrai.
+
+Le **statut ne se saisit jamais** : « partiellement payée », « payée », il se
+déduit des versements. Supprimer un mouvement remet la facture dans l'état
+d'avant.
+
+**Reporter l'échéance ou suspendre les relances ?** Deux choses différentes.
+Le **⏸** note un arrangement : la facture reste en retard, on ne relance
+simplement plus avant la date dite. Le **report d'échéance** déplace la date
+due elle-même — c'est un délai accordé, pas une pause.
+
 ### Payer une facture reçue
 
 « 🏦 Générer paiement » prépare le paiement d'une facture fournisseur.
