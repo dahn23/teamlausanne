@@ -630,6 +630,18 @@ se combinent et les accents ne comptent pas : « pully cour » trouve les gens
 de l'avenue de Cour à Pully.
 « + Nouveau locataire » pour une location de court.
 
+### La photo en tête de ligne
+
+Chaque ligne de la liste commence par une pastille ronde : la photo de la
+personne si sa fiche en a une, sinon ses initiales.
+
+- Cliquer **la pastille** ouvre la photo en grand, avec le nom dessous.
+  Fermer : la croix, la touche Échap, ou un clic à côté.
+- Cliquer **ailleurs sur la ligne** ouvre la fiche, comme avant.
+- Une pastille d'initiales n'est pas cliquable : il n'y a rien à agrandir.
+  Pour ajouter la photo, ouvrir la fiche et cliquer « Prendre / choisir une
+  photo ».
+
 ### Les trois notions de rôle
 
 C'est le point qui prête le plus à confusion :

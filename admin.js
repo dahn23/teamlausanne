@@ -40,6 +40,23 @@ function uiPrompt(message, def = "") {
     setTimeout(() => { inp.focus(); inp.select(); }, 30);
   });
 }
+// Photo en grand (04.11.2026) : la pastille du répertoire fait 34 px, de quoi reconnaître
+// un visage connu, pas de quoi identifier un enfant qu'on n'a jamais vu. Un clic sur la
+// pastille ouvre la photo en grand, sans ouvrir la fiche — d'où le stopPropagation côté appelant.
+function uiPhoto(url, titre) {
+  const ov = document.createElement("div");
+  ov.className = "ui-modal ui-photo";
+  ov.innerHTML = `<figure class="ui-photo-box">
+    <img src="${esc(url)}" alt="${esc(titre || "")}" />
+    ${titre ? `<figcaption>${esc(titre)}</figcaption>` : ""}
+    <button type="button" class="ui-photo-x" aria-label="Fermer">×</button>
+  </figure>`;
+  document.body.appendChild(ov);
+  const fermer = () => { ov.remove(); document.removeEventListener("keydown", surTouche); };
+  const surTouche = (e) => { if (e.key === "Escape") fermer(); };
+  ov.addEventListener("click", (e) => { if (e.target === ov || e.target.closest(".ui-photo-x")) fermer(); });
+  document.addEventListener("keydown", surTouche);
+}
 window.prompt = () => { throw new Error("prompt natif désactivé — utilise uiPrompt"); };
 // Homogénéise : tous les alert natifs passent par le modal bleu ; les confirmations deviennent await uiConfirm.
 window.alert = (m) => { uiModal(String(m)); };
@@ -1808,11 +1825,24 @@ function renderRows() {
     const phones = [p.phone, ...(p.phones || [])].filter(Boolean);
     const tr = document.createElement("tr");
     tr.innerHTML = `
+      <td class="rep-av-c">${avatarHtml(p)}</td>
       <td>${esc(p.last_name)}</td>
       <td>${esc(p.first_name)}</td>
       <td>${esc(emails[0] || "")}${emails.length > 1 ? ` <span class="muted">+${emails.length - 1}</span>` : ""}</td>
       <td>${esc(phones[0] || "")}${phones.length > 1 ? ` <span class="muted">+${phones.length - 1}</span>` : ""}</td>
       <td>${frDate(p.birthdate)}</td>`;
+    const pastille = tr.querySelector(".rep-av.has-photo");
+    if (pastille) {
+      pastille.addEventListener("click", (e) => {
+        e.stopPropagation();      // sinon le clic remonte à la ligne et ouvre la fiche derrière la photo
+        uiPhoto(p.photo_url, `${p.first_name || ""} ${p.last_name || ""}`.trim());
+      });
+      // Photo introuvable (fichier supprimé, adresse périmée) : on retombe sur les
+      // initiales plutôt que de laisser l'icône d'image cassée du navigateur.
+      pastille.querySelector("img").addEventListener("error", () => {
+        pastille.outerHTML = `<span class="rep-av">${esc(initiales(p))}</span>`;
+      });
+    }
     tr.addEventListener("click", () => openPerson(p));
     tbody.appendChild(tr);
   }
@@ -1820,6 +1850,17 @@ function renderRows() {
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// Pastille ronde du répertoire : la photo si la fiche en a une, sinon les initiales.
+// « loading=lazy » n'est pas un détail : le répertoire passe 1 000 fiches, et sans lui
+// le navigateur téléchargerait mille photos d'un coup à chaque ouverture de l'onglet.
+const initiales = (p) => ((p.first_name || "").trim()[0] || "") + ((p.last_name || "").trim()[0] || "") || "?";
+function avatarHtml(p) {
+  const nom = `${p.first_name || ""} ${p.last_name || ""}`.trim();
+  if (!p.photo_url) return `<span class="rep-av">${esc(initiales(p))}</span>`;
+  return `<span class="rep-av has-photo" title="Voir la photo de ${esc(nom)}">`
+    + `<img src="${esc(p.photo_url)}" alt="" loading="lazy" decoding="async" width="34" height="34" /></span>`;
+}
 
 // ---- Fiche ----
 function openPerson(p) {
