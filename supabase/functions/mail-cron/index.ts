@@ -416,7 +416,9 @@ Deno.serve(async (req) => {
     for (const [addr, envName] of Object.entries(EXTRA_BOXES)) {
       if (!estDirecte(addr) || addr === hub.toLowerCase()) continue;
       const bp = cleanPass(addr, Deno.env.get(envName) || "");
-      if (!bp) continue;
+      // Un secret vide ne doit pas passer inaperçu : une boîte qu'on croit relevée
+      // et qui ne l'est pas ressemble en tout point à une boîte sans courrier.
+      if (!bp) { errors[addr] = "mot de passe absent (secret " + envName + ")"; continue; }
       try { await pollBox(supa, addr, bp, false, ourAddrs, st); } catch (e) { errors[addr] = String((e as Error)?.message || e).slice(0, 200); }
     }
 
