@@ -5763,13 +5763,20 @@ function gzClosedTag(t) {
 
 let gzTournSeason = "";
 async function loadTournaments() {
-  const [{ data: tournaments }, { data: cnts }, { data: seasons }] = await Promise.all([
+  const [{ data: tournaments }, { data: cnts }, { data: seasons }, { data: mgrs }] = await Promise.all([
     sb.from("gz_tournaments").select("*").order("tournament_date", { ascending: false, nullsFirst: false }),
     sb.from("gz_tournament_counts").select("tournament_id,inscrits,selectionnes"),
     sb.from("gz_seasons").select("id,name,start_date,end_date").order("start_date", { ascending: false }),
+    sb.from("gz_managers").select("tournament_id,person_id"),
   ]);
   const counts = {};
   for (const c of cnts || []) counts[c.tournament_id] = { p: c.inscrits, s: c.selectionnes };
+  // Responsable(s) du jour, nommés dans « Gérer le tournoi » (gz_managers) — Dan, 04.11.2026.
+  const resp = {};
+  for (const m of mgrs || []) {
+    const p = people.find((x) => x.id === m.person_id);
+    if (p) (resp[m.tournament_id] || (resp[m.tournament_id] = [])).push(`${p.first_name || ""} ${p.last_name || ""}`.trim());
+  }
   let rows = tournaments || [];
   if (!gzIsOfficial) {
     const { data: mine } = await sb.from("gz_managers").select("tournament_id").eq("person_id", gzPersonId);
@@ -5800,16 +5807,16 @@ async function loadTournaments() {
     const g = groups[sid];
     if (!g || !g.length) continue;
     html += `<h3 class="gz-season-h">${sid === "none" ? "Hors saison" : esc(seasonName[sid] || "—")} <span class="muted" style="font-weight:400">(${g.length})</span></h3>`;
-    html += `<div class="table-wrap" style="margin-bottom:16px"><table class="crm-table"><thead><tr><th>Tournoi</th><th>Date</th><th>Swiss Tennis</th><th>Chez nous</th><th>Inscrits</th><th>Sélect.</th></tr></thead><tbody>`;
+    html += `<div class="table-wrap" style="margin-bottom:16px"><table class="crm-table"><thead><tr><th>Tournoi</th><th>Date</th><th>Responsable(s)</th><th>Swiss Tennis</th><th>Chez nous</th><th>Inscrits</th><th>Sélect.</th></tr></thead><tbody>`;
     let ti = 0, ts = 0;
     for (const t of g) {
       const c = counts[t.id] || { p: 0, s: 0 };
       ti += c.p; ts += c.s;
       const drawn = /peuvent être joués|visibles au public/i.test((t.status || "") + JSON.stringify(t.epreuves || ""));
       const badge = t.is_gamezone ? '<span class="gz-badge">GameZone</span>' : '<span class="gz-badge off">autre</span>';
-      html += `<tr class="gz-trow" data-tid="${t.id}"><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date ? frDate(t.tournament_date) : "—"}</td><td>${esc(t.status || "—")}${drawn ? " ✓" : ""}</td><td>${gzClosedTag(t)}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
+      html += `<tr class="gz-trow" data-tid="${t.id}"><td>${badge} ${esc(t.name || "—")}</td><td>${t.tournament_date ? frDate(t.tournament_date) : "—"}</td><td>${resp[t.id] ? esc(resp[t.id].join(", ")) : '<span class="muted">—</span>'}</td><td>${esc(t.status || "—")}${drawn ? " ✓" : ""}</td><td>${gzClosedTag(t)}</td><td>${c.p}</td><td>${c.s}</td></tr>`;
     }
-    html += `<tr class="gz-total"><td colspan="4">Total — ${g.length} tournoi(s)</td><td>${ti}</td><td>${ts}</td></tr>`;
+    html += `<tr class="gz-total"><td colspan="5">Total — ${g.length} tournoi(s)</td><td>${ti}</td><td>${ts}</td></tr>`;
     html += "</tbody></table></div>";
   }
   $("gz-tournaments-groups").innerHTML = html || (rows.length ? '<p class="muted">Aucun tournoi sur cette saison.</p>' : '<p class="muted">Aucun tournoi importé. Utilisez le bookmarklet ci-dessous.</p>');

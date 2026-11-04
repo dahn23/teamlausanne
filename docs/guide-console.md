@@ -921,7 +921,9 @@ répondra qu'elle ne sait pas, et la question remontera dans
   Séline voit les repas et les totaux et peut changer les cases de la semaine
   comme un admin (« Réinitialiser » compris). Arsalan les voit sans pouvoir
   les changer. Ni l'un ni l'autre n'a le sous-onglet Études.
-- **GameZone** — tournois juniors, sept sous-onglets. « Gérer le tournoi »,
+- **GameZone** — tournois juniors, sept sous-onglets. La liste des tournois
+  affiche, après la date, la colonne « Responsable(s) » : les personnes
+  nommées pour la journée (« — » si personne ne l'est encore). « Gérer le tournoi »,
   « Nommer responsable », « J'ai pris » / « Pas encore pris »,
   « Clôturer le tournoi ». Dans « Envois e-mails », « Remerciements » et
   « Vainqueurs » restent grisés avant le jour du tournoi (« disponible dès
