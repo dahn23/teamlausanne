@@ -46,12 +46,18 @@ function uiPrompt(message, def = "") {
 function uiPhoto(url, titre) {
   const ov = document.createElement("div");
   ov.className = "ui-modal ui-photo";
+  // Croix dessinée (trait rond, bleu de la charte) et non le caractère « × » d'une police :
+  // le caractère n'est pas centré de la même façon d'une police à l'autre et paraît toujours de travers.
+  const croix = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>';
   ov.innerHTML = `<figure class="ui-photo-box">
     <img src="${esc(url)}" alt="${esc(titre || "")}" />
     ${titre ? `<figcaption>${esc(titre)}</figcaption>` : ""}
-    <button type="button" class="ui-photo-x" aria-label="Fermer">×</button>
+    <button type="button" class="ui-photo-x" aria-label="Fermer">${croix}</button>
   </figure>`;
   document.body.appendChild(ov);
+  // Pas de focus d'office sur la croix : Chrome lui colle alors son anneau de focus,
+  // qui restait affiché pour tout le monde. Échap est écouté sur le document, le
+  // bouton reste atteignable à la tabulation — on ne perd rien.
   const fermer = () => { ov.remove(); document.removeEventListener("keydown", surTouche); };
   const surTouche = (e) => { if (e.key === "Escape") fermer(); };
   ov.addEventListener("click", (e) => { if (e.target === ov || e.target.closest(".ui-photo-x")) fermer(); });

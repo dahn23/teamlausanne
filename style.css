@@ -2290,10 +2290,17 @@ body[data-world="academie"] .ccard-arrow{background:var(--fluo-d);color:var(--fl
   max-width:min(92vw,520px);box-shadow:0 18px 50px rgba(16,28,54,.3)}
 .ui-photo-box img{display:block;width:100%;max-height:72vh;object-fit:contain;border-radius:10px;background:#f3f5fa}
 .ui-photo-box figcaption{text-align:center;font-weight:700;color:var(--blue-ink);padding:10px 28px 2px}
-.ui-photo-x{position:absolute;top:6px;right:8px;width:32px;height:32px;line-height:1;
-  border:0;border-radius:50%;background:rgba(255,255,255,.88);color:var(--blue-ink);
-  font-size:1.4rem;cursor:pointer;box-shadow:0 2px 8px rgba(16,28,54,.18)}
-.ui-photo-x:hover{background:#fff}
+/* Bouton de fermeture : posé sur le COIN de la carte, moitié dehors, pour ne jamais
+   recouvrir un visage. Pastille bleue cerclée de blanc — elle se détache aussi bien
+   de la photo que du fond sombre, sans l'ombre portée qui la faisait flotter. */
+.ui-photo-x{position:absolute;top:-13px;right:-13px;width:36px;height:36px;padding:8px;
+  border:0;border-radius:50%;background:var(--blue);color:#fff;cursor:pointer;
+  box-shadow:0 0 0 3px #fff;transition:background .15s,color .15s,transform .15s}
+.ui-photo-x svg{display:block;width:100%;height:100%}
+/* Survol : le vert de la charte, sur le bleu Prusse — la paire d'accent de la marque. */
+.ui-photo-x:hover{background:var(--fluo);color:var(--prussian);transform:scale(1.08)}
+.ui-photo-x:focus-visible{outline:2px solid var(--fluo);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.ui-photo-x{transition:none}.ui-photo-x:hover{transform:none}}
 
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-grid label,.card textarea+*{}
