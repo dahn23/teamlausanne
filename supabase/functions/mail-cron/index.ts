@@ -1,5 +1,5 @@
 // mail-cron — relève les boîtes de la console (IMAP) : le hub info@ (avec les redirections qui y arrivent,
-// rangées selon Delivered-To / X-Forwarded-For), puis les autres boîtes Hostpoint, chacune directement.
+// rangées selon Delivered-To / X-Forwarded-For), puis les boîtes relevées directement, chacune chez elle.
 // Détecte les factures PDF, relit les Envoyés, puis pousse les notifications.
 // v23 (migration 60) : une boîte PRIVÉE n'est notifiée qu'à son propriétaire et aux superadmins.
 // v24 (18.09.2026) : @teamlausanne.ch chez Hostpoint, serveur IMAP par boîte (voir pollBox).
@@ -13,6 +13,8 @@
 // v30 (01.10.2026) : les pièces jointes d'Apple Mail ne disparaissent plus (voir processAtt).
 // v42 (13.10.2026) : un mail lourd à décoder ne bloque plus la relève (ligne d'attente avant décodage, Envoyés ≤ 3 Mo).
 // v43 (13.10.2026) : un mail de plus de 2 Mo est importé en entier par mail-import-one (partie par partie).
+// v45 (04.11.2026) : admin@lstennis.ch (Infomaniak) relevée directement, comme les boîtes Hostpoint —
+//                    elle arrive dans son propre onglet « LS Tennis » de la Messagerie, sans redirection.
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -25,7 +27,7 @@ const SENT_MAX = 6;
 const SENT_FETCH = 3 * 1024 * 1024;   // v42 : décodage des Envoyés limité à 3 Mo
 const MAXB = 10 * 1024 * 1024;
 const MAX_FETCH = 8 * 1024 * 1024;
-const HEAVY = 2 * 1024 * 1024;        // v43 : au-delà, import par mail-import-one (Hostpoint)
+const HEAVY = 2 * 1024 * 1024;        // v43 : au-delà, import par mail-import-one (boîtes relevées directement)
 const SPAM_WINDOW = 30;               // dossier Spam : on regarde les 30 plus récents
 const SPAM_MAX = 8;                   // … et on en importe 8 au plus par passage
 const SPAM_FETCH = 1024 * 1024;       // contenu du spam limité à 1 Mo
@@ -152,16 +154,24 @@ async function sendPush(supa: any) {
   return { found: mails.length, sent, targets, error };
 }
 
-// ---- Serveurs par boîte (v24, 18.09.2026) ----
-// Les adresses @teamlausanne.ch sont hébergées chez Hostpoint (Cloud Office) ; les autres
-// boîtes (info@lausanneopen.ch, admin@lstennis.ch) restent chez Gmail et REDIRIGENT vers le hub.
-// Chez Hostpoint, chaque boîte est relevée directement (pas de redirection à configurer),
-// et les mails restent dans la boîte de réception : on ne les déplace pas et on ne les marque pas lus.
+// ---- Serveurs par boîte (v24, 18.09.2026 ; v45, 04.11.2026) ----
+// Deux façons de recevoir, et c'est la seule chose qui compte ici :
+//  · relève DIRECTE (Hostpoint, Infomaniak) — on se connecte à la boîte elle-même.
+//    Les mails restent dans la boîte de réception : on ne les déplace pas, on ne les
+//    marque pas lus, et le dossier Spam est relevé aussi. Rien à configurer côté mail.
+//  · redirection (ce qui reste chez Gmail) — la boîte renvoie vers le hub info@,
+//    et on la reconnaît à l'en-tête Delivered-To. Sans redirection, rien n'arrive.
 const HOSTPOINT_DOMAINS = ["teamlausanne.ch", "lausanneopen.ch"];   // lausanneopen.ch chez Hostpoint depuis le 24.09.2026
-const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
-const imapHost = (addr: string) => (isHostpoint(addr) ? "imap.mail.hostpoint.ch" : "imap.gmail.com");
-// Un mot de passe d'application Gmail s'écrit avec des espaces ; un mot de passe Hostpoint se prend tel quel.
-const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
+const INFOMANIAK_DOMAINS = ["lstennis.ch"];                         // admin@lstennis.ch, v45 (04.11.2026)
+const domaineDe = (addr: string) => String(addr).toLowerCase().split("@")[1] || "";
+const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes(domaineDe(addr));
+const isInfomaniak = (addr: string) => INFOMANIAK_DOMAINS.includes(domaineDe(addr));
+const estDirecte = (addr: string) => isHostpoint(addr) || isInfomaniak(addr);
+const imapHost = (addr: string) =>
+  isHostpoint(addr) ? "imap.mail.hostpoint.ch" : isInfomaniak(addr) ? "mail.infomaniak.com" : "imap.gmail.com";
+// Un mot de passe d'application Gmail s'écrit avec des espaces ; ceux d'Hostpoint et
+// d'Infomaniak se prennent tels quels.
+const cleanPass = (addr: string, v: string) => (estDirecte(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
 // Rapports DMARC quotidiens (Google, Microsoft, Yahoo…) : des robots qui écrivent à l'adresse « rua » du domaine.
 // Ils sont utiles à consulter mais ne demandent aucune réponse : rangés d'office en « Traité », lus, sans notification.
 // Le sujet suit le format de la RFC 7489 : « Report domain: <domaine> Submitter: <qui> Report-ID: <id> ».
@@ -176,19 +186,23 @@ const isDmarcReport = (subject: string | null, from: string | null) =>
   /^\s*(\[[^\]]*\]\s*)?report domain:/i.test(subject || "") || /(^|[._-])dmarc[^@]*@/i.test(from || "");
 const dmarcState = (subject: string | null, from: string | null) =>
   isDmarcReport(subject, from) ? { is_read: true, status: "traite", pushed: true } : { is_read: false, status: "a_traiter", pushed: false };
-// Boîtes Hostpoint relevées en plus du hub (secret = mot de passe de la boîte).
+// Boîtes relevées directement en plus du hub (secret = mot de passe de la boîte).
+// Une boîte dont le secret est absent est simplement sautée : elle n'empêche pas les autres.
 // Diagnostic renvoyé par la fonction : quels dossiers ont été reconnus dans chaque boîte.
 const DIAG: Record<string, unknown> = {};
 const EXTRA_BOXES: Record<string, string> = {
   "tournoi@teamlausanne.ch": "GMAIL_PASS_TOURNOI",
   "raphael@teamlausanne.ch": "GMAIL_PASSE_RAPHAEL",
   "info@lausanneopen.ch": "GMAIL_PASS_LAUSANNEOPEN",   // Hostpoint depuis le 24.09.2026 (avant : Gmail redirigé vers le hub)
+  // Le nom du secret dit « GMAIL » comme les autres, pour ne pas avoir à le ressaisir :
+  // il ne décrit plus l'hébergeur depuis longtemps, c'est juste le mot de passe de la boîte.
+  "admin@lstennis.ch": "GMAIL_PASS_LSTENNIS",          // Infomaniak, v45 (04.11.2026)
 };
 
 // deno-lint-ignore no-explicit-any
 async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ourAddrs: string[], st: Record<string, number>) {
   const box = addr.toLowerCase();
-  const hp = isHostpoint(box);
+  const hp = estDirecte(box);
   const client = new ImapFlow({ host: imapHost(box), port: 993, secure: true, auth: { user: addr, pass }, logger: false });
   await client.connect();
   try {
@@ -202,7 +216,7 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
       if (!junkBox) junkBox = folderNames.find((p) => /^(INBOX[./])?(spam|junk|pourriel|courrier ind)/i.test(p)) || null;
     } catch (_) {}
     DIAG[box] = { junk: junkBox, sent: sentBox, dossiers: folderNames };
-    if (hp) archiveBox = null;                       // Hostpoint : on laisse les mails dans la boîte de réception
+    if (hp) archiveBox = null;                       // relève directe : on laisse les mails dans la boîte de réception
     const inMax = hp ? 25 : IN_MAX;                  // sans archivage, on regarde plus large (les doublons sont écartés)
     const uidTag = (u: number) => (hp ? `hp:${box}:${u}` : String(u));
     const sentTag = (u: number) => (hp ? `sent:${box}:${u}` : "sent:" + u);
@@ -211,7 +225,7 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
     try {
       let uids = (await client.search({ all: true }, { uid: true })) || [];
       uids = uids.sort((a: number, b: number) => b - a).slice(0, inMax);
-      // Hostpoint : les mails déjà relevés restent dans INBOX → on écarte d'un coup ceux qu'on a déjà.
+      // Relève directe : les mails déjà relevés restent dans INBOX → on écarte d'un coup ceux qu'on a déjà.
       let known = new Set<string>();
       if (hp && uids.length) {
         const { data: ex } = await supa.from("mail_messages").select("imap_uid").in("imap_uid", uids.map(uidTag));
@@ -231,7 +245,7 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
         const dateIso = (env.date ? new Date(env.date) : new Date()).toISOString();
         if (!(await isDupMsg(supa, messageId, fromAddr, subj, dateIso))) {
           if (size > (hp ? HEAVY : MAX_FETCH)) {
-            // v43 (13.10.2026) : mail lourd (> 2 Mo chez Hostpoint) → ligne « volumineux », puis import complet par
+            // v43 (13.10.2026) : mail lourd (> 2 Mo en relève directe) → ligne « volumineux », puis import complet par
             // mail-import-one (autre exécution, partie par partie, pièces jointes directement dans le stockage).
             // Si l'import échoue, la ligne reste et le bouton « Importer ce mail en entier » de la console le relance.
             const { data: big } = await supa.from("mail_messages").insert({ account_address: box, direction: "in", message_id: messageId, from_name: fromV?.name || null, from_address: fromAddr, to_address: box, subject: subj, snippet: `⚠ Mail volumineux (~${mb(size)} Mo) — ouvrir dans le webmail`, body_text: `Ce message est trop volumineux (~${mb(size)} Mo) pour etre affiche ici. Ouvre-le directement dans le webmail de la boite.`, body_html: null, received_at: dateIso, imap_uid: uidTag(u), ...dmarcState(subj, fromAddr) }).select("id").single();
@@ -286,7 +300,7 @@ async function pollBox(supa: any, addr: string, pass: string, isHub: boolean, ou
       }
     } finally { lock.release(); }
 
-    // Dossier « Spam » de Hostpoint (migration 73) : un vrai mail mal classé ne doit pas rester invisible.
+    // Dossier « Spam » des boîtes relevées directement (migration 73) : un vrai mail mal classé ne doit pas rester invisible.
     // Ces mails entrent marqués is_spam, rangés « traite », lus et sans notification : ils ne comptent dans
     // aucune pastille. La console les montre sous le filtre « Spam », avec un bouton « Pas un spam ».
     // Pas de pièces jointes ni de détection de facture pour du spam ; contenu limité à 1 Mo.
@@ -400,7 +414,7 @@ Deno.serve(async (req) => {
     // Une boîte en panne (mot de passe faux, serveur muet) ne doit pas empêcher de relever les autres.
     try { await pollBox(supa, hub, pass, true, ourAddrs, st); } catch (e) { errors[hub.toLowerCase()] = String((e as Error)?.message || e).slice(0, 200); }
     for (const [addr, envName] of Object.entries(EXTRA_BOXES)) {
-      if (!isHostpoint(addr) || addr === hub.toLowerCase()) continue;
+      if (!estDirecte(addr) || addr === hub.toLowerCase()) continue;
       const bp = cleanPass(addr, Deno.env.get(envName) || "");
       if (!bp) continue;
       try { await pollBox(supa, addr, bp, false, ourAddrs, st); } catch (e) { errors[addr] = String((e as Error)?.message || e).slice(0, 200); }

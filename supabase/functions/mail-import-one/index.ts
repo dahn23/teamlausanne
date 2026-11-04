@@ -8,20 +8,27 @@
 // et chaque pièce jointe part TELLE QUELLE dans le bucket privé « mail-att » (storage_path), sans base64.
 //
 // Appel : POST { mail_id } avec le jeton de l'utilisateur (superadmin, admin, secrétaire ; boîte privée :
-// son propriétaire ou un superadmin). Seuls les mails relevés chez Hostpoint (imap_uid « hp: » ou « hpspam: »)
-// peuvent être relus ; les anciens imports Gmail (« box: ») ne sont plus accessibles par ce chemin.
+// son propriétaire ou un superadmin), ou ?key=CRON_SECRET pour l'appel technique de mail-cron — d'où
+// verify_jwt = false : la fonction fait elle-même son contrôle. Seuls les mails relevés DIRECTEMENT
+// (imap_uid « hp: » ou « hpspam: ») peuvent être relus ; les anciens imports Gmail (« box: ») non.
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type, apikey, x-client-info", "access-control-allow-methods": "POST, OPTIONS" };
 const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, "content-type": "application/json" } });
 const MAX_PART = 50 * 1024 * 1024;   // une pièce jointe de plus de 50 Mo reste dans le webmail
-// Mot de passe de chaque boîte Hostpoint (mêmes secrets que mail-cron).
+// Mot de passe de chaque boîte relevée directement (mêmes secrets que mail-cron).
 const PASS_ENV: Record<string, string> = {
   "tournoi@teamlausanne.ch": "GMAIL_PASS_TOURNOI",
   "raphael@teamlausanne.ch": "GMAIL_PASSE_RAPHAEL",
   "info@lausanneopen.ch": "GMAIL_PASS_LAUSANNEOPEN",
+  "admin@lstennis.ch": "GMAIL_PASS_LSTENNIS",          // Infomaniak (04.11.2026)
 };
+// Serveur de la boîte : le repère « hp: » ne dit plus Hostpoint, il dit « relevée
+// directement ». Sans ce choix, un mail lourd de LS Tennis était cherché chez
+// Hostpoint, où la boîte n'existe pas — connexion refusée, import impossible.
+const imapHost = (addr: string) =>
+  (String(addr).toLowerCase().endsWith("@lstennis.ch") ? "mail.infomaniak.com" : "imap.mail.hostpoint.ch");
 const strip = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<script[\s\S]*?<\/script>/gi, "")
   .replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|tr|li|h\d)>/gi, "\n").replace(/<[^>]+>/g, "")
   .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
@@ -69,13 +76,13 @@ Deno.serve(async (req) => {
 
     // imap_uid : « hp:<boîte>:<uid> » (réception) ou « hpspam:<boîte>:<uid> » (dossier Spam).
     const mt = String(m.imap_uid || "").match(/^(hp|hpspam):([^:]+@[^:]+):(\d+)$/);
-    if (!mt) return json({ error: "Ce mail n'est plus accessible chez Hostpoint (ancien import Gmail) : ouvre-le dans le webmail." }, 422);
+    if (!mt) return json({ error: "Ce mail n'est plus accessible sur le serveur (ancien import Gmail) : ouvre-le dans le webmail." }, 422);
     const [, kind, box, uidStr] = mt; const imapUid = Number(uidStr);
     const hub = (Deno.env.get("GMAIL_HUB") || "").trim().toLowerCase();
     const pass = box === hub ? Deno.env.get("GMAIL_APP_PASSWORD") : Deno.env.get(PASS_ENV[box] || "");
     if (!pass) return json({ error: `mot de passe introuvable pour ${box}` }, 500);
 
-    const client = new ImapFlow({ host: "imap.mail.hostpoint.ch", port: 993, secure: true, auth: { user: box, pass: pass.trim() }, logger: false });
+    const client = new ImapFlow({ host: imapHost(box), port: 993, secure: true, auth: { user: box, pass: pass.trim() }, logger: false });
     await client.connect();
     let folder = "INBOX";
     if (kind === "hpspam") {

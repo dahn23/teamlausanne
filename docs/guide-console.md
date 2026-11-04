@@ -791,7 +791,14 @@ répondra qu'elle ne sait pas, et la question remontera dans
     Dans tous les cas **l'article reste publié sur teamlausanne.ch** : ces deux
     réglages ne touchent que l'app. Une page d'événement passé garde sa place
     dans les archives du site.
-- **Messagerie** — la boîte info@. « ✉ Nouveau message », « ↩ Répondre »,
+- **Messagerie** — les boîtes du club, un onglet chacune : **Team Lausanne**
+  (info@), **Lausanne Open**, **Tournoi**, **LS Tennis** (admin@lstennis.ch,
+  chez Infomaniak) et les boîtes privées, que seul leur propriétaire voit.
+  Chaque boîte est relevée directement sur son serveur toutes les deux
+  minutes : les mails **restent dans la boîte**, rien n'est déplacé ni marqué
+  lu, et le dossier Spam est relevé aussi. Une boîte dont le mot de passe
+  manque est simplement sautée — les autres continuent d'être relevées.
+  « ✉ Nouveau message », « ↩ Répondre »,
   « Relever », « Brouillons », « Filtres ▾ ». La recherche à plusieurs mots
   trouve les messages contenant *chacun* des mots ; entre guillemets,
   l'expression exacte.

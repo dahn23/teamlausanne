@@ -1,4 +1,4 @@
-// mail-send — envoi d'un mail depuis une des boîtes de la console (SMTP Hostpoint ou Gmail selon la boîte).
+// mail-send — envoi d'un mail depuis une des boîtes de la console (SMTP Hostpoint, Infomaniak ou Gmail selon la boîte).
 // Secrets : GMAIL_HUB + GMAIL_APP_PASSWORD (boîte hub), puis un mot de passe d'application
 // par boîte dans PASS_ENV. Une boîte PRIVÉE (mail_accounts.private_user_id) ne peut être
 // utilisée que par son propriétaire ou un superadmin (v16, migration 60).
@@ -33,13 +33,19 @@ const SEND_NAME: Record<string, string> = {
   "raphael@teamlausanne.ch": "Raphael Vergnaud - Team Lausanne",
 };
 const MAXB = 10 * 1024 * 1024;
-// Serveurs par boîte (18.09.2026) : les adresses @teamlausanne.ch sont chez Hostpoint (Cloud Office),
-// les autres boîtes restent chez Gmail. Un mot de passe d'application Gmail s'écrit avec des espaces ;
-// un mot de passe Hostpoint se prend tel quel.
+// Serveurs par boîte (18.09.2026 ; Infomaniak le 04.11.2026) : @teamlausanne.ch et
+// @lausanneopen.ch sont chez Hostpoint (Cloud Office), @lstennis.ch chez Infomaniak,
+// le reste chez Gmail. Un mot de passe d'application Gmail s'écrit avec des espaces ;
+// ceux d'Hostpoint et d'Infomaniak se prennent tels quels.
 const HOSTPOINT_DOMAINS = ["teamlausanne.ch", "lausanneopen.ch"];   // lausanneopen.ch chez Hostpoint depuis le 24.09.2026
-const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes((String(addr).toLowerCase().split("@")[1] || ""));
-const smtpHost = (addr: string) => (isHostpoint(addr) ? "asmtp.mail.hostpoint.ch" : "smtp.gmail.com");
-const cleanPass = (addr: string, v: string) => (isHostpoint(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
+const INFOMANIAK_DOMAINS = ["lstennis.ch"];                         // admin@lstennis.ch (04.11.2026)
+const domaineDe = (addr: string) => String(addr).toLowerCase().split("@")[1] || "";
+const isHostpoint = (addr: string) => HOSTPOINT_DOMAINS.includes(domaineDe(addr));
+const isInfomaniak = (addr: string) => INFOMANIAK_DOMAINS.includes(domaineDe(addr));
+const smtpHost = (addr: string) =>
+  isHostpoint(addr) ? "asmtp.mail.hostpoint.ch" : isInfomaniak(addr) ? "mail.infomaniak.com" : "smtp.gmail.com";
+const cleanPass = (addr: string, v: string) =>
+  (isHostpoint(addr) || isInfomaniak(addr) ? String(v || "").trim() : String(v || "").replace(/\s+/g, ""));
 const parseList = (v: unknown) => String(v || "").split(/[,;]/).map((x) => x.trim()).filter((x) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x));
 
 Deno.serve(async (req) => {
@@ -105,6 +111,12 @@ Deno.serve(async (req) => {
     if (account && account !== hub.toLowerCase() && PASS_ENV[account]) {
       const bp = cleanPass(account, Deno.env.get(PASS_ENV[account]) || "");
       if (bp) { smtpUser = account; smtpPass = bp; }
+    }
+    // Le repli silencieux sur le hub trompait : « envoyé depuis LS Tennis » partait
+    // en réalité depuis info@, signé Team Lausanne Academy, sans rien dire. Une boîte
+    // qui a un secret déclaré mais vide est maintenant refusée (04.11.2026).
+    if (account && account !== hub.toLowerCase() && PASS_ENV[account] && smtpUser !== account) {
+      return json({ error: `Mot de passe manquant pour ${account} (secret ${PASS_ENV[account]}). Rien n'a été envoyé.` }, 400);
     }
     const displayName = SEND_NAME[smtpUser.toLowerCase()] || "";
     const fromHeader = displayName ? `"${displayName.replace(/"/g, "")}" <${smtpUser}>` : smtpUser;
