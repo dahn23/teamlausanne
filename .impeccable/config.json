@@ -11,6 +11,33 @@
         ],
         "createdAt": "2026-11-05T10:50:34.382Z",
         "reason": "Faux positif : confidentialite.html ne contient aucune ombre (grep box-shadow/text-shadow = 0) et la valeur signalee #141e3c n'existe nulle part dans le depot. Page legale claire, texte seul ; mes modifications n'ont ajoute que des lignes de texte."
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "espace.html"
+        ],
+        "createdAt": "2026-11-05T15:24:45.281Z",
+        "reason": "Faux positif : espace.html ne contient aucun degrade, aucune animation, aucun @keyframes ni aucune pastille clignotante (grep = 0), et le bloc CSS ajoute le 05.11.2026 (.pt-install-*) non plus. Le lime sur bleu nuit signale comme palette IA, ce sont les jetons de charte du club declares en style.css:8-9 (--fluo #b2fd13, --prussian #003652), utilises dans toute l'app. Le scanner impute a chaque page les regles du style.css partage : la seule vraie marquee du depot est .gzc-track / @keyframes gzscroll, sur la page GameZone."
+      },
+      {
+        "rule": "pulsing-dot",
+        "value": "*",
+        "files": [
+          "espace.html"
+        ],
+        "createdAt": "2026-11-05T15:24:46.848Z",
+        "reason": "Faux positif : espace.html ne contient aucun degrade, aucune animation, aucun @keyframes ni aucune pastille clignotante (grep = 0), et le bloc CSS ajoute le 05.11.2026 (.pt-install-*) non plus. Le lime sur bleu nuit signale comme palette IA, ce sont les jetons de charte du club declares en style.css:8-9 (--fluo #b2fd13, --prussian #003652), utilises dans toute l'app. Le scanner impute a chaque page les regles du style.css partage : la seule vraie marquee du depot est .gzc-track / @keyframes gzscroll, sur la page GameZone."
+      },
+      {
+        "rule": "marquee",
+        "value": "*",
+        "files": [
+          "espace.html"
+        ],
+        "createdAt": "2026-11-05T15:24:48.319Z",
+        "reason": "Faux positif : espace.html ne contient aucun degrade, aucune animation, aucun @keyframes ni aucune pastille clignotante (grep = 0), et le bloc CSS ajoute le 05.11.2026 (.pt-install-*) non plus. Le lime sur bleu nuit signale comme palette IA, ce sont les jetons de charte du club declares en style.css:8-9 (--fluo #b2fd13, --prussian #003652), utilises dans toute l'app. Le scanner impute a chaque page les regles du style.css partage : la seule vraie marquee du depot est .gzc-track / @keyframes gzscroll, sur la page GameZone."
       }
     ]
   }
