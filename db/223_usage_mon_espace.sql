@@ -83,7 +83,12 @@ returns table(email text, source text, has_account boolean, confirme boolean, in
               installed_at timestamptz, days_used integer)
 language plpgsql stable security definer set search_path = public as $$
 begin
-  if not is_staff(auth.uid()) then raise exception 'non autorisé'; end if;
+  -- Mêmes droits que la liste « Accès Mon espace » et que l'onglet Répertoire : inviter les familles
+  -- et savoir ce qu'elles font de l'app est un travail de direction et de secrétariat. Un moniteur
+  -- qui ouvre la fiche d'un jeune pour ses cours n'a pas à lire la fréquentation de ses parents.
+  if not (is_admin(auth.uid()) or has_role(auth.uid(), 'secretaire')) then
+    raise exception 'non autorisé';
+  end if;
   return query
   with cand as (
     select lower(trim(pe.email)) as em, 'fiche'::text as src, 1 as rang

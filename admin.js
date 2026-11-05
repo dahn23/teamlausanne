@@ -8074,6 +8074,10 @@ const ACC_DEBUT_SUIVI = "2026-11-05";
 async function loadAccesFiche(personId) {
   const box = $("p-acces");
   if (!box) return;
+  // Direction et secrétariat seulement (même garde qu'en base) : un moniteur qui ouvre la fiche
+  // d'un jeune pour ses cours n'a pas à lire la fréquentation de ses parents. Le bloc est caché
+  // plutôt que laissé à échouer — sinon il afficherait « non autorisé » à chaque fiche ouverte.
+  if (!hasAny(myAppRoles, ["superadmin", "admin", "secretaire"])) { box.classList.add("hidden"); return; }
   box.classList.toggle("hidden", !personId);
   if (!personId) { box.innerHTML = ""; return; }
   const titre = `<h3 class="acc-h">Mon espace <span class="muted">— accès et usage</span></h3>`;
