@@ -6350,3 +6350,27 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .nl-jeton{border:1px dashed var(--blue);background:#eef2fb;color:var(--blue);
   border-radius:999px;padding:3px 10px;font:inherit;font-size:.78rem;cursor:pointer}
 .nl-jeton:hover{background:var(--blue);color:#fff;border-style:solid}
+
+/* Mon espace — « Installez l'application ».
+   Posé sous l'en-tête, avant le sélecteur d'enfants. Empilé par défaut : à
+   375 px (iPhone SE, mini, et tous les modèles jusqu'au 13) un bouton posé à
+   côté du texte écrase l'un ou l'autre. La croix est sortie du flux, en haut
+   à droite, sinon elle se retrouve seule sur une ligne quand ça passe à la
+   ligne. Le bouton se remet à côté du texte dès qu'il y a la place. */
+.pt-install{padding:10px 12px 0}
+.pt-install-in{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  background:var(--prussian,#003652);color:#fff;border-radius:14px;padding:12px 38px 12px 12px}
+.pt-install-ic{flex:0 0 auto;width:40px;height:40px;border-radius:10px;display:block}
+.pt-install-t{flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pt-install-t b{font-size:.92rem;line-height:1.2}
+.pt-install-t span{font-size:.78rem;line-height:1.35;opacity:.82}
+.pt-install-b{flex:1 1 100%;text-align:center;background:var(--fluo,#b2fd13);color:#14300a;
+  font-weight:700;font-size:.85rem;text-decoration:none;padding:10px 16px;border-radius:999px}
+.pt-install-note{flex:1 1 100%;font-size:.78rem;line-height:1.4;opacity:.9}
+.pt-install-x{position:absolute;top:6px;right:6px;background:none;border:0;color:#fff;
+  opacity:.55;font-size:1rem;line-height:1;padding:6px;cursor:pointer}
+.pt-install-x:hover{opacity:1}
+/* Assez large pour que le bouton tienne à droite du texte. */
+@media (min-width:460px){
+  .pt-install-b{flex:0 0 auto}
+}

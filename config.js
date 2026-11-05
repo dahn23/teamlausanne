@@ -12,6 +12,15 @@ export const HOUR_END   = 22;  // dernier créneau 21:00–22:00
 // Quand tu as l'App ID OneSignal, colle-le ici → les notifs s'activent.
 export const ONESIGNAL_APP_ID = "";
 
+// Les boutiques d'applications, pour le bandeau d'installation de Mon espace.
+// Une adresse VIDE veut dire « pas encore publiée » : le bandeau propose alors
+// « Ajouter à l'écran d'accueil » à la place du badge, plutôt qu'un lien qui
+// mènerait à une page d'erreur. Coller l'adresse ici suffit à l'activer.
+export const BOUTIQUES = {
+  ios: "https://apps.apple.com/app/id6823676524",
+  android: "",   // Google Play : à remplir le jour de la publication
+};
+
 // Site public (teamlausanne.ch). Mon espace y pointe pour les actualités :
 // les images des articles et les liens « lire sur le site » vivent là-bas,
 // pas sur le domaine de l'app — un chemin relatif ne mènerait nulle part.

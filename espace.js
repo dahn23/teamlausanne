@@ -1,6 +1,6 @@
 // Mon espace — portail membre (jeunes & parents). 100% responsive.
 import { sb, myRoles, hasAny, CONSOLE_ROLES, isGzManager, rememberSpace, isNativeApp, initNativePush, releaseNativePush, openDeleteAccount, frDate, messageAuth } from "./common.js";
-import { ONESIGNAL_APP_ID, SITE_PUBLIC, SAISON_COURS, RESEAUX } from "./config.js";
+import { ONESIGNAL_APP_ID, SITE_PUBLIC, SAISON_COURS, RESEAUX, BOUTIQUES } from "./config.js";
 
 /* ============================================================
    PWA — installation + secours hors-ligne (service worker).
@@ -204,6 +204,58 @@ function plateforme() {
   try { if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) return "pwa"; } catch (_e) { /* vieux navigateur */ }
   return "web";
 }
+/* ---------- « Installez l'app » (05.11.2026) ----------
+   Le compte s'active depuis un e-mail : on clique le bouton, on choisit un mot
+   de passe, et on arrive ICI, dans le navigateur. L'e-mail est refermé, et avec
+   lui le lien vers les boutiques qu'il portait plus bas. Sans ce bandeau, une
+   famille reste donc sur le navigateur pour toujours — et ne reçoit jamais une
+   seule notification, qui est pourtant l'essentiel de l'app.
+
+   Montré seulement sur un TÉLÉPHONE dans un navigateur : inutile dans l'app
+   native, inutile depuis l'icône de l'écran d'accueil, et sur un ordinateur ce
+   serait une consigne que personne ne peut suivre. Refermable, et on s'en
+   souvient — insister après un refus, c'est du harcèlement, pas un rappel. */
+const INSTALL_CLE = "tl-install-refuse";
+function mobileDe() {
+  const ua = navigator.userAgent || "";
+  if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
+  if (/Android/i.test(ua)) return "android";
+  return null;                      // ordinateur : pas de bandeau
+}
+function renderInstall() {
+  const z = $("pt-install"); if (!z) return;
+  if (plateforme() !== "web") return;              // déjà dans l'app ou sur l'écran d'accueil
+  const os = mobileDe(); if (!os) return;
+  try { if (localStorage.getItem(INSTALL_CLE) === "1") return; } catch (_e) { /* navigation privée */ }
+
+  const lien = os === "ios" ? (BOUTIQUES.ios || "") : (BOUTIQUES.android || "");
+  // Pas encore publiée sur cette boutique : on propose le raccourci d'écran
+  // d'accueil, qui donne la même app en plein écran — plutôt qu'un lien mort.
+  const action = lien
+    ? `<a class="pt-install-b" href="${lien}" target="_blank" rel="noopener">Installer l'app</a>`
+    // Pas de glyphe « ⋮ » ni « ⎋ » : selon la police du téléphone ils tombent
+    // en caractère de secours (deux-points, carré vide) et la consigne devient
+    // incompréhensible. On nomme les boutons avec des mots.
+    : `<span class="pt-install-note">${os === "ios"
+        ? "Touchez le bouton <b>Partager</b> en bas de Safari, puis <b>Sur l'écran d'accueil</b>."
+        : "Ouvrez le menu du navigateur (les trois points), puis <b>Ajouter à l'écran d'accueil</b>."}</span>`;
+
+  z.innerHTML = `<div class="pt-install-in">
+      <img class="pt-install-ic" src="assets/pwa/icon-192.png" alt="" width="40" height="40" />
+      <div class="pt-install-t">
+        <b>Installez l'application</b>
+        <span>Pour être prévenu d'un changement d'horaire ou d'une annulation, sans ouvrir le navigateur.</span>
+      </div>
+      ${action}
+      <button type="button" class="pt-install-x" aria-label="Masquer">✕</button>
+    </div>`;
+  z.classList.remove("hidden");
+  z.querySelector(".pt-install-x").addEventListener("click", () => {
+    z.classList.add("hidden");
+    try { localStorage.setItem(INSTALL_CLE, "1"); } catch (_e) { /* tant pis, il reviendra */ }
+  });
+}
+
 // Silencieux par construction : une app qui refuse de s'ouvrir parce que le compteur
 // de visites est en panne serait absurde.
 function portalPing() {
@@ -231,6 +283,7 @@ async function startApp() {
   YOUTHS = data || [];
   if (!apercu) initNativePush();   // app native : enregistre ce téléphone pour les notifications (sans effet dans un navigateur)
   if (!apercu) portalPing();       // fréquentation (db/223) : la console saura qui a installé l'app et qui s'en sert
+  if (!apercu) renderInstall();    // navigateur de téléphone : proposer l'installation
   // Compte qui a aussi un rôle staff (coach qui est joueur, parent qui est moniteur…) : bouton de bascule vers la console.
   // Bouton « ⇄ Staff » : inutile dans un aperçu, où l'on est déjà dans la console.
   if (!apercu) myRoles().then(async (roles) => {

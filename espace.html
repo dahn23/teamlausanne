@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=393" />
+  <link rel="stylesheet" href="style.css?v=394" />
 </head>
 <body class="portal">
 
@@ -78,6 +78,11 @@
       <button id="pt-to-console" class="pt-logout pt-switch hidden" title="Passer à l'espace staff">⇄ Staff</button>
       <button id="pt-logout" class="pt-logout" aria-label="Se déconnecter" title="Se déconnecter"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.5 6.5a8 8 0 1 0 11 0"/></svg></button>
     </header>
+
+    <!-- Proposition d'installer l'app, montrée UNIQUEMENT dans un navigateur
+         de téléphone. C'est ici, juste après l'activation, que la personne est
+         le plus disposée à le faire : l'e-mail est déjà refermé. -->
+    <div id="pt-install" class="pt-install hidden"></div>
 
     <!-- sélecteur d'enfants liés au compte -->
     <div id="pt-youths" class="pt-youths hidden"></div>
