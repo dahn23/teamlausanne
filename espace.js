@@ -214,7 +214,14 @@ function plateforme() {
    Montré seulement sur un TÉLÉPHONE dans un navigateur : inutile dans l'app
    native, inutile depuis l'icône de l'écran d'accueil, et sur un ordinateur ce
    serait une consigne que personne ne peut suivre. Refermable, et on s'en
-   souvient — insister après un refus, c'est du harcèlement, pas un rappel. */
+   souvient — insister après un refus, c'est du harcèlement, pas un rappel.
+
+   Et surtout : plus jamais à quelqu'un qui a DÉJÀ installé l'app. Une page web
+   ne peut pas voir ce qui est installé sur le téléphone ; sans cela, rouvrir
+   app.teamlausanne.ch dans Safari après avoir installé l'app ramenait le
+   bandeau. C'est la base qui répond (portal_ping, db/226) : elle retient la
+   première ouverture depuis l'app ou l'écran d'accueil, sur n'importe quel
+   appareil. */
 const INSTALL_CLE = "tl-install-refuse";
 function mobileDe() {
   const ua = navigator.userAgent || "";
@@ -222,8 +229,9 @@ function mobileDe() {
   if (/Android/i.test(ua)) return "android";
   return null;                      // ordinateur : pas de bandeau
 }
-function renderInstall() {
+function renderInstall(dejaInstallee) {
   const z = $("pt-install"); if (!z) return;
+  if (dejaInstallee) return;                       // l'a déjà installée, un jour, quelque part
   if (plateforme() !== "web") return;              // déjà dans l'app ou sur l'écran d'accueil
   const os = mobileDe(); if (!os) return;
   try { if (localStorage.getItem(INSTALL_CLE) === "1") return; } catch (_e) { /* navigation privée */ }
@@ -257,10 +265,14 @@ function renderInstall() {
 }
 
 // Silencieux par construction : une app qui refuse de s'ouvrir parce que le compteur
-// de visites est en panne serait absurde.
+// de visites est en panne serait absurde. Le ping sert deux fois : il note la visite,
+// et il répond si cette personne a déjà ouvert l'app installée — ce qui décide du
+// bandeau. En cas de panne on ne montre rien : mieux vaut rater une proposition que
+// la faire à quelqu'un qui a l'app sous les yeux.
 function portalPing() {
-  sb.rpc("portal_ping", { p_platform: plateforme() }).then(({ error }) => {
-    if (error) console.warn("portal_ping :", error.message);
+  sb.rpc("portal_ping", { p_platform: plateforme() }).then(({ data, error }) => {
+    if (error) { console.warn("portal_ping :", error.message); return; }
+    renderInstall(data === true);
   });
 }
 
@@ -282,8 +294,7 @@ async function startApp() {
   if (error) return pannePortail();
   YOUTHS = data || [];
   if (!apercu) initNativePush();   // app native : enregistre ce téléphone pour les notifications (sans effet dans un navigateur)
-  if (!apercu) portalPing();       // fréquentation (db/223) : la console saura qui a installé l'app et qui s'en sert
-  if (!apercu) renderInstall();    // navigateur de téléphone : proposer l'installation
+  if (!apercu) portalPing();       // fréquentation (db/223) + décide du bandeau d'installation (db/226)
   // Compte qui a aussi un rôle staff (coach qui est joueur, parent qui est moniteur…) : bouton de bascule vers la console.
   // Bouton « ⇄ Staff » : inutile dans un aperçu, où l'on est déjà dans la console.
   if (!apercu) myRoles().then(async (roles) => {
