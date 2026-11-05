@@ -88,6 +88,42 @@ function frShort(iso) { const s = iso.split("-"); return `${s[2]}.${s[1]}`; }
 function initials(f, l) { return ((f || "")[0] || "") + ((l || "")[0] || ""); }
 
 /* ============================================================
+   Quand la donnée ne vient pas
+   ------------------------------------------------------------
+   « Rien de prévu cette semaine » et « je n'ai pas pu demander » sont deux
+   phrases différentes. Les confondre revient à annoncer à une famille que son
+   enfant n'a pas d'entraînement parce que le réseau a hoqueté — et l'enfant
+   reste à la maison. Tout appel dont la réponse remplit un écran passe donc
+   par ici : on dit qu'on n'a PAS PU LIRE, et on propose de réessayer.
+   ============================================================ */
+function erreurHtml(titre) {
+  const hors = !navigator.onLine;
+  return `<div class="pt-err">
+      <svg class="pt-err-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+        <circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.2"/><path d="M12 16.3v.1"/></svg>
+      <p class="pt-err-t">${hors ? "Pas de connexion" : (titre || "Affichage impossible")}</p>
+      <p class="pt-err-s">${hors
+        ? "Ton téléphone n'est pas connecté à Internet. Rien n'est perdu : réessaie dès que la connexion revient."
+        : "Nous n'avons pas réussi à lire ces informations. <b>Ce n'est pas une absence de données</b> : réessaie dans un instant, ou appelle le secrétariat."}</p>
+      <button type="button" class="pt-err-b" data-err-retry>Réessayer</button>
+    </div>`;
+}
+// Pose le bloc dans un conteneur et rebranche « Réessayer ».
+function poserErreur(host, relancer, titre) {
+  if (!host) return;
+  host.innerHTML = erreurHtml(titre);
+  host.querySelector("[data-err-retry]")?.addEventListener("click", relancer);
+}
+// Panne au démarrage : sans la liste des jeunes du compte, TOUT l'écran est
+// faux (onglets vides, onglets manquants) et rien ne le dirait. On arrête là
+// plutôt que de présenter une coquille vide qu'on croirait à jour.
+function pannePortail() {
+  const app = $("pt-app");
+  app.innerHTML = `<div class="pt-boot-err">${erreurHtml("Espace indisponible")}</div>`;
+  app.querySelector("[data-err-retry]").addEventListener("click", () => location.reload());
+}
+
+/* ============================================================
    Amorçage
    ============================================================ */
 const $ = (id) => document.getElementById(id);
@@ -152,7 +188,8 @@ async function startApp() {
   if (APERCU && !apercu) { $("pt-app").innerHTML = '<p style="padding:24px">Aperçu indisponible : droits insuffisants, ou élève introuvable.</p>'; return; }
 
   const { data, error } = apercu ? { data: [apercu] } : await sb.rpc("portal_my_youths");
-  YOUTHS = error ? [] : (data || []);
+  if (error) return pannePortail();
+  YOUTHS = data || [];
   if (!apercu) initNativePush();   // app native : enregistre ce téléphone pour les notifications (sans effet dans un navigateur)
   if (!apercu) portalPing();       // fréquentation (db/223) : la console saura qui a installé l'app et qui s'en sert
   // Compte qui a aussi un rôle staff (coach qui est joueur, parent qui est moniteur…) : bouton de bascule vers la console.
@@ -164,16 +201,20 @@ async function startApp() {
     b.addEventListener("click", () => { rememberSpace("console"); location.href = "/console"; });
   });
   // Feuille de match : onglet visible seulement si un jeune du compte est "joueur" (filière élite).
-  const { data: pl } = apercu
+  const { data: pl, error: ePl } = apercu
     ? { data: apercu.est_joueur ? [apercu] : [] }
     : await sb.rpc("portal_player_youths");
+  // Cette réponse décide des onglets affichés : en cas d'échec, un joueur
+  // perdrait Match, Physique et Mental sans un mot d'explication.
+  if (ePl) return pannePortail();
   PLAYERS = pl || [];
   $("pt-nav-comp").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-feuille").classList.toggle("hidden", PLAYERS.length === 0);
   $("pt-nav-physique").classList.toggle("hidden", PLAYERS.length === 0);
-  const { data: el } = apercu
+  const { data: el, error: eEl } = apercu
     ? { data: apercu.est_elite ? [apercu.person_id] : [] }
     : await sb.rpc("portal_elite_youths");
+  if (eEl) return pannePortail();
   ELITE = new Set((el || []).map((x) => (typeof x === "string" ? x : x.portal_elite_youths)));
   // « Saison » — la frise du planning tournois — ne s'affiche que pour pro,
   // pro U18 et sport-études. Compétition et Performance ne la voient pas :
@@ -318,7 +359,12 @@ function botGreet() {
 async function qrCours() {
   botBubble("Je regarde tes prochains cours…");
   const today = new Date();
-  const { data } = await sb.rpc("portal_week_courses", { p_from: isoLocal(today), p_to: isoLocal(addDays(today, 14)) });
+  const { data, error } = await sb.rpc("portal_week_courses", { p_from: isoLocal(today), p_to: isoLocal(addDays(today, 14)) });
+  if (error) {
+    botBubble("Je n'arrive pas à lire ton planning pour le moment — ça ne veut pas dire qu'il est vide ! Réessaie dans un instant.");
+    botQuick([{ label: "Réessayer", run: qrCours }, menuBtn]);
+    return;
+  }
   let rows = data || [];
   if (selYouth !== "all") rows = rows.filter((c) => c.youth_id === selYouth);
   const now = new Date();
@@ -374,9 +420,10 @@ async function renderAccueil() {
   // ne doit pas les retenir, et inversement.
   ptActus();
   const { data, error } = await sb.rpc("portal_news");
-  const news = error ? [] : (data || []);
   const box = document.getElementById("pt-news");
   if (!box) return;
+  if (error) { poserErreur(box, renderAccueil); return; }
+  const news = data || [];
   if (!news.length) { box.innerHTML = `<div class="pt-empty"><p>Aucune actualité pour le moment.</p></div>`; return; }
   box.innerHTML = news.map((n) => `
     <article class="pt-news-card">
@@ -664,8 +711,11 @@ async function renderCours() {
     sb.rpc("portal_week_courses", { p_from: from, p_to: to }),
     sb.rpc("portal_week_etudes", { p_from: from, p_to: to }),
   ]);
-  coursesCache = cRes.error ? [] : (cRes.data || []);
-  etudesCache = eRes.error ? [] : (eRes.data || []);
+  // Le cas qui a motivé tout ce travail : sans ce garde-fou, la moindre panne
+  // de réseau affichait « Rien de prévu cette semaine » à un parent.
+  if (cRes.error || eRes.error) { poserErreur($("pt-cours-list"), renderCours, "Planning indisponible"); return; }
+  coursesCache = cRes.data || [];
+  etudesCache = eRes.data || [];
   drawCoursList();
 }
 
@@ -915,7 +965,10 @@ async function renderCalendrier() {
   const cle = cible || "famille";
   if (!CAL_PROGS.length || CAL_CLE !== cle) {
     vue.innerHTML = `<p class="muted" style="text-align:center;padding:24px">Chargement du calendrier…</p>`;
-    const { data } = await sb.rpc("portal_mes_filieres", { p_youth: cible });
+    const { data, error } = await sb.rpc("portal_mes_filieres", { p_youth: cible });
+    // Échec ≠ « pas de filière ». Sans ce test, on retombait sur l'école de
+    // tennis ci-dessous et la famille lisait le calendrier de quelqu'un d'autre.
+    if (error) { poserErreur(vue, renderCalendrier, "Calendrier indisponible"); return; }
     // Sans filière connue (un parent dont l'enfant n'est pas inscrit cette
     // saison), on montre l'école de tennis : le calendrier du plus grand nombre.
     const progs = [...new Set((data || []).map((r) => CAL_DE_FILIERE[r.filiere]).filter(Boolean))];
@@ -935,10 +988,7 @@ async function renderCalendrier() {
     const du = calISO(d.getFullYear(), d.getMonth(), 1);
     const au = calISO(d.getFullYear() + 1, d.getMonth(), calNbJours(d.getFullYear() + 1, d.getMonth()));
     const { data, error } = await sb.rpc("agenda_famille", { p_du: du, p_au: au, p_youth: cible });
-    if (error) {
-      vue.innerHTML = `<div class="pt-panel"><p class="muted">Le calendrier n'a pas pu être chargé. Réessaie plus tard.</p></div>`;
-      return;
-    }
+    if (error) { poserErreur(vue, renderCalendrier, "Calendrier indisponible"); return; }
     CAL_DATES = calFusion(data);
   }
   if (!CAL_MOIS) CAL_MOIS = calAuj().slice(0, 7);
@@ -1297,9 +1347,17 @@ async function renderProfil() {
   if (!targets.length) { $("view-profil").innerHTML = `<div class="pt-empty"><p>Aucun profil lié à ce compte.</p></div>` + foot; bindFoot(); return; }
   $("view-profil").innerHTML = `<p class="muted" style="text-align:center;padding:18px">Chargement…</p>`;
   const infos = await Promise.all(targets.map(async (y) => {
-    const { data } = await sb.rpc("portal_youth_info", { p_youth: y.person_id });
-    return { y, info: (data && data[0]) || null };
+    const { data, error } = await sb.rpc("portal_youth_info", { p_youth: y.person_id });
+    return { y, info: (data && data[0]) || null, panne: !!error };
   }));
+  // Le pied de page (Confidentialité, Supprimer mon compte) reste affiché même
+  // en panne : Apple et Google exigent que la suppression soit toujours joignable.
+  if (infos.some((i) => i.panne)) {
+    $("view-profil").innerHTML = erreurHtml("Profil indisponible") + foot;
+    $("view-profil").querySelector("[data-err-retry]").addEventListener("click", renderProfil);
+    bindFoot();
+    return;
+  }
   $("view-profil").innerHTML = infos.map(({ y, info }) => youthProfileCard(y, info)).join("") + foot;
   bindFoot();
   infos.forEach(({ y }) => {
@@ -1426,18 +1484,23 @@ const psWe = (ws) => psRange(isoLocal(psDay(ws, 5)), isoLocal(psDay(ws, 6)));
 async function renderPortalSeason(player) {
   const host = $("mrp-season"); if (!host) return;
   const today = isoLocal(new Date());
-  const { data: seasons } = await sb.from("plan_seasons").select("*").order("start_monday", { ascending: false });
+  const { data: seasons, error: eSeasons } = await sb.from("plan_seasons").select("*").order("start_monday", { ascending: false });
+  if (eSeasons) { poserErreur(host, () => renderPortalSeason(player), "Saison indisponible"); return; }
   const s = (seasons || []).find((x) => x.start_monday <= today && isoLocal(psDay(x.start_monday, x.weeks * 7 - 1)) >= today) || (seasons || [])[0];
   if (!s) { host.innerHTML = ""; return; }
   const weeks = []; for (let i = 0; i < s.weeks; i++) weeks.push(isoLocal(psDay(s.start_monday, 7 * i)));
   const a = weeks[0], z = isoLocal(psDay(weeks[weeks.length - 1], 6));
-  const [{ data: w }, { data: t }, { data: offRows }, { data: u }] = await Promise.all([
+  const [rw, rt, rOff, ru] = await Promise.all([
     sb.from("plan_weeks").select("week_start,kind,tennis,physique,note").eq("person_id", player.person_id).gte("week_start", a).lte("week_start", z),
     sb.from("plan_tournaments").select("id,week_start,start_date,end_date,name,source,created_by").eq("person_id", player.person_id).gte("week_start", isoLocal(psDay(a, -49))).lte("week_start", z).order("start_date"),
     sb.from("plan_days_off").select("day,label").gte("day", a).lte("day", z).order("day"),
     sb.auth.getUser(),
   ]);
   if ($("mrp-season") !== host) return;   // l'onglet a été redessiné entre-temps
+  // Une frise à laquelle il manque les tournois ou les semaines se lit comme
+  // une saison vide : mieux vaut ne rien dessiner et le dire.
+  if (rw.error || rt.error || rOff.error) { poserErreur(host, () => renderPortalSeason(player), "Saison indisponible"); return; }
+  const w = rw.data, t = rt.data, offRows = rOff.data, u = ru.data;
   const kinds = {}, contenus = {};
   for (const r of w || []) { kinds[r.week_start] = r.kind; contenus[r.week_start] = r; }
   // Jours fériés / sans entraînement (db/110) de la semaine.
@@ -1562,7 +1625,8 @@ async function renderFeuille() {
   mfSel = playerPick(mfSel);
   host.innerHTML = `${playerSelHtml(mfSel)}<div id="mf-body"><p class="muted" style="text-align:center;padding:12px">Chargement…</p></div>`;
   host.querySelectorAll(".mrp-player").forEach((b) => b.addEventListener("click", () => { mfSel = b.dataset.id; mfOpen = null; renderFeuille(); }));
-  const { data } = await sb.rpc("portal_match_reports", { p_youth: mfSel });
+  const { data, error } = await sb.rpc("portal_match_reports", { p_youth: mfSel });
+  if (error) { poserErreur($("mf-body"), renderFeuille, "Feuilles indisponibles"); return; }
   mfRows = data || [];
   if (mfOpen && mfOpen !== "new" && !mfRows.some((r) => r.id === mfOpen)) mfOpen = null;
   if (mfOpen) renderMfSheet(); else renderMfList();
@@ -1888,7 +1952,10 @@ async function renderPhTests() {
   host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
   const { data, error } = await sb.rpc("portal_phys_tests", { p_youth: phSel });
   if ($("ph-sub") !== host) return;
-  const lignes = error ? [] : (data || []);
+  // Sans ce test, une panne se lisait « Pas encore de test physique pour toi » :
+  // une fausse bonne nouvelle, la pire des réponses.
+  if (error) { poserErreur(host, renderPhTests, "Tests indisponibles"); return; }
+  const lignes = data || [];
   if (!lignes.length) {
     host.innerHTML = `<div class="pt-empty"><p>Pas encore de test physique pour toi. Ton préparateur physique en organise plusieurs par saison : tes résultats arriveront ici, avec ses commentaires.</p></div>`;
     return;
@@ -1954,7 +2021,8 @@ async function renderPhVideos() {
   const { data, error } = await sb.from("phys_media").select("id,kind,comment,storage_path,author_name,created_at")
     .eq("youth_person_id", phSel).order("created_at", { ascending: false });
   if ($("ph-sub") !== host) return;
-  const rows = error ? [] : (data || []);
+  if (error) { poserErreur(host, renderPhVideos, "Vidéos indisponibles"); return; }
+  const rows = data || [];
   if (!rows.length) { host.innerHTML = `<div class="pt-empty"><p>Pas encore de vidéo pour toi. Ton coach physique t'en mettra ici, avec ses conseils.</p></div>`; return; }
   host.innerHTML = rows.map((m) => `<div class="ph-vid">
       ${m.kind === "video" ? `<video class="ph-vid-m" data-path="${escHtml(m.storage_path)}" controls playsinline preload="metadata"></video>`
@@ -1972,7 +2040,8 @@ async function renderPhRoutines() {
   host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
   const { data, error } = await sb.rpc("portal_phys_routines", { p_youth: phSel });
   if ($("ph-sub") !== host) return;
-  const rows = error ? [] : (data || []);
+  if (error) { poserErreur(host, renderPhRoutines, "Routines indisponibles"); return; }
+  const rows = data || [];
   if (!rows.length) { host.innerHTML = `<div class="pt-empty"><p>Pas encore de routine pour toi. Ton coach t'en attribuera bientôt.</p></div>`; return; }
   // Toutes fermées à l'arrivée : on voit d'un coup d'œil qu'il y a plusieurs routines.
   host.innerHTML = `<p class="muted ph-hint">Touche une routine pour l'ouvrir.</p>` + rows.map((r) => `<details class="ph-rt ph-k-${escHtml(r.kind)}">
@@ -1987,8 +2056,11 @@ const phIsVid = (n) => /\.(mp4|mov|m4v|webm)$/i.test(n || "");
 async function renderPhThread() {
   const host = $("ph-sub"); if (!host) return;
   host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
-  const { data } = await sb.rpc("phys_thread_list", { p_youth: phSel });
+  const { data, error } = await sb.rpc("phys_thread_list", { p_youth: phSel });
   if ($("ph-sub") !== host) return;
+  // Pas de zone de saisie sur un fil qu'on n'a pas pu lire : on écrirait
+  // au-dessus de messages qu'on ne voit pas.
+  if (error) { poserErreur(host, renderPhThread, "Discussion indisponible"); return; }
   const rows = data || [];
   const msg = (m) => {
     const side = m.author_is_staff ? "staff" : "youth";
@@ -2102,7 +2174,8 @@ async function renderCompRoutines() {
   host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
   const { data, error } = await sb.rpc("portal_mental_routines", { p_youth: compSel });
   if ($("comp-sub") !== host) return;
-  const rows = error ? [] : (data || []);
+  if (error) { poserErreur(host, renderCompRoutines, "Routines indisponibles"); return; }
+  const rows = data || [];
   if (!rows.length) { host.innerHTML = `<div class="pt-empty"><p>Pas encore de routine mentale pour toi. Ton coach t'en attribuera bientôt.</p></div>`; return; }
   host.innerHTML = rows.map((r) => `<div class="mrp-card tips-card">
       ${RT_BANDE(MNR_CLE[r.kind] || "idee", MNR_MOMENT[r.kind] || "Conseils", r.title)}
@@ -2117,7 +2190,8 @@ function renderCompSub() {
 async function renderCompMessages() {
   const host = $("comp-sub"); if (!host) return;
   host.innerHTML = '<p class="muted" style="text-align:center;padding:12px">Chargement…</p>';
-  const { data } = await sb.rpc("mental_thread_list", { p_youth: compSel });
+  const { data, error } = await sb.rpc("mental_thread_list", { p_youth: compSel });
+  if (error) { poserErreur(host, renderCompMessages, "Discussion indisponible"); return; }
   const rows = data || [];
   const msgs = rows.length ? rows.map(ptMtMsg).join("") : `<p class="muted" style="text-align:center;padding:12px">Aucun message pour l'instant. Ton coach mental peut t'écrire ici, et tu peux répondre.</p>`;
   host.innerHTML = `<div class="mt-thread">${msgs}</div>

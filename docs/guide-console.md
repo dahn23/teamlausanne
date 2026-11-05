@@ -753,6 +753,20 @@ Pour donner aux familles l'accès à l'app « Mon espace ».
    des droits. Lecture seule : rien de ce qu'on fait dans le cadre n'est
    enregistré, un bandeau jaune le rappelle.
 
+### Si une famille appelle : « l'app affiche Réessayer »
+
+Ce n'est pas une panne de son compte. Quand Mon espace n'arrive pas à lire une
+information, il l'écrit désormais franchement — pastille orange, « Pas de
+connexion » ou « … indisponible », et un bouton **Réessayer** — au lieu de
+faire croire qu'il n'y a rien à afficher. Avant, une coupure de réseau se
+lisait « Rien de prévu cette semaine » et le parent gardait l'enfant à la
+maison.
+
+À dire au téléphone : toucher **Réessayer**, et si le message revient, sortir
+et rouvrir l'app. Un cadre **gris en pointillés** (« Rien de prévu cette
+semaine », « Pas encore de vidéo pour toi ») veut dire l'inverse : la lecture
+a réussi, il n'y a réellement rien.
+
 ### Les colonnes « Accès » et « App » — à ne pas confondre
 
 - **Accès** répond à : *cette famille a-t-elle un compte, et l'a-t-elle
