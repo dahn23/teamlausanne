@@ -10974,6 +10974,8 @@ const nlPct = (a, b) => (b ? Math.round((a / b) * 100) + " %" : "—");
 function initNewsletter() {
   if (nlInit) return; nlInit = true;
   $("nl-new").addEventListener("click", () => nlOpen(null));
+  $("nl-import").addEventListener("click", () => $("nl-import-file").click());
+  $("nl-import-file").addEventListener("change", nlImporter);
   $("nl-refresh").addEventListener("click", loadNewsletters);
   $("nlap-close").addEventListener("click", () => $("nlap-modal").classList.add("hidden"));
   $("nl-ia-go").addEventListener("click", nlIaProposer);
@@ -11370,6 +11372,35 @@ function nlDetCsv() {
   a.click();
 }
 // ---- Éditeur ----
+// Import d'une mise en page préparée hors de la console : un .json qui porte au
+// minimum « blocks », et éventuellement subject / audience / from_*. Le fichier
+// est simplement OUVERT dans l'éditeur — rien n'est enregistré tant que vous
+// n'avez pas cliqué « Enregistrer le brouillon », et rien n'est jamais envoyé.
+//
+// Les blocs inconnus sont écartés plutôt que de faire échouer tout l'import :
+// un gabarit venu d'ailleurs peut contenir un type que la console ne sait pas
+// dessiner, et mieux vaut le reste de la lettre que rien du tout.
+async function nlImporter(ev) {
+  const f = ev.target.files?.[0];
+  ev.target.value = "";                       // réimporter le même fichier doit remarcher
+  if (!f) return;
+  let j;
+  try { j = JSON.parse(await f.text()); }
+  catch (_e) { uiAlert("Ce fichier n'est pas un JSON lisible."); return; }
+  const blocs = Array.isArray(j?.blocks) ? j.blocks : (Array.isArray(j?.blocs) ? j.blocs : null);
+  if (!blocs?.length) { uiAlert("Aucun bloc trouvé dans ce fichier (clé « blocks » attendue)."); return; }
+  const connus = blocs.filter((b) => b && NL_MODELES[b.t]);
+  if (!connus.length) { uiAlert("Aucun bloc exploitable : les types ne correspondent à rien de connu."); return; }
+
+  await nlOpen({ ...j, id: null, blocks: connus, status: "brouillon" });
+  const ecartes = blocs.length - connus.length;
+  const jeton = nlCompiler(connus).includes(NL_JETON);
+  $("nl-status").textContent = `Importé : ${connus.length} blocs`
+    + (ecartes ? ` (${ecartes} bloc(s) de type inconnu écarté(s))` : "")
+    + (jeton ? " · lien d'activation personnel détecté" : "")
+    + ". Rien n'est enregistré tant que vous n'avez pas cliqué « Enregistrer le brouillon ».";
+}
+
 async function nlOpen(n) {
   nlEditId = n?.id || null; nlAud = null;
   $("nl-title").textContent = n?.id ? "Modifier la newsletter" : "Nouvelle newsletter";

@@ -889,6 +889,10 @@ répondra qu'elle ne sait pas, et la question remontera dans
   (en-tête, titre, texte, image, image + texte, bouton, bandeau, chiffres,
   séparateur, pied), et la galerie de **modèles** en propose six prêts à
   l'emploi. « Dupliquer » rouvre une lettre déjà partie comme nouveau brouillon.
+  **« ⤓ Importer »** ouvre dans l'éditeur une mise en page préparée ailleurs
+  (un fichier `.json` contenant les blocs, et au besoin l'objet et le ciblage) :
+  le fichier est seulement **ouvert**, rien n'est enregistré tant que vous
+  n'avez pas cliqué « Enregistrer le brouillon », et rien n'est jamais envoyé.
   « ✉ Exemplaire » envoie une copie à une poignée d'adresses sans toucher ni
   aux destinataires ni aux statistiques.
   - **Inviter les familles à Mon espace.** Dans le champ **Lien** d'un bouton,

@@ -1411,6 +1411,12 @@
             </div>
             <div class="dash-hero-a">
               <button type="button" id="nl-refresh" class="ghost">↻ Actualiser</button>
+              <!-- Ouvre un .json de blocs préparé ailleurs (Cowork, une autre
+                   session) directement dans l'éditeur. Sans cela, une mise en
+                   page faite hors de la console devait être rebâtie bloc à
+                   bloc, ou injectée en base à la main. -->
+              <button type="button" id="nl-import" class="ghost" title="Ouvrir une mise en page préparée ailleurs (fichier .json)">⤓ Importer</button>
+              <input type="file" id="nl-import-file" accept=".json,application/json" hidden />
               <button type="button" id="nl-new">✉ Nouvelle newsletter</button>
             </div>
           </header>
