@@ -1,7 +1,7 @@
 // Grille de réservation PUBLIQUE (visible sans login).
 // Courts en colonnes, heures en :15 (08:15 → 21:15). Prix et couleurs
 // (creuse/pleine) calculés depuis les réglages paramétrables (app_settings).
-import { sb, getSession, myRoles, hasAny, STAFF_ROLES, CONSOLE_ROLES } from "./common.js";
+import { sb, getSession, myRoles, hasAny, STAFF_ROLES, CONSOLE_ROLES, messageAuth } from "./common.js";
 import "./pretty-select.js";
 import "./pretty-date.js";
 
@@ -137,7 +137,7 @@ function initUI() {
     const { error } = await sb.auth.signInWithPassword({
       email: $("email").value.trim(), password: $("password").value });
     $("login-btn").disabled = false;
-    if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
+    if (error) { err.textContent = messageAuth(error, "Email ou mot de passe incorrect."); err.hidden = false; return; }
     location.reload();
   });
 

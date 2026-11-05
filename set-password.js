@@ -14,7 +14,7 @@
 // serveur : le robot reçoit une page vide et n'a rien à consommer. Seul un
 // vrai navigateur, qui exécute ce fichier, s'en sert — et le lien reste donc
 // valable jusqu'à ce que la personne l'ouvre vraiment.
-import { sb, myRoles, landingFor } from "./common.js";
+import { sb, myRoles, landingFor, messageAuth } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 let pret = false;
@@ -66,7 +66,7 @@ $("sp-form").addEventListener("submit", async (e) => {
   if (p1.length < 8) { err.textContent = "8 caractères minimum."; err.hidden = false; return; }
   if (p1 !== p2) { err.textContent = "Les mots de passe ne correspondent pas."; err.hidden = false; return; }
   const { error } = await sb.auth.updateUser({ password: p1 });
-  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
+  if (error) { err.textContent = messageAuth(error, "Le mot de passe n'a pas pu être enregistré. Réessaie."); err.hidden = false; return; }
   // Selon le rôle : un coach/prof invité arrive sur la console, un membre sur Mon espace.
   location.href = landingFor(await myRoles());
 });

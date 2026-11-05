@@ -1,5 +1,5 @@
 // Console admin — CRM membres (accès staff uniquement).
-import { sb, getSession, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours, rememberSpace, isNativeApp, initNativePush, releaseNativePush, openDeleteAccount } from "./common.js";
+import { sb, getSession, myRoles, hasAny, STAFF_ROLES, frDate, frDateTime, jours, rememberSpace, isNativeApp, initNativePush, releaseNativePush, openDeleteAccount, messageAuth } from "./common.js";
 import "./pretty-select.js";
 import "./pretty-date.js";
 
@@ -101,7 +101,7 @@ if (!session) {
     const { error } = await sb.auth.signInWithPassword({
       email: $("email").value.trim(), password: $("password").value });
     $("login-btn").disabled = false;
-    if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
+    if (error) { err.textContent = messageAuth(error, "Email ou mot de passe incorrect."); err.hidden = false; return; }
     // Un membre/parent/jeune qui se connecte ici part sur son espace, pas d'« accès refusé ».
     const roles = await myRoles();
     let ok = hasAny(roles, CONSOLE_ROLES);
@@ -285,7 +285,7 @@ async function changeMyPassword() {
   btn.disabled = true; st.textContent = "Changement…";
   const { error } = await sb.auth.updateUser({ password: pw });
   btn.disabled = false;
-  if (error) { st.textContent = "Erreur : " + error.message; return; }
+  if (error) { st.textContent = messageAuth(error, "Le mot de passe n'a pas pu être changé."); return; }
   inp.value = ""; st.textContent = "✓ Mot de passe changé";
 }
 async function saveMyProfile() {

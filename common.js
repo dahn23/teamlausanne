@@ -67,6 +67,48 @@ export function frDateTime(d) {
 // Pluriel correct : « 1 jour », « 5 jours »
 export const jours = (d) => `${d} jour${d > 1 ? "s" : ""}`;
 
+// ===================================================================
+//  Messages d'authentification, en français
+//  -------------------------------------------------------------------
+//  Supabase répond en anglais. Deux travers à éviter, et on les avait tous
+//  les deux : afficher sa phrase telle quelle sur une page française, ou —
+//  pire — tout rabattre sur « Email ou mot de passe incorrect ». Une famille
+//  dont le mot de passe est refusé parce qu'il figure dans une fuite connue
+//  cherchait alors une faute de frappe qui n'existait pas.
+//  Le texte par défaut reste au choix de l'appelant : « incorrect » convient
+//  à un écran de connexion, pas à un changement de mot de passe.
+// ===================================================================
+export function messageAuth(error, defaut = "Une erreur est survenue. Réessaie dans un instant.") {
+  if (!error) return "";
+  const code = String(error.code || "");
+  const txt = String(error.message || "");
+  const dit = (re) => re.test(txt);
+
+  // Refusé parce qu'il figure dans les listes de mots de passe volés
+  // (protection « leaked password »), ou trop simple. Cas le plus déroutant :
+  // rien n'est faux, il faut seulement en choisir un autre.
+  if (code === "weak_password" || dit(/weak|pwned|leaked|easy to guess/i))
+    return "Ce mot de passe est trop courant : il apparaît dans des listes de mots de passe déjà volés sur d'autres sites. Choisis-en un autre — par exemple trois mots sans rapport mis bout à bout.";
+  if (code === "same_password" || dit(/should be different/i))
+    return "C'est déjà ton mot de passe actuel. Choisis-en un nouveau.";
+  if (code === "email_not_confirmed" || dit(/email not confirmed/i))
+    return "Ton accès n'est pas encore activé. Ouvre le lien reçu par e-mail, ou demande-en un nouveau au secrétariat.";
+  if (code === "invalid_credentials" || dit(/invalid login credentials/i))
+    return "Email ou mot de passe incorrect.";
+  if (code === "over_request_rate_limit" || code === "over_email_send_rate_limit" || dit(/rate limit|too many requests/i))
+    return "Trop de tentatives d'affilée. Attends une minute, puis réessaie.";
+  if (code === "user_not_found" || dit(/user not found/i))
+    return "Aucun compte à cette adresse. Écris au secrétariat : info@teamlausanne.ch";
+  if (code === "signup_disabled" || dit(/signups? not allowed|signup is disabled/i))
+    return "Les comptes sont créés par le club. Écris au secrétariat : info@teamlausanne.ch";
+  // Panne réseau : surtout ne pas dire « mot de passe incorrect ».
+  if (dit(/failed to fetch|network|load failed|fetch failed/i))
+    return navigator.onLine
+      ? "Le serveur n'a pas répondu. Réessaie dans un instant."
+      : "Pas de connexion. Vérifie ton accès à Internet, puis réessaie.";
+  return defaut;
+}
+
 // Redirige vers l'accueil si pas de session. Renvoie la session sinon.
 export async function requireLogin() {
   const session = await getSession();

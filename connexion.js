@@ -1,6 +1,6 @@
 // Page de connexion épurée (app.teamlausanne.ch) — uniquement le login,
 // puis aiguillage par rôle : staff → /console, membre/parent/jeune → Mon espace.
-import { sb, myRoles, landingAfterLogin, getSession } from "./common.js";
+import { sb, myRoles, landingAfterLogin, getSession, messageAuth } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -21,6 +21,6 @@ $("login-form").addEventListener("submit", async (e) => {
     email: $("email").value.trim(), password: $("password").value,
   });
   btn.disabled = false;
-  if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
+  if (error) { err.textContent = messageAuth(error, "Email ou mot de passe incorrect."); err.hidden = false; return; }
   location.href = await landingAfterLogin();
 });

@@ -1,5 +1,5 @@
 // Mon espace — portail membre (jeunes & parents). 100% responsive.
-import { sb, myRoles, hasAny, CONSOLE_ROLES, isGzManager, rememberSpace, isNativeApp, initNativePush, releaseNativePush, openDeleteAccount, frDate } from "./common.js";
+import { sb, myRoles, hasAny, CONSOLE_ROLES, isGzManager, rememberSpace, isNativeApp, initNativePush, releaseNativePush, openDeleteAccount, frDate, messageAuth } from "./common.js";
 import { ONESIGNAL_APP_ID, SITE_PUBLIC, SAISON_COURS, RESEAUX } from "./config.js";
 
 /* ============================================================
@@ -186,7 +186,10 @@ $("pt-login-form").addEventListener("submit", async (e) => {
     password: $("pt-password").value,
   });
   btn.disabled = false; btn.textContent = "Se connecter";
-  if (error) { err.textContent = "Email ou mot de passe incorrect."; err.hidden = false; return; }
+  // « Email ou mot de passe incorrect » reste le cas courant, mais ce n'était
+  // PAS la bonne réponse à un accès non activé, à un trop-plein de tentatives
+  // ni à une panne de réseau : la famille cherchait une faute de frappe.
+  if (error) { err.textContent = messageAuth(error, "Email ou mot de passe incorrect."); err.hidden = false; return; }
   await startApp();
 });
 $("pt-logout").addEventListener("click", async () => { await releaseNativePush(); await sb.auth.signOut(); location.reload(); });

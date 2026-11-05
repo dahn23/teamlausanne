@@ -1,5 +1,5 @@
 // Site public dynamique : mondes + pages détaillées (routage par ancre).
-import { sb, getSession, myRoles, hasAny, landingAfterLogin, CONSOLE_ROLES, frDate, jours } from "./common.js";
+import { sb, getSession, myRoles, hasAny, landingAfterLogin, CONSOLE_ROLES, frDate, jours, messageAuth } from "./common.js";
 import "./pretty-select.js";
 import "./pretty-date.js";
 
@@ -848,7 +848,7 @@ $("login-form").addEventListener("submit", async (e) => {
   const { error } = await sb.auth.signInWithPassword({
     email: $("email").value.trim(), password: $("password").value });
   $("login-btn").disabled = false;
-  if (error) { err.textContent = "Connexion impossible : " + error.message; err.hidden = false; return; }
+  if (error) { err.textContent = messageAuth(error, "Email ou mot de passe incorrect."); err.hidden = false; return; }
   // Aiguillage par rôle : staff → console, membre/parent/jeune → Mon espace.
   location.href = await landingAfterLogin();
 });
