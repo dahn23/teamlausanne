@@ -642,6 +642,28 @@ personne si sa fiche en a une, sinon ses initiales.
   Pour ajouter la photo, ouvrir la fiche et cliquer « Prendre / choisir une
   photo ».
 
+### Bloc « Mon espace » — accès et usage
+
+En bas de la fiche, au-dessus des boutons. Une ligne par adresse e-mail
+susceptible d'ouvrir l'app pour cette personne, et ce qu'elle en fait :
+
+- **app installée depuis le …** — elle a l'app sur son téléphone ;
+- **navigateur seulement — l'app n'est pas installée** — à relancer ;
+- **compte créé, jamais connecté** — l'invitation n'a pas abouti ;
+- **invitée le … — pas encore activée** ;
+- **pas de compte** ;
+- **Aucune adresse e-mail sur cette fiche** — il faut d'abord en saisir une.
+
+Sous chaque adresse, d'où elle vient : l'e-mail de la fiche, un parent
+rattaché par « Liens familiaux », ou le champ « Parent 1 / 2 ». ⚠ Une adresse
+qui n'est QUE dans « Parent 1 / 2 » n'ouvre pas l'accès : seul l'e-mail
+principal de la fiche le fait. Pour qu'un parent entre, son adresse doit être
+l'e-mail de sa propre fiche, elle-même rattachée à l'enfant.
+
+Un compte se crée toujours avec **l'e-mail de la fiche** : il est repris
+automatiquement à chaque enregistrement, donc corriger l'adresse ici corrige
+aussi l'identifiant de connexion.
+
 ### Les trois notions de rôle
 
 C'est le point qui prête le plus à confusion :
@@ -730,6 +752,28 @@ Pour donner aux familles l'accès à l'app « Mon espace ».
    donc souvent plus larges : c'est pour la mise en page, pas pour vérifier
    des droits. Lecture seule : rien de ce qu'on fait dans le cadre n'est
    enregistré, un bandeau jaune le rappelle.
+
+### Les colonnes « Accès » et « App » — à ne pas confondre
+
+- **Accès** répond à : *cette famille a-t-elle un compte, et l'a-t-elle
+  activé ?* « connecté le … » est la date où elle a posé son mot de passe.
+- **App** répond à : *s'en sert-elle, et depuis quoi ?* Soit « ✓ app Android /
+  app iPhone / raccourci », soit **« navigateur — à relancer »**, suivi de la
+  dernière ouverture et du nombre de jours d'utilisation.
+
+La colonne App est celle qui sert à relancer : « navigateur — à relancer »
+désigne les familles qui ouvrent Mon espace dans Chrome ou Safari et à qui il
+faut proposer d'installer l'app. Le compte est en haut de l'écran.
+
+**Pourquoi deux colonnes et pas une seule date.** « Dernière connexion » ne
+veut pas dire « dernière utilisation ». Le mot de passe n'est demandé qu'une
+fois ; ensuite l'app se reconnecte toute seule, et cette date ne bouge plus.
+Une famille qui ouvre l'app tous les jours depuis six mois y affiche encore la
+date de son premier jour. Seule la colonne App dit l'usage réel.
+
+**Comptes d'avant le 05.11.2026** : ils affichent « pas rouvert depuis le
+suivi ». Ce n'est pas « n'utilise pas l'app » — c'est « on ne sait pas
+encore ». La mention disparaît à leur prochaine ouverture.
 
 **Bon à savoir** : les robots d'aperçu de WhatsApp peuvent consommer un lien
 d'activation avant la personne. C'est pour ça que le jeton vit dans le `#` de

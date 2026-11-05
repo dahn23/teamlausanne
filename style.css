@@ -2477,6 +2477,22 @@ body.portal{background:var(--bg)}
 .invite-linkrow input{flex:1;font-size:.82rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
 .invite-linkrow button{flex:0 0 auto;padding:8px 14px}
 
+/* Fiche › Mon espace : accès et usage (db/223). Une ligne par adresse pouvant ouvrir l'app.
+   Le liseré de gauche donne l'état d'un coup d'œil, sans avoir à lire la phrase. */
+.acc-card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0 4px;background:#fbfcfe}
+.acc-h{margin:0 0 10px;font-size:1rem}
+.acc-h .muted{font-weight:400;font-size:.85rem}
+.acc-row{border-left:4px solid var(--line);padding:6px 0 6px 12px;margin-bottom:10px}
+.acc-row:last-child{margin-bottom:0}
+.acc-mail{font-weight:700;color:var(--blue-ink);word-break:break-all}
+.acc-src{font-size:.8rem}
+.acc-etat{font-size:.86rem;margin-top:2px}
+.acc-oui{border-left-color:var(--fluo-d)}
+.acc-attente{border-left-color:#d8a200}
+.acc-non{border-left-color:#c9ccd6}
+.acc-non .acc-etat{color:var(--muted)}
+.acc-vide{margin:0;font-size:.88rem;color:#8a5a00;background:#fff6e2;border-radius:8px;padding:8px 10px}
+
 /* ================= NEWS (console admin) ================= */
 /* Actualités du site : régler jusqu'à quand chaque article reste dans Mon espace (db/218). */
 .actu-table td,.actu-table th{vertical-align:middle}

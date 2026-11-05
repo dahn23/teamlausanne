@@ -1,5 +1,5 @@
 // Mon espace — portail membre (jeunes & parents). 100% responsive.
-import { sb, myRoles, hasAny, CONSOLE_ROLES, isGzManager, rememberSpace, initNativePush, releaseNativePush, openDeleteAccount, frDate } from "./common.js";
+import { sb, myRoles, hasAny, CONSOLE_ROLES, isGzManager, rememberSpace, isNativeApp, initNativePush, releaseNativePush, openDeleteAccount, frDate } from "./common.js";
 import { ONESIGNAL_APP_ID, SITE_PUBLIC, SAISON_COURS, RESEAUX } from "./config.js";
 
 /* ============================================================
@@ -120,6 +120,24 @@ $("pt-login-form").addEventListener("submit", async (e) => {
 });
 $("pt-logout").addEventListener("click", async () => { await releaseNativePush(); await sb.auth.signOut(); location.reload(); });
 
+/* ---------- Fréquentation (db/223) ----------
+   Comment l'app est ouverte, pour que la console puisse proposer l'installation à ceux
+   qui ne l'ont pas. « standalone » = lancée depuis l'icône de l'écran d'accueil (le
+   raccourci PWA) ; navigator.standalone est la version iOS, la seule que Safari expose.
+   Rien d'autre n'est remonté : ni l'onglet ouvert, ni l'heure de chaque geste. */
+function plateforme() {
+  if (isNativeApp()) return (window.Capacitor?.getPlatform?.() === "ios") ? "ios" : "android";
+  try { if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) return "pwa"; } catch (_e) { /* vieux navigateur */ }
+  return "web";
+}
+// Silencieux par construction : une app qui refuse de s'ouvrir parce que le compteur
+// de visites est en panne serait absurde.
+function portalPing() {
+  sb.rpc("portal_ping", { p_platform: plateforme() }).then(({ error }) => {
+    if (error) console.warn("portal_ping :", error.message);
+  });
+}
+
 /* ---------- Démarrage de l'app ---------- */
 async function startApp() {
   $("pt-login").classList.add("hidden");
@@ -136,6 +154,7 @@ async function startApp() {
   const { data, error } = apercu ? { data: [apercu] } : await sb.rpc("portal_my_youths");
   YOUTHS = error ? [] : (data || []);
   if (!apercu) initNativePush();   // app native : enregistre ce téléphone pour les notifications (sans effet dans un navigateur)
+  if (!apercu) portalPing();       // fréquentation (db/223) : la console saura qui a installé l'app et qui s'en sert
   // Compte qui a aussi un rôle staff (coach qui est joueur, parent qui est moniteur…) : bouton de bascule vers la console.
   // Bouton « ⇄ Staff » : inutile dans un aperçu, où l'on est déjà dans la console.
   if (!apercu) myRoles().then(async (roles) => {

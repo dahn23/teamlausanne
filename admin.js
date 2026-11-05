@@ -1959,6 +1959,7 @@ function openPerson(p) {
   applyGzOnlyTabs();
   loadObjectives(p ? p.id : null);
   loadMedia(p ? p.id : null);
+  loadAccesFiche(p ? p.id : null);
   loadPersonSeasons(p ? p.id : null);
   loadPersonPhysNotes(p ? p.id : null, !!p && canPhysNotes() && PHYS_NOTE_ROLES.some((r) => roles.includes(r)));   // fil « Physique » (sport-études / pro / pro U18)
   if (p) { loadReservations(p.id, resaByRole); loadCourses(p.id, coursByRole); loadPersonPhys(p.id, physByRole); loadPersonEtudes(p.id, etudesByRole); loadPersonSuivi(p.id, physByRole); loadPersonTennis(p.id, tennisByRole); loadPersonMental(p.id, mentalTabRole); loadPersonPrepaPhys(p.id, prepaPhysTab); loadPersonContract(p.id, isPlayer); loadPersonMatchs(p.id, physByRole || !!p.license_no); loadPersonStages(p.id); }
@@ -6629,6 +6630,7 @@ async function addMovement() {
 const PA_FILIERES = [["sport-etudes", "Sport-études"], ["pro", "Pro"], ["pro-u18", "Pro U18"], ["performance", "Performance"],
   ["competition", "Compétition"], ["club", "Club"], ["kidstennis", "KidsTennis"]];
 let paSel = new Set(["sport-etudes", "pro", "pro-u18"]), paRows = [], paCfg = null, paBound = false;
+let paUsage = new Map();        // fréquentation par adresse (db/223), rechargée avec la liste
 const paIsSuper = () => hasAny(myAppRoles, ["superadmin"]);
 
 async function loadPortalAccess() {
@@ -6824,16 +6826,39 @@ function paState(r) {
 async function paLoadList() {
   if (!paSel.size) { paRows = []; paRenderList(); return; }
   $("pa-list").innerHTML = `<p class="muted">Chargement…</p>`;
-  const { data, error } = await sb.rpc("portal_access_list", { p_roles: [...paSel] });
+  // Deux appels : l'état du COMPTE (portal_access_list) et la FRÉQUENTATION (db/223). Séparés
+  // à dessein — portal_access_list est aussi réécrite par db/201, les mélanger créerait un conflit.
+  const [{ data, error }, { data: usage }] = await Promise.all([
+    sb.rpc("portal_access_list", { p_roles: [...paSel] }),
+    sb.rpc("portal_usage_by_email"),
+  ]);
   if (error) { $("pa-list").innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  paUsage = new Map((usage || []).map((u) => [String(u.email || "").toLowerCase(), u]));
   paRows = data || [];
   paRenderList();
+}
+
+// Colonne « App » : l'usage réel, à ne pas confondre avec « s'est connecté une fois ».
+// C'est elle qui donne la liste à relancer — ceux qui ouvrent l'app dans un navigateur.
+function paApp(r) {
+  const u = paUsage.get(String(r.email || "").toLowerCase());
+  if (!u) {
+    if (!r.last_sign_in) return { key: "rien", html: "" };
+    return { key: "inconnu", html: `<span class="muted" title="Compte ancien : rien ne dit s'il est utilisé, le suivi n'a démarré que le ${frDate(ACC_DEBUT_SUIVI)}">pas rouvert depuis le suivi</span>` };
+  }
+  const vu = `vu le ${frDate(u.last_seen)} · ${u.days_used} j`;
+  if (u.installed_at) return { key: "installee", html: `<span class="gz-cl gz-cl-ok">✓ ${esc(ACC_PLATEFORME[u.platform] || u.platform || "app")}</span> <span class="muted">${vu}</span>` };
+  return { key: "navigateur", html: `<span class="gz-cl gz-cl-todo">navigateur — à relancer</span> <span class="muted">${vu}</span>` };
 }
 
 function paRenderList() {
   const todo = paRows.filter((r) => paState(r).key !== "ok");
   const kids = paRows.reduce((a, r) => a + (r.person_ids || []).length, 0);
-  $("pa-count").textContent = paRows.length ? `${paRows.length} compte(s) · ${kids} jeune(s) · ${paRows.length - todo.length} déjà connecté(s)` : "";
+  const relancer = paRows.filter((r) => paApp(r).key === "navigateur").length;
+  $("pa-count").textContent = paRows.length
+    ? `${paRows.length} compte(s) · ${kids} jeune(s) · ${paRows.length - todo.length} déjà connecté(s)`
+      + (relancer ? ` · ${relancer} ouvre${relancer > 1 ? "nt" : ""} l'app dans un navigateur (à relancer)` : "")
+    : "";
   const on = !!(paCfg && paCfg.sending_enabled);
   $("pa-send-all").disabled = !on || !todo.length;
   $("pa-send-all").textContent = todo.length ? `Inviter les ${todo.length} compte(s) sans accès` : "Tous les comptes ont un accès";
@@ -6844,11 +6869,13 @@ function paRenderList() {
     const fil = (r.filieres || "").split(", ").map(roleLabel).join(", ");
     const invite = st.key === "ok" ? "" : `<button type="button" class="ghost pa-one" data-i="${i}" ${on ? "" : "disabled"}>${st.key === "wait" ? "Réinviter" : "Inviter"}</button>`;
     const src = r.source === "parent" ? ` <span class="muted" title="Adresse lue dans « Parent 1 / Parent 2 » de la fiche">· parent</span>` : "";
-    return `<tr><td><b>${esc(r.children)}</b></td><td>${esc(r.email)}${src}</td><td class="muted">${esc(fil)}</td><td>${st.html}</td>
+    return `<tr><td><b>${esc(r.children)}</b></td><td>${esc(r.email)}${src}</td><td class="muted">${esc(fil)}</td><td>${st.html}</td><td>${paApp(r).html}</td>
       <td style="text-align:right;white-space:nowrap">${invite}
       <button type="button" class="ghost pa-sample" data-i="${i}" title="M'envoyer le mail tel que cet utilisateur le recevrait (à MON adresse)">Aperçu</button></td></tr>`;
   };
-  $("pa-list").innerHTML = `<table class="crm-table"><thead><tr><th>Jeune(s)</th><th>E-mail du compte</th><th>Filière</th><th>Accès</th><th></th></tr></thead><tbody>${paRows.map(rowHtml).join("")}</tbody></table>`;
+  $("pa-list").innerHTML = `<table class="crm-table"><thead><tr><th>Jeune(s)</th><th>E-mail du compte</th><th>Filière</th><th>Accès</th>`
+    + `<th title="L'app est-elle installée sur le téléphone, ou ouverte dans un navigateur ? Se connecter une fois ne dit rien de l'usage.">App</th><th></th></tr></thead>`
+    + `<tbody>${paRows.map(rowHtml).join("")}</tbody></table>`;
   $("pa-list").querySelectorAll(".pa-one").forEach((b) => b.addEventListener("click", () => paInvite([paRows[+b.dataset.i].email])));
   $("pa-list").querySelectorAll(".pa-sample").forEach((b) => b.addEventListener("click", () => paSendTest(paRows[+b.dataset.i].email)));
 }
@@ -8027,6 +8054,68 @@ async function setDefaultRate(id, personId) {
   await sb.from("coach_rates").update({ is_default: false }).eq("person_id", personId);
   await sb.from("coach_rates").update({ is_default: true }).eq("id", id);
   loadCoachRates(personId);
+}
+
+// ---- Mon espace : qui peut entrer, qui est entré, qui a installé l'app (db/223) ----
+// Pourquoi un bloc à part plutôt qu'une ligne « dernière connexion » : cette date-là ne veut pas dire
+// ce qu'on croit. Supabase ne l'écrit qu'à la saisie du mot de passe et renouvelle le jeton en silence
+// ensuite — une famille qui ouvre l'app tous les jours garde la date de son premier jour. C'est
+// « vu le … » qui dit l'usage réel, et « app installée » qui dit à qui proposer de la télécharger.
+const ACC_PLATEFORME = { android: "app Android", ios: "app iPhone", pwa: "raccourci sur l'écran d'accueil", web: "navigateur" };
+const ACC_SOURCE = {
+  fiche: "e-mail de la fiche",
+  "lien famille": "parent rattaché dans « Liens familiaux »",
+  "champ parent": "adresse lue dans « Parent 1 / 2 » — n'ouvre PAS encore l'accès",
+};
+// Mise en service du suivi de fréquentation. Avant cette date on ne sait rien de l'usage :
+// il faut l'écrire, sinon un compte ancien et très actif passe pour un compte abandonné.
+const ACC_DEBUT_SUIVI = "2026-11-05";
+
+async function loadAccesFiche(personId) {
+  const box = $("p-acces");
+  if (!box) return;
+  box.classList.toggle("hidden", !personId);
+  if (!personId) { box.innerHTML = ""; return; }
+  const titre = `<h3 class="acc-h">Mon espace <span class="muted">— accès et usage</span></h3>`;
+  box.innerHTML = `${titre}<p class="muted">Chargement…</p>`;
+  const { data, error } = await sb.rpc("portal_acces_fiche", { p: personId });
+  if ($("p-id").value !== personId) return;          // une autre fiche a été ouverte entre-temps
+  if (error) { box.innerHTML = `${titre}<p class="error">${esc(error.message)}</p>`; return; }
+  const rows = data || [];
+  if (!rows.length) {
+    box.innerHTML = `${titre}<p class="acc-vide">Aucune adresse e-mail sur cette fiche : impossible de l'inviter.
+      Renseigne l'e-mail ci-dessus, enregistre, puis « Créer un accès portail ».</p>`;
+    return;
+  }
+  box.innerHTML = titre + rows.map(accLigne).join("");
+}
+
+function accLigne(r) {
+  const faits = [];
+  let cls = "acc-non";
+  if (!r.has_account) {
+    faits.push(r.invited_at ? `invitée le ${frDate(r.invited_at)} — pas encore activée` : "pas de compte");
+  } else if (!r.last_sign_in) {
+    cls = "acc-attente";
+    faits.push("compte créé, jamais connecté");
+  } else if (!r.last_seen) {
+    // Compte bien réel, mais pas rouvert depuis que le suivi existe. Ne PAS écrire « n'utilise pas l'app ».
+    cls = "acc-attente";
+    faits.push(`mot de passe posé le ${frDate(r.last_sign_in)}`,
+      `pas rouvert depuis la mise en service du suivi (${frDate(ACC_DEBUT_SUIVI)})`);
+  } else {
+    cls = "acc-oui";
+    faits.push(r.installed_at
+      ? `app installée depuis le ${frDate(r.installed_at)}`
+      : `<b>navigateur seulement — l'app n'est pas installée</b>`);
+    faits.push(`dernière ouverture le ${frDate(r.last_seen)} (${ACC_PLATEFORME[r.platform] || esc(r.platform || "?")})`);
+    faits.push(`${r.days_used} jour${r.days_used > 1 ? "s" : ""} d'utilisation`);
+  }
+  return `<div class="acc-row ${cls}">
+    <div class="acc-mail">${esc(r.email)}</div>
+    <div class="acc-src muted">${esc(ACC_SOURCE[r.source] || r.source)}</div>
+    <div class="acc-etat">${faits.join(" · ")}</div>
+  </div>`;
 }
 
 async function invitePerson() {
