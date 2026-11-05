@@ -6337,3 +6337,16 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 @media (max-width:430px){
   .ptst-d,.ptst-h,.ptst-bar{padding-left:12px}
 }
+
+/* Newsletter : lien d'activation personnel ({{lien_activation}}).
+   Le bandeau se place juste au-dessus d'« Envoyer » parce que c'est la seule
+   newsletter qui CREE des comptes : la nuance doit etre lue au moment du clic. */
+.nl-activation{margin:14px 0 0;padding:12px 14px;border-radius:12px;font-size:.86rem;line-height:1.5;
+  background:#fff8e6;border:1px solid #f0d79a;border-left:4px solid #d99c15;color:#4a3a12}
+.nl-activation b{color:#3a2c08}
+.nl-act-test{display:block;margin-top:5px;color:#7a6530}
+/* Rappel sous un champ « Lien » : le jeton ne s'invente pas de memoire. */
+.nl-aide{margin:-6px 0 11px;font-size:.8rem;line-height:1.45;color:var(--muted)}
+.nl-jeton{border:1px dashed var(--blue);background:#eef2fb;color:var(--blue);
+  border-radius:999px;padding:3px 10px;font:inherit;font-size:.78rem;cursor:pointer}
+.nl-jeton:hover{background:var(--blue);color:#fff;border-style:solid}

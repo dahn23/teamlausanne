@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=392" />
+  <link rel="stylesheet" href="style.css?v=393" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2599,6 +2599,11 @@
             <!-- Le HTML compilé vit ici, caché : l'envoi et l'enregistrement
                  continuent de lire ce champ sans rien savoir des blocs. -->
             <div id="nl-body" hidden></div>
+
+            <!-- Se montre seulement si le contenu porte {{lien_activation}} :
+                 cet envoi ouvre de vrais comptes, et ça doit se voir juste
+                 au-dessus du bouton « Envoyer », pas dans une aide ailleurs. -->
+            <div id="nl-activation" class="nl-activation" hidden></div>
 
             <div class="form-foot"><span id="nl-status" class="muted" style="font-size:.85rem"></span><span class="spacer"></span>
               <button type="button" id="nl-save" class="ghost">Enregistrer le brouillon</button>

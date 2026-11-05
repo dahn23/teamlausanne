@@ -22093,6 +22093,27 @@ const nlCompiler = (blocs) => (blocs || []).map(nlBlocEnveloppe).filter(Boolean)
 
 
 
+// Gabarit de lien remplace par newsletter-send, destinataire par destinataire,
+// au moment de l'envoi : chacun recoit SON lien d'activation de Mon espace.
+// Ecrit tel quel dans l'adresse d'un bouton ou d'une image.
+const NL_JETON = "{{lien_activation}}";
+
+// Bandeau au-dessus du bouton « Envoyer » quand la newsletter porte le jeton.
+// Un envoi ordinaire ne fait qu'envoyer ; celui-ci CREE des comptes. La
+// difference doit sauter aux yeux la ou on clique, et pas seulement dans l'aide.
+function nlRenderActivation() {
+  const z = $("nl-activation"); if (!z) return;
+  const present = nlCompiler(nlBlocs).includes(NL_JETON);
+  z.hidden = !present;
+  if (!present) return;
+  z.innerHTML = `<b>Cette newsletter est une invitation.</b>
+    Chaque destinataire recevra <b>son</b> lien personnel : un compte Mon espace est créé pour lui
+    (sans mot de passe — la famille choisit le sien), et le lien reste valable 30 jours.
+    Une adresse qui a déjà un compte actif reçoit un simple lien de connexion.
+    L'envoi est refusé tant que « Envois activés » est éteint dans l'onglet Accès.
+    <span class="nl-act-test">Un test n'ouvre aucun compte : le bouton y mène à un lien d'exemple.</span>`;
+}
+
 // --- Modeles prets a l'emploi ---
 // Chaque modele est une simple liste de blocs : rien de fige, tout se modifie
 // ensuite comme une composition faite a la main. Les couleurs viennent de
@@ -22165,6 +22186,36 @@ const NL_GABARITS = [
     ],
   },
   {
+    id: "invitation", nom: "Invitation à Mon espace",
+    desc: "Le lien d'activation personnel, ce que contient l'app, les deux boutiques.",
+    blocs: () => [
+      { t: "entete", logo: NL_LOGO, fond: NL_C.bleu, trait: true },
+      { t: "titre", texte: "Votre espace Team Lausanne est prêt", align: "left", couleur: NL_C.encre, taille: 26 },
+      { t: "texte", align: "left",
+        html: "Bonjour,<br /><br />Les cours, le calendrier, les stages et le lien avec l’encadrement sont désormais réunis dans une seule application. Votre accès vous attend : il suffit d’un clic pour choisir votre mot de passe." },
+      // Le bouton porte le jeton : chaque destinataire recoit SON lien.
+      { t: "bouton", texte: "Activer mon espace", href: NL_JETON,
+        bg: NL_C.bleu, fg: "#ffffff", pastille: NL_C.mint, fleche: true, align: "center" },
+      { t: "texte", align: "center",
+        html: "<span style=\"font-size:13px;color:#69708a\">Votre identifiant est cette adresse e-mail. Le lien reste valable 30 jours.</span>" },
+      { t: "sep" },
+      { t: "titre", texte: "Ce que vous y trouverez", align: "left", couleur: NL_C.encre, taille: 22 },
+      { t: "duo", src: "", alt: "", sens: "image-gauche",
+        html: "<b>Les cours de la semaine</b><br />Le planning, les absences à signaler, et les changements d’horaire dès qu’ils sont décidés." },
+      { t: "duo", src: "", alt: "", sens: "image-droite",
+        html: "<b>Le calendrier du club</b><br />Vacances, fermetures, stages et événements — au même endroit que les cours." },
+      { t: "sep" },
+      { t: "titre", texte: "Ensuite, installez l’app", align: "left", couleur: NL_C.encre, taille: 22 },
+      { t: "texte", align: "left",
+        html: "Activez d’abord votre espace avec le bouton ci-dessus, puis installez l’application et connectez-vous avec le mot de passe que vous venez de choisir." },
+      { t: "bouton", texte: "App Store", href: "https://apps.apple.com/app/id6823676524",
+        bg: NL_C.encre, fg: "#ffffff", fleche: false, align: "center" },
+      { t: "bouton", texte: "Google Play", href: "https://play.google.com/store/apps/details?id=ch.teamlausanne.app",
+        bg: NL_C.encre, fg: "#ffffff", fleche: false, align: "center" },
+      { t: "pied", html: NL_MODELES.pied.html },
+    ],
+  },
+  {
     id: "simple", nom: "Message simple",
     desc: "L’essentiel : en-tête, un titre, un texte, une signature.",
     blocs: () => [
@@ -22223,6 +22274,7 @@ function nlRender() {
     : `<p class="muted nl-vide">Votre newsletter est vide.</p>` + plus(0);
   nlBlocs.forEach((b, i) => nlRendreVue(i));
   nlRenderInspecteur();
+  nlRenderActivation();
   nlSync();
 }
 
@@ -22280,6 +22332,16 @@ function nlChampsEditables(b, racine) {
 function nlSync() { const c = $("nl-body"); if (c) c.innerHTML = nlCompiler(nlBlocs); }
 
 
+// Sous un champ « Lien » : rappelle le jeton d'activation et le pose en un clic.
+// Personne ne retient « {{lien_activation}} » de memoire, et une faute de frappe
+// ne se verrait qu'a la reception — le texte partirait tel quel dans l'e-mail.
+function nlAideJeton(href) {
+  const pose = String(href || "").includes(NL_JETON);
+  return `<p class="nl-aide">${pose
+    ? "✓ Lien d'activation personnel : chaque destinataire recevra le sien."
+    : `Invitation à Mon espace ? <button type="button" class="nl-jeton" data-jeton>Utiliser le lien d'activation</button>`}</p>`;
+}
+
 function nlRenderInspecteur() {
   const z = $("nl-insp"); if (!z) return;
   const b = nlBlocs[nlSel];
@@ -22311,10 +22373,12 @@ function nlRenderInspecteur() {
               <input type="file" id="nl-img-file" accept="image/*" hidden /></div>`)
          +  champ("Texte alternatif", `<input type="text" data-f="alt" value="${esc(b.alt || "")}" />`)
          +  champ("Lien au clic", `<input type="text" data-f="href" placeholder="https://…" value="${esc(b.href || "")}" />`)
+         +  nlAideJeton(b.href)
          +  champ("Largeur (%)", `<input type="range" data-f="largeur" min="25" max="100" value="${+b.largeur || 100}" />`);
   } else if (b.t === "bouton") {
     html += champ("Libellé", `<input type="text" data-f="texte" value="${esc(b.texte || "")}" />`)
          +  champ("Lien", `<input type="text" data-f="href" value="${esc(b.href || "")}" />`)
+         +  nlAideJeton(b.href)
          +  champ("Alignement", align(b.align))
          +  champ("Pilule", `<input type="color" data-f="bg" value="${esc(b.bg || NL_C.bleu)}" />`)
          +  champ("Couleur du libellé", `<input type="color" data-f="fg" value="${esc(b.fg || "#ffffff")}" />`)
@@ -22385,6 +22449,15 @@ document.addEventListener("click", async (e) => {
   // Le « + » entre deux blocs ouvre la palette, en retenant ou inserer.
   const ins = e.target.closest("[data-ins]");
   if (ins) { nlOuvrirPalette(+ins.dataset.ins, ins); return; }
+
+  // « Utiliser le lien d'activation » sous un champ Lien : pose le jeton dans le
+  // bloc selectionne. On ecrit dans le bloc, pas seulement dans la case : sinon
+  // la valeur serait perdue au prochain redessin.
+  if (e.target.closest("[data-jeton]")) {
+    const b = nlBlocs[nlSel];
+    if (b) { b.href = NL_JETON; nlRender(); }
+    return;
+  }
 
   const pal = e.target.closest("[data-nlnew]");
   if (pal) {

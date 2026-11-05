@@ -885,7 +885,27 @@ répondra qu'elle ne sait pas, et la question remontera dans
   cadre de réponse est aussi sous les mails que vous avez envoyés, et écrit
   au destinataire du fil — utile quand votre dernier mot est resté sans
   réponse et qu'il faut relancer.
-- **Newsletter** — « ✉ Nouvelle newsletter ».
+- **Newsletter** — « ✉ Nouvelle newsletter ». La lettre se compose par **blocs**
+  (en-tête, titre, texte, image, image + texte, bouton, bandeau, chiffres,
+  séparateur, pied), et la galerie de **modèles** en propose six prêts à
+  l'emploi. « Dupliquer » rouvre une lettre déjà partie comme nouveau brouillon.
+  « ✉ Exemplaire » envoie une copie à une poignée d'adresses sans toucher ni
+  aux destinataires ni aux statistiques.
+  - **Inviter les familles à Mon espace.** Dans le champ **Lien** d'un bouton,
+    le petit « Utiliser le lien d'activation » pose le gabarit
+    `{{lien_activation}}`. À l'envoi, chaque destinataire reçoit **son** lien
+    personnel : un compte Mon espace est créé à son adresse — sans mot de
+    passe, la famille choisit le sien — et le lien vaut 30 jours. Une adresse
+    qui a déjà un compte actif reçoit un simple lien de connexion ; une adresse
+    sans jeune cette saison, un lien vers l'app, et rien n'est créé.
+  - Une newsletter porteuse de ce lien **crée de vrais comptes**. Un bandeau
+    orange le rappelle au-dessus d'« Envoyer », et l'envoi est **refusé** tant
+    que « Envois activés » est éteint dans l'onglet **Accès** — le même
+    interrupteur que les invitations. Un **test** n'ouvre jamais de compte : le
+    bouton y mène à un lien d'exemple, qui affichera « lien invalide ».
+  - Renvoyer la même invitation est sans danger : un lien déjà émis et non
+    utilisé est **repris tel quel**, donc une famille présente dans deux
+    filières — ou relancée la semaine suivante — reçoit toujours le même lien.
 - **Social Media Planner** — « ＋ Nouvelle publication », vues « Calendrier »,
   « Tableau », « Grille », « Rushes ». Un accord écrit est obligatoire pour
   passer en « Programmé » : beaucoup des personnes filmées sont mineures.
