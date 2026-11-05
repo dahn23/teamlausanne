@@ -753,6 +753,17 @@ Pour donner aux familles l'accès à l'app « Mon espace ».
    des droits. Lecture seule : rien de ce qu'on fait dans le cadre n'est
    enregistré, un bandeau jaune le rappelle.
 
+### Si une famille demande : « on me propose d'installer l'application »
+
+C'est voulu, et ce n'est pas une publicité. Une famille qui active son espace
+depuis l'e-mail arrive dans **le navigateur** de son téléphone : l'app y
+fonctionne, mais sans notification — donc sans prévenir d'un cours annulé. Un
+bandeau lui propose donc l'installation, **uniquement** sur un téléphone, dans
+un navigateur, et jamais une fois l'app installée. Il se referme, et ne
+revient pas. Sur Android, tant que Google Play n'a pas publié l'app, il
+explique comment ajouter un raccourci à l'écran d'accueil — c'est la même
+application, en plein écran.
+
 ### Si une famille appelle : « l'app affiche Réessayer »
 
 Ce n'est pas une panne de son compte. Quand Mon espace n'arrive pas à lire une
