@@ -767,6 +767,15 @@ et rouvrir l'app. Un cadre **gris en pointillés** (« Rien de prévu cette
 semaine », « Pas encore de vidéo pour toi ») veut dire l'inverse : la lecture
 a réussi, il n'y a réellement rien.
 
+Deux autres messages peuvent apparaître, et ils sont normaux :
+
+- **« Pas de connexion »** ou **« Mon espace n'a pas pu démarrer »** sur le logo,
+  au lancement : l'app n'a pas pu se charger du tout, presque toujours faute de
+  réseau. Avant, c'était un écran blanc et la famille croyait l'app cassée.
+- **L'app se recharge toute seule** et redemande le mot de passe : la session
+  a expiré. C'est voulu — sinon l'app restait ouverte avec tous ses onglets
+  vides et sans explication. Rien n'est perdu, il suffit de se reconnecter.
+
 ### Les colonnes « Accès » et « App » — à ne pas confondre
 
 - **Accès** répond à : *cette famille a-t-elle un compte, et l'a-t-elle

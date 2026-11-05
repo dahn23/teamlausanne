@@ -2397,6 +2397,17 @@ body.portal{background:var(--bg)}
 /* Panne au démarrage : l'app n'a plus ni entête ni barre d'onglets. */
 .pt-boot-err{padding:28px 16px;max-width:460px;margin:0 auto}
 
+/* ---- Écran d'attente (espace.html) ----
+   Visible AVANT tout JavaScript : c'est lui qui remplace la page blanche
+   quand le module ne démarre pas. Donc aucune dépendance à une classe posée
+   par le script. */
+.pt-boot{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;padding:28px;text-align:center;
+  background:var(--bg,#eef1f8)}
+.pt-boot-logo{width:76px;height:76px;object-fit:contain}
+.pt-boot-msg{margin:0;max-width:17rem;color:var(--muted);font-size:.92rem;line-height:1.5}
+.pt-boot-msg b{color:var(--blue-ink)}
+
 /* ---- Semaine ---- */
 .pt-week{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 14px}
 .pt-week-nav{width:40px;height:40px;border-radius:12px;background:#fff;color:var(--blue);

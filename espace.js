@@ -128,17 +128,52 @@ function pannePortail() {
    ============================================================ */
 const $ = (id) => document.getElementById(id);
 
+// Passe à vrai une fois l'app réellement affichée : les deux veilles ci-dessous
+// ne doivent pas se déclencher pendant le démarrage.
+let appDemarre = false;
+// Efface l'écran d'attente d'espace.html. Appelé aux deux premiers affichages
+// possibles (connexion ou app), pas avant : sinon on remplace le logo par du blanc.
+const finDuChargement = () => { try { window.ptBooted?.(); } catch (_e) { /* page déjà nettoyée */ } };
+
 (async function boot() {
   const { data } = await sb.auth.getSession();
   if (!data.session) return showLogin();
   await startApp();
 })();
 
+/* ---------- La session meurt pendant qu'on s'en sert ----------
+   Une app installée reste ouverte des semaines. Quand le jeton expire pour de
+   bon (mot de passe changé ailleurs, compte supprimé, refus de renouvellement),
+   plus rien ne répond : tous les onglets se vident SANS un mot. On recharge, ce
+   qui ramène l'écran de connexion. */
+sb.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_OUT" && appDemarre) location.reload();
+});
+
+/* ---------- Retour d'arrière-plan ----------
+   Une app installée ne se recharge pas comme une page web : rouverte le lundi,
+   elle réaffichait l'écran du jeudi précédent. Après une vraie absence, on vide
+   les caches de vue, on revient à la semaine courante et on redessine. */
+let masqueDepuis = 0;
+const ABSENCE_LONGUE = 5 * 60 * 1000;
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") { masqueDepuis = Date.now(); return; }
+  if (!appDemarre || APERCU || !masqueDepuis) return;
+  const absence = Date.now() - masqueDepuis;
+  masqueDepuis = 0;
+  if (absence < ABSENCE_LONGUE) return;   // un simple va-et-vient : rien à refaire
+  ACTUS = null; ACTUS_CLE = "";
+  CAL_DATES = null; CAL_PROGS = []; CAL_CLE = "";
+  weekStart = mondayOf(new Date());       // la semaine a pu changer entre-temps
+  renderCurrentView();
+});
+
 /* ---------- Connexion ---------- */
 function showLogin() {
   $("pt-app").classList.add("hidden");
   $("pt-login").classList.remove("hidden");
   $("pt-login-mascot").innerHTML = mascot(96);
+  finDuChargement();
 }
 $("pt-login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -178,6 +213,7 @@ function portalPing() {
 async function startApp() {
   $("pt-login").classList.add("hidden");
   $("pt-app").classList.remove("hidden");
+  finDuChargement();
   $("pt-bot").innerHTML = mascot(40);
   $("pt-bot-avatar").innerHTML = mascot(28);
 
@@ -236,6 +272,7 @@ async function startApp() {
   if (vue === "physique" && ["routine", "videos", "prepa"].includes(sous)) phSub = sous;
   const btnVue = VIEW_TITLES[vue] && document.querySelector(`.pt-nav-item[data-view="${vue}"]`);
   switchView(btnVue && !btnVue.classList.contains("hidden") ? vue : "accueil");
+  appDemarre = true;   // à partir d'ici, les veilles session/arrière-plan ont un sens
 
   // Notifs push : cible le compte connecté (si OneSignal est configuré).
   const uid = (await sb.auth.getUser()).data.user?.id;

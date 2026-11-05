@@ -21,9 +21,39 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=391" />
+  <link rel="stylesheet" href="style.css?v=392" />
 </head>
 <body class="portal">
+
+  <!-- ---------- Écran d'attente ----------
+       VISIBLE par défaut, effacé par espace.js dès qu'un écran est prêt.
+       S'il n'est jamais effacé, c'est que le module n'a pas démarré (hors
+       connexion : la bibliothèque Supabase vient d'un autre domaine). Sans ce
+       bloc, la famille n'avait qu'une PAGE BLANCHE — #pt-login et #pt-app
+       commencent tous deux cachés, et seul le JavaScript les révèle.
+       Script classique et non module : il s'exécute même quand le module tombe. -->
+  <div id="pt-boot" class="pt-boot">
+    <img class="pt-boot-logo" src="assets/logo-academie.webp" alt="Team Lausanne" width="76" height="76" />
+    <p class="pt-boot-msg" id="pt-boot-msg">Chargement…</p>
+    <button type="button" class="pt-err-b" id="pt-boot-retry" hidden>Réessayer</button>
+  </div>
+  <script>
+    (function () {
+      var minuteur = setTimeout(function () {
+        var m = document.getElementById("pt-boot-msg"), b = document.getElementById("pt-boot-retry");
+        if (!m) return;
+        m.innerHTML = navigator.onLine
+          ? "<b>Mon espace n'a pas pu démarrer.</b><br>Vérifie ta connexion, puis réessaie."
+          : "<b>Pas de connexion.</b><br>Mon espace a besoin d'Internet pour afficher tes cours. Réessaie dès que la connexion revient.";
+        if (b) { b.hidden = false; b.onclick = function () { location.reload(); }; }
+      }, 6000);
+      window.ptBooted = function () {
+        clearTimeout(minuteur);
+        var e = document.getElementById("pt-boot");
+        if (e) e.remove();
+      };
+    })();
+  </script>
 
   <!-- ---------- Connexion ---------- -->
   <div id="pt-login" class="pt-login hidden">

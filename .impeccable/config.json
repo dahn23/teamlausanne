@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "confidentialite.html"
+        ],
+        "createdAt": "2026-11-05T10:50:34.382Z",
+        "reason": "Faux positif : confidentialite.html ne contient aucune ombre (grep box-shadow/text-shadow = 0) et la valeur signalee #141e3c n'existe nulle part dans le depot. Page legale claire, texte seul ; mes modifications n'ont ajoute que des lignes de texte."
+      }
+    ]
+  }
+}
