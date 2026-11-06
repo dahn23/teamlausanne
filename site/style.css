@@ -2827,6 +2827,31 @@ html.lo-only .hero-switch-hint,body.lo-only .hero-switch-hint{display:none}
 .film-note{max-width:980px;margin:16px auto 0;text-align:center;
   color:rgba(255,255,255,.72);font-size:.92rem}
 
+/* --- Variante « hero » : le film de marque sur l'accueil ------------------
+   Meme bloc, mais c'est ici une piece maitresse et non l'illustration d'une
+   page de programme. Trois differences, et rien de plus : plus d'air autour,
+   un cadre plus large, et une lueur qui pose l'image sur le fond au lieu de
+   la coller dessus. Tout le reste (affiche, clic-pour-lire, liseré) est celui
+   de .filmsec — une seule mecanique a maintenir. */
+.filmhero{padding:calc(var(--sec-md) + 26px) 22px}
+.filmhero .film-head{max-width:820px;margin-bottom:38px}
+.filmhero .film-head h2{font-size:clamp(1.9rem,4.4vw,3rem);line-height:1.04}
+.filmhero .film-head .perks-lead{font-size:clamp(1rem,1.6vw,1.12rem)}
+/* La lueur est portee par un conteneur en ::before plutot que par le cadre :
+   une ombre plus large sur .film-cadre aurait debordé de l'ecran sur mobile. */
+.filmhero .film-cadre{max-width:1120px}
+.filmhero .film-cadre::before{content:"";position:absolute;inset:-14% -8%;z-index:-1;
+  pointer-events:none;border-radius:50%;
+  background:radial-gradient(60% 55% at 50% 50%,rgba(178,253,19,.16),rgba(178,253,19,0) 70%)}
+/* Le bouton sous le film est la pilule blanche de l'accueil (.btn-cta) et non
+   le lien de section (.wsec-link) : ce dernier est un texte souligne en
+   accent-ink, illisible sur la bande sombre — essaye et vu le 06.11.2026. */
+.film-pied{margin-top:32px;display:flex;justify-content:center}
+@media(max-width:700px){
+  .filmhero{padding:var(--sec-md) 18px}
+  .filmhero .film-head{margin-bottom:26px}
+}
+
 /* Portraits d'eleves : la photo d'abord, le texte au survol ou au clic.
    Une seule ligne qui defile : avec cinq athletes et d'autres a venir, la
    grille s'empilait et repoussait tout le reste de la page vers le bas. */

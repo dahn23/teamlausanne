@@ -264,6 +264,19 @@ worlds:
           "Avec la possibilité de disputer quelques compétitions ponctuelles — dont les interclubs, pour les membres du club.",
         ]},
         note: "L'âge n'est qu'un repère : la progression s'adapte à chacun, à 1–2 ans près. Celles et ceux qui ne rejoignent pas une filière sélective poursuivent en Club." },
+      // Le film de marque, juste apres la pyramide : elle explique le parcours
+      // en mots et en paliers, le film le montre. Place la plutot qu'en haut de
+      // page parce que le hero porte deja une photo pleine largeur — deux
+      // grandes images l'une sur l'autre se seraient fait concurrence.
+      // Titre repris de la video elle-meme : on ne promet rien qu'elle ne tienne.
+      // L'affiche est servie par le site : rien ne part vers YouTube tant que
+      // personne n'a clique.
+      { type: "filmsec", variant: "hero", anchor: "film", eyebrow: "Le film du club",
+        title: "Du premier échange aux grandes ambitions",
+        lead: "Le centre de formation du Lausanne-Sports Tennis, en images.",
+        poster: "assets/photos/accueil-film-2026.jpg",
+        video: "16cjRpRNQZ0",
+        link: { label: "Découvrir nos programmes", cta: true, scroll: "programmes" } },
       // Les coachs sur l'accueil : une pyramide de filieres ne dit pas QUI
       // encadre. En carrousel plutot qu'en grille — six cartes en grille
       // auraient repousse tout le bas de page — et SANS defilement automatique :

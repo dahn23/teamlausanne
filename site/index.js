@@ -1008,14 +1008,21 @@ function sectionHTML(sec) {
         : `<iframe class="film-media" src="https://www.youtube-nocookie.com/embed/${esc(sec.video)}?rel=0&amp;start=0"
              title="${esc(sec.title)}" loading="lazy" frameborder="0" allowfullscreen
              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>`;
-      return `<section class="wsec filmsec">
+      // « hero » : la meme mecanique, en plus large et plus haut de plafond.
+      // C'est le film de marque sur l'accueil, pas l'illustration d'une page
+      // de programme — il a droit a la pleine largeur et a un bouton qui mene
+      // quelque part. Une variante plutot qu'un second type : meme affiche,
+      // meme clic-pour-lire, meme absence de requete vers YouTube avant le clic.
+      const hero = sec.variant === "hero";
+      return `<section class="wsec filmsec${hero ? " filmhero" : ""}"${sec.anchor ? ` data-anchor="${esc(sec.anchor)}"` : ""}>
         <div class="perks-head film-head">
           ${sec.eyebrow ? `<span class="eyebrow">${esc(sec.eyebrow)}</span>` : ""}
           <h2>${esc(sec.title)}</h2>
           ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
         </div>
         <div class="film-cadre">${dedans}</div>
-        ${sec.note ? `<p class="film-note">${esc(sec.note)}</p>` : ""}</section>`;
+        ${sec.note ? `<p class="film-note">${esc(sec.note)}</p>` : ""}
+        ${sec.link ? `<div class="film-pied">${linkHTML(sec.link)}</div>` : ""}</section>`;
     }
 
     // ---- Portraits d'eleves ----
