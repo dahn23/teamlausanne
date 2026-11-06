@@ -36,3 +36,9 @@ site/journee-team-lausanne.html
 site/actualites.html
 site/actualites/
 site/404.html
+
+# Sorties locales (plannings des jeunes, exports divers) : des horaires de
+# mineurs nommement, qui n'ont rien a faire dans un depot. Le generateur
+# tools/planning-hebdo ecrit ici.
+exports/
+tools/planning-hebdo/seances.txt
