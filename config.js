@@ -36,7 +36,7 @@ export const SAISON_COURS = { label: "2026-2027", reprise: "2026-08-31", fin: "2
 // affichée : mettre l'adresse ici suffit à faire apparaître l'icône, et à la
 // faire disparaître si le compte ferme.
 export const RESEAUX = {
-  instagram: "https://www.instagram.com/lausanne_sports_tennis",
+  instagram: "https://www.instagram.com/team_lausanne_academy",
   tiktok: "https://www.tiktok.com/@team_lausanne",
   google: "https://www.google.com/maps/search/?api=1&query=Team+Lausanne+Academy+Route+des+Plaines-du-Loup+7+1018+Lausanne",
   site: "https://teamlausanne.ch",

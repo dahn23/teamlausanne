@@ -21978,7 +21978,7 @@ const NL_LIENS = {
   google: "https://www.google.com/maps/search/?api=1&query=Team+Lausanne+Academy+Route+des+Plaines-du-Loup+7+1018+Lausanne",
   site:   "https://teamlausanne.ch",
   mail:   "mailto:info@teamlausanne.ch",
-  insta:  "https://www.instagram.com/lausanne_sports_tennis/",
+  insta:  "https://www.instagram.com/team_lausanne_academy/",
 };
 
 // Le pied de page de toutes les newsletters. Deux lignes : l'identité et
@@ -21992,7 +21992,7 @@ const NL_PIED =
   + " · Route des Plaines du Loup 7, 1018 Lausanne<br />"
   + nlLien(NL_LIENS.site,  "teamlausanne.ch") + " · "
   + nlLien(NL_LIENS.mail,  "info@teamlausanne.ch") + " · "
-  + nlLien(NL_LIENS.insta, "@lausanne_sports_tennis");
+  + nlLien(NL_LIENS.insta, "@team_lausanne_academy");
 const NL_MODELES = {
   entete: { t: "entete", logo: NL_LOGO, fond: NL_C.bleu, trait: true },
   titre:  { t: "titre", texte: "Votre titre", align: "left", couleur: NL_C.encre, taille: 24 },

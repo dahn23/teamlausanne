@@ -12,7 +12,7 @@ export const LIENS = {
   tableau:   `${ITF}/draws-and-results/`,
   live:      `${ITF}/live-scores/`,
   itf:       `${ITF}/overview/`,
-  instagram: "https://www.instagram.com/lausanne_sports_tennis",
+  instagram: "https://www.instagram.com/team_lausanne_academy",
   site:      "https://www.lausanneopen.ch",
   maps:      "https://www.google.com/maps/search/?api=1&query=Route+des+Plaines-du-Loup+7+1018+Lausanne",
   tel:       "+41216461350",

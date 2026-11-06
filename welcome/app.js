@@ -121,7 +121,7 @@ async function vTournoi(v) {
     ${carte("chat", "Suivre le club au quotidien",
       `<p>Photos, résultats et coulisses toute l'année sur le compte Instagram du Lausanne-Sports Tennis.</p>
        <a class="btn block" style="margin-top:12px" href="${LIENS.instagram}" target="_blank" rel="noopener">
-         @lausanne_sports_tennis</a>`)}`;
+         @team_lausanne_academy</a>`)}`;
 
   chargerOopDuJour();
 }

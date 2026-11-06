@@ -35,7 +35,7 @@ const WORLDS = {
           { name: "Interclubs 2027", photo: "assets/club/interclubs.jpg" },
           { name: "Interclubs juniors 2027", photo: "assets/club/interclubs-juniors.jpg" },
         ]},
-      { type: "instagram", anchor: "vie", title: "Vie du club", handle: "lausanne_sports_tennis",
+      { type: "instagram", anchor: "vie", title: "Vie du club", handle: "team_lausanne_academy",
         photos: ["assets/webflow/tennis-day.webp", "assets/webflow/prog-club.webp",
           "assets/webflow/coaching-technique.jpg", "assets/webflow/physical-training.jpg",
           "assets/webflow/stage-development.webp", "assets/webflow/cta-young.jpg"] },
