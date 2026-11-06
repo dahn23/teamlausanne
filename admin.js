@@ -19142,10 +19142,26 @@ function renderMailBodyEl(m) {
     f.setAttribute("sandbox", "allow-same-origin allow-popups allow-popups-to-escape-sandbox");
     el.appendChild(f);
     f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>body{font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111;margin:0;word-wrap:break-word;overflow-wrap:anywhere}img{max-width:100%;height:auto}a{color:#123cc4}</style></head><body>${m.body_html}</body></html>`;
-    f.addEventListener("load", () => { try { const h = f.contentDocument.body.scrollHeight; f.style.height = Math.min(1400, h + 24) + "px"; } catch (_) { f.style.height = "500px"; } });
+    f.addEventListener("load", () => {
+      try { const h = f.contentDocument.body.scrollHeight; f.style.height = Math.min(1400, h + 24) + "px"; } catch (_) { f.style.height = "500px"; }
+      // Sur téléphone (surtout dans l'app), un lien « nouvel onglet » cliqué DANS le cadre du mail ne faisait rien
+      // (Dan, 06.11.2026) : on l'intercepte et on l'ouvre nous-mêmes, hors du cadre.
+      try { f.contentDocument.addEventListener("click", mailLinkClick); } catch (_) { /* cadre illisible : liens natifs */ }
+    });
   } else {
     el.innerHTML = mailLinkify(m.body_text || m.snippet || "");
+    el.onclick = mailLinkClick;
   }
+}
+function mailLinkClick(e) {
+  const a = e.target.closest && e.target.closest("a[href]");
+  if (!a) return;
+  const url = a.getAttribute("href") || "";
+  if (!/^(https?:|mailto:|tel:)/i.test(url)) return;   // ancre interne, javascript:… : on laisse
+  e.preventDefault();
+  // App : on quitte la page, la coquille confie l'adresse au navigateur / à l'app mail / au téléphone.
+  if (isNativeApp() || !/^https?:/i.test(url)) { window.location.href = url; return; }
+  window.open(url, "_blank", "noopener");
 }
 // Texte brut -> HTML sûr avec URLs cliquables
 function mailLinkify(text) {
@@ -19951,9 +19967,18 @@ async function openMailAttachment(attId, meta, btn) {
   try {
     if (btn) btn.classList.add("busy");
     if (isPdf && inApp) {
-      const { data, error } = await sb.from("mail_attachments").select("content_b64").eq("id", attId).single();
-      if (error || !data?.content_b64) throw new Error(error?.message || "contenu absent (pièce trop volumineuse ou non importée)");
-      await mailPdfViewer(b64ToBytes(data.content_b64), fname, () => mailAttSignedUrl(attId, meta, true).catch((e) => { uiAlert("Pièce jointe : " + e.message); return null; }));
+      // Les grosses pièces (CV de 6 Mo…) n'ont plus de copie en base : seulement le fichier dans « mail-att ».
+      // On le prend là (Dan, 06.11.2026 : « contenu absent » sur le CV d'une candidature).
+      const { data, error } = await sb.from("mail_attachments").select("content_b64,storage_path").eq("id", attId).single();
+      if (error) throw new Error(error.message);
+      let bytes = data?.content_b64 ? b64ToBytes(data.content_b64) : null;
+      if (!bytes && data?.storage_path) {
+        const dl = await sb.storage.from("mail-att").download(data.storage_path);
+        if (dl.error) throw new Error(dl.error.message);
+        bytes = new Uint8Array(await dl.data.arrayBuffer());
+      }
+      if (!bytes) throw new Error("contenu absent (pièce trop volumineuse ou non importée)");
+      await mailPdfViewer(bytes, fname, () => mailAttSignedUrl(attId, meta, true).catch((e) => { uiAlert("Pièce jointe : " + e.message); return null; }));
       return;
     }
     const url = await mailAttSignedUrl(attId, meta);
