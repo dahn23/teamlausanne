@@ -130,7 +130,7 @@ if (!session) {
     const brand = $("brand-role");
     if (brand) brand.textContent =
       hasAny(roles, ["superadmin", "admin", "secretaire"]) ? "Console"
-      : hasAny(roles, ["head_coach", "coach", "coach_physique", "moniteur"]) ? "Espace coach"
+      : hasAny(roles, ["head_coach", "senior_coach", "coach", "coach_physique", "moniteur"]) ? "Espace coach"
       : roles.includes("prof") ? "Espace prof"
       : roles.includes("coach_mental") ? "Espace mental"
       : "Console";
@@ -307,6 +307,12 @@ const DEFAULT_TAB_ACCESS = {
   admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
   secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats", "notefrais"],
   head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "visibilite", "heures", "notefrais"],
+  // Senior coach (06.11.2026) : un coach de terrain à qui on confie le SUIVI des
+  // jeunes — il annote le fil de la fiche, comme un head coach. Le reste du
+  // métier de head coach ne suit pas : ni Prospects (liste de scouting de
+  // mineurs), ni la vue d'ensemble des Heures (le décompte de TOUTE l'équipe,
+  // réservé à isManager). Ses propres heures lui restent, par son rôle de coach.
+  senior_coach: ["calendrier", "anniv", "resa", "mental", "physique"],
   coach:      ["cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "heures", "notefrais"],
   coach_physique: ["cours", "phystests", "physique", "heures", "notefrais"],
   moniteur:   ["cours", "heures", "notefrais"],
@@ -327,12 +333,12 @@ const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["
 // gz_lecture doit figurer ici : la matrice de Réglages n'affiche que ROLE_LIST,
 // et un « Enregistrer » écrirait une matrice sans lui — l'accès de Séline
 // disparaîtrait sans que personne ne comprenne pourquoi.
-const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["coach", "Coach"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["prof", "Prof"], ["coach_mental", "Coach mental"], ["organisateur", "Official"], ["gz_lecture", "GameZone (lecture)"]];
-const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "coach_physique", "moniteur", "prof", "coach_mental", "membre", "organisateur", "gz_lecture"];
+const ROLE_LIST = [["superadmin", "Superadmin"], ["admin", "Admin"], ["secretaire", "Secrétaire"], ["head_coach", "Head coach"], ["senior_coach", "Senior coach"], ["coach", "Coach"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["prof", "Prof"], ["coach_mental", "Coach mental"], ["organisateur", "Official"], ["gz_lecture", "GameZone (lecture)"]];
+const ASSIGNABLE_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "senior_coach", "coach", "coach_physique", "moniteur", "prof", "coach_mental", "membre", "organisateur", "gz_lecture"];
 // Rôles/tags d'une personne (cumulables) — pilotent filtres + onglets de la fiche.
 const PERSON_ROLES = [
   ["membre", "Membre"], ["client", "Client"], ["coach", "Coach"], ["coach-prive", "Coach avec autorisation"],
-  ["head-coach", "Head coach"], ["official", "Official"], ["responsable-tournoi", "Responsable de tournoi"],
+  ["head-coach", "Head coach"], ["senior-coach", "Senior coach"], ["official", "Official"], ["responsable-tournoi", "Responsable de tournoi"],
   ["kidstennis", "KidsTennis"], ["club", "Club"], ["competition", "Compétition"], ["performance", "Performance"],
   ["sport-etudes", "Sport-études"], ["pro-u18", "Pro U18"], ["pro", "Pro"], ["prive", "Privé"],
   ["prof", "Prof"], ["coach-mental", "Coach mental"], ["coach_physique", "Coach physique"], ["moniteur", "Moniteur"], ["secretaire", "Secrétaire"], ["finance", "Finance (facturation)"], ["paie", "Paie (salaires)"], ["admin", "Admin"], ["superadmin", "Superadmin"],
@@ -2138,7 +2144,7 @@ const TENNIS_ROLES = ["competition", "performance", "sport-etudes", "pro-u18", "
 const TENNIS_THEMES = [["global", "Global"], ["coup_droit", "Coup droit"], ["revers", "Revers"], ["slice", "Slice"], ["service", "Service"], ["volee", "Volée"], ["tactique", "Tactique"]];
 // Accès mental (canal de discussion + formulaires) : coach mental / head coach / admin / superadmin.
 const MENTAL_TAB_ROLES = ["competition", "performance", "sport-etudes", "pro-u18", "pro"];
-const canMentalView = () => hasAny(myAppRoles, ["coach_mental", "head_coach", "admin", "superadmin"]);
+const canMentalView = () => hasAny(myAppRoles, ["coach_mental", "head_coach", "senior_coach", "admin", "superadmin"]);
 const canTennisView = () => hasAny(myAppRoles, ["coach", "head_coach", "coach_physique", "moniteur", "admin", "superadmin"]);
 const canTennisEdit = () => hasAny(myAppRoles, ["head_coach", "admin", "superadmin"]);
 // Nom cliquable (souligné) dans « Cours » : l'utilisateur a accès ET la personne a l'onglet Tennis.
@@ -7942,9 +7948,9 @@ async function savePerson(e) {
 // Rôles d'accès pilotant la console/RLS. Miroir fiche -> user_roles (uniquement
 // pour une personne AYANT un compte). On ne touche PAS membre/junior/parent
 // (saisonniers, gérés dans role_periods). Écriture réservée aux admins (RLS is_admin).
-const ACCESS_SYNC_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "coach", "coach_physique", "moniteur", "prof", "coach_mental", "organisateur", "gz_lecture"];
+const ACCESS_SYNC_ROLES = ["superadmin", "admin", "secretaire", "head_coach", "senior_coach", "coach", "coach_physique", "moniteur", "prof", "coach_mental", "organisateur", "gz_lecture"];
 // Correspondance chip répertoire (person_roles) -> rôle d'accès (user_roles) quand les libellés diffèrent.
-const CHIP_TO_ACCESS = { official: "organisateur", "head-coach": "head_coach", "coach-mental": "coach_mental", "gz-lecture": "gz_lecture" };
+const CHIP_TO_ACCESS = { official: "organisateur", "head-coach": "head_coach", "senior-coach": "senior_coach", "coach-mental": "coach_mental", "gz-lecture": "gz_lecture" };
 async function syncAccessRoles(personId, rolesSet) {
   const { data: prof } = await sb.from("profiles").select("user_id").eq("person_id", personId).maybeSingle();
   if (!prof?.user_id) return true;                       // pas de compte -> rien à synchroniser
@@ -18309,7 +18315,7 @@ async function delMentalSession(id) {
 const MNR_KINDS = [["avant", "Avant le match"], ["pendant", "Pendant le match"], ["apres", "Après le match"], ["autre", "Autre"]];
 const MNR_KIND = Object.fromEntries(MNR_KINDS);
 const MNR_FIL = { "sport-etudes": "Sport-études", pro: "Pro", "pro-u18": "Pro U18", competition: "Compétition", performance: "Performance" };
-const canMentalEdit = () => hasAny(myAppRoles, ["coach_mental", "head_coach", "admin", "superadmin"]);
+const canMentalEdit = () => hasAny(myAppRoles, ["coach_mental", "head_coach", "senior_coach", "admin", "superadmin"]);
 let mnrRoutines = [], mnrAssign = [], mnrYouths = [];
 const mnrName = (pid) => { const y = mnrYouths.find((x) => x.person_id === pid); return y ? `${y.first_name} ${y.last_name}` : null; };
 async function loadMentalRoutines() {

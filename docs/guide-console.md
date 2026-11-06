@@ -42,7 +42,7 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | Onglet | À quoi il sert | Qui le voit |
 |---|---|---|
 | Dashboard | Vue d'ensemble du jour | admin, head coach |
-| Calendrier | Événements, vacances, absences | admin, secrétariat, head coach |
+| Calendrier | Événements, vacances, absences | admin, secrétariat, head coach, senior coach |
 | Répertoire | Les fiches des personnes | admin, secrétariat |
 | Inscriptions | Demandes venues du formulaire public | admin, secrétariat |
 | Accès Mon espace | Inviter les familles dans l'app | admin |
@@ -53,7 +53,7 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | Social Media Planner | Publications réseaux sociaux | admin, secrétariat |
 | Assistant | Le bot du site public | admin, secrétariat |
 | Réglages | Rôles, accès, saisons, suivi de l'Aide | admin |
-| Réserv. | La grille des courts | admin, secrétariat, head coach |
+| Réserv. | La grille des courts | admin, secrétariat, head coach, senior coach |
 | Saison hiver | Abonnements d'hiver | admin, secrétariat |
 | Casiers | Attribution des casiers | admin, secrétariat |
 | Cours | Planning et types de cours | tout l'encadrement |
@@ -62,9 +62,9 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | Planning tournois | La saison des jeunes élite | head coach, coach, admin |
 | Tests phys. | Tests physiques | encadrement |
 | Physique | Routines et suivi physique | encadrement |
-| Anniversaires | Qui fête quoi | admin, secrétariat, head coach |
+| Anniversaires | Qui fête quoi | admin, secrétariat, head coach, senior coach |
 | Études | Sport-études | admin, profs |
-| Mental | Suivi mental | admin, coach mental |
+| Mental | Suivi mental | admin, coach mental, head coach, senior coach |
 | CSEL | Repas et études CSEL | admin, Séline (repas) ; Arsalan en lecture (repas) |
 | GameZone | Tournois juniors | admin, organisateur |
 | Caisse | Caisse du secrétariat | admin, secrétariat |
@@ -676,6 +676,27 @@ C'est le point qui prête le plus à confusion :
 
 La fiche synchronise les deux premiers : poser une étiquette ouvre l'accès
 correspondant. L'onglet « Saisons » de la fiche garde l'historique.
+
+#### Coach, senior coach, head coach
+
+Trois marches, et la différence tient en une phrase.
+
+- **Coach** : ses cours, les feuilles de match, les tests et le suivi
+  physique, et **ses** heures à lui.
+- **Senior coach** (depuis le 06.11.2026) : tout cela, **plus** le fil de
+  suivi d'un jeune — il écrit dans « Suivi » comme un head coach — plus le
+  Calendrier, les Réservations, les Anniversaires et l'onglet Mental.
+- **Head coach** : tout cela, plus le Dashboard, les Stages, **Prospects**
+  (la liste de scouting, qui nomme des mineurs) et, dans **Heures**, le
+  décompte de **toute** l'équipe.
+
+Ce qui sépare un senior coach d'un head coach est donc volontaire : on confie
+le suivi des jeunes sans ouvrir le scouting ni les heures des collègues. Un
+senior coach garde son propre onglet Heures — il en a besoin pour être payé —
+mais n'y voit que lui.
+
+Aucun des trois ne voit les **salaires** : cela demande le rôle admin ou
+l'étiquette « Paie (salaires) », et rien d'autre.
 
 ### Onglet « Factures » de la fiche
 
