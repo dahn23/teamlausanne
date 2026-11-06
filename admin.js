@@ -19961,9 +19961,18 @@ async function openMailAttachment(attId, meta, btn) {
   try {
     if (btn) btn.classList.add("busy");
     if (isPdf && inApp) {
-      const { data, error } = await sb.from("mail_attachments").select("content_b64").eq("id", attId).single();
-      if (error || !data?.content_b64) throw new Error(error?.message || "contenu absent (pièce trop volumineuse ou non importée)");
-      await mailPdfViewer(b64ToBytes(data.content_b64), fname, () => mailAttSignedUrl(attId, meta, true).catch((e) => { uiAlert("Pièce jointe : " + e.message); return null; }));
+      // Les grosses pièces (CV de 6 Mo…) n'ont plus de copie en base : seulement le fichier dans « mail-att ».
+      // On le prend là (Dan, 06.11.2026 : « contenu absent » sur le CV d'une candidature).
+      const { data, error } = await sb.from("mail_attachments").select("content_b64,storage_path").eq("id", attId).single();
+      if (error) throw new Error(error.message);
+      let bytes = data?.content_b64 ? b64ToBytes(data.content_b64) : null;
+      if (!bytes && data?.storage_path) {
+        const dl = await sb.storage.from("mail-att").download(data.storage_path);
+        if (dl.error) throw new Error(dl.error.message);
+        bytes = new Uint8Array(await dl.data.arrayBuffer());
+      }
+      if (!bytes) throw new Error("contenu absent (pièce trop volumineuse ou non importée)");
+      await mailPdfViewer(bytes, fname, () => mailAttSignedUrl(attId, meta, true).catch((e) => { uiAlert("Pièce jointe : " + e.message); return null; }));
       return;
     }
     const url = await mailAttSignedUrl(attId, meta);
