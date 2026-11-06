@@ -9419,9 +9419,9 @@ function renderHeures() {
     return `<tr${x.in_kind ? ' class="he-kind" title="Compensé : son travail est déduit de sa propre facture. Heures suivies, jamais payées — exclue du décompte fiduciaire et du paiement."'
       : x.by_invoice ? ' class="he-inv" title="Sur facture : payé sur sa propre facture (montant attendu ci-contre), exclu du décompte fiduciaire et du paiement automatique"' : ""}>
       <td><b>${esc(x.name)}</b>${x.in_kind ? ' <span class="he-kind-badge">compensé</span>' : x.by_invoice ? ' <span class="he-inv-badge">sur facture</span>' : ""}</td><td>${x.total_courses}</td><td>${x.hours} h</td>
-      <td>${x.in_kind ? '<span class="he-kind-t">Compensé</span>' : salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
-      <td>${x.in_kind ? '<span class="muted">déduit de sa facture</span>' : salaried ? `<b>${total.toLocaleString("fr-CH")} CHF</b> <span class="muted" style="font-size:.78rem">brut / mois</span>${extraTxt}` : (base != null || extra || stage ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—")}</td>
-      <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
+      <td class="pay-col">${x.in_kind ? '<span class="he-kind-t">Compensé</span>' : salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
+      <td class="pay-col">${x.in_kind ? '<span class="muted">déduit de sa facture</span>' : salaried ? `<b>${total.toLocaleString("fr-CH")} CHF</b> <span class="muted" style="font-size:.78rem">brut / mois</span>${extraTxt}` : (base != null || extra || stage ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—")}</td>
+      <td class="pay-col" style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.courses + "/" + x.total_courses + "</span>" : '<span class="muted">' + x.courses + "/" + x.total_courses + "</span>"}</td>
       ${salExtraCell(x.person_id, x.extra)}
       ${salNetCell(x.person_id)}
@@ -9438,9 +9438,9 @@ function renderHeures() {
     const extraTxt = detail.length ? ` <span class="muted" style="font-size:.78rem">(dont ${detail.join(" + ")})</span>` : "";
     return `<tr${x.by_invoice ? ' class="he-inv" title="Sur facture : payé sur sa propre facture, exclu du décompte fiduciaire et du paiement automatique"' : ""}>
       <td><b>${esc(x.name)}</b>${x.by_invoice ? ' <span class="he-inv-badge">sur facture</span>' : ""}</td><td>${x.total_days}</td><td>${x.hours} h</td>
-      <td>${salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
-      <td>${base != null || extra || stage ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—"}</td>
-      <td style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
+      <td class="pay-col">${salaried ? '<span class="he-sal">Salarié</span>' : (x.rate != null ? x.rate + ".–" : '<span class="muted">—</span>')}</td>
+      <td class="pay-col">${base != null || extra || stage ? `${total.toLocaleString("fr-CH")} CHF${extraTxt}` : "—"}</td>
+      <td class="pay-col" style="font-size:.8rem">${x.iban ? esc(x.iban) : '<span class="muted">—</span>'}</td>
       <td>${allVal ? '<span class="he-val">✓ ' + x.days + "/" + x.total_days + "</span>" : '<span class="muted">' + x.days + "/" + x.total_days + "</span>"}</td>
       ${salExtraCell(x.person_id, x.extra)}
       ${salNetCell(x.person_id)}
@@ -9449,7 +9449,11 @@ function renderHeures() {
   }).join("");
   document.querySelectorAll("#heures-coaches .he-detail").forEach((b) => b.addEventListener("click", () => coachDetail(b.dataset.id, b.dataset.name)));
   document.querySelectorAll("#view-heures .pay-tog").forEach((b) => b.addEventListener("click", () => payToggle(b.dataset.pid)));
-  document.querySelectorAll("#view-heures .sal-col").forEach((el) => el.classList.toggle("hidden", !canSalaries()));
+  // .sal-col = colonnes de la fiche de paie ; .pay-col = tarif, montant, IBAN.
+  // Les deux ne s'affichent que pour qui peut voir la paie. Le SERVEUR ne
+  // renvoie plus tarif/montant/IBAN aux autres (db/230) : ce masquage n'est
+  // que la mise en page, la protection est en base.
+  document.querySelectorAll("#view-heures .sal-col, #view-heures .pay-col").forEach((el) => el.classList.toggle("hidden", !canSalaries()));
   bindSalCells();
 }
 async function toggleValidation(personId, kind, hours) {

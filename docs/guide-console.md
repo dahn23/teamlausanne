@@ -69,7 +69,7 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | GameZone | Tournois juniors | admin, organisateur |
 | Caisse | Caisse du secrétariat | admin, secrétariat |
 | Factures | Toute la facturation | admin |
-| Heures | Heures des coachs et profs | admin, encadrement |
+| Heures | Heures des coachs et profs | admin, encadrement — l'argent, admin et « Paie » seulement |
 | Note de frais | Vos dépenses à se faire rembourser | tout le monde |
 | Serrures | Serrures connectées | admin, secrétariat |
 | Arrosage | Arrosage des courts | admin, secrétariat |
@@ -451,6 +451,21 @@ due elle-même — c'est un délai accordé, pas une pause.
 Les heures des coachs et des profs, pour la paie. Deux sous-onglets :
 « Décompte » et « Privé-adultes ». Deux sections : « Coachs — cours » et
 « Profs — études ».
+
+### Qui voit quoi
+
+Deux cercles, et ils ne se recouvrent pas.
+
+- **Les heures** — nom, cours faits sur cours prévus, heures, camps : admin,
+  superadmin, secrétariat et **head coach**. C'est le suivi du travail de
+  l'équipe.
+- **L'argent** — tarif horaire, montant dû, IBAN, extra, net à payer, payé,
+  et les fiches de salaire : **admin, superadmin, ou l'étiquette « Paie
+  (salaires) »**. Personne d'autre, head coach compris.
+
+Pour qui n'a pas la paie, ces colonnes ne sont pas seulement masquées : le
+serveur ne les envoie pas (db/230). Jusqu'au 06.11.2026 elles partaient dans
+le navigateur de tout head coach — tarif, montant et IBAN de chaque collègue.
 
 ### Sortir un décompte
 
