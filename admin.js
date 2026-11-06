@@ -19136,10 +19136,26 @@ function renderMailBodyEl(m) {
     f.setAttribute("sandbox", "allow-same-origin allow-popups allow-popups-to-escape-sandbox");
     el.appendChild(f);
     f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>body{font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111;margin:0;word-wrap:break-word;overflow-wrap:anywhere}img{max-width:100%;height:auto}a{color:#123cc4}</style></head><body>${m.body_html}</body></html>`;
-    f.addEventListener("load", () => { try { const h = f.contentDocument.body.scrollHeight; f.style.height = Math.min(1400, h + 24) + "px"; } catch (_) { f.style.height = "500px"; } });
+    f.addEventListener("load", () => {
+      try { const h = f.contentDocument.body.scrollHeight; f.style.height = Math.min(1400, h + 24) + "px"; } catch (_) { f.style.height = "500px"; }
+      // Sur téléphone (surtout dans l'app), un lien « nouvel onglet » cliqué DANS le cadre du mail ne faisait rien
+      // (Dan, 06.11.2026) : on l'intercepte et on l'ouvre nous-mêmes, hors du cadre.
+      try { f.contentDocument.addEventListener("click", mailLinkClick); } catch (_) { /* cadre illisible : liens natifs */ }
+    });
   } else {
     el.innerHTML = mailLinkify(m.body_text || m.snippet || "");
+    el.onclick = mailLinkClick;
   }
+}
+function mailLinkClick(e) {
+  const a = e.target.closest && e.target.closest("a[href]");
+  if (!a) return;
+  const url = a.getAttribute("href") || "";
+  if (!/^(https?:|mailto:|tel:)/i.test(url)) return;   // ancre interne, javascript:… : on laisse
+  e.preventDefault();
+  // App : on quitte la page, la coquille confie l'adresse au navigateur / à l'app mail / au téléphone.
+  if (isNativeApp() || !/^https?:/i.test(url)) { window.location.href = url; return; }
+  window.open(url, "_blank", "noopener");
 }
 // Texte brut -> HTML sûr avec URLs cliquables
 function mailLinkify(text) {
