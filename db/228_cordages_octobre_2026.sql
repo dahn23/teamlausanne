@@ -1,0 +1,40 @@
+-- 228 — Cordages d'octobre 2026 : trois factures (06.11.2026)
+--
+-- 2026-0378 Ylan Allenspach      7 × 20.—  = 140.—
+-- 2026-0379 Talia Picci          5 × 20.—  = 100.—
+-- 2026-0380 Isabella Stadelmann  2 × 20.—  =  40.—
+--
+-- Même recette que les cordages de septembre (2026-0349 à 0352) : insertion en
+-- base, statut « à envoyer », SANS PDF. Le PDF est fabriqué par le navigateur
+-- (jsPDF, oiMakePdf) et la console le génère toute seule à l'ouverture de
+-- Factures › Émises : admin.js régénère en arrière-plan tout PDF manquant d'une
+-- facture « à envoyer » ou « envoyée ». C'est exactement ce qui s'est passé en
+-- septembre (lignes posées à 08h50, PDF déposés à 09h09).
+--
+-- Choix repris de septembre, à l'identique :
+--   · produit « Cordage » (99006db5), 20.— l'unité, toujours actif ;
+--   · débiteur = le parent 1 de la fiche, nom/adresse/e-mail relus dans people
+--     le jour même et identiques à ceux de septembre ;
+--   · debtor_person_id laissé à null, pour ne pas changer le comportement d'un
+--     lot qui a été payé ;
+--   · compte à créditer : Association Team Lausanne Tennis (a41769c2) ;
+--   · émission le jour même, échéance à 30 jours — le défaut de la console.
+--
+-- Rien n'a été envoyé : l'envoi reste un geste humain, depuis Factures › Émises.
+--
+-- ⚠️ Ce fichier ne porte pas le SQL d'origine, et c'est volontaire : l'insertion
+-- contenait l'adresse du domicile et l'e-mail de trois familles de mineurs. Ces
+-- données vivent en base, derrière la RLS, et n'ont rien à faire dans un dépôt
+-- Git. Pour relire ce qui a été posé :
+--
+--   select number, label, amount, debtor_name, issue_date, due_date, status
+--   from out_invoices
+--   where label ilike 'Cordage de raquettes — octobre 2026%'
+--   order by number;
+--
+-- Pour un prochain lot, le plus simple est de repartir d'une facture existante :
+--
+--   select * from out_invoices where number = '2026-0378';
+--
+-- puis de reposer les mêmes colonnes, avec out_invoice_next_number_sys() pour le
+-- numéro et out_invoice_scor(chiffres_du_numéro) pour la référence QR.
