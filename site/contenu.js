@@ -244,6 +244,13 @@ worlds:
     slogan: "Jouer. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 4 ans.",
     hero: "assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
+    // Le film de marque (version courte) passe par-dessus la photo. La photo
+    // reste le fond : elle s'affiche tout de suite, elle est seule sur
+    // telephone, en « animations reduites » et sur connexion econome, et elle
+    // reprend la main si la lecture echoue. La video n'est qu'un confort.
+    // Fichier retaille pour le web : 1080p, sans piste audio — le hero est
+    // muet — soit 8,5 Mo contre 159 Mo pour le master 4K.
+    heroVideo: "assets/video/accueil-hero.mp4",
     cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Notre programme Sport-Études", type: "sport-etudes" }],
     sections: [
       { type: "rich", anchor: "philosophie", title: "Notre philosophie", body: [
