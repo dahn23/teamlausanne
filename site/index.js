@@ -2628,13 +2628,17 @@ route();
 // (copie, serie reelle, copie) : quand l'index sort de la serie centrale, on se
 // replie d'une serie sans transition, ce qui rend la boucle continue sans saut
 // visible et garantit des photos des deux cotes du cadre.
-(() => {
+// Une fonction nommee, et non plus une parenthese anonyme : le bandeau est
+// remonte quand les vraies publications Instagram arrivent (plus bas).
+let instaRecaler = null;          // le dernier ecouteur de resize, pour le retirer
+function monterBandeauSocial() {
   const piste = document.querySelector(".insta-track");
   const scene = document.querySelector(".insta-stage");
   if (!piste || !scene) return;
   const vues = [...piste.querySelectorAll("li:not(.insta-clone) img")];
   const n = vues.length;
   if (!n) return;
+  if (instaRecaler) removeEventListener("resize", instaRecaler);
 
   // La piste contient trois series : copie, serie reelle, copie. On demarre
   // sur la serie reelle (position n) pour que le cadre soit entoure de photos
@@ -2668,15 +2672,81 @@ route();
     placer(true);
   };
 
-  document.querySelector(".insta-prev")?.addEventListener("click", () => aller(-1));
-  document.querySelector(".insta-next")?.addEventListener("click", () => aller(1));
+  // .onclick et non addEventListener : remonter le bandeau ne doit pas
+  // empiler un second ecouteur, qui ferait avancer de deux vignettes.
+  const prec = document.querySelector(".insta-prev");
+  const suiv = document.querySelector(".insta-next");
+  if (prec) prec.onclick = () => aller(-1);
+  if (suiv) suiv.onclick = () => aller(1);
 
   // Les images se chargent en differe : on replace des que les dimensions sont
   // connues, sinon le premier calage tombe a cote.
   const recaler = () => placer(false);
   vues.forEach((v) => v.complete || v.addEventListener("load", recaler, { once: true }));
+  instaRecaler = recaler;
   addEventListener("resize", recaler);
   requestAnimationFrame(recaler);
+}
+monterBandeauSocial();
+
+// ---- Bandeau social : les VRAIES publications ----
+// La fonction edge « instagram » sert un cache des publications de
+// @team_lausanne_academy. Le site ne parle jamais a Meta : le jeton reste
+// cote serveur et Meta ne voit pas nos visiteurs.
+//
+// Le bandeau du HTML (photos du site) reste le repli, et il n'est remplace
+// QUE si la reponse tient debout : sans jeton, sur une panne, ou si une
+// adresse du CDN Meta a expire, on revient aux photos. Un bandeau d'images
+// ne doit jamais faire un trou dans la page.
+(async () => {
+  const piste = document.querySelector(".insta-track");
+  if (!piste) return;
+  const secours = piste.innerHTML;
+
+  let posts = [];
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/instagram`);
+    if (!r.ok) return;
+    posts = ((await r.json()).posts || []).filter((p) => p && p.media_url && p.permalink);
+  } catch (_e) { return; }          // hors ligne, panne : les photos restent
+
+  // Moins de quatre publications ne remplissent pas la bande : on garde les
+  // photos du site plutot que de montrer un bandeau clairsemé.
+  if (posts.length < 4) return;
+
+  // On ESSAIE une image avant de toucher au bandeau. Les adresses du CDN Meta
+  // expirent toutes ensemble — elles viennent du meme appel — donc une seule
+  // suffit a savoir. Sans cet essai, le repli ne se declenchait qu'au moment
+  // ou la vignette entrait dans l'ecran (loading="lazy") : le bandeau se
+  // remplacait sous les yeux du visiteur, en plein defilement.
+  const charge = (url) => new Promise((ok) => {
+    const t = new Image();
+    const fin = (v) => { t.onload = t.onerror = null; ok(v); };
+    t.onload = () => fin(true);
+    t.onerror = () => fin(false);
+    setTimeout(() => fin(false), 6000);      // CDN qui ne repond pas : on n'attend pas la page
+    t.referrerPolicy = "no-referrer";
+    t.src = url;
+  });
+  if (!(await charge(posts[0].media_url))) return;
+
+  const img = (p) => `<img src="${p.media_url}" alt="" loading="lazy" referrerpolicy="no-referrer" />`;
+  const clone = `<li class="insta-clone" aria-hidden="true">${posts.map(img).join("")}</li>`;
+  const serie = posts.map((p) =>
+    `<li><a href="${p.permalink}" target="_blank" rel="noopener">${img(p)}</a></li>`).join("");
+  piste.innerHTML = clone + serie + clone;
+
+  // Une vignette isolee qui ne charge pas (publication supprimee entre deux
+  // rafraichissements) : on retire CETTE vignette, on ne refait pas tout le
+  // bandeau. Et s'il n'en reste pas assez, on revient aux photos du site.
+  piste.querySelectorAll("img").forEach((im) => im.addEventListener("error", () => {
+    const li = im.closest("li");
+    if (li && !li.classList.contains("insta-clone")) li.remove(); else im.remove();
+    if (piste.querySelectorAll("li:not(.insta-clone)").length < 4) piste.innerHTML = secours;
+    monterBandeauSocial();
+  }, { once: true }));
+
+  monterBandeauSocial();
 })();
 
 // ---- Formulaire « Nous ecrire » ----
