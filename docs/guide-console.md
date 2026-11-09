@@ -1191,6 +1191,41 @@ Si une famille n'a pas l'air de remonter : vérifiez que l'adresse de la fiche
 est bien celle à laquelle vous écrivez. Le rapprochement se fait sur
 l'adresse e-mail, exactement.
 
+### Du Suivi au Répertoire, et retour
+
+Une famille suivie et une fiche du répertoire sont **deux choses**, et elles
+coexistent : le suivi raconte comment la famille est arrivée (la source, les
+échanges, le programme visé), la fiche porte sa vie au club. On les relie, on
+n'en efface jamais une.
+
+**Depuis le Suivi** — bouton « Créer la fiche », en bas de la fiche de suivi,
+à côté de « Inscrit ». Il crée la personne dans le Répertoire avec ce qu'on
+sait d'elle (nom, e-mail, téléphone, licence, ville), recopie le programme
+visé et la saison cible dans ses notes, passe le suivi à « Inscrit », et
+ouvre la fiche. Ensuite le bouton devient « Ouvrir la fiche ».
+
+**Depuis le Répertoire** — bouton « Suivre comme prospect », en bas de la
+fiche. Il ouvre un suivi prérempli, relié à la fiche, à l'étape « Nouveau ».
+Ensuite le bouton devient « Voir le suivi (étape) ».
+
+**Avant de créer, la console cherche si la personne existe déjà** et propose
+de relier plutôt que de créer un doublon. Elle montre alors l'e-mail, la
+licence et la date de naissance de la fiche trouvée : c'est vous qui tranchez.
+
+> **Pourquoi elle ne se fie pas à l'e-mail seul.** Dans une famille, tout le
+> monde partage l'adresse des parents. Essayé sur les 17 suivis réels, le
+> rapprochement par e-mail seul se trompait trois fois sur cinq : il reliait
+> un enfant à la fiche de son frère, et une fois à une famille entièrement
+> différente. La règle est donc : la **licence** seule fait foi ; l'**e-mail**
+> ne compte que si le prénom et le nom concordent aussi ; le **nom seul** est
+> proposé, mais annoncé comme le moins sûr — vérifiez que ce n'est pas un
+> frère ou un homonyme. Plusieurs fiches du même nom : la console ne propose
+> rien et vous renvoie au Répertoire.
+
+**Qui peut quoi** : créer un suivi depuis une fiche, c'est l'administration et
+le secrétariat. Créer une fiche depuis un suivi aussi — un head coach voit le
+Suivi mais ne crée pas de fiches, donc le bouton ne lui apparaît pas.
+
 ### Bon à savoir
 
 - Le **Dashboard** reprend les relances échues et celles des 7 jours : c'est

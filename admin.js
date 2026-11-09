@@ -506,6 +506,10 @@ async function init(roles) {
     if (e.target === sideEl && isMobile()) { sideEl.classList.add("collapsed"); majMenuBtn(); }
   });
   $("new-person").addEventListener("click", () => openPerson(null));
+  $("person-suivi")?.addEventListener("click", () => {
+    const deja = $("person-suivi").dataset.suivi;
+    return deja ? ouvrirLeSuivi(deja) : personneVersSuivi();
+  });
   $("import-people").addEventListener("click", openImport);
   $("import-close").addEventListener("click", () => $("import-modal").classList.add("hidden"));
   $("import-modal").addEventListener("click", (e) => { if (e.target === $("import-modal")) $("import-modal").classList.add("hidden"); });
@@ -1881,6 +1885,7 @@ function openPerson(p) {
   $("person-title").textContent = p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || "Fiche" : "Nouvelle personne";
   $("delete-person").classList.toggle("hidden", !p);
   $("invite-person").classList.toggle("hidden", !p);
+  majSuiviBouton(p);
   $("p-invite-result").classList.add("hidden");
   $("p-invite-result").innerHTML = "";
   $("p-id").value = p?.id || "";
@@ -10252,6 +10257,187 @@ async function pfNouvelle() {
   pfOuvrir(data.id);
 }
 
+// Le bouton « Suivre comme prospect » de la fiche. Son libellé dit l'état :
+// s'il existe déjà un suivi relié, il y mène au lieu d'en ouvrir un second.
+// La lecture est asynchrone, donc le bouton part du libellé neutre et se
+// corrige quand la réponse arrive — on ne bloque pas l'ouverture d'une fiche
+// pour ça.
+async function majSuiviBouton(p) {
+  const b = $("person-suivi"); if (!b) return;
+  b.classList.toggle("hidden", !p);
+  if (!p) return;
+  b.textContent = "Suivre comme prospect";
+  b.dataset.suivi = "";
+  const { data } = await sb.from("prospect_followups").select("id, stage").eq("person_id", p.id).limit(1);
+  if (!data?.length) return;
+  if ($("p-id").value !== p.id) return;        // la fiche a changé entre-temps
+  b.textContent = `Voir le suivi (${pfStageLbl(data[0].stage)})`;
+  b.dataset.suivi = data[0].id;
+}
+
+// ---- Passerelle Suivi ↔ Répertoire (db/233) -------------------------------
+// Une famille suivie et une fiche du répertoire sont deux choses : le suivi
+// raconte comment elle est arrivée, la fiche porte sa vie au club. On les
+// RELIE (prospect_followups.person_id) au lieu d'en effacer une : sans ça,
+// l'entonnoir perdrait ses inscrits et on ne saurait plus d'où vient personne.
+//
+// Écrire dans people demande admin ou secrétariat : un head coach voit le
+// Suivi mais ne peut pas créer de fiche. Le bouton ne lui est donc pas montré,
+// plutôt que de lui offrir une erreur de la base.
+const canFiches = () => hasAny(myAppRoles, ["superadmin", "admin", "secretaire"]);
+
+// Cherche une fiche qui serait déjà cette personne. On NE crée rien ici : on
+// rend ce qu'on a trouvé, et c'est l'humain qui tranche.
+//
+// ⚠️ L'E-MAIL SEUL NE DÉSIGNE PERSONNE. Dans une famille, tout le monde
+// partage l'adresse des parents. Essayé sur les 17 suivis du 09.11.2026 :
+// sur cinq correspondances par e-mail, TROIS tombaient à côté — « Hektor
+// Alabre » trouvait Sören Vitone (une autre famille), « Benjamin Bourqui »
+// trouvait Oscar Bourqui John et « Patrick Schenk » trouvait Paul Schenk,
+// deux frères. Relier là-dessus aurait accroché le suivi d'un enfant à la
+// fiche d'un autre.
+//
+// Donc : la licence seule fait foi (elle est par joueur) ; l'e-mail ne compte
+// que si le prénom ET le nom concordent aussi ; le nom seul passe, mais annoncé
+// comme le plus faible des trois.
+async function fichePossible(r) {
+  const CH = "id, first_name, last_name, email, license_no, birthdate";
+  const prenom = (r.first_name || "").trim();
+  const nom = (r.last_name || "").trim();
+  const memeNom = (p) => prenom && nom
+    && p.first_name?.trim().toLowerCase() === prenom.toLowerCase()
+    && p.last_name?.trim().toLowerCase() === nom.toLowerCase();
+
+  if (r.license_no?.trim()) {
+    const { data } = await sb.from("people").select(CH).ilike("license_no", r.license_no.trim()).limit(2);
+    if (data?.length === 1) return { p: data[0], par: "son numéro de licence", sur: "licence" };
+  }
+  if (r.email?.trim()) {
+    const { data } = await sb.from("people").select(CH).ilike("email", r.email.trim()).limit(5);
+    const bons = (data || []).filter(memeNom);
+    if (bons.length === 1) return { p: bons[0], par: "son e-mail et son nom", sur: "email+nom" };
+  }
+  if (prenom && nom) {
+    const { data } = await sb.from("people").select(CH)
+      .ilike("first_name", prenom).ilike("last_name", nom).limit(2);
+    if (data?.length === 1) return { p: data[0], par: "son nom", sur: "nom" };
+    if (data?.length > 1) return { ambigu: true };
+  }
+  return null;
+}
+
+// Suivi → Répertoire. Appelé par « Créer la fiche ».
+async function pfVersFiche(id) {
+  const r = pfList.find((x) => x.id === id); if (!r) return;
+
+  // Déjà reliée : on ouvre, on ne recrée pas.
+  if (r.person_id) {
+    const { data } = await sb.from("people").select("*").eq("id", r.person_id).maybeSingle();
+    if (data) { showView("membres"); openPerson(data); return; }
+    // La fiche a été supprimée depuis : on repart à zéro plutôt que de rester
+    // accroché à un identifiant mort.
+    await sb.from("prospect_followups").update({ person_id: null }).eq("id", id);
+    r.person_id = null;
+  }
+
+  if (!r.first_name && !r.last_name) { uiAlert("Il faut au moins un nom pour créer une fiche."); return; }
+
+  // Un doublon dans le répertoire coûte cher : deux fiches, deux historiques,
+  // et plus personne ne sait laquelle est la bonne. On regarde avant.
+  const trouve = await fichePossible(r);
+  if (trouve?.ambigu) {
+    uiAlert("Plusieurs fiches portent déjà ce nom. Ouvrez le Répertoire pour choisir, puis revenez relier à la main.");
+    return;
+  }
+  let personne = null;
+  if (trouve) {
+    // On montre de quoi juger : un rapprochement par le nom seul peut viser un
+    // frère, un homonyme, ou le parent. C'est l'humain qui décide, pas nous.
+    const q = trouve.p;
+    const detail = [q.email || "sans e-mail", q.license_no ? `licence ${q.license_no}` : "sans licence",
+                    q.birthdate ? `né(e) le ${frDate(q.birthdate)}` : ""].filter(Boolean).join(" · ");
+    const ok = await uiConfirm(`Le répertoire contient déjà :\n\n`
+      + `   ${q.first_name} ${q.last_name}\n   ${detail}\n\n`
+      + `Reconnu par ${trouve.par}${trouve.sur === "nom" ? " — le moins sûr des trois : vérifiez que ce n'est pas un frère ou un homonyme." : ""}\n\n`
+      + "Relier le suivi à CETTE fiche, plutôt que d'en créer une deuxième ?");
+    if (!ok) return;
+    personne = trouve.p;
+  } else {
+    if (!(await uiConfirm(`Créer la fiche de ${pfNom(r)} dans le répertoire ?\n\n`
+      + "Le suivi reste en place et passe à « Inscrit » : on garde la trace de la prospection."))) return;
+    const { data, error } = await sb.from("people").insert({
+      first_name: (r.first_name || "").trim() || "—",
+      last_name: (r.last_name || "").trim() || "—",
+      email: r.email || null,
+      phone: r.phone || null,
+      license_no: r.license_no || null,
+      city: r.location || null,
+      // Ce que le suivi savait et que la fiche n'a pas de champ pour porter.
+      notes: [r.description ? `Prospect : ${r.description}` : "",
+              r.programme ? `Programme visé : ${r.programme}` : "",
+              r.saison_cible ? `Saison cible : ${r.saison_cible}` : "",
+              r.source ? `Source : ${r.source}` : "",
+              r.ranking ? `Classement à l'arrivée : ${r.ranking}` : ""]
+             .filter(Boolean).join("\n") || null,
+      is_active: true,
+    }).select().single();
+    if (error) { uiAlert("Fiche impossible à créer : " + error.message); return; }
+    personne = data;
+  }
+
+  const patch = { person_id: personne.id, stage: "inscrit", stage_changed_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString() };
+  const { error: e2 } = await sb.from("prospect_followups").update(patch).eq("id", id);
+  if (e2) { uiAlert("Fiche créée, mais le lien n'a pas pu être enregistré : " + e2.message); }
+  else { Object.assign(r, patch); await pfNoter(id, "etape", trouve ? "Relié à une fiche existante" : "Fiche créée dans le répertoire", null); }
+
+  renderProspectFollowups();
+  showView("membres");
+  openPerson(personne);
+}
+
+// Répertoire → Suivi. Appelé par le bouton de la fiche.
+async function personneVersSuivi() {
+  const id = $("p-id").value;
+  if (!id) { uiAlert("Enregistrez d'abord la fiche : on ne suit pas quelqu'un qui n'existe pas encore."); return; }
+
+  const { data: deja } = await sb.from("prospect_followups").select("id").eq("person_id", id).limit(1);
+  if (deja?.length) { await ouvrirLeSuivi(deja[0].id); return; }
+
+  const nom = `${$("p-first").value} ${$("p-last").value}`.trim();
+  if (!(await uiConfirm(`Suivre ${nom} dans Prospects › Suivi ?\n\n`
+    + "La fiche reste où elle est : on ouvre un suivi à côté, relié à elle."))) return;
+
+  const { data: sess } = await sb.auth.getSession();
+  const { data, error } = await sb.from("prospect_followups").insert({
+    created_by: sess?.session?.user?.id || null,
+    person_id: id,
+    first_name: $("p-first").value.trim() || null,
+    last_name: $("p-last").value.trim() || null,
+    email: $("p-email").value.trim() || null,
+    phone: $("p-phone").value.trim() || null,
+    license_no: $("p-license").value.trim() || null,
+    location: $("p-city").value.trim() || null,
+    description: nom,
+    source: "Répertoire",
+    stage: "nouveau", priorite: "chaud",
+    last_contact: pfToday(), next_action_at: pfToday(), next_action: "Premier contact",
+  }).select().single();
+  if (error) { uiAlert("Suivi impossible à créer : " + error.message); return; }
+
+  await ouvrirLeSuivi(data.id);
+}
+
+// Aller droit sur un suivi depuis ailleurs. prospOuvrirSous relance la lecture
+// de la base sans l'attendre : on la refait ici et on l'ATTEND, sinon pfOuvrir
+// chercherait la ligne dans une liste pas encore remplie et n'ouvrirait rien.
+async function ouvrirLeSuivi(id) {
+  showView("prospects");
+  prospOuvrirSous("suivi");
+  await loadProspectFollowups();
+  pfOuvrir(id);
+}
+
 // ---- la fiche -------------------------------------------------------------
 function pfOuvrir(id) {
   const r = pfList.find((x) => x.id === id); if (!r) return;
@@ -10309,6 +10495,7 @@ function pfOuvrir(id) {
     <p class="pf-sec" style="margin-top:22px">Clore</p>
     <div class="pf-log">
       <button type="button" class="ghost" id="pf-gagne">🎉 Inscrit</button>
+      ${canFiches() ? `<button type="button" class="ghost" id="pf-fiche-btn">${r.person_id ? "Ouvrir la fiche" : "Créer la fiche"}</button>` : ""}
       <button type="button" class="ghost" id="pf-perdu">Perdu</button>
       <button type="button" class="ghost" id="pf-arch">${r.done ? "Réactiver" : "Archiver"}</button>
       <button type="button" class="ghost" id="pf-del">Supprimer</button>
@@ -10333,6 +10520,7 @@ function pfOuvrir(id) {
   }));
 
   $("pf-fiche").querySelectorAll(".pf-logbtn").forEach((b) => b.addEventListener("click", () => pfDemanderNote(id, b.dataset.kind)));
+  $("pf-fiche-btn")?.addEventListener("click", () => pfVersFiche(id));
   $("pf-gagne").addEventListener("click", () => pfClore(id, "inscrit"));
   $("pf-perdu").addEventListener("click", () => pfClore(id, "perdu"));
   $("pf-arch").addEventListener("click", async () => {
