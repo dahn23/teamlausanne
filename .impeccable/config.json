@@ -38,6 +38,15 @@
         ],
         "createdAt": "2026-11-05T15:24:48.319Z",
         "reason": "Faux positif : espace.html ne contient aucun degrade, aucune animation, aucun @keyframes ni aucune pastille clignotante (grep = 0), et le bloc CSS ajoute le 05.11.2026 (.pt-install-*) non plus. Le lime sur bleu nuit signale comme palette IA, ce sont les jetons de charte du club declares en style.css:8-9 (--fluo #b2fd13, --prussian #003652), utilises dans toute l'app. Le scanner impute a chaque page les regles du style.css partage : la seule vraie marquee du depot est .gzc-track / @keyframes gzscroll, sur la page GameZone."
+      },
+      {
+        "rule": "pulsing-dot",
+        "value": "*",
+        "files": [
+          "site/index.html"
+        ],
+        "createdAt": "2026-11-09T08:32:47.507Z",
+        "reason": "Verifie dans style.css : .eyebrow::before est une pastille de 9px SANS animation (aucune regle animation sur .eyebrow, lignes 1691-1695, 2774, 2803, 2960). Rien ne pulse."
       }
     ]
   }
