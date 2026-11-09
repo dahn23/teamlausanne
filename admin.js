@@ -9994,8 +9994,14 @@ const PF_STAGES = [
 ];
 const PF_FINS = [["inscrit", "Inscrit 🎉"], ["perdu", "Perdu"]];
 const PF_PRIO = [["chaud", "🔥", "Chaud"], ["tiede", "•", "Tiède"], ["froid", "❄", "Froid"]];
-const PF_SOURCES = ["Site web", "Formulaire d'inscription", "Bouche-à-oreille", "Tournoi",
-  "Lausanne Open", "Réseaux sociaux", "Club / partenaire", "Autre"];
+// « Stages » : une famille rencontrée pendant un camp de vacances — c'est une
+// vraie porte d'entrée, et la plus frequente apres le formulaire (09.11.2026).
+// « Répertoire » : la famille etait deja une fiche, versee au suivi par le
+// bouton de la fiche. Elle DOIT figurer ici : le select n'affiche que ces
+// valeurs-la, et une source absente de la liste se lit « — » puis disparait
+// des que quelqu'un touche le champ.
+const PF_SOURCES = ["Site web", "Formulaire d'inscription", "Bouche-à-oreille", "Stages", "Tournoi",
+  "Lausanne Open", "Réseaux sociaux", "Club / partenaire", "Répertoire", "Autre"];
 const PF_PROGS = ["Sport-études", "Pro U18", "Pro", "Compétition", "Performance",
   "École de tennis", "Adultes", "Pas encore défini"];
 const PF_KINDS = [["appel", "📞 Appel"], ["mail", "✉️ Mail"], ["whatsapp", "💬 WhatsApp"],

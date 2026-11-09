@@ -1149,6 +1149,10 @@ interaction se met à jour toute seule.
 
 - **Prochaine action** : quoi, quand, et la priorité (🔥 chaud, tiède, ❄ froid).
 - **Où en est la famille** : étape, programme visé, source, saison visée.
+  La **source** dit par quelle porte elle est entrée : site web, formulaire
+  d'inscription, bouche-à-oreille, **stages** (rencontrée pendant un camp),
+  tournoi, Lausanne Open, réseaux sociaux, club partenaire, **répertoire**
+  (elle avait déjà une fiche, versée au suivi depuis celle-ci), ou autre.
 - **La famille** : prénom, nom, l'enfant, e-mail, téléphone, où elle vit,
   classement, n° de licence.
 - **Historique** : tous les échanges, du plus récent au plus ancien. Rien ne
