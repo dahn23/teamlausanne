@@ -3,6 +3,13 @@
 À recopier dans App Store Connect › Apps › Team Lausanne Academy › Distribution › **1.0 Préparation de la soumission**.
 Les mêmes textes servent pour la fiche Google Play (voir en bas). Rédigé le 19.10.2026.
 
+> **Publiée sur les deux boutiques.** Ce document a servi à la soumission ; il
+> reste la source des textes pour toute mise à jour de fiche.
+> · App Store : https://apps.apple.com/app/id6823676524
+> · Google Play : https://play.google.com/store/apps/details?id=ch.teamlausanne.app (10.11.2026)
+> Les deux adresses sont dans `config.js` → `BOUTIQUES`, qui alimente le
+> bandeau « Installez l'application » de Mon espace.
+
 ---
 
 ## 1. Informations de l'app (menu de gauche « Informations de l'app »)

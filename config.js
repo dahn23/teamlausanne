@@ -18,7 +18,7 @@ export const ONESIGNAL_APP_ID = "";
 // mènerait à une page d'erreur. Coller l'adresse ici suffit à l'activer.
 export const BOUTIQUES = {
   ios: "https://apps.apple.com/app/id6823676524",
-  android: "",   // Google Play : à remplir le jour de la publication
+  android: "https://play.google.com/store/apps/details?id=ch.teamlausanne.app",  // publiée le 10.11.2026
 };
 
 // Site public (teamlausanne.ch). Mon espace y pointe pour les actualités :

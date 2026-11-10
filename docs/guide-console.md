@@ -864,9 +864,12 @@ depuis l'e-mail arrive dans **le navigateur** de son téléphone : l'app y
 fonctionne, mais sans notification — donc sans prévenir d'un cours annulé. Un
 bandeau lui propose donc l'installation, **uniquement** sur un téléphone, dans
 un navigateur, et jamais une fois l'app installée. Il se referme, et ne
-revient pas. Sur Android, tant que Google Play n'a pas publié l'app, il
-explique comment ajouter un raccourci à l'écran d'accueil — c'est la même
-application, en plein écran.
+revient pas.
+
+L'app est publiée sur les **deux** boutiques (App Store depuis octobre 2026,
+**Google Play depuis le 10.11.2026**) : le bandeau mène donc au bon magasin
+selon le téléphone. Le repli « ajoutez un raccourci à l'écran d'accueil » ne
+sert plus que si une boutique venait à retirer l'app.
 
 ### Si une famille appelle : « l'app affiche Réessayer »
 
