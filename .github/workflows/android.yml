@@ -43,9 +43,20 @@ jobs:
           if [ -z "$GOOGLE_SERVICES_JSON" ]; then echo "::error::Secret GOOGLE_SERVICES_JSON absent : pas de notifications possibles."; exit 1; fi
           printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
           node -e "const j=require('./android/app/google-services.json'); const p=j.client.map(c=>c.client_info.android_client_info.package_name); if(!p.includes('ch.teamlausanne.app')){console.error('::error::google-services.json ne contient pas le package ch.teamlausanne.app (trouvé : '+p.join(', ')+')'); process.exit(1)} console.log('Firebase OK pour', p.join(', '))"
+      # L'icône vient de mobile/assets/logo.png (posé sur du blanc) ; l'écran de
+      # démarrage vient de mobile/assets/splash.png et splash-dark.png, qui sont
+      # lus indépendamment du logo. Les couleurs ci-dessous ne servent donc qu'au
+      # fond de fenêtre — mais sur Android 12+ c'est LUI qu'on voit : le système
+      # ignore l'image et affiche l'icône sur cette couleur. D'où le bleu.
       - name: Icônes et écran de démarrage
+        id: assets
         continue-on-error: true   # sans icône générée, l'app se fabrique quand même (icône par défaut)
-        run: npx capacitor-assets generate --android --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#ffffff' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#ffffff'
+        run: npx capacitor-assets generate --android --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#ffffff' --splashBackgroundColor '#1e3ad1' --splashBackgroundColorDark '#04205e'
+      # Sans ce garde-fou, une génération ratée passait inaperçue : l'app partait
+      # avec l'icône par défaut de Capacitor et personne ne faisait le lien.
+      - name: Alerte si les images n'ont pas été générées
+        if: steps.assets.outcome == 'failure'
+        run: echo "::error::Icônes et écran de démarrage NON générés — l'app va être fabriquée avec les images par défaut de Capacitor. Vérifier mobile/assets/ (logo.png 1024x1024, splash.png et splash-dark.png 2732x2732)."
       - name: Android 16 (API 36) — exigé par le Play Store depuis août 2026
         # Capacitor 7 génère un projet qui vise l'API 35 ; le Play Store refuse tout envoi sous 36.
         run: |

@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=394" />
+  <link rel="stylesheet" href="style.css?v=395" />
 </head>
 <body class="portal">
 
@@ -33,7 +33,9 @@
        commencent tous deux cachés, et seul le JavaScript les révèle.
        Script classique et non module : il s'exécute même quand le module tombe. -->
   <div id="pt-boot" class="pt-boot">
-    <img class="pt-boot-logo" src="assets/logo-academie.webp" alt="Team Lausanne" width="76" height="76" />
+    <!-- Dimensions = le rapport réel du fichier (1937x2000), pas un carré :
+         la CSS le blanchit et le cale sur le logo de l'écran de démarrage. -->
+    <img class="pt-boot-logo" src="assets/logo-academie.webp" alt="Team Lausanne" width="230" height="238" />
     <p class="pt-boot-msg" id="pt-boot-msg">Chargement…</p>
     <button type="button" class="pt-err-b" id="pt-boot-retry" hidden>Réessayer</button>
   </div>

@@ -41,9 +41,20 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Projet iOS (généré à chaque fois, pas stocké dans le dépôt)
         run: npx cap add ios
+      # L'icône vient de mobile/assets/logo.png (posé sur du blanc) ; l'écran de
+      # démarrage vient de mobile/assets/splash.png et splash-dark.png, qui sont
+      # lus indépendamment du logo. L'écran de lancement d'iOS est un storyboard
+      # STATIQUE : Apple n'y autorise ni vidéo ni animation — toute animation
+      # devra vivre dans l'écran d'attente de espace.html, pas ici.
       - name: Icônes et écran de démarrage
+        id: assets
         continue-on-error: true
-        run: npx capacitor-assets generate --ios --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#ffffff' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#ffffff'
+        run: npx capacitor-assets generate --ios --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#ffffff' --splashBackgroundColor '#1e3ad1' --splashBackgroundColorDark '#04205e'
+      # Sans ce garde-fou, une génération ratée passait inaperçue : l'app partait
+      # avec l'icône par défaut de Capacitor et personne ne faisait le lien.
+      - name: Alerte si les images n'ont pas été générées
+        if: steps.assets.outcome == 'failure'
+        run: echo "::error::Icônes et écran de démarrage NON générés — l'app va être fabriquée avec les images par défaut de Capacitor. Vérifier mobile/assets/ (logo.png 1024x1024, splash.png et splash-dark.png 2732x2732)."
       - name: Réglages de l'app (notifications, version, chiffrement)
         working-directory: mobile/ios/App
         run: |

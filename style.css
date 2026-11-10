@@ -2400,13 +2400,43 @@ body.portal{background:var(--bg)}
 /* ---- Écran d'attente (espace.html) ----
    Visible AVANT tout JavaScript : c'est lui qui remplace la page blanche
    quand le module ne démarre pas. Donc aucune dépendance à une classe posée
-   par le script. */
+   par le script.
+
+   IL PROLONGE L'ÉCRAN DE DÉMARRAGE DE L'APP, il ne lui succède pas. Avant, on
+   enchaînait barre d'état bleue -> écran de démarrage blanc -> cet écran-ci en
+   gris : trois fonds en moins d'une seconde, et ça se voyait. Le logo reprend
+   donc la taille et la position de mobile/assets/splash.png, au pixel près :
+     · le splash est un carré de 2732 RECADRÉ pour remplir l'écran. En hauteur,
+       c'est la HAUTEUR qui commande (2732 -> 100vh) et les côtés qui sont
+       rognés. Le logo se mesure donc en vh, jamais en vw : 660/2732 = 24.2vh.
+       En vw il aurait grandi et rapetissé selon la largeur du téléphone,
+       pendant que le splash, lui, ne bougeait pas.
+     · remonté de 70 px sur 2732 -> 2.56vh, et par translate et non par marge :
+       sur un élément centré, une marge négative de n ne décale que de n/2
+       (la moitié repart dans l'espace libre que le centrage redistribue).
+   Le message est donc posé EN BAS, et non sous le logo : centrer le couple
+   logo + texte aurait déplacé le logo vers le haut, et le raccord se serait vu.
+   Si on touche à l'un des deux (ce fichier ou le splash), refaire l'autre. */
 .pt-boot{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:14px;padding:28px;text-align:center;
-  background:var(--bg,#eef1f8)}
-.pt-boot-logo{width:76px;height:76px;object-fit:contain}
-.pt-boot-msg{margin:0;max-width:17rem;color:var(--muted);font-size:.92rem;line-height:1.5}
-.pt-boot-msg b{color:var(--blue-ink)}
+  background:#1e3ad1}
+/* Le logo de marque est bleu : sur fond bleu il disparaît. brightness(0) le
+   met à plat en noir, invert(1) le repasse en blanc — l'alpha, lui, n'est pas
+   touché, donc les lettres ajourées laissent voir le bleu du fond, exactement
+   comme sur le splash. Pas de second fichier à tenir à jour. */
+.pt-boot-logo{width:min(24.2vh,260px);height:auto;object-fit:contain;
+  transform:translateY(-2.56vh);filter:brightness(0) invert(1)}
+.pt-boot-msg{position:absolute;left:28px;right:28px;margin:0;max-width:none;
+  bottom:calc(15vh + env(safe-area-inset-bottom));
+  color:rgba(255,255,255,.82);font-size:.92rem;line-height:1.5}
+.pt-boot-msg b{color:#fff}
+/* Le bouton de secours hérite d'un fond bleu foncé : illisible ici. */
+.pt-boot .pt-err-b{position:absolute;margin-top:0;background:#fff;color:var(--blue-ink);
+  bottom:calc(7vh + env(safe-area-inset-bottom))}
+.pt-boot .pt-err-b:hover{background:var(--fluo);color:var(--prussian)}
+/* iOS sert splash-dark.png quand le téléphone est en mode sombre : on suit,
+   sinon le raccord se remet à clignoter chez ceux qui l'utilisent. */
+@media (prefers-color-scheme: dark){ .pt-boot{background:#04205e} }
 
 /* ---- Semaine ---- */
 .pt-week{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 14px}
