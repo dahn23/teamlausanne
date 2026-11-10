@@ -22631,7 +22631,7 @@ function nlRenderActivation() {
     Chaque destinataire recevra <b>son</b> lien personnel : un compte Mon espace est créé pour lui
     (sans mot de passe — la famille choisit le sien), et le lien reste valable 30 jours.
     Une adresse qui a déjà un compte actif reçoit un simple lien de connexion.
-    L'envoi est refusé tant que « Envois activés » est éteint dans l'onglet Accès.
+    L'envoi est refusé tant que « Envois activés » est éteint dans <b>Application › Qui a l'app</b>.
     <span class="nl-act-test">Un test n'ouvre aucun compte : le bouton y mène à un lien d'exemple.</span>`;
 }
 
