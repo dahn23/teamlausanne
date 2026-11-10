@@ -34,8 +34,19 @@ const esc = (t: string) => String(t || "").replace(/&/g, "&amp;").replace(/</g, 
 // « Léa », « Léa et Tom », « Léa, Tom et Max »
 const joinNames = (n: string[]) => (n.length <= 1 ? (n[0] || "votre enfant") : n.slice(0, -1).join(", ") + " et " + n[n.length - 1]);
 const fill = (s: string, m: Record<string, string>) => String(s || "").replace(/\{(\w+)\}/g, (mm, k) => (m[k] != null ? m[k] : mm));
+// Les adresses écrites dans le texte deviennent cliquables. Le corps du mail
+// s'édite en texte brut dans la console, et tout était échappé : les liens des
+// boutiques seraient donc arrivés en toutes lettres, à charge pour le client de
+// messagerie de les rendre cliquables ou non — beaucoup ne le font pas.
+// La ponctuation finale reste dehors : sans cela, « …teamlausanne.app. »
+// emportait le point dans l'adresse et le lien tombait sur une page d'erreur.
+const autolien = (s: string) =>
+  s.replace(/https?:\/\/[^\s<>"]*[^\s<>".,;:!?)\]]/g,
+    (u) => `<a href="${u}" style="color:#123cc4">${u}</a>`);
 function toHtml(text: string, link: string) {
-  const parts = esc(text).split(esc(link));
+  // On découpe sur le lien d'activation AVANT d'auto-lier : il devient un
+  // bouton, et ne doit surtout pas être transformé deux fois.
+  const parts = esc(text).split(esc(link)).map(autolien);
   const btn = `<a href="${esc(link)}" style="display:inline-block;background:#123cc4;color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:999px">Activer Mon espace</a><br><span style="font-size:12px;color:#6b7280">ou copie ce lien : ${esc(link)}</span>`;
   const body = parts.join(btn).replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>");
   return `<div style="font-family:system-ui,Arial,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px"><p>${body}</p></div>`;
