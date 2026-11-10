@@ -631,7 +631,11 @@ function showView(view) {
   if (view === "plantournois") loadPlanning();
   if (view === "dashboard") loadDashboard();
   if (view === "pm") loadPM();
-  if (view === "calendrier") loadCalendrier();
+  // Ouvrir l'onglet Calendrier, c'est demander « où en est-on ? » : on repart
+  // donc du mois en cours, et non de là où la navigation s'était arrêtée la
+  // fois d'avant. Les flèches et « Aujourd'hui » restent maîtres à l'intérieur
+  // de l'onglet — seule l'ARRIVÉE se recale.
+  if (view === "calendrier") { calRecentrer(); loadCalendrier(); }
   if (view === "newsletter") loadNewsletters();
   if (view === "assistant") loadAssistant();
   if (view === "social") loadSocial();
@@ -3042,9 +3046,12 @@ let calSem = [], calInit = false;
 
 function initCalendrier() {
   if (calInit) return; calInit = true;
-  // Par défaut la saison en cours, du premier lundi de septembre au 2 juillet.
-  $("cal-du").value = "2026-08-31";
-  $("cal-au").value = "2027-06-28";
+  // Par défaut la saison en cours, de la semaine du 1er septembre à celle du
+  // 2 juillet. Ces deux dates se calculent : écrites en dur, elles auraient
+  // envoyé la liste sur une saison périmée dès l'été suivant.
+  const [du, au] = calBornesSaison(calSaisonCourante());
+  $("cal-du").value = du;
+  $("cal-au").value = au;
   ["cal-du", "cal-au"].forEach((id) => $(id).addEventListener("change", loadCalendrier));
   $("cal-new-ev").addEventListener("click", () => calOuvrir(null, "evenement"));
   document.querySelectorAll("[data-vue]").forEach((b) => b.addEventListener("click", () => {
@@ -3056,12 +3063,7 @@ function initCalendrier() {
   // boutons, dont le pas suit ce qu'on regarde.
   $("cal-prec").addEventListener("click", () => calDecaler(-1));
   $("cal-suiv").addEventListener("click", () => calDecaler(1));
-  $("cal-auj").addEventListener("click", () => {
-    const n = new Date();
-    calMois = new Date(n.getFullYear(), n.getMonth(), 1);
-    calAn = calSaisonCourante();
-    loadCalendrier();
-  });
+  $("cal-auj").addEventListener("click", () => { calRecentrer(); loadCalendrier(); });
   $("cal-new-vac").addEventListener("click", () => calOuvrir(null, "vacances"));
   $("cal-new-abs").addEventListener("click", () => calOuvrir(null, "absence"));
   $("cal-close").addEventListener("click", () => $("cal-modal").classList.add("hidden"));
@@ -3148,7 +3150,11 @@ async function calDecider(id, ok) {
 // La liste embrasse la saison entière ; le mois sert à situer les jours et à
 // voir les chevauchements. Les deux lisent les mêmes données.
 let calVue = "mois";
-let calMois = new Date(2026, 8, 1);          // septembre 2026, début de saison
+// Le mois affiché. Il part du mois EN COURS, jamais d'une date écrite en dur :
+// « septembre 2026 » avait été figé là au moment d'écrire l'écran, si bien que
+// le calendrier s'ouvrait deux mois en arrière et qu'il aurait fallu y repenser
+// chaque août. Il se recale sur aujourd'hui à chaque ouverture de l'onglet.
+let calMois = calMoisCourant();
 const CAL_JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const CAL_MOIS_NOMS = ["janvier", "février", "mars", "avril", "mai", "juin",
                        "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
@@ -3287,6 +3293,35 @@ const calSaisonCourante = () => {
   const n = new Date();
   return n.getMonth() >= 7 ? n.getFullYear() : n.getFullYear() - 1;   // août = 7
 };
+
+// Le 1er du mois en cours. Déclaré en `function` et non en const : il sert à
+// initialiser calMois tout en haut du fichier, et seule une déclaration de
+// fonction remonte assez haut pour cela.
+function calMoisCourant() {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), 1);
+}
+// Le lundi de la semaine d'une date : la liste des semaines commence et finit
+// forcément un lundi.
+function calLundiDe(d) {
+  const x = new Date(d);
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x;
+}
+// Les bornes de la liste des semaines, pour une saison donnée : de la semaine
+// du 1er septembre à celle du 2 juillet. Calculées, et non écrites en dur,
+// sinon l'écran resterait sur la saison de l'année où on l'a programmé.
+const calBornesSaison = (an) => [
+  calISO(calLundiDe(new Date(an, 8, 1))),
+  calISO(calLundiDe(new Date(an + 1, 6, 2))),
+];
+// Revenir à aujourd'hui : le mois en cours en vue mois, la saison en cours en
+// vue année. C'est ce que fait le bouton « Aujourd'hui », et c'est aussi
+// l'état dans lequel l'onglet doit s'ouvrir.
+function calRecentrer() {
+  calMois = calMoisCourant();
+  calAn = calSaisonCourante();
+}
 
 async function calChargerAnnee() {
   const d0 = `${calAn}-08-01`, d1 = calISO(new Date(calAn + 1, 7, 0));   // 31 juillet

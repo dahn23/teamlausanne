@@ -776,6 +776,11 @@ l'état par défaut.
 « 🏖 Demander des vacances » et « 🤒 Déclarer une absence ».
 Vues « Mois », « Année », « Liste des semaines » ; « Aujourd'hui » recentre.
 
+L'onglet **s'ouvre toujours sur le mois en cours**, aujourd'hui entouré de
+bleu. Les flèches et « Aujourd'hui » commandent à l'intérieur de l'onglet ;
+c'est l'arrivée qui se recale, donc un détour par un autre onglet ramène au
+mois en cours.
+
 ---
 
 ## 12. Accès Mon espace
