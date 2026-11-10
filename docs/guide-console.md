@@ -739,13 +739,20 @@ Lecture seule : on modifie ou encaisse une facture dans Factures.
 
 ### Ce que c'est
 
-Le calendrier de l'académie : événements, vacances, fermetures, absences.
+Le calendrier de l'académie : événements, cours d'essai, vacances, fermetures,
+absences.
 
 ### Ajouter une entrée
 
 1. « ＋ Ajouter un événement ».
-2. Remplir « Nouvel événement ».
+2. Remplir « Nouvel événement ». Le menu « Type » propose Événement, **Cours
+   d'essai**, Session de test tennis, Camp, Fermeture, Vacances, Absence.
 3. « Enregistrer ».
+
+Les **cours d'essai** ont leur propre type parce qu'il y en a beaucoup :
+posés en « Événement », ils se perdaient parmi les réunions. Ils sont
+**internes** comme le reste par défaut, ont leur couleur (turquoise) et se
+filtrent tout seuls dans la vue Année.
 
 ### Qui verra cette ligne — le point important
 

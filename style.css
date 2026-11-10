@@ -3464,6 +3464,10 @@ tr.rm-loss td{background:#fde8e8}
 .cal-k-fermeture{background:#fadcdc;color:#9e2b2b}
 .cal-k-camp     {background:#dcf6e4;color:#1c6b38}
 .cal-k-evenement{background:#dce7fb;color:#1b3f8f}
+/* Cours d'essai : un turquoise. Ils sont nombreux et se lisent a cote des
+   evenements (bleu) et des camps (vert tendre) — il fallait une teinte qui ne
+   se confonde ni avec l'un ni avec l'autre d'un coup d'oeil. */
+.cal-k-essai    {background:#d4eef2;color:#0d5a66}
 /* Session de test : un violet, la seule teinte encore libre dans la legende. */
 .cal-k-test     {background:#e6e0f5;color:#4b2e83}
 /* Vacances d'un membre : sa propre couleur, reprise du Project Manager, pour
@@ -5000,7 +5004,8 @@ tr.enc-ok td{background:#f4fbf6}
 .cay-pill.on .cay-pt{background:currentColor}
 .cay-c-scolaire {color:#d2ab3e}.cay-c-ferie    {color:#8a6bcf}
 .cay-c-fermeture{color:#d05858}.cay-c-camp     {color:#2f9d5b}
-.cay-c-evenement{color:#3a6fd8}.cay-c-test     {color:#7a5bbf}
+.cay-c-evenement{color:#3a6fd8}.cay-c-essai    {color:#0e8a9c}
+.cay-c-test     {color:#7a5bbf}
 .cay-c-vacances {color:#5a8fa8}.cay-c-absence  {color:#9a7b4f}
 .cay-tout{color:var(--blue-ink)}
 .cay-quis{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:.84rem}
@@ -5033,9 +5038,10 @@ tr.enc-ok td{background:#f4fbf6}
 .cay-f-camp     {background:#dcf6e4}
 .cay-f-fermeture{background:#fadcdc;color:#9e2b2b}
 /* Anneau : un rendez-vous ponctuel. */
-.cay-a-evenement>span,.cay-a-test>span,.cay-a-ferie>span{
+.cay-a-evenement>span,.cay-a-essai>span,.cay-a-test>span,.cay-a-ferie>span{
   display:flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;border:1.5px solid}
 .cay-a-evenement>span{border-color:#3a6fd8}
+.cay-a-essai>span{border-color:#0e8a9c}
 .cay-a-test>span{border-color:#7a5bbf}
 .cay-a-ferie>span{border-color:#8a6bcf}
 /* Barres : une par personne absente, à sa couleur. Elles s'empilent, c'est

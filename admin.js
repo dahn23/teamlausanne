@@ -3022,7 +3022,8 @@ function renderLastScores() {
 // Seules les VACANCES d'un membre demandent une validation. Fermetures, camps
 // et événements sont des faits d'organisation : ils s'ajoutent directement.
 const CAL_KIND = { vacances: "Vacances", fermeture: "Fermeture", camp: "Camp",
-                   evenement: "Événement", test: "Session de test", absence: "Absence" };
+                   evenement: "Événement", essai: "Cours d'essai",
+                   test: "Session de test", absence: "Absence" };
 // Deux types concernent UNE personne et réclament donc un « qui » : ses
 // vacances et son absence. Tout le reste les sépare — des vacances se
 // demandent et se valident, une absence se constate.
@@ -3267,6 +3268,7 @@ const CAY_CATS = [
   ["fermeture", "Académie fermée",    "fond"],
   ["camp",      "Stages et camps",    "fond"],
   ["evenement", "Événements",         "anneau"],
+  ["essai",     "Cours d'essai",      "anneau"],
   ["test",      "Sessions de test",   "anneau"],
   ["vacances",  "Vacances équipe",    "barre"],
   ["absence",   "Absences",           "barre"],
@@ -3384,7 +3386,7 @@ function calDessinerAnnee() {
       if (d.getMonth() !== m.getMonth()) return `<i class="cay-j cay-vide"></i>`;
       const items = (calAnJours?.get(iso) || []).filter(calVisible);
       const fond = CAY_FOND_ORDRE.find((c) => items.some((it) => it.cat === c));
-      const anneau = ["evenement", "test", "ferie"].find((c) => items.some((it) => it.cat === c));
+      const anneau = ["evenement", "essai", "test", "ferie"].find((c) => items.some((it) => it.cat === c));
       const barres = items.filter((it) => it.cat === "vacances" || it.cat === "absence");
       const bulle = items.map((it) => (it.ini ? it.ini + " · " : "") + it.titre).join(" · ");
       return `<i class="cay-j${fond ? " cay-f-" + fond : ""}${anneau ? " cay-a-" + anneau : ""}${iso === auj ? " cay-auj" : ""}"
