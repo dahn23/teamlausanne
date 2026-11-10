@@ -45,7 +45,7 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | Calendrier | Événements, vacances, absences | admin, secrétariat, head coach, senior coach |
 | Répertoire | Les fiches des personnes | admin, secrétariat |
 | Inscriptions | Demandes venues du formulaire public | admin, secrétariat |
-| Accès Mon espace | Inviter les familles dans l'app | admin |
+| Application | Qui a l'app, qui s'en sert, ce qui s'y passe, invitations | admin |
 | Prospects | Joueurs repérés hors académie, et la prospection visibilité | admin, head coach, secrétariat |
 | Accueil espace privé | Messages affichés dans Mon espace | admin, secrétariat |
 | Messagerie | La boîte info@ | admin, secrétariat |
@@ -783,23 +783,79 @@ mois en cours.
 
 ---
 
-## 12. Accès Mon espace
+## 12. Application
 
-Pour donner aux familles l'accès à l'app « Mon espace ».
+Tout ce qui concerne l'app « Mon espace » : qui l'a, qui s'en sert, ce qui s'y
+passe. **Cinq sous-onglets.** (Cet onglet s'appelait « Accès Mon espace » et ne
+portait que les invitations ; elles sont maintenant dans « Qui a l'app ».)
+
+### Statistiques
+
+Une **période** en haut (7 jours, 30 jours, 90 jours, 1 an) commande tout
+l'écran.
+
+- **Les cinq vignettes** : combien de familles ont installé l'app, combien
+  sont actives, combien de comptes se sont créés, le nombre moyen de jours
+  d'utilisation, et les absences annoncées depuis l'app.
+- **Adoption** : des familles inscrites à celles qui s'en servent. Chaque
+  barre se compare aux **familles inscrites**, jamais à la barre du dessus —
+  sinon deux étages égaux afficheraient 100 % et on ne verrait plus le trou.
+- **Ouvertures par jour** : une personne compte **une fois par jour**, même si
+  elle ouvre l'app dix fois. Les couleurs séparent les familles qui ont
+  l'app installée de celles qui passent par un navigateur, puis l'encadrement
+  et la direction.
+  ⚠️ La mention « relevé tenu depuis le … » sous le graphique n'est pas un
+  détail : **rien n'a été compté avant cette date**. Un mois vide au début
+  veut dire « on ne comptait pas encore », pas « personne n'ouvrait l'app ».
+- **Dernières ouvertures** : qui a ouvert l'app le plus récemment. Le badge à
+  droite dit s'il s'agit d'une famille, de l'encadrement ou de la direction —
+  les trois se mêlent, et sans lui un coach passerait pour une famille.
+
+### Qui a l'app
+
+La liste des comptes, par filière. Un compte = l'e-mail principal de la fiche
+du jeune ; une famille dont l'adresse figure sur plusieurs fiches reçoit
+**une seule** invitation et voit tous ses jeunes.
 
 1. « Inviter les comptes sans accès » envoie l'invitation à ceux qui n'en ont
-   pas encore.
-2. « Aperçu sur téléphone » montre ce que la famille verra ; « ↗ Ouvrir en
-   grand », « ↻ Recharger ».
+   pas encore ; « Inviter » / « Réinviter » le fait ligne par ligne.
+2. La colonne **App** dit l'essentiel : l'app est-elle *installée*, ou
+   simplement ouverte dans un *navigateur* ? Ceux qui sont en navigateur sont
+   à relancer — sans l'app, pas de notification.
 3. Le texte du « mail d'invitation » se modifie puis « Enregistrer le
    texte » ; « M'envoyer un test » l'envoie à soi-même d'abord.
-4. « La console d'un coach, sur téléphone » (admin seulement) : choisir un
+
+### Annonces & notifications
+
+Les **annonces** que les familles lisent en ouvrant l'app se composent dans
+l'onglet **Accueil espace privé** (elles visent une saison et des filières) :
+le bouton y mène, on ne les redouble pas ici.
+
+Ce sous-onglet montre les **téléphones abonnés** aux notifications et les
+**dernières notifications parties**. Pour abonner un téléphone : dans l'app,
+Plus → Notifications → Activer.
+
+### Voir l'app
+
+1. « Aperçu sur téléphone » montre ce que la famille verra ; « ↗ Ouvrir en
+   grand », « ↻ Recharger ».
+2. « La console d'un coach, sur téléphone » (admin seulement) : choisir un
    rôle (coach physique, coach mental, coach, head coach, moniteur, prof) et
    une personne, et la console s'affiche dans le cadre telle qu'elle la voit :
    ses onglets, ses boutons, ses cours. Les données restent celles de l'admin,
    donc souvent plus larges : c'est pour la mise en page, pas pour vérifier
    des droits. Lecture seule : rien de ce qu'on fait dans le cadre n'est
    enregistré, un bandeau jaune le rappelle.
+
+### Historique
+
+Ce qui s'est passé, regroupé par jour : absences annoncées depuis l'app,
+comptes créés, messages, demandes d'inscription, inscriptions aux stages, et
+les appels faits par les coachs. Filtres **Période** et **Qui** (tout /
+familles / encadrement), plus une recherche qui filtre la liste affichée.
+
+La barre de couleur à gauche dit d'où vient la ligne : rose pour une famille,
+ambre pour l'encadrement.
 
 ### Si une famille demande : « on me propose d'installer l'application »
 
@@ -1405,7 +1461,7 @@ Le cours est détaillé mais ses segments ne sont pas renseignés. C'est dans
 Cours qu'on corrige.
 
 **Comment donner à une famille l'accès à Mon espace ?**
-Accès Mon espace → « Inviter les comptes sans accès ».
+Application → « Qui a l'app » → « Inviter les comptes sans accès ».
 
 **Une facture refuse de partir / la QR ne passe pas.**
 Vérifier l'adresse de la fiche : rue, code postal et localité sont

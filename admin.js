@@ -303,8 +303,8 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
-  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "acces", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
+  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "application", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
+  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "application", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
   secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats", "notefrais"],
   head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "visibilite", "heures", "notefrais"],
   // Senior coach (06.11.2026) : un coach de terrain à qui on confie le SUIVI des
@@ -326,7 +326,7 @@ const DEFAULT_TAB_ACCESS = {
   // tables gz_* reste ouverte à is_staff() en écriture.
   gz_lecture:   ["gamezone"],
 };
-const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["acces", "Accès Mon espace"], ["prospects", "Prospects"], ["visibilite", "Prospects › Visibilité"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["social", "Social Media Planner"], ["assistant", "Assistant"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["notefrais", "Note de frais"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["application", "Application"], ["prospects", "Prospects"], ["visibilite", "Prospects › Visibilité"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["social", "Social Media Planner"], ["assistant", "Assistant"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["notefrais", "Note de frais"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -606,7 +606,7 @@ function showView(view) {
   if (view === "etudes") loadEtudesCalendar();
   if (view === "csel") loadCsel();
   if (view === "anniv") loadBirthdays();
-  if (view === "acces") loadPortalAccess();
+  if (view === "application") loadApplication();
   // On retient la promesse : écrire à quelqu'un depuis un autre onglet doit
   // pouvoir attendre que les comptes d'envoi soient là, sans relancer un
   // deuxième chargement complet.
@@ -6666,6 +6666,230 @@ async function addMovement() {
   await sb.from("gz_caisse_ledger").insert({ label: $("gz-mov-label").value.trim() || null, amount, created_by: meId });
   $("gz-mov-label").value = ""; $("gz-mov-amount").value = "";
   loadCaisseTab();
+}
+
+
+// ===================================================================
+//  Application — le tableau de bord de « Mon espace » (db/235)
+// ===================================================================
+// Cinq sous-onglets, un seul endroit où parler de l'app :
+//   Statistiques · Qui a l'app · Annonces & notifications · Voir l'app · Historique
+//
+// « Qui a l'app » et « Voir l'app » SONT l'ancien onglet « Accès Mon espace »,
+// déplacés tels quels : mêmes identifiants, même code (loadPortalAccess). Rien
+// n'a été réécrit — on ne refait pas un outil qui marche pour le ranger
+// ailleurs.
+//
+// Les chiffres viennent d'UN appel (app_stats) : une seule règle, écrite en
+// base, pas une addition refaite côté écran qui finirait par diverger.
+let appSub = "stats", appJours = 30, appBound = false;
+let appHJours = 30, appHQui = "tout", appHRows = [];
+
+const APP_PUBLIC = { famille: "Famille", encadrement: "Encadrement", direction: "Direction" };
+
+// « aujourd'hui à 15:50 », « hier à 22:27 », sinon la date. C'est la forme
+// qu'on lit sans réfléchir quand on balaie une liste de visites.
+function appQuand(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso), h = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  const j = calISO(d), auj = calISO(new Date());
+  const hier = calISO(new Date(Date.now() - 86400000));
+  if (j === auj) return `aujourd'hui à ${h}`;
+  if (j === hier) return `hier à ${h}`;
+  return `${frDate(j)} à ${h}`;
+}
+
+async function loadApplication() {
+  if (!appBound) {
+    appBound = true;
+    document.querySelectorAll(".app-subtab").forEach((b) => b.addEventListener("click", () => {
+      appSub = b.dataset.asub;
+      document.querySelectorAll(".app-subtab").forEach((x) => x.classList.toggle("active", x === b));
+      ["stats", "qui", "notif", "voir", "histo"].forEach((s) =>
+        $("app-sub-" + s).classList.toggle("hidden", s !== appSub));
+      appChargerSous();
+    }));
+    document.querySelectorAll(".app-per").forEach((b) => b.addEventListener("click", () => {
+      appJours = Number(b.dataset.jours);
+      document.querySelectorAll(".app-per").forEach((x) => x.classList.toggle("on", x === b));
+      appStats();
+    }));
+    document.querySelectorAll(".app-hper").forEach((b) => b.addEventListener("click", () => {
+      appHJours = Number(b.dataset.jours);
+      document.querySelectorAll(".app-hper").forEach((x) => x.classList.toggle("on", x === b));
+      appHisto();
+    }));
+    document.querySelectorAll(".app-hqui").forEach((b) => b.addEventListener("click", () => {
+      appHQui = b.dataset.qui;
+      document.querySelectorAll(".app-hqui").forEach((x) => x.classList.toggle("on", x === b));
+      appHisto();
+    }));
+    // La recherche filtre ce qui est DÉJÀ chargé : pas d'aller-retour à chaque
+    // lettre tapée, et le résultat est immédiat.
+    $("app-hsearch").addEventListener("input", appRendreHisto);
+    $("app-go-news").addEventListener("click", () => showView("news"));
+  }
+  appChargerSous();
+}
+
+function appChargerSous() {
+  if (appSub === "stats") return appStats();
+  if (appSub === "histo") return appHisto();
+  if (appSub === "notif") return appNotifs();
+  // « Qui a l'app » et « Voir l'app » partagent le même chargement : c'est
+  // loadPortalAccess qui remplit la liste ET câble les deux aperçus.
+  return loadPortalAccess();
+}
+
+// ---- Statistiques ----
+async function appStats() {
+  const n = appJours;
+  $("app-cards").innerHTML = `<p class="muted">Chargement…</p>`;
+  const { data: s, error } = await sb.rpc("app_stats", { p_jours: n });
+  if (error) { $("app-cards").innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  const f = s.familles || {}, pc = (v) => f.saison ? Math.round(v / f.saison * 100) : 0;
+
+  $("app-hero-kpi").innerHTML =
+    `<span class="app-chip app-chip-rose">${f.installee} famille(s) ont installé l'app</span>`
+    + `<span class="app-chip app-chip-bleu">${f.actives} active(s) ces ${n} jours</span>`;
+
+  const carte = (cls, lbl, val, sous) =>
+    `<div class="app-card app-card-${cls}"><span class="app-card-l">${lbl}</span>
+      <b class="app-card-v">${val}</b><span class="app-card-s">${sous}</span></div>`;
+  $("app-cards").innerHTML =
+    carte("rose", "Ont l'app", f.installee, `${pc(f.installee)} % des ${f.saison} familles de la saison`) +
+    carte("violet", "Familles actives", f.actives, `venues ces ${n} jours (app ou navigateur)`) +
+    carte("vert", "Nouveaux comptes", f.nouveaux, `créés ces ${n} jours`) +
+    carte("bleu", "Jours d'utilisation", String(f.jours_moyens).replace(".", ","), "en moyenne, par famille active") +
+    carte("ambre", "Absences annoncées", s.absences, `dans l'app ces ${n} jours`
+      + (s.retards ? ` · ${s.retards} retard(s)` : ""));
+
+  // Entonnoir : chaque barre se compare aux familles INSCRITES, jamais à la
+  // précédente. Comparer d'étage en étage donnerait 100 % partout dès que
+  // deux étages se valent, et on ne verrait plus le vrai trou.
+  $("app-funnel").innerHTML = [
+    ["Familles inscrites cette saison", f.saison],
+    ["Ont créé un compte", f.comptes],
+    ["Adresse confirmée", f.confirmes],
+    ["App installée sur le téléphone", f.installee],
+    [`Actives ces ${n} jours`, f.actives],
+  ].map(([l, v], i) =>
+    `<div class="bar-row app-fun app-fun-${i}"><span class="bar-label">${esc(l)}</span>
+      <div class="bar"><div class="bar-fill" style="width:${pc(v)}%"></div></div>
+      <span class="bar-val"><b>${v}</b> ${pc(v)} %</span></div>`).join("");
+
+  appChart(s.ouvertures || [], s.depuis);
+
+  $("app-last").innerHTML = (s.dernieres || []).length
+    ? `<ul class="app-last">${s.dernieres.map((d) => `<li>
+        <span class="app-canal app-canal-${esc(d.canal)}" title="${d.canal === "app" ? "App installée" : "Dans un navigateur"}"></span>
+        <span class="app-last-n"><b>${esc(d.nom || "")}</b>${d.enfants ? `<em>${esc(d.enfants)}</em>` : ""}</span>
+        <span class="app-last-q">${esc(appQuand(d.quand))} <span class="muted">· ${esc(d.canal)}</span></span>
+        <span class="app-pub app-pub-${esc(d.public)}">${esc(APP_PUBLIC[d.public] || d.public)}</span></li>`).join("")}</ul>`
+    : `<p class="muted">Personne n'a encore ouvert l'app.</p>`;
+
+  const e = s.encadrement || {}, di = s.direction || {};
+  $("app-side").innerHTML =
+    `<div class="app-card app-card-ambre app-card-lg"><span class="app-card-l">Encadrement</span>
+      <b class="app-card-v">${e.vus} / ${e.total}</b>
+      <span class="app-card-s">ont ouvert leur espace ces ${n} jours · ${e.installee} avec l'app installée</span></div>
+     <div class="app-card app-card-violet app-card-lg"><span class="app-card-l">Direction &amp; secrétariat</span>
+      <b class="app-card-v">${di.vus} / ${di.total}</b>
+      <span class="app-card-s">venus ces ${n} jours · ${s.telephones} téléphone(s) reçoivent les notifications</span></div>`;
+}
+
+// Le graphique. Pas de bibliothèque : des barres empilées en CSS, c'est tout
+// ce qu'il faut et ça ne fait rien télécharger.
+function appChart(serie, depuis) {
+  const z = $("app-chart"); if (!z) return;
+  const tot = (d) => d.famille_app + d.famille_web + d.encadrement + d.direction;
+  const max = Math.max(1, ...serie.map(tot));
+  // Combien d'étiquettes tiennent VRAIMENT ? On mesure la place disponible au
+  // lieu d'en poser dix : sur un téléphone, dix dates dans 290 px se
+  // chevauchent et l'axe devient un pâté. Une date demande ~52 px.
+  const large = z.clientWidth || 560;
+  const pas = Math.max(1, Math.ceil(serie.length / Math.max(3, Math.floor(large / 52))));
+  // Sur un an, 364 gouttières de 2 px dépassent la largeur du cadre : les
+  // barres se faisaient alors écraser à zéro et il ne restait que du vide. La
+  // gouttière se resserre donc quand les jours se multiplient.
+  const jeu = serie.length > 120 ? 0 : serie.length > 60 ? 1 : 2;
+  const seg = (v, cls) => v ? `<i class="apc-s apc-s-${cls}" style="height:${v / max * 100}%"></i>` : "";
+  const bulle = (d) => `${frDate(d.jour)} — ${tot(d)} ouverture(s)`;
+  z.innerHTML = `
+    <div class="apc">
+      <div class="apc-y"><span>${max}</span><span>${Math.round(max / 2)}</span><span>0</span></div>
+      <div class="apc-plot">
+        <div class="apc-bars" style="gap:${jeu}px">${serie.map((d) => `<div class="apc-b" title="${esc(bulle(d))}">
+          ${seg(d.direction, "dir")}${seg(d.encadrement, "enc")}${seg(d.famille_web, "fw")}${seg(d.famille_app, "fa")}
+        </div>`).join("")}</div>
+        <div class="apc-x" style="gap:${jeu}px">${serie.map((d, i) =>
+          `<span>${i % pas === 0 ? String(d.jour).slice(8, 10) + "." + String(d.jour).slice(5, 7) : ""}</span>`).join("")}</div>
+      </div>
+    </div>
+    <div class="apc-leg">
+      <span><i class="apc-k apc-s-fa"></i>Familles, app installée</span>
+      <span><i class="apc-k apc-s-fw"></i>Familles, navigateur</span>
+      <span><i class="apc-k apc-s-enc"></i>Encadrement</span>
+      <span><i class="apc-k apc-s-dir"></i>Direction</span>
+      <span class="apc-depuis">${depuis
+        ? "Relevé tenu depuis le " + frDate(depuis) + "."
+        : "Le relevé démarre aujourd'hui : rien n'a été compté avant."}</span>
+    </div>`;
+}
+
+// ---- Annonces & notifications ----
+async function appNotifs() {
+  $("app-devices").innerHTML = `<p class="muted">Chargement…</p>`;
+  const { data, error } = await sb.rpc("app_notifications");
+  if (error) { $("app-devices").innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  const ap = data.appareils || [], en = data.envois || [];
+  $("app-devices").innerHTML = ap.length
+    ? `<ul class="app-dev">${ap.map((d) => `<li><b>${esc(d.nom || "")}</b>
+        <span class="muted">${esc(d.plateforme || "")} · depuis le ${esc(frDate(String(d.depuis).slice(0, 10)))}</span></li>`).join("")}</ul>`
+    : `<p class="muted">Aucun téléphone abonné.</p>`;
+  $("app-pushes").innerHTML = en.length
+    ? `<ul class="app-push">${en.map((p) => `<li>
+        <div class="app-push-h"><b>${esc(p.titre || p.genre || "Notification")}</b>
+          <span class="muted">${esc(appQuand(p.quand))}</span></div>
+        ${p.corps ? `<p>${esc(p.corps)}</p>` : ""}
+        <span class="${p.parti ? "app-ok" : "muted"}">${p.parti ? "partie" : "en attente"}</span></li>`).join("")}</ul>`
+    : `<p class="muted">Rien n'est encore parti.</p>`;
+}
+
+// ---- Historique ----
+async function appHisto() {
+  $("app-histo").innerHTML = `<p class="muted">Chargement…</p>`;
+  const { data, error } = await sb.rpc("app_historique", { p_jours: appHJours, p_qui: appHQui });
+  if (error) { $("app-histo").innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+  appHRows = data || [];
+  appRendreHisto();
+}
+
+function appRendreHisto() {
+  const q = ($("app-hsearch").value || "").trim().toLowerCase();
+  const rows = q
+    ? appHRows.filter((r) => `${r.acteur} ${r.action} ${r.detail} ${r.source}`.toLowerCase().includes(q))
+    : appHRows;
+  if (!rows.length) {
+    $("app-histo").innerHTML = `<p class="muted">${q ? "Rien ne correspond." : "Rien sur cette période."}</p>`;
+    return;
+  }
+  // Regroupé par jour : « aujourd'hui », « hier », puis la date. On lit une
+  // journée d'un bloc au lieu de relire la date à chaque ligne.
+  const auj = calISO(new Date()), hier = calISO(new Date(Date.now() - 86400000));
+  const titre = (j) => j === auj ? "Aujourd'hui" : j === hier ? "Hier" : frDate(j);
+  let html = "", jour = null;
+  for (const r of rows) {
+    const j = calISO(new Date(r.quand));
+    if (j !== jour) { jour = j; html += `<h3 class="app-h-jour">${esc(titre(j))}</h3>`; }
+    const h = new Date(r.quand);
+    html += `<div class="app-h-l app-h-${esc(r.qui)}">
+      <span class="app-h-t">${String(h.getHours()).padStart(2, "0")}:${String(h.getMinutes()).padStart(2, "0")}</span>
+      <span class="app-h-c"><b>${esc(r.acteur || "")}</b> — ${esc(r.action)}
+        ${r.detail ? `<em>${esc(r.detail)}</em>` : ""}</span>
+      <span class="app-h-s">${esc(r.source)}</span></div>`;
+  }
+  $("app-histo").innerHTML = html;
 }
 
 

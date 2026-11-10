@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=396" />
+  <link rel="stylesheet" href="style.css?v=397" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -162,7 +162,7 @@
             <button class="side-item active" data-view="membres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="9" cy="7.5" r="3.2"/><path d="M22 19v-1a4 4 0 0 0-3-3.87"/><path d="M16 3.7a4 4 0 0 1 0 7.6"/></svg><span class="side-label">Répertoire</span></button>
             <button class="side-item" data-view="inscriptions"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2.5" width="8" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg><span class="side-label">Inscriptions</span></button>
             <button class="side-item" data-view="prospects"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><circle cx="11" cy="11" r="3"/><path d="M11 1v3M11 18v3M1 11h3M18 11h3"/></svg><span class="side-label">Prospects</span></button>
-            <button class="side-item" data-view="acces"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.5 18h3"/><path d="M10 8.5l1.5 1.5 3-3"/></svg><span class="side-label">Accès Mon espace</span></button>
+            <button class="side-item" data-view="application"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.5 18h3"/><path d="M10 8.5l1.5 1.5 3-3"/></svg><span class="side-label">Application</span></button>
             <button class="side-item" data-view="anniv"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16v-7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2z"/><path d="M4 15c1.5 0 1.5 1.2 3 1.2S8.5 15 10 15s1.5 1.2 3 1.2S14.5 15 16 15s1.5 1.2 3 1.2"/><path d="M12 8V5"/><path d="M9 8V6"/><path d="M15 8V6"/></svg><span class="side-label">Anniversaires</span></button>
           </div>
           <div class="side-block">
@@ -291,8 +291,61 @@
         </div>
 
         <!-- ---------- Accès Mon espace : invitations des utilisateurs (pilote puis ouverture générale) ---------- -->
-        <div id="view-acces" class="view hidden">
-          <h1>Accès Mon espace <span class="sub">— invitations des utilisateurs</span></h1>
+        <!-- ---- Vue Application ----
+             Tout ce qui concerne « Mon espace » sur le téléphone, en un seul
+             onglet : les chiffres, qui l'a installée, ce qui part en
+             notification, l'aperçu, et ce qui s'y passe. Avant, « Accès Mon
+             espace » ne portait que les invitations ; le reste n'existait
+             nulle part et on en était réduit à deviner si l'app servait. -->
+        <div id="view-application" class="view hidden">
+          <div class="crm-head">
+            <div class="crm-ttl"><span class="crm-eyebrow">Familles · encadrement · direction</span><h1>Application</h1></div>
+            <span class="app-hero-kpi" id="app-hero-kpi"></span>
+          </div>
+          <p class="crm-lead">« Mon espace » sur le téléphone des familles, des coachs et de la direction : qui l'a, qui s'en sert, et ce qui s'y passe.</p>
+
+          <div class="subnav">
+            <button type="button" class="subtab app-subtab active" data-asub="stats">Statistiques</button>
+            <button type="button" class="subtab app-subtab" data-asub="qui">Qui a l'app</button>
+            <button type="button" class="subtab app-subtab" data-asub="notif">Annonces &amp; notifications</button>
+            <button type="button" class="subtab app-subtab" data-asub="voir">Voir l'app</button>
+            <button type="button" class="subtab app-subtab" data-asub="histo">Historique</button>
+          </div>
+
+          <!-- ======== Statistiques ======== -->
+          <div id="app-sub-stats">
+            <div class="app-periode">
+              <span class="app-periode-l">Période</span>
+              <button type="button" class="app-per" data-jours="7">7 jours</button>
+              <button type="button" class="app-per on" data-jours="30">30 jours</button>
+              <button type="button" class="app-per" data-jours="90">90 jours</button>
+              <button type="button" class="app-per" data-jours="365">1 an</button>
+            </div>
+            <div class="app-cards" id="app-cards"></div>
+            <div class="app-duo">
+              <section class="rg-card">
+                <h2 style="margin-top:0">Adoption</h2>
+                <p class="muted" style="margin:-4px 0 12px;font-size:.85rem">Des familles inscrites à celles qui s'en servent. Chaque barre se compare aux familles inscrites.</p>
+                <div id="app-funnel"></div>
+              </section>
+              <section class="rg-card">
+                <h2 style="margin-top:0">Ouvertures par jour</h2>
+                <p class="muted" style="margin:-4px 0 12px;font-size:.85rem">Une personne compte une fois par jour, même si elle ouvre l'app dix fois.</p>
+                <div id="app-chart"></div>
+              </section>
+            </div>
+            <div class="app-duo">
+              <section class="rg-card">
+                <div class="crm-head" style="margin-bottom:4px"><h2 style="margin:0">Dernières ouvertures</h2></div>
+                <p class="muted" style="margin:0 0 10px;font-size:.85rem">Qui a ouvert l'app ou son espace le plus récemment.</p>
+                <div id="app-last"></div>
+              </section>
+              <div id="app-side"></div>
+            </div>
+          </div>
+
+          <!-- ======== Qui a l'app ======== -->
+          <div id="app-sub-qui" class="hidden">
           <p class="muted" style="margin:-6px 0 14px;max-width:760px">Un compte = l'e-mail principal de la fiche du jeune. Un utilisateur dont l'e-mail figure sur plusieurs fiches (un parent et ses enfants, par exemple) reçoit <b>une seule</b> invitation et voit tous ces jeunes dans Mon espace.</p>
 
           <div id="pa-lock" class="pa-lock"></div>
@@ -308,6 +361,44 @@
             <div id="pa-list" class="table-wrap" style="margin-top:12px"></div>
           </div>
 
+          <div class="rg-card">
+            <h2 style="margin-top:0">Le mail d'invitation</h2>
+            <p class="muted" style="margin-top:0;font-size:.85rem">Variables : <code>{prenoms}</code> (« Léa et Tom ») · <code>{lien}</code> (le bouton d'activation, valable 30 jours) · <code>{email}</code> (l'identifiant de la famille).</p>
+            <label class="gz-mail-lbl">Objet</label>
+            <input type="text" id="pa-subject" />
+            <label class="gz-mail-lbl">Message</label>
+            <textarea id="pa-body" rows="13" style="width:100%;box-sizing:border-box"></textarea>
+            <div class="pa-actions">
+              <button type="button" id="pa-save">Enregistrer le texte</button>
+              <button type="button" id="pa-test" class="ghost">M'envoyer un test</button>
+              <span id="pa-tpl-status" class="muted"></span>
+            </div>
+          </div>
+          </div><!-- /app-sub-qui -->
+
+          <!-- ======== Annonces & notifications ======== -->
+          <div id="app-sub-notif" class="hidden">
+            <div class="rg-card" style="margin-bottom:16px">
+              <h2 style="margin-top:0">Annonces sur l'écran d'accueil</h2>
+              <p class="muted" style="margin:0 0 10px;max-width:760px">Les messages que les familles lisent en ouvrant l'app se composent dans l'onglet <b>Accueil espace privé</b> : ils s'adressent à une saison et à des filières, ce qu'une simple annonce ne saurait pas faire. On ne les redouble pas ici.</p>
+              <button type="button" class="ghost" id="app-go-news">Ouvrir « Accueil espace privé »</button>
+            </div>
+
+            <div class="app-duo">
+              <section class="rg-card">
+                <h2 style="margin-top:0">Téléphones abonnés</h2>
+                <p class="muted" style="margin:-4px 0 12px;font-size:.85rem">Ceux qui sonnent quand une famille s'inscrit, annonce une absence ou écrit. Pour en ajouter un : dans l'app, Plus → Notifications → Activer.</p>
+                <div id="app-devices"></div>
+              </section>
+              <section class="rg-card">
+                <h2 style="margin-top:0">Dernières notifications parties</h2>
+                <div id="app-pushes"></div>
+              </section>
+            </div>
+          </div>
+
+          <!-- ======== Voir l'app ======== -->
+          <div id="app-sub-voir" class="hidden">
           <div class="rg-card" id="ap-card" style="margin-bottom:16px">
             <div class="crm-head" style="margin-bottom:8px"><h2 style="margin:0">Aperçu sur téléphone</h2><span id="ap-note" class="muted"></span></div>
             <p class="muted" style="margin:0 0 10px;max-width:760px">Mon espace tel qu'une famille le voit, sans sortir votre téléphone. Choisissez une filière puis un élève : l'app réelle s'ouvre dans le cadre, avec ses cours et ses écrans. <b>Lecture seule de fait</b> — vous voyez ce que votre rôle vous donne déjà ; les écrans auxquels vous n'avez pas droit restent vides.</p>
@@ -334,19 +425,22 @@
             </div>
             <div class="ap-phone-wrap"><div class="ap-phone"><iframe id="vc-frame" title="Aperçu de la console d'un coach" referrerpolicy="no-referrer"></iframe></div></div>
           </div>
+          </div><!-- /app-sub-voir -->
 
-          <div class="rg-card">
-            <h2 style="margin-top:0">Le mail d'invitation</h2>
-            <p class="muted" style="margin-top:0;font-size:.85rem">Variables : <code>{prenoms}</code> (« Léa et Tom ») · <code>{lien}</code> (le bouton d'activation, valable 30 jours) · <code>{email}</code> (l'identifiant de la famille).</p>
-            <label class="gz-mail-lbl">Objet</label>
-            <input type="text" id="pa-subject" />
-            <label class="gz-mail-lbl">Message</label>
-            <textarea id="pa-body" rows="13" style="width:100%;box-sizing:border-box"></textarea>
-            <div class="pa-actions">
-              <button type="button" id="pa-save">Enregistrer le texte</button>
-              <button type="button" id="pa-test" class="ghost">M'envoyer un test</button>
-              <span id="pa-tpl-status" class="muted"></span>
+          <!-- ======== Historique ======== -->
+          <div id="app-sub-histo" class="hidden">
+            <div class="app-periode">
+              <span class="app-periode-l">Période</span>
+              <button type="button" class="app-hper" data-jours="7">7 jours</button>
+              <button type="button" class="app-hper on" data-jours="30">30 jours</button>
+              <button type="button" class="app-hper" data-jours="90">90 jours</button>
+              <span class="app-periode-l" style="margin-left:14px">Qui</span>
+              <button type="button" class="app-hqui on" data-qui="tout">Tout</button>
+              <button type="button" class="app-hqui" data-qui="famille">Familles</button>
+              <button type="button" class="app-hqui" data-qui="encadrement">Encadrement</button>
+              <input id="app-hsearch" class="app-hsearch" placeholder="Nom, cours, action…" autocomplete="off" />
             </div>
+            <div id="app-histo"></div>
           </div>
         </div>
 
