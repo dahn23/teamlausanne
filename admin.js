@@ -5758,7 +5758,12 @@ async function initGameZone(roles) {
   });
   $("gz-caisse-start").addEventListener("change", saveCaisse);
   $("gz-caisse-counted").addEventListener("change", saveCaisse);
-  $("gz-close-tournament").addEventListener("click", closeTournament);
+  // Un seul envoi à la fois : le 07.11.2026, un double appui avait écrit la clôture deux fois dans la Caisse.
+  $("gz-close-tournament").addEventListener("click", async (e) => {
+    const b = e.currentTarget; if (b.dataset.busy) return;
+    b.dataset.busy = "1";
+    try { await closeTournament(); } finally { delete b.dataset.busy; }
+  });
   $("gz-reopen-tournament").addEventListener("click", reopenTournament);
   $("gz-text-form").addEventListener("submit", saveGzNote);
   document.querySelector("[data-close-gztext]").addEventListener("click", () => $("gz-text-modal").classList.add("hidden"));
@@ -7366,6 +7371,14 @@ function gzSaturdayOf(iso) {
 }
 function gzWeekendOf(iso) { const s = gzSaturdayOf(iso); return gzWeekends.find((w) => w.weekend_start === s) || null; }
 const gzCHF = (n) => (n == null ? "—" : Number(n).toFixed(2));
+// Commission Twint habituelle = médiane frais / brut des week-ends Twint déjà validés (≈ 1,31 % en 2026).
+// La médiane ignore un week-end bizarre (31.10 : 2,77 %). null tant qu'aucun week-end n'est validé.
+function gzTwintRate() {
+  const r = gzWeekends.filter((w) => w.twint_validated_at && Number(w.twint_gross) > 0 && w.twint_fees != null)
+    .map((w) => Number(w.twint_fees) / Number(w.twint_gross)).sort((a, b) => a - b);
+  if (!r.length) return null;
+  return r.length % 2 ? r[(r.length - 1) / 2] : (r[r.length / 2 - 1] + r[r.length / 2]) / 2;
+}
 function gzWkLabel(w) {
   const s = new Date(w.weekend_start + "T12:00:00"), e = new Date(s); e.setDate(s.getDate() + 1);
   return `Week-end du ${s.getDate()}–${e.getDate()}.${String(e.getMonth() + 1).padStart(2, "0")}.${e.getFullYear()}`;
@@ -7415,9 +7428,18 @@ function renderWeekends(sid) {
     let twint;
     if (w.twint_validated_at) twint = `versé <b>${gzCHF(w.twint_net)}</b> (brut ${gzCHF(w.twint_gross)}, frais ${gzCHF(w.twint_fees)}) ${who(w.twint_validated_by, w.twint_validated_at)}`;
     else if (w.twint_gross != null) {
-      const ok = Number(w.twint_gross) === twintCons;
-      twint = `console ${gzCHF(twintCons)} · brut ${gzCHF(w.twint_gross)} ${ok ? '<span class="gz-wk-okv">= console</span>' : `<span class="gz-wk-diff">écart ${gzCHF(Number(w.twint_gross) - twintCons)}</span>`} · frais ${gzCHF(w.twint_fees)} · versé <b>${gzCHF(w.twint_net)}</b> ${btn("twint-edit", w, "Modifier")} ${btn("twint-ok", w, "Valider")}`;
-    } else twint = `console <b>${gzCHF(twintCons)}</b> · <span class="gz-wk-wait">${w.twint_mails ? "mail Twint reçu, montants à saisir" : "en attente du relevé Twint"}</span> ${btn("twint-edit", w, "Saisir")}`;
+      // Le versé saisi est comparé à ce que donnerait la commission habituelle sur le montant de la console.
+      const rate = gzTwintRate(), attendu = rate != null ? round2(twintCons * (1 - rate)) : null;
+      const d = attendu != null ? round2(Number(w.twint_net) - attendu) : null;
+      const verdict = d == null ? "" : Math.abs(d) <= Math.max(2, twintCons * 0.002)
+        ? `<span class="gz-wk-okv">✓ colle à la commission habituelle (${(rate * 100).toFixed(2)} %)</span>`
+        : `<span class="gz-wk-diff">${d < 0 ? "manque" : "excédent"} ≈ ${gzCHF(Math.abs(d))} vs commission habituelle (attendu ≈ ${gzCHF(attendu)})</span>`;
+      twint = `console ${gzCHF(twintCons)} · versé <b>${gzCHF(w.twint_net)}</b> · frais ${gzCHF(w.twint_fees)} ${verdict} ${btn("twint-edit", w, "Modifier")} ${btn("twint-ok", w, "Valider")}`;
+    } else {
+      const rate = gzTwintRate();
+      const att = rate != null && twintCons > 0 ? ` · versé attendu ≈ <b>${gzCHF(round2(twintCons * (1 - rate)))}</b>` : "";
+      twint = `console <b>${gzCHF(twintCons)}</b>${att} · <span class="gz-wk-wait">${w.twint_mails ? "mail Twint reçu, versé à saisir" : "en attente du versement Twint"}</span> ${btn("twint-edit", w, "Saisir le versé")}`;
+    }
     return `<div class="gz-wk"><div class="gz-wk-head"><b>${gzWkLabel(w)}</b><span class="muted" style="font-size:.82rem">${w.n_tournois} tournoi(s) · ${w.presents} présent(s) · ${w.salaires ? "salaires " + gzCHF(w.salaires) : "pas de salaire"}</span></div>
       <div class="gz-wk-line"><span class="gz-wk-lbl">Cash</span><span class="gz-wk-val">${cash}</span></div>
       <div class="gz-wk-line"><span class="gz-wk-lbl">Carte</span><span class="gz-wk-val">${carte}</span></div>
@@ -7439,8 +7461,14 @@ async function gzWeekendAction(act, wk) {
     if (attendu != null && n !== attendu && !(await uiConfirm(`Écart de ${gzCHF(n - attendu)} CHF avec le fond attendu (${gzCHF(attendu)}). Valider quand même ?`))) return;
     const cashDeduit = avant != null ? round2(n - avant) : null;
     Object.assign(patch, { till_counted: n, cash_counted: cashDeduit, cash_validated_at: new Date().toISOString(), cash_validated_by: meName || null });
-  } else if (act === "card-edit" || act === "twint-edit") {
-    const k = act.startsWith("card") ? "card" : "twint", nom = k === "card" ? "carte (SumUp)" : "Twint";
+  } else if (act === "twint-edit") {
+    // Twint : on ne saisit que le VERSÉ du week-end (ce qui arrive sur le compte) ; brut = console, frais = la
+    // différence, comparée à la commission habituelle des week-ends déjà validés (Dan, 11.11.2026).
+    const cons = Number(w.twint), rate = gzTwintRate(), attendu = rate != null ? round2(cons * (1 - rate)) : null;
+    const net = await num(`${label} — Twint\nEncaissé selon la console : ${gzCHF(cons)} CHF${attendu != null ? `\nVersé attendu avec la commission habituelle (${(rate * 100).toFixed(2)} %) : ≈ ${gzCHF(attendu)} CHF` : ""}\n\nTotal VERSÉ par Twint pour le week-end :`, w.twint_net ?? attendu ?? ""); if (net === undefined) return;
+    Object.assign(patch, { twint_gross: cons, twint_net: net, twint_fees: round2(cons - net), twint_source: "manuel", twint_validated_at: null, twint_validated_by: null });
+  } else if (act === "card-edit") {
+    const k = "card", nom = "carte (SumUp)";
     const gross = await num(`${label} — ${nom}\nConsole : ${gzCHF(k === "card" ? w.carte : w.twint)} CHF\nMontant BRUT encaissé selon le relevé :`, w[k + "_gross"] ?? Number(k === "card" ? w.carte : w.twint)); if (gross === undefined) return;
     const net = await num(`${label} — ${nom}\nMontant VERSÉ sur le compte (frais déduits) :`, w[k + "_net"] ?? gross); if (net === undefined) return;
     Object.assign(patch, { [k + "_gross"]: gross, [k + "_net"]: net, [k + "_fees"]: round2(gross - net), [k + "_source"]: "manuel", [k + "_validated_at"]: null, [k + "_validated_by"]: null });

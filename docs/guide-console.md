@@ -1144,7 +1144,15 @@ répondra qu'elle ne sait pas, et la question remontera dans
   les changer. Ni l'un ni l'autre n'a le sous-onglet Études.
 - **GameZone** — tournois juniors, sept sous-onglets. La liste des tournois
   affiche, après la date, la colonne « Responsable(s) » : les personnes
-  nommées pour la journée (« — » si personne ne l'est encore). « Gérer le tournoi »,
+  nommées pour la journée (« — » si personne ne l'est encore). Dans le Résumé
+  financier, le rapprochement par week-end : le cash se contrôle en comptant
+  la caisse entière ; la carte est lue dans les mails SumUp (tous les relevés
+  du lundi au vendredi suivant ; le reste « À verser » d'un relevé, versé le
+  lendemain, n'est pas compté deux fois) ; pour Twint on saisit seulement le
+  **total versé** du week-end (« Saisir le versé ») et la console dit s'il
+  colle à la commission habituelle (médiane des week-ends validés, ≈ 1,3 %).
+  Le bouton « Clôturer le tournoi » ne part qu'une fois, même sur un double
+  appui. « Gérer le tournoi »,
   « Nommer responsable », « J'ai pris » / « Pas encore pris »,
   « Clôturer le tournoi ». Dans « Envois e-mails », « Remerciements » et
   « Vainqueurs » restent grisés avant le jour du tournoi (« disponible dès
