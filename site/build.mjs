@@ -122,12 +122,20 @@ function jsonLdPage(cle, page, titre, description) {
 // Les dimensions annoncées par le gabarit valent pour l'image par défaut, qui
 // fait 1200x630 ; une photo de filière a d'autres proportions, et annoncer de
 // fausses dimensions fait recadrer de travers. On les retire.
-function imagePartage(html, url) {
-  return html
+// `alt` : la description de CETTE image. Sans elle, la page annonçait la
+// photo du jour avec le texte de remplacement de l'image par défaut — « jeunes
+// joueuses et joueurs à l'entraînement » sous un portrait de coach.
+function imagePartage(html, url, alt) {
+  let out = html
     .replace(/<meta property="og:image" content="[^"]*"\s*\/>/, `<meta property="og:image" content="${esc(url)}" />`)
     .replace(/<meta property="og:image:width" content="[^"]*"\s*\/>\s*/, "")
     .replace(/<meta property="og:image:height" content="[^"]*"\s*\/>\s*/, "")
     .replace(/<meta name="twitter:image" content="[^"]*"\s*\/>/, `<meta name="twitter:image" content="${esc(url)}" />`);
+  if (alt) {
+    out = out.replace(/<meta property="og:image:alt" content="[^"]*"\s*\/>/,
+      `<meta property="og:image:alt" content="${esc(alt)}" />`);
+  }
+  return out;
 }
 
 const EST_UNE_FILIERE = new Set([
@@ -247,8 +255,14 @@ const actus = await lireActus();
 const actusEcrites = [];
 
 if (actus) {
-  const pageActu = (titre, description, url, corps, jsonld, h1) => {
+  // `image` : l'adresse ABSOLUE de la couverture de l'article. Sans elle, les
+  // pages d'actualités gardaient l'image par défaut du gabarit : partagé sur
+  // LinkedIn ou WhatsApp, un portrait de coach s'affichait avec le logo du
+  // club. imagePartage() existait déjà, mais n'était appelée que pour les
+  // pages de filière — les articles ne passaient jamais dedans.
+  const pageActu = (titre, description, url, corps, jsonld, h1, image, imageAlt) => {
     let html = gabarit;
+    if (image) html = imagePartage(html, image, imageAlt);
     // Même règle que les pages de filière : un seul <h1>, rempli, dans le HTML
     // servi (voir plus haut). Les pages d'actualités passaient par ici et
     // gardaient donc le <h1> vide du gabarit.
@@ -292,6 +306,9 @@ if (actus) {
     if (!a || !a.slug) continue;
     const url = `${SITE}/actualites/${a.slug}`;
     const description = descriptionArticle(a);
+    // cover_url est relatif en base (« assets/photos/… ») : un aperçu de
+    // partage et un JSON-LD veulent une adresse complète.
+    const couverture = a.cover_url ? SITE + "/" + String(a.cover_url).replace(/^\//, "") : IMAGE;
     const jsonld = JSON.stringify({
       "@context": "https://schema.org", "@type": "NewsArticle",
       "@id": url + "#article", mainEntityOfPage: url, url,
@@ -299,12 +316,12 @@ if (actus) {
       description, inLanguage: "fr-CH",
       datePublished: a.published_on, dateModified: a.published_on,
       articleSection: a.category || undefined,
-      image: a.cover_url || IMAGE,
+      image: couverture,
       author: { "@type": "Organization", name: a.author || "Team Lausanne Academy", url: SITE + "/" },
       publisher: { "@id": SITE + "/#academy" },
     }, null, 2);
     await writeFile(join(ICI, "actualites", a.slug + ".html"),
-      pageActu(`${a.title} — Team Lausanne Academy`, description, url, articleHTML(a, navCommune), jsonld, a.title), "utf8");
+      pageActu(`${a.title} — Team Lausanne Academy`, description, url, articleHTML(a, navCommune), jsonld, a.title, couverture, a.cover_alt), "utf8");
     actusEcrites.push({ slug: a.slug, date: a.published_on });
   }
 }
