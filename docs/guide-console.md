@@ -862,7 +862,9 @@ ambre pour l'encadrement.
 **Où c'est** : le dernier sous-onglet d'Application. Ce n'était pas le cas
 au début — l'écran vivait dans le menu latéral, sous Communication ; il a été
 déplacé ici (12.11.2026) pour que tout ce qui touche à l'app tienne au même
-endroit. **Le coach désigné et le head coach n'ont que ce sous-onglet** : les
+endroit. **Le coach désigné et le head coach n'ont que ce sous-onglet**, et
+l'entrée du menu latéral s'appelle « Discussions » chez eux, pas
+« Application » — elle ne promet que ce qu'elle contient. Les
 cinq autres sont un écran de direction, et leur onglet Application s'intitule
 directement « Discussions ». La pastille du menu latéral, elle, se pose
 désormais sur **Application**.

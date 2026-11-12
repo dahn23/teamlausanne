@@ -431,6 +431,15 @@ function applyTabAccess(roles) {
     b.classList.toggle("hidden", !allowed);
     if (allowed) { allowedSet.add(v); if (!first) first = v; }
   });
+  // Pour qui n'a d'Application que les Discussions (coach désigné, head coach —
+  // voir appTailler), l'entrée du menu s'appelle par ce qu'elle contient. « Application »
+  // promettait des statistiques d'usage et des invitations qu'ils n'y trouveront pas.
+  // `roles` et pas myAppRoles : la variable globale n'est affectée qu'APRÈS cette
+  // fonction, et l'admin aurait hérité du libellé réduit.
+  if (allowedSet.has("application") && !hasAny(roles || [], ["superadmin", "admin"])) {
+    const lbl = document.querySelector('.side-item[data-view="application"] .side-label');
+    if (lbl) lbl.textContent = "Discussions";
+  }
   // Masquer un bloc entier si aucun de ses onglets n'est visible (pas de trait orphelin).
   document.querySelectorAll(".side-block").forEach((bl) => {
     const anyVisible = [...bl.querySelectorAll(".side-item[data-view]")]
