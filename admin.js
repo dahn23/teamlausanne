@@ -9883,6 +9883,22 @@ const PHX_FIL = { "sport-etudes": "Sport-études", pro: "Pro", "pro-u18": "Pro U
 const PHX_KINDS = [["echauffement", "Avant l'effort (échauffement)"], ["decrassage", "Après l'effort (décrassage)"], ["soir", "Chaque soir"], ["renfo", "Renforcement"], ["autre", "Autre"]];
 const PHX_KIND_SHORT = { echauffement: "Avant l'effort", decrassage: "Après l'effort", soir: "Chaque soir", renfo: "Renforcement", autre: "Programme" };
 const canPhysEdit = () => hasAny(myAppRoles, ["coach", "coach_physique", "head_coach", "admin", "superadmin"]);
+// Les fils privés « Prépa physique » et « Mental » ne s'ouvrent plus au rôle mais au
+// coach DÉSIGNÉ (table thread_coaches, db/237) : physique → Andreas, mental → Frédérique,
+// plus head coach et direction. Le rôle ne suffisait pas, il y a deux coachs physiques et
+// deux coachs mentales. Sans cette garde côté écran, un coach non désigné voyait un fil
+// VIDE — la RLS filtre sans bruit — avec une zone de saisie qui refusait son message.
+const FIL_COACH = {};
+async function suisCoachDuFil(canal) {
+  if (FIL_COACH[canal] === undefined) {
+    const { data, error } = await sb.rpc("is_thread_coach", { p_canal: canal, uid: meId });
+    FIL_COACH[canal] = error ? false : !!data;
+  }
+  return FIL_COACH[canal];
+}
+const FIL_REFUS = (canal) => `<p class="muted" style="margin:4px 0">Discussion réservée au ${canal === "physique"
+  ? "préparateur physique désigné" : "coach mental désigné"}, au head coach et à la direction. `
+  + `Ce que les jeunes écrivent ici ne circule pas plus loin.</p>`;
 // Vignettes disponibles (/assets/phys/<clé>.svg, tools/pictos-physique.js) pour illustrer un exercice.
 const PHX_PICTOS = [["footing", "Footing / corde à sauter"], ["marche", "Marche"], ["pas_chasses", "Pas chassés"], ["genoux", "Montées de genoux"],
   ["fente_rotation", "Fente avec rotation du buste"], ["fente_ouverture", "Grande fente avec ouverture"], ["balancer", "Balancés de jambes"],
@@ -9983,6 +9999,8 @@ async function phxRenderYouth() {
 // Physique (compétition et performance comprises), à la différence de la discussion Prépa physique.
 async function physMedia(mountId, youthId) {
   const el = $(mountId); if (!el) return;
+  // Les vidéos suivent le fil : une pièce jointe du fil arrive ici (db/206), donc même garde.
+  if (!await suisCoachDuFil("physique")) { el.innerHTML = FIL_REFUS("physique"); return; }
   const { data, error } = await sb.from("phys_media").select("*").eq("youth_person_id", youthId).order("created_at", { ascending: false });
   if ($(mountId) !== el) return;
   if (error) { el.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
@@ -10044,6 +10062,7 @@ const pxIsVid = (n) => /\.(mp4|mov|m4v|webm)$/i.test(n || "");
 async function physThread(mountId, youthId) {
   const el = $(mountId); if (!el) return;
   if (!youthId) { el.innerHTML = ""; return; }
+  if (!await suisCoachDuFil("physique")) { el.innerHTML = FIL_REFUS("physique"); return; }
   // Discussion réservée à pro, pro U18 et sport-études (db/118) : compétition et performance n'ont que les routines.
   const [{ data }, { data: elite }] = await Promise.all([
     sb.rpc("phys_thread_list", { p_youth: youthId }), sb.rpc("is_elite_youth", { p: youthId })]);
@@ -19048,6 +19067,7 @@ async function renderFocusInto(mountId, yid, editId) {
 async function mentalThread(mountId, youthId) {
   const el = $(mountId); if (!el) return;
   if (!youthId) { el.innerHTML = ""; return; }
+  if (!await suisCoachDuFil("mental")) { el.innerHTML = FIL_REFUS("mental"); return; }
   const { data } = await sb.rpc("mental_thread_list", { p_youth: youthId });
   const rows = data || [];
   const msgs = rows.length ? rows.map(mtMsgHtml).join("") : '<p class="obj-empty">Aucun message. Démarre la discussion ci-dessous.</p>';

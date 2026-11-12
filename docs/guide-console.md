@@ -1118,8 +1118,16 @@ répondra qu'elle ne sait pas, et la question remontera dans
   parties : ses routines (cases à cocher), « Vidéos et photos » (choisir un
   fichier, écrire un commentaire, « Ajouter » ; 50 Mo au plus, donc filmer en
   1080p plutôt qu'en 4K) et la discussion « Prépa physique ». Les vidéos et
-  photos sont privées : seuls le staff physique et le jeune (et sa famille) les
-  voient, dans Mon espace › Physique › Vidéos, avec le commentaire ; le jeune
+  photos sont privées : seuls le **préparateur physique désigné** (Andreas
+  Egger), le head coach, l'admin et le superadmin — plus le jeune et sa famille
+  — les voient, dans Mon espace › Physique › Vidéos, avec le commentaire.
+  **Le rôle « coach physique » ne suffit pas : c'est la personne qui compte.**
+  Ils sont deux à porter ce rôle, et ce qu'un jeune écrit sur son corps n'a pas
+  à circuler dans l'encadrement entier ; le coach désigné se change en base
+  (table `thread_coaches`, db/237), pas dans le code. Un coach non désigné voit,
+  à la place des vidéos et de la discussion, une ligne qui le lui dit — et non
+  un fil vide dans lequel il croirait pouvoir écrire. Les **routines** et les
+  **tests physiques**, eux, restent ouverts à tout le staff physique. Le jeune
   et ses parents reçoivent une notification sur leur téléphone (« Physique —
   nouvelle vidéo », avec le commentaire), qui ouvre directement les vidéos.
   Une photo ou une vidéo envoyée dans la discussion « Prépa physique » arrive
@@ -1137,6 +1145,13 @@ répondra qu'elle ne sait pas, et la question remontera dans
   date, à gauche, pour que les profs les voient.
 - **Mental** — « Calendrier », « Participants », « Routines ».
   « + Ajouter une séance ».
+  La **discussion** avec le jeune (fiche du jeune) obéit à la même règle que la
+  Prépa physique : seuls la **coach mentale désignée** (Frédérique Rol), le head
+  coach, l'admin et le superadmin la lisent. Deux personnes portent le rôle
+  « coach mental » ; la seconde n'y a pas accès, parce qu'un jeune qui écrit sur
+  sa tête doit savoir qui le lit. Les **routines mentales** et les **séances**
+  restent, elles, ouvertes au rôle entier. Coach désigné : table
+  `thread_coaches` (db/237).
 - **CSEL** — « Repas de midi », « Études », « Totaux repas ».
   « Réinitialiser selon le contrat », « Exporter en PDF ».
   Séline voit les repas et les totaux et peut changer les cases de la semaine
