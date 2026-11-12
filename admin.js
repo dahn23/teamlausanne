@@ -19142,6 +19142,16 @@ async function loadDiscussions() {
   const { data, error } = await sb.rpc("discussions_list");
   if (error) { liste.innerHTML = `<p class="error" style="padding:10px">${esc(error.message)}</p>`; return; }
   discRows = data || [];
+  // Aperçu « Voir comme » : l'aperçu ne fait d'ordinaire que retirer des onglets, les
+  // DONNÉES restant celles de l'admin connecté. Ici ça se voyait — en regardant la
+  // console d'Andreas on trouvait les puces « Prépa physique » ET « Mental », et donc
+  // les conversations de Frédérique. Un aperçu qui montre plus que l'original ne sert
+  // pas à grand-chose, et pour ces fils-là c'est précisément ce qu'on ne veut pas
+  // étaler. On s'en tient donc au canal du rôle regardé.
+  const canalDuRole = { coach_physique: "physique", coach_mental: "mental" };
+  if (VOIR_ACTIF && canalDuRole[VOIR?.role]) {
+    discRows = discRows.filter((r) => r.canal === canalDuRole[VOIR.role]);
+  }
   if (!discRows.length) {
     // Pas une erreur : un coach qui porte le rôle sans être le coach DÉSIGNÉ
     // (db/237). Mieux vaut le lui dire que de le laisser devant une liste vide.

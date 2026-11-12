@@ -1007,6 +1007,13 @@ répondra qu'elle ne sait pas, et la question remontera dans
   Qui voit quoi est réglé par db/237 : Andreas pour le physique, Frédérique
   pour le mental, plus le head coach et la direction. Un coach qui porte le
   rôle sans être désigné voit une liste vide et la phrase qui l'explique.
+  Dans l'**aperçu « Voir comme »**, cet écran s'en tient au canal du rôle
+  regardé : la console d'Andreas ne montre que les conversations Prépa
+  physique, celle de Frédérique que les Mental, et les puces de canal
+  disparaissent — filtrer entre une seule chose n'a pas de sens. Ailleurs
+  l'aperçu ne fait que retirer des onglets et laisse passer VOS données ; ici
+  c'était gênant, parce qu'on voyait d'un écran les fils de l'autre. Le head
+  coach et la direction continuent de voir les deux canaux.
   **Pourquoi cet écran existe** : avant, pour savoir si un jeune avait écrit,
   il fallait ouvrir Physique, cliquer un joueur, dérouler sous les routines,
   revenir, recommencer — dix-huit fois, sans aucune marque de « nouveau ».
