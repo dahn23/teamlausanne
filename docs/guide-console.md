@@ -971,8 +971,12 @@ répondra qu'elle ne sait pas, et la question remontera dans
   Deux sous-onglets : **« Messages »** (ci-dessus) et
   **« Actualités du site »**.
   - **Actualités du site** — sous les messages, Mon espace affiche aussi les
-    articles de teamlausanne.ch, classés selon la filière du jeune. On ne les
-    écrit pas ici : on règle seulement **jusqu'à quand ils restent dans l'app**.
+    articles de teamlausanne.ch. La filière du jeune décide **lesquels** sortent
+    (cinq), et la **date décide de l'ordre : le plus récent en haut** (db/239),
+    comme sur le site public. Avant, un article publié le matin même pouvait
+    apparaître en cinquième position, sous des nouvelles de la semaine d'avant.
+    On ne les écrit pas ici : on règle seulement **jusqu'à quand ils restent
+    dans l'app**.
     Un tableau les liste, du plus récent au plus ancien, avec deux réglages :
     - **« Visible dans l'app jusqu'au »** — à poser en écrivant l'article,
       pendant qu'on connaît encore la fin de l'événement : le dernier jour du
