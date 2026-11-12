@@ -45,11 +45,10 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | Calendrier | Événements, vacances, absences | admin, secrétariat, head coach, senior coach |
 | Répertoire | Les fiches des personnes | admin, secrétariat |
 | Inscriptions | Demandes venues du formulaire public | admin, secrétariat |
-| Application | Qui a l'app, qui s'en sert, ce qui s'y passe, invitations | admin |
+| Application | Qui a l'app, qui s'en sert, ce qui s'y passe, invitations, et les **Discussions** avec les jeunes | admin ; le coach désigné et le head coach n'y voient QUE Discussions |
 | Prospects | Joueurs repérés hors académie, et la prospection visibilité | admin, head coach, secrétariat |
 | Accueil espace privé | Messages affichés dans Mon espace | admin, secrétariat |
 | Messagerie | La boîte info@ | admin, secrétariat |
-| Discussions | Les fils Prépa physique et Mental des jeunes | coach désigné, head coach, admin |
 | Newsletter | Envois groupés | admin, secrétariat |
 | Social Media Planner | Publications réseaux sociaux | admin, secrétariat |
 | Assistant | Le bot du site public | admin, secrétariat |
@@ -858,6 +857,42 @@ familles / encadrement), plus une recherche qui filtre la liste affichée.
 La barre de couleur à gauche dit d'où vient la ligne : rose pour une famille,
 ambre pour l'encadrement.
 
+### Discussions
+
+**Où c'est** : le dernier sous-onglet d'Application. Ce n'était pas le cas
+au début — l'écran vivait dans le menu latéral, sous Communication ; il a été
+déplacé ici (12.11.2026) pour que tout ce qui touche à l'app tienne au même
+endroit. **Le coach désigné et le head coach n'ont que ce sous-onglet** : les
+cinq autres sont un écran de direction, et leur onglet Application s'intitule
+directement « Discussions ». La pastille du menu latéral, elle, se pose
+désormais sur **Application**.
+
+**Ce que c'est** : la boîte de réception des fils « Prépa physique » et
+« Mental » (db/238). À gauche la liste des conversations, la plus récente en
+haut, avec le début du dernier message et une **pastille rouge** quand le
+jeune a écrit depuis ton dernier passage ; à droite le fil, avec sa zone de
+saisie et ses pièces jointes — c'est le même composant que dans Physique et
+dans la fiche, donc les mêmes droits et le même envoi. Les puces filtrent :
+**Toutes**, **Non lues**, et le canal (ces deux dernières n'apparaissent que
+pour qui voit les deux canaux, c'est-à-dire le head coach et la direction).
+Ouvrir une conversation vaut lecture : la pastille et le compteur du menu
+latéral retombent. Les jeunes **sans aucun message** figurent en bas de la
+liste, pour pouvoir engager la conversation sans quitter l'écran.
+Qui voit quoi est réglé par db/237 : Andreas pour le physique, Frédérique
+pour le mental, plus le head coach et la direction. Un coach qui porte le
+rôle sans être désigné voit une liste vide et la phrase qui l'explique.
+Dans l'**aperçu « Voir comme »**, cet écran s'en tient au canal du rôle
+regardé : la console d'Andreas ne montre que les conversations Prépa
+physique, celle de Frédérique que les Mental, et les puces de canal
+disparaissent — filtrer entre une seule chose n'a pas de sens. Ailleurs
+l'aperçu ne fait que retirer des onglets et laisse passer VOS données ; ici
+c'était gênant, parce qu'on voyait d'un écran les fils de l'autre. Le head
+coach et la direction continuent de voir les deux canaux.
+**Pourquoi cet écran existe** : avant, pour savoir si un jeune avait écrit,
+il fallait ouvrir Physique, cliquer un joueur, dérouler sous les routines,
+revenir, recommencer — dix-huit fois, sans aucune marque de « nouveau ».
+Personne ne pouvait savoir qu'un message attendait.
+
 ### Si une famille demande : « on me propose d'installer l'application »
 
 C'est voulu, et ce n'est pas une publicité. Une famille qui active son espace
@@ -993,31 +1028,6 @@ répondra qu'elle ne sait pas, et la question remontera dans
     Dans tous les cas **l'article reste publié sur teamlausanne.ch** : ces deux
     réglages ne touchent que l'app. Une page d'événement passé garde sa place
     dans les archives du site.
-- **Discussions** — la boîte de réception des fils « Prépa physique » et
-  « Mental » (db/238). À gauche la liste des conversations, la plus récente en
-  haut, avec le début du dernier message et une **pastille rouge** quand le
-  jeune a écrit depuis ton dernier passage ; à droite le fil, avec sa zone de
-  saisie et ses pièces jointes — c'est le même composant que dans Physique et
-  dans la fiche, donc les mêmes droits et le même envoi. Les puces filtrent :
-  **Toutes**, **Non lues**, et le canal (ces deux dernières n'apparaissent que
-  pour qui voit les deux canaux, c'est-à-dire le head coach et la direction).
-  Ouvrir une conversation vaut lecture : la pastille et le compteur du menu
-  latéral retombent. Les jeunes **sans aucun message** figurent en bas de la
-  liste, pour pouvoir engager la conversation sans quitter l'écran.
-  Qui voit quoi est réglé par db/237 : Andreas pour le physique, Frédérique
-  pour le mental, plus le head coach et la direction. Un coach qui porte le
-  rôle sans être désigné voit une liste vide et la phrase qui l'explique.
-  Dans l'**aperçu « Voir comme »**, cet écran s'en tient au canal du rôle
-  regardé : la console d'Andreas ne montre que les conversations Prépa
-  physique, celle de Frédérique que les Mental, et les puces de canal
-  disparaissent — filtrer entre une seule chose n'a pas de sens. Ailleurs
-  l'aperçu ne fait que retirer des onglets et laisse passer VOS données ; ici
-  c'était gênant, parce qu'on voyait d'un écran les fils de l'autre. Le head
-  coach et la direction continuent de voir les deux canaux.
-  **Pourquoi cet écran existe** : avant, pour savoir si un jeune avait écrit,
-  il fallait ouvrir Physique, cliquer un joueur, dérouler sous les routines,
-  revenir, recommencer — dix-huit fois, sans aucune marque de « nouveau ».
-  Personne ne pouvait savoir qu'un message attendait.
 - **Messagerie** — les boîtes du club, un onglet chacune : **Team Lausanne**
   (info@), **Lausanne Open**, **Tournoi**, **LS Tennis** (admin@lstennis.ch,
   chez Infomaniak) et les boîtes privées, que seul leur propriétaire voit.

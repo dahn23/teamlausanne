@@ -303,10 +303,10 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "application", "prospects", "visibilite", "news", "mail", "discussions", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
-  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "application", "prospects", "visibilite", "news", "mail", "discussions", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
+  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "application", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
+  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "application", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
   secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats", "notefrais"],
-  head_coach: ["dashboard", "calendrier", "discussions", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "visibilite", "heures", "notefrais"],
+  head_coach: ["dashboard", "calendrier", "application", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "visibilite", "heures", "notefrais"],
   // Senior coach (06.11.2026) : un coach de terrain à qui on confie le SUIVI des
   // jeunes — il annote le fil de la fiche, comme un head coach. Le reste du
   // métier de head coach ne suit pas : ni Prospects (liste de scouting de
@@ -314,11 +314,11 @@ const DEFAULT_TAB_ACCESS = {
   // réservé à isManager). Ses propres heures lui restent, par son rôle de coach.
   senior_coach: ["calendrier", "anniv", "resa", "mental", "physique"],
   coach:      ["cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "heures", "notefrais"],
-  coach_physique: ["cours", "discussions", "phystests", "physique", "heures", "notefrais"],
+  coach_physique: ["cours", "application", "phystests", "physique", "heures", "notefrais"],
   moniteur:   ["cours", "heures", "notefrais"],
   affichage:  ["resa"],                      // ecran du club : grille des courts, lecture seule
   prof:       ["etudes", "notefrais"],
-  coach_mental: ["mental", "discussions", "matchs", "notefrais"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
+  coach_mental: ["mental", "application", "matchs", "notefrais"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
   // GameZone en lecture seule (db/135) : tout l'onglet visible, aucune
@@ -326,7 +326,7 @@ const DEFAULT_TAB_ACCESS = {
   // tables gz_* reste ouverte à is_staff() en écriture.
   gz_lecture:   ["gamezone"],
 };
-const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["application", "Application"], ["prospects", "Prospects"], ["visibilite", "Prospects › Visibilité"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["discussions", "Discussions"], ["newsletter", "Newsletter"], ["social", "Social Media Planner"], ["assistant", "Assistant"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["notefrais", "Note de frais"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["application", "Application"], ["prospects", "Prospects"], ["visibilite", "Prospects › Visibilité"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["social", "Social Media Planner"], ["assistant", "Assistant"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["notefrais", "Note de frais"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -611,7 +611,6 @@ function showView(view) {
   // pouvoir attendre que les comptes d'envoi soient là, sans relancer un
   // deuxième chargement complet.
   if (view === "mail") mailChargement = loadMail();
-  if (view === "discussions") loadDiscussions();
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
@@ -6705,13 +6704,37 @@ function appQuand(iso) {
   return `${frDate(j)} à ${h}`;
 }
 
+// Les cinq premiers sous-onglets (statistiques d'usage, invitations, annonces,
+// aperçus, historique) sont un écran de DIRECTION. « Discussions » y vit aussi
+// depuis qu'on l'a sorti du menu latéral, et c'est l'écran des coachs désignés.
+// Sans ce tri, donner l'onglet Application à Andreas pour ses messages lui
+// ouvrait au passage les compteurs d'usage et les invitations des familles.
+const APP_SUBS_DIRECTION = ["stats", "qui", "notif", "voir", "histo"];
+function appTailler() {
+  if (hasAny(myAppRoles, ["superadmin", "admin"])) return;
+  for (const s of APP_SUBS_DIRECTION) {
+    document.querySelector(`.app-subtab[data-asub="${s}"]`)?.remove();
+    $("app-sub-" + s)?.classList.add("hidden");
+  }
+  $("app-hero-kpi")?.remove();
+  document.querySelector("#view-application .crm-lead")?.remove();
+  const t = document.querySelector("#view-application .crm-ttl h1");
+  if (t) t.textContent = "Discussions";
+  const e = document.querySelector("#view-application .crm-eyebrow");
+  if (e) e.textContent = "Encadrement";
+  appSub = "disc";
+  document.querySelector('.app-subtab[data-asub="disc"]')?.classList.add("active");
+  $("app-sub-disc")?.classList.remove("hidden");
+}
+
 async function loadApplication() {
   if (!appBound) {
     appBound = true;
+    appTailler();
     document.querySelectorAll(".app-subtab").forEach((b) => b.addEventListener("click", () => {
       appSub = b.dataset.asub;
       document.querySelectorAll(".app-subtab").forEach((x) => x.classList.toggle("active", x === b));
-      ["stats", "qui", "notif", "voir", "histo"].forEach((s) =>
+      ["stats", "qui", "notif", "voir", "histo", "disc"].forEach((s) =>
         $("app-sub-" + s).classList.toggle("hidden", s !== appSub));
       appChargerSous();
     }));
@@ -6739,6 +6762,8 @@ async function loadApplication() {
 }
 
 function appChargerSous() {
+  // « Discussions » d'abord : c'est l'écran qu'un coach désigné vient voir.
+  if (appSub === "disc") return loadDiscussions();
   if (appSub === "stats") return appStats();
   if (appSub === "histo") return appHisto();
   if (appSub === "notif") return appNotifs();
@@ -19231,9 +19256,9 @@ async function discOuvrir(canal, youthId, silencieux) {
 }
 
 async function refreshDiscussionsBadge() {
-  if (!document.querySelector('.side-item[data-view="discussions"]')) return;
+  if (!document.querySelector('.side-item[data-view="application"]')) return;
   const { data, error } = await sb.rpc("discussions_non_lus");
-  if (!error) setSideBadge("discussions", data || 0);
+  if (!error) setSideBadge("application", data || 0);
 }
 
 // Sous-onglet « Mental » de la fiche : discussion + focus de la semaine (les questions de match sont dans la feuille de match).
