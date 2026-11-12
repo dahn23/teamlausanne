@@ -6537,3 +6537,43 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 @media (min-width:460px){
   .pt-install-b{flex:0 0 auto}
 }
+
+/* ---- Discussions (db/238) : la boîte de réception des fils des jeunes ----
+   Deux colonnes : la liste à gauche, le fil à droite. Sous 900 px la liste
+   passe au-dessus et le fil dessous — c'est l'ordre dans lequel on lit. */
+.disc-filtres{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.disc-chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 13px;
+  font:600 .84rem system-ui;color:var(--ink);cursor:pointer}
+.disc-chip.on{background:#123cc4;border-color:#123cc4;color:#fff}
+.disc-chip-n{display:inline-block;margin-left:5px;background:#e23b3b;color:#fff;border-radius:999px;
+  padding:0 6px;font-size:.72rem;font-weight:800}
+.disc-chip.on .disc-chip-n{background:#fff;color:#123cc4}
+.disc-wrap{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:18px;align-items:start}
+.disc-liste{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  max-height:70vh;overflow-y:auto}
+/* color explicite : .disc-item est un <button>, et la règle globale des boutons
+   de la console peint le texte en blanc — les noms disparaissaient sur fond blanc. */
+.disc-item{display:block;width:100%;text-align:left;background:none;border:0;color:var(--ink);
+  border-bottom:1px solid var(--line);padding:10px 12px;cursor:pointer;font:inherit}
+.disc-item:hover{background:#f6f8fd}
+.disc-item.on{background:#eef2ff}
+.disc-item.neuf .disc-l2{font-weight:600;color:var(--ink)}
+.disc-l1{display:flex;align-items:center;gap:7px;font-size:.9rem}
+.disc-l1 .spacer{flex:1}
+.disc-l2{font-size:.82rem;color:#6b7280;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.disc-date{font-size:.76rem;white-space:nowrap}
+.disc-canal{font-size:.66rem;font-weight:800;border-radius:6px;padding:1px 6px;white-space:nowrap}
+.disc-c-physique{background:#e0f2f1;color:#0f766e}
+.disc-c-mental{background:#ede9fe;color:#5b21b6}
+.disc-pastille{background:#e23b3b;color:#fff;border-radius:999px;padding:0 7px;
+  font:800 .72rem system-ui;min-width:18px;text-align:center}
+.disc-panneau{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;min-height:260px}
+.disc-tete{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}
+.disc-tete .spacer{flex:1}
+.disc-compte{font-size:.78rem}
+.disc-vide{display:flex;align-items:center;justify-content:center;min-height:220px;color:#6b7280}
+@media (max-width:900px){
+  .disc-wrap{grid-template-columns:1fr}
+  .disc-liste{max-height:46vh}
+}

@@ -303,10 +303,10 @@ async function saveMyProfile() {
 // Accès aux onglets par rôle (défense en profondeur : la RLS protège déjà
 // les écritures en base ; ceci masque l'UI selon le rôle).
 const DEFAULT_TAB_ACCESS = {
-  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "application", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
-  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "application", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
+  superadmin: ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "application", "prospects", "visibilite", "news", "mail", "discussions", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
+  admin:      ["dashboard", "pm", "calendrier", "membres", "anniv", "inscriptions", "application", "prospects", "visibilite", "news", "mail", "discussions", "newsletter", "social", "assistant", "roles", "resa", "winter", "lockers", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "etudes", "mental", "csel", "gamezone", "caisse", "factures", "heures", "locks", "irrigation", "stages", "stats", "notefrais"],
   secretaire: ["pm", "calendrier", "membres", "anniv", "inscriptions", "prospects", "visibilite", "news", "mail", "newsletter", "social", "assistant", "resa", "winter", "lockers", "cours", "matchs", "caisse", "locks", "irrigation", "stages", "stats", "notefrais"],
-  head_coach: ["dashboard", "calendrier", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "visibilite", "heures", "notefrais"],
+  head_coach: ["dashboard", "calendrier", "discussions", "anniv", "resa", "cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "mental", "stages", "prospects", "visibilite", "heures", "notefrais"],
   // Senior coach (06.11.2026) : un coach de terrain à qui on confie le SUIVI des
   // jeunes — il annote le fil de la fiche, comme un head coach. Le reste du
   // métier de head coach ne suit pas : ni Prospects (liste de scouting de
@@ -314,11 +314,11 @@ const DEFAULT_TAB_ACCESS = {
   // réservé à isManager). Ses propres heures lui restent, par son rôle de coach.
   senior_coach: ["calendrier", "anniv", "resa", "mental", "physique"],
   coach:      ["cours", "matchs", "lastscores", "plantournois", "phystests", "physique", "heures", "notefrais"],
-  coach_physique: ["cours", "phystests", "physique", "heures", "notefrais"],
+  coach_physique: ["cours", "discussions", "phystests", "physique", "heures", "notefrais"],
   moniteur:   ["cours", "heures", "notefrais"],
   affichage:  ["resa"],                      // ecran du club : grille des courts, lecture seule
   prof:       ["etudes", "notefrais"],
-  coach_mental: ["mental", "matchs", "notefrais"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
+  coach_mental: ["mental", "discussions", "matchs", "notefrais"],   // pas d'onglet Heures (décision Dan, 21.09.2026) ; lit toutes les feuilles de match (27.09.2026)
   organisateur: ["gamezone", "mail"],
   responsable:  ["gamezone"],
   // GameZone en lecture seule (db/135) : tout l'onglet visible, aucune
@@ -326,7 +326,7 @@ const DEFAULT_TAB_ACCESS = {
   // tables gz_* reste ouverte à is_staff() en écriture.
   gz_lecture:   ["gamezone"],
 };
-const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["application", "Application"], ["prospects", "Prospects"], ["visibilite", "Prospects › Visibilité"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["newsletter", "Newsletter"], ["social", "Social Media Planner"], ["assistant", "Assistant"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["notefrais", "Note de frais"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
+const ADMIN_TABS = [["dashboard", "Dashboard"], ["calendrier", "Calendrier"], ["membres", "Répertoire"], ["inscriptions", "Inscriptions"], ["application", "Application"], ["prospects", "Prospects"], ["visibilite", "Prospects › Visibilité"], ["news", "Accueil espace privé"], ["mail", "Messagerie"], ["discussions", "Discussions"], ["newsletter", "Newsletter"], ["social", "Social Media Planner"], ["assistant", "Assistant"], ["roles", "Réglages"], ["resa", "Réserv."], ["winter", "Saison hiver"], ["lockers", "Casiers"], ["cours", "Cours"], ["matchs", "Feuille de match"], ["lastscores", "Last scores"], ["plantournois", "Planning tournois"], ["phystests", "Tests phys."], ["physique", "Physique"], ["anniv", "Anniversaires"], ["etudes", "Études"], ["mental", "Mental"], ["csel", "CSEL"], ["gamezone", "GameZone"], ["caisse", "Caisse"], ["factures", "Factures"], ["heures", "Heures"], ["notefrais", "Note de frais"], ["locks", "Serrures"], ["irrigation", "Arrosage"], ["stages", "Stages"], ["stats", "Stats"]];
 // NB : « Responsable de tournoi » n'est PAS un rôle app ici — c'est le tag CRM
 // « responsable-tournoi » + la nomination sur un tournoi (gz_managers) qui ouvre
 // l'accès GameZone automatiquement. Une seule notion, gérée dans la fiche.
@@ -611,6 +611,7 @@ function showView(view) {
   // pouvoir attendre que les comptes d'envoi soient là, sans relancer un
   // deuxième chargement complet.
   if (view === "mail") mailChargement = loadMail();
+  if (view === "discussions") loadDiscussions();
   if (view === "mental") loadMentalCalendar();
   if (view === "matchs") mrActivateFirst();
   if (view === "news") loadNews();
@@ -1621,7 +1622,7 @@ async function loadPeople() {
   for (const r of rp || []) add(r.person_id, r.role); // rôles saisonniers de la saison EN COURS
   renderFilters();
   renderRows();
-  refreshBirthdayBadge(); refreshInscriptionBadge(); refreshStagesBadge();   // pastilles du menu latéral
+  refreshBirthdayBadge(); refreshInscriptionBadge(); refreshStagesBadge(); refreshDiscussionsBadge();   // pastilles du menu latéral
   loadGzReview();
 }
 
@@ -19114,6 +19115,115 @@ async function mtOpenFile(path) {
   const { data, error } = await sb.storage.from("mental").createSignedUrl(path, 120);
   if (error || !data) { alert("Impossible d'ouvrir le fichier."); return; }
   window.open(data.signedUrl, "_blank");
+}
+
+// ===================================================================
+//  Discussions (db/238) — la boîte de réception des fils des jeunes
+//  -------------------------------------------------------------------
+//  Avant, pour savoir si un jeune avait écrit, il fallait ouvrir Physique,
+//  cliquer un joueur, dérouler sous les routines, revenir, recommencer —
+//  dix-huit fois, sans marque de « nouveau ». Personne ne pouvait le savoir.
+//
+//  Ici : la liste des conversations, la plus récente en haut, le début du
+//  dernier message, et une pastille quand le jeune a écrit depuis mon dernier
+//  passage. Le fil lui-même est monté par physThread() / mentalThread() : ce
+//  sont les mêmes composants que dans Physique et dans la fiche, avec leur
+//  envoi, leurs pièces jointes et leurs droits. Rien n'est réécrit ici.
+// ===================================================================
+let discRows = [], discSel = null, discFiltre = "toutes";
+const DISC_CANAL = { physique: "Prépa physique", mental: "Mental" };
+const DISC_FIL = { pro: "Pro", "pro-u18": "Pro U18", "sport-etudes": "Sport-études" };
+
+let discInit = false;
+async function loadDiscussions() {
+  const liste = $("disc-liste"); if (!liste) return;
+  if (!discInit) { discInit = true; $("disc-refresh").addEventListener("click", loadDiscussions); }
+  liste.innerHTML = '<p class="muted" style="padding:10px">Chargement…</p>';
+  const { data, error } = await sb.rpc("discussions_list");
+  if (error) { liste.innerHTML = `<p class="error" style="padding:10px">${esc(error.message)}</p>`; return; }
+  discRows = data || [];
+  if (!discRows.length) {
+    // Pas une erreur : un coach qui porte le rôle sans être le coach DÉSIGNÉ
+    // (db/237). Mieux vaut le lui dire que de le laisser devant une liste vide.
+    liste.innerHTML = '<p class="muted" style="padding:10px">Aucune conversation. Les fils « Prépa physique » et « Mental » sont réservés au coach désigné de chaque canal, au head coach et à la direction.</p>';
+    $("disc-panneau").innerHTML = "";
+    $("disc-filtres").innerHTML = "";
+    return;
+  }
+  discRenderFiltres();
+  discRenderListe();
+  if (discSel && !discRows.some((r) => r.canal === discSel.canal && r.youth_person_id === discSel.youth_person_id)) discSel = null;
+  if (discSel) discOuvrir(discSel.canal, discSel.youth_person_id, true);
+  else $("disc-panneau").innerHTML = '<div class="disc-vide"><p>Choisis une conversation à gauche.</p></div>';
+}
+
+function discRenderFiltres() {
+  const canaux = [...new Set(discRows.map((r) => r.canal))];
+  const nonLus = discRows.reduce((a, r) => a + (r.non_lus || 0), 0);
+  const chip = (cle, libelle, n) => `<button type="button" class="disc-chip${discFiltre === cle ? " on" : ""}" data-f="${cle}">${esc(libelle)}${n ? ` <span class="disc-chip-n">${n}</span>` : ""}</button>`;
+  // Les puces de canal n'ont de sens que pour qui voit les deux (head coach, direction).
+  $("disc-filtres").innerHTML = chip("toutes", "Toutes", 0) + chip("non-lues", "Non lues", nonLus)
+    + (canaux.length > 1 ? canaux.map((c) => chip(c, DISC_CANAL[c], 0)).join("") : "");
+  $("disc-filtres").querySelectorAll(".disc-chip").forEach((b) => b.addEventListener("click", () => {
+    discFiltre = b.dataset.f; discRenderFiltres(); discRenderListe();
+  }));
+}
+
+function discRenderListe() {
+  const liste = $("disc-liste");
+  const rows = discRows.filter((r) => discFiltre === "toutes" ? true
+    : discFiltre === "non-lues" ? r.non_lus > 0 : r.canal === discFiltre);
+  if (!rows.length) {
+    liste.innerHTML = `<p class="muted" style="padding:10px">${discFiltre === "non-lues" ? "Rien de nouveau." : "Aucune conversation dans ce canal."}</p>`;
+    return;
+  }
+  liste.innerHTML = rows.map((r) => {
+    const actif = discSel && discSel.canal === r.canal && discSel.youth_person_id === r.youth_person_id;
+    // Le prénom de l'auteur, jamais « Toi » : le head coach et la direction voient
+    // aussi les fils des autres, et « Toi » y désignerait quelqu'un d'autre.
+    const qui = r.total ? String(r.dernier_auteur || "").split(" ")[0] : "";
+    return `<button type="button" class="disc-item${actif ? " on" : ""}${r.non_lus ? " neuf" : ""}" data-c="${esc(r.canal)}" data-y="${esc(r.youth_person_id)}">
+      <div class="disc-l1"><b>${esc(r.youth_name)}</b>
+        <span class="disc-canal disc-c-${esc(r.canal)}">${esc(DISC_CANAL[r.canal])}</span>
+        <span class="spacer"></span>
+        ${r.non_lus ? `<span class="disc-pastille">${r.non_lus}</span>` : ""}
+        <span class="muted disc-date">${r.dernier_at ? frDate(r.dernier_at) : ""}</span></div>
+      <div class="disc-l2">${r.total
+        ? `<span class="muted">${esc(qui)} :</span> ${esc(r.dernier_extrait || "…")}`
+        : `<span class="muted">Aucun message${r.filiere ? " · " + esc(DISC_FIL[r.filiere] || r.filiere) : ""}</span>`}</div>
+    </button>`;
+  }).join("");
+  liste.querySelectorAll(".disc-item").forEach((b) => b.addEventListener("click", () => discOuvrir(b.dataset.c, b.dataset.y)));
+}
+
+async function discOuvrir(canal, youthId, silencieux) {
+  discSel = { canal, youth_person_id: youthId };
+  const r = discRows.find((x) => x.canal === canal && x.youth_person_id === youthId);
+  const panneau = $("disc-panneau");
+  panneau.innerHTML = `<div class="disc-tete">
+      <b>${esc(r ? r.youth_name : "")}</b>
+      <span class="disc-canal disc-c-${esc(canal)}">${esc(DISC_CANAL[canal])}</span>
+      ${r && r.filiere ? `<span class="muted">${esc(DISC_FIL[r.filiere] || r.filiere)}</span>` : ""}
+      ${r && r.total ? `<span class="spacer"></span><span class="muted disc-compte">${r.total} message${r.total > 1 ? "s" : ""}</span>` : ""}
+    </div><div id="disc-fil"></div>`;
+  // Pas de lien vers la fiche : un préparateur physique n'a pas l'onglet Répertoire,
+  // le bouton n'aurait mené nulle part pour celui qui vit le plus dans cet écran.
+  // Le fil est monté par le composant d'origine : même rendu, même envoi, mêmes droits.
+  if (canal === "physique") physThread("disc-fil", youthId); else mentalThread("disc-fil", youthId);
+  discRenderListe();
+  if (silencieux) return;
+  // Ouvrir une conversation vaut lecture.
+  if (r && r.non_lus) {
+    await sb.rpc("discussion_marquer_lu", { p_canal: canal, p_youth: youthId });
+    r.non_lus = 0;
+    discRenderFiltres(); discRenderListe(); refreshDiscussionsBadge();
+  }
+}
+
+async function refreshDiscussionsBadge() {
+  if (!document.querySelector('.side-item[data-view="discussions"]')) return;
+  const { data, error } = await sb.rpc("discussions_non_lus");
+  if (!error) setSideBadge("discussions", data || 0);
 }
 
 // Sous-onglet « Mental » de la fiche : discussion + focus de la semaine (les questions de match sont dans la feuille de match).

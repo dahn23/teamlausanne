@@ -49,6 +49,7 @@ où on est. « − » le réduit en gardant la conversation, « ✕ » la referm
 | Prospects | Joueurs repérés hors académie, et la prospection visibilité | admin, head coach, secrétariat |
 | Accueil espace privé | Messages affichés dans Mon espace | admin, secrétariat |
 | Messagerie | La boîte info@ | admin, secrétariat |
+| Discussions | Les fils Prépa physique et Mental des jeunes | coach désigné, head coach, admin |
 | Newsletter | Envois groupés | admin, secrétariat |
 | Social Media Planner | Publications réseaux sociaux | admin, secrétariat |
 | Assistant | Le bot du site public | admin, secrétariat |
@@ -988,6 +989,24 @@ répondra qu'elle ne sait pas, et la question remontera dans
     Dans tous les cas **l'article reste publié sur teamlausanne.ch** : ces deux
     réglages ne touchent que l'app. Une page d'événement passé garde sa place
     dans les archives du site.
+- **Discussions** — la boîte de réception des fils « Prépa physique » et
+  « Mental » (db/238). À gauche la liste des conversations, la plus récente en
+  haut, avec le début du dernier message et une **pastille rouge** quand le
+  jeune a écrit depuis ton dernier passage ; à droite le fil, avec sa zone de
+  saisie et ses pièces jointes — c'est le même composant que dans Physique et
+  dans la fiche, donc les mêmes droits et le même envoi. Les puces filtrent :
+  **Toutes**, **Non lues**, et le canal (ces deux dernières n'apparaissent que
+  pour qui voit les deux canaux, c'est-à-dire le head coach et la direction).
+  Ouvrir une conversation vaut lecture : la pastille et le compteur du menu
+  latéral retombent. Les jeunes **sans aucun message** figurent en bas de la
+  liste, pour pouvoir engager la conversation sans quitter l'écran.
+  Qui voit quoi est réglé par db/237 : Andreas pour le physique, Frédérique
+  pour le mental, plus le head coach et la direction. Un coach qui porte le
+  rôle sans être désigné voit une liste vide et la phrase qui l'explique.
+  **Pourquoi cet écran existe** : avant, pour savoir si un jeune avait écrit,
+  il fallait ouvrir Physique, cliquer un joueur, dérouler sous les routines,
+  revenir, recommencer — dix-huit fois, sans aucune marque de « nouveau ».
+  Personne ne pouvait savoir qu'un message attendait.
 - **Messagerie** — les boîtes du club, un onglet chacune : **Team Lausanne**
   (info@), **Lausanne Open**, **Tournoi**, **LS Tennis** (admin@lstennis.ch,
   chez Infomaniak) et les boîtes privées, que seul leur propriétaire voit.
