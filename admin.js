@@ -5401,15 +5401,44 @@ document.addEventListener("click", (e) => {
 });
 
 // Qui est « non disponible » sur le planning du jour : rempli par
-// loadCoursesDay, lu ici. Clé « cours|personne ».
+// loadCoursesDay. Clé « cours|personne ».
 let CS_INDISPO = {};
 
+/* La fenêtre d'un cours a sa PROPRE vérité, et elle prime : on vient d'y
+   cliquer « ∅ », rien n'est encore enregistré, et le bloc Présences juste en
+   dessous doit déjà le refléter. Sans cela il lisait CS_INDISPO, que seul le
+   planning du JOUR remplit — ouvert depuis la vue Semaine il affichait donc
+   un coach non disponible comme si de rien n'était, et marquer quelqu'un ne
+   changeait rien en dessous. */
+const modaleDuCours = (courseId) =>
+  !$("course-modal").classList.contains("hidden") && $("c-id").value === String(courseId);
+
+function estIndispo(courseId, pid) {
+  if (modaleDuCours(courseId)) return cCoachIndispo.has(String(pid));
+  return Object.prototype.hasOwnProperty.call(CS_INDISPO, courseId + "|" + pid);
+}
+function motifIndispo(courseId, pid) {
+  if (modaleDuCours(courseId)) return (cCoachIndispo.get(String(pid)) || {}).motif || "";
+  return CS_INDISPO[courseId + "|" + pid] || "";
+}
+
+// Ce qu'il faut pour redessiner le bloc Présences de la fenêtre sans tout
+// rouvrir : posé par openCourse, relu quand on bascule un « ∅ ».
+let cAttArgs = null;
+function majCourseAtt() {
+  if (!cAttArgs || $("c-att-block").classList.contains("hidden")) return;
+  renderCourseAtt(cAttArgs.course, cAttArgs.coachIds, cAttArgs.childIds, cAttArgs.att);
+}
+
 function attChip(course, coachIds, pid, isCoach, status) {
-  const can = canMarkBox(course, coachIds, pid, isCoach);
+  let can = canMarkBox(course, coachIds, pid, isCoach);
   // Non disponible : décidé à l'avance, remplacement organisé. Ce n'est PAS
   // l'absence de l'appel, et la pastille ne doit pas lui ressembler — gris
   // hachuré, jamais rouge. Le statut d'appel, s'il existe, passe après.
-  const indispo = isCoach && Object.prototype.hasOwnProperty.call(CS_INDISPO, course.id + "|" + pid);
+  const indispo = isCoach && estIndispo(course.id, pid);
+  // Verrouillée : marquer « présent » quelqu'un qu'on vient de déclarer non
+  // disponible n'a pas de sens. cycleAtt explique au clic.
+  if (indispo) can = false;
   const cls = indispo ? "st-indispo"
     : status === "present" ? "st-present" : status === "late" ? "st-late"
     : status === "absent" ? "st-absent" : (can ? "st-none" : "st-locked");
@@ -5421,8 +5450,9 @@ function attChip(course, coachIds, pid, isCoach, status) {
   const nm = `${bdayChip(pid, course.course_date)}${esc(personName(pid))}${ageTxt}`;
   const chip = `<button type="button" class="att-chip ${cls}" data-course="${course.id}" data-person="${pid}"
     data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}" data-cstart="${course.course_date}T${course.start_time}"
+    data-indispo="${indispo ? 1 : 0}"
     title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${estSonAnniversaire(pid, course.course_date) ? " · anniversaire" : ""}${
-      indispo ? " — NON DISPONIBLE cette séance" + (CS_INDISPO[course.id + "|" + pid] ? " (" + CS_INDISPO[course.id + "|" + pid] + ")" : "") + " · reste au planning, non compté dans les heures" : ""}">${nm}</button>`;
+      indispo ? " — NON DISPONIBLE cette séance" + (motifIndispo(course.id, pid) ? " (" + motifIndispo(course.id, pid) + ")" : "") + " · reste au planning, non compté dans les heures" : ""}">${nm}</button>`;
   // chip + ↗ regroupés dans .att-unit → 1 seul enfant par joueur (ne casse pas le masquage « > 4 »).
   const annonce = isCoach ? "" : annBadge(course.id, pid);
   // Le bouton d'annonce n'apparait que pour ceux qui ont le droit d'annoncer,
@@ -5631,7 +5661,8 @@ async function loadCoursesWeek() {
 async function cycleAtt(chip) {
   if (chip.dataset.can !== "1") { // verrouillé → on explique pourquoi (popup)
     const cstart = chip.dataset.cstart ? new Date(chip.dataset.cstart).getTime() : 0, now = Date.now();
-    if (chip.dataset.detail === "1") uiAlert("Sur ce cours (pro / sport-études), les présences des jeunes sont gérées par le head coach via le détail de la séance.");
+    if (chip.dataset.indispo === "1") uiAlert("Ce coach est marqué « non disponible » pour cette séance : il reste au planning, mais ne donne pas le cours et n'est pas compté dans ses heures.\n\nS'il est finalement là, retirez le « ∅ » à côté de son nom, plus haut dans la fenêtre.");
+    else if (chip.dataset.detail === "1") uiAlert("Sur ce cours (pro / sport-études), les présences des jeunes sont gérées par le head coach via le détail de la séance.");
     else if (chip.dataset.coach === "1") uiAlert("Vous ne pouvez marquer que votre propre présence.");
     else if (cstart && now < cstart - 25 * 60000) uiAlert("L'appel des jeunes ouvre 25 minutes avant le début du cours — pas avant.");
     else if (cstart && now > cstart + 14 * 24 * 3600000) uiAlert("Appel clos (2 semaines écoulées). Demande à un head coach / admin.");
@@ -8128,6 +8159,7 @@ function renderCoachChips(selected) {
       c.classList.toggle("sel");
       renderCoachChips(chipValues("c-coaches"));
       renderIndispoBox();
+      majCourseAtt();
     }));
 
   $("c-coaches").querySelectorAll("[data-indispo]").forEach((b) =>
@@ -8138,6 +8170,7 @@ function renderCoachChips(selected) {
       else cCoachIndispo.set(v, { motif: "", remplacant: "" });
       renderCoachChips(chipValues("c-coaches"));
       renderIndispoBox();
+      majCourseAtt();   // le bloc Présences, juste en dessous, doit suivre
     }));
 }
 
@@ -8169,6 +8202,7 @@ function renderIndispoBox() {
   z.querySelectorAll(".c-indispo-m").forEach((i) =>
     i.addEventListener("input", () => {
       const v = cCoachIndispo.get(i.dataset.pid); if (v) v.motif = i.value;
+      majCourseAtt();
     }));
   z.querySelectorAll(".c-indispo-s").forEach((sel) =>
     sel.addEventListener("change", () => {
@@ -8244,7 +8278,10 @@ function openCourse(course, related) {
   // Cours détaillé (pro/SE + plusieurs courts/coachs) : le détail remplace les présences manuelles.
   const needsDetail = courseNeedsDetail(course, related?.courts || [], related?.coaches || []);
   $("c-att-block").classList.toggle("hidden", !course || needsDetail);
-  if (course && !needsDetail) renderCourseAtt(course, related?.coaches || [], related?.children || [], related?.attendance || []);
+  cAttArgs = course
+    ? { course, coachIds: related?.coaches || [], childIds: related?.children || [], att: related?.attendance || [] }
+    : null;
+  if (course && !needsDetail) majCourseAtt();
   if (course) courseDetailMaybe(course, related?.courts || [], related?.coaches || [], related?.children || []);
   else { $("c-detail-block")?.classList.add("hidden"); $("c-detail").innerHTML = ""; }
   $("course-modal").classList.remove("hidden");

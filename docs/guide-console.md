@@ -268,6 +268,9 @@ Ce que ça change :
   vaut pour une séance, « Copier la semaine » ne la recopie pas.
 - Le cours apparaît dans « cours sans coach » du tableau de bord si plus
   personne n'est disponible dessus.
+- Le bloc **Présences**, plus bas dans la même fenêtre, le montre aussitôt :
+  sa pastille devient hachurée et n'est plus cliquable — on ne marque pas
+  présent quelqu'un qu'on vient de déclarer absent de la séance.
 
 ⚠️ **« Non disponible » n'est pas « absent ».** L'absent rouge de l'appel se
 constate le jour même : la personne n'est pas venue. « Non disponible » se
