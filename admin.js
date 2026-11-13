@@ -853,10 +853,16 @@ async function loadResaDay() {
   const coachMap = {}, colorMap = {};
   if (courseIds.length) {
     const [{ data: cc }, { data: crs }] = await Promise.all([
-      sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", courseIds),
+      sb.from("course_coaches").select("course_id,coach_person_id,statut").in("course_id", courseIds),
       sb.from("courses").select("id,color,course_types(color)").in("id", courseIds),
     ]);
-    for (const x of cc || []) (coachMap[x.course_id] = coachMap[x.course_id] || []).push(x.coach_person_id);
+    // Un coach non disponible n'apparaît pas sur la grille des courts : ce
+    // qu'on y cherche, c'est qui sera là. Il reste au cours, visible dans le
+    // planning et dans la fiche du cours.
+    for (const x of cc || []) {
+      if (x.statut === "indispo") continue;
+      (coachMap[x.course_id] = coachMap[x.course_id] || []).push(x.coach_person_id);
+    }
     for (const c of crs || []) colorMap[c.id] = c.course_types?.color || c.color || null;
   }
   drawResaGrid(date, bookings || [], coachMap, colorMap);
@@ -5394,9 +5400,18 @@ document.addEventListener("click", (e) => {
   if (opt) document.querySelectorAll("#ann-choix .ann-opt").forEach((x) => x.classList.toggle("on", x === opt));
 });
 
+// Qui est « non disponible » sur le planning du jour : rempli par
+// loadCoursesDay, lu ici. Clé « cours|personne ».
+let CS_INDISPO = {};
+
 function attChip(course, coachIds, pid, isCoach, status) {
   const can = canMarkBox(course, coachIds, pid, isCoach);
-  const cls = status === "present" ? "st-present" : status === "late" ? "st-late"
+  // Non disponible : décidé à l'avance, remplacement organisé. Ce n'est PAS
+  // l'absence de l'appel, et la pastille ne doit pas lui ressembler — gris
+  // hachuré, jamais rouge. Le statut d'appel, s'il existe, passe après.
+  const indispo = isCoach && Object.prototype.hasOwnProperty.call(CS_INDISPO, course.id + "|" + pid);
+  const cls = indispo ? "st-indispo"
+    : status === "present" ? "st-present" : status === "late" ? "st-late"
     : status === "absent" ? "st-absent" : (can ? "st-none" : "st-locked");
   // Âge entre parenthèses pour les élèves (pas les coachs).
   const p = people.find((x) => x.id === pid);
@@ -5406,7 +5421,8 @@ function attChip(course, coachIds, pid, isCoach, status) {
   const nm = `${bdayChip(pid, course.course_date)}${esc(personName(pid))}${ageTxt}`;
   const chip = `<button type="button" class="att-chip ${cls}" data-course="${course.id}" data-person="${pid}"
     data-coach="${isCoach ? 1 : 0}" data-status="${status || ""}" data-can="${can ? 1 : 0}" data-cstart="${course.course_date}T${course.start_time}"
-    title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${estSonAnniversaire(pid, course.course_date) ? " · anniversaire" : ""}">${nm}</button>`;
+    title="${esc(personName(pid))}${age != null ? ` · ${age} ans` : ""}${estSonAnniversaire(pid, course.course_date) ? " · anniversaire" : ""}${
+      indispo ? " — NON DISPONIBLE cette séance" + (CS_INDISPO[course.id + "|" + pid] ? " (" + CS_INDISPO[course.id + "|" + pid] + ")" : "") + " · reste au planning, non compté dans les heures" : ""}">${nm}</button>`;
   // chip + ↗ regroupés dans .att-unit → 1 seul enfant par joueur (ne casse pas le masquage « > 4 »).
   const annonce = isCoach ? "" : annBadge(course.id, pid);
   // Le bouton d'annonce n'apparait que pour ceux qui ont le droit d'annoncer,
@@ -5439,7 +5455,7 @@ async function loadCoursesDay() {
   if (ids.length) {
     [books, coaches, parts, att, segs, csNotices] = await Promise.all([
       sb.from("court_bookings").select("court_id,course_id").in("course_id", ids).then((r) => r.data || []),
-      sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", ids).then((r) => r.data || []),
+      sb.from("course_coaches").select("course_id,coach_person_id,statut,motif").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_participants").select("course_id,child_person_id").in("course_id", ids).then((r) => r.data || []),
       sb.from("attendance").select("course_id,person_id,status").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_segments").select("course_id,minutes,course_segment_players(person_id)").in("course_id", ids).then((r) => r.data || []),
@@ -5448,6 +5464,11 @@ async function loadCoursesDay() {
   }
   const courtName = (id) => (resaCourtsAll.find((c) => c.id === id)?.name || "?").replace("Court ", "C");
   const attOf = (cid, pid) => att.find((a) => a.course_id === cid && a.person_id === pid)?.status || "";
+  // Qui est marqué non disponible, et pourquoi — lu par attChip pour hachurer
+  // la pastille au lieu de la peindre en rouge : « absent » se constate le
+  // jour même, « non disponible » se décide à l'avance.
+  CS_INDISPO = {};
+  for (const x of coaches) if (x.statut === "indispo") CS_INDISPO[x.course_id + "|" + x.coach_person_id] = x.motif || "";
   // Couverture par joueur d'un cours DÉTAILLÉ : minutes jouées (blocs) vs durée de la séance
   // → couleur (vert complet · orange incomplet · rouge 0/absent · bleu dépassé).
   const durMin = (c) => { const a = (c.start_time || "0:0").split(":").map(Number), b = (c.end_time || "0:0").split(":").map(Number); return (b[0] * 60 + b[1]) - (a[0] * 60 + a[1]); };
@@ -5552,7 +5573,7 @@ async function loadCoursesWeek() {
   if (ids.length) {
     [books, coaches, parts, myatt] = await Promise.all([
       sb.from("court_bookings").select("court_id,course_id").in("course_id", ids).then((r) => r.data || []),
-      sb.from("course_coaches").select("course_id,coach_person_id").in("course_id", ids).then((r) => r.data || []),
+      sb.from("course_coaches").select("course_id,coach_person_id,statut").in("course_id", ids).then((r) => r.data || []),
       sb.from("course_participants").select("course_id,child_person_id").in("course_id", ids).then((r) => r.data || []),
       myPersonId ? sb.from("attendance").select("course_id,status").eq("person_id", myPersonId).eq("is_coach", true).in("course_id", ids).then((r) => r.data || []) : Promise.resolve([]),
     ]);
@@ -5567,7 +5588,13 @@ async function loadCoursesWeek() {
     const childIds = parts.filter((x) => x.course_id === c.id).map((x) => x.child_person_id);
     const type = courseTypes.find((t) => t.id === c.course_type_id);
     // Prénoms déjà échappés ici : la pastille anniversaire est du HTML, elle ne peut pas passer par esc() ensuite.
-    const coachNames = coachIds.filter(firstOf).map((id) => bdayChip(id, c.course_date) + esc(firstOf(id)));
+    // Un coach non disponible reste écrit — barré et grisé. Le faire
+    // disparaître reviendrait à le retirer du cours, ce qu'on ne fait plus.
+    const indispoIds = new Set(coaches.filter((x) => x.course_id === c.id && x.statut === "indispo")
+      .map((x) => x.coach_person_id));
+    const coachNames = coachIds.filter(firstOf).map((id) => indispoIds.has(id)
+      ? `<span class="co-indispo" title="Non disponible cette séance">${esc(firstOf(id))}</span>`
+      : bdayChip(id, c.course_date) + esc(firstOf(id)));
     const coachStr = coachNames.slice(0, 3).join(", ") + (coachNames.length > 3 ? ` +${coachNames.length - 3}c` : "");
     const childBday = childIds.some((id) => estSonAnniversaire(id, c.course_date));
     const search = esc([c.title || "", type?.name || "", ...coachIds.map(nmeOf), ...childIds.map(nmeOf)].join(" ").toLowerCase());
@@ -8055,6 +8082,100 @@ async function delCat(id) {
   loadCats();
 }
 
+/* ---------- Coach « non disponible » (db/240, 13.11.2026) ----------
+   Un coach qui part en tournoi ne doit PAS être décoché du cours : le
+   décocher le retire de course_coaches, et « copier la semaine » recopiant
+   la semaine précédente, son absence d'une semaine devenait permanente.
+   Mariano Palena est passé de 22 cours à 1 puis à 21 pour cette raison.
+
+   Donc : il reste coché, et une seconde pastille « ∅ » le marque non
+   disponible POUR CETTE SÉANCE. Il garde sa place au planning, mais ne
+   compte plus dans les heures ; le remplaçant, lui, est ajouté normalement
+   et c'est lui qui est payé.
+
+   Clé = person_id en texte, valeur = { motif, remplacant }. */
+let cCoachIndispo = new Map();
+
+// La liste des coachs sélectionnés, pour le menu « remplacé par ».
+const cCoachsChoisis = () => chipValues("c-coaches");
+
+// Les pastilles de COACH ne sont pas tout à fait comme les autres : une fois
+// le coach choisi, un petit « ∅ » apparaît à côté. Les courts, eux, gardent
+// renderChips tel quel.
+function renderCoachChips(selected) {
+  const set = new Set((selected || []).map(String));
+  const items = people.filter((p) => hasRoleIn(p.id, COACH_ROLES))
+    .map((p) => [String(p.id), `${p.last_name} ${p.first_name}`])
+    .sort((a, b) => a[1].localeCompare(b[1]));
+  $("c-coaches").innerHTML = items.map(([val, label]) => {
+    const on = set.has(val);
+    const off = on && cCoachIndispo.has(val);
+    return `<span class="chip-duo">
+      <button type="button" class="chip${on ? " sel" : ""}${off ? " chip-indispo" : ""}" data-val="${val}"
+        title="${esc(label)}${off ? " — non disponible cette séance" : ""}">${esc(label)}</button>${on
+      ? `<button type="button" class="chip-dispo${off ? " on" : ""}" data-indispo="${val}"
+           aria-label="${off ? "Rendre disponible" : "Marquer non disponible"}"
+           title="${off ? "Il est finalement disponible : remettre au planning payé"
+                        : "Non disponible pour cette séance — il reste au planning, mais n'est pas payé"}">∅</button>`
+      : ""}</span>`;
+  }).join("");
+
+  $("c-coaches").querySelectorAll(".chip[data-val]").forEach((c) =>
+    c.addEventListener("click", () => {
+      const v = String(c.dataset.val);
+      // Décocher un coach le retire du cours : son indispo n'a plus d'objet.
+      if (c.classList.contains("sel")) cCoachIndispo.delete(v);
+      c.classList.toggle("sel");
+      renderCoachChips(chipValues("c-coaches"));
+      renderIndispoBox();
+    }));
+
+  $("c-coaches").querySelectorAll("[data-indispo]").forEach((b) =>
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const v = String(b.dataset.indispo);
+      if (cCoachIndispo.has(v)) cCoachIndispo.delete(v);
+      else cCoachIndispo.set(v, { motif: "", remplacant: "" });
+      renderCoachChips(chipValues("c-coaches"));
+      renderIndispoBox();
+    }));
+}
+
+// Le panneau sous les pastilles : une ligne par coach non disponible, avec le
+// motif et qui le remplace. Il n'apparaît que s'il y a quelque chose à dire —
+// c'est le cas rare, il n'a pas à occuper la fenêtre le reste du temps.
+function renderIndispoBox() {
+  const z = $("c-indispo"); if (!z) return;
+  const choisis = cCoachsChoisis();
+  // Un coach décoché entre-temps ne doit pas rester dans la liste.
+  for (const k of [...cCoachIndispo.keys()]) if (!choisis.includes(k)) cCoachIndispo.delete(k);
+  const l = [...cCoachIndispo.entries()];
+  z.classList.toggle("hidden", !l.length);
+  if (!l.length) { z.innerHTML = ""; return; }
+  z.innerHTML = `<div class="c-indispo-t">Non disponible${l.length > 1 ? "s" : ""} pour cette séance —
+      toujours au planning, mais hors du calcul des heures.</div>`
+    + l.map(([pid, v]) => `<div class="c-indispo-l" data-pid="${pid}">
+        <b>${esc(personName(pid))}</b>
+        <input type="text" class="c-indispo-m" data-pid="${pid}" maxlength="80"
+               placeholder="Motif (facultatif) — tournoi, maladie…" value="${esc(v.motif || "")}" />
+        <label class="c-indispo-r">remplacé par
+          <select class="c-indispo-s" data-pid="${pid}">
+            <option value="">—</option>
+            ${choisis.filter((x) => x !== pid && !cCoachIndispo.has(x))
+              .map((x) => `<option value="${x}"${v.remplacant === x ? " selected" : ""}>${esc(personName(x))}</option>`).join("")}
+          </select></label>
+      </div>`).join("")
+    + `<div class="c-indispo-a muted">Le remplaçant doit être coché ci-dessus : c'est sa propre ligne qui le fait payer.</div>`;
+  z.querySelectorAll(".c-indispo-m").forEach((i) =>
+    i.addEventListener("input", () => {
+      const v = cCoachIndispo.get(i.dataset.pid); if (v) v.motif = i.value;
+    }));
+  z.querySelectorAll(".c-indispo-s").forEach((sel) =>
+    sel.addEventListener("change", () => {
+      const v = cCoachIndispo.get(sel.dataset.pid); if (v) v.remplacant = sel.value;
+    }));
+}
+
 function renderChips(containerId, items, selected) {
   const set = new Set(selected || []);
   $(containerId).innerHTML = items.map(([val, label]) =>
@@ -8102,7 +8223,15 @@ function openCourse(course, related) {
   const cType = courseTypes.find((t) => t.id === course?.course_type_id);
   $("c-color").value = cType?.color || course?.color || "#0b6b3a";
   renderChips("c-courts", resaCourtsAll.map((c) => [c.id, c.name.replace("Court ", "C")]), related?.courts);
-  renderChips("c-coaches", people.filter((p) => hasRoleIn(p.id, COACH_ROLES)).map((p) => [p.id, `${p.last_name} ${p.first_name}`]), related?.coaches);
+  cCoachIndispo = new Map();
+  for (const x of related?.coachRows || []) {
+    if (x.statut === "indispo") {
+      cCoachIndispo.set(String(x.coach_person_id),
+        { motif: x.motif || "", remplacant: x.remplace_par_person_id ? String(x.remplace_par_person_id) : "" });
+    }
+  }
+  renderCoachChips(related?.coaches);
+  renderIndispoBox();
   cPlayers = people.filter((p) => hasRoleIn(p.id, COURSE_ROLES))
     .map((p) => [p.id, `${p.last_name} ${p.first_name}`])
     .sort((a, b) => a[1].localeCompare(b[1]));
@@ -8130,13 +8259,14 @@ function renderCourseAtt(course, coachIds, childIds, att) {
 
 async function editCourse(id) {
   const course = (await sb.from("courses").select("*").eq("id", id).single()).data;
-  const [courts, coaches, children, attendance] = await Promise.all([
+  const [courts, coachRows, children, attendance] = await Promise.all([
     sb.from("court_bookings").select("court_id").eq("course_id", id).then((r) => (r.data || []).map((x) => String(x.court_id))),
-    sb.from("course_coaches").select("coach_person_id").eq("course_id", id).then((r) => (r.data || []).map((x) => x.coach_person_id)),
+    sb.from("course_coaches").select("coach_person_id,statut,motif,remplace_par_person_id").eq("course_id", id).then((r) => r.data || []),
     sb.from("course_participants").select("child_person_id").eq("course_id", id).then((r) => (r.data || []).map((x) => x.child_person_id)),
     sb.from("attendance").select("person_id,status").eq("course_id", id).then((r) => r.data || []),
   ]);
-  openCourse(course, { courts, coaches, children, attendance });
+  const coaches = coachRows.map((x) => x.coach_person_id);
+  openCourse(course, { courts, coaches, coachRows, children, attendance });
 }
 
 async function saveCourse(e) {
@@ -8185,7 +8315,24 @@ async function saveCourse(e) {
     });
     if (error) conflicts++;
   }
-  if (coaches.length) await sb.from("course_coaches").insert(coaches.map((p) => ({ course_id: courseId, coach_person_id: p })));
+  // Le statut voyage avec la ligne. saveCourse efface puis réinsère les liens :
+  // sans ce report, rouvrir un cours pour changer l'heure remettrait tous les
+  // coachs en « prévu » et le non-disponible serait payé sans que personne ne
+  // le voie. Mêmes clés sur toutes les lignes — un insert groupé dont les
+  // objets diffèrent est refusé en bloc (PGRST102).
+  if (coaches.length) {
+    await sb.from("course_coaches").insert(coaches.map((p) => {
+      const ind = cCoachIndispo.get(String(p));
+      return {
+        course_id: courseId, coach_person_id: p,
+        statut: ind ? "indispo" : "prevu",
+        motif: ind && ind.motif ? ind.motif : null,
+        remplace_par_person_id: ind && ind.remplacant ? ind.remplacant : null,
+        statut_par: ind ? meId : null,
+        statut_le: ind ? new Date().toISOString() : null,
+      };
+    }));
+  }
   if (children.length) await sb.from("course_participants").insert(children.map((p) => ({ course_id: courseId, child_person_id: p })));
 
   if (conflicts) alert(`Cours enregistré, mais ${conflicts} court(s) étai(en)t déjà occupé(s) sur ce créneau.`);
@@ -8266,6 +8413,10 @@ async function cwRun() {
       court_id: court, booking_date: newDate, start_time: c.start_time, end_time: c.end_time,
       kind: "cours", title: c.title || "Cours", color: c.color, created_by: meId, course_id: nc.id,
     });
+    // On recopie le COACH, jamais son indisponibilité : « non disponible »
+    // vaut pour UNE séance. La recopier propagerait l'absence de semaine en
+    // semaine — exactement la dérive qu'on supprime. Les colonnes de statut
+    // sont donc omises, et la base les remet à « prevu » par défaut.
     const cs = cwCoaches.filter((x) => x.course_id === c.id).map((x) => ({ course_id: nc.id, coach_person_id: x.coach_person_id }));
     if (cs.length) await sb.from("course_coaches").insert(cs);
     const ps = cwParts.filter((x) => x.course_id === c.id).map((x) => ({ course_id: nc.id, child_person_id: x.child_person_id }));

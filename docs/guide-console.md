@@ -246,6 +246,34 @@ Les leçons se posent **au quart d'heure** et **bloquent le court** : un cours
 occupe le court exactement comme une réservation. Inutile de poser une
 réservation en plus — ce serait un double.
 
+### Un coach pas disponible pour une séance
+
+Quand un coach part en tournoi, est malade ou a un empêchement, **il ne faut
+pas le décocher du cours**. Le décocher le retire du planning, et comme
+« Copier la semaine » recopie la semaine précédente, son absence d'une
+semaine se propage à toutes les suivantes.
+
+À la place : dans la fenêtre du cours, cliquer le petit **« ∅ »** à côté de
+son nom. Il reste au planning, barré et hachuré, et une ligne s'ouvre en
+dessous pour noter le **motif** et **qui le remplace**.
+
+Ce que ça change :
+
+- Il **n'est pas payé** pour cette séance — elle ne compte plus dans ses
+  heures ni dans son total « cours confirmés ».
+- Le **remplaçant est payé** : il suffit de le cocher comme coach du cours,
+  c'est sa propre ligne qui le fait compter. Le menu « remplacé par » ne sert
+  qu'à garder la trace de qui a assuré.
+- La semaine suivante, **il revient disponible tout seul** : l'indisponibilité
+  vaut pour une séance, « Copier la semaine » ne la recopie pas.
+- Le cours apparaît dans « cours sans coach » du tableau de bord si plus
+  personne n'est disponible dessus.
+
+⚠️ **« Non disponible » n'est pas « absent ».** L'absent rouge de l'appel se
+constate le jour même : la personne n'est pas venue. « Non disponible » se
+décide à l'avance, le remplacement est organisé — d'où le gris hachuré, et
+jamais le rouge. Les deux ne racontent pas la même chose.
+
 ### Recopier une semaine
 
 « Copier la semaine » reprend une semaine entière et la pose sur une autre.
@@ -256,6 +284,10 @@ C'est le geste qui fait gagner le plus de temps en début de saison.
 3. Donner une date de la semaine cible — n'importe quel jour de cette
    semaine-là suffit.
 4. « Vérifier » montre ce qui serait créé avant que quoi que ce soit ne parte.
+
+Les coachs suivent le cours, **mais pas leurs indisponibilités** : un coach
+marqué « ∅ » sur la semaine source repart **disponible** sur la semaine cible.
+C'est voulu — une indisponibilité vaut pour une séance, pas pour toujours.
 
 ### L'appel
 

@@ -6628,3 +6628,64 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 @media(max-width:760px){
   .soc-sansdate-a{display:none}
 }
+
+/* ---- Coach « non disponible » pour une seance (db/240, 13.11.2026) --------
+   Une couleur a part, et surtout PAS le rouge : le rouge dit « n'est pas
+   venu », constate a l'appel le jour meme. Ici on dit « ne vient pas, c'est
+   prevu, c'est couvert » — decide a l'avance. Deux faits differents, deux
+   apparences differentes, sinon on confond une absence subie et une
+   organisation normale.
+   Des hachures grises : ca se lit comme « neutralise », pas comme « faute »,
+   et ca reste lisible quand quatre pastilles de coach se serrent dans une
+   case etroite. */
+.chip-duo{display:inline-flex;align-items:stretch;gap:0}
+.chip-duo .chip{position:relative}
+
+/* Le petit « ∅ » accole a la pastille d'un coach choisi. */
+.chip-dispo{display:inline-flex;align-items:center;justify-content:center;
+  width:22px;padding:0;margin-left:-1px;font:inherit;font-size:.82rem;line-height:1;
+  cursor:pointer;border:1px solid var(--line);border-left:none;
+  border-radius:0 999px 999px 0;background:#fff;color:var(--muted)}
+.chip-dispo:hover{background:#f1f3f9;color:var(--ink)}
+.chip-dispo.on{background:var(--muted);color:#fff;border-color:var(--muted)}
+
+/* La pastille elle-meme, une fois marquee. PAS de `color` ici : une pastille
+   choisie est bleu fonce a texte blanc, et un gris --muted par-dessus
+   tomberait a 1,5:1 — illisible. Le barre et les hachures portent le sens,
+   le blanc reste a 5,4:1. */
+/* Selecteur aussi precis que `.chip-select .chip.sel` (ligne 5344), qui pose
+   un `background` RACCOURCI : il remet background-image a none, et une regle
+   moins precise se faisait donc effacer sans bruit — les hachures ne
+   s'affichaient pas du tout. On ne touche qu'a l'image, la couleur de fond
+   reste celle de la pastille choisie. */
+.chip-select .chip.sel.chip-indispo,
+.chip.chip-indispo{text-decoration:line-through;
+  background-image:repeating-linear-gradient(135deg,
+    rgba(255,255,255,.34) 0 4px, rgba(255,255,255,0) 4px 8px)}
+
+/* Sur le planning du jour : meme hachure, sur la pastille de presence. */
+.att-chip.st-indispo{color:var(--muted);text-decoration:line-through;
+  background:#f4f5f8;border-color:#d7dae4;
+  background-image:repeating-linear-gradient(135deg,
+    rgba(105,112,138,.20) 0 4px, rgba(105,112,138,0) 4px 8px)}
+
+/* Sur la vue semaine, les prenoms sont du texte nu : barre + grise suffit. */
+.co-indispo{color:var(--muted);text-decoration:line-through}
+
+/* Le panneau sous les pastilles : motif et remplacant, un par coach. */
+.c-indispo{margin:6px 0 2px;padding:9px 11px;border:1px dashed var(--line);
+  border-radius:10px;background:#f6f7fb}
+.c-indispo-t{font-size:.8rem;color:var(--ink);margin-bottom:7px;line-height:1.35}
+.c-indispo-l{display:flex;align-items:center;flex-wrap:wrap;gap:6px 9px;margin-bottom:6px}
+.c-indispo-l>b{flex:0 0 auto;font-size:.86rem}
+.c-indispo-m{flex:1 1 190px;min-width:0;font:inherit;font-size:.82rem;
+  padding:4px 8px;border:1px solid var(--line);border-radius:7px;background:#fff}
+.c-indispo-r{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;
+  font-size:.8rem;color:var(--muted)}
+.c-indispo-r select{font:inherit;font-size:.82rem;padding:3px 6px;
+  border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}
+.c-indispo-a{font-size:.75rem;line-height:1.35}
+@media(max-width:560px){
+  .c-indispo-r{width:100%}
+  .c-indispo-r select{flex:1 1 auto;min-width:0}
+}

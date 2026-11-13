@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=400" />
+  <link rel="stylesheet" href="style.css?v=401" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -3555,6 +3555,9 @@ Team Lausanne Tennis</textarea></label>
       </div>
       <label class="cs-lbl">Courts</label><div id="c-courts" class="chip-select"></div>
       <label class="cs-lbl">Coachs</label><div id="c-coaches" class="chip-select"></div>
+      <!-- Le « ∅ » d'une pastille de coach ouvre cette ligne : motif et
+           remplaçant. Caché tant que tout le monde est disponible (db/240). -->
+      <div id="c-indispo" class="c-indispo hidden"></div>
       <label class="cs-lbl">Joueurs <span id="c-count" class="muted"></span></label>
       <input id="c-search" class="c-search" type="text" placeholder="Rechercher un joueur (nom, prénom)…" autocomplete="off" />
       <div id="c-children" class="chip-select"></div>
