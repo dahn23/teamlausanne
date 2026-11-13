@@ -6579,3 +6579,52 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   .disc-wrap{grid-template-columns:1fr}
   .disc-liste{max-height:46vh}
 }
+
+/* ---- « Je viens de l'ajouter » (13.11.2026) -------------------------------
+   Enregistrer une ligne du Calendrier ou une publication du Social Media
+   Planner la fait maintenant apparaitre en surbrillance, le temps de la
+   reperer parmi les autres. Deux secondes et demie, puis la classe tombe.
+
+   Sur box-shadow et outline UNIQUEMENT, jamais sur border ni margin : ces
+   puces vivent dans des cases de calendrier calibrees au pixel, et un
+   contour qui prend de la place ferait sauter la grille le temps du clignot.
+   Le mint sert de couleur de signal : il ne veut rien dire d'autre ici, alors
+   que le bleu porte deja le statut et le pilier. */
+@keyframes uiNeuf{
+  0%   {box-shadow:0 0 0 0 rgba(178,253,19,.95); transform:scale(1)}
+  12%  {box-shadow:0 0 0 4px rgba(178,253,19,.95); transform:scale(1.04)}
+  30%  {box-shadow:0 0 0 3px rgba(178,253,19,.8);  transform:scale(1)}
+  60%  {box-shadow:0 0 0 4px rgba(178,253,19,.6)}
+  100% {box-shadow:0 0 0 0 rgba(178,253,19,0)}
+}
+.ui-neuf{
+  animation:uiNeuf 2.4s ease-out 1;
+  outline:2px solid var(--fluo); outline-offset:1px;
+  /* Au-dessus des puces voisines : l'anneau ne doit pas passer dessous. */
+  position:relative; z-index:3;
+}
+/* Sans animation, on garde l'anneau : c'est lui qui porte l'information,
+   le clignotement n'en est que l'accent. */
+@media(prefers-reduced-motion:reduce){ .ui-neuf{animation:none} }
+
+/* ---- Social Media Planner : le bac « Sans date » -------------------------
+   Une publication sans date de parution n'a pas de case dans la grille du
+   mois : elle existait en base et nulle part a l'ecran, alors que c'est la
+   vue qui s'ouvre par defaut. Elle se range donc ici, au-dessus du mois,
+   d'ou elle se glisse sur un jour pour etre programmee. */
+.soc-sansdate{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;
+  background:#f4f6fb;border:1px dashed var(--line);border-radius:12px;
+  padding:9px 11px;margin-bottom:10px}
+.soc-sansdate-t{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;
+  font-size:.86rem;color:var(--ink)}
+/* La pastille de comptage reprend celle des colonnes du tableau, qui tire sa
+   couleur de --sc : ici il n'y a pas de statut, on la fixe donc au bleu. */
+.soc-sansdate-t .soc-col-n{--sc:var(--muted);margin-left:0}
+.soc-sansdate-l{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 260px;min-width:0}
+/* Dans le bac les puces se mettent a leur largeur, pas a 100 % comme dans
+   une case de jour, sinon chacune prendrait une ligne entiere. */
+.soc-sansdate-l .soc-puce{width:auto;max-width:230px}
+.soc-sansdate-a{flex:0 0 auto;font-size:.76rem}
+@media(max-width:760px){
+  .soc-sansdate-a{display:none}
+}

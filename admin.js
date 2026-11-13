@@ -1880,6 +1880,40 @@ function renderRows() {
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+/* ---------- « Je viens de l'ajouter » (13.11.2026) ----------
+   Enregistrer ne suffisait pas : il fallait VOIR la ligne arriver. Deux choses
+   manquaient. D'abord la vue restait sur la période affichée — une publication
+   datée du 1er décembre, créée en regardant novembre, partait bien en base et
+   nulle part à l'écran. C'est arrivé deux fois le 12.11 (« Calendrier de
+   l'avent », « fin du calendrier de l'avent ») : rien n'était perdu, mais rien
+   ne se voyait, et recharger la page n'y changeait rien puisqu'elle rouvre sur
+   le mois en cours. Ensuite, même au bon mois, rien ne distinguait la nouvelle
+   venue des trente autres.
+
+   Donc deux gestes, et dans cet ordre : on amène la vue là où la chose vit
+   (calAllerVers / socAllerVers), puis on la fait apparaître en surbrillance.
+   Le drapeau est posé AVANT le rendu et consommé PAR le rendu : les grilles se
+   redessinent entièrement, une classe posée avant serait effacée. */
+let uiSurligne = null;
+
+const uiFaireApparaitre = (id) => { uiSurligne = id || null; };
+
+// Appelée à la fin d'un rendu de grille. Sans drapeau, elle ne fait rien ; si
+// l'élément n'est pas dans CETTE vue (une puce sans date en vue Grille, par
+// exemple), elle ne fait rien non plus — et le drapeau est consommé, pour que
+// la vue suivante n'hérite pas d'un surlignage qui ne la concerne pas.
+function uiAppliquerSurlignage(zone) {
+  if (!uiSurligne || !zone) return;
+  const el = zone.querySelector('[data-ev="' + uiSurligne + '"],[data-post="' + uiSurligne + '"]');
+  uiSurligne = null;
+  if (!el) return;
+  el.classList.add("ui-neuf");
+  // « nearest » et non « center » : sur une grille de mois, centrer la case
+  // fait sauter toute la page alors qu'elle est déjà sous les yeux.
+  try { el.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (_e) { /* vieux navigateur */ }
+  setTimeout(() => el.classList.remove("ui-neuf"), 2400);
+}
+
 // Pastille ronde du répertoire : la photo si la fiche en a une, sinon les initiales.
 // « loading=lazy » n'est pas un détail : le répertoire passe 1 000 fiches, et sans lui
 // le navigateur téléchargerait mille photos d'un coup à chaque ouverture de l'onglet.
@@ -3262,6 +3296,7 @@ async function calRenderMois() {
   // Cliquer un jour vide ouvre la création sur ce jour.
   z.querySelectorAll(".cal-jour").forEach((c) =>
     c.addEventListener("click", () => calOuvrir(null, "evenement", c.dataset.jour, c.dataset.jour)));
+  uiAppliquerSurlignage(z);
 }
 
 // --- Vue année ---
@@ -3464,6 +3499,9 @@ async function calRenderAnnee() {
   await calChargerAnnee();
   calRenderFiltres();
   calDessinerAnnee();
+  // Les cases de l'annee ne portent pas d'id : rien a surligner ici, mais le
+  // drapeau doit tomber pour ne pas resservir dans une autre vue.
+  uiAppliquerSurlignage($("cal-annee"));
 }
 
 function calRenderSemaines() {
@@ -3501,6 +3539,7 @@ function calRenderSemaines() {
     b.addEventListener("click", () => calOuvrirId(b.dataset.ev)));
   z.querySelectorAll(".cal-add").forEach((b) =>
     b.addEventListener("click", () => calOuvrir(null, "evenement", b.dataset.sem)));
+  uiAppliquerSurlignage(z);
 }
 
 // Qui peut modifier une ligne du calendrier. Copie fidèle de la policy
@@ -3822,12 +3861,52 @@ async function calEnregistrer(e) {
   if (kind === "vacances") row.status = canCalValider() ? "valide" : "demande";
   if (kind === "absence")  row.status = "valide";
   const id = $("cal-id").value;
-  const { error } = id
-    ? await sb.from("cal_events").update(row).eq("id", id)
-    : await sb.from("cal_events").insert(row);
+  // On redemande la ligne enregistrée : il faut sa date pour savoir s'il faut
+  // déplacer la vue, et son id pour la montrer. Au passage, « 0 ligne » cesse
+  // d'être silencieux — une modification refusée par la policy cal_modif se
+  // lisait jusqu'ici comme un succès.
+  const { data: ligne, error } = id
+    ? await sb.from("cal_events").update(row).eq("id", id).select("id,start_date,end_date").maybeSingle()
+    : await sb.from("cal_events").insert(row).select("id,start_date,end_date").maybeSingle();
   if (error) { err.textContent = error.message; err.hidden = false; return; }
+  if (!ligne) {
+    err.textContent = "Rien n'a été enregistré : vous n'avez pas le droit de modifier cette ligne.";
+    err.hidden = false; return;
+  }
   $("cal-modal").classList.add("hidden");
+  calAllerVers(ligne);
+  uiFaireApparaitre(ligne.id);
   loadCalendrier();
+}
+
+// Amener la vue sur une ligne qu'on vient d'enregistrer, si elle tombe hors de
+// ce qu'on regarde. Sans cela, créer un événement de décembre depuis novembre
+// le faisait disparaître.
+function calAllerVers(ev) {
+  if (!ev?.start_date) return;
+  const fin = ev.end_date || ev.start_date;
+  if (calVue === "mois") {
+    // La grille du mois déborde sur les mois voisins : on ne bouge que si la
+    // ligne n'est visible nulle part dedans.
+    const jours = calGrille(calMois);
+    const d0 = calISO(jours[0]), d1 = calISO(jours[jours.length - 1]);
+    if (fin < d0 || ev.start_date > d1) {
+      const d = new Date(ev.start_date + "T00:00:00");
+      calMois = new Date(d.getFullYear(), d.getMonth(), 1);
+    }
+    return;
+  }
+  if (calVue === "annee") {
+    // La vue année montre une saison d'août à juillet.
+    const d = new Date(ev.start_date + "T00:00:00");
+    calAn = d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear() - 1;
+    return;
+  }
+  // Vue liste : on ÉLARGIT les bornes au lieu de déplacer la fenêtre. La
+  // déplacer ferait perdre de vue le reste de la saison, qu'on était en train
+  // de lire.
+  if (ev.start_date < $("cal-du").value) $("cal-du").value = ev.start_date;
+  if (fin > $("cal-au").value) $("cal-au").value = fin;
 }
 
 async function calSupprimer() {
@@ -23539,10 +23618,12 @@ function socRendre() {
   $("soc-rushes").classList.toggle("hidden", socVue !== "rushes");
   // Rushes : ni période ni filtres de publication.
   document.querySelector("#view-social .cal-nav")?.classList.toggle("hidden", socVue === "rushes");
-  if (socVue === "rushes") { socRendreRushes(); return; }
+  if (socVue === "rushes") { socRendreRushes(); uiAppliquerSurlignage($("soc-rushes")); return; }
   if (socVue === "mois") socRendreMois();
   else if (socVue === "tableau") socRendreTableau();
-  else socRendreGrille();
+  // Idem pour la grille Instagram, qui ne montre que les publications datees
+  // ET sur Instagram : le drapeau y tombe sans rien trouver, et ne resservira pas.
+  else socRendreGrille().then(() => uiAppliquerSurlignage($("soc-grille")));
 }
 
 // ---- Vue calendrier ----
@@ -23561,8 +23642,20 @@ async function socRendreMois() {
   const dans = (x, j) => j >= x.start_date && j <= x.end_date;
   const posts = socFiltrees();
   const auj = socISO(new Date());
+  // Une publication sans date de parution n'a pas de case : elle existait en
+  // base et nulle part à l'écran, alors que la vue Calendrier est celle qui
+  // s'ouvre par défaut. On la pose donc au-dessus de la grille, d'où elle se
+  // glisse sur un jour — socBrancherGlisser rend toute .soc-puce déplaçable.
+  const sansDate = posts.filter((p) => !p.date_publication);
 
-  z.innerHTML = `<div class="cal-grille">`
+  z.innerHTML = (sansDate.length
+      ? `<div class="soc-sansdate">
+           <b class="soc-sansdate-t">Sans date <span class="soc-col-n">${sansDate.length}</span></b>
+           <span class="soc-sansdate-l">${sansDate.map((p) => socPuce(p)).join("")}</span>
+           <span class="soc-sansdate-a muted">glissez-les sur un jour pour les programmer</span>
+         </div>`
+      : "")
+    + `<div class="cal-grille">`
     + CAL_JOURS.map((j) => `<div class="cal-entete">${j}</div>`).join("")
     + jours.map((d) => {
         const j = socISO(d);
@@ -23581,6 +23674,7 @@ async function socRendreMois() {
     + `</div>`;
   socBrancherPuces(z);
   socBrancherGlisser(z);
+  uiAppliquerSurlignage(z);
 }
 
 // Une puce : la couleur dit le pilier, les pastilles les canaux, le liseré de
@@ -23613,6 +23707,7 @@ function socRendreTableau() {
         : '<p class="soc-col-vide">—</p>'}</div></section>`;
   }).join("")}</div>`;
   socBrancherPuces($("soc-tableau"));
+  uiAppliquerSurlignage($("soc-tableau"));
 }
 
 function socCarte(p) {
@@ -23880,11 +23975,39 @@ async function socEnregistrer(silencieux) {
   }
   if (!silencieux) {
     $("soc-modal").classList.add("hidden");
-    loadSocial();
+    socAllerVers(row.date_publication);
+    uiFaireApparaitre(socEditId);
+    await socRafraichir();
   } else {
     $("soc-etat").textContent = "Brouillon enregistré.";
   }
   return socEditId;
+}
+
+// Amener la vue sur la publication qu'on vient d'enregistrer. Sans date, il
+// n'y a nulle part où aller : elle se range dans le bac « Sans date » de la
+// vue Calendrier, qui existe pour cela.
+function socAllerVers(iso) {
+  if (!iso || socVue !== "mois") return;
+  const jours = calGrille(socMois);
+  const d0 = socISO(jours[0]), d1 = socISO(jours[jours.length - 1]);
+  if (iso < d0 || iso > d1) {
+    const d = new Date(iso + "T00:00:00");
+    socMois = new Date(d.getFullYear(), d.getMonth(), 1);
+  }
+}
+
+// Recharger les PUBLICATIONS seules, puis redessiner. Les piliers, les
+// étiquettes, les membres et le mode d'approbation ne changent pas parce qu'on
+// vient d'écrire un post : loadSocial() en redemandait cinq jeux à chaque
+// enregistrement, et ce temps mort est exactement ce qu'on ressent comme
+// « il faut recharger la page ».
+async function socRafraichir() {
+  const { data, error } = await sb.from("social_posts")
+    .select("*, social_post_tags(tag_id)").order("date_publication", { nullsFirst: false });
+  if (!error) socPosts = data || [];
+  socRendre();
+  socCouverture();
 }
 
 async function socSupprimer() {

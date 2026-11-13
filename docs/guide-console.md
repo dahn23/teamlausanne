@@ -749,6 +749,16 @@ absences.
    d'essai**, Session de test tennis, Camp, Fermeture, Vacances, Absence.
 3. « Enregistrer ».
 
+La ligne apparaît **tout de suite**, entourée de vert le temps de la repérer.
+Pas besoin de recharger la page.
+
+Si la date tombe **hors de ce qu'on regarde**, la vue s'y rend d'elle-même :
+un événement de février enregistré depuis novembre amène sur février. En vue
+**Liste**, les bornes s'élargissent au lieu de bouger, pour ne pas perdre de
+vue le reste de la saison. Auparavant la ligne partait bien en base, mais
+restait invisible — et recharger la page n'y changeait rien, puisqu'elle
+rouvre sur le mois en cours.
+
 Les **cours d'essai** ont leur propre type parce qu'il y en a beaucoup :
 posés en « Événement », ils se perdaient parmi les réunions. Ils sont
 **internes** comme le reste par défaut, ont leur couleur (turquoise) et se
@@ -1073,6 +1083,13 @@ répondra qu'elle ne sait pas, et la question remontera dans
 - **Social Media Planner** — « ＋ Nouvelle publication », vues « Calendrier »,
   « Tableau », « Grille », « Rushes ». Un accord écrit est obligatoire pour
   passer en « Programmé » : beaucoup des personnes filmées sont mineures.
+  - Une publication enregistrée apparaît **tout de suite**, entourée de vert le
+    temps de la repérer — sans recharger la page. Si sa date de parution tombe
+    hors du mois affiché, la vue s'y rend d'elle-même.
+  - **Sans date de parution**, une publication n'a pas de case dans le mois :
+    elle se range dans le bac **« Sans date »**, au-dessus de la grille, d'où
+    on la **glisse sur un jour** pour la programmer. Avant, elle existait en
+    base et nulle part à l'écran.
 - **Assistant** — le bot du **site public**, à ne pas confondre avec l'Aide.
   Sous-onglets « Statistiques », « Conversations », « Consignes », « Tester ».
 - **Saison hiver**, **Casiers**, **Last scores**, **Anniversaires** — écrans
