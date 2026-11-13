@@ -1858,6 +1858,13 @@ function renderRows() {
   for (const p of rows) {
     const emails = [p.email, ...(p.emails || [])].filter(Boolean);
     const phones = [p.phone, ...(p.phones || [])].filter(Boolean);
+    // Filière : rien à charger de plus — loadPeople a déjà versé dans
+    // peopleRoles les rôles de la fiche ET les rôles saisonniers de la saison
+    // en cours (role_periods). On filtre dans l'ordre de SEASONAL_JUNIORS, qui
+    // est celui de la progression (Kids Tennis → … → Pro) : la colonne se lit
+    // alors toujours dans le même sens, même quand quelqu'un en cumule deux.
+    const roles = peopleRoles[p.id] || [];
+    const filieres = SEASONAL_JUNIORS.filter((r) => roles.includes(r));
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="rep-av-c">${avatarHtml(p)}</td>
@@ -1865,6 +1872,7 @@ function renderRows() {
       <td>${esc(p.first_name)}</td>
       <td>${esc(emails[0] || "")}${emails.length > 1 ? ` <span class="muted">+${emails.length - 1}</span>` : ""}</td>
       <td>${esc(phones[0] || "")}${phones.length > 1 ? ` <span class="muted">+${phones.length - 1}</span>` : ""}</td>
+      <td class="role-cell">${filieres.map((r) => `<span class="role-badge">${esc(roleLabel(r))}</span>`).join("")}</td>
       <td>${frDate(p.birthdate)}</td>`;
     const pastille = tr.querySelector(".rep-av.has-photo");
     if (pastille) {

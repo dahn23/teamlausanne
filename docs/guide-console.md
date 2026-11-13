@@ -711,6 +711,26 @@ personne si sa fiche en a une, sinon ses initiales.
   Pour ajouter la photo, ouvrir la fiche et cliquer « Prendre / choisir une
   photo ».
 
+### La colonne « Filière »
+
+Entre « Téléphone » et « Naissance ». Elle dit dans quel groupe se trouve la
+personne **cette saison** : Kids Tennis, Club, Compétition, Performance,
+Sport-études, Pro U18, Pro, Privé.
+
+- Quelqu'un qui en cumule deux les voit toutes les deux, toujours rangées
+  dans l'ordre de la progression (Compétition avant Pro, jamais l'inverse).
+- La case est **vide** pour qui n'a pas de filière : le staff, les parents,
+  les clients. Ce n'est pas un oubli.
+- Des rôles de saison, seule la **saison en cours** compte. Pour les
+  précédentes, ouvrir la fiche et son onglet « Saisons ».
+
+La colonne ne connaît rien de plus que la liste : elle réunit l'étiquette
+posée sur la fiche et le rôle de filière de la saison, exactement comme le
+font déjà les boutons « Filtrer ». Cliquer « Compétition » donne donc les
+lignes marquées Compétition, sans surprise dans un sens ni dans l'autre. Ce
+qui n'est pas une filière — « Membre », « GameZone », « Coach » — reste dans
+les filtres mais ne s'affiche pas dans cette colonne.
+
 ### Bloc « Mon espace » — accès et usage
 
 En bas de la fiche, au-dessus des boutons. Une ligne par adresse e-mail
