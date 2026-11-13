@@ -1863,6 +1863,12 @@ function renderRows() {
     // en cours (role_periods). On filtre dans l'ordre de SEASONAL_JUNIORS, qui
     // est celui de la progression (Kids Tennis → … → Pro) : la colonne se lit
     // alors toujours dans le même sens, même quand quelqu'un en cumule deux.
+    // ⚠ La cellule n'a AUCUNE classe, et surtout pas « role-cell » : cette
+    // classe-là porte un display:flex (écrit pour la matrice des accès). Un
+    // <td> en flex n'est plus une cellule de tableau — il sort de la ligne, et
+    // les filets de la colonne se décalent d'une demi-ligne par rapport aux
+    // autres. Les pastilles sont des inline-block : elles s'alignent et
+    // reviennent à la ligne toutes seules dans une cellule ordinaire.
     const roles = peopleRoles[p.id] || [];
     const filieres = SEASONAL_JUNIORS.filter((r) => roles.includes(r));
     const tr = document.createElement("tr");
@@ -1872,7 +1878,7 @@ function renderRows() {
       <td>${esc(p.first_name)}</td>
       <td>${esc(emails[0] || "")}${emails.length > 1 ? ` <span class="muted">+${emails.length - 1}</span>` : ""}</td>
       <td>${esc(phones[0] || "")}${phones.length > 1 ? ` <span class="muted">+${phones.length - 1}</span>` : ""}</td>
-      <td class="role-cell">${filieres.map((r) => `<span class="role-badge">${esc(roleLabel(r))}</span>`).join("")}</td>
+      <td>${filieres.map((r) => `<span class="role-badge">${esc(roleLabel(r))}</span>`).join("")}</td>
       <td>${frDate(p.birthdate)}</td>`;
     const pastille = tr.querySelector(".rep-av.has-photo");
     if (pastille) {
@@ -16705,11 +16711,15 @@ function renderStageList() {
   $("stg-rows").innerHTML = list.map((s) => {
     const days = stgDays(s.start_date, s.end_date);
     const dates = s.start_date === s.end_date ? frDate(s.start_date) : `${frDate(s.start_date)} → ${frDate(s.end_date)}`;
+    // La cellule des catégories n'a pas de classe : « role-cell » porte un
+    // display:flex (écrit pour la matrice des accès) qui, sur un <td>, le sort
+    // de sa ligne et décale les filets de la colonne. Même piège qu'au
+    // Répertoire — voir renderRows.
     return `<tr class="stg-row" data-id="${s.id}">
       <td><b>${esc(s.title || "Stage")}</b></td>
       <td>${dates}</td>
       <td>${jours(days)}${days < 5 ? " <span class='muted'>(pro-rata)</span>" : ""}</td>
-      <td class="role-cell">${stgCatBadges(s.id)}</td>
+      <td>${stgCatBadges(s.id)}</td>
       <td>${stgCounts[s.id] || 0}</td>
       <td class="stg-vis-cell">
         <select class="stg-vis" data-id="${s.id}">
