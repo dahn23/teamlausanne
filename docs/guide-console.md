@@ -298,6 +298,25 @@ L'appel d'un cours **s'ouvre 25 minutes avant le début** et reste ouvert deux
 semaines. Avant cette fenêtre, les pastilles ne réagissent pas : ce n'est pas
 une panne.
 
+Un coach a **trois boutons** : « Présent », « Absent » et « Non dispo ».
+
+« Non dispo » est le cas courant quand quelqu'un a pris le cours à sa place :
+un coach absent est presque toujours remplacé, et c'est à l'appel qu'on s'en
+aperçoit. Il écrit la **disponibilité**, pas l'appel — le coach reste au
+planning, l'heure ne lui est pas comptée, et celui qui a assuré est payé
+parce qu'il est coché comme coach du cours.
+
+Garder « Absent » pour le vrai lapin : personne n'a repris le cours.
+
+Deux détails utiles :
+
+- Le bouton n'apparaît que pour **head coach, admin, superadmin et
+  secrétariat** — ce sont eux qui peuvent modifier les coachs d'un cours.
+- Marquer « Présent » ou « Absent » quelqu'un de non disponible le **rend à
+  nouveau disponible** : s'il est là, l'heure doit lui revenir. Et un
+  « Absent » posé avant ne disparaît pas, il est seulement masqué tant que la
+  personne est non disponible ; il réapparaît si on la rend disponible.
+
 Qui peut marquer quoi :
 
 - **head coach, admin, superadmin** : tout, tout le temps.

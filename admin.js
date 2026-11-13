@@ -5710,27 +5710,43 @@ async function openAttendance(courseId) {
   attCourse = course;
   const [parts, coaches, att, vals] = await Promise.all([
     sb.from("course_participants").select("child_person_id").eq("course_id", courseId).then((r) => (r.data || []).map((x) => x.child_person_id)),
-    sb.from("course_coaches").select("coach_person_id").eq("course_id", courseId).then((r) => (r.data || []).map((x) => x.coach_person_id)),
+    sb.from("course_coaches").select("coach_person_id,statut").eq("course_id", courseId).then((r) => r.data || []),
     sb.from("attendance").select("*").eq("course_id", courseId).then((r) => r.data || []),
     sb.from("course_validation").select("coach_person_id").eq("course_id", courseId).then((r) => (r.data || []).map((x) => x.coach_person_id)),
   ]);
   const statusOf = (pid) => att.find((a) => a.person_id === pid)?.status || null;
   const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : "—"; };
+  /* Un coach absent est presque toujours REMPLACÉ : c'est là qu'on le
+     constate, donc c'est là qu'on doit pouvoir le dire. « Non dispo » écrit
+     la disponibilité (course_coaches.statut), pas l'appel — d'où un bouton à
+     part, réservé à ceux qui ont le droit d'y toucher (même règle que la
+     policy cc_write : head/admin/secrétariat). */
+  const coachIdsA = coaches.map((x) => x.coach_person_id);
+  const indispoA = new Set(coaches.filter((x) => x.statut === "indispo").map((x) => x.coach_person_id));
+  attIndispo = indispoA;
 
   $("att-title").textContent = `Présences — ${course.title || "cours"} (${course.start_time.slice(0, 5)})`;
   const allKids = parts.length ? parts.every((pid) => statusOf(pid)) : true;
   $("att-note").textContent = isHeadUser
-    ? "Cliquez pour marquer présent / absent / en retard."
+    ? "Cliquez pour marquer présent / absent / en retard. Pour un coach remplacé, « non dispo » : il reste au planning, et l'heure ne lui est pas comptée."
     : "Appel ouvert de 25 min avant le début à 2 semaines après. Déclare-toi présent une fois tous les jeunes appelés.";
 
   $("att-children").innerHTML = parts.length ? parts.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), false)).join("") : '<p class="muted" style="font-size:.85rem">Aucun enfant.</p>';
   // Le coach ne peut se déclarer présent / en retard que si tous les jeunes ont un statut (il peut toujours se mettre absent).
-  $("att-coaches").innerHTML = coaches.length ? coaches.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), true, pid === myPersonId && !isHeadUser && !allKids)).join("") : '<p class="muted" style="font-size:.85rem">Aucun coach.</p>';
+  $("att-coaches").innerHTML = coachIdsA.length
+    ? coachIdsA.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), true,
+        pid === myPersonId && !isHeadUser && !allKids, indispoA.has(pid))).join("")
+    : '<p class="muted" style="font-size:.85rem">Aucun coach.</p>';
   $("att-modal").querySelectorAll(".att-set").forEach((b) =>
-    b.addEventListener("click", () => markAtt(b.dataset.person, b.dataset.status, b.dataset.coach === "1")));
+    b.addEventListener("click", () => {
+      if (b.dataset.status === "indispo") return basculerIndispo(b.dataset.person, b.dataset.on === "1");
+      markAtt(b.dataset.person, b.dataset.status, b.dataset.coach === "1", b.dataset.etait === "1");
+    }));
   const myPresent = !!att.find((a) => a.person_id === myPersonId && a.is_coach && a.status === "present");
-  const anyCoachPresent = coaches.some((pid) => att.some((a) => a.person_id === pid && a.is_coach && a.status === "present"));
-  renderAttValidate(courseId, coaches, myPresent, anyCoachPresent);
+  // Un coach non disponible ne « tient » pas l'heure : il n'est pas là.
+  const anyCoachPresent = coachIdsA.some((pid) => !indispoA.has(pid)
+    && att.some((a) => a.person_id === pid && a.is_coach && a.status === "present"));
+  renderAttValidate(courseId, coachIdsA, myPresent, anyCoachPresent);
   $("att-modal").classList.remove("hidden");
 }
 
@@ -5754,18 +5770,57 @@ async function toggleCourseValidation(courseId, mine) {
   openAttendance(courseId);
 }
 
-function attRow(pid, name, status, isCoach, lockPresent) {
+function attRow(pid, name, status, isCoach, lockPresent, indispo) {
   // Coach : pas de « en retard » — seulement présent / absent.
   const list = isCoach ? ATT_STATUS.filter(([s]) => s !== "late") : ATT_STATUS;
-  const btns = list.map(([s, l]) => {
+  let btns = list.map(([s, l]) => {
     const dis = lockPresent && s !== "absent"; // « présent » bloqué tant que les jeunes ne sont pas tous pointés
-    return `<button type="button" class="att-set st-${s} ${status === s ? "on" : ""}" ${dis ? "disabled" : ""} data-person="${pid}" data-status="${s}" data-coach="${isCoach ? 1 : 0}">${l}</button>`;
+    // Non disponible : c'est LUI qui est allumé, pas l'appel. Un vieux
+    // « absent » reste en base mais ne s'affiche plus — il reviendra si on
+    // rend le coach disponible, ce qui est le comportement attendu : on a
+    // changé sa disponibilité, pas l'appel.
+    return `<button type="button" class="att-set st-${s} ${!indispo && status === s ? "on" : ""}" ${dis ? "disabled" : ""} data-person="${pid}" data-status="${s}" data-coach="${isCoach ? 1 : 0}" data-etait="${indispo ? 1 : 0}">${l}</button>`;
   }).join("");
+  // Troisième choix, coachs seulement, et seulement pour qui peut l'écrire.
+  if (isCoach && isCourseMgr) {
+    btns += `<button type="button" class="att-set st-indispo ${indispo ? "on" : ""}"
+      data-person="${pid}" data-status="indispo" data-coach="1" data-on="${indispo ? 1 : 0}"
+      title="${indispo
+        ? "Le rendre à nouveau disponible pour cette séance"
+        : "Remplacé pour cette séance : il reste au planning, mais l'heure ne lui est pas comptée"}">Non dispo</button>`;
+  }
   const hint = lockPresent ? `<span class="att-hint muted">Marque d'abord tous les jeunes pour pouvoir te déclarer présent.</span>` : "";
   return `<div class="att-row"><span class="att-name">${esc(name)}</span><div class="att-btns">${btns}</div>${hint}</div>`;
 }
 
-async function markAtt(personId, status, isCoach) {
+// Qui est non disponible sur le cours ouvert dans l'appel.
+let attIndispo = new Set();
+
+// Le bouton « Non dispo » de l'appel. Il n'écrit PAS dans attendance : la
+// disponibilité est une autre donnée, dans course_coaches. On ne touche pas
+// non plus à l'appel déjà fait — rendre le coach disponible le ferait
+// réapparaître tel quel, et c'est voulu.
+async function basculerIndispo(personId, dejaIndispo) {
+  const vers = dejaIndispo ? "prevu" : "indispo";
+  const maj = { statut: vers };
+  if (vers === "indispo") { maj.statut_par = meId; maj.statut_le = new Date().toISOString(); }
+  else { maj.motif = null; maj.remplace_par_person_id = null; maj.statut_par = null; maj.statut_le = null; }
+  const { error } = await sb.from("course_coaches").update(maj)
+    .eq("course_id", attCourse.id).eq("coach_person_id", personId);
+  if (error) { uiAlert("Changement impossible : " + error.message); return; }
+  openAttendance(attCourse.id);
+}
+
+async function markAtt(personId, status, isCoach, etaitIndispo) {
+  // Marquer présent ou absent quelqu'un de « non dispo » veut dire qu'il
+  // était finalement là : on le remet disponible, sinon l'heure ne lui serait
+  // pas comptée alors qu'on vient de le pointer présent.
+  if (etaitIndispo && isCourseMgr) {
+    const { error: e0 } = await sb.from("course_coaches")
+      .update({ statut: "prevu", motif: null, remplace_par_person_id: null, statut_par: null, statut_le: null })
+      .eq("course_id", attCourse.id).eq("coach_person_id", personId);
+    if (e0) { uiAlert("Changement impossible : " + e0.message); return; }
+  }
   const { error } = await sb.rpc("mark_attendance", {
     p_course: attCourse.id, p_person: personId, p_status: status, p_is_coach: isCoach,
   });

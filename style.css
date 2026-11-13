@@ -6689,3 +6689,13 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
   .c-indispo-r{width:100%}
   .c-indispo-r select{flex:1 1 auto;min-width:0}
 }
+
+/* Le troisieme bouton de l'appel, pour les coachs : « Non dispo » (13.11.2026).
+   Un coach absent est presque toujours REMPLACE, et c'est a l'appel qu'on le
+   constate — donc c'est la qu'on doit pouvoir le dire. Gris ardoise, jamais le
+   rouge : le rouge dit « n'est pas venu », celui-ci dit « ne devait pas venir,
+   quelqu'un a pris le cours ». Il ecrit la disponibilite, pas l'appel. */
+.att-set.st-indispo.on{background:var(--muted);color:#fff;border-color:var(--muted);
+  background-image:repeating-linear-gradient(135deg,
+    rgba(255,255,255,.26) 0 4px, rgba(255,255,255,0) 4px 8px)}
+.att-set.st-indispo:not(.on){font-style:italic}
