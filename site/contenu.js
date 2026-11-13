@@ -65,6 +65,37 @@ coachs:
       "Head coach des groupes Sport-études & Pro depuis plus de deux ans.",
     ]},
 
+  // Arrivé à l'automne 2026, juste après Mariano : même filière, même niveau
+  // de responsabilité, d'où la place en deuxième position. Les faits viennent
+  // de l'entretien publié dans « Rencontre avec Mark » — rien n'est ajouté
+  // ici qui ne soit dans l'article.
+  { slug: "mark-gattiker", role: "Senior Coach", nom: "Mark Gattiker",
+    resume: "Formé en Argentine et passé par le circuit professionnel, il encadre les groupes Sport-études et Pro avec exigence, précision et le goût du détail.",
+    tags: ["Sport-études & Pro"],
+    bio: [
+      "Né en Suisse et formé en Argentine, Mark Gattiker a grandi dans une famille de tennis : son père, Alejandro Gattiker, a été joueur professionnel, entraîneur sur le circuit, puis capitaine de l'équipe d'Argentine de Coupe Davis.",
+      "Joueur, il s'est entraîné au centre national de la Fédération argentine avant de disputer les circuits Futures et Satellites, puis de rejoindre l'University of South Florida en NCAA Division I. Après douze ans passés dans la finance, il est revenu à l'entraînement en 2020 et n'a plus quitté le court.",
+      "Intense, détaillé, analytique : ce sont les trois mots par lesquels il résume sa façon de coacher. Une séance doit être physique et claire, et le joueur doit savoir ce qu'il a travaillé et pourquoi.",
+    ],
+    citation: "Chacun a plus à donner sur le court, simplement on ne le sait pas toujours. Quand un joueur réalise de quoi il est capable, c'est très gratifiant pour moi.",
+    classement: ["Meilleur classement : N3 en Suisse.", "Points ATP en double."],
+    formations: [
+      "Diplôme international PTR : adultes, enfants et compétition.",
+      "Entraîneur C en Suisse.",
+      // Même tournure que pour Mariano, Loris et Séline : ce qui n'est pas
+      // acquis ne se présente pas comme un diplôme obtenu.
+      "Entraîneur B : formation à venir.",
+      "Bachelor en Business Management, University of South Florida.",
+    ],
+    parcours: [
+      "Formé au centre national de la Fédération argentine de tennis.",
+      "Carrière professionnelle sur les circuits Futures et Satellites.",
+      "Bourse complète à l'University of South Florida, à Tampa, en NCAA Division I.",
+      "Quatre ans auprès des juniors compétition du TC Stade Lausanne, dont les équipes ont été sacrées championnes de Suisse U15 et vice-championnes U12.",
+      "Une année d'entraînement aux États-Unis, à l'ElSawy Tennis Academy de Tampa et à TennisPort à New York.",
+      "Encadre les groupes Sport-études et Pro de l'académie.",
+    ]},
+
   { slug: "yann-perez", role: "Coach", nom: "Yann Perez",
     resume: "Coach performance, il associe l'expérience de la compétition à une approche exigeante, intense et respectueuse.",
     tags: ["Sport-études & Pro"],
