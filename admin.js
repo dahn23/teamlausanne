@@ -20199,14 +20199,22 @@ function renderMailBodyEl(m) {
     el.innerHTML = "";
     const f = document.createElement("iframe");
     f.className = "mail-html";
-    f.setAttribute("sandbox", "allow-same-origin allow-popups allow-popups-to-escape-sandbox");
+    // Dans l'app (16.11.2026) : le clic intercepté plus bas ne se déclenche PAS — le cadre n'a pas le droit
+    // d'exécuter de script, et Chrome/WebView ignore alors aussi nos écouteurs posés dedans. Et un lien
+    // « nouvel onglet » n'ouvre rien dans la coquille (pas de fenêtres multiples). Donc, dans l'app, les liens
+    // visent la page entière (_top) : la coquille voit partir vers un site extérieur et le confie au navigateur.
+    const natif = isNativeApp();
+    const cible = natif ? "_top" : "_blank";
+    f.setAttribute("sandbox", "allow-same-origin allow-popups allow-popups-to-escape-sandbox" + (natif ? " allow-top-navigation-by-user-activation" : ""));
     el.appendChild(f);
-    f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>body{font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111;margin:0;word-wrap:break-word;overflow-wrap:anywhere}img{max-width:100%;height:auto}a{color:#123cc4}</style></head><body>${m.body_html}</body></html>`;
+    f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><base target="${cible}"><style>body{font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111;margin:0;word-wrap:break-word;overflow-wrap:anywhere}img{max-width:100%;height:auto}a{color:#123cc4}</style></head><body>${m.body_html}</body></html>`;
     f.addEventListener("load", () => {
       try { const h = f.contentDocument.body.scrollHeight; f.style.height = Math.min(1400, h + 24) + "px"; } catch (_) { f.style.height = "500px"; }
       // Sur téléphone (surtout dans l'app), un lien « nouvel onglet » cliqué DANS le cadre du mail ne faisait rien
       // (Dan, 06.11.2026) : on l'intercepte et on l'ouvre nous-mêmes, hors du cadre.
       try { f.contentDocument.addEventListener("click", mailLinkClick); } catch (_) { /* cadre illisible : liens natifs */ }
+      // Les liens qui imposent leur propre cible (target="_blank" dans le mail) passent outre <base> : on les aligne.
+      try { f.contentDocument.querySelectorAll("a[href]").forEach((a) => { a.target = cible; a.rel = "noopener"; }); } catch (_) { /* idem */ }
     });
   } else {
     el.innerHTML = mailLinkify(m.body_text || m.snippet || "");
