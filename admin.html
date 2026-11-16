@@ -123,7 +123,15 @@
   })();
   </script>
   <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW:",e)})})}</script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+  <!-- Démarrage (16.11.2026) : les modules dont admin.js a besoin sont demandés tout de suite, en
+       parallèle, au lieu d'être découverts l'un après l'autre. Le module Excel (900 Ko) n'est plus
+       chargé à l'ouverture : il vient au moment d'un import ou d'un export (xlsxPret dans admin.js). -->
+  <link rel="modulepreload" href="admin.js" />
+  <link rel="modulepreload" href="common.js" />
+  <link rel="modulepreload" href="config.js" />
+  <link rel="modulepreload" href="pretty-select.js" />
+  <link rel="modulepreload" href="pretty-date.js" />
+  <link rel="modulepreload" href="https://esm.sh/@supabase/supabase-js@2.119.0/es2022/supabase-js.bundle.mjs" crossorigin />
 </head>
 <body>
   <section id="console" class="screen hidden">

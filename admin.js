@@ -111,13 +111,15 @@ if (!session) {
   });
 } else {
   $("who").textContent = session.user.email;
+  // Rôles et statut de responsable demandés ensemble (16.11.2026) plutôt que l'un après l'autre.
+  const pGzMgr = Promise.resolve(sb.rpc("gz_is_manager")).catch(() => ({ data: false }));
   const roles = voirComme(await myRoles());
   meRoles = roles;
   // « Responsable de tournoi » = être nommé responsable d'un tournoi NON clôturé
   // (table gz_managers). Ça ouvre l'accès GameZone (limité à ses tournois),
   // sans rôle app à attribuer : une seule et même notion.
   try {
-    const { data: gzMgr } = await sb.rpc("gz_is_manager");
+    const { data: gzMgr } = await pGzMgr;
     isGzManager = gzMgr === true && !VOIR_ACTIF;
   } catch (_) {}
   $("loader").classList.add("hidden");
@@ -565,8 +567,9 @@ async function init(roles) {
   $("rg-save").addEventListener("click", saveSettings);
   $("gz-mov-add").addEventListener("click", addMovement);
   initNews();
-  await loadSettings();
-  await loadPeople();            // AVANT le 1er showView : sinon la vue par défaut (ex. Études d'un prof) s'affiche avant que `people` soit chargé
+  // Réglages et répertoire en parallèle (16.11.2026) : l'un ne dépend pas de l'autre, et les attendre
+  // l'un après l'autre retardait d'autant l'apparition du menu.
+  await Promise.all([loadSettings(), loadPeople()]);   // AVANT le 1er showView : sinon la vue par défaut (ex. Études d'un prof) s'affiche avant que `people` soit chargé
   applyTabAccess(roles);
   loadMtBookmarklet();
   initResa(roles);
@@ -1612,12 +1615,14 @@ async function fetchAllRows(make) {
   return { data: out, error: null };
 }
 async function loadPeople() {
+  // Fiches et rôles partent tout de suite ; seules les périodes de rôle attendent la liste des saisons.
+  // Le répertoire dépasse 1 000 fiches depuis l'arrivée des joueurs GameZone (db/101) : lecture par pages.
+  const pPeople = fetchAllRows(() => sb.from("people").select("*").order("last_name").order("first_name").order("id"));
+  const pRoles = fetchAllRows(() => sb.from("person_roles").select("person_id,role").order("person_id").order("role"));
   await loadSeasonsList();
   const curIds = [currentSeason("cotisation"), currentSeason("juniors")].filter(Boolean).map((s) => s.id);
-  // Le répertoire dépasse 1 000 fiches depuis l'arrivée des joueurs GameZone (db/101) : lecture par pages.
   const [{ data, error }, { data: pr }, { data: rp }] = await Promise.all([
-    fetchAllRows(() => sb.from("people").select("*").order("last_name").order("first_name").order("id")),
-    fetchAllRows(() => sb.from("person_roles").select("person_id,role").order("person_id").order("role")),
+    pPeople, pRoles,
     curIds.length ? fetchAllRows(() => sb.from("role_periods").select("person_id,role,season_id").in("season_id", curIds).order("person_id").order("role")) : Promise.resolve({ data: [] }),
   ]);
   if (error) { alert("Erreur chargement : " + error.message); return; }
@@ -1738,8 +1743,16 @@ function openImport() {
   importRows = [];
   $("import-modal").classList.remove("hidden");
 }
-function downloadTemplate() {
-  if (!window.XLSX) { alert("Le module Excel n'est pas encore chargé, réessayez dans un instant."); return; }
+// Le module Excel (900 Ko) n'est plus chargé à l'ouverture de la console (16.11.2026) : on le demande
+// au moment d'un import ou d'un export. Renvoie false si le réseau l'a refusé.
+const XLSX_URL = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+async function xlsxPret() {
+  if (window.XLSX) return true;
+  try { await facLoadScript(XLSX_URL); } catch (_) {}
+  return !!window.XLSX;
+}
+async function downloadTemplate() {
+  if (!(await xlsxPret())) { alert("Le module Excel n'a pas pu être chargé, réessayez dans un instant."); return; }
   const example = ["Zoé", "Dupont", "15.03.2014", "F", "zoe@example.com", "079 123 45 67", "", "Ch. du Tennis 1", "1006", "Lausanne", "kidstennis, competition", ""];
   const ws = XLSX.utils.aoa_to_sheet([IMPORT_HEADERS, example]);
   ws["!cols"] = IMPORT_HEADERS.map(() => ({ wch: 16 }));
@@ -1751,7 +1764,7 @@ async function onImportFile(e) {
   const f = e.target.files && e.target.files[0];
   if (!f) return;
   $("import-error").hidden = true;
-  if (!window.XLSX) { $("import-error").textContent = "Module Excel non chargé, réessayez."; $("import-error").hidden = false; return; }
+  if (!(await xlsxPret())) { $("import-error").textContent = "Module Excel non chargé, réessayez."; $("import-error").hidden = false; return; }
   const buf = await f.arrayBuffer();
   let wb;
   try { wb = XLSX.read(buf, { type: "array", cellDates: true }); }
@@ -27097,9 +27110,7 @@ function nfPourExport() {
 async function nfExportXlsx() {
   const d = nfPourExport();
   if (!d.lignes.length) { uiAlert("Aucune dépense à exporter."); return; }
-  if (!window.XLSX) {
-    await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
-  }
+  if (!(await xlsxPret())) { uiAlert("Le module Excel n'a pas pu être chargé, réessayez."); return; }
   const entetes = ["N°", "Date", "N° transaction", "Catégorie", "Note",
                    "Montant CHF", "État", "Justificatif"];
   const etats = { a_valider: "À valider", valide: "Validée", rembourse: "Remboursée" };

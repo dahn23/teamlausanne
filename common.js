@@ -1,5 +1,9 @@
 // Socle commun : client Supabase + helpers d'accès, partagés par toutes les pages.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// Version FIGÉE et en UN SEUL fichier (16.11.2026). « supabase-js@2 » renvoyait vers la dernière version,
+// puis chargeait une dizaine de petits modules l'un après l'autre : 5 allers-retours réseau de plus à
+// chaque ouverture, sensibles surtout au téléphone. Un fichier versionné se garde aussi un an en cache.
+// Pour monter de version : changer le numéro ici ET dans le <link rel="modulepreload"> des pages.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.119.0/es2022/supabase-js.bundle.mjs";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
