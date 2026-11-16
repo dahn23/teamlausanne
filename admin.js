@@ -5245,8 +5245,19 @@ function shiftCs(delta) {
 const personName = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : "—"; };
 
 // Peut-on marquer cette pastille ? (miroir de la RPC mark_attendance)
+// Un senior coach est responsable de SES cours : il y répare l'appel comme un
+// head coach, délai des deux semaines compris. Marquer un collègue présent,
+// c'est valider son heure — rien d'autre ne la valide (db/242). Hors de ses
+// cours, il n'est qu'un coach parmi les autres.
+// ⚠ Pendant EXACT de can_fix_attendance() en base. Si les deux divergent, on
+// obtient le pire des deux : soit des pastilles grises alors que la base
+// accepterait l'écriture, soit un geste proposé que la base refusera.
+const estSeniorCoach = () => hasAny(myAppRoles, ["senior_coach"]);
+const peutReparerAppel = (coachIds) => isHeadUser
+  || (estSeniorCoach() && !!myPersonId && (coachIds || []).includes(myPersonId));
+
 function canMarkBox(course, coachIds, pid, isCoach) {
-  if (isHeadUser) return true;                     // head/admin/superadmin : tout, tout le temps
+  if (peutReparerAppel(coachIds)) return true;     // head/admin/superadmin, et senior coach sur SES cours
   if (!myPersonId || !coachIds.includes(myPersonId)) return false; // doit être coach du cours
   if (isCoach && pid !== myPersonId) return false; // un coach ne marque que sa propre présence
   // Fenêtre : 25 min avant → 2 semaines après. Le coach peut agir sur SA présence à l'avance (absence anticipée).
@@ -5741,15 +5752,24 @@ async function openAttendance(courseId) {
 
   $("att-title").textContent = `Présences — ${course.title || "cours"} (${course.start_time.slice(0, 5)})`;
   const allKids = parts.length ? parts.every((pid) => statusOf(pid)) : true;
+  // Trois publics, trois phrases : celui qui commande tout, le senior coach
+  // sur son propre cours (il peut rattraper un oubli, et c'est le geste qu'il
+  // faut lui nommer), et le coach ordinaire enfermé dans sa fenêtre.
+  const jeRepare = peutReparerAppel(coachIdsA);
   $("att-note").textContent = isHeadUser
     ? "Cliquez pour marquer présent / absent / en retard. Pour un coach remplacé, « non dispo » : il reste au planning, et l'heure ne lui est pas comptée."
+    : jeRepare
+    ? "Votre cours : vous pouvez corriger l'appel de toute l'équipe, même passé les deux semaines. Marquer un collègue présent, c'est valider son heure."
     : "Appel ouvert de 25 min avant le début à 2 semaines après. Déclare-toi présent une fois tous les jeunes appelés.";
 
   $("att-children").innerHTML = parts.length ? parts.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), false)).join("") : '<p class="muted" style="font-size:.85rem">Aucun enfant.</p>';
   // Le coach ne peut se déclarer présent / en retard que si tous les jeunes ont un statut (il peut toujours se mettre absent).
   $("att-coaches").innerHTML = coachIdsA.length
+    // « !jeRepare » et non « !isHeadUser » : la base laisse désormais passer le
+    // senior coach sur son cours, y compris l'ordre « les jeunes d'abord ».
+    // Lui bloquer le bouton ici l'empêcherait de faire ce que la base accepte.
     ? coachIdsA.map((pid) => attRow(pid, nameOf(pid), statusOf(pid), true,
-        pid === myPersonId && !isHeadUser && !allKids, indispoA.has(pid))).join("")
+        pid === myPersonId && !jeRepare && !allKids, indispoA.has(pid))).join("")
     : '<p class="muted" style="font-size:.85rem">Aucun coach.</p>';
   $("att-modal").querySelectorAll(".att-set").forEach((b) =>
     b.addEventListener("click", () => {

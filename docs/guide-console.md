@@ -320,9 +320,29 @@ Deux détails utiles :
 Qui peut marquer quoi :
 
 - **head coach, admin, superadmin** : tout, tout le temps.
+- **un senior coach, sur SES cours** : tout, tout le temps — comme un head
+  coach, mais seulement là où il est lui-même coché comme coach du cours.
+  Ailleurs, c'est un coach comme un autre.
 - **un coach du cours** : les élèves de son cours, dans la fenêtre ; et sa
   propre présence, qu'il peut annoncer à l'avance (absence anticipée).
 - **un coach qui n'est pas sur le cours** : rien.
+
+#### Rattraper un appel oublié (senior coach)
+
+C'est **l'heure qui est en jeu** : une heure n'est comptée que si le coach est
+marqué « Présent ». Un coach qui oublie de se pointer, ou qui s'en aperçoit
+trois semaines plus tard, perd son heure — et il fallait jusqu'ici déranger le
+head coach, pour toute l'académie.
+
+Un **senior coach** répare lui-même l'appel des cours où il est coach : il
+peut marquer un collègue présent, corriger les élèves, et le faire **même
+passé les deux semaines**. Dans la fenêtre d'appel, un bandeau le lui dit.
+
+Ce qu'un senior coach n'a toujours pas :
+
+- le **décompte des heures de toute l'équipe** (il voit les siennes) ;
+- **créer ou déplacer un cours**, et le bouton « Non dispo » ;
+- **Prospects**, le **Dashboard**, les **Stages**, les **salaires**.
 
 Les quatre états sont « Présent », « Absent », « En retard » (élèves) et
 « En attente ».
@@ -774,7 +794,9 @@ Trois marches, et la différence tient en une phrase.
   physique, et **ses** heures à lui.
 - **Senior coach** (depuis le 06.11.2026) : tout cela, **plus** le fil de
   suivi d'un jeune — il écrit dans « Suivi » comme un head coach — plus le
-  Calendrier, les Réservations, les Anniversaires et l'onglet Mental.
+  Calendrier, les Réservations, les Anniversaires et l'onglet Mental. Et
+  depuis le 16.11.2026, il **répare l'appel des cours où il est coach**, sans
+  limite de délai : voir « Rattraper un appel oublié », plus haut.
 - **Head coach** : tout cela, plus le Dashboard, les Stages, **Prospects**
   (la liste de scouting, qui nomme des mineurs) et, dans **Heures**, le
   décompte de **toute** l'équipe.
