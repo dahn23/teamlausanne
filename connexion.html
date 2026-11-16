@@ -7,6 +7,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#123cc4" />
   <title>Connexion — Team Lausanne</title>
+  <!-- Ouverture express (16.11.2026). L'app s'ouvre ici puis repartait vers la console : cette page chargeait
+       d'abord Supabase, relisait la session, les rôles, le statut de responsable… pour finir par la même
+       redirection qu'à chaque fois. On se souvient donc de la destination (tl-landing, posée par
+       landingAfterLogin) et on y part tout de suite, AVANT même les feuilles de style — un script placé après
+       elles attendrait qu'elles soient chargées. La page d'arrivée revérifie tout : session expirée → son
+       formulaire, rôle retiré → Mon espace. Garde-fous : une seule fois par onglet (tl-fast), sinon une
+       session morte ferait des allers-retours sans fin ; jamais avec ?… ou #… (retour Google, liens). -->
+  <script>
+    try {
+      var tlDest = localStorage.getItem("tl-landing");
+      if (tlDest && !location.search && !location.hash && !sessionStorage.getItem("tl-fast")) {
+        for (var j = 0; j < localStorage.length; j++) {
+          var kk = localStorage.key(j);
+          if (/^sb-.+-auth-token$/.test(kk) && localStorage.getItem(kk)) {
+            sessionStorage.setItem("tl-fast", "1");
+            location.replace(tlDest === "staff" && localStorage.getItem("tl-space") !== "espace" ? "/console" : "espace.html");
+            break;
+          }
+        }
+      }
+    } catch (e) {}
+  </script>
   <link rel="preconnect" href="https://use.typekit.net" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Polices de marque : Acumin Pro + Circe (kit Adobe uxl8yzy).

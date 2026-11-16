@@ -42,9 +42,12 @@ export async function isGzManager() {
   try { const { data } = await sb.rpc("gz_is_manager"); return data === true; } catch (_e) { return false; }
 }
 // Destination après connexion, en tenant compte des responsables de tournoi (à utiliser partout à la place de landingFor).
+// Retenu sur l'appareil (tl-landing) pour l'ouverture express de connexion.html.
 export async function landingAfterLogin() {
   const roles = await myRoles();
-  if (hasAny(roles, CONSOLE_ROLES) || await isGzManager()) return lastSpace() === "espace" ? "espace.html" : "/console";
+  const staff = hasAny(roles, CONSOLE_ROLES) || await isGzManager();
+  try { localStorage.setItem("tl-landing", staff ? "staff" : "membre"); } catch (_e) { /* navigation privée */ }
+  if (staff) return lastSpace() === "espace" ? "espace.html" : "/console";
   return "espace.html";
 }
 // Dernier espace choisi via le bouton de bascule Console ⇄ Mon espace (mémorisé sur l'appareil).
