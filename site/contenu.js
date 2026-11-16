@@ -117,6 +117,37 @@ coachs:
       "Stages d'entraînement en Espagne.",
     ]},
 
+  // Pas encore d'entretien : les faits viennent de sa fiche publique GPTCA
+  // (gptcatennis.org/vladimir-stojkovic), et rien n'est ajouté qui n'y soit.
+  // Sa page y donne aussi son adresse e-mail et son numéro de téléphone —
+  // ils n'ont rien à faire sur un site public, ils ne sont pas repris.
+  // Comme pour les autres : on ne nomme pas les joueurs entraînés.
+  { slug: "vladimir-stojkovic", role: "Coach", nom: "Vladimir Stojkovic",
+    resume: "Entraîneur international formé en Serbie, il apporte l'expérience du circuit aux groupes Club, Compétition et Performance.",
+    tags: ["Club", "Compétition", "Performance"],
+    bio: [
+      "Né en Serbie, Vladimir Stojkovic entraîne depuis 2012, d'abord dans son pays puis en Suisse. Junior, il a porté le maillot de l'équipe nationale serbe et figuré parmi les trois meilleurs du pays dans chaque catégorie d'âge, avant de disputer les tournois Futures.",
+      "Il a dirigé plusieurs académies, puis fondé la sienne, VERSUS TEAM, qu'il a menée pendant six ans. Entraîneur international GPTCA de niveau B, il a accompagné des joueurs jusque sur les circuits ATP, WTA et ITF.",
+      "Il a rejoint la Team Lausanne Academy en septembre 2026, où il encadre les groupes Club, Compétition et Performance.",
+    ],
+    classement: [
+      "Meilleur classement : n° 3 au classement senior serbe (2011).",
+      "A disputé des tournois du circuit Futures.",
+    ],
+    formations: [
+      "Entraîneur international GPTCA, niveau B (2020).",
+      "Entraîneur international GPTCA, niveau C (2016).",
+      "Faculté de gestion et de droit, université MB, Belgrade.",
+    ],
+    parcours: [
+      "Équipe nationale junior de Serbie : n° 1 du pays en moins de 14 ans, n° 2 en moins de 16 ans, n° 3 en moins de 18 ans.",
+      "Plus de 80 tournois juniors remportés ; Orange Bowl 2007 à Miami, Winter Cups et European Summer Cups avec la Serbie.",
+      "Entraîneur en Serbie et en Suisse depuis 2012, notamment près de Bâle et dans plusieurs académies serbes.",
+      "Fondateur et head coach de sa propre académie, de 2020 à 2026.",
+      "A accompagné des joueurs classés sur les circuits ATP, WTA et ITF, dont un junior classé n° 20 mondial.",
+      "Parle le serbe, l'anglais, l'allemand et le français.",
+    ]},
+
   { slug: "loris-gander", role: "Coach", nom: "Loris Gander",
     resume: "Joueur de compétition en activité et coach, il partage son expérience des tournois avec patience, enthousiasme et passion.",
     tags: ["Kids Tennis", "Club", "Compétition", "Stages"],
