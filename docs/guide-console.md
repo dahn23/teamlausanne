@@ -338,10 +338,31 @@ Un **senior coach** répare lui-même l'appel des cours où il est coach : il
 peut marquer un collègue présent, corriger les élèves, et le faire **même
 passé les deux semaines**. Dans la fenêtre d'appel, un bandeau le lui dit.
 
+#### Les présences des jeunes en pro et sport-études
+
+Sur ces cours, les pastilles des élèves **ne réagissent pas**, pour personne,
+et portent la mention « via détail ». Ce n'est pas une panne : sur un cours
+pro ou sport-études à plusieurs courts ou plusieurs coachs, la présence des
+jeunes n'est pas pointée à la main, elle est **déduite du détail de la
+séance**.
+
+On ouvre donc le cours (clic sur la carte), et on remplit le bloc **Détail** :
+des blocs de jeu — qui a joué avec qui, avec quel coach, combien de temps.
+À l'enregistrement, la console en tire les présences : **un jeune qui apparaît
+dans au moins un bloc est présent**, les autres sont absents.
+
+Y ont accès le **head coach**, l'**admin**, et depuis le 16.11.2026 le
+**senior coach sur ses propres cours**. Pour lui la séance s'ouvre en mode
+**« Présences »** : il voit l'appel et le détail, mais pas le formulaire du
+cours — ni horaire, ni courts, ni coachs, ni liste de joueurs, et ni
+« Enregistrer » ni « Supprimer ». Il renseigne la séance, il ne la modifie
+pas.
+
 Ce qu'un senior coach n'a toujours pas :
 
 - le **décompte des heures de toute l'équipe** (il voit les siennes) ;
-- **créer ou déplacer un cours**, et le bouton « Non dispo » ;
+- **créer, déplacer ou supprimer un cours**, changer ses coachs ou ses
+  joueurs, et le bouton « Non dispo » ;
 - **Prospects**, le **Dashboard**, les **Stages**, les **salaires**.
 
 Les quatre états sont « Présent », « Absent », « En retard » (élèves) et

@@ -3545,6 +3545,12 @@ Team Lausanne Tennis</textarea></label>
       <button type="button" id="course-close" class="modal-close" aria-label="Fermer">×</button>
       <h2 id="course-title">Nouveau cours</h2>
       <input type="hidden" id="c-id" />
+      <!-- Tout ce qui DÉFINIT le cours. Enveloppé pour pouvoir le masquer d'un
+           bloc : un senior coach ouvre la séance pour les présences, pas pour
+           l'éditer (db/243). On masque plutôt que « disabled » — les champs
+           date et select sont habillés par pretty-date / pretty-select, et
+           l'attribut posé sur l'input natif ne bloquerait pas le widget. -->
+      <div id="c-edit-part">
       <div class="form-grid">
         <label>Type de cours<select id="c-type"></select></label>
         <label>Intitulé (optionnel)<input id="c-label" placeholder="ex. Groupe rouge" /></label>
@@ -3561,6 +3567,7 @@ Team Lausanne Tennis</textarea></label>
       <label class="cs-lbl">Joueurs <span id="c-count" class="muted"></span></label>
       <input id="c-search" class="c-search" type="text" placeholder="Rechercher un joueur (nom, prénom)…" autocomplete="off" />
       <div id="c-children" class="chip-select"></div>
+      </div><!-- /c-edit-part -->
       <div id="c-att-block" class="hidden">
         <label class="cs-lbl">Présences <span class="muted" style="font-weight:400">(clic : blanc → vert → rouge → orange)</span></label>
         <div id="c-att" class="cs-att"></div>

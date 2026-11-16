@@ -5553,7 +5553,7 @@ async function loadCoursesDay() {
     const courtCount = books.filter((b) => b.course_id === c.id).length;
     const detailed = !!type && TR_TYPE_RE.test(type.name || "") && (courtCount > 1 || coachIds.length > 1);
     const elevesCol = detailed
-      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); const sp = `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence gérée par le head coach (détail)">${bdayChip(pid, c.course_date)}${esc(personName(pid))}${agT}</span>`; const ex = rmBadge(pid) + annBadge(c.id, pid)
+      ? `<div class="cs-att-col"><div class="cs-att-h">Élèves <span class="muted" style="font-weight:400;font-size:.72rem">· via détail</span></div><div class="cs-att-items">${childIds.length ? childIds.map((pid) => { const cls = covClass(c, pid) || (attOf(c.id, pid) === "present" ? "st-present" : attOf(c.id, pid) === "absent" ? "st-absent" : attOf(c.id, pid) === "late" ? "st-late" : "st-none"); const pp = people.find((x) => x.id === pid); const ag = pp?.birthdate ? ageAt(pp.birthdate, c.course_date) : null; const agT = ag != null ? ` <span class="att-age">(${ag})</span>` : ""; const reach = tennisReachable(pid); const sp = `<span class="att-chip ${cls}" data-can="0" data-detail="1" style="cursor:default" title="${esc(personName(pid))}${ag != null ? ` · ${ag} ans` : ""} — présence saisie dans le détail de la séance">${bdayChip(pid, c.course_date)}${esc(personName(pid))}${agT}</span>`; const ex = rmBadge(pid) + annBadge(c.id, pid)
             + (canAnnoncer() ? `<button type="button" class="att-ann" data-person="${pid}" data-course="${c.id}" title="Annoncer une absence ou un retard">✎</button>` : "")
             + (reach ? `<button type="button" class="att-goto" data-person="${pid}" data-course="${c.id}" title="Ouvrir la fiche › Tennis">↗</button>` : ""); return ex ? `<span class="att-unit">${sp}${ex}</span>` : sp; }).join("") : '<span class="muted" style="font-size:.8rem">—</span>'}</div></div>`
       : col(c, coachIds, childIds, false, "Élèves");
@@ -5580,11 +5580,20 @@ async function loadCoursesDay() {
     const card = b.closest(".cs-card");
     b.textContent = card.classList.toggle("expanded") ? "Réduire" : "Plus";
   }));
-  if (isCourseMgr) L.querySelectorAll(".cs-card").forEach((el) =>
+  // Qui peut ouvrir la séance en cliquant la carte. Le gestionnaire de cours
+  // l'ouvre pour l'éditer ; le senior coach l'ouvre sur SES cours en mode
+  // « Présences » — c'est son seul chemin vers le détail de séance, donc vers
+  // les présences des jeunes en pro / sport-études (db/243).
+  L.querySelectorAll(".cs-card").forEach((el) => {
+    const idc = el.dataset.id;
+    const coachsDuCours = coaches.filter((x) => x.course_id === idc).map((x) => x.coach_person_id);
+    const lecture = !isCourseMgr;
+    if (!isCourseMgr && !peutReparerAppel(coachsDuCours)) return;
     el.addEventListener("click", (e) => {
       if (e.target.closest(".att-chip,.cs-more,.att-ann,.att-goto,.att-rm")) return;
-      editCourse(el.dataset.id);
-    }));
+      editCourse(idc, lecture);
+    });
+  });
   filterCoursesDay();
 }
 
@@ -5687,7 +5696,7 @@ async function cycleAtt(chip) {
   if (chip.dataset.can !== "1") { // verrouillé → on explique pourquoi (popup)
     const cstart = chip.dataset.cstart ? new Date(chip.dataset.cstart).getTime() : 0, now = Date.now();
     if (chip.dataset.indispo === "1") uiAlert("Ce coach est marqué « non disponible » pour cette séance : il reste au planning, mais ne donne pas le cours et n'est pas compté dans ses heures.\n\nS'il est finalement là, retirez le « ∅ » à côté de son nom, plus haut dans la fenêtre.");
-    else if (chip.dataset.detail === "1") uiAlert("Sur ce cours (pro / sport-études), les présences des jeunes sont gérées par le head coach via le détail de la séance.");
+    else if (chip.dataset.detail === "1") uiAlert("Sur ce cours (pro / sport-études), les présences des jeunes se saisissent dans le détail de la séance : ouvrez le cours, bloc « Détail ». Le head coach et le senior coach du cours y ont accès.");
     else if (chip.dataset.coach === "1") uiAlert("Vous ne pouvez marquer que votre propre présence.");
     else if (cstart && now < cstart - 25 * 60000) uiAlert("L'appel des jeunes ouvre 25 minutes avant le début du cours — pas avant.");
     else if (cstart && now > cstart + 14 * 24 * 3600000) uiAlert("Appel clos (2 semaines écoulées). Demande à un head coach / admin.");
@@ -8334,9 +8343,18 @@ function renderPlayerChips() {
   }));
 }
 
-function openCourse(course, related) {
+// Mode « Présences » : la séance s'ouvre pour l'appel et le détail, pas pour
+// l'édition. Un gestionnaire de cours garde toujours l'édition, quoi qu'on
+// lui passe — d'où le « && !isCourseMgr ». Recalculé à CHAQUE ouverture :
+// laissé à true d'une fois sur l'autre, il cacherait le formulaire à un head
+// coach sans que rien ne l'explique.
+let cVueSeule = false;
+
+function openCourse(course, related, lecture) {
+  cVueSeule = !!lecture && !isCourseMgr;
   $("c-error").hidden = true;
-  $("course-title").textContent = course ? "Modifier le cours" : "Nouveau cours";
+  $("course-title").textContent = cVueSeule ? "Présences de la séance"
+    : course ? "Modifier le cours" : "Nouveau cours";
   $("c-id").value = course?.id || "";
   $("c-type").value = course?.course_type_id || "";
   $("c-label").value = course?.title || "";
@@ -8362,7 +8380,9 @@ function openCourse(course, related) {
   $("c-search").value = "";
   renderPlayerChips();
   updateCount();
-  $("c-del").classList.toggle("hidden", !course);
+  $("c-del").classList.toggle("hidden", !course || cVueSeule);
+  $("c-edit-part").classList.toggle("hidden", cVueSeule);
+  $("c-save").classList.toggle("hidden", cVueSeule);
   // Présences (seulement en édition d'un cours existant)
   // Cours détaillé (pro/SE + plusieurs courts/coachs) : le détail remplace les présences manuelles.
   const needsDetail = courseNeedsDetail(course, related?.courts || [], related?.coaches || []);
@@ -8383,7 +8403,7 @@ function renderCourseAtt(course, coachIds, childIds, att) {
   $("c-att").querySelectorAll(".att-chip").forEach((ch) => ch.addEventListener("click", () => cycleAtt(ch)));
 }
 
-async function editCourse(id) {
+async function editCourse(id, lecture) {
   const course = (await sb.from("courses").select("*").eq("id", id).single()).data;
   const [courts, coachRows, children, attendance] = await Promise.all([
     sb.from("court_bookings").select("court_id").eq("course_id", id).then((r) => (r.data || []).map((x) => String(x.court_id))),
@@ -8392,11 +8412,17 @@ async function editCourse(id) {
     sb.from("attendance").select("person_id,status").eq("course_id", id).then((r) => r.data || []),
   ]);
   const coaches = coachRows.map((x) => x.coach_person_id);
-  openCourse(course, { courts, coaches, coachRows, children, attendance });
+  openCourse(course, { courts, coaches, coachRows, children, attendance }, lecture);
 }
 
 async function saveCourse(e) {
   e.preventDefault();
+  // Ceinture et bretelles : en mode « Présences », le bouton Enregistrer est
+  // masqué, mais le bloc « détail » vit DANS le même <form> — une touche
+  // Entrée dans un champ de sparring le soumettrait. La base refuserait
+  // (courses_write = head coach + secrétariat), seulement l'utilisateur
+  // verrait une erreur rouge pour un geste qu'il n'a pas voulu faire.
+  if (cVueSeule) return;
   const err = $("c-error"); err.hidden = true;
   const start = $("c-start").value, end = $("c-end").value;
   if (end <= start) return failC(err, "L'heure de fin doit être après le début.");
@@ -21970,7 +21996,12 @@ const trFmtH = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r 
 // (head coach/admin). Pour ces cours, le détail REMPLACE la validation des présences.
 function courseNeedsDetail(course, courtIds, coachIds) {
   if (!course) return false;
-  const canEdit = hasAny(myAppRoles, ["superadmin", "admin", "head_coach"]);
+  // Le senior coach entre ici aussi, sur SES cours (db/243). Ce n'est pas un
+  // confort : sur un cours pro / sport-études détaillé, les pastilles des
+  // jeunes sont inertes pour tout le monde, et ce bloc est le SEUL endroit où
+  // leur présence se saisit. Sans cette ligne, « marquer les présences des
+  // jeunes » lui restait impossible sur ses 34 cours.
+  const canEdit = peutReparerAppel(coachIds);
   const typeName = (courseTypes.find((t) => t.id === course.course_type_id) || {}).name || "";
   // Tous les cours pro / sport-études / privés, même avec un seul coach et un seul court (blocs, sparring, note).
   return canEdit && (TR_TYPE_RE.test(typeName) || TR_PRIV_RE.test(typeName));
