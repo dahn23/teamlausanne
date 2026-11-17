@@ -5429,6 +5429,14 @@ document.addEventListener("click", (e) => {
     e.stopPropagation();
     return annOuvrir(crayon.dataset.course, crayon.dataset.person);
   }
+  // Le ∅ de l'appel. Délégué comme le crayon, et pour la même raison : les
+  // listes de présences sont redessinées sans cesse, un écouteur posé sur le
+  // bouton disparaîtrait avec lui.
+  const dispo = e.target.closest(".att-dispo");
+  if (dispo) {
+    e.stopPropagation();
+    return basculerDispoSeance(dispo.dataset.course, dispo.dataset.dispo, dispo.dataset.on === "1");
+  }
   if (!e.target.closest("#ann-modal") && e.target.id !== "ann-modal") return;
   if (e.target.closest("#ann-close")) return annFermer();
   if (e.target.id === "ann-modal") return annFermer();          // clic sur le fond
@@ -5468,6 +5476,37 @@ function majCourseAtt() {
   renderCourseAtt(cAttArgs.course, cAttArgs.coachIds, cAttArgs.childIds, cAttArgs.att);
 }
 
+/* Le ∅ du bloc Présences. Deux contextes, un seul geste pour celui qui clique,
+   mais deux écritures différentes derrière — et c'est voulu :
+
+   · fenêtre du cours ouverte → on touche à `cCoachIndispo`, exactement comme
+     le ∅ des pastilles de coach juste au-dessus. La décision part avec
+     « Enregistrer le cours », avec le motif et le remplaçant ;
+   · liste du jour → il n'y a rien à enregistrer plus tard. On écrit tout de
+     suite dans course_coaches et on redessine.
+
+   Les mélanger donnerait, dans la même fenêtre, deux ∅ identiques dont l'un
+   s'enregistre et l'autre pas : le meilleur moyen de perdre une indisponibilité
+   sans que personne ne s'en aperçoive. */
+async function basculerDispoSeance(courseId, personId, dejaIndispo) {
+  const v = String(personId);
+  if (modaleDuCours(courseId)) {
+    if (cCoachIndispo.has(v)) cCoachIndispo.delete(v);
+    else cCoachIndispo.set(v, { motif: "", remplacant: "" });
+    renderCoachChips(chipValues("c-coaches"));
+    renderIndispoBox();
+    majCourseAtt();
+    return;
+  }
+  const maj = dejaIndispo
+    ? { statut: "prevu", motif: null, remplace_par_person_id: null, statut_par: null, statut_le: null }
+    : { statut: "indispo", statut_par: meId, statut_le: new Date().toISOString() };
+  const { error } = await sb.from("course_coaches").update(maj)
+    .eq("course_id", courseId).eq("coach_person_id", personId);
+  if (error) { uiAlert("Changement impossible : " + error.message); return; }
+  await loadCoursesCurrent();      // jour ou semaine, selon la vue ouverte
+}
+
 function attChip(course, coachIds, pid, isCoach, status) {
   let can = canMarkBox(course, coachIds, pid, isCoach);
   // Non disponible : décidé à l'avance, remplacement organisé. Ce n'est PAS
@@ -5499,7 +5538,18 @@ function attChip(course, coachIds, pid, isCoach, status) {
   const btnAnn = (!isCoach && canAnnoncer())
     ? `<button type="button" class="att-ann" data-person="${pid}" data-course="${course.id}"
          title="Annoncer une absence ou un retard">✎</button>` : "";
-  const extra = (isCoach ? "" : rmBadge(pid)) + annonce + btnAnn
+  // « ∅ » sur la pastille d'un COACH : le rendre non disponible pour cette
+  // séance, depuis l'appel lui-même. C'est là qu'on s'en aperçoit — on ouvre
+  // les présences, on voit qu'un collègue a pris le cours. Même symbole et
+  // même droit que le ∅ des pastilles de coach du formulaire (course_coaches :
+  // head coach, admin, secrétariat), parce que c'est le même geste.
+  const btnDispo = (isCoach && isCourseMgr)
+    ? `<button type="button" class="att-dispo${indispo ? " on" : ""}" data-dispo="${pid}" data-course="${course.id}" data-on="${indispo ? 1 : 0}"
+         aria-label="${indispo ? "Rendre disponible" : "Marquer non disponible"}"
+         title="${indispo ? "Il est finalement disponible : remettre au planning payé"
+                          : "Non disponible pour cette séance — il reste au planning, mais n'est pas payé"}">∅</button>`
+    : "";
+  const extra = (isCoach ? "" : rmBadge(pid)) + annonce + btnAnn + btnDispo
     + (reach ? `<button type="button" class="att-goto" data-person="${pid}" data-course="${course.id}" title="Ouvrir la fiche › Tennis">↗</button>` : "");
   return extra ? `<span class="att-unit">${chip}${extra}</span>` : chip;
 }
@@ -5603,7 +5653,7 @@ async function loadCoursesDay() {
     const lecture = !isCourseMgr;
     if (!isCourseMgr && !peutReparerAppel(coachsDuCours)) return;
     el.addEventListener("click", (e) => {
-      if (e.target.closest(".att-chip,.cs-more,.att-ann,.att-goto,.att-rm")) return;
+      if (e.target.closest(".att-chip,.cs-more,.att-ann,.att-goto,.att-rm,.att-dispo")) return;
       editCourse(idc, lecture);
     });
   });
@@ -5837,14 +5887,10 @@ function attRow(pid, name, status, isCoach, lockPresent, indispo) {
     // changé sa disponibilité, pas l'appel.
     return `<button type="button" class="att-set st-${s} ${!indispo && status === s ? "on" : ""}" ${dis ? "disabled" : ""} data-person="${pid}" data-status="${s}" data-coach="${isCoach ? 1 : 0}" data-etait="${indispo ? 1 : 0}">${l}</button>`;
   }).join("");
-  // Troisième choix, coachs seulement, et seulement pour qui peut l'écrire.
-  if (isCoach && isCourseMgr) {
-    btns += `<button type="button" class="att-set st-indispo ${indispo ? "on" : ""}"
-      data-person="${pid}" data-status="indispo" data-coach="1" data-on="${indispo ? 1 : 0}"
-      title="${indispo
-        ? "Le rendre à nouveau disponible pour cette séance"
-        : "Remplacé pour cette séance : il reste au planning, mais l'heure ne lui est pas comptée"}">Non dispo</button>`;
-  }
+  // Le « Non dispo » vivait ici. Il n'y est plus : cette fenêtre-ci n'est
+  // ouverte par rien (aucun bouton de la console n'appelle openAttendance),
+  // donc le bouton n'a jamais été visible. Il est maintenant sur la pastille
+  // du bloc Présences, sous la forme d'un ∅ — voir attChip (17.11.2026).
   const hint = lockPresent ? `<span class="att-hint muted">Marque d'abord tous les jeunes pour pouvoir te déclarer présent.</span>` : "";
   return `<div class="att-row"><span class="att-name">${esc(name)}</span><div class="att-btns">${btns}</div>${hint}</div>`;
 }

@@ -298,24 +298,32 @@ L'appel d'un cours **s'ouvre 25 minutes avant le début** et reste ouvert deux
 semaines. Avant cette fenêtre, les pastilles ne réagissent pas : ce n'est pas
 une panne.
 
-Un coach a **trois boutons** : « Présent », « Absent » et « Non dispo ».
+#### Le « ∅ » : un coach remplacé
 
-« Non dispo » est le cas courant quand quelqu'un a pris le cours à sa place :
-un coach absent est presque toujours remplacé, et c'est à l'appel qu'on s'en
-aperçoit. Il écrit la **disponibilité**, pas l'appel — le coach reste au
-planning, l'heure ne lui est pas comptée, et celui qui a assuré est payé
-parce qu'il est coché comme coach du cours.
+À côté du nom de chaque **coach**, dans les présences, un petit **∅**.
+Il marque le coach **non disponible pour cette séance** — le cas courant
+quand quelqu'un a pris le cours à sa place, et c'est justement à l'appel
+qu'on s'en aperçoit.
 
-Garder « Absent » pour le vrai lapin : personne n'a repris le cours.
+Le ∅ écrit la **disponibilité**, pas l'appel. Le coach reste au planning,
+son heure ne lui est pas comptée, et celui qui a assuré est payé parce qu'il
+est coché comme coach du cours. Garder « Absent » (la pastille rouge) pour
+le vrai lapin : personne n'a repris le cours.
 
-Deux détails utiles :
+- Sa pastille devient **grise hachurée et barrée**, jamais rouge, et le ∅
+  se remplit. Un clic sur le ∅ le remet disponible.
+- Tant qu'il est non disponible, **sa pastille ne réagit plus** : marquer
+  présent quelqu'un qu'on vient de déclarer absent de la séance n'aurait pas
+  de sens. Un clic dessus explique pourquoi.
+- Le ∅ n'apparaît que pour **head coach, admin, superadmin et secrétariat**
+  — ce sont eux qui peuvent modifier les coachs d'un cours.
+- C'est le **même ∅** que sur les pastilles de coach du formulaire du cours,
+  et le même geste. Une nuance tout de même : dans la fenêtre du cours, il
+  part avec « Enregistrer le cours » (avec le motif et le remplaçant) ;
+  depuis la liste du jour, il s'applique tout de suite.
 
-- Le bouton n'apparaît que pour **head coach, admin, superadmin et
-  secrétariat** — ce sont eux qui peuvent modifier les coachs d'un cours.
-- Marquer « Présent » ou « Absent » quelqu'un de non disponible le **rend à
-  nouveau disponible** : s'il est là, l'heure doit lui revenir. Et un
-  « Absent » posé avant ne disparaît pas, il est seulement masqué tant que la
-  personne est non disponible ; il réapparaît si on la rend disponible.
+⚠️ Une indisponibilité vaut pour **une séance**. Copier une semaine remet
+tout le monde disponible, et c'est voulu.
 
 Qui peut marquer quoi :
 

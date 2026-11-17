@@ -6649,6 +6649,18 @@ h1,h2,h3,.dstat-v,.brand,.brand-sm{letter-spacing:-.02em}
 .chip-dispo:hover{background:#f1f3f9;color:var(--ink)}
 .chip-dispo.on{background:var(--muted);color:#fff;border-color:var(--muted)}
 
+/* Le meme ∅, mais dans le bloc Presences (17.11.2026). Meme symbole, meme
+   gris, meme etat « on » que .chip-dispo : c'est le meme geste, il ne doit pas
+   avoir deux apparences. Rond et detache, lui, parce qu'il vit dans
+   .att-unit a cote d'une pastille au lieu d'etre colle a elle. */
+.att-dispo{display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;padding:0;font:inherit;font-size:.82rem;line-height:1;
+  cursor:pointer;border:1px solid var(--line);border-radius:999px;
+  background:#fff;color:var(--muted)}
+.att-dispo:hover{background:#f1f3f9;color:var(--ink)}
+.att-dispo.on{background:var(--muted);color:#fff;border-color:var(--muted)}
+.att-dispo:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+
 /* La pastille elle-meme, une fois marquee. PAS de `color` ici : une pastille
    choisie est bleu fonce a texte blanc, et un gris --muted par-dessus
    tomberait a 1,5:1 — illisible. Le barre et les hachures portent le sens,
