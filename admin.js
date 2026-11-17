@@ -2034,6 +2034,9 @@ function openPerson(p) {
   const salTab = staffPayRole && canSalaries();   // fiches de salaire : staff payé, vues par l'administration (la personne : Heures › Mes fiches)
   showPersonTab("salaire", salTab);
   loadPersonSalaires(p ? p.id : null, salTab);
+  const certTab = CERT_ROLES.some((r) => roles.includes(r)) && meCanCertifs();   // onglet Certificats (db/244)
+  showPersonTab("certifs", certTab);
+  loadPersonCertifs(p ? p.id : null, certTab);
   const isCoachPerson = COACH_ROLES.some((r) => roles.includes(r)) || roles.includes("admin") || roles.includes("superadmin"); // sous-onglet Repas = coachs + admins (vide par défaut)
   showPersonTab("repas", isCoachPerson);
   loadPersonMeals(p ? p.id : null, isCoachPerson);
@@ -13182,6 +13185,121 @@ async function loadPersonSalaires(pid, show) {
     loadPersonSalaires(pid, true);
   };
 }
+// ===================================================================
+//  Fiche › « Certificats » (db/244) — diplômes et formations du staff
+// ===================================================================
+// Qui a l'onglet : le staff qui enseigne. Pas le concierge ni le secrétariat,
+// dont la formation n'est pas ce qu'on suit ici.
+// Qui le VOIT : `meCanCertifs` est le pendant exact du helper SQL `can_membres`
+// (la garde de la table et du bucket). S'ils divergent, l'onglet s'ouvre sur une
+// table que la RLS refuse de lire, et le dépôt échoue sans qu'on comprenne pourquoi.
+const CERT_ROLES = [...COACH_ROLES, "senior-coach", "prof", "coach-mental"];
+const meCanCertifs = () => hasAny(myAppRoles, ["superadmin", "admin", "secretaire", "head_coach"]);
+const CERT_MIMES = ["application/pdf", "image/jpeg", "image/png", "image/heic", "image/heif", "image/webp"];
+const CERT_MAX = 15 * 1024 * 1024;   // = file_size_limit du bucket (db/244)
+let certFichier = null;              // fichier choisi, en attente du bouton « Ajouter »
+
+function certVider() {
+  certFichier = null;
+  const f = $("pcert-file"); if (f) f.value = "";
+  const n = $("pcert-fname"); if (n) n.textContent = "Aucun fichier choisi";
+}
+async function loadPersonCertifs(pid, show) {
+  certVider();
+  $("pcert-status").textContent = "";
+  if (!pid || !show) { $("pcert-rows").innerHTML = ""; $("pcert-empty").hidden = true; return; }
+  const { data, error } = await sb.from("staff_certificates").select("*").eq("person_id", pid)
+    .order("expires_on", { ascending: true, nullsFirst: false }).order("obtained_on", { ascending: false, nullsFirst: false });
+  if ($("p-id").value !== pid) return;   // une autre fiche a été ouverte entre-temps
+  if (error) { $("pcert-rows").innerHTML = ""; $("pcert-empty").hidden = false; $("pcert-empty").textContent = "Lecture impossible : " + error.message; return; }
+  const rows = data || [];
+  $("pcert-empty").hidden = rows.length > 0;
+  $("pcert-empty").textContent = "Aucun certificat enregistré.";
+  // Échéance : expiré, ou bientôt (90 jours). C'est tout l'intérêt de la date de validité —
+  // une reconnaissance J+S ou un BLS-AED périmé se voit au premier coup d'œil.
+  const auj = new Date(); auj.setHours(0, 0, 0, 0);
+  const etat = (d) => {
+    const j = Math.round((new Date(d + "T00:00:00") - auj) / 86400000);
+    if (j < 0) return ' <span class="cert-echu">expiré</span>';
+    if (j <= 90) return ` <span class="cert-bientot">dans ${j} j</span>`;
+    return "";
+  };
+  $("pcert-rows").innerHTML = rows.map((c) => `<tr>
+    <td><b>${esc(c.title)}</b>${c.note ? `<br><span class="muted" style="font-size:.82rem">${esc(c.note)}</span>` : ""}</td>
+    <td>${c.issuer ? esc(c.issuer) : '<span class="muted">—</span>'}</td>
+    <td>${c.obtained_on ? frDate(c.obtained_on) : '<span class="muted">—</span>'}</td>
+    <td>${c.expires_on ? frDate(c.expires_on) + etat(c.expires_on) : '<span class="muted">sans échéance</span>'}</td>
+    <td>${c.storage_path ? `<button type="button" class="ghost pcert-see" data-path="${esc(c.storage_path)}" title="${esc(c.file_name || "")}">📄 Voir</button>` : '<span class="muted">—</span>'}</td>
+    <td class="he-acts"><button type="button" class="ghost pcert-del" data-id="${esc(c.id)}" data-path="${esc(c.storage_path || "")}" title="Supprimer">✕</button></td></tr>`).join("");
+  $("pcert-rows").querySelectorAll(".pcert-see").forEach((b) => b.addEventListener("click", () => certOuvrir(b.dataset.path)));
+  $("pcert-rows").querySelectorAll(".pcert-del").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await uiConfirm("Supprimer ce certificat et son justificatif ?"))) return;
+    const { error: de } = await sb.from("staff_certificates").delete().eq("id", b.dataset.id);
+    if (de) { uiAlert("Suppression impossible : " + de.message); return; }
+    if (b.dataset.path) await sb.storage.from("certificats").remove([b.dataset.path]);
+    loadPersonCertifs(pid, true);
+  }));
+  // Assignations (pas addEventListener) : loadPersonCertifs est rappelée à chaque fiche
+  // et après chaque ajout — un écouteur empilé enverrait le certificat deux fois.
+  $("pcert-file").onchange = (e) => {
+    const f = e.target.files[0] || null;
+    certFichier = f;
+    $("pcert-fname").textContent = f ? `${f.name} (${Math.max(1, Math.round(f.size / 1024))} Ko)` : "Aucun fichier choisi";
+  };
+  $("pcert-add").onclick = () => certAjouter(pid);
+  // Entrée dans un de ces champs : on ajoute le certificat. Sans ça, le formulaire
+  // de la fiche se soumettrait et c'est la PERSONNE qui serait enregistrée.
+  for (const id of ["pcert-title", "pcert-issuer", "pcert-note"]) {
+    $(id).onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); certAjouter(pid); } };
+  }
+}
+async function certAjouter(pid) {
+  const titre = $("pcert-title").value.trim();
+  if (!titre) { $("pcert-status").textContent = "Donne d'abord un intitulé."; $("pcert-title").focus(); return; }
+  const f = certFichier;
+  if (f) {
+    if (f.size > CERT_MAX) { $("pcert-status").textContent = `Fichier trop lourd (${(f.size / 1048576).toFixed(1)} Mo) : 15 Mo au plus.`; return; }
+    if (f.type && !CERT_MIMES.includes(f.type)) { $("pcert-status").textContent = `Format refusé (${f.type}) : PDF, JPEG ou PNG.`; return; }
+  }
+  $("pcert-add").disabled = true;
+  $("pcert-status").textContent = f ? "Envoi du justificatif…" : "Enregistrement…";
+  let chemin = null;
+  if (f) {
+    const ext = (f.name.match(/\.[A-Za-z0-9]+$/) || [".pdf"])[0].toLowerCase();
+    chemin = `${pid}/${crypto.randomUUID()}${ext}`;
+    const up = await sb.storage.from("certificats").upload(chemin, f, { contentType: f.type || undefined });
+    if (up.error) { $("pcert-status").textContent = "Erreur à l'envoi : " + up.error.message; $("pcert-add").disabled = false; return; }
+  }
+  const { data: sess } = await sb.auth.getSession();
+  const { error } = await sb.from("staff_certificates").insert({
+    person_id: pid,
+    title: titre,
+    issuer: $("pcert-issuer").value.trim() || null,
+    obtained_on: $("pcert-from").value || null,
+    expires_on: $("pcert-to").value || null,
+    note: $("pcert-note").value.trim() || null,
+    storage_path: chemin,
+    file_name: f ? f.name : null,
+    mime: f ? (f.type || null) : null,
+    size_bytes: f ? f.size : null,
+    created_by: sess?.session?.user?.id || null,
+  });
+  $("pcert-add").disabled = false;
+  if (error) {
+    if (chemin) await sb.storage.from("certificats").remove([chemin]);   // pas de justificatif orphelin dans le bucket
+    $("pcert-status").textContent = "Erreur : " + error.message;
+    return;
+  }
+  for (const id of ["pcert-title", "pcert-issuer", "pcert-note", "pcert-from", "pcert-to"]) $(id).value = "";
+  await loadPersonCertifs(pid, true);
+  $("pcert-status").textContent = "✓ Certificat ajouté.";
+}
+async function certOuvrir(path) {
+  const { data, error } = await sb.storage.from("certificats").createSignedUrl(path, 600);
+  if (error || !data?.signedUrl) { uiAlert("Justificatif indisponible : " + (error?.message || "")); return; }
+  window.open(data.signedUrl, "_blank", "noopener");
+}
+
 // ---- Heures › « Mes fiches de salaire » (la personne ne voit que les siennes : RLS) ----
 async function renderMySalaires() {
   const host = $("heures-mine"); if (!host || !myPersonId) return;

@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=404" />
+  <link rel="stylesheet" href="style.css?v=405" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -3039,6 +3039,7 @@ Team Lausanne Tennis</textarea></label>
         <button type="button" class="ptab hidden" data-ptab="gamezone">GameZone</button>
         <button type="button" class="ptab" data-ptab="media">Photos / vidéos</button>
         <button type="button" class="ptab" data-ptab="obj">Objectifs</button>
+        <button type="button" class="ptab" data-ptab="certifs">Certificats</button>
         <button type="button" class="ptab" data-ptab="coach">Rémunération</button>
         <button type="button" class="ptab" data-ptab="salaire">Fiche de salaire</button>
         <button type="button" class="ptab" data-ptab="repas">Repas</button>
@@ -3268,6 +3269,48 @@ Team Lausanne Tennis</textarea></label>
         </div>
         <div id="obj-list" class="obj-list"></div>
         <p id="obj-need-save" class="muted" hidden style="font-size:.85rem">Enregistrez d'abord la personne pour ajouter des objectifs.</p>
+      </div>
+
+      <!-- Certificats et formations du staff (db/244) : diplômes + justificatif scanné,
+           bucket privé `certificats`. Réservé au Répertoire (can_membres). -->
+      <div id="ptab-certifs" class="ptab-panel hidden">
+        <h3 style="margin-top:0">Certificats et formations</h3>
+        <p class="muted" style="font-size:.88rem;max-width:680px">Diplômes, brevets et formations continues de cette personne, avec le justificatif scanné (PDF, JPEG ou PNG, 15 Mo au plus). Visibles par la direction et le secrétariat seulement. Une date de validité fait apparaître une alerte à l'approche de l'échéance — utile pour les reconnaissances J+S ou le BLS-AED, qui se renouvellent.</p>
+        <div class="table-wrap"><table class="crm-table"><thead><tr><th>Certificat</th><th>Organisme</th><th>Obtenu le</th><th>Valable jusqu'au</th><th>Justificatif</th><th></th></tr></thead><tbody id="pcert-rows"></tbody></table></div>
+        <p id="pcert-empty" class="muted" hidden style="font-size:.85rem">Aucun certificat enregistré.</p>
+        <h4 style="margin:18px 0 8px">Ajouter un certificat</h4>
+        <div class="form-grid pcert-form">
+          <label>Intitulé *<input id="pcert-title" list="pcert-suggest" placeholder="ex. Instructeur Swiss Tennis" /></label>
+          <label>Organisme<input id="pcert-issuer" list="pcert-orgs" placeholder="ex. Swiss Tennis" /></label>
+          <label>Obtenu le<input id="pcert-from" type="date" /></label>
+          <label>Valable jusqu'au <span class="muted">(si renouvelable)</span><input id="pcert-to" type="date" /></label>
+          <label>Remarque<input id="pcert-note" placeholder="facultatif" /></label>
+        </div>
+        <datalist id="pcert-suggest">
+          <option value="Moniteur J+S tennis"></option>
+          <option value="Moniteur Tennis Kids"></option>
+          <option value="Instructeur Swiss Tennis"></option>
+          <option value="Diplôme d'entraîneur Swiss Tennis"></option>
+          <option value="Entraîneur de performance Swiss Olympic"></option>
+          <option value="Brevet fédéral d'entraîneur de sport de performance"></option>
+          <option value="Diplôme fédéral d'entraîneur de sport de performance"></option>
+          <option value="Formation continue J+S"></option>
+          <option value="BLS-AED-SRC (premiers secours)"></option>
+          <option value="Diplôme de préparateur physique"></option>
+          <option value="Formation de coach mental"></option>
+        </datalist>
+        <datalist id="pcert-orgs">
+          <option value="Swiss Tennis"></option>
+          <option value="Jeunesse+Sport (OFSPO)"></option>
+          <option value="Swiss Olympic"></option>
+          <option value="Swiss Resuscitation Council"></option>
+        </datalist>
+        <div class="pcert-foot">
+          <label class="pcert-pick">Choisir un fichier<input type="file" id="pcert-file" accept="application/pdf,image/*" hidden /></label>
+          <span id="pcert-fname" class="muted" style="font-size:.85rem">Aucun fichier choisi</span>
+          <button type="button" id="pcert-add">Ajouter le certificat</button>
+          <span id="pcert-status" class="muted" style="font-size:.85rem"></span>
+        </div>
       </div>
 
       <div id="ptab-coach" class="ptab-panel hidden">

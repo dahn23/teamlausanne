@@ -838,6 +838,42 @@ mais n'y voit que lui.
 Aucun des trois ne voit les **salaires** : cela demande le rôle admin ou
 l'étiquette « Paie (salaires) », et rien d'autre.
 
+### Onglet « Certificats » de la fiche
+
+Les diplômes et formations du staff qui enseigne, avec le justificatif scanné.
+Apparaît sur la fiche d'un **moniteur, coach, coach privé, coach physique,
+senior coach, head coach, prof ou coach mental** — pas sur celle d'un junior,
+d'un parent, du concierge ni du secrétariat.
+
+**Qui le voit** : l'admin, le superadmin, le secrétariat et le head coach,
+c'est-à-dire exactement ceux qui ont le Répertoire. Un coach ne voit pas ses
+propres certificats : il n'a pas cet onglet du tout.
+
+Le tableau donne, par ligne : l'intitulé (et la remarque en dessous),
+l'organisme, la date d'obtention, la validité, et 📄 **Voir** pour ouvrir le
+justificatif. La croix supprime la ligne **et** son fichier.
+
+**Ajouter un certificat**
+
+1. L'**intitulé** — seul champ obligatoire. Le champ propose les formations
+   courantes (moniteur J+S, Instructeur Swiss Tennis, BLS-AED…) ; on peut
+   aussi écrire n'importe quoi d'autre.
+2. L'**organisme**, les dates, une remarque : facultatifs.
+3. « Choisir un fichier » : un **PDF, un JPEG ou un PNG**, 15 Mo au plus. Une
+   photo prise avec un iPhone passe aussi. Le fichier est facultatif — on peut
+   enregistrer une formation dont on n'a pas encore le papier.
+4. « Ajouter le certificat ».
+
+**La date de validité est tout l'intérêt.** Laissée vide, la ligne affiche
+« sans échéance » : c'est le cas d'un diplôme acquis une fois pour toutes.
+Remplie, le tableau marque **« expiré »** en rouge dès le lendemain de la
+date, et **« dans N j »** en orange dans les 90 jours qui précèdent. C'est
+ce qu'il faut pour les reconnaissances J+S et le BLS-AED, qui se renouvellent.
+
+Les justificatifs sont dans un espace privé : ils ne s'ouvrent que par un lien
+signé, valable dix minutes, et personne d'autre ne peut les atteindre — même
+en connaissant l'adresse.
+
 ### Onglet « Factures » de la fiche
 
 Toutes les factures émises qui concernent la personne, toutes années

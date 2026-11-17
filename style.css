@@ -2859,6 +2859,16 @@ td.he-acts{display:table-cell;vertical-align:middle;white-space:nowrap}
 #sal-rows select{max-width:220px}
 .psal-add{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}
 .psal-add input[type=month]{padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit}
+/* ---- Fiche › Certificats (db/244) ---- */
+.pcert-form{max-width:900px}
+/* Les champs date sont habillés par pretty-date : on vise .pd-wrap, pas l'input natif (caché). */
+.pcert-form .pd-wrap{max-width:220px}
+.pcert-foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}
+/* Choisir un fichier = action secondaire ; « Ajouter le certificat » reste le bouton plein. */
+.pcert-pick{display:inline-flex;align-items:center;gap:6px;margin:0;background:#fff;color:var(--blue);border:1px solid var(--line);border-radius:10px;padding:9px 15px;font-weight:600;font-size:.92rem;cursor:pointer}
+.pcert-pick:hover{border-color:var(--blue)}
+.cert-echu{display:inline-block;font-size:.72rem;font-weight:800;color:#8c1d1d;background:#fde8e8;border-radius:6px;padding:2px 7px;white-space:nowrap;margin-left:4px}
+.cert-bientot{display:inline-block;font-size:.72rem;font-weight:800;color:#8a5a00;background:#fdf0da;border-radius:6px;padding:2px 7px;white-space:nowrap;margin-left:4px}
 .he-mine-act{display:flex;align-items:center;gap:8px}
 
 /* ---- Validation d'un cours (présences) ---- */
