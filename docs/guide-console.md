@@ -277,6 +277,36 @@ constate le jour même : la personne n'est pas venue. « Non disponible » se
 décide à l'avance, le remplacement est organisé — d'où le gris hachuré, et
 jamais le rouge. Les deux ne racontent pas la même chose.
 
+### Photos des jeunes
+
+Troisième sous-onglet de **Cours**, réservé à l'administration et au
+secrétariat — un coach voit Cours mais pas celui-ci. C'est de là que partent
+les photos d'entraînement que les familles retrouvent dans **Mon espace**.
+
+1. Choisir la **date**, puis le **cours**.
+2. « Choisir des photos » — plusieurs d'un coup, 15 Mo chacune au plus.
+3. Chaque photo arrive avec **tous les joueurs du cours déjà cochés**.
+   Décocher ceux qui ne sont pas dessus.
+4. « Envoyer ».
+
+Une photo peut porter **plusieurs enfants** : la photo d'un exercice de groupe
+appartient à tout le monde dessus, et chaque famille la retrouve. Une famille
+ne voit **que** les photos où son enfant est marqué — jamais le reste de
+l'album du club.
+
+**Droit à l'image.** La fiche porte une case. Un enfant dont la famille a
+**refusé** n'est pas proposé à la sélection, et s'il figure malgré tout sur
+une photo déjà déposée, **cette photo disparaît pour tout le monde** — pas
+seulement pour sa propre famille. Tant que la case n'a jamais été remplie, la
+photo passe : sinon l'album serait vide le premier jour. C'est à resserrer le
+jour où les réponses auront été récoltées.
+
+Les photos sont dans un espace **privé** : elles ne s'ouvrent que par un lien
+signé, pour une famille connectée. Contrairement aux photos de profil et aux
+photos GameZone, qui sont dans un espace public depuis le début.
+
+La croix sur une vignette retire la photo et son fichier, définitivement.
+
 ### Recopier une semaine
 
 « Copier la semaine » reprend une semaine entière et la pose sur une autre.

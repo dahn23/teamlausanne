@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=405" />
+  <link rel="stylesheet" href="style.css?v=406" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -941,7 +941,24 @@
           <p class="crm-lead">Le planning de la semaine et les types de cours. Une leçon bloque son court, et l'appel s'ouvre 25 minutes avant le début.</p>
           <div class="subnav">
             <button class="subtab cours-subtab active" data-sub="planning">Planning</button>
+            <button class="subtab cours-subtab" data-sub="photos" id="cours-subtab-photos">Photos</button>
             <button class="subtab cours-subtab" data-sub="types" id="cours-subtab-types">Types de cours</button>
+          </div>
+
+          <!-- Sous-onglet Photos (db/245) : les photos d'entraînement que les
+               familles retrouvent dans Mon espace. Bucket PRIVÉ, URL signée. -->
+          <div id="cours-sub-photos" class="cours-sub hidden">
+            <h2 class="cs-title">Photos des jeunes</h2>
+            <p class="muted" style="font-size:.88rem;max-width:720px">Les photos d'entraînement que les familles retrouvent dans « Mon espace ». Chaque famille ne voit que les photos où <b>son</b> enfant est marqué. Choisis un cours : ses joueurs sont proposés, il suffit de décocher ceux qui ne sont pas sur la photo.</p>
+            <div class="ph-barre">
+              <label>Date<input type="date" id="phj-date" /></label>
+              <label>Cours<select id="phj-course"><option value="">— choisis une date —</option></select></label>
+              <label class="btnlike" style="margin:0">Choisir des photos<input type="file" id="phj-file" accept="image/*" multiple hidden /></label>
+              <span id="phj-status" class="muted" style="font-size:.85rem"></span>
+            </div>
+            <div id="phj-attente"></div>
+            <h3 style="margin:22px 0 8px">Déjà déposées</h3>
+            <div id="phj-liste"></div>
           </div>
 
           <!-- Sous-onglet Planning -->

@@ -518,11 +518,13 @@ async function renderAccueil() {
       </div>
     </div>
     <div id="pt-news"><p class="muted" style="text-align:center;padding:20px">Chargement des news…</p></div>
+    <div id="pt-photos"></div>
     <div id="pt-actus"></div>
     ${reseauxHtml()}`;
-  // Les actualités du site se chargent en parallèle : un message interne lent
-  // ne doit pas les retenir, et inversement.
+  // Les actualités du site et les photos se chargent en parallèle : un message
+  // interne lent ne doit retenir ni l'un ni l'autre.
   ptActus();
+  ptPhotos();
   const { data, error } = await sb.rpc("portal_news");
   const box = document.getElementById("pt-news");
   if (!box) return;
@@ -621,6 +623,50 @@ const RESEAUX_DEF = [
   ["site", "Site web", "web",
     `<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.15 2.3 3.35 5.35 3.35 8.5S14.15 18.2 12 20.5c-2.15-2.3-3.35-5.35-3.35-8.5S9.85 5.8 12 3.5z"/>`],
 ];
+/* ---------- Les photos de l'enfant (db/245) ----------
+   Déposées par le secrétariat depuis Cours › Photos. Le bucket est PRIVÉ :
+   chaque vignette passe par une URL signée, et la policy de stockage ne sert
+   un fichier que si l'enfant de CETTE famille y est marqué. Si la famille n'a
+   aucune photo, le bloc ne s'affiche pas du tout — pas de section vide.
+   ------------------------------------------------------------------------ */
+async function ptPhotos() {
+  const box = document.getElementById("pt-photos");
+  if (!box) return;
+  const { data, error } = await sb.rpc("portal_photos", { p_limit: 24 });
+  if (error || !data || !data.length) { box.innerHTML = ""; return; }
+  const jour = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ""); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
+  box.innerHTML = `<section class="pt-ph">
+    <h3 class="pt-ph-h">${data.length > 1 ? "Photos" : "Une photo"} <span class="pt-ph-n">· ${data.length}</span></h3>
+    <div class="pt-ph-rang">${data.map((p, i) => `
+      <figure class="pt-ph-vig" data-i="${i}">
+        <img data-path="${escHtml(p.storage_path)}" alt="${escHtml(p.qui || "")}" loading="lazy" />
+        <figcaption>${escHtml(jour(p.taken_on))}${p.course_label ? " · " + escHtml(p.course_label) : ""}</figcaption>
+      </figure>`).join("")}</div>
+  </section>`;
+  // Une URL signée par vignette. 1 h : largement assez pour regarder l'album.
+  for (const img of box.querySelectorAll(".pt-ph-vig img")) {
+    const { data: u } = await sb.storage.from("photos-jeunes").createSignedUrl(img.dataset.path, 3600);
+    if (u?.signedUrl) img.src = u.signedUrl;
+  }
+  box.querySelectorAll(".pt-ph-vig").forEach((f) => f.addEventListener("click", () => {
+    const img = f.querySelector("img");
+    if (img?.src) ptPhotoPlein(img.src, data[+f.dataset.i]);
+  }));
+}
+function ptPhotoPlein(src, p) {
+  const ov = document.createElement("div");
+  ov.className = "pt-ph-plein";
+  ov.innerHTML = `<button type="button" class="pt-ph-close" aria-label="Fermer">✕</button>
+    <img src="${escHtml(src)}" alt="" />
+    <div class="pt-ph-leg">${escHtml(p?.qui || "")}${p?.comment ? " — " + escHtml(p.comment) : ""}</div>`;
+  const fermer = () => ov.remove();
+  ov.addEventListener("click", (e) => { if (e.target === ov || e.target.closest(".pt-ph-close")) fermer(); });
+  document.addEventListener("keydown", function esc(e) {
+    if (e.key === "Escape") { fermer(); document.removeEventListener("keydown", esc); }
+  });
+  document.body.appendChild(ov);
+}
+
 function reseauxHtml() {
   const liens = RESEAUX_DEF.filter(([cle]) => (RESEAUX[cle] || "").trim());
   if (!liens.length) return "";

@@ -5152,7 +5152,14 @@ function initCours(roles) {
     b.addEventListener("click", () => {
       document.querySelectorAll("#view-cours .cours-subtab").forEach((x) => x.classList.toggle("active", x === b));
       document.querySelectorAll("#view-cours .cours-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "cours-sub-" + b.dataset.sub));
+      if (b.dataset.sub === "photos") phjOuvrir();
     }));
+  // Photos (db/245) : réservé à la population du Répertoire — c'est elle qui
+  // publie vers les familles. Un coach voit l'onglet Cours mais pas celui-ci.
+  $("cours-subtab-photos")?.classList.toggle("hidden", !meCanPhotos());
+  $("phj-date").addEventListener("change", phjChargerCours);
+  $("phj-course").addEventListener("change", phjChargerJoueurs);
+  $("phj-file").addEventListener("change", phjFichiersChoisis);
   $("ct-add-btn").addEventListener("click", addType);
   $("cs-date").value = isoA(new Date());
   $("cs-date").addEventListener("change", loadCoursesCurrent);
@@ -12801,6 +12808,165 @@ function bindSalCells() {
     b.addEventListener("click", () => salOpenPdf(b.dataset.path, b.dataset.nom));
   });
 }
+/* ===================================================================
+   Cours › Photos (db/245) — l'album que les familles voient dans Mon espace
+   ===================================================================
+   Pensé pour le vrai geste : Séline revient d'un mercredi avec 40 photos de
+   12 jeunes. Fiche par fiche, elle abandonne à la troisième — comme les notes
+   de suivi, restées à 38 lignes depuis octobre. Donc : on choisit LE COURS,
+   ses joueurs sont proposés d'office, et on décoche qui n'est pas sur le
+   cliché. Une photo peut porter plusieurs enfants (table de liaison).
+   ⚠️ Un jeune dont le droit à l'image est REFUSÉ n'est pas proposé du tout.
+   ------------------------------------------------------------------- */
+const meCanPhotos = () => hasAny(myAppRoles, ["superadmin", "admin", "secretaire", "head_coach"]);  // = can_membres
+const PHJ_MAX = 15 * 1024 * 1024;
+let phjEnAttente = [];   // { fichier, pour:Set(person_id) } en attente d'envoi
+let phjJoueurs = [];     // joueurs du cours choisi
+let phjRefuses = 0;      // joueurs écartés faute de droit à l'image
+
+function phjOuvrir() {
+  if (!$("phj-date").value) $("phj-date").value = isoA(new Date());
+  if (!$("phj-course").options.length || $("phj-course").options.length === 1) phjChargerCours();
+  phjListe();
+}
+async function phjChargerCours() {
+  const d = $("phj-date").value;
+  const sel = $("phj-course");
+  phjJoueurs = []; phjEnAttente = []; phjRendreAttente();
+  if (!d) { sel.innerHTML = '<option value="">— choisis une date —</option>'; return; }
+  const { data } = await sb.from("courses")
+    .select("id,title,start_time,end_time,course_type_id,course_types(name)")
+    .eq("course_date", d).order("start_time");
+  const cours = data || [];
+  sel.innerHTML = '<option value="">— choisis un cours —</option>' + cours.map((c) =>
+    `<option value="${c.id}">${esc((c.start_time || "").slice(0, 5))} · ${esc(c.title || c.course_types?.name || "Cours")}</option>`).join("");
+  sel.value = "";   // pretty-select n'applique pas la valeur au 1er rendu sans ça
+  phjListe();
+}
+async function phjChargerJoueurs() {
+  phjJoueurs = []; phjRefuses = 0;
+  const cid = $("phj-course").value;
+  if (cid) {
+    const { data } = await sb.from("course_participants")
+      .select("child_person_id,people:child_person_id(id,first_name,last_name,photo_consent)")
+      .eq("course_id", cid);
+    const tous = (data || []).map((r) => r.people).filter(Boolean);
+    phjRefuses = tous.filter((p) => p.photo_consent === false).length;
+    phjJoueurs = tous.filter((p) => p.photo_consent !== false)
+      .sort((a, b) => (a.first_name || "").localeCompare(b.first_name || "", "fr"));
+  }
+  // Les photos déjà choisies repartent sur la nouvelle liste de joueurs.
+  for (const p of phjEnAttente) p.pour = new Set(phjJoueurs.map((j) => j.id));
+  phjRendreAttente();
+  phjListe();
+}
+function phjFichiersChoisis(e) {
+  const fichiers = [...e.target.files];
+  e.target.value = "";
+  if (!fichiers.length) return;
+  if (!$("phj-course").value) { uiAlert("Choisis d'abord un cours : ce sont ses joueurs qu'on propose."); return; }
+  const tropLourd = fichiers.find((f) => f.size > PHJ_MAX);
+  if (tropLourd) { $("phj-status").textContent = `« ${tropLourd.name} » dépasse 15 Mo.`; return; }
+  for (const f of fichiers) phjEnAttente.push({ fichier: f, pour: new Set(phjJoueurs.map((j) => j.id)) });
+  $("phj-status").textContent = "";
+  phjRendreAttente();
+}
+function phjRendreAttente() {
+  const host = $("phj-attente");
+  if (!phjEnAttente.length) { host.innerHTML = ""; return; }
+  const avert = phjRefuses
+    ? `<p class="muted" style="font-size:.85rem">${phjRefuses} joueur(s) de ce cours ne sont pas proposés : droit à l'image refusé sur leur fiche.</p>` : "";
+  host.innerHTML = avert + `<div class="ph-attente">` + phjEnAttente.map((p, i) => `
+    <div class="ph-att-carte">
+      <img class="ph-att-img" src="${URL.createObjectURL(p.fichier)}" alt="" />
+      <div class="ph-att-corps">
+        <div class="ph-att-nom">${esc(p.fichier.name)} <span class="muted">· ${Math.max(1, Math.round(p.fichier.size / 1024))} Ko</span></div>
+        <div class="chip-select ph-att-qui">${phjJoueurs.map((j) => `
+          <button type="button" class="chip${p.pour.has(j.id) ? " sel" : ""}" data-i="${i}" data-j="${j.id}">${esc(j.first_name)} ${esc((j.last_name || "").slice(0, 1))}.</button>`).join("")
+          || '<span class="muted">Aucun joueur dans ce cours.</span>'}</div>
+      </div>
+      <button type="button" class="ghost ph-att-del" data-i="${i}" title="Retirer">✕</button>
+    </div>`).join("") + `</div>
+    <div class="ph-att-pied">
+      <button type="button" id="phj-envoyer">Envoyer ${phjEnAttente.length} photo(s)</button>
+      <span class="muted" style="font-size:.85rem">Chaque photo part avec les joueurs surlignés.</span>
+    </div>`;
+  host.querySelectorAll(".ph-att-qui .chip").forEach((b) => b.addEventListener("click", () => {
+    const p = phjEnAttente[+b.dataset.i];
+    if (p.pour.has(b.dataset.j)) p.pour.delete(b.dataset.j); else p.pour.add(b.dataset.j);
+    b.classList.toggle("sel", p.pour.has(b.dataset.j));
+  }));
+  host.querySelectorAll(".ph-att-del").forEach((b) => b.addEventListener("click", () => {
+    phjEnAttente.splice(+b.dataset.i, 1); phjRendreAttente();
+  }));
+  $("phj-envoyer").addEventListener("click", phjEnvoyer);
+}
+async function phjEnvoyer() {
+  const cid = $("phj-course").value, d = $("phj-date").value;
+  const sans = phjEnAttente.filter((p) => p.pour.size === 0).length;
+  if (sans) { uiAlert(`${sans} photo(s) ne portent aucun joueur : personne ne les verrait. Coche au moins un nom, ou retire-les.`); return; }
+  const btn = $("phj-envoyer"); btn.disabled = true;
+  const { data: sess } = await sb.auth.getSession();
+  const uid = sess?.session?.user?.id || null;
+  let faites = 0;
+  for (const p of [...phjEnAttente]) {
+    $("phj-status").textContent = `Envoi ${faites + 1}/${phjEnAttente.length}…`;
+    const ext = (p.fichier.name.match(/\.[A-Za-z0-9]+$/) || [".jpg"])[0].toLowerCase();
+    const chemin = `${d}/${crypto.randomUUID()}${ext}`;
+    const up = await sb.storage.from("photos-jeunes").upload(chemin, p.fichier, { contentType: p.fichier.type || undefined });
+    if (up.error) { $("phj-status").textContent = "Erreur à l'envoi : " + up.error.message; btn.disabled = false; return; }
+    const { data: ligne, error } = await sb.from("person_photos")
+      .insert({ storage_path: chemin, file_name: p.fichier.name, taken_on: d, course_id: cid || null, created_by: uid })
+      .select("id").single();
+    if (error) {
+      await sb.storage.from("photos-jeunes").remove([chemin]);   // pas de fichier orphelin
+      $("phj-status").textContent = "Erreur : " + error.message; btn.disabled = false; return;
+    }
+    // ⚠️ Insert groupé : toutes les lignes portent EXACTEMENT les mêmes clés,
+    // sinon PostgREST refuse tout le lot (PGRST102) avant même la RLS.
+    const liens = [...p.pour].map((pid) => ({ photo_id: ligne.id, person_id: pid }));
+    const { error: el } = await sb.from("person_photo_people").insert(liens);
+    if (el) { $("phj-status").textContent = "Erreur (joueurs) : " + el.message; btn.disabled = false; return; }
+    faites++;
+  }
+  phjEnAttente = []; phjRendreAttente();
+  btn && (btn.disabled = false);
+  $("phj-status").textContent = `✓ ${faites} photo(s) envoyée(s). Les familles les voient dans Mon espace.`;
+  phjListe();
+}
+async function phjListe() {
+  const host = $("phj-liste"); if (!host) return;
+  const d = $("phj-date").value, cid = $("phj-course").value;
+  if (!d) { host.innerHTML = ""; return; }
+  let q = sb.from("person_photos").select("id,storage_path,file_name,taken_on,course_id").eq("taken_on", d);
+  if (cid) q = q.eq("course_id", cid);
+  const { data, error } = await q.order("created_at", { ascending: false });
+  if (error) { host.innerHTML = `<p class="muted">Lecture impossible : ${esc(error.message)}</p>`; return; }
+  const photos = data || [];
+  if (!photos.length) { host.innerHTML = `<p class="muted" style="font-size:.88rem">Aucune photo pour ce jour${cid ? " et ce cours" : ""}.</p>`; return; }
+  const { data: liens } = await sb.from("person_photo_people")
+    .select("photo_id,people:person_id(first_name,last_name)").in("photo_id", photos.map((p) => p.id));
+  const parPhoto = {};
+  for (const l of liens || []) (parPhoto[l.photo_id] = parPhoto[l.photo_id] || []).push(l.people);
+  host.innerHTML = `<div class="ph-grille">` + photos.map((p) => `
+    <figure class="ph-vig" data-id="${p.id}">
+      <img class="ph-vig-img" data-path="${esc(p.storage_path)}" alt="${esc(p.file_name || "")}" />
+      <figcaption>${(parPhoto[p.id] || []).map((x) => esc(x.first_name)).join(", ") || '<span class="muted">personne</span>'}</figcaption>
+      <button type="button" class="ghost ph-vig-del" data-id="${p.id}" data-path="${esc(p.storage_path)}" title="Supprimer">✕</button>
+    </figure>`).join("") + `</div>`;
+  for (const img of host.querySelectorAll(".ph-vig-img")) {
+    const { data: u } = await sb.storage.from("photos-jeunes").createSignedUrl(img.dataset.path, 3600);
+    if (u?.signedUrl) img.src = u.signedUrl;
+  }
+  host.querySelectorAll(".ph-vig-del").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await uiConfirm("Supprimer cette photo ? Les familles ne la verront plus."))) return;
+    const { error: de } = await sb.from("person_photos").delete().eq("id", b.dataset.id);
+    if (de) { uiAlert("Suppression impossible : " + de.message); return; }
+    await sb.storage.from("photos-jeunes").remove([b.dataset.path]);
+    phjListe();
+  }));
+}
+
 // Ouvre une fiche de salaire. ⚠️ Le `window.open` ne peut PAS attendre l'URL
 // signée : appelé après un `await`, il n'est plus dans le geste de la personne
 // et Safari mobile le bloque — le bouton paraît mort, sans message. C'est ce
