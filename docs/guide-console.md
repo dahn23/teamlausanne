@@ -294,12 +294,32 @@ appartient à tout le monde dessus, et chaque famille la retrouve. Une famille
 ne voit **que** les photos où son enfant est marqué — jamais le reste de
 l'album du club.
 
-**Droit à l'image.** La fiche porte une case. Un enfant dont la famille a
-**refusé** n'est pas proposé à la sélection, et s'il figure malgré tout sur
-une photo déjà déposée, **cette photo disparaît pour tout le monde** — pas
-seulement pour sa propre famille. Tant que la case n'a jamais été remplie, la
-photo passe : sinon l'album serait vide le premier jour. C'est à resserrer le
-jour où les réponses auront été récoltées.
+**Droit à l'image : la question se pose toute seule.** Personne n'a à courir
+après les autorisations. La première fois qu'il y a des photos de son enfant,
+la famille trouve la question dans Mon espace : « Nous avons 4 photos de Léa à
+l'entraînement, nous autorisez-vous à les publier ? ». **L'album reste fermé
+tant qu'elle n'a pas répondu** — c'est ce qui fait répondre.
+
+- **Oui** → l'album s'ouvre dans la seconde.
+- **Non** → plus aucune photo de l'enfant ne paraît, **y compris les photos de
+  groupe où il figure, et pour toutes les autres familles**. La famille garde
+  un lien pour revenir sur sa réponse.
+
+Un enfant dont la famille a refusé **n'est plus proposé** à la sélection quand
+on dépose des photos. Le relevé en haut de l'écran donne l'état : combien ont
+accepté, **qui** a refusé (nommément — c'est ce qu'il faut savoir avant de
+lever l'appareil), combien n'ont pas encore répondu.
+
+La fiche (Répertoire) porte la même case, à remplir seulement si une famille
+répond **hors de l'app** (au téléphone, au secrétariat). Le petit mot sous la
+case dit d'où vient la réponse et de quand elle date : une réponse donnée par
+la famille dans l'app et une réponse retranscrite au secrétariat ne se valent
+pas, et la fiche ne les mélange pas.
+
+Un enfant dont la famille **n'a pas encore répondu** peut encore être
+photographié, et il figure encore sur les photos de groupe que les **autres**
+familles regardent. C'est voulu : exclure les sans-réponse viderait tous les
+albums le premier jour. À resserrer le jour où les réponses seront rentrées.
 
 Les photos sont dans un espace **privé** : elles ne s'ouvrent que par un lien
 signé, pour une famille connectée. Contrairement aux photos de profil et aux

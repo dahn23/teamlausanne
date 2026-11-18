@@ -1991,6 +1991,12 @@ function openPerson(p) {
   $("p-hoodie").value = p?.hoodie || "";
   $("p-sweatpants").value = p?.sweatpants || "";
   $("p-active").checked = p ? p.is_active : true;
+  // Droit à l'image (db/245, demandé dans l'app depuis db/246). On garde la
+  // valeur de départ : si elle change ICI, c'est le secrétariat qui répond
+  // pour la famille, et la trace doit le dire (source « console »).
+  personConsent0 = p ? (p.photo_consent === true ? "oui" : p.photo_consent === false ? "non" : "") : "";
+  $("p-photoconsent").value = personConsent0;
+  majConsentHint(p);
   $("p-notes").value = p?.notes || "";
   personPhotoUrl = p?.photo_url || null;
   renderPersonPhoto();
@@ -4990,6 +4996,23 @@ async function deleteSeasonPeriod(id) {
 }
 
 let personPhotoUrl = null;
+let personConsent0 = "";   // droit à l'image tel qu'il était à l'ouverture de la fiche
+
+/* Le petit mot sous le select « Droit à l'image » : qui a répondu et quand.
+   La différence compte — une réponse venue de l'app est celle de la famille,
+   une réponse saisie en console est une retranscription du secrétariat. */
+function majConsentHint(p) {
+  const h = $("p-photoconsent-hint"); if (!h) return;
+  h.className = "pconsent-hint";
+  if (!p || p.photo_consent === null || p.photo_consent === undefined) {
+    h.textContent = "La famille répondra dans Mon espace dès qu'il y aura une photo.";
+    return;
+  }
+  const d = p.photo_consent_at ? new Date(p.photo_consent_at).toLocaleDateString("fr-CH") : null;
+  const par = p.photo_consent_source === "famille" ? "par la famille, dans l'app" : "au secrétariat";
+  h.classList.add(p.photo_consent ? "ok" : "non");
+  h.textContent = `${p.photo_consent ? "Accordé" : "Refusé"} ${par}${d ? " le " + d : ""}.`;
+}
 let personRolesSel = new Set();
 function renderPersonPhoto() {
   const box = $("p-photo-preview");
@@ -8693,6 +8716,17 @@ async function savePerson(e) {
     is_active: $("p-active").checked,
     notes: $("p-notes").value.trim() || null,
   };
+  // Droit à l'image : on n'écrit la trace que si la réponse CHANGE ici, sinon
+  // un simple « Enregistrer » sur la fiche effacerait la date et attribuerait
+  // au secrétariat une réponse donnée par la famille dans l'app.
+  const pcv = $("p-photoconsent").value;
+  row.photo_consent = pcv === "" ? null : pcv === "oui";
+  if (pcv !== personConsent0) {
+    const { data: sess } = await sb.auth.getSession();
+    row.photo_consent_at = pcv === "" ? null : new Date().toISOString();
+    row.photo_consent_by = pcv === "" ? null : (sess?.session?.user?.id || null);
+    row.photo_consent_source = pcv === "" ? null : "console";
+  }
   let id = $("p-id").value;
   let error;
   if (id) ({ error } = await sb.from("people").update(row).eq("id", id));
@@ -8701,6 +8735,7 @@ async function savePerson(e) {
     error = res.error; id = res.data?.id;
   }
   if (error) { err.textContent = "Enregistrement impossible : " + error.message; err.hidden = false; return; }
+  personConsent0 = pcv;   // un 2ᵉ « Enregistrer » ne doit pas réécrire la trace
   // Rôles : on remplace l'ensemble
   if (id) {
     await sb.from("person_roles").delete().eq("person_id", id);
@@ -12827,7 +12862,26 @@ let phjRefuses = 0;      // joueurs écartés faute de droit à l'image
 function phjOuvrir() {
   if (!$("phj-date").value) $("phj-date").value = isoA(new Date());
   if (!$("phj-course").options.length || $("phj-course").options.length === 1) phjChargerCours();
+  phjDroits();
   phjListe();
+}
+/* Le droit à l'image, en haut de l'écran (db/246).
+   Les refus sont NOMMÉS : c'est la seule chose vraiment utile à Séline avant
+   de lever l'appareil. Le reste est un compteur — la question part toute seule
+   dans l'app, personne n'a à courir après les réponses. */
+async function phjDroits() {
+  const host = $("phj-droits"); if (!host) return;
+  const [oui, non, att] = await Promise.all([
+    sb.from("people").select("id", { count: "exact", head: true }).eq("photo_consent", true),
+    sb.from("people").select("first_name,last_name").eq("photo_consent", false).order("last_name"),
+    sb.from("person_photo_people").select("person_id,people!inner(photo_consent)").is("people.photo_consent", null),
+  ]);
+  const refus = non.data || [];
+  const enAttente = new Set((att.data || []).map((r) => r.person_id)).size;
+  const bouts = [`<b>${oui.count || 0}</b> famille(s) ont accepté`];
+  if (refus.length) bouts.push(`<span class="ph-droits-non"><b>${refus.length} refus</b> : ${refus.map((p) => esc(p.first_name) + " " + esc((p.last_name || "").slice(0, 1)) + ".").join(", ")}</span>`);
+  if (enAttente) bouts.push(`<b>${enAttente}</b> en attente de réponse dans l'app`);
+  host.innerHTML = `<p class="ph-droits">Droit à l'image — ${bouts.join(" · ")}.</p>`;
 }
 async function phjChargerCours() {
   const d = $("phj-date").value;
@@ -12931,7 +12985,7 @@ async function phjEnvoyer() {
   }
   phjEnAttente = []; phjRendreAttente();
   btn && (btn.disabled = false);
-  $("phj-status").textContent = `✓ ${faites} photo(s) envoyée(s). Les familles les voient dans Mon espace.`;
+  $("phj-status").textContent = `✓ ${faites} photo(s) envoyée(s). Les familles qui ont accordé le droit à l'image les voient dans Mon espace ; les autres y trouvent la question.`;
   phjListe();
 }
 async function phjListe() {

@@ -629,20 +629,28 @@ const RESEAUX_DEF = [
    un fichier que si l'enfant de CETTE famille y est marqué. Si la famille n'a
    aucune photo, le bloc ne s'affiche pas du tout — pas de section vide.
    ------------------------------------------------------------------------ */
+const ptJour = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ""); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
+
 async function ptPhotos() {
   const box = document.getElementById("pt-photos");
   if (!box) return;
-  const { data, error } = await sb.rpc("portal_photos", { p_limit: 24 });
-  if (error || !data || !data.length) { box.innerHTML = ""; return; }
-  const jour = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ""); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
-  box.innerHTML = `<section class="pt-ph">
+  // Deux questions à la base, en parallèle : ce qu'on a le droit de montrer,
+  // et pour quel enfant il reste à demander la permission (db/246).
+  const [rDem, rPh] = await Promise.all([
+    sb.rpc("portal_photo_asks"),
+    sb.rpc("portal_photos", { p_limit: 24 }),
+  ]);
+  const aDemander = rDem.error ? [] : (rDem.data || []);
+  const data = rPh.error ? [] : (rPh.data || []);
+  if (!aDemander.length && !data.length) { box.innerHTML = ""; return; }
+  box.innerHTML = aDemander.map(ptDroitImageCarte).join("") + (!data.length ? "" : `<section class="pt-ph">
     <h3 class="pt-ph-h">${data.length > 1 ? "Photos" : "Une photo"} <span class="pt-ph-n">· ${data.length}</span></h3>
     <div class="pt-ph-rang">${data.map((p, i) => `
       <figure class="pt-ph-vig" data-i="${i}">
         <img data-path="${escHtml(p.storage_path)}" alt="${escHtml(p.qui || "")}" loading="lazy" />
-        <figcaption>${escHtml(jour(p.taken_on))}${p.course_label ? " · " + escHtml(p.course_label) : ""}</figcaption>
+        <figcaption>${escHtml(ptJour(p.taken_on))}${p.course_label ? " · " + escHtml(p.course_label) : ""}</figcaption>
       </figure>`).join("")}</div>
-  </section>`;
+  </section>`);
   // Une URL signée par vignette. 1 h : largement assez pour regarder l'album.
   for (const img of box.querySelectorAll(".pt-ph-vig img")) {
     const { data: u } = await sb.storage.from("photos-jeunes").createSignedUrl(img.dataset.path, 3600);
@@ -652,6 +660,51 @@ async function ptPhotos() {
     const img = f.querySelector("img");
     if (img?.src) ptPhotoPlein(img.src, data[+f.dataset.i]);
   }));
+  box.querySelectorAll(".pt-di-rep").forEach((b) => b.addEventListener("click", () => ptDroitImageRepondre(b)));
+}
+
+/* ---------- Le droit à l'image, demandé ici (db/246) ----------
+   db/245 avait créé le champ mais personne pour le remplir : 128 fiches sans
+   réponse, et aucune chance que 128 autorisations rentrent sur papier. Donc la
+   famille répond elle-même, au moment où la question a un sens : il y a des
+   photos de son enfant à voir. L'album reste fermé jusque-là — c'est ce qui
+   rend la question impossible à ignorer, donc ce qui la fait répondre.
+   On ne demande rien pour un enfant sans photo : la question arriverait sans
+   raison et serait balayée.
+   ------------------------------------------------------------------------ */
+function ptDroitImageCarte(d) {
+  const qui = escHtml(d.prenom || "votre enfant");
+  const pid = escHtml(d.person_id);
+  if (d.etat === "refuse") {
+    return `<section class="pt-di pt-di-non">
+      <p>Vous avez refusé la publication des photos de ${qui}. Aucune ne paraît.
+        <button type="button" class="ghost pt-di-lien pt-di-rep" data-p="${pid}" data-ok="1" data-qui="${qui}">Revenir sur ma réponse</button></p>
+    </section>`;
+  }
+  const jour = ptJour(d.derniere);   // une date illisible ne doit pas donner « la dernière du . »
+  return `<section class="pt-di">
+    <h3 class="pt-di-h">Photos de ${qui}</h3>
+    <p class="pt-di-txt">Nous avons <b>${d.nb} photo${d.nb > 1 ? "s" : ""}</b> de ${qui} à l'entraînement${jour ? `, la dernière du ${escHtml(jour)}` : ""}. Nous autorisez-vous à les publier ici ?</p>
+    <p class="pt-di-note">Elles ne sont visibles que par vous et par le club — jamais sur le site, jamais sur les réseaux sociaux. Vous pouvez changer d'avis quand vous voulez.</p>
+    <div class="pt-di-btns">
+      <button type="button" class="primary pt-di-rep" data-p="${pid}" data-ok="1" data-qui="${qui}">Oui, je les autorise</button>
+      <button type="button" class="ghost pt-di-rep" data-p="${pid}" data-ok="0" data-qui="${qui}">Non merci</button>
+    </div>
+  </section>`;
+}
+async function ptDroitImageRepondre(btn) {
+  const ok = btn.dataset.ok === "1", pid = btn.dataset.p;
+  const qui = escHtml(btn.dataset.qui || "votre enfant");
+  // ⚠️ Un refus retire la photo à TOUT LE MONDE, pas seulement à cette
+  // famille : sur une photo de groupe, l'enfant figure dans l'album des autres
+  // familles. Une faute de doigt coûte donc cher — on confirme.
+  if (!ok && !(await ptConfirm(
+    `Aucune photo de ${qui} ne sera publiée, y compris les photos de groupe où ${qui} apparaît. Vous pourrez revenir en arrière à tout moment.`,
+    "Confirmer le refus"))) return;
+  btn.disabled = true;
+  const { error } = await sb.rpc("portal_set_photo_consent", { p_person_id: pid, p_ok: ok });
+  if (error) { btn.disabled = false; alert("Enregistrement impossible : " + error.message); return; }
+  ptPhotos();
 }
 function ptPhotoPlein(src, p) {
   const ov = document.createElement("div");

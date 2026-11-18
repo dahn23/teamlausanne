@@ -2889,6 +2889,36 @@ td.he-acts{display:table-cell;vertical-align:middle;white-space:nowrap}
 .pt-ph-leg{color:#dfe6f8;font-size:.9rem;text-align:center}
 .pt-ph-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:50%;width:38px;height:38px;font-size:1rem;cursor:pointer}
 
+/* ---- Mon espace › la demande de droit à l'image (db/246) ----
+   Elle prend la place de l'album tant que la famille n'a pas répondu : c'est
+   délibéré, un encart qu'on peut ignorer ne serait jamais rempli. */
+.pt-di{margin:18px 0 6px;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:14px;background:#f7f9ff;padding:14px 16px}
+.pt-di-h{margin:0 0 6px;font-size:1rem;color:var(--blue-ink)}
+.pt-di-txt{margin:0 0 6px;line-height:1.5;font-size:.95rem}
+.pt-di-note{margin:0;font-size:.82rem;color:var(--muted);line-height:1.45}
+.pt-di-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.pt-di-btns button{flex:1 1 130px}
+/* Le refus doit avoir l'air AUSSI cliquable que l'accord : un « Non » en texte
+   nu pousse au « Oui » sans le dire, et un consentement arraché comme ça ne
+   vaut rien. Même taille, même contour, couleur en moins. */
+.pt-di-btns .ghost{background:#fff;border:1px solid var(--line);color:var(--blue-ink);border-radius:10px;font-weight:700}
+.pt-di-btns .ghost:hover{border-color:var(--blue)}
+/* Un refus : une ligne discrète, mais qui garde le chemin du retour ouvert. */
+.pt-di-non{border-left-color:var(--muted);background:#f6f7fa}
+.pt-di-non p{margin:0;font-size:.88rem;color:var(--muted);line-height:1.5}
+/* Porte aussi .ghost : la regle generale button:not(.ghost) pose une ombre
+   portee que rien de moins specifique ne retire — un lien avec une ombre de
+   bouton, c est exactement ce qu on ne veut pas ici. */
+.pt-di-non .ghost.pt-di-lien{background:none;border:0;box-shadow:none;padding:0;color:var(--blue);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+.pt-di-non .ghost.pt-di-lien:hover{color:var(--blue-ink)}
+
+/* ---- Droit à l'image : la trace sur la fiche, le relevé sur l'écran Photos ---- */
+.pconsent-hint{display:block;margin-top:4px;font-size:.78rem;color:var(--muted);line-height:1.35}
+.pconsent-hint.ok{color:#1d6b3a}
+.pconsent-hint.non{color:#8c1d1d;font-weight:700}
+.ph-droits{margin:0 0 12px;font-size:.88rem;color:var(--muted);background:#f7f9ff;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.ph-droits-non{color:#8c1d1d}
+
 /* ---- Fiche › Certificats (db/244) ---- */
 .pcert-form{max-width:900px}
 /* Les champs date sont habillés par pretty-date : on vise .pd-wrap, pas l'input natif (caché). */

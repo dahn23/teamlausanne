@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=406" />
+  <link rel="stylesheet" href="style.css?v=407" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -950,6 +950,7 @@
           <div id="cours-sub-photos" class="cours-sub hidden">
             <h2 class="cs-title">Photos des jeunes</h2>
             <p class="muted" style="font-size:.88rem;max-width:720px">Les photos d'entraînement que les familles retrouvent dans « Mon espace ». Chaque famille ne voit que les photos où <b>son</b> enfant est marqué. Choisis un cours : ses joueurs sont proposés, il suffit de décocher ceux qui ne sont pas sur la photo.</p>
+            <div id="phj-droits"></div>
             <div class="ph-barre">
               <label>Date<input type="date" id="phj-date" /></label>
               <label>Cours<select id="phj-course"><option value="">— choisis une date —</option></select></label>
@@ -3077,6 +3078,10 @@ Team Lausanne Tennis</textarea></label>
         <label>NPA<input id="p-postal" /></label>
         <label>Ville<input id="p-city" /></label>
         <label>Pays<select id="p-country"><option value="">Suisse</option><option value="FR">France</option><option value="IT">Italie</option><option value="DE">Allemagne</option><option value="AT">Autriche</option><option value="ES">Espagne</option><option value="BE">Belgique</option><option value="LU">Luxembourg</option><option value="NL">Pays-Bas</option><option value="PT">Portugal</option><option value="GB">Royaume-Uni</option><option value="US">États-Unis</option></select></label>
+        <label>Droit à l'image
+          <select id="p-photoconsent"><option value="">— pas de réponse —</option><option value="oui">Accordé</option><option value="non">Refusé</option></select>
+          <span id="p-photoconsent-hint" class="pconsent-hint"></span>
+        </label>
         <label class="check"><input id="p-active" type="checkbox" checked /> Actif</label>
       </div>
       <div class="pgrid2">
