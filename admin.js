@@ -12792,12 +12792,37 @@ function bindSalCells() {
     if (isExtra) await loadHeures();                       // recalcule le montant (salaire/heures + extra)
     else { await loadSalSlips(); renderSalBox(); }
   }));
-  document.querySelectorAll("#view-heures .sal-pdf").forEach((b) => b.addEventListener("click", () => salOpenPdf(b.dataset.path)));
+  // ⚠️ Le bloc « Mes fiches de salaire » vit AUSSI dans #view-heures, et
+  // renderMySalaires a déjà relié ses boutons — il est dessiné AVANT celui-ci
+  // (loadHeures : renderMyHours puis renderHeures). Sans ce saut, l'administration
+  // posait deux écouteurs sur le même bouton et ouvrait le PDF deux fois.
+  document.querySelectorAll("#view-heures .sal-pdf").forEach((b) => {
+    if (b.closest("#heures-mine")) return;
+    b.addEventListener("click", () => salOpenPdf(b.dataset.path, b.dataset.nom));
+  });
 }
-async function salOpenPdf(path) {
+// Ouvre une fiche de salaire. ⚠️ Le `window.open` ne peut PAS attendre l'URL
+// signée : appelé après un `await`, il n'est plus dans le geste de la personne
+// et Safari mobile le bloque — le bouton paraît mort, sans message. C'est ce
+// qu'un coach voyait en ouvrant « Mes fiches de salaire » sur son téléphone
+// (18.11.2026). Même traitement que les pièces jointes de la messagerie :
+// visionneuse intégrée sur un écran tactile, onglet ouvert DANS le clic ailleurs.
+async function salOpenPdf(path, nom) {
+  if (preferInAppViewer()) {
+    const dl = await sb.storage.from("salaries").download(path);
+    if (dl.error) { uiAlert("PDF indisponible : " + dl.error.message); return; }
+    const bytes = new Uint8Array(await dl.data.arrayBuffer());
+    await mailPdfViewer(bytes, nom || "Fiche de salaire", async () => {
+      const { data } = await sb.storage.from("salaries").createSignedUrl(path, 600);
+      return data?.signedUrl || null;
+    });
+    return;
+  }
+  const onglet = window.open("", "_blank");            // ouvert dans le clic, dirigé ensuite
   const { data, error } = await sb.storage.from("salaries").createSignedUrl(path, 600);
-  if (error || !data?.signedUrl) { uiAlert("PDF indisponible : " + (error?.message || "")); return; }
-  window.open(data.signedUrl, "_blank", "noopener");
+  if (error || !data?.signedUrl) { if (onglet) onglet.close(); uiAlert("PDF indisponible : " + (error?.message || "")); return; }
+  if (onglet) { onglet.opener = null; onglet.location.replace(data.signedUrl); }
+  else window.open(data.signedUrl, "_blank", "noopener");   // repli si l'ouverture a quand même été bloquée
 }
 
 // ---- Le retour de la fiduciaire couvre-t-il tout le monde ? --------------
@@ -13161,10 +13186,10 @@ async function loadPersonSalaires(pid, show) {
   const lbl = (ym) => { const [y, m] = ym.split("-"); const s = `${MOIS_FR[Number(m) - 1]} ${y}`; return s.charAt(0).toUpperCase() + s.slice(1); };
   $("psal-rows").innerHTML = rows.map((s) => `<tr>
     <td><b>${lbl(s.ym)}</b></td><td>${s.gross != null ? Number(s.gross).toFixed(2) : "—"}</td><td>${s.net != null ? "<b>" + Number(s.net).toFixed(2) + " CHF</b>" : "—"}</td>
-    <td>${s.pdf_path ? `<button type="button" class="ghost psal-pdf" data-path="${esc(s.pdf_path)}">📄 Voir</button>` : '<span class="muted">—</span>'}</td>
+    <td>${s.pdf_path ? `<button type="button" class="ghost psal-pdf" data-path="${esc(s.pdf_path)}" data-nom="Fiche de salaire — ${esc(lbl(s.ym))}">📄 Voir</button>` : '<span class="muted">—</span>'}</td>
     <td>${s.invoice_id ? '<span class="sal-fact">✓ transmise</span>' : '<span class="muted">—</span>'}</td>
     <td class="he-acts">${canSalaries() ? `<button type="button" class="ghost psal-del" data-id="${s.id}" data-path="${esc(s.pdf_path || "")}" title="Supprimer">✕</button>` : ""}</td></tr>`).join("");
-  $("psal-rows").querySelectorAll(".psal-pdf").forEach((b) => b.addEventListener("click", () => salOpenPdf(b.dataset.path)));
+  $("psal-rows").querySelectorAll(".psal-pdf").forEach((b) => b.addEventListener("click", () => salOpenPdf(b.dataset.path, b.dataset.nom)));
   $("psal-rows").querySelectorAll(".psal-del").forEach((b) => b.addEventListener("click", async () => {
     if (!(await uiConfirm("Supprimer cette fiche de salaire ?"))) return;
     if (b.dataset.path) await sb.storage.from("salaries").remove([b.dataset.path]);
@@ -13309,8 +13334,8 @@ async function renderMySalaires() {
   const lbl = (ym) => { const [y, m] = ym.split("-"); const s = `${MOIS_FR[Number(m) - 1]} ${y}`; return s.charAt(0).toUpperCase() + s.slice(1); };
   const div = document.createElement("div"); div.className = "he-mine";
   div.innerHTML = `<div class="he-mine-h">Mes fiches de salaire</div>` + rows.map((s) => `<div class="he-mine-row"><span>${lbl(s.ym)}${s.net != null ? ` — net <b>${Number(s.net).toFixed(2)} CHF</b>` : ""}</span>
-    ${s.pdf_path ? `<button type="button" class="ghost sal-pdf" data-path="${esc(s.pdf_path)}">📄 Voir la fiche</button>` : '<span class="muted" style="font-size:.85rem">PDF pas encore disponible</span>'}</div>`).join("");
-  div.querySelectorAll(".sal-pdf").forEach((b) => b.addEventListener("click", () => salOpenPdf(b.dataset.path)));
+    ${s.pdf_path ? `<button type="button" class="ghost sal-pdf" data-path="${esc(s.pdf_path)}" data-nom="Fiche de salaire — ${esc(lbl(s.ym))}">📄 Voir la fiche</button>` : '<span class="muted" style="font-size:.85rem">PDF pas encore disponible</span>'}</div>`).join("");
+  div.querySelectorAll(".sal-pdf").forEach((b) => b.addEventListener("click", () => salOpenPdf(b.dataset.path, b.dataset.nom)));
   host.appendChild(div);
 }
 

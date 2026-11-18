@@ -570,6 +570,26 @@ Pour qui n'a pas la paie, ces colonnes ne sont pas seulement masquées : le
 serveur ne les envoie pas (db/230). Jusqu'au 06.11.2026 elles partaient dans
 le navigateur de tout head coach — tarif, montant et IBAN de chaque collègue.
 
+### Mes heures et mes fiches de salaire
+
+Tout le monde, coach ou prof, a son propre bloc en haut de l'onglet Heures —
+même sans aucun droit sur la paie de l'équipe :
+
+- **Mes heures — <mois>** : les heures du mois, cours validés sur cours
+  prévus, et pour les profs les après-midis d'études. Une heure n'est comptée
+  que si l'appel a été fait : tant qu'il manque des cours, la ligne le dit.
+- **Mes fiches de salaire** : une ligne par mois, avec le net à payer et un
+  bouton **📄 Voir la fiche** dès que la fiduciaire a renvoyé le PDF. Chacun ne
+  voit que les siennes, y compris si quelqu'un d'autre est connecté à côté.
+
+Le bouton marche aussi bien sur téléphone que sur ordinateur. **Sur un écran
+tactile, le PDF s'ouvre dans la console elle-même**, dans la visionneuse (on
+agrandit, on réduit, on télécharge avec le bouton ⬇), et non dans un nouvel
+onglet : les navigateurs de téléphone bloquent l'ouverture d'un onglet quand
+le document doit d'abord être demandé au serveur, et le bouton semblait alors
+ne rien faire (constaté le 18.11.2026). Sur ordinateur, le PDF s'ouvre dans
+un nouvel onglet comme avant.
+
 ### Sortir un décompte
 
 1. Choisir la période.
