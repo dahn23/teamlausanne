@@ -16006,11 +16006,21 @@ async function oiSendTest() {
   } finally { btn.disabled = false; }
 }
 
+// ⚠ UN ENVOI PAR SECONDE, PAS PLUS (19.11.2026) — envoyer 30 factures d'affilée,
+// c'est 30 connexions neuves au serveur de messagerie en quelques secondes :
+// c'est le profil qui fait répondre « capacité atteinte » à Hostpoint, et les
+// factures refusées restent « à envoyer » sans que personne ne le voie. Une
+// seconde entre deux envois suffit à passer, et 30 factures prennent alors
+// trente secondes au lieu de cinq — personne ne le remarquera.
+const oiPause = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function oiSendGo() {
   const btn = $("oi-send-go"); btn.disabled = true; const st = $("oi-send-status");
-  let ok = 0; const errs = [];
+  let ok = 0; const errs = []; let premier = true;
   for (const id of oiSendIds) {
     const f = oiList.find((x) => x.id === id); if (!f || !f.debtor_email) continue;
+    if (!premier) await oiPause(1000);
+    premier = false;
     st.textContent = `Envoi ${ok + 1}/${oiSendIds.length} — ${f.number}…`;
     try {
       const chemin = await oiAssurerPdf(f);

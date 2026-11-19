@@ -16,7 +16,20 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type, apikey, x-client-info", "access-control-allow-methods": "POST, OPTIONS" };
 const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, "content-type": "application/json" } });
-const MAX_PART = 50 * 1024 * 1024;   // une pièce jointe de plus de 50 Mo reste dans le webmail
+// ⚠ POURQUOI DES PLAFONDS SI BAS (19.11.2026) — un mail de 22.8 Mo rendait la
+// fonction muette : Supabase répondait **546 (WORKER_LIMIT)**, la mémoire du
+// worker. `readAll` garde la pièce en morceaux PUIS la recopie d'un bloc, donc
+// une pièce de 20 Mo en coûte 40, plus la copie passée à l'envoi. Avec l'ancien
+// plafond de 50 Mo (et 70 Mo tolérés en entrée), le worker mourait AVANT
+// d'avoir rien écrit — et comme le texte était enregistré à la toute fin, le
+// message restait illisible dans la console. D'où les deux changements :
+//   1. le TEXTE est enregistré d'abord, séparément (il pèse quelques Ko) :
+//      le mail devient lisible même si les pièces jointes échouent ensuite ;
+//   2. ces plafonds, tenables par un worker. Au-delà, la pièce n'est pas
+//      téléchargée : elle est NOMMÉE en bas du message, avec son poids.
+const MAX_PART = 12 * 1024 * 1024;   // une pièce jointe plus lourde reste dans le webmail
+const BUDGET = 24 * 1024 * 1024;     // total téléchargé en un appel, toutes pièces confondues
+const mo = (n: number) => (n / 1048576).toFixed(1);
 // Mot de passe de chaque boîte relevée directement (mêmes secrets que mail-cron).
 const PASS_ENV: Record<string, string> = {
   "tournoi@teamlausanne.ch": "GMAIL_PASS_TOURNOI",
@@ -93,48 +106,78 @@ Deno.serve(async (req) => {
       if (j) folder = (j as any).path;
     }
     const lock = await client.getMailboxLock(folder);
-    let text = "", html = "", nAtt = 0, skipped = 0;
-    const atts: Record<string, unknown>[] = [];
+    let text = "", html = "", nAtt = 0, skipped = 0, body = "";
+    const lourdes: string[] = [];   // pièces laissées au webmail, nommées en bas du message
+    let reste = BUDGET;
     try {
       const msg = await client.fetchOne(imapUid, { bodyStructure: true, envelope: true }, { uid: true });
       // deno-lint-ignore no-explicit-any
       const bs = (msg as any)?.bodyStructure;
       if (!bs) throw new Error("Mail introuvable dans la boîte (déplacé ou supprimé ?)");
-      for (const leaf of leaves(bs)) {
+      const feuilles = leaves(bs);
+      // deno-lint-ignore no-explicit-any
+      const nom = (leaf: any) => leaf.dispositionParameters?.filename || leaf.parameters?.name || "";
+      // deno-lint-ignore no-explicit-any
+      const estPJ = (leaf: any) => {
         const type = String(leaf.type || "").toLowerCase();
-        const fname = leaf.dispositionParameters?.filename || leaf.parameters?.name || "";
-        const isAtt = !!fname || String(leaf.disposition || "").toLowerCase() === "attachment" || !type.startsWith("text/");
-        const part = leaf.part || "1";
-        if (!isAtt && (type === "text/plain" || type === "text/html")) {
-          const { content } = await client.download(imapUid, part, { uid: true });
-          const u8 = await readAll(content, 5 * 1024 * 1024);
-          const s = u8 ? new TextDecoder().decode(u8) : "";
-          if (type === "text/plain" && !text) text = s; else if (type === "text/html" && !html) html = s;
-          continue;
+        return !!nom(leaf) || String(leaf.disposition || "").toLowerCase() === "attachment" || !type.startsWith("text/");
+      };
+
+      // ---- 1. LE TEXTE, et on l'enregistre TOUT DE SUITE ----------------
+      // Quelques Ko. Tant qu'il est en base avant les pièces jointes, un mail
+      // de 25 Mo reste lisible même si le worker meurt sur la pièce suivante.
+      for (const leaf of feuilles) {
+        const type = String(leaf.type || "").toLowerCase();
+        if (estPJ(leaf) || (type !== "text/plain" && type !== "text/html")) continue;
+        const { content } = await client.download(imapUid, leaf.part || "1", { uid: true });
+        const u8 = await readAll(content, 5 * 1024 * 1024);
+        const s = u8 ? new TextDecoder().decode(u8) : "";
+        if (type === "text/plain" && !text) text = s; else if (type === "text/html" && !html) html = s;
+      }
+      body = (text || strip(html || "")).trim();
+      const { error: eTxt } = await supa.from("mail_messages").update({
+        body_text: body || "(message sans texte)", body_html: html || null,
+        snippet: (body || "").slice(0, 140) || "📎 pièces jointes",
+      }).eq("id", mail_id);
+      if (eTxt) throw new Error(eTxt.message);
+
+      // ---- 2. LES PIÈCES JOINTES, une par une ---------------------------
+      // Insérées au fil de l'eau, et non en un lot final : un lot perdu avec
+      // le worker ne laisse rien, alors qu'ici chaque pièce acquise est
+      // acquise. (Et une ligne à la fois ne peut pas heurter PGRST102.)
+      await supa.from("mail_attachments").delete().eq("mail_id", mail_id);
+      for (const leaf of feuilles) {
+        if (!estPJ(leaf)) continue;
+        const type = String(leaf.type || "").toLowerCase();
+        const fname = nom(leaf);
+        const taille = leaf.size || 0;
+        if (taille > MAX_PART || taille > reste) {
+          lourdes.push(`${fname || "pièce sans nom"} (${mo(taille)} Mo)`); skipped++; continue;
         }
-        if ((leaf.size || 0) > MAX_PART * 1.4) { skipped++; continue; }
-        const { content } = await client.download(imapUid, part, { uid: true });
+        const { content } = await client.download(imapUid, leaf.part || "1", { uid: true });
         const u8 = await readAll(content, MAX_PART);
-        if (!u8) { skipped++; continue; }
+        if (!u8) { lourdes.push(`${fname || "pièce sans nom"} (${mo(taille)} Mo)`); skipped++; continue; }
+        reste -= u8.length;
         const id = crypto.randomUUID();
-        const safe = String(fname || `piece-${part}`).replace(/[^\w.\- ]+/g, "_").slice(0, 120);
+        const safe = String(fname || `piece-${leaf.part || "1"}`).replace(/[^\w.\- ]+/g, "_").slice(0, 120);
         const path = `${mail_id}/${id}-${safe}`;
         const up = await supa.storage.from("mail-att").upload(path, u8, { contentType: type || "application/octet-stream", upsert: true });
         if (up.error) { skipped++; continue; }
-        atts.push({ id, mail_id, filename: fname || safe, content_type: type || null, size_bytes: u8.length, content_id: String(leaf.id || "").replace(/[<>]/g, "") || null, is_inline: false, content_b64: null, storage_path: path });
+        const { error: eAtt } = await supa.from("mail_attachments").insert({
+          id, mail_id, filename: fname || safe, content_type: type || null, size_bytes: u8.length,
+          content_id: String(leaf.id || "").replace(/[<>]/g, "") || null, is_inline: false, content_b64: null, storage_path: path,
+        });
+        if (eAtt) { skipped++; continue; }
         nAtt++;
       }
     } finally { lock.release(); try { await client.logout(); } catch (_) {} }
 
-    const body = (text || strip(html || "")).trim();
-    // On remplace les anciennes pièces (éventuelles) par celles qu'on vient de lire.
-    await supa.from("mail_attachments").delete().eq("mail_id", mail_id);
-    if (atts.length) { const { error } = await supa.from("mail_attachments").insert(atts); if (error) return json({ error: "pièces jointes : " + error.message }, 500); }
-    const { error: e2 } = await supa.from("mail_messages").update({
-      body_text: body || "(message sans texte)", body_html: html || null,
-      snippet: (body || "").slice(0, 140) || `📎 ${nAtt} pièce(s) jointe(s)`,
-    }).eq("id", mail_id);
-    if (e2) return json({ error: e2.message }, 500);
+    // Les pièces restées au webmail sont NOMMÉES sous le message : « il manque
+    // quelque chose » doit se lire là où on lit le mail, pas se deviner.
+    if (lourdes.length) {
+      const note = `\n\n— — —\n📎 ${lourdes.length} pièce(s) jointe(s) trop lourde(s) pour la console : ${lourdes.join(", ")}.\nÀ ouvrir dans le webmail de la boîte.`;
+      await supa.from("mail_messages").update({ body_text: (body || "(message sans texte)") + note }).eq("id", mail_id);
+    }
     return json({ ok: true, attachments: nAtt, skipped });
   } catch (e) {
     return json({ error: String((e as Error)?.message || e) }, 500);

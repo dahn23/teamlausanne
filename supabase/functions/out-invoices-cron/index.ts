@@ -91,10 +91,38 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ⚠ POURQUOI UN ENVOI POSÉ ET PAS EN RAFALE (19.11.2026) — le 20 du mois,
+    // ce sont des dizaines de factures d'un coup (31 au passage du 20.11.2026,
+    // dont les retards d'octobre). Sans `pool`, nodemailer ouvre une connexion
+    // NEUVE par message et les enchaîne aussi vite qu'il peut : c'est le profil
+    // exact qui fait répondre « capacité atteinte » à un serveur de messagerie
+    // ordinaire. Hostpoint ne publie aucun chiffre — raison de plus pour ne pas
+    // le chercher. Donc : UNE connexion gardée ouverte, un message par seconde,
+    // et un seul essai de rattrapage sur une erreur passagère.
+    // ⚠ Un transport `pool` reste ouvert : il FAUT le fermer (tr.close() plus
+    // bas), sinon la fonction ne rend jamais la main.
     const tr = nodemailer.createTransport({
       host: "asmtp.mail.hostpoint.ch", port: 465, secure: true,
       auth: { user: FROM, pass },
+      pool: true, maxConnections: 1, maxMessages: 100,
+      rateDelta: 1000, rateLimit: 1,
     });
+    // Erreur passagère (serveur occupé, quota momentané) : les codes SMTP 4xx
+    // veulent dire « reviens plus tard », au contraire des 5xx qui sont des
+    // refus définitifs (adresse inexistante…), qu'il ne sert à rien de rejouer.
+    // deno-lint-ignore no-explicit-any
+    const passagere = (e: any) => {
+      const c = Number(e?.responseCode || 0);
+      return (c >= 400 && c < 500) || /too many|rate|capacit|try again|busy|4\.\d\.\d/i.test(String(e?.message || ""));
+    };
+    // deno-lint-ignore no-explicit-any
+    const envoyer = async (msg: any) => {
+      try { return await tr.sendMail(msg); } catch (e) {
+        if (!passagere(e)) throw e;
+        await new Promise((r) => setTimeout(r, 15000));
+        return await tr.sendMail(msg);
+      }
+    };
 
     for (const f of aEnvoyer) {
       if (!f.debtor_email) { ignorees.push(`${f.number} — pas d'adresse e-mail`); continue; }
@@ -104,7 +132,7 @@ Deno.serve(async (req) => {
         if (e1 || !blob) throw new Error(e1?.message || "PDF illisible");
         const pdf = new Uint8Array(await blob.arrayBuffer());
 
-        await tr.sendMail({
+        await envoyer({
           from: `"${NOM_EXPEDITEUR}" <${FROM}>`,
           to: f.debtor_email,
           subject: remplir(OBJET, f),
@@ -141,6 +169,9 @@ Deno.serve(async (req) => {
         });
       } catch (_) { /* le récapitulatif ne doit pas faire échouer la tâche */ }
     }
+    // Transport `pool` : sans ce close, les connexions gardées ouvertes
+    // retiennent la fonction jusqu'à ce que la plateforme la coupe.
+    try { tr.close(); } catch (_) { /* rien à sauver ici */ }
 
     // Trace du passage, lue par le tableau de bord de la console. Écrite même
     // quand rien n'est parti : « la tâche a tourné, il n'y avait rien à

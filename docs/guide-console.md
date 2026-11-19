@@ -535,6 +535,23 @@ Une facture naît au statut **« à envoyer »** : elle existe, rien n'est parti
 Pour l'envoyer, la cocher dans « Émises — à encaisser » puis
 **« ✉ Envoyer la sélection »**.
 
+### Envoyer plusieurs factures d'un coup
+
+L'envoi groupé part **une facture par seconde**, et l'automatisme du 20 du mois
+fait de même. Trente factures prennent donc une trentaine de secondes au lieu
+de cinq : c'est voulu. Un serveur de messagerie ordinaire refuse les rafales et
+répond « capacité atteinte » ; les factures refusées restaient alors « à
+envoyer » sans que personne ne le remarque. Si un envoi échoue malgré tout, il
+est **réessayé une fois**, quinze secondes plus tard.
+
+Une facture n'est marquée « envoyée » qu'après un envoi réussi. Celles qui
+échouent restent dans « à envoyer » et repartiront au passage suivant — le
+récapitulatif envoyé au secrétariat les nomme une par une.
+
+**Il n'y a aucune limite d'envoi dans la console.** Le plafond, quand on le
+touche, est celui de l'hébergeur de la boîte (Hostpoint pour @teamlausanne.ch,
+Infomaniak pour @lstennis.ch), et il se compte sur 24 heures glissantes.
+
 ### Retrouver une facture
 
 Le champ de recherche cherche dans le **numéro**, le **destinataire**, le
