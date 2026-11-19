@@ -23,6 +23,23 @@ function uiModal(message, opts = {}) {
 }
 const uiAlert = (m) => uiModal(m);
 const uiConfirm = (m) => uiModal(m, { confirm: true });
+// Trois issues plutôt que deux — « cette date / celles-ci et les suivantes /
+// toute la série ». Renvoie la valeur choisie, ou "" si on annule ou on ferme.
+// Le message est échappé ici : ne pas le pré-échapper côté appelant.
+function uiChoix(message, options) {
+  return new Promise((resolve) => {
+    const ov = document.createElement("div");
+    ov.className = "ui-modal";
+    ov.innerHTML = `<div class="ui-box"><p class="ui-msg">${esc(message).replace(/\n/g, "<br>")}</p>
+      <div class="ui-actions ui-actions-col">${options.map((o, i) =>
+        `<button type="button" class="ui-btn${i ? " ui-btn-alt" : ""}" data-v="${esc(o.v)}">${esc(o.t)}</button>`).join("")}
+      <button type="button" class="ui-btn ui-btn-alt" data-v="">Annuler</button></div></div>`;
+    document.body.appendChild(ov);
+    const done = (v) => { ov.remove(); resolve(v); };
+    ov.querySelectorAll("[data-v]").forEach((b) => b.addEventListener("click", () => done(b.dataset.v)));
+    ov.addEventListener("click", (e) => { if (e.target === ov) done(""); });
+  });
+}
 // Saisie stylée (remplace prompt natif) : renvoie la valeur, ou null si annulé.
 function uiPrompt(message, def = "") {
   return new Promise((resolve) => {
@@ -3154,6 +3171,10 @@ function initCalendrier() {
   $("cal-close").addEventListener("click", () => $("cal-modal").classList.add("hidden"));
   $("cal-form").addEventListener("submit", calEnregistrer);
   ["cal-start", "cal-end"].forEach((id) => $(id).addEventListener("change", calDecompte));
+  // Répétition (db/247) : l'aperçu suit chaque frappe, c'est lui qui dit
+  // combien de lignes vont naître.
+  ["cal-rec", "cal-rec-fin", "cal-start", "cal-end", "cal-kind"].forEach((id) =>
+    $(id)?.addEventListener("change", calMajRec));
   $("cal-del").addEventListener("click", calSupprimer);
   // Cocher une filière rend l'événement interne : la case « site public » doit
   // le refléter tout de suite, pas à l'enregistrement.
@@ -3771,7 +3792,17 @@ function calOuvrir(ev, kind, lundi, fin) {
   // Lausanne Open et des rendez-vous nominatifs : à cocher un par un.
   $("cal-public").checked = !!ev?.public_site;
   calRendreAud(ev?.audiences || []);
+  // Répétition (db/247) : proposée à la création, jamais en modification — on
+  // modifie UNE occurrence, et le bandeau ci-dessous dit qu'elle a des sœurs.
+  $("cal-rec").value = ""; $("cal-rec-fin").value = "";
+  const serie = $("cal-serie");
+  if (serie) {
+    serie.hidden = !ev?.series_id;
+    if (ev?.series_id) serie.textContent =
+      `Fait partie d'une série — ${ev.series_rule || "répétition"}. Les modifications ne touchent que cette date ; « Supprimer » proposera d'effacer toute la série.`;
+  }
   calMajPublic();
+  calMajRec();
   calDecompte();
   // Qui peut toucher à cette ligne. On reprend mot pour mot la règle de la
   // base (policy cal_modif) : sans cela le bouton resterait actif et
@@ -3786,7 +3817,121 @@ function calOuvrir(ev, kind, lundi, fin) {
   $("cal-modal").classList.remove("hidden");
 }
 
-const calPlus = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
+// ⚠ `calISO` et PAS `toISOString()` (19.11.2026) : `new Date("2026-12-20T00:00:00")`
+// est minuit LOCAL, et `toISOString()` le ramène en UTC — à Zurich, minuit
+// local vaut 23:00 la veille, donc on récupérait le jour d'AVANT. `calPlus(d, 0)`
+// rendait la veille de `d`, et le « Au » proposé depuis la liste tombait le
+// jeudi au lieu du vendredi. Trouvé en testant la récurrence, où un élément de
+// trois jours en durait deux.
+const calPlus = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return calISO(x); };
+
+/* ================= RÉPÉTITION D'UN ÉLÉMENT DU CALENDRIER (db/247) =========
+   « Tous les 20 du mois, vérifier que la facturation est partie. »
+
+   ⚠ On FABRIQUE les occurrences, une ligne chacune, reliées par `series_id` —
+   on ne garde pas une règle à dérouler à la lecture. `cal_events` est lu de
+   partout (grille du mois, vue année, liste, agenda_public pour le site,
+   agenda_famille pour Mon espace, décompte des congés, pastilles, policies) :
+   une règle obligerait à apprendre la récurrence à chacun de ces endroits, et
+   le premier oublié afficherait un calendrier faux sans rien dire. Une
+   occurrence écrite est une ligne ordinaire — tout continue de marcher sans
+   le savoir.
+   ⚠ Jamais sur `vacances` ni `absence` : ces deux genres nourrissent le solde
+   de congés (db/109), les répéter viderait un solde que personne n'a demandé.
+   ========================================================================= */
+const CAL_REC_SANS = ["vacances", "absence"];
+const CAL_REC_MAX = 200;          // garde-fou : au-delà, c'est une erreur de saisie
+const JOURS_SEM = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+const RANGS = ["", "1er", "2e", "3e", "4e", "5e"];
+
+// Le n-ième <jour de semaine> d'un mois, ou null si le mois ne l'a pas
+// (tous les mois n'ont pas un 5e mardi).
+function calNieme(an, mois, rang, jourSem) {
+  const premier = new Date(an, mois, 1);
+  const jour = 1 + ((jourSem - premier.getDay() + 7) % 7) + (rang - 1) * 7;
+  const dernier = new Date(an, mois + 1, 0).getDate();
+  return jour > dernier ? null : new Date(an, mois, jour);
+}
+
+// La règle en toutes lettres, telle qu'elle sera recopiée sur chaque ligne.
+function calRegleTexte(regle, debut) {
+  if (!regle || !debut) return "";
+  const d = new Date(debut + "T00:00:00");
+  switch (regle) {
+    case "hebdo": return `Chaque semaine, le ${JOURS_SEM[d.getDay()]}`;
+    case "bihebdo": return `Une semaine sur deux, le ${JOURS_SEM[d.getDay()]}`;
+    case "mensuel": return `Chaque mois, le ${d.getDate()}`;
+    case "mensuel-jour": return `Chaque mois, le ${RANGS[Math.ceil(d.getDate() / 7)]} ${JOURS_SEM[d.getDay()]}`;
+    case "annuel": return `Chaque année, le ${d.getDate()}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+    default: return "";
+  }
+}
+
+// Les dates de la série. La DURÉE de l'élément est conservée : un événement de
+// trois jours répété chaque mois reste de trois jours.
+function calOccurrences(debut, fin, regle, jusqu) {
+  if (!regle || !debut) return [];
+  const d0 = new Date(debut + "T00:00:00");
+  const duree = Math.round((new Date((fin || debut) + "T00:00:00") - d0) / 86400000);
+  // Sans date de fin, un an : assez pour l'usage courant, et borné.
+  const limite = new Date((jusqu || calPlus(debut, 365)) + "T00:00:00");
+  if (limite < d0) return [];
+  const quantieme = d0.getDate(), jourSem = d0.getDay(), rang = Math.ceil(quantieme / 7);
+  const out = [];
+  // `i` compte les PAS de la règle, pas les occurrences : un mois sans 5e
+  // mardi ne produit rien mais fait quand même avancer le calendrier.
+  for (let i = 0; i < 1000 && out.length < CAL_REC_MAX; i++) {
+    let d = null;
+    if (regle === "hebdo" || regle === "bihebdo") {
+      d = new Date(d0); d.setDate(d0.getDate() + (regle === "hebdo" ? 7 : 14) * i);
+    } else if (regle === "mensuel" || regle === "annuel") {
+      const base = regle === "mensuel"
+        ? new Date(d0.getFullYear(), d0.getMonth() + i, 1)
+        : new Date(d0.getFullYear() + i, d0.getMonth(), 1);
+      if (base > limite) break;
+      // ⚠ Le 31 n'existe pas tous les mois, le 29.02 pas toutes les années :
+      // on retombe sur le dernier jour du mois plutôt que de sauter le tour.
+      const dernier = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+      d = new Date(base.getFullYear(), base.getMonth(), Math.min(quantieme, dernier));
+    } else if (regle === "mensuel-jour") {
+      const base = new Date(d0.getFullYear(), d0.getMonth() + i, 1);
+      if (base > limite) break;
+      d = calNieme(base.getFullYear(), base.getMonth(), rang, jourSem);
+      if (!d) continue;                       // ce mois-là n'a pas ce jour
+    } else break;
+    if (d > limite) break;
+    if (d < d0) continue;
+    const s = calISO(d);
+    out.push({ start_date: s, end_date: calPlus(s, duree) });
+  }
+  return out;
+}
+
+// Le bloc « Répéter » : visible seulement là où ça a un sens, et qui annonce
+// d'avance combien de lignes vont naître — 52 lignes posées sans prévenir, on
+// ne les retrouve plus.
+function calMajRec() {
+  const wrap = $("cal-rec-wrap"); if (!wrap) return;
+  const kind = $("cal-kind").value;
+  const enEdition = !!$("cal-id").value;
+  const possible = !enEdition && !CAL_REC_SANS.includes(kind);
+  wrap.classList.toggle("hidden", !possible);
+  if (!possible) { $("cal-rec").value = ""; $("cal-rec-apercu").hidden = true; return; }
+  const regle = $("cal-rec").value;
+  const ap = $("cal-rec-apercu");
+  $("cal-rec-fin-wrap").classList.toggle("hidden", !regle);
+  if (!regle) { ap.hidden = true; return; }
+  const occ = calOccurrences($("cal-start").value, $("cal-end").value, regle, $("cal-rec-fin").value);
+  if (!occ.length) {
+    ap.textContent = "Aucune date : vérifie la date de début et le « jusqu'au ».";
+    ap.hidden = false; return;
+  }
+  const dernier = occ[occ.length - 1].start_date;
+  ap.textContent = `${calRegleTexte(regle, $("cal-start").value)} — ${occ.length} date(s), de ${frDate(occ[0].start_date)} à ${frDate(dernier)}.`
+    + (occ.length >= CAL_REC_MAX ? ` (arrêté à ${CAL_REC_MAX}, mets une date de fin plus proche)` : "")
+    + (!$("cal-rec-fin").value ? " Sans « jusqu'au », on s'arrête à un an." : "");
+  ap.hidden = false;
+}
 
 // La case « afficher sur le site » n'a de sens que pour un événement : une
 // fermeture et un camp sont publiés d'office par leur genre, et vacances comme
@@ -3903,6 +4048,27 @@ async function calEnregistrer(e) {
   if (kind === "vacances") row.status = canCalValider() ? "valide" : "demande";
   if (kind === "absence")  row.status = "valide";
   const id = $("cal-id").value;
+  // ---- Série (db/247) : une ligne par date, toutes reliées par series_id ----
+  const regle = !id && !CAL_REC_SANS.includes(kind) ? $("cal-rec").value : "";
+  if (regle) {
+    const occ = calOccurrences(debut, fin, regle, $("cal-rec-fin").value);
+    if (!occ.length) { err.textContent = "Cette répétition ne produit aucune date."; err.hidden = false; return; }
+    if (occ.length > 30 && !(await uiConfirm(`Créer ${occ.length} éléments, de ${frDate(occ[0].start_date)} à ${frDate(occ[occ.length - 1].start_date)} ?`))) return;
+    const sid = crypto.randomUUID();
+    const texte = calRegleTexte(regle, debut);
+    // ⚠ Insert groupé : toutes les lignes portent EXACTEMENT les mêmes clés —
+    // on part du même `row` et on ne change que les deux dates. Des clés qui
+    // diffèrent et PostgREST refuse le lot entier (PGRST102), avant la RLS.
+    const lignes = occ.map((o) => ({ ...row, start_date: o.start_date, end_date: o.end_date, series_id: sid, series_rule: texte }));
+    const { data: crees, error: eSerie } = await sb.from("cal_events").insert(lignes).select("id,start_date,end_date");
+    if (eSerie) { err.textContent = eSerie.message; err.hidden = false; return; }
+    if (!crees?.length) { err.textContent = "Rien n'a été enregistré : droits insuffisants."; err.hidden = false; return; }
+    $("cal-modal").classList.add("hidden");
+    calAllerVers(crees[0]);
+    uiFaireApparaitre(crees[0].id);
+    loadCalendrier();
+    return;
+  }
   // On redemande la ligne enregistrée : il faut sa date pour savoir s'il faut
   // déplacer la vue, et son id pour la montrer. Au passage, « 0 ligne » cesse
   // d'être silencieux — une modification refusée par la policy cal_modif se
@@ -3953,6 +4119,30 @@ function calAllerVers(ev) {
 
 async function calSupprimer() {
   const id = $("cal-id").value; if (!id) return;
+  // Une occurrence de série se supprime rarement seule : on demande laquelle
+  // des trois portées on vise. Sans ça, effacer « tous les 20 du mois »
+  // demanderait douze suppressions.
+  const { data: ev } = await sb.from("cal_events").select("id,series_id,series_rule,start_date").eq("id", id).maybeSingle();
+  if (ev?.series_id) {
+    const suite = await sb.from("cal_events").select("id", { count: "exact", head: true })
+      .eq("series_id", ev.series_id).gte("start_date", ev.start_date);
+    const total = await sb.from("cal_events").select("id", { count: "exact", head: true }).eq("series_id", ev.series_id);
+    const choix = await uiChoix(
+      `Cet élément fait partie d'une série (${ev.series_rule || "répétition"}).`,
+      [{ v: "une", t: "Cette date seulement" },
+       { v: "suite", t: `Celle-ci et les suivantes (${suite.count || 0})` },
+       { v: "tout", t: `Toute la série (${total.count || 0})` }]);
+    if (!choix) return;
+    let q = sb.from("cal_events").delete();
+    q = choix === "une" ? q.eq("id", id)
+      : choix === "suite" ? q.eq("series_id", ev.series_id).gte("start_date", ev.start_date)
+      : q.eq("series_id", ev.series_id);
+    const { error } = await q;
+    if (error) { uiAlert("Suppression impossible : " + error.message); return; }
+    $("cal-modal").classList.add("hidden");
+    loadCalendrier();
+    return;
+  }
   if (!(await uiConfirm("Supprimer cet élément du calendrier ?"))) return;
   const { error } = await sb.from("cal_events").delete().eq("id", id);
   if (error) { uiAlert("Suppression impossible : " + error.message); return; }

@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=407" />
+  <link rel="stylesheet" href="style.css?v=408" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -1313,6 +1313,26 @@
                 <input type="time" id="cal-h2" /></label>
             </div>
             <p class="muted cal-aide">Sans heure, l'élément couvre toute la journée.</p>
+            <!-- Répétition (db/247). Chaque occurrence devient une ligne à part
+                 entière, reliée aux autres par series_id : tout ce qui lit le
+                 calendrier continue de marcher sans rien savoir des séries.
+                 Pas proposé pour les vacances ni les absences, qui alimentent
+                 le solde de congés. -->
+            <div class="cal-dates" id="cal-rec-wrap">
+              <label class="mailc-f">Répéter
+                <select id="cal-rec">
+                  <option value="">Non, une seule fois</option>
+                  <option value="hebdo">Chaque semaine</option>
+                  <option value="bihebdo">Toutes les 2 semaines</option>
+                  <option value="mensuel">Chaque mois, à la même date</option>
+                  <option value="mensuel-jour">Chaque mois, le même jour de semaine</option>
+                  <option value="annuel">Chaque année</option>
+                </select></label>
+              <label class="mailc-f" id="cal-rec-fin-wrap">Jusqu'au
+                <input type="date" id="cal-rec-fin" /></label>
+            </div>
+            <p id="cal-rec-apercu" class="cal-rec-apercu" hidden></p>
+            <p id="cal-serie" class="cal-serie" hidden></p>
             <!-- Décompte, pour les congés : on doit voir ce qu'on dépense
                  avant d'envoyer, pas après validation. -->
             <p id="cal-decompte" class="cal-decompte" hidden></p>

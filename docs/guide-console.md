@@ -1012,6 +1012,39 @@ posés en « Événement », ils se perdaient parmi les réunions. Ils sont
 **internes** comme le reste par défaut, ont leur couleur (turquoise) et se
 filtrent tout seuls dans la vue Année.
 
+### Répéter une entrée
+
+Pour une échéance qui revient — « tous les 20 du mois, vérifier que la
+facturation est partie » — le formulaire a un menu **« Répéter »** :
+
+- Chaque semaine
+- Toutes les 2 semaines
+- **Chaque mois, à la même date** (le 20, le 1ᵉʳ…)
+- Chaque mois, le même jour de semaine (le 3ᵉ mardi…)
+- Chaque année
+
+Avec un **« Jusqu'au »**, facultatif : sans lui on s'arrête à un an. Sous le
+menu, une ligne annonce exactement ce qui va être créé — « Chaque mois, le 20
+— 13 date(s), de 20.12.2026 à 20.12.2027 ». Au-delà de 30, une confirmation
+est demandée. Le maximum est de 200 dates.
+
+Chaque date devient une **entrée à part entière**, comme si elle avait été
+posée à la main : elle se déplace, se renomme, se supprime seule, et tout le
+reste de la console la traite normalement.
+
+Quand on ouvre l'une d'elles, un bandeau rappelle qu'elle appartient à une
+série. **Modifier ne touche que cette date.** « Supprimer » propose les trois
+portées : *cette date seulement*, *celle-ci et les suivantes*, *toute la
+série*.
+
+Le 31 de chaque mois tombe sur le **dernier jour** des mois plus courts
+(28 ou 29 février) plutôt que d'être sauté. Un « 5ᵉ lundi », lui, saute les
+mois qui n'en ont pas. Un élément de plusieurs jours garde sa durée.
+
+**Pas de répétition pour les vacances ni les absences** : ces deux types
+alimentent le solde de congés, et les répéter viderait un solde que personne
+n'a demandé.
+
 ### Qui verra cette ligne — le point important
 
 Par défaut une entrée est **interne** : elle reste dans la console.
