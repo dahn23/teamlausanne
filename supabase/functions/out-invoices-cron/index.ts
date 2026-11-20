@@ -27,6 +27,27 @@ const NOM_EXPEDITEUR = "Team Lausanne Academy";
 // partie doit avoir deux paires d'yeux dessus, pas une.
 const RECAP_A = "info@teamlausanne.ch, raphael@teamlausanne.ch";
 
+// ⚠⚠ QUI PART TOUT SEUL — SPORT-ÉTUDES ET PRO, ET RIEN D'AUTRE (20.11.2026)
+// L'envoi du 20 est une mensualité : les familles sport-études et pro savent
+// qu'elle tombe, et elle est identique d'un mois sur l'autre. Tout le reste —
+// Kids Tennis, Club, Compétition, Performance, locations, stages, rappels —
+// se relit avant de partir : montants ajustés, acomptes reçus au guichet,
+// familles à ménager. Le secrétariat l'envoie lui-même depuis la console.
+//
+// Pourquoi c'est écrit en dur ici : au passage du 20.11.2026, la tâche a
+// envoyé 29 factures dont SEULEMENT 11 de sport-études/pro. Elle n'avait
+// jamais filtré sur la filière — personne ne s'en était aperçu parce que la
+// file ne contenait jusque-là presque que des mensualités. Quatre familles ont
+// reçu une facture au montant PLEIN alors qu'elles avaient déjà versé un
+// acompte, et un second rappel de stage est parti tout seul.
+//
+// ⚠ Une facture SANS filière ne part pas non plus : dans le doute, c'est un
+// humain qui décide. Le récapitulatif les nomme toutes, pour qu'« en attente »
+// ne devienne pas « oubliée ».
+const FILIERES_AUTO = ["sport-etudes", "pro", "pro-u18"];
+const partAuto = (f: { filiere?: string | null }) =>
+  FILIERES_AUTO.includes(String(f.filiere || "").trim());
+
 const json = (o: unknown, s = 200) =>
   new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json" } });
 
@@ -72,33 +93,40 @@ Deno.serve(async (req) => {
 
     const { data: factures, error } = await supa
       .from("out_invoices")
-      .select("id, number, amount, label, reference, due_date, issue_date, debtor_name, debtor_email, pdf_path")
+      .select("id, number, amount, label, reference, due_date, issue_date, debtor_name, debtor_email, pdf_path, filiere")
       .eq("status", "a_envoyer")
       .lte("issue_date", aujourdhui)
       .order("number");
     if (error) return json({ error: error.message }, 500);
 
-    const aEnvoyer = factures || [];
+    const dues = factures || [];
+    // Le tri, et c'est tout l'enjeu de cette tâche : ce qui part seul d'un côté,
+    // ce qui attend une main humaine de l'autre.
+    const aEnvoyer = dues.filter(partAuto);
+    const aLaMain = dues.filter((f) => !partAuto(f));
     const envoyees: string[] = [];
     const ignorees: string[] = [];
+    const manuelles = aLaMain.map((f) =>
+      `${f.number} — ${f.debtor_name} — CHF ${chf(Number(f.amount))} — ${f.filiere || "sans filière"}`);
 
     if (essai) {
       return json({
-        essai: true, date: aujourdhui, candidates: aEnvoyer.length,
+        essai: true, date: aujourdhui, dues: dues.length, candidates: aEnvoyer.length,
         pretes: aEnvoyer.filter((f) => f.pdf_path && f.debtor_email).map((f) => f.number),
         bloquees: aEnvoyer.filter((f) => !f.pdf_path || !f.debtor_email)
           .map((f) => `${f.number} (${!f.pdf_path ? "PDF manquant" : "pas d'e-mail"})`),
+        reservees_envoi_manuel: manuelles,
       });
     }
 
     // ⚠ POURQUOI UN ENVOI POSÉ ET PAS EN RAFALE (19.11.2026) — le 20 du mois,
-    // ce sont des dizaines de factures d'un coup (31 au passage du 20.11.2026,
-    // dont les retards d'octobre). Sans `pool`, nodemailer ouvre une connexion
-    // NEUVE par message et les enchaîne aussi vite qu'il peut : c'est le profil
-    // exact qui fait répondre « capacité atteinte » à un serveur de messagerie
-    // ordinaire. Hostpoint ne publie aucun chiffre — raison de plus pour ne pas
-    // le chercher. Donc : UNE connexion gardée ouverte, un message par seconde,
-    // et un seul essai de rattrapage sur une erreur passagère.
+    // ce sont des dizaines de factures d'un coup. Sans `pool`, nodemailer ouvre
+    // une connexion NEUVE par message et les enchaîne aussi vite qu'il peut :
+    // c'est le profil exact qui fait répondre « capacité atteinte » à un serveur
+    // de messagerie ordinaire. Hostpoint ne publie aucun chiffre — raison de
+    // plus pour ne pas le chercher. Donc : UNE connexion gardée ouverte, un
+    // message par seconde, et un seul essai de rattrapage sur une erreur
+    // passagère.
     // ⚠ Un transport `pool` reste ouvert : il FAUT le fermer (tr.close() plus
     // bas), sinon la fonction ne rend jamais la main.
     const tr = nodemailer.createTransport({
@@ -153,18 +181,24 @@ Deno.serve(async (req) => {
 
     // Récapitulatif au secrétariat. Envoyé même quand tout s'est bien passé :
     // savoir que la tâche a tourné vaut autant que savoir qu'elle a échoué.
-    if (envoyees.length || ignorees.length) {
+    if (envoyees.length || ignorees.length || manuelles.length) {
       const corps = [
         `Envoi automatique des factures du ${frDate(aujourdhui)}.`,
+        "Seules les mensualités sport-études et pro partent automatiquement.",
         "",
         `${envoyees.length} facture(s) envoyée(s) :`,
         ...envoyees.map((x) => "  · " + x),
-        ...(ignorees.length ? ["", `${ignorees.length} NON envoyée(s) — à traiter à la main :`, ...ignorees.map((x) => "  · " + x)] : []),
+        ...(ignorees.length ? ["", `${ignorees.length} en ÉCHEC — à traiter à la main :`, ...ignorees.map((x) => "  · " + x)] : []),
+        // Les autres filières ne sont pas « oubliées » : elles attendent une
+        // relecture. Les nommer ici est la seule chose qui empêche « en
+        // attente » de devenir « jamais facturé ».
+        ...(manuelles.length ? ["", `${manuelles.length} facture(s) échue(s) RÉSERVÉE(S) À UN ENVOI MANUEL`,
+          "(Finances › Factures, bouton Envoyer) :", ...manuelles.map((x) => "  · " + x)] : []),
       ].join("\n");
       try {
         await tr.sendMail({
           from: `"${NOM_EXPEDITEUR}" <${FROM}>`, to: RECAP_A,
-          subject: `Factures — envoi automatique du ${frDate(aujourdhui)} (${envoyees.length} envoyée(s)${ignorees.length ? `, ${ignorees.length} en échec` : ""})`,
+          subject: `Factures — envoi automatique du ${frDate(aujourdhui)} (${envoyees.length} envoyée(s)${ignorees.length ? `, ${ignorees.length} en échec` : ""}${manuelles.length ? `, ${manuelles.length} à envoyer à la main` : ""})`,
           text: corps,
         });
       } catch (_) { /* le récapitulatif ne doit pas faire échouer la tâche */ }
@@ -180,11 +214,11 @@ Deno.serve(async (req) => {
     try {
       await supa.from("out_invoice_runs").insert({
         kind: "auto", sent_count: envoyees.length, failed_count: ignorees.length,
-        detail: { date: aujourdhui, envoyees, ignorees },
+        detail: { date: aujourdhui, envoyees, ignorees, manuelles },
       });
     } catch (_) { /* le journal ne doit pas faire échouer l'envoi */ }
 
-    return json({ date: aujourdhui, envoyees: envoyees.length, ignorees: ignorees.length, detail: { envoyees, ignorees } });
+    return json({ date: aujourdhui, envoyees: envoyees.length, ignorees: ignorees.length, manuelles: manuelles.length, detail: { envoyees, ignorees, manuelles } });
   } catch (e) {
     return json({ error: (e as Error)?.message || String(e) }, 500);
   }

@@ -535,6 +535,24 @@ Une facture naît au statut **« à envoyer »** : elle existe, rien n'est parti
 Pour l'envoyer, la cocher dans « Émises — à encaisser » puis
 **« ✉ Envoyer la sélection »**.
 
+### L'envoi automatique du 20 — ce qu'il touche, et ce qu'il ne touche pas
+
+Le 20 de chaque mois à 6 h, une tâche envoie les factures échues. **Elle ne
+concerne que les mensualités sport-études et pro.** Rien d'autre ne part tout
+seul : Kids Tennis, Club, Compétition, Performance, locations, stages, rappels
+et toute facture **sans filière** attendent que quelqu'un les relise et clique
+sur « Envoyer ». C'est voulu — ces factures-là demandent un coup d'œil avant
+de partir : montant ajusté, acompte encaissé au guichet, situation familiale.
+
+Le récapitulatif envoyé au secrétariat et à la direction liste **trois**
+blocs : ce qui est parti, ce qui a échoué, et **ce qui est échu mais réservé à
+un envoi manuel**, nommément. Ce troisième bloc est la liste de travail du
+mois : tant qu'une facture y figure, personne ne l'a envoyée.
+
+> Le 20.11.2026, cette tâche a envoyé 29 factures alors que 11 seulement
+> étaient des mensualités sport-études/pro : elle n'avait jamais filtré sur la
+> filière. Le filtre a été posé le jour même.
+
 ### Envoyer plusieurs factures d'un coup
 
 L'envoi groupé part **une facture par seconde**, et l'automatisme du 20 du mois
