@@ -2918,6 +2918,13 @@ td.he-acts{display:table-cell;vertical-align:middle;white-space:nowrap}
 .pt-di-non .ghost.pt-di-lien:hover{color:var(--blue-ink)}
 
 /* ---- Droit à l'image : la trace sur la fiche, le relevé sur l'écran Photos ---- */
+/* ---- Fiche › Filière de la saison en cours (22.11.2026) ----
+   Un liseré bleu : ce bloc s'enregistre tout seul, au clic, contrairement au
+   reste de la fiche qui attend « Enregistrer ». La différence doit se voir. */
+.p-fil-card{border-left:3px solid var(--blue)}
+.p-fil-sai{font-weight:400;font-size:.88rem;color:var(--muted)}
+.p-fil-msg{margin:8px 0 0;font-size:.82rem;color:var(--muted);min-height:1em}
+
 .pconsent-hint{display:block;margin-top:4px;font-size:.78rem;color:var(--muted);line-height:1.35}
 .pconsent-hint.ok{color:#1d6b3a}
 .pconsent-hint.non{color:#8c1d1d;font-weight:700}

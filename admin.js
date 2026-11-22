@@ -2020,6 +2020,7 @@ function openPerson(p) {
   renderPersonRoles(p ? (peopleRoles[p.id] || []) : []);
   $("family-section").classList.toggle("hidden", !p);
   $("credit-section").classList.toggle("hidden", !p);
+  loadPersonFiliere(p ? p.id : null);
   if (p) { populateFamPersons(p.id); loadFamily(p.id); loadCredit(p.id); }
   const roles = p ? (peopleRoles[p.id] || []) : [];
   // Joueur GameZone sans autre rôle ni filière : seulement Info + GameZone (les autres onglets reviennent
@@ -5161,6 +5162,60 @@ async function loadPersonSeasons(personId) {
   $("ptab-seasons").querySelectorAll(".ss-paid-chk").forEach((c) => c.addEventListener("change", () => updateSeasonPeriod(c.dataset.id, { paid: c.checked })));
   $("ptab-seasons").querySelectorAll(".ss-intent").forEach((s) => s.addEventListener("change", () => updateSeasonPeriod(s.dataset.id, { next_intent: s.value || null })));
 }
+/* ---------- La filière, directement sur la fiche (22.11.2026) ----------
+   Faire entrer un joueur GameZone dans un programme est une opération
+   courante — 947 fiches portent la pastille GameZone, et rien d'autre. Elle
+   demandait jusqu'ici cinq gestes dans l'onglet « Saisons » : choisir la
+   saison, choisir la filière, Ajouter. Et la fiche principale ne disait même
+   pas dans quelle filière la personne se trouve, il fallait aller voir.
+
+   ⚠ Ce bloc écrit dans `role_periods`, la SEULE source de vérité de la
+   filière — pas dans `person_roles`. Les deux tables portent les mêmes noms
+   (kidstennis, club, compétition…), et c'est le piège de ce projet : les
+   pastilles « Rôles » excluent déjà les filières (`renderPersonRoles`), sinon
+   on cocherait un libellé qui ne sert à rien.
+   ⚠ Écriture IMMÉDIATE, comme dans l'onglet Saisons — pas au « Enregistrer »
+   de la fiche. Un bouton qui attend un enregistrement qu'on ne fait pas est
+   précisément ce qui donne « j'ai coché et il ne s'est rien passé ».
+   ------------------------------------------------------------------- */
+async function loadPersonFiliere(personId) {
+  const card = $("p-fil-card"); if (!card) return;
+  card.classList.toggle("hidden", !personId);
+  if (!personId) return;
+  const host = $("p-fil"), msg = $("p-fil-msg");
+  const sea = currentSeason("juniors");
+  $("p-fil-saison").textContent = sea ? `saison ${sea.label}` : "";
+  if (!sea) {
+    host.innerHTML = "";
+    msg.textContent = "Aucune saison juniors en cours — à créer dans Réglages › Saisons.";
+    return;
+  }
+  const { data, error } = await sb.from("role_periods")
+    .select("id,role").eq("person_id", personId).eq("season_id", sea.id).in("role", SEASONAL_JUNIORS);
+  if (error) { host.innerHTML = ""; msg.textContent = "Lecture impossible : " + error.message; return; }
+  const idParRole = {};
+  for (const r of (data || [])) idParRole[r.role] = r.id;
+  host.innerHTML = SEASONAL_JUNIORS.map((r) =>
+    `<button type="button" class="chip${idParRole[r] ? " sel" : ""}" data-fil="${r}">${esc(roleLabel(r))}</button>`).join("");
+  msg.textContent = Object.keys(idParRole).length ? "" : "Aucune filière pour cette saison.";
+  host.querySelectorAll("[data-fil]").forEach((b) =>
+    b.addEventListener("click", () => basculerFiliere(b, sea.id, personId, idParRole[b.dataset.fil])));
+}
+async function basculerFiliere(btn, seasonId, personId, rowId) {
+  btn.disabled = true;
+  const { error } = rowId
+    ? await sb.from("role_periods").delete().eq("id", rowId)
+    : await sb.from("role_periods").insert({ person_id: personId, season_id: seasonId, role: btn.dataset.fil, created_by: meId });
+  btn.disabled = false;
+  if (error) {
+    $("p-fil-msg").textContent = error.code === "23505"
+      ? "Déjà enregistré pour cette saison." : "Enregistrement impossible : " + error.message;
+    return;
+  }
+  await loadPersonFiliere(personId);
+  loadPeople();   // la colonne « Filière » du Répertoire suit tout de suite
+}
+
 async function addSeasonRole(kind, role) {
   const pid = $("p-id").value;
   const seasonId = $(kind === "cotisation" ? "ss-cot-season" : "ss-jun-season").value;
@@ -5169,6 +5224,7 @@ async function addSeasonRole(kind, role) {
   const { error } = await sb.from("role_periods").insert({ person_id: pid, season_id: seasonId, role, created_by: meId });
   if (error) { alert(error.code === "23505" ? "Déjà enregistré pour cette saison." : error.message); return; }
   loadPersonSeasons(pid);
+  loadPersonFiliere(pid);   // le bloc « Filière » de la fiche montre la même donnée
   loadPeople();
 }
 async function updateSeasonPeriod(id, patch) {
@@ -5182,6 +5238,7 @@ async function deleteSeasonPeriod(id) {
   const { error } = await sb.from("role_periods").delete().eq("id", id);
   if (error) { alert(error.message); return; }
   loadPersonSeasons($("p-id").value);
+  loadPersonFiliere($("p-id").value);
   loadPeople();
 }
 

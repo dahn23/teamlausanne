@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=408" />
+  <link rel="stylesheet" href="style.css?v=409" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -3132,9 +3132,21 @@ Team Lausanne Tennis</textarea></label>
         </div>
       </div>
 
+      <!-- Filière de la SAISON EN COURS, directement sur la fiche (22.11.2026).
+           Avant, il fallait ouvrir l'onglet « Saisons », choisir la saison dans
+           un menu, choisir la filière dans un second menu, puis Ajouter — cinq
+           gestes dans un onglet que personne n'ouvre. Faire entrer un joueur
+           GameZone dans un programme est pourtant une opération courante. -->
+      <div class="rg-card p-fil-card" id="p-fil-card" style="margin-top:12px">
+        <h3 style="margin:0 0 8px;font-size:1rem">Filière <span id="p-fil-saison" class="p-fil-sai"></span></h3>
+        <p class="muted" style="font-size:.85rem;margin:0 0 8px">Un clic ajoute ou retire la filière pour la saison en cours. <b>Enregistré immédiatement</b> — pas besoin de « Enregistrer » en bas de la fiche. Les saisons passées et les cotisations restent dans l'onglet « Saisons ».</p>
+        <div id="p-fil" class="chip-select"></div>
+        <p id="p-fil-msg" class="p-fil-msg"></p>
+      </div>
+
       <div class="rg-card" style="margin-top:12px">
         <h3 style="margin:0 0 8px;font-size:1rem">Rôles</h3>
-        <p class="muted" style="font-size:.85rem;margin:0 0 8px">Cumulables. <b>Membre et filières juniors (kidstennis, club, compétition…) se gèrent dans l'onglet « Saisons »</b> (par année). Ici : les rôles permanents (staff, accès…).</p>
+        <p class="muted" style="font-size:.85rem;margin:0 0 8px">Cumulables. Ici : les rôles permanents (staff, accès, GameZone…). <b>La filière juniors se règle juste au-dessus</b>, et la cotisation « Membre » dans l'onglet « Saisons ».</p>
         <div id="p-roles" class="chip-select"></div>
       </div>
 

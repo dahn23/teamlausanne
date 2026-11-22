@@ -920,6 +920,25 @@ C'est le point qui prête le plus à confusion :
 La fiche synchronise les deux premiers : poser une étiquette ouvre l'accès
 correspondant. L'onglet « Saisons » de la fiche garde l'historique.
 
+#### Mettre quelqu'un dans un programme
+
+Sur la fiche, le bloc **« Filière — saison 2026/27 »**, juste au-dessus des
+rôles : un clic sur KidsTennis, Club, Compétition, Performance, Sport-études,
+Pro U18, Pro ou Privé l'ajoute, un second clic le retire. **C'est enregistré
+tout de suite** — inutile de cliquer « Enregistrer » en bas de la fiche. On
+peut en cumuler plusieurs.
+
+C'est ce qu'il faut faire pour un enfant arrivé par un **tournoi GameZone** :
+sa fiche existe déjà (créée automatiquement par le tournoi) et ne porte que la
+pastille GameZone. Lui poser une filière suffit — il apparaît alors dans le
+sélecteur de joueurs des cours, dans les listes par filière et dans la colonne
+« Filière » du Répertoire.
+
+Ce bloc ne montre que la **saison en cours**. Les saisons passées, les
+cotisations « Membre » et les intentions (reste / monte / descend / part)
+restent dans l'onglet **Saisons**, qui écrit exactement la même chose : les
+deux vues se mettent à jour l'une l'autre.
+
 #### Coach, senior coach, head coach
 
 Trois marches, et la différence tient en une phrase.
