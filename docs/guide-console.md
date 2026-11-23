@@ -789,6 +789,18 @@ Le PDF « Récapitulatif + justificatifs » accepte les deux : un PDF est recopi
 page à page, une photo est posée sur une page A4 à sa taille, avec le même
 bandeau bleu « Dépense n° … ».
 
+**« Je ne vois pas mon fichier dans la fenêtre de choix. »** La fenêtre
+n'affiche que les formats attendus par le bouton sur lequel on a cliqué — le
+reste du dossier est masqué, même les fichiers téléchargés à l'instant. Pour
+un justificatif de note de frais : PDF, PNG, JPEG et les photos d'iPhone
+(HEIC). Un WebP, un ZIP ou une capture en AVIF n'apparaîtront pas, et c'est
+voulu : ils ne se joignent pas au PDF récapitulatif.
+
+> Avant le 23.11.2026, ce bouton n'acceptait **que des PDF** : une photo de
+> ticket restait invisible dans le dossier Téléchargements, sans un mot
+> d'explication. Les mêmes filtres ont été élargis pour les certificats, les
+> factures reçues, les fiches de salaire et les encaissements.
+
 ### Le cycle d'une dépense
 
 | État | Ce que ça veut dire |

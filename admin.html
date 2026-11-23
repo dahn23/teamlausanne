@@ -2453,7 +2453,7 @@
 
           <div id="fac-sub-recues" class="fac-sub">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-              <label class="btnlike" style="cursor:pointer">➕ Ajouter un PDF<input id="fac-file" type="file" accept="application/pdf" multiple hidden /></label>
+              <label class="btnlike" style="cursor:pointer">➕ Ajouter un PDF<input id="fac-file" type="file" accept=".pdf,application/pdf" multiple hidden /></label>
               <button id="fac-pain" class="ghost" title="Générer le fichier de paiement (pain.001) à déposer dans PostFinance">🏦 Générer paiement</button>
               <button id="fac-export" class="ghost" title="Télécharger un ZIP des factures pour la fiduciaire">⬇ Export ZIP</button>
             </div>
@@ -2507,7 +2507,7 @@
           <div id="fac-sub-encaiss" class="fac-sub hidden">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
               <label class="btnlike" style="cursor:pointer">📥 Importer des relevés
-                <input id="enc-file" type="file" multiple accept="application/pdf,.xml,text/xml,application/xml" hidden /></label>
+                <input id="enc-file" type="file" multiple accept=".pdf,.xml,application/pdf,text/xml,application/xml" hidden /></label>
               <button id="enc-valider-tout" type="button" class="ghost" title="Valide tous les versements rapprochés par la référence QR">✓ Valider les rapprochements sûrs</button>
               <span id="enc-status" class="muted" style="font-size:.86rem"></span>
             </div>
@@ -3360,7 +3360,7 @@ Team Lausanne Tennis</textarea></label>
           <option value="Swiss Resuscitation Council"></option>
         </datalist>
         <div class="pcert-foot">
-          <label class="pcert-pick">Choisir un fichier<input type="file" id="pcert-file" accept="application/pdf,image/*" hidden /></label>
+          <label class="pcert-pick">Choisir un fichier<input type="file" id="pcert-file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,application/pdf,image/jpeg,image/png,image/heic,image/heif,image/webp" hidden /></label>
           <span id="pcert-fname" class="muted" style="font-size:.85rem">Aucun fichier choisi</span>
           <button type="button" id="pcert-add">Ajouter le certificat</button>
           <span id="pcert-status" class="muted" style="font-size:.85rem"></span>
@@ -3404,7 +3404,7 @@ Team Lausanne Tennis</textarea></label>
         <p id="psal-empty" class="muted" hidden style="font-size:.85rem">Aucune fiche de salaire.</p>
         <div class="psal-add">
           <input type="month" id="psal-month" />
-          <label class="btnlike ghost" style="margin:0">Déposer un PDF pour ce mois<input type="file" id="psal-file" accept="application/pdf" hidden /></label>
+          <label class="btnlike ghost" style="margin:0">Déposer un PDF pour ce mois<input type="file" id="psal-file" accept=".pdf,application/pdf" hidden /></label>
           <span id="psal-status" class="muted" style="font-size:.85rem"></span>
         </div>
       </div>
@@ -3856,8 +3856,16 @@ Team Lausanne Tennis</textarea></label>
   <!-- Saisie et correction d'une dépense. Les champs arrivent pré-remplis
        par la lecture du PDF ; tout reste modifiable avant validation. -->
   <!-- PDF ET images : un ticket de caisse se photographie, il ne s'imprime pas
-       en PDF. Le HEIC des iPhone est converti en JPEG au dépôt (webImage). -->
-  <input type="file" id="nf-fichier" accept="application/pdf,image/png,image/jpeg,image/webp,image/heic,image/heif" hidden />
+       en PDF. Le HEIC des iPhone est converti en JPEG au dépôt (webImage).
+       ⚠ LES EXTENSIONS SONT LISTÉES EN PLUS DES TYPES MIME, et ce n'est pas
+       une ceinture-bretelles : la fenêtre de Windows construit son filtre à
+       partir d'`accept`, et un type MIME ne sert qu'autant que le système sait
+       à quelle extension il correspond. Avec les seuls types, des fichiers
+       bien valides restent INVISIBLES dans le dossier Téléchargements — on
+       croit les avoir perdus. Pas de .webp ici : le code le refuse (NF_EXT),
+       autant ne pas le proposer. -->
+  <input type="file" id="nf-fichier"
+         accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,application/pdf,image/png,image/jpeg,image/heic,image/heif" hidden />
   <div id="nf-modal" class="modal hidden">
     <!-- « wide » (640px) et non la largeur par défaut (420px) : à l'étroit, la
          liste des catégories, qui suit la largeur de son champ, coupait les
