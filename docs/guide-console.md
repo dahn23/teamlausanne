@@ -1582,16 +1582,28 @@ répondra qu'elle ne sait pas, et la question remontera dans
   « Vainqueurs » restent grisés avant le jour du tournoi (« disponible dès
   le … ») ; ils partent aussi tout seuls le lundi à 11 h. Le mail
   « Vainqueurs » porte la photo du vainqueur en pièce jointe.
-  **Récupérer les photos** : sous le tableau des joueurs, le bouton
-  « ⬇ Télécharger les N photos » rend un **fichier ZIP** avec toutes les
-  photos de vainqueurs de ce tournoi, **une image par joueur, nommée
-  « Nom Prénom »**. L'archive porte la date du tournoi
-  (`gamezone-photos-2026-11-22.zip`). Deux homonymes ne s'écrasent pas : le
-  second devient « Nom Prénom (2) ». Le bouton compte les photos réellement
-  prises et se met à jour dès qu'on en ajoute une. Si une photo manque sur le
-  serveur, elle est nommée à la fin — le reste part quand même. C'est le
-  chemin pour alimenter le Social Media Planner ou envoyer les photos aux
-  familles, au lieu de les récupérer vignette par vignette. Pour clôturer,
+  **Récupérer les photos.** Deux endroits, selon ce qu'on cherche.
+  · **Toute une saison** — sous-onglet **Site public**, bouton
+  « ⬇ Télécharger les N photos » en haut de la galerie : un **ZIP** de toutes
+  les photos de la saison choisie, chaque image nommée
+  **« date - Nom Prénom »** (`2026-11-22 - Locher Donaïs.jpg`). La date en
+  tête range l'archive dans l'ordre des tournois, et un joueur qui gagne deux
+  fois garde bien ses deux photos. L'archive s'appelle
+  `gamezone-photos-saison-2026-27.zip`. Chaque carte porte aussi une flèche
+  **⬇** pour prendre une photo seule.
+  · **Un seul tournoi** — dans « Gérer le tournoi », sous le tableau des
+  joueurs, le même bouton pour la journée en cours ; pratique juste après le
+  tournoi, pendant qu'on y est.
+
+  ⚠️ **Les photos « Retirées du public » ne sont PAS dans le lot.** Ce bouton
+  sert à alimenter les réseaux et le site : reprendre la photo qu'une famille
+  a fait retirer serait l'inverse de ce qu'elle a demandé. Elles restent
+  téléchargeables **une par une** sur leur carte — un geste délibéré, par
+  exemple pour l'envoyer à sa propre famille.
+
+  Deux homonymes ne s'écrasent pas : le second devient « … (2) ». Si une photo
+  manque sur le serveur, elle est nommée à la fin — le reste part quand même.
+  Pour clôturer,
   chaque tableau joué doit avoir son vainqueur coché (« Victoire »), sauf les
   tableaux dont le nom contient « consolante » : c'est un tableau de
   rattrapage, on n'y coche pas de victoire.

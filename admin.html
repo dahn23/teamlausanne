@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=411" />
+  <link rel="stylesheet" href="style.css?v=412" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2111,7 +2111,15 @@
             </p>
             <label class="gz-mail-lbl">Saison</label>
             <select id="gz-site-season" style="max-width:320px"></select>
-            <h3 style="margin:.8rem 0 .4rem">Photos des vainqueurs</h3>
+            <div class="gz-site-head">
+              <h3 style="margin:.8rem 0 .4rem">Photos des vainqueurs</h3>
+              <!-- Récupérer les photos de toute la saison (23.11.2026).
+                   ⚠ Les photos « Retirées du public » sont exclues du lot :
+                   une famille a dit non, un export destiné aux réseaux ne doit
+                   pas les reprendre. Elles restent téléchargeables une par une,
+                   ce qui est un geste délibéré. -->
+              <button type="button" id="gz-site-dl" class="ghost">⬇ Télécharger les photos</button>
+            </div>
             <div id="gz-site-photos" class="gz-site-photos"></div>
           </div>
 

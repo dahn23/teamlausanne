@@ -525,7 +525,13 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .gz-site-card img{width:100%;height:150px;object-fit:cover}
 .gz-site-card.off img{filter:grayscale(1) opacity(.45)}
 .gz-site-meta{padding:8px 10px;font-size:.82rem;display:flex;flex-direction:column;gap:2px}
-.gz-site-toggle{margin:0 10px 10px;font-size:.78rem}
+/* Les deux actions d'une carte : « Retirer du public » prend la place, le
+   téléchargement se contente d'une flèche à côté — c'est le geste rare. */
+.gz-site-actions{display:flex;align-items:stretch;gap:6px;margin:0 10px 10px}
+.gz-site-toggle{margin:0;font-size:.78rem;flex:1}
+.gz-site-dl1{margin:0;font-size:.9rem;padding:4px 9px;line-height:1.2}
+.gz-site-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.gz-site-head button[disabled]{opacity:.55;cursor:default}
 .gz-site-badge{position:absolute;top:8px;left:8px;background:#b3261e;color:#fff;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px}
 /* Stages */
 .stg-cat-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;background:#fff}

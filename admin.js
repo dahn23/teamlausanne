@@ -6853,41 +6853,57 @@ function gzMajBarrePhotos() {
     : "Les photos des vainqueurs apparaîtront ici.";
 }
 
-async function gzTelechargerPhotos() {
-  const avec = gzPhotosPrises();
-  if (!avec.length) return;
-  const btn = $("gz-photos-dl"); const avant = btn.textContent;
+// ⚠ Les caractères interdits par Windows dans un nom de fichier : un seul
+// d'entre eux et l'archive entière refuse de s'ouvrir.
+const gzNomFichier = (s) => (String(s || "").trim().replace(/[\\/:*?"<>|]+/g, "-") || "joueur");
+
+/* Fabrique l'archive à partir d'une liste { chemin, nom } et la télécharge.
+   Commun au gestionnaire (les photos d'UN tournoi) et au Site public (celles
+   de TOUTE une saison) : une seule implémentation de la mise en archive, du
+   dédoublonnage des noms et du rapport d'échec. */
+async function gzZipPhotos(liste, nomArchive, btn) {
+  const avant = btn.textContent;
   btn.disabled = true; btn.textContent = "Préparation…";
   try {
     if (!window.JSZip) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
     const zip = new window.JSZip();
     const pris = new Set(); const rates = []; let n = 0;
-    for (const { p, st } of avec) {
-      const qui = `${p.last_name || ""} ${p.first_name || ""}`.trim() || "joueur";
-      const chemin = gzCheminPhoto(st.photo_url);
+    for (const { chemin, nom } of liste) {
+      const qui = gzNomFichier(nom);
       if (!chemin) { rates.push(qui); continue; }
       const { data, error } = await sb.storage.from("gz-photos").download(chemin);
       if (error || !data) { rates.push(qui); continue; }
       const ext = (chemin.match(/\.[A-Za-z0-9]+$/) || [".jpg"])[0].toLowerCase();
-      // ⚠ Deux homonymes ne doivent pas s'écraser dans le ZIP : le second
-      // devient « Nom Prénom (2) ». Les caractères interdits par Windows sont
-      // remplacés, sinon l'archive refuse de s'ouvrir.
-      const base = qui.replace(/[\\/:*?"<>|]+/g, "-");
-      let nom = base + ext;
-      for (let i = 2; pris.has(nom); i++) nom = `${base} (${i})${ext}`;
-      pris.add(nom);
-      zip.file(nom, data);
+      // ⚠ Deux homonymes ne doivent pas s'écraser : le second devient « … (2) ».
+      let f = qui + ext;
+      for (let i = 2; pris.has(f); i++) f = `${qui} (${i})${ext}`;
+      pris.add(f);
+      zip.file(f, data);
       n++;
-      btn.textContent = `Préparation… ${n}/${avec.length}`;
+      btn.textContent = `Préparation… ${n}/${liste.length}`;
     }
-    if (!n) { uiAlert("Aucune photo n'a pu être téléchargée."); return; }
-    const blob = await zip.generateAsync({ type: "blob" });
-    nfTelecharger(blob, `gamezone-photos-${mgrDate || isoA(new Date())}.zip`);
+    if (!n) { uiAlert("Aucune photo n'a pu être téléchargée."); return 0; }
+    nfTelecharger(await zip.generateAsync({ type: "blob" }), nomArchive);
     if (rates.length) uiAlert(`✓ ${n} photo(s) téléchargée(s).\n\n${rates.length} introuvable(s) : ${rates.join(", ")}.`);
+    return n;
   } catch (e) {
     uiAlert("Téléchargement impossible : " + ((e && e.message) || e));
+    return 0;
+  } finally {
+    btn.disabled = false; btn.textContent = avant;
   }
-  btn.disabled = false; btn.textContent = avant;
+}
+
+async function gzTelechargerPhotos() {
+  const avec = gzPhotosPrises();
+  if (!avec.length) return;
+  await gzZipPhotos(
+    avec.map(({ p, st }) => ({
+      chemin: gzCheminPhoto(st.photo_url),
+      nom: `${p.last_name || ""} ${p.first_name || ""}`.trim(),
+    })),
+    `gamezone-photos-${mgrDate || isoA(new Date())}.zip`,
+    $("gz-photos-dl"));
   gzMajBarrePhotos();
 }
 
@@ -8489,6 +8505,7 @@ async function loadSiteTab() {
     $("gz-site-season").innerHTML = gzSeasonOptions();
     $("gz-site-season").value = gzCurSeasonId || "";
     $("gz-site-season").addEventListener("change", renderSitePhotos);
+    $("gz-site-dl").addEventListener("click", gzSiteTelecharger);
     gzSiteSeasonsLoaded = true;
   }
   renderSitePhotos();
@@ -8509,12 +8526,69 @@ function renderSitePhotos() {
         <b>${esc(p.first_name || "")} ${esc(p.last_name || "")}</b>
         <span class="muted">${esc(t.name || "")}${t.tournament_date ? " · " + frDate(t.tournament_date) : ""}</span>
       </div>
-      <button class="ghost gz-site-toggle">${hidden ? "Afficher" : "Retirer du public"}</button>
+      <div class="gz-site-actions">
+        <button class="ghost gz-site-toggle">${hidden ? "Afficher" : "Retirer du public"}</button>
+        <button type="button" class="ghost gz-site-dl1" title="Télécharger cette photo">⬇</button>
+      </div>
       ${hidden ? '<span class="gz-site-badge">Masquée</span>' : ""}
     </div>`;
   }).join("");
   $("gz-site-photos").querySelectorAll(".gz-site-toggle").forEach((b) =>
     b.addEventListener("click", () => toggleSitePhoto(b.closest(".gz-site-card"))));
+  $("gz-site-photos").querySelectorAll(".gz-site-dl1").forEach((b) =>
+    b.addEventListener("click", () => gzSiteTelechargerUne(b.closest(".gz-site-card"), b)));
+  gzMajSiteDl();
+}
+
+/* ---- Récupérer les photos depuis « Site public » (23.11.2026) -----------
+   C'est ici qu'on a toute la saison sous les yeux, triée par date : c'est
+   donc d'ici qu'on les sort, plutôt que tournoi par tournoi.
+   ⚠ Le lot EXCLUT les photos « Retirées du public ». Ce bouton-là sert à
+   alimenter les réseaux et le site ; reprendre dans l'export la photo qu'une
+   famille a fait retirer serait exactement l'inverse de ce qu'elle a demandé.
+   Elles restent téléchargeables UNE PAR UNE, sur leur carte — un geste
+   délibéré, sur un enfant nommé, pour l'envoyer à sa famille par exemple.
+   ------------------------------------------------------------------- */
+const gzSiteDeLaSaison = () => {
+  const sid = $("gz-site-season").value;
+  return gzSitePhotos.filter((r) => !sid || r.gz_tournaments?.season_id === sid);
+};
+const gzSiteNom = (r) => `${r.gz_tournaments?.tournament_date || ""} - `
+  + `${r.gz_participants?.last_name || ""} ${r.gz_participants?.first_name || ""}`.trim();
+
+function gzMajSiteDl() {
+  const btn = $("gz-site-dl"); if (!btn) return;
+  const n = gzSiteDeLaSaison().filter((r) => r.photo_public).length;
+  btn.disabled = !n;
+  btn.textContent = n ? `⬇ Télécharger les ${n} photo${n > 1 ? "s" : ""}` : "⬇ Aucune photo à télécharger";
+  btn.title = n ? "Les photos retirées du public ne sont pas dans le lot." : "";
+}
+
+async function gzSiteTelecharger() {
+  const rows = gzSiteDeLaSaison().filter((r) => r.photo_public);
+  if (!rows.length) return;
+  // Nom de l'archive : la saison (« 2026/27 » → « 2026-27 »), à défaut la date.
+  const lbl = $("gz-site-season").selectedOptions[0]?.textContent || "";
+  const sais = (lbl.match(/\d{4}\s*\/\s*\d{2,4}/) || [""])[0].replace(/\s/g, "").replace("/", "-");
+  await gzZipPhotos(
+    // La date en tête de chaque nom : l'archive se range dans l'ordre des
+    // tournois, et un joueur qui gagne deux fois garde bien ses deux photos.
+    rows.map((r) => ({ chemin: gzCheminPhoto(r.photo_url), nom: gzSiteNom(r) })),
+    `gamezone-photos-${sais ? "saison-" + sais : isoA(new Date())}.zip`,
+    $("gz-site-dl"));
+}
+
+async function gzSiteTelechargerUne(card, btn) {
+  const r = gzSitePhotos.find((x) => x.tournament_id === card.dataset.tid && x.participant_id === card.dataset.pid);
+  if (!r) return;
+  const chemin = gzCheminPhoto(r.photo_url);
+  const avant = btn.textContent;
+  btn.disabled = true; btn.textContent = "…";
+  const { data, error } = chemin ? await sb.storage.from("gz-photos").download(chemin) : { error: { message: "chemin illisible" } };
+  btn.disabled = false; btn.textContent = avant;
+  if (error || !data) { uiAlert("Photo introuvable : " + ((error && error.message) || "")); return; }
+  const ext = (chemin.match(/\.[A-Za-z0-9]+$/) || [".jpg"])[0].toLowerCase();
+  nfTelecharger(data, gzNomFichier(gzSiteNom(r)) + ext);
 }
 
 async function toggleSitePhoto(card) {
