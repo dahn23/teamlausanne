@@ -6317,6 +6317,7 @@ async function initGameZone(roles) {
     }));
   $("gz-detail-back").addEventListener("click", closeDetail);
   $("gz-resp-add").addEventListener("click", addResponsable);
+  $("gz-photos-dl").addEventListener("click", gzTelechargerPhotos);
   $("gz-mov-add").addEventListener("click", addMovement);
   $("gz-mgr-cat").addEventListener("change", async () => {
     await sb.from("gz_tournaments").update({ price_category_id: $("gz-mgr-cat").value || null }).eq("id", mgrTid);
@@ -6521,7 +6522,7 @@ function gzPhonesHtml(raw) {
 }
 
 // ---- Gestion d'un tournoi (responsable) ----
-let mgrTid = null, mgrCats = [], mgrPlayers = [], mgrIsGz = false;
+let mgrTid = null, mgrCats = [], mgrPlayers = [], mgrIsGz = false, mgrDate = null;
 let mgrOurs = new Set();   // participants « de chez nous » (répertoire + filière active à la date du tournoi), RPC gz_our_players
 const ICO_TL_OURS = '<img class="gz-ours" src="assets/logo-academie.webp" alt="" title="Jeune Team Lausanne (cours actif cette saison)" />';
 
@@ -6533,6 +6534,7 @@ async function openTournamentMgr(tid) {
   // Libellé des lignes de caisse : les GameZone portent tous le même nom, c'est la date qui les distingue.
   mgrCaisseLabel = mgrIsGz ? `GameZone du ${frDate(t.tournament_date) || "?"}`
     : `${mgrTournamentName}${t.tournament_date ? " (" + frDate(t.tournament_date) + ")" : ""}`;
+  mgrDate = t.tournament_date || null;   // sert à nommer le ZIP des photos
   $("gz-mgr-title").textContent = `Gérer — ${t.name || "tournoi"}${t.tournament_date ? " (" + frDate(t.tournament_date) + ")" : ""}`;
   $("gz-mgr-gz").checked = mgrIsGz;
   $("gz-mgr-url").value = t.registration_url || "";
@@ -6812,9 +6814,82 @@ function renderMgr() {
     tr.querySelector(".gz-remark")?.addEventListener("click", () => openRemarkView(tr.dataset.pid));
   });
   updateMgrTotals();
+  // Le compte de photos suit la liste : une photo prise à l'instant doit
+  // apparaître sur le bouton sans recharger l'écran.
+  gzMajBarrePhotos();
 }
 
 function mgrPlayer(pid) { return mgrPlayers.find((x) => x.p.id === pid); }
+
+/* ---- Récupérer les photos des vainqueurs (23.11.2026) -------------------
+   Séline les prend pendant le tournoi, une par vainqueur. Jusqu'ici elles ne
+   ressortaient que vignette par vignette, au clic droit — 109 photos sur 18
+   journées, personne n'allait les chercher. Un ZIP par tournoi, chaque image
+   nommée d'après le joueur : c'est ce qu'on repasse au Social Media Planner
+   ou aux familles.
+   ⚠ On télécharge par le SDK (`storage.download`) et non par `fetch` sur
+   l'URL publique : le bucket est public aujourd'hui, mais le jour où il
+   passera en privé — ce qu'il devrait, ce sont des photos de mineurs — cette
+   fonction continuera de marcher sans y toucher.
+   ------------------------------------------------------------------- */
+const gzPhotosPrises = () => mgrPlayers.filter((x) => x.st && x.st.photo_url);
+
+// Le chemin dans le bucket, retrouvé à partir de l'URL enregistrée.
+const gzCheminPhoto = (url) => {
+  const m = /\/gz-photos\/(.+)$/.exec(String(url || ""));
+  return m ? decodeURIComponent(m[1].split("?")[0]) : null;
+};
+
+function gzMajBarrePhotos() {
+  const bar = $("gz-photos-bar"); if (!bar) return;
+  // Hors GameZone, il n'y a pas de vainqueur à photographier : pas de barre.
+  bar.classList.toggle("hidden", !mgrIsGz);
+  const n = gzPhotosPrises().length;
+  const btn = $("gz-photos-dl");
+  btn.disabled = !n;
+  btn.textContent = n ? `⬇ Télécharger les ${n} photo${n > 1 ? "s" : ""}` : "⬇ Aucune photo";
+  $("gz-photos-info").textContent = n
+    ? "Un fichier ZIP, une image par vainqueur, nommée d'après le joueur."
+    : "Les photos des vainqueurs apparaîtront ici.";
+}
+
+async function gzTelechargerPhotos() {
+  const avec = gzPhotosPrises();
+  if (!avec.length) return;
+  const btn = $("gz-photos-dl"); const avant = btn.textContent;
+  btn.disabled = true; btn.textContent = "Préparation…";
+  try {
+    if (!window.JSZip) await facLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    const zip = new window.JSZip();
+    const pris = new Set(); const rates = []; let n = 0;
+    for (const { p, st } of avec) {
+      const qui = `${p.last_name || ""} ${p.first_name || ""}`.trim() || "joueur";
+      const chemin = gzCheminPhoto(st.photo_url);
+      if (!chemin) { rates.push(qui); continue; }
+      const { data, error } = await sb.storage.from("gz-photos").download(chemin);
+      if (error || !data) { rates.push(qui); continue; }
+      const ext = (chemin.match(/\.[A-Za-z0-9]+$/) || [".jpg"])[0].toLowerCase();
+      // ⚠ Deux homonymes ne doivent pas s'écraser dans le ZIP : le second
+      // devient « Nom Prénom (2) ». Les caractères interdits par Windows sont
+      // remplacés, sinon l'archive refuse de s'ouvrir.
+      const base = qui.replace(/[\\/:*?"<>|]+/g, "-");
+      let nom = base + ext;
+      for (let i = 2; pris.has(nom); i++) nom = `${base} (${i})${ext}`;
+      pris.add(nom);
+      zip.file(nom, data);
+      n++;
+      btn.textContent = `Préparation… ${n}/${avec.length}`;
+    }
+    if (!n) { uiAlert("Aucune photo n'a pu être téléchargée."); return; }
+    const blob = await zip.generateAsync({ type: "blob" });
+    nfTelecharger(blob, `gamezone-photos-${mgrDate || isoA(new Date())}.zip`);
+    if (rates.length) uiAlert(`✓ ${n} photo(s) téléchargée(s).\n\n${rates.length} introuvable(s) : ${rates.join(", ")}.`);
+  } catch (e) {
+    uiAlert("Téléchargement impossible : " + ((e && e.message) || e));
+  }
+  btn.disabled = false; btn.textContent = avant;
+  gzMajBarrePhotos();
+}
 
 // Note interne (éditable) : popup avec textarea
 let gzTextPid = null;
@@ -6866,6 +6941,9 @@ async function uploadPhoto(tr, file) {
   wrap.querySelector("img")?.remove();
   wrap.insertAdjacentHTML("afterbegin", `<img src="${url}" class="gz-photo-thumb" />`);
   tr.querySelector(".gz-photo-lbl").textContent = "Refaire";
+  // La liste n'est pas redessinée ici (un re-rendu perdrait la vignette) :
+  // le compteur du bouton de téléchargement doit donc être rafraîchi à part.
+  gzMajBarrePhotos();
 }
 
 // ---- Paiement d'un joueur : prix, moyen de paiement, crédit ----

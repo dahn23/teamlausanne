@@ -433,6 +433,11 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
 .gz-totals{display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;padding:14px;background:var(--blue-ink);
   color:#fff;border-radius:var(--radius);font-size:.95rem}
 .gz-totals b{color:#fff}
+/* Barre « photos des vainqueurs » : sous les totaux, discrète — on la cherche
+   après le tournoi, pas pendant. */
+.gz-photos-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}
+.gz-photos-bar .muted{font-size:.84rem}
+.gz-photos-bar button[disabled]{opacity:.55;cursor:default}
 .gz-mgr-sections{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
 .gz-mgr-sec{background:#f5f7fb;border:1px solid var(--line);border-radius:var(--radius);padding:14px}
 .gz-mgr-sec h3{margin:0 0 10px;font-size:1rem;color:var(--blue-ink)}

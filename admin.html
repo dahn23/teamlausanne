@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=410" />
+  <link rel="stylesheet" href="style.css?v=411" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -2004,6 +2004,14 @@
                 </table>
               </div>
               <div id="gz-mgr-totals" class="gz-totals"></div>
+
+              <!-- Récupérer les photos des vainqueurs (23.11.2026). Elles sont
+                   prises pendant le tournoi et ne ressortaient que vignette par
+                   vignette, au clic droit. Un ZIP, une image par joueur. -->
+              <div id="gz-photos-bar" class="gz-photos-bar hidden">
+                <button type="button" id="gz-photos-dl" class="ghost">⬇ Télécharger les photos</button>
+                <span id="gz-photos-info" class="muted"></span>
+              </div>
 
               <div class="gz-mgr-sections">
                 <div class="gz-mgr-sec">

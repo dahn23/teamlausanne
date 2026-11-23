@@ -1581,7 +1581,17 @@ répondra qu'elle ne sait pas, et la question remontera dans
   « Clôturer le tournoi ». Dans « Envois e-mails », « Remerciements » et
   « Vainqueurs » restent grisés avant le jour du tournoi (« disponible dès
   le … ») ; ils partent aussi tout seuls le lundi à 11 h. Le mail
-  « Vainqueurs » porte la photo du vainqueur en pièce jointe. Pour clôturer,
+  « Vainqueurs » porte la photo du vainqueur en pièce jointe.
+  **Récupérer les photos** : sous le tableau des joueurs, le bouton
+  « ⬇ Télécharger les N photos » rend un **fichier ZIP** avec toutes les
+  photos de vainqueurs de ce tournoi, **une image par joueur, nommée
+  « Nom Prénom »**. L'archive porte la date du tournoi
+  (`gamezone-photos-2026-11-22.zip`). Deux homonymes ne s'écrasent pas : le
+  second devient « Nom Prénom (2) ». Le bouton compte les photos réellement
+  prises et se met à jour dès qu'on en ajoute une. Si une photo manque sur le
+  serveur, elle est nommée à la fin — le reste part quand même. C'est le
+  chemin pour alimenter le Social Media Planner ou envoyer les photos aux
+  familles, au lieu de les récupérer vignette par vignette. Pour clôturer,
   chaque tableau joué doit avoir son vainqueur coché (« Victoire »), sauf les
   tableaux dont le nom contient « consolante » : c'est un tableau de
   rattrapage, on n'y coche pas de victoire.
