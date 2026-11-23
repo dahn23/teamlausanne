@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=409" />
+  <link rel="stylesheet" href="style.css?v=410" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -3855,7 +3855,9 @@ Team Lausanne Tennis</textarea></label>
 
   <!-- Saisie et correction d'une dépense. Les champs arrivent pré-remplis
        par la lecture du PDF ; tout reste modifiable avant validation. -->
-  <input type="file" id="nf-fichier" accept="application/pdf" hidden />
+  <!-- PDF ET images : un ticket de caisse se photographie, il ne s'imprime pas
+       en PDF. Le HEIC des iPhone est converti en JPEG au dépôt (webImage). -->
+  <input type="file" id="nf-fichier" accept="application/pdf,image/png,image/jpeg,image/webp,image/heic,image/heif" hidden />
   <div id="nf-modal" class="modal hidden">
     <!-- « wide » (640px) et non la largeur par défaut (420px) : à l'étroit, la
          liste des catégories, qui suit la largeur de son champ, coupait les
@@ -3873,7 +3875,13 @@ Team Lausanne Tennis</textarea></label>
         <label class="nf-large">N° de transaction<input type="text" id="nf-no" placeholder="(facultatif)" /></label>
       </div>
       <label>Note<input type="text" id="nf-note" placeholder="À quoi servait cette dépense ?" /></label>
-      <p id="nf-justif" class="muted" style="font-size:.86rem;margin:10px 0 0"></p>
+      <!-- Le justificatif se pose AUSSI depuis cette fenêtre, pas seulement
+           depuis la barre du haut : ajouter le ticket oublié d'une dépense
+           déjà saisie est le cas courant. -->
+      <div class="nf-justif-bloc">
+        <button type="button" id="nf-modal-depot" class="ghost">📎 Choisir un justificatif</button>
+        <p id="nf-justif" class="muted"></p>
+      </div>
       <div class="form-foot">
         <button type="button" id="nf-suppr" class="danger-ghost">Supprimer</button>
         <span class="spacer"></span>

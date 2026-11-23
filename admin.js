@@ -27377,6 +27377,7 @@ function nfBind() {
   nfBound = true;
   $("nf-new").addEventListener("click", () => nfOuvrir(null));
   $("nf-depot").addEventListener("click", () => $("nf-fichier").click());
+  $("nf-modal-depot").addEventListener("click", () => $("nf-fichier").click());
   $("nf-fichier").addEventListener("change", nfDeposer);
   $("nf-close").addEventListener("click", nfFermer);
   $("nf-modal").addEventListener("click", (e) => { if (e.target === $("nf-modal")) nfFermer(); });
@@ -27531,9 +27532,14 @@ function renderNoteFrais() {
                : x.statut === "valide" ? ["val", "Validée"]
                : ["att", "À valider"];
     const corrigible = x.statut !== "rembourse" || nfTousDroits;
+    // « manquant » est un BOUTON : le justificatif oublié est le cas courant,
+    // et le réparer ne doit pas demander de retrouver la ligne, de l'ouvrir,
+    // puis de chercher où déposer le fichier.
     const justif = x.pdf_path
       ? '<button type="button" class="ghost nf-voir" data-path="' + esc(x.pdf_path) + '">📄 Voir</button>'
-      : '<span class="nf-sans">manquant</span>';
+      : (corrigible
+        ? '<button type="button" class="nf-sans nf-ajout" data-id="' + x.id + '" title="Attacher un justificatif (PDF ou image)">manquant</button>'
+        : '<span class="nf-sans">manquant</span>');
     const actions =
       (x.statut === "a_valider" && x.pdf_path
         ? '<button type="button" class="ghost nf-valider" data-id="' + x.id + '">Valider</button>' : "")
@@ -27564,6 +27570,8 @@ function renderNoteFrais() {
     b.addEventListener("click", () => nfOuvrir(nfLignes.find((x) => x.id === b.dataset.id))));
   document.querySelectorAll("#nf-lignes .nf-voir").forEach((b) =>
     b.addEventListener("click", () => nfVoir(b.dataset.path)));
+  document.querySelectorAll("#nf-lignes .nf-ajout").forEach((b) =>
+    b.addEventListener("click", () => nfAttacher(b.dataset.id)));
   document.querySelectorAll("#nf-lignes .nf-valider").forEach((b) =>
     b.addEventListener("click", () => nfStatut(b.dataset.id, "valide")));
   document.querySelectorAll("#nf-lignes .nf-rembourser").forEach((b) =>
@@ -27594,7 +27602,23 @@ async function nfStatut(id, statut) {
 
 // --- La fiche d'une dépense -------------------------------------------------
 
+// Clic sur « manquant » : on ouvre la dépense ET on demande le fichier dans
+// la foulée. Si la personne annule le sélecteur, le bouton « Choisir un
+// justificatif » de la fenêtre reste là pour recommencer.
+function nfAttacher(id) {
+  const x = nfLignes.find((l) => l.id === id);
+  if (!x) return;
+  nfOuvrir(x);
+  $("nf-fichier").click();
+}
+
 function nfOuvrir(x) {
+  // ⚠ Un fichier déposé puis abandonné ne doit pas suivre jusqu'à la ligne
+  // suivante : sans cette remise à zéro, préparer une dépense, fermer, puis
+  // ouvrir une AUTRE dépense lui attacherait le justificatif du premier.
+  // On ne remet pas à zéro pour une nouvelle ligne (x vide) : nfDeposer pose
+  // justement le fichier AVANT d'appeler nfOuvrir(null).
+  if (x) { nfPdfEnAttente = null; nfExtraitEnAttente = null; }
   $("nf-id").value = x ? x.id : "";
   $("nf-modal-titre").textContent = x ? "Corriger la dépense" : "Nouvelle dépense";
   $("nf-cat").innerHTML = '<option value="">—</option>'
@@ -27607,9 +27631,11 @@ function nfOuvrir(x) {
   $("nf-suppr").hidden = !x || (x.statut !== "a_valider" && !nfTousDroits);
   $("nf-err").hidden = true;
   $("nf-lu").hidden = true;
-  $("nf-justif").textContent = (x && x.pdf_path) || (!x && nfPdfEnAttente)
+  const aJustif = (x && x.pdf_path) || (!x && nfPdfEnAttente);
+  $("nf-modal-depot").textContent = aJustif ? "📎 Remplacer le justificatif" : "📎 Choisir un justificatif";
+  $("nf-justif").textContent = aJustif
     ? "Justificatif déposé."
-    : "Aucun justificatif : il en faudra un avant de valider.";
+    : "Aucun justificatif : un PDF ou une photo, à joindre avant de valider.";
   $("nf-modal").classList.remove("hidden");
   $("nf-date").focus();
 }
@@ -27637,9 +27663,20 @@ async function nfEnregistrer(e) {
   if (!(ligne.amount > 0)) {
     err.hidden = false; err.textContent = "Le montant doit être supérieur à zéro."; return;
   }
-  let r;
-  if (id) r = await sb.from("expenses").update(ligne).eq("id", id);
-  else {
+  let r, ancien = null;
+  if (id) {
+    // ⚠ LE JUSTIFICATIF NE SE POSAIT QU'À LA CRÉATION (23.11.2026) : la mise à
+    // jour n'écrivait jamais `pdf_path`, donc ajouter un ticket oublié à une
+    // dépense déjà saisie était impossible — il fallait supprimer la ligne et
+    // tout ressaisir. C'est ce que répare ce bloc.
+    if (nfPdfEnAttente) {
+      const l = nfLignes.find((x) => x.id === id);
+      if (l && l.pdf_path && l.pdf_path !== nfPdfEnAttente) ancien = l.pdf_path;
+      ligne.pdf_path = nfPdfEnAttente;
+      if (nfExtraitEnAttente) ligne.extraction = nfExtraitEnAttente;
+    }
+    r = await sb.from("expenses").update(ligne).eq("id", id);
+  } else {
     if (!nfQui) { err.hidden = false; err.textContent = "Aucune personne sélectionnée."; return; }
     r = await sb.from("expenses").insert(Object.assign({}, ligne, {
       person_id: nfQui, created_by: uid,
@@ -27650,6 +27687,10 @@ async function nfEnregistrer(e) {
     }));
   }
   if (r.error) { err.hidden = false; err.textContent = r.error.message; return; }
+  // L'ancien fichier ne part qu'APRÈS l'enregistrement : dans l'autre ordre,
+  // un enregistrement refusé laisserait la ligne pointer sur un fichier
+  // supprimé, et le justificatif serait perdu pour rien.
+  if (ancien) await sb.storage.from("notes-de-frais").remove([ancien]);
   nfFermer();
   await loadNoteFrais();
 }
@@ -27677,24 +27718,67 @@ async function nfSupprimer() {
    Le nom du fichier est tiré au sort : la ligne n'existe pas encore au
    moment du dépôt, donc on ne peut pas le nommer d'après elle.
    ------------------------------------------------------------------------- */
+// L'extension à donner au fichier déposé. Elle compte : c'est elle que
+// l'assemblage des justificatifs regarde pour savoir s'il copie des pages de
+// PDF ou s'il insère une image.
+// ⚠ PDF, PNG et JPEG, et RIEN d'autre : l'assemblage des justificatifs passe
+// par pdf-lib, qui n'embarque que du PNG et du JPEG. Accepter un WebP le
+// ferait disparaître silencieusement du PDF regroupé. Le HEIC des iPhone est
+// converti en JPEG juste avant, donc il entre par la porte du JPEG.
+const NF_EXT = { "application/pdf": ".pdf", "image/png": ".png", "image/jpeg": ".jpg" };
+
 async function nfDeposer() {
-  const f = $("nf-fichier").files && $("nf-fichier").files[0];
-  if (!f) return;
+  const f0 = $("nf-fichier").files && $("nf-fichier").files[0];
+  if (!f0) return;
   $("nf-fichier").value = "";
-  if (f.type !== "application/pdf") { uiAlert("Le justificatif doit être un PDF."); return; }
-  if (f.size > 10 * 1024 * 1024) { uiAlert("Ce PDF dépasse 10 Mo."); return; }
+  const estImage = /^image\//i.test(f0.type || "");
+  if (f0.type !== "application/pdf" && !estImage) {
+    uiAlert("Le justificatif doit être un PDF ou une image (PNG, JPEG)."); return;
+  }
+  if (f0.size > 10 * 1024 * 1024) { uiAlert("Ce fichier dépasse 10 Mo."); return; }
   if (!nfQui) { uiAlert("Aucune personne sélectionnée."); return; }
 
-  const btn = $("nf-depot"); const avant = btn.textContent;
+  // Une ligne déjà ouverte reçoit son justificatif sans qu'on touche à ses
+  // champs : on complète une dépense saisie, on ne la ressaisit pas.
+  const idOuvert = !$("nf-modal").classList.contains("hidden") ? $("nf-id").value : "";
+  const btn = idOuvert ? $("nf-modal-depot") : $("nf-depot");
+  const avant = btn.textContent;
   btn.disabled = true; btn.textContent = "Dépôt…";
-  const nom = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())) + ".pdf";
+
+  // Un ticket photographié arrive en HEIC depuis un iPhone : ni le navigateur
+  // ni l'assemblage PDF ne savent le lire. webImage le convertit en JPEG et
+  // le réduit — c'est la même parade que pour les photos de fiche.
+  let f = f0;
+  if (estImage) { try { f = await webImage(f0, 2000); } catch (_) { f = f0; } }
+  const type = f.type || f0.type || "application/octet-stream";
+  if (!NF_EXT[type]) {
+    btn.disabled = false; btn.textContent = avant;
+    uiAlert("Format non géré : choisis un PDF, un PNG ou un JPEG."); return;
+  }
+  const nom = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())) + NF_EXT[type];
   const chemin = nfQui + "/" + nom;
-  const up = await sb.storage.from("notes-de-frais").upload(chemin, f, { contentType: "application/pdf" });
+  const up = await sb.storage.from("notes-de-frais").upload(chemin, f, { contentType: type });
   if (up.error) {
     btn.disabled = false; btn.textContent = avant;
     uiAlert("Dépôt impossible : " + up.error.message); return;
   }
   nfPdfEnAttente = chemin; nfExtraitEnAttente = null;
+
+  if (idOuvert) {
+    btn.disabled = false; btn.textContent = avant;
+    $("nf-justif").textContent = "Justificatif déposé — « Enregistrer » pour l'attacher à cette dépense.";
+    return;
+  }
+  // La lecture automatique ne vaut que pour un PDF : la fonction de lecture
+  // attend un document, pas une photo. Une image ouvre donc la fiche vide,
+  // ce qui reste mieux que de faire patienter pour rien.
+  if (estImage) {
+    btn.disabled = false; btn.textContent = avant;
+    nfOuvrir(null);
+    const li = $("nf-lu"); li.hidden = false;
+    li.textContent = "Image déposée. Les champs sont à saisir à la main.";
+    return;
+  }
 
   btn.textContent = "Lecture…";
   let lu = null, souci = "";
@@ -27891,12 +27975,32 @@ async function nfExportJustifs() {
     for (const { n, x } of avec) {
       const dl = await sb.storage.from("notes-de-frais").download(x.pdf_path);
       if (dl.error || !dl.data) { rates.push(n + " (introuvable)"); continue; }
-      let src;
-      try { src = await PDFDocument.load(await dl.data.arrayBuffer()); }
-      catch (_) { rates.push(n + " (PDF illisible)"); continue; }
-      const pages = await sortie.copyPages(src, src.getPageIndices());
+      const brut = await dl.data.arrayBuffer();
+      // Un justificatif est un PDF ou une photo (depuis le 23.11.2026).
+      // L'image ne se « copie » pas, elle s'insère sur une page qu'on crée.
+      let pages;
+      if (/\.(png|jpe?g)$/i.test(x.pdf_path)) {
+        let img;
+        try {
+          img = /\.png$/i.test(x.pdf_path) ? await sortie.embedPng(brut) : await sortie.embedJpg(brut);
+        } catch (_) { rates.push(n + " (image illisible)"); continue; }
+        const [LA, HA] = [595.28, 841.89];                 // A4 en points
+        const k = Math.min((LA - 28) / img.width, (HA - 44) / img.height, 1);
+        const p = sortie.addPage([LA, HA]);
+        p.drawImage(img, {
+          x: (LA - img.width * k) / 2, y: (HA - 16 - img.height * k) / 2,
+          width: img.width * k, height: img.height * k,
+        });
+        pages = [p];
+      } else {
+        let src;
+        try { src = await PDFDocument.load(brut); }
+        catch (_) { rates.push(n + " (PDF illisible)"); continue; }
+        const copiees = await sortie.copyPages(src, src.getPageIndices());
+        copiees.forEach((p) => sortie.addPage(p));
+        pages = copiees;
+      }
       pages.forEach((p, i) => {
-        sortie.addPage(p);
         // Le bandeau n'est posé que sur la PREMIÈRE page d'un justificatif :
         // répété sur chaque page d'une facture de dix pages, il salirait le
         // document sans rien apprendre.

@@ -758,16 +758,36 @@ dépenses isolées, et peuvent être rangées dans une autre note.
 
 ### Ajouter une dépense — la bonne façon
 
-1. **« ⬆ Déposer un justificatif »** et choisir le PDF.
-2. La fiche s'ouvre **déjà remplie** : date, montant, n° de transaction,
-   catégorie, lus dans le document.
+1. **« ⬆ Déposer un justificatif »** et choisir le fichier — **un PDF ou une
+   photo** (PNG, JPEG ; une photo d'iPhone en HEIC est convertie toute seule).
+2. Avec un **PDF**, la fiche s'ouvre **déjà remplie** : date, montant,
+   n° de transaction, catégorie, lus dans le document. Avec une **photo**,
+   elle s'ouvre vide : la lecture automatique ne marche que sur un document.
 3. **Vérifier**, corriger si besoin, puis « Enregistrer ».
 
 Ce qui n'a pas pu être lu reste vide plutôt que deviné. Le bandeau en haut de
 la fiche dit ce qui a été lu et avec quelle confiance.
 
-« + Saisir à la main » fait la même chose sans PDF — le justificatif pourra
-être ajouté ensuite.
+« + Saisir à la main » fait la même chose sans fichier.
+
+### Ajouter le justificatif oublié d'une dépense déjà saisie
+
+Dans la colonne **Justificatif**, le mot rouge **« manquant » est cliquable** :
+un clic ouvre la dépense et demande tout de suite le fichier. Choisir le PDF
+ou la photo, puis **« Enregistrer »** — la dépense est complétée, pas refaite.
+
+La même chose se fait depuis la fenêtre d'une dépense, avec
+**« 📎 Choisir un justificatif »**. Quand il y en a déjà un, le bouton propose
+de le **remplacer** : l'ancien fichier est effacé une fois le remplacement
+enregistré.
+
+> Jusqu'au 23.11.2026, le justificatif ne pouvait se poser qu'**à la création**
+> de la dépense. Pour rattraper un ticket oublié, il fallait supprimer la ligne
+> et tout ressaisir.
+
+Le PDF « Récapitulatif + justificatifs » accepte les deux : un PDF est recopié
+page à page, une photo est posée sur une page A4 à sa taille, avec le même
+bandeau bleu « Dépense n° … ».
 
 ### Le cycle d'une dépense
 
