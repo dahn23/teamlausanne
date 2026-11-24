@@ -21156,13 +21156,16 @@ let mailcDraftFiles = [];  // métadonnées des pièces jointes déjà dans le s
 let mailcMissingFiles = []; // celles qu'on n'a pas pu retélécharger : à conserver, pas à supprimer
 let mailcLastSig = "";     // contenu au dernier enregistrement → détecte les modifications
 /* ---- Signature des mails (24.11.2026) ------------------------------------
-   Un pied de mail par boîte. Faites : Team Lausanne Academy, puis Lausanne
-   Open (25.11.2026). Restent LS Tennis et tournoi@, une par une — chaque
-   marque a son logo, son vert et ses adresses, et signer l'une du blason de
-   l'autre serait pire que ne rien signer. ⚠ Une boîte sans entrée ici ne
-   reçoit RIEN : mailSignatureHtml rend "" et mailPoserSignature retire au
-   passage la signature de la boîte précédente. C'est voulu — une boîte non
-   traitée vaut mieux qu'une boîte mal signée.
+   Un pied de mail par boîte. Les quatre boîtes partagées sont faites :
+   Team Lausanne Academy, Lausanne Open, GameZone (= tournoi@) et
+   TC Lausanne-Sports (= admin@lstennis.ch). Seule raphael@ reste nue, c'est
+   une boîte privée. ⚠ Une boîte sans entrée ici ne reçoit RIEN :
+   mailSignatureHtml rend "" et mailPoserSignature retire au passage la
+   signature de la boîte précédente. C'est voulu — une boîte non traitée vaut
+   mieux qu'une boîte mal signée.
+   ⚠ Chaque marque a son logo, ses proportions et parfois son vert, d'où
+   logoL / logoH / vert par entrée : le blason du club fait 84x130 quand celui
+   de l'académie fait 78x78. Une taille unique en écraserait un.
 
    ⚠ Tableaux et styles EN LIGNE, rien d'autre : Outlook pour Windows rend le
    HTML avec le moteur de Word, qui ignore flexbox, grid et une bonne part des
@@ -21207,6 +21210,34 @@ const MAIL_SIGNATURES = {
     liens: [
       { txt: "info@lausanneopen.ch", href: "mailto:info@lausanneopen.ch" },
       { txt: "teamlausanne.ch/lausanne-open", href: "https://teamlausanne.ch/lausanne-open" },
+      { txt: "@team_lausanne_academy", href: "https://www.instagram.com/team_lausanne_academy" },
+    ],
+  },
+  // ⚠ GameZone = la boîte tournoi@, pas info@lausanneopen.ch. Les deux portent
+  // le mot « tournoi » et ce sont deux mondes : tournoi@ ne contient que des
+  // inscriptions et des désistements GameZone (tournois juniors du week-end),
+  // l'autre est l'ITF M25. Les signer pareil serait une erreur visible.
+  "tournoi@teamlausanne.ch": {
+    nom: "GAMEZONE",
+    logo: "/assets/logo-gamezone-mail.png",
+    logoL: 88, logoH: 98,
+    adresse: "Des tournois juniors presque tous les week-ends !",
+    liens: [
+      { txt: "tournoi@teamlausanne.ch", href: "mailto:tournoi@teamlausanne.ch" },
+      { txt: "teamlausanne.ch/gamezone", href: "https://teamlausanne.ch/gamezone" },
+      { txt: "+41 21 646 13 50", href: "tel:+41216461350" },
+      { txt: "@team_lausanne_academy", href: "https://www.instagram.com/team_lausanne_academy" },
+    ],
+  },
+  "admin@lstennis.ch": {
+    nom: "TENNIS CLUB LAUSANNE-SPORTS",
+    logo: "/assets/logo-club-mail.png",
+    logoL: 84, logoH: 130,
+    adresse: "Jouer. Partager. Ensemble.",
+    liens: [
+      { txt: "admin@lstennis.ch", href: "mailto:admin@lstennis.ch" },
+      { txt: "lstennis.ch", href: "https://www.lstennis.ch" },
+      { txt: "+41 21 646 13 50", href: "tel:+41216461350" },
       { txt: "@team_lausanne_academy", href: "https://www.instagram.com/team_lausanne_academy" },
     ],
   },
