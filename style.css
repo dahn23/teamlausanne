@@ -529,8 +529,17 @@ button.nav.nav-wide{width:auto;padding:8px 14px;font-size:.9rem;font-weight:700}
    téléchargement se contente d'une flèche à côté — c'est le geste rare. */
 .gz-site-actions{display:flex;align-items:stretch;gap:6px;margin:0 10px 10px}
 .gz-site-toggle{margin:0;font-size:.78rem;flex:1}
-.gz-site-dl1{margin:0;font-size:.9rem;padding:4px 9px;line-height:1.2}
-.gz-site-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+/* ⚠ Cibler « button.gz-site-dl1 » et pas « .gz-site-dl1 » : button.ghost
+   (0,1,1) battait la classe nue (0,1,0), et le padding posé ici était perdu
+   sans un mot. Vérifier la spécificité avant de rhabiller un bouton qui
+   porte déjà une classe. */
+button.gz-site-dl1{margin:0;font-size:.9rem;padding:4px 9px;line-height:1.2;
+  background:#fff;border:1px solid var(--line);color:var(--ink)}
+/* Variante « le bouton appartient au titre », comme .stg-card-head.serre : en
+   « space-between » il finissait seul contre le bord droit d'une grille large,
+   en gris sur blanc (button.ghost) — et on ne le trouvait pas (24.11.2026).
+   Il est maintenant vert et collé au titre. */
+.gz-site-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:12px}
 .gz-site-head button[disabled]{opacity:.55;cursor:default}
 .gz-site-badge{position:absolute;top:8px;left:8px;background:#b3261e;color:#fff;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px}
 /* Stages */

@@ -1583,8 +1583,9 @@ répondra qu'elle ne sait pas, et la question remontera dans
   le … ») ; ils partent aussi tout seuls le lundi à 11 h. Le mail
   « Vainqueurs » porte la photo du vainqueur en pièce jointe.
   **Récupérer les photos.** Deux endroits, selon ce qu'on cherche.
-  · **Toute une saison** — sous-onglet **Site public**, bouton
-  « ⬇ Télécharger les N photos » en haut de la galerie : un **ZIP** de toutes
+  · **Toute une saison** — sous-onglet **Site public**, bouton vert
+  « ⬇ Télécharger les N photos », posé **juste à droite du titre « Photos des
+  vainqueurs »**, au-dessus de la galerie : un **ZIP** de toutes
   les photos de la saison choisie, chaque image nommée
   **« date - Nom Prénom »** (`2026-11-22 - Locher Donaïs.jpg`). La date en
   tête range l'archive dans l'ordre des tournois, et un joueur qui gagne deux
