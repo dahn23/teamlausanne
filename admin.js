@@ -21156,18 +21156,25 @@ let mailcDraftFiles = [];  // métadonnées des pièces jointes déjà dans le s
 let mailcMissingFiles = []; // celles qu'on n'a pas pu retélécharger : à conserver, pas à supprimer
 let mailcLastSig = "";     // contenu au dernier enregistrement → détecte les modifications
 /* ---- Signature des mails (24.11.2026) ------------------------------------
-   Un pied de mail par boîte. On commence par Team Lausanne Academy ; les
-   autres (Lausanne Open, LS Tennis, tournoi@) viendront une par une — elles
-   n'ont ni le même logo ni la même adresse, et signer Lausanne Open du logo
-   de l'académie serait pire que ne rien signer.
+   Un pied de mail par boîte. Faites : Team Lausanne Academy, puis Lausanne
+   Open (25.11.2026). Restent LS Tennis et tournoi@, une par une — chaque
+   marque a son logo, son vert et ses adresses, et signer l'une du blason de
+   l'autre serait pire que ne rien signer. ⚠ Une boîte sans entrée ici ne
+   reçoit RIEN : mailSignatureHtml rend "" et mailPoserSignature retire au
+   passage la signature de la boîte précédente. C'est voulu — une boîte non
+   traitée vaut mieux qu'une boîte mal signée.
 
    ⚠ Tableaux et styles EN LIGNE, rien d'autre : Outlook pour Windows rend le
    HTML avec le moteur de Word, qui ignore flexbox, grid et une bonne part des
    feuilles de style. Une signature en <div> + CSS se décompose chez une part
    des destinataires — et jamais chez nous, donc on ne le voit pas.
    ⚠ Le logo est un PNG hébergé : PAS de data: (Gmail les retire) et PAS de
-   WebP (Outlook pour Windows ne sait pas le lire). D'où le fichier dédié
-   assets/logo-academie-mail.png, 160 px et 11 Ko — l'original en fait 190.
+   WebP (Outlook pour Windows ne sait pas le lire). D'où les fichiers dédiés
+   assets/logo-academie-mail.png (160 px, 11 Ko ; l'original en fait 190) et
+   assets/logo-open-mail.png (220 px, 15 Ko), fabriqués par tools/png-resize.mjs.
+   ⚠ Le logo du tournoi a un canal alpha : il est APLATI sur blanc (option
+   « blanc » du script) et sort en RGB opaque. Un PNG transparent se retrouve
+   sur un fond gris ou noir selon le client, et le bleu du logo y disparaît.
    ⚠ Elle n'est PAS posée côté serveur : mail-send sert aussi aux factures,
    aux mails GameZone et à la fiducie, qui ont leur propre mise en page. Elle
    s'écrit dans l'éditeur, où la personne la voit et peut l'enlever.
@@ -21179,6 +21186,7 @@ const MAIL_SIGNATURES = {
   "info@teamlausanne.ch": {
     nom: "TEAM LAUSANNE ACADEMY",
     logo: "/assets/logo-academie-mail.png",
+    logoL: 78, logoH: 78,
     adresse: "Route des Plaines-du-Loup 7 · 1018 Lausanne",
     liens: [
       { txt: "info@teamlausanne.ch", href: "mailto:info@teamlausanne.ch" },
@@ -21187,18 +21195,35 @@ const MAIL_SIGNATURES = {
       { txt: "@team_lausanne_academy", href: "https://www.instagram.com/team_lausanne_academy" },
     ],
   },
+  // Le tournoi a son propre logo et son propre vert (celui de la balle, pris
+  // dans l'image : #D7F80C). Signer le Lausanne Open du blason de l'academie
+  // serait pire que ne rien signer — c'est une autre marque.
+  "info@lausanneopen.ch": {
+    nom: "LAUSANNE OPEN 2027",
+    logo: "/assets/logo-open-mail.png",
+    logoL: 104, logoH: 98,
+    vert: "#D7F80C",
+    adresse: "ITF M25 · 21 – 29 août 2027 · Lausanne",
+    liens: [
+      { txt: "info@lausanneopen.ch", href: "mailto:info@lausanneopen.ch" },
+      { txt: "teamlausanne.ch/lausanne-open", href: "https://teamlausanne.ch/lausanne-open" },
+      { txt: "@team_lausanne_academy", href: "https://www.instagram.com/team_lausanne_academy" },
+    ],
+  },
 };
 function mailSignatureHtml(adresse) {
   const s = MAIL_SIGNATURES[String(adresse || "").trim().toLowerCase()];
   if (!s) return "";
+  const vert = s.vert || "#B2FD13";
+  const lL = s.logoL || 78, lH = s.logoH || 78;
   const li = s.liens.map((l) =>
-    `<tr><td style="padding-right:8px;color:#B2FD13;font-size:13px">&#9679;</td>`
+    `<tr><td style="padding-right:8px;color:${vert};font-size:13px">&#9679;</td>`
     + `<td><a href="${esc(l.href)}" style="color:#141a2e;text-decoration:none">${esc(l.txt)}</a></td></tr>`).join("");
   return `<div class="tl-sign"><br>`
     + `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:Segoe UI,Arial,sans-serif">`
     + `<tr><td style="padding:0 18px 0 0;vertical-align:middle">`
-    + `<img src="${MAIL_SIGN_HOTE}${s.logo}" width="78" height="78" alt="${esc(s.nom)}" style="display:block;border:0" /></td>`
-    + `<td style="padding:0 18px 0 0;vertical-align:middle"><div style="width:2px;height:84px;background:#B2FD13"></div></td>`
+    + `<img src="${MAIL_SIGN_HOTE}${s.logo}" width="${lL}" height="${lH}" alt="${esc(s.nom)}" style="display:block;border:0" /></td>`
+    + `<td style="padding:0 18px 0 0;vertical-align:middle"><div style="width:2px;height:${lH + 6}px;background:${vert}"></div></td>`
     + `<td style="vertical-align:middle">`
     + `<div style="font-size:14px;font-weight:700;color:#073EB5;letter-spacing:.02em;padding-bottom:2px">${esc(s.nom)}</div>`
     + `<div style="font-size:12px;color:#69708a;padding-bottom:7px">${esc(s.adresse)}</div>`
@@ -21207,7 +21232,7 @@ function mailSignatureHtml(adresse) {
     + `<tr><td colspan="3" style="padding-top:14px">`
     + `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr>`
     + `<td style="width:150px;height:5px;background:#073EB5;font-size:0;line-height:0">&nbsp;</td>`
-    + `<td style="width:215px;height:5px;background:#B2FD13;font-size:0;line-height:0">&nbsp;</td>`
+    + `<td style="width:215px;height:5px;background:${vert};font-size:0;line-height:0">&nbsp;</td>`
     + `</tr></table></td></tr></table></div>`;
 }
 // Pose la signature, ou remplace celle qui s'y trouve quand on change de boîte.

@@ -1415,9 +1415,14 @@ répondra qu'elle ne sait pas, et la question remontera dans
   au destinataire du fil — utile quand votre dernier mot est resté sans
   réponse et qu'il faut relancer.
   **La signature.** Un nouveau message et un cadre de réponse s'ouvrent déjà
-  signés — logo, adresse, site, téléphone et compte Instagram. Elle n'est
-  posée que sur la boîte **Team Lausanne (info@)** pour l'instant ; les autres
-  viendront une par une, chacune ayant son logo et son adresse. Changer de
+  signés, et **chaque boîte a la sienne**. **Team Lausanne (info@)** : logo de
+  l'académie, adresse, site, téléphone et compte Instagram. **Lausanne Open
+  (info@lausanneopen.ch)** : logo du tournoi, « ITF M25 · 21 – 29 août 2027 ·
+  Lausanne », l'adresse de la boîte, la page du tournoi
+  (teamlausanne.ch/lausanne-open) et le même compte Instagram. Les deux
+  dernières — **LS Tennis** et **Tournoi (tournoi@)** — n'ont pas encore la
+  leur et s'ouvrent donc sans signature ; elles viendront une par une, chaque
+  marque ayant son logo et ses couleurs. Changer de
   boîte dans « De : » remplace la signature sans toucher à ce que vous avez
   écrit, et vous pouvez l'effacer comme n'importe quel texte. Un message qui
   ne contient que la signature reste considéré comme **vide** : il ne part

@@ -1,9 +1,18 @@
 // Redimensionne un PNG 8 bits non entrelace sans dependance : zlib suffit.
-// Sert a fabriquer le logo du pied de mail (160 px) depuis l'original 1024 px.
+// Sert a fabriquer les logos des pieds de mail depuis les originaux pleine taille.
+//
+//   node tools/png-resize.mjs <source> <sortie> <largeur> [blanc]
+//
+// "blanc" aplatit la transparence sur du blanc et sort un PNG RGB opaque.
+// A utiliser des que la source a un canal alpha : un pied de mail se lit sur
+// fond blanc, et les clients mail rendent l'alpha n'importe comment. On aplatit
+// AVANT de moyenner : dans l'autre ordre, les pixels d'un bord antialiase
+// tirent la couleur vers le fond et le logo prend un lisere.
 import { readFileSync, writeFileSync } from "node:fs";
 import { inflateSync, deflateSync } from "node:zlib";
 
-const [, , src, dst, largeurVoulue] = process.argv;
+const [, , src, dst, largeurVoulue, mode] = process.argv;
+const aplatir = String(mode || "").toLowerCase() === "blanc";
 const buf = readFileSync(src);
 if (buf.readUInt32BE(0) !== 0x89504e47) throw new Error("pas un PNG");
 
@@ -45,21 +54,35 @@ for (let y = 0; y < H; y++) {
   }
 }
 
+// Aplatissement sur blanc : on retombe sur 1 ou 3 canaux opaques.
+let srcPx = px, srcCanaux = canaux, srcPas = pas, typeSortie = type;
+if (aplatir && (type === 4 || type === 6)) {
+  srcCanaux = type === 6 ? 3 : 1;
+  typeSortie = type === 6 ? 2 : 0;
+  srcPas = W * srcCanaux;
+  srcPx = Buffer.alloc(H * srcPas);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * pas + x * canaux, o = y * srcPas + x * srcCanaux;
+    const al = px[i + canaux - 1] / 255;
+    for (let c = 0; c < srcCanaux; c++) srcPx[o + c] = Math.round(px[i + c] * al + 255 * (1 - al));
+  }
+}
+
 // Reduction par moyenne de boite : plus propre qu'un echantillonnage simple
 // sur un logo a aplats, ou le crenelage se verrait tout de suite.
 const NW = Math.max(1, parseInt(largeurVoulue, 10));
 const NH = Math.max(1, Math.round(H * NW / W));
-const npas = NW * canaux, sortie = Buffer.alloc(NH * (npas + 1));
+const npas = NW * srcCanaux, sortie = Buffer.alloc(NH * (npas + 1));
 for (let y = 0; y < NH; y++) {
   sortie[y * (npas + 1)] = 0;
   const y0 = Math.floor(y * H / NH), y1 = Math.max(y0 + 1, Math.floor((y + 1) * H / NH));
   for (let x = 0; x < NW; x++) {
     const x0 = Math.floor(x * W / NW), x1 = Math.max(x0 + 1, Math.floor((x + 1) * W / NW));
-    for (let c = 0; c < canaux; c++) {
+    for (let c = 0; c < srcCanaux; c++) {
       let s = 0, n = 0;
       for (let yy = y0; yy < y1; yy++)
-        for (let xx = x0; xx < x1; xx++) { s += px[yy * pas + xx * canaux + c]; n++; }
-      sortie[y * (npas + 1) + 1 + x * canaux + c] = Math.round(s / n);
+        for (let xx = x0; xx < x1; xx++) { s += srcPx[yy * srcPas + xx * srcCanaux + c]; n++; }
+      sortie[y * (npas + 1) + 1 + x * srcCanaux + c] = Math.round(s / n);
     }
   }
 }
@@ -78,11 +101,11 @@ const chunk = (nom, data) => {
 };
 const ihdr = Buffer.alloc(13);
 ihdr.writeUInt32BE(NW, 0); ihdr.writeUInt32BE(NH, 4);
-ihdr[8] = 8; ihdr[9] = type; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
+ihdr[8] = 8; ihdr[9] = typeSortie; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
 writeFileSync(dst, Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
   chunk("IHDR", ihdr),
   chunk("IDAT", deflateSync(sortie, { level: 9 })),
   chunk("IEND", Buffer.alloc(0)),
 ]));
-console.log(`${W}x${H} -> ${NW}x${NH}, ${readFileSync(dst).length} octets`);
+console.log(`${W}x${H} -> ${NW}x${NH}, type ${typeSortie}, ${readFileSync(dst).length} octets`);
