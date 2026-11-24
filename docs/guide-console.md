@@ -1062,8 +1062,9 @@ absences.
 ### Ajouter une entrée
 
 1. « ＋ Ajouter un événement ».
-2. Remplir « Nouvel événement ». Le menu « Type » propose Événement, **Cours
-   d'essai**, Session de test tennis, Camp, Fermeture, Vacances, Absence.
+2. Remplir « Nouvel événement ». Le menu « Type » propose Événement,
+   **Appel**, **Cours d'essai**, Session de test tennis, Camp, Fermeture,
+   Vacances, Absence.
 3. « Enregistrer ».
 
 La ligne apparaît **tout de suite**, entourée de vert le temps de la repérer.
@@ -1080,6 +1081,14 @@ Les **cours d'essai** ont leur propre type parce qu'il y en a beaucoup :
 posés en « Événement », ils se perdaient parmi les réunions. Ils sont
 **internes** comme le reste par défaut, ont leur couleur (turquoise) et se
 filtrent tout seuls dans la vue Année.
+
+Les **appels** ont leur propre type pour la même raison : quand on en pose
+plusieurs par semaine, une liste où tout est bleu « Événement » ne distingue
+plus un appel de midi d'une porte ouverte. Ils sont **internes** — ils ne
+paraissent ni sur le site, ni dans Mon espace, ni chez les familles, et aucune
+case de filière ne s'applique à eux — portent l'**orange**, se filtrent tout
+seuls en vue Année, et acceptent la **répétition** (un point hebdomadaire se
+pose une fois).
 
 ### Répéter une entrée
 
