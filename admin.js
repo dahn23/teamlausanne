@@ -20677,6 +20677,9 @@ async function loadMail() {
     document.querySelectorAll("#mailc-modal .rt-btn").forEach((b) => b.addEventListener("mousedown", (e) => { e.preventDefault(); document.execCommand(b.dataset.cmd, false, null); }));
     $("mailc-color").addEventListener("input", (e) => { document.execCommand("foreColor", false, e.target.value); $("mailc-body").focus(); });
     brancherLien("mailc-link", "mailc-body");
+    // Changer de boîte change la signature : chacune a son adresse, et plus
+    // tard son logo. Seul le bloc de signature est remplacé, pas le texte.
+    $("mailc-from").addEventListener("change", () => mailPoserSignature($("mailc-body"), $("mailc-from").value));
     $("mailc-file").addEventListener("change", (e) => { for (const f of e.target.files) { if (f.size > 8 * 1024 * 1024) { alert(`${f.name} dépasse 8 Mo — trop lourd.`); continue; } mailcFiles.push(f); } e.target.value = ""; renderMailcFiles(); });
     attachEmailAC($("mailc-to")); attachEmailAC($("mailc-cc")); attachEmailAC($("mailc-bcc"));  // autocompletion adresses
   }
@@ -21152,6 +21155,81 @@ let mailcDraftId = null;   // id du brouillon en cours d'édition (mail_compose_
 let mailcDraftFiles = [];  // métadonnées des pièces jointes déjà dans le stockage
 let mailcMissingFiles = []; // celles qu'on n'a pas pu retélécharger : à conserver, pas à supprimer
 let mailcLastSig = "";     // contenu au dernier enregistrement → détecte les modifications
+/* ---- Signature des mails (24.11.2026) ------------------------------------
+   Un pied de mail par boîte. On commence par Team Lausanne Academy ; les
+   autres (Lausanne Open, LS Tennis, tournoi@) viendront une par une — elles
+   n'ont ni le même logo ni la même adresse, et signer Lausanne Open du logo
+   de l'académie serait pire que ne rien signer.
+
+   ⚠ Tableaux et styles EN LIGNE, rien d'autre : Outlook pour Windows rend le
+   HTML avec le moteur de Word, qui ignore flexbox, grid et une bonne part des
+   feuilles de style. Une signature en <div> + CSS se décompose chez une part
+   des destinataires — et jamais chez nous, donc on ne le voit pas.
+   ⚠ Le logo est un PNG hébergé : PAS de data: (Gmail les retire) et PAS de
+   WebP (Outlook pour Windows ne sait pas le lire). D'où le fichier dédié
+   assets/logo-academie-mail.png, 160 px et 11 Ko — l'original en fait 190.
+   ⚠ Elle n'est PAS posée côté serveur : mail-send sert aussi aux factures,
+   aux mails GameZone et à la fiducie, qui ont leur propre mise en page. Elle
+   s'écrit dans l'éditeur, où la personne la voit et peut l'enlever.
+   ⚠ Ne pas confondre avec mailcSignature(), qui est l'empreinte servant à
+   détecter qu'un brouillon a bougé. Rien à voir.
+   -------------------------------------------------------------------------- */
+const MAIL_SIGN_HOTE = "https://teamlausanne.netlify.app";
+const MAIL_SIGNATURES = {
+  "info@teamlausanne.ch": {
+    nom: "TEAM LAUSANNE ACADEMY",
+    logo: "/assets/logo-academie-mail.png",
+    adresse: "Route des Plaines-du-Loup 7 · 1018 Lausanne",
+    liens: [
+      { txt: "info@teamlausanne.ch", href: "mailto:info@teamlausanne.ch" },
+      { txt: "teamlausanne.ch", href: "https://teamlausanne.ch" },
+      { txt: "+41 21 646 13 50", href: "tel:+41216461350" },
+      { txt: "@team_lausanne_academy", href: "https://www.instagram.com/team_lausanne_academy" },
+    ],
+  },
+};
+function mailSignatureHtml(adresse) {
+  const s = MAIL_SIGNATURES[String(adresse || "").trim().toLowerCase()];
+  if (!s) return "";
+  const li = s.liens.map((l) =>
+    `<tr><td style="padding-right:8px;color:#B2FD13;font-size:13px">&#9679;</td>`
+    + `<td><a href="${esc(l.href)}" style="color:#141a2e;text-decoration:none">${esc(l.txt)}</a></td></tr>`).join("");
+  return `<div class="tl-sign"><br>`
+    + `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:Segoe UI,Arial,sans-serif">`
+    + `<tr><td style="padding:0 18px 0 0;vertical-align:middle">`
+    + `<img src="${MAIL_SIGN_HOTE}${s.logo}" width="78" height="78" alt="${esc(s.nom)}" style="display:block;border:0" /></td>`
+    + `<td style="padding:0 18px 0 0;vertical-align:middle"><div style="width:2px;height:84px;background:#B2FD13"></div></td>`
+    + `<td style="vertical-align:middle">`
+    + `<div style="font-size:14px;font-weight:700;color:#073EB5;letter-spacing:.02em;padding-bottom:2px">${esc(s.nom)}</div>`
+    + `<div style="font-size:12px;color:#69708a;padding-bottom:7px">${esc(s.adresse)}</div>`
+    + `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:12px;line-height:1.8">${li}</table>`
+    + `</td></tr>`
+    + `<tr><td colspan="3" style="padding-top:14px">`
+    + `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr>`
+    + `<td style="width:150px;height:5px;background:#073EB5;font-size:0;line-height:0">&nbsp;</td>`
+    + `<td style="width:215px;height:5px;background:#B2FD13;font-size:0;line-height:0">&nbsp;</td>`
+    + `</tr></table></td></tr></table></div>`;
+}
+// Pose la signature, ou remplace celle qui s'y trouve quand on change de boîte.
+// Le texte déjà écrit n'est jamais touché.
+function mailPoserSignature(ed, adresse) {
+  if (!ed) return;
+  const html = mailSignatureHtml(adresse);
+  const vieille = ed.querySelector(".tl-sign");
+  if (vieille) { if (html) vieille.outerHTML = html; else vieille.remove(); return; }
+  if (html) ed.insertAdjacentHTML("beforeend", html);
+}
+// Le texte SANS la signature. ⚠ Indispensable : la signature est présente dès
+// l'ouverture, donc « l'éditeur est-il vide ? » répondrait toujours non — et
+// « Écris un message » ne protégerait plus rien, et ouvrir un mail sans y
+// répondre enregistrerait un brouillon.
+function mailSansSign(ed) {
+  if (!ed) return "";
+  const c = ed.cloneNode(true);
+  c.querySelectorAll(".tl-sign").forEach((n) => n.remove());
+  return (c.innerText || c.textContent || "").trim();
+}
+
 let mailcSaving = false;   // évite deux enregistrements simultanés
 function openMailCompose(prefill) {
   if (prefill instanceof Event) prefill = null;  // appelé comme handler → pas de préremplissage
@@ -21167,6 +21245,9 @@ function openMailCompose(prefill) {
   $("mailc-bcc").value = pf.bcc || "";
   $("mailc-subject").value = pf.subject || "";
   $("mailc-body").innerHTML = pf.bodyHtml || "";
+  // Message neuf → on pose la signature. Brouillon repris → elle y est déjà,
+  // l'ajouter une seconde fois en mettrait deux l'une sous l'autre.
+  if (!pf.bodyHtml) mailPoserSignature($("mailc-body"), cur);
   $("mailc-status").textContent = "";
   mailcFiles = Array.isArray(pf.files) ? pf.files.slice() : [];
   mailcDraftFiles = Array.isArray(pf.fileMeta) ? pf.fileMeta.slice() : [];
@@ -21249,7 +21330,7 @@ function mailcSignature() {
 }
 function mailcHasContent() {
   return !!($("mailc-to").value.trim() || $("mailc-subject").value.trim()
-    || $("mailc-body").innerText.trim() || mailcFiles.length);
+    || mailSansSign($("mailc-body")) || mailcFiles.length);
 }
 // Ouverte en grand OU réduite en pastille : dans les deux cas le message est vivant.
 function mailcIsOpen() {
@@ -21401,7 +21482,7 @@ async function mailComposeSend() {
   const html = $("mailc-body").innerHTML.trim(), text = $("mailc-body").innerText.trim();
   const st = $("mailc-status");
   if (!to) { st.textContent = "Indique un destinataire."; return; }
-  if (!text && !mailcFiles.length) { st.textContent = "Écris un message."; return; }
+  if (!mailSansSign($("mailc-body")) && !mailcFiles.length) { st.textContent = "Écris un message."; return; }
   const btn = $("mailc-send"); btn.disabled = true; st.textContent = "Envoi…";
   try {
     const attachments = [];
@@ -21428,7 +21509,7 @@ async function mailSendReply(id) {
   const html = (editor.innerHTML || "").trim();
   const text = (editor.innerText || "").trim();
   const st = $("mail-d-sendstatus");
-  if (!text && !mailFiles.length) { st.textContent = "Écris un message avant d'envoyer."; return; }
+  if (!mailSansSign(editor) && !mailFiles.length) { st.textContent = "Écris un message avant d'envoyer."; return; }
   const btn = $("mail-d-send"); btn.disabled = true; st.textContent = "Envoi…";
   try {
     const attachments = [];
@@ -21646,7 +21727,7 @@ async function openMail(id) {
   // restent muets sur un mail envoyé — l'écran s'affiche, rien ne répond.
   mailWireCompose();
   attachEmailAC($("mail-d-cc")); attachEmailAC($("mail-d-bcc"));  // autocomplétion Cc/Cci
-  loadMailDraft(id);                                              // brouillon repris, dans les deux sens
+  loadMailDraft(id, m.account_address);                           // brouillon repris, dans les deux sens
   if (!isOut) {
     $("mail-detail").querySelectorAll(".mail-stbtns .mail-fbtn").forEach((b) => b.addEventListener("click", () => mailSetStatus(m, b.dataset.st)));
     $("mail-d-notspam")?.addEventListener("click", async () => {
@@ -21713,14 +21794,19 @@ async function mailSetStatus(m, st) {
   renderMailToolbar();
   refreshMailView();
 }
-async function loadMailDraft(id) {
+async function loadMailDraft(id, compte) {
   const ed = $("mail-d-replyhtml"); if (!ed) return;
   const ind = $("mail-d-draft");
   const { data } = await sb.from("mail_drafts").select("body_html").eq("mail_id", id).maybeSingle();
   if (data?.body_html && !ed.innerHTML.trim()) { ed.innerHTML = data.body_html; if (ind) ind.textContent = "📝 Brouillon repris"; }
+  // Pas de brouillon repris → cadre vide : on y pose la signature de la boîte
+  // où le message est arrivé, donc celle d'où partira la réponse.
+  if (!ed.innerHTML.trim()) mailPoserSignature(ed, compte);
   const saveNow = async () => {
     const html = ed.innerHTML.trim();
-    if (html) { await sb.from("mail_drafts").upsert({ mail_id: id, body_html: html, updated_by: myPersonId, updated_at: new Date().toISOString() }, { onConflict: "mail_id" }); if (ind) ind.textContent = "✓ Brouillon enregistré"; }
+    // ⚠ On regarde le texte SANS la signature : sinon ouvrir un message sans
+    // y répondre enregistrerait un brouillon pour chacun d'eux.
+    if (mailSansSign(ed)) { await sb.from("mail_drafts").upsert({ mail_id: id, body_html: html, updated_by: myPersonId, updated_at: new Date().toISOString() }, { onConflict: "mail_id" }); if (ind) ind.textContent = "✓ Brouillon enregistré"; }
     else { await sb.from("mail_drafts").delete().eq("mail_id", id); if (ind) ind.textContent = ""; }
   };
   ed.addEventListener("input", () => { if (ind) ind.textContent = "Enregistrement…"; clearTimeout(mailDraftT); mailDraftT = setTimeout(saveNow, 700); });

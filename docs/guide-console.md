@@ -1414,6 +1414,14 @@ répondra qu'elle ne sait pas, et la question remontera dans
   cadre de réponse est aussi sous les mails que vous avez envoyés, et écrit
   au destinataire du fil — utile quand votre dernier mot est resté sans
   réponse et qu'il faut relancer.
+  **La signature.** Un nouveau message et un cadre de réponse s'ouvrent déjà
+  signés — logo, adresse, site, téléphone et compte Instagram. Elle n'est
+  posée que sur la boîte **Team Lausanne (info@)** pour l'instant ; les autres
+  viendront une par une, chacune ayant son logo et son adresse. Changer de
+  boîte dans « De : » remplace la signature sans toucher à ce que vous avez
+  écrit, et vous pouvez l'effacer comme n'importe quel texte. Un message qui
+  ne contient que la signature reste considéré comme **vide** : il ne part
+  pas, et il n'enregistre pas de brouillon.
 - **Newsletter** — « ✉ Nouvelle newsletter ». La lettre se compose par **blocs**
   (en-tête, titre, texte, image, image + texte, bouton, bandeau, chiffres,
   séparateur, pied), et la galerie de **modèles** en propose six prêts à
