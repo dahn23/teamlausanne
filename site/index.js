@@ -92,6 +92,39 @@ import { CONTENU } from "./contenu.js";
 // serveur qui fabrique les pages et pour le navigateur qui les relie. Si elles
 // divergeaient, un lien mènerait à une page qui n'a pas été écrite.
 import { SLUGS, CLE_DE_SLUG } from "./adresses.js";
+import {
+  langueDuChemin, cleDeSlugDe, declarerPagesEN, cheminDe as cheminPublic,
+} from "./adresses.js";
+import { CONTENU_EN } from "./contenu-en.js";
+
+// ---------------------------------------------------------------------------
+//  La langue de la page, décidée UNE fois, au chargement
+// ---------------------------------------------------------------------------
+// Elle se lit dans l'adresse (/en/...), jamais dans la langue du navigateur :
+// une adresse doit toujours rendre la même page, pour tout le monde. Deviner
+// la langue reviendrait à servir deux contenus différents sous la même
+// adresse — Google en indexerait un au hasard, et un lien partagé n'ouvrirait
+// pas chez le destinataire ce que l'expéditeur a vu.
+const LANG = langueDuChemin(location.pathname).lang;
+
+// Les pages traduites. Le reste du site continue de parler français : un
+// lien anglais vers une page pas encore traduite renvoie vers la française
+// (voir declarerPagesEN dans adresses.js), plutôt que vers un 404.
+const CLES_EN = [
+  ...Object.keys(CONTENU_EN.worlds || {}),
+  ...Object.keys(CONTENU_EN.details || {}),
+];
+declarerPagesEN(CLES_EN);
+
+// La source du contenu. En anglais, les pages traduites priment ; les autres
+// restent en français, en réserve — on n'y navigue pas depuis /en (allerA
+// recharge sur l'adresse française), mais mieux vaut du texte que du vide si
+// un cas y menait quand même.
+const SRC = LANG === "en"
+  ? { ...CONTENU, ...CONTENU_EN,
+      worlds: { ...CONTENU.worlds, ...(CONTENU_EN.worlds || {}) },
+      details: { ...CONTENU.details, ...(CONTENU_EN.details || {}) } }
+  : CONTENU;
 
 const MENTION_IMAGE = CONTENU.mention_image;
 const COACHS = CONTENU.coachs;
@@ -124,8 +157,8 @@ function resoudre(o) {
   }
   return o;
 }
-const WORLDS = resoudre(CONTENU.worlds);
-const DETAILS = resoudre(CONTENU.details);
+const WORLDS = resoudre(SRC.worlds);
+const DETAILS = resoudre(SRC.details);
 
 // État des actualités (le rendu est plus bas, avec le reste du module).
 // Il est déclaré ICI, et pas à côté de ses fonctions : route() est appelé
@@ -1662,11 +1695,18 @@ function majMentionImage(pageId) {
 // Les actualités restent en ancre : leurs pages ne sont pas fabriquées au
 // déploiement puisqu'elles viennent de la base, et un chemin sans fichier
 // derrière renverrait une 404.
-const cheminDe = (cle) => (cle in SLUGS ? "/" + SLUGS[cle] : cheminActu(cle));
+// ⚠ cheminPublic tient compte de la langue ET de ce qui est traduit : sur une
+// page anglaise, un lien vers une page pas encore traduite rend l'adresse
+// FRANÇAISE. C'est voulu — voir declarerPagesEN.
+const cheminDe = (cle) => (cle in SLUGS ? cheminPublic(cle, LANG) : cheminActu(cle));
 
 function cleCourante() {
-  const chemin = location.pathname.replace(/^\/+|\/+$/g, "");
-  if (chemin && CLE_DE_SLUG[chemin]) return CLE_DE_SLUG[chemin];
+  // On raisonne sur le chemin DÉBARRASSÉ de son préfixe de langue : « en/club »
+  // et « club » désignent la même page, dans deux langues.
+  const chemin = langueDuChemin(location.pathname).reste;
+  const table = cleDeSlugDe(LANG);
+  if (!chemin) return "academie";                  // /  et  /en/  → l'accueil
+  if (table[chemin]) return table[chemin];
   // Les actualités : /actualites et /actualites/<slug>. Le routeur interne
   // continue de parler en « actualites » et « actu-<slug> » — seule l'adresse
   // publique change.
@@ -1683,6 +1723,13 @@ const cheminActu = (cle) => (cle === "actualites" ? "/actualites"
 function allerA(cle) {
   const chemin = cheminDe(cle);
   if (chemin === null) { location.hash = cle; return; }   // actualités, ancres
+  // ⚠ Changer de langue, c'est RECHARGER. Depuis /en, un lien vers une page
+  // pas encore traduite rend une adresse française : la continuer en
+  // pushState laisserait l'application en mode anglais sur une page
+  // française — libellés anglais, contenu français. Un vrai chargement
+  // remet tout d'aplomb, et c'est de toute façon ce qu'on attend d'un
+  // changement de langue.
+  if (langueDuChemin(chemin).lang !== LANG) { location.assign(chemin); return; }
   history.pushState(null, "", chemin);
   route();
 }
