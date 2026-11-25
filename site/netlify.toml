@@ -286,3 +286,17 @@
   to = "/"
   status = 301
   force = true
+
+# Les adresses anglaises (/en/...) ont ete publiees une quarantaine de minutes
+# le 25.11.2026, puis retirees : trois bogues d'affichage les rendaient
+# inutilisables. Les liens partis dans un historique, un favori ou un robot
+# tombaient donc sur une 404, que le site habille d'un bandeau rouge
+# « Cette page n'existe pas » -- vu depuis un onglet reste ouvert, ca ressemble
+# a une panne du site francais.
+# ⚠ force volontairement ABSENT (donc false) : un fichier reellement present
+# l'emporte sur la regle. Le jour ou /en/ revient, cette regle devient inerte
+# toute seule, sans qu'il faille penser a la retirer.
+[[redirects]]
+  from = "/en/*"
+  to = "/"
+  status = 301
