@@ -181,13 +181,21 @@ export const CHROME_EN = [
   [">Pour débuter<", ">To get started<"],
   [">4–10 ans · ouvert à tous<", ">ages 4–10 · open to all<"],
   [">Adultes et privés<", ">Adults and private<"],
+
+  // Le texte alternatif de l'image de partage : lu par les lecteurs d'écran
+  // et affiché quand l'image ne charge pas. Il vit dans une balise <meta> du
+  // <head>, pas dans le corps de la page — un coup d'œil à l'écran ne
+  // l'aurait jamais montré.
+  [`content="Jeunes joueuses et joueurs à l'entraînement sur les courts de Team Lausanne"`,
+   'content="Young players training on the Team Lausanne courts"'],
   // « President's Club » et non « Circle » : nom confirmé par Raphael le
   // 25.11.2026. C'est le nom de la chose, pas une traduction à retrouver.
   // ⚠ Le lien AUTANT que le libellé, comme pour « Confidentialité » : la
   // version anglaise de la page vit à /en/presidents-club.
   ['<a class="swm-l" href="/cercle-du-president"><span class="swm-n">Cercle du Président</span>',
    '<a class="swm-l" href="/en/presidents-club"><span class="swm-n">President\'s Club</span>'],
-  ['<a class="sw" href="/cercle-du-president">', '<a class="sw" href="/en/presidents-club">'],
+  ['<a class="sw" href="/cercle-du-president"><span class="sw-long">Cercle du Président</span>',
+   `<a class="sw" href="/en/presidents-club"><span class="sw-long">President's Club</span>`],
   [">réseautage · vendredi matin<", ">networking · Friday morning<"],
   // ⚠ PAS « The Club » ici, même si le nom complet est « President's Club » :
   // ce libellé court voisine dans la barre avec « The Club ↗ », qui désigne
