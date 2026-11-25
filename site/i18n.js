@@ -175,9 +175,15 @@ export const CHROME_EN = [
   [">Pour débuter<", ">To get started<"],
   [">4–10 ans · ouvert à tous<", ">ages 4–10 · open to all<"],
   [">Adultes et privés<", ">Adults and private<"],
-  [">Cercle du Président<", ">President's Circle<"],
+  // « President's Club » et non « Circle » : nom confirmé par Raphael le
+  // 25.11.2026. C'est le nom de la chose, pas une traduction à retrouver.
+  [">Cercle du Président<", ">President's Club<"],
   [">réseautage · vendredi matin<", ">networking · Friday morning<"],
-  [">Le Cercle<", ">The Circle<"],
+  // ⚠ PAS « The Club » ici, même si le nom complet est « President's Club » :
+  // ce libellé court voisine dans la barre avec « The Club ↗ », qui désigne
+  // le TC Lausanne-Sports. Deux boutons côte à côte portant le même mot pour
+  // deux choses différentes — vu à l'écran, corrigé aussitôt.
+  [">Le Cercle<", ">President's<"],
 
   // --- menu Academy, colonne 2 ---
   [">Pour progresser et jouer<", ">To improve and compete<"],
@@ -233,7 +239,10 @@ export const CHROME_EN = [
   // --- partenaires et réseaux ---
   [">Nos partenaires officiels<", ">Our official partners<"],
   [">Suivez-nous<", ">Follow us<"],
-  ["<h2>Le club, au jour le jour</h2>", "<h2>The club, day by day</h2>"],
+  // ⚠ Sans point final : c'est un titre, et aucun autre titre du site n'en
+  // porte (« Où nous trouver », « Un lieu, trois mondes »). Raphael l'avait
+  // écrit avec — à remettre d'un mot si c'est voulu.
+  ["<h2>Le club, au jour le jour</h2>", "<h2>A day in the life at Team Lausanne</h2>"],
   [">Entraînements, tournois, vie du club — tout se passe sur Instagram.<",
    ">Training, tournaments, club life — it all happens on Instagram.<"],
   [">Lausanne, Suisse<", ">Lausanne, Switzerland<"],
@@ -247,11 +256,13 @@ export const CHROME_EN = [
    ">It all happens in one place, at the Plaines-du-Loup in Lausanne."],
   ["Le club où l'on joue, l'academy où l'on progresse, le tournoi où l'on vibre.</p>",
    "The club where you play, the academy where you improve, the tournament where you cheer.</p>"],
-  ["<h3>On joue</h3>", "<h3>We play</h3>"],
-  ["<h3>On progresse</h3>", "<h3>We improve</h3>"],
-  ["<h3>On vibre</h3>", "<h3>We cheer</h3>"],
+  // Les trois marches du parcours, mots donnés par Raphael : un verbe nu,
+  // comme le slogan « Play. Progress. Together. » qu'elles reprennent.
+  ["<h3>On joue</h3>", "<h3>Play</h3>"],
+  ["<h3>On progresse</h3>", "<h3>Progress</h3>"],
+  ["<h3>On vibre</h3>", "<h3>Enjoy</h3>"],
   [">Un lieu, plusieurs mondes<", ">One place, several worlds<"],
-  [">Jouer. Grandir. Vibrer. Ensemble.<", ">Play. Grow. Cheer. Together.<"],
+  [">Jouer. Grandir. Vibrer. Ensemble.<", ">Play. Grow. Enjoy. Together.<"],
   ["© 2026 Team Lausanne — Club · Academy · Tournoi", "© 2026 Team Lausanne — Club · Academy · Tournament"],
   [">Confidentialité<", ">Privacy<"],
 
