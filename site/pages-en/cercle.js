@@ -127,8 +127,12 @@ export const CERCLE_EN = [
    ">“A tennis club is first of all a meeting place. With the President's Club, on Friday mornings we bring together the people who drive this region's economy — around a net rather than a meeting table. We play, we talk, we carry on over lunch. And <"],
   [">il se noue souvent plus de choses en une matinée qu'en trois rendez-vous.<",
    ">more is often settled in one morning than in three meetings.<"],
-  [">\r\n        Vice-président, Team&nbsp;Lausanne&nbsp;Academy\r\n      <",
-   ">\r\n        Vice-president, Team&nbsp;Lausanne&nbsp;Academy\r\n      <"],
+  // ⚠ « \n » et jamais « \r\n » : build.mjs normalise les fins de ligne à la
+  // lecture (enLF). Git livre du CRLF sous Windows et du LF sur les serveurs
+  // de Netlify — un fragment qui contient « \r » n'est trouvé que sur une des
+  // deux machines, et le build s'arrête sur l'autre.
+  [">\n        Vice-président, Team&nbsp;Lausanne&nbsp;Academy\n      <",
+   ">\n        Vice-president, Team&nbsp;Lausanne&nbsp;Academy\n      <"],
   ["Président, TC&nbsp;Lausanne-Sports", "President, TC&nbsp;Lausanne-Sports"],
 
   // --- l'adhésion ---
@@ -237,7 +241,7 @@ export const CERCLE_EN = [
   [">Fonction<", ">Role<"],
   [">Téléphone<", ">Telephone<"],
   [">E-mail<", ">Email<"],
-  [">Mon niveau de tennis\r\n            <", ">My tennis level\r\n            <"],
+  [">Mon niveau de tennis\n            <", ">My tennis level\n            <"],
   [">Choisir…<", ">Choose…<"],
   [">Je débute ou je reprends<", ">I am starting out, or coming back<"],
   [">Je joue de temps en temps<", ">I play now and then<"],

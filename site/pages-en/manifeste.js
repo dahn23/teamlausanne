@@ -25,7 +25,13 @@
 //   1. relire ce qui a changé côté français ;
 //   2. reporter le changement dans pages-en/<fichier> ;
 //   3. recalculer l'empreinte et la coller ci-dessous :
-//        node -e "const c=require('crypto'),f=require('fs');console.log(c.createHash('sha256').update(f.readFileSync('site/<fichier>')).digest('hex').slice(0,16))"
+//        node -e "const c=require('crypto'),f=require('fs');console.log(c.createHash('sha256').update(f.readFileSync('site/<fichier>','utf8').replace(/\r\n/g,'\n')).digest('hex').slice(0,16))"
+//
+// ⚠⚠ L'EMPREINTE SE CALCULE SUR LE TEXTE EN LF, jamais sur les octets bruts.
+// Git réécrit les fins de ligne au checkout : CRLF sous Windows, LF sur les
+// serveurs de Netlify. Une empreinte prise sur les octets vaut donc pour UNE
+// machine et arrête le build sur l'autre — c'est arrivé, et ça n'avait rien à
+// voir avec la traduction.
 // Ne JAMAIS se contenter de mettre l'empreinte à jour : ce serait éteindre
 // l'alarme sans éteindre le feu.
 // ===========================================================================
@@ -44,7 +50,7 @@ export const PAGES_AUTONOMES = [
     fr: "cercle-du-president.html",
     table: CERCLE_EN,
     slug: "presidents-club",
-    empreinte: "ed7100e62b656d23",
+    empreinte: "66ac25d55368e3be",
     sitemap: true,
   },
   {

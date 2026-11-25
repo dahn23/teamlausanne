@@ -43,7 +43,27 @@ const IMAGE = SITE + "/assets/og-teamlausanne.jpg";
 // est vierge : si <main> contient déjà quelque chose, c'est qu'on relance le
 // build sur une sortie précédente, et on s'arrête plutôt que d'empiler.
 const MARQUE = '<main id="world-main" class="world-main"></main>';
-const gabaritBrut = await readFile(join(ICI, "index.html"), "utf8");
+// ⚠⚠ LES FINS DE LIGNE SONT NORMALISÉES À LA LECTURE, et c'est vital.
+//
+// Git réécrit les fins de ligne au moment du `checkout` : le dépôt cloné sous
+// Windows reçoit du CRLF, celui des serveurs de Netlify du LF. Les mêmes
+// fichiers n'ont donc PAS les mêmes octets selon la machine — 115 octets
+// d'écart rien que pour confidentialite.html.
+//
+// Sans cette normalisation, deux mécanismes tombaient :
+//   · les empreintes de pages-en/manifeste.js, calculées sur les octets
+//     bruts, ne correspondaient plus et arrêtaient le build ;
+//   · les fragments de CHROME_EN et CERCLE_EN qui contiennent un retour à la
+//     ligne n'étaient plus trouvés, et arrêtaient le build aussi.
+// Les deux échouaient BRUYAMMENT, ce qui les sauve : le déploiement se serait
+// arrêté net au lieu de publier un site à moitié traduit. Mais il se serait
+// arrêté, et la cause n'avait rien à voir avec la traduction.
+//
+// On travaille donc en LF de bout en bout, et les tables ne contiennent que
+// des « \n ». Ce que Git fait du fichier sur le disque ne regarde plus le build.
+const enLF = (s) => String(s).replace(/\r\n/g, "\n");
+
+const gabaritBrut = enLF(await readFile(join(ICI, "index.html"), "utf8"));
 
 // Les pages d'articles vivent à /actualites/<slug> : depuis cette adresse, un
 // « style.css » relatif est cherché dans /actualites/style.css. C'est le
@@ -328,12 +348,12 @@ for (const [cle, page] of Object.entries(plan.pages)) {
 // bougé depuis la dernière traduction (voir pages-en/manifeste.js).
 const autonomesEcrites = [];
 for (const p of PAGES_AUTONOMES) {
-  const source = await readFile(join(ICI, p.fr), "utf8");
+  const source = enLF(await readFile(join(ICI, p.fr), "utf8"));
   const vue = createHash("sha256").update(source).digest("hex").slice(0, 16);
   if (vue !== p.empreinte) {
     console.error(`build: ${p.fr} a changé depuis sa traduction anglaise.`);
     console.error(`build:   empreinte attendue ${p.empreinte}, trouvée ${vue}`);
-    console.error(`build:   → reporter le changement dans pages-en/${p.en}, PUIS mettre l'empreinte à jour.`);
+    console.error(`build:   → reporter le changement dans ${p.en ? "pages-en/" + p.en : "la table de fragments de pages-en/cercle.js"}, PUIS mettre l'empreinte à jour.`);
     console.error("build:   (mettre l'empreinte à jour sans traduire éteindrait l'alarme, pas le feu.)");
     process.exit(1);
   }
@@ -375,7 +395,7 @@ for (const p of PAGES_AUTONOMES) {
       .replace(/<meta property="og:url" content="[^"]*"\s*\/>/,
         `<meta property="og:url" content="${urlEn}" />`);
   } else {
-    brut = await readFile(join(ICI, "pages-en", p.en), "utf8");
+    brut = enLF(await readFile(join(ICI, "pages-en", p.en), "utf8"));
   }
   const html = absolutiser(brut);
   await mkdir(join(ICI, PREFIXE.en), { recursive: true });
