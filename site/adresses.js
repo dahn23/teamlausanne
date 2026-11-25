@@ -49,9 +49,11 @@ export const SLUGS = {
 // dans les deux langues. Les forcer donnerait des adresses inventées, que
 // personne ne cherche.
 //
-// ⚠️ « sport-etudes » devient « sport-studies » : c'est une filière suisse
-// qui n'a pas d'équivalent anglais exact, et la page l'explique. L'adresse
-// doit rester devinable, pas fidèle.
+// ⚠️ « sport-etudes » devient « sport-studies », et le texte anglais dit
+// « Sport Studies » — décision du 25.11.2026. En revanche « maturité » et
+// « interclub » restent en français dans le texte : ce sont des diplômes et
+// un format de championnat suisses, et les traduire désignerait autre chose.
+// Voir l'entête de contenu-en.js, qui tient la liste.
 export const SLUGS_EN = {
   academie: "",                       // la racine anglaise, soit /en
   tournoi: "lausanne-open",

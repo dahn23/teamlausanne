@@ -28,15 +28,22 @@
 // without its body.
 //
 // ---------------------------------------------------------------------------
-//  TERMS THAT ARE DELIBERATELY NOT TRANSLATED
+//  TERMINOLOGY — decided by Raphael on 25.11.2026, not open to drift
 // ---------------------------------------------------------------------------
-// · "Sport-Études" — a Swiss school-and-sport pathway with no English
-//   equivalent. Kept in French and explained on first use. Inventing
-//   "sport-study school" would describe something that does not exist here.
-// · "maturité" — the Swiss school-leaving certificate. Glossed, not replaced
-//   by "A-levels" or "high school diploma", which are different awards.
+// TRANSLATED:
+// · "Sport-Études" → "Sport Studies". Two words, no hyphen. Capitalised when
+//   it names the programme ("the Sport Studies programme", "Sport Studies &
+//   Pro U18"), lower case inside a list of categories — which is exactly what
+//   contenu.js does with "sport-études" in French.
+//   ⚠ The URL stays /en/sport-studies: it already matched, and an address
+//   that has been shared does not change on a wording decision.
+//
+// NOT TRANSLATED, and this is deliberate:
+// · "maturité" — the Swiss school-leaving certificate. Glossed on first use,
+//   never replaced by "A-levels" or "high school diploma": those are
+//   different awards, and a parent comparing schools would be misled.
+// · "interclub" — the Swiss league format, written as Swiss Tennis writes it.
 // · "Lausanne Open", "GameZone", "Kids Tennis", "Plaines-du-Loup" — names.
-// · "interclub" — the Swiss league format, kept as Swiss Tennis uses it.
 // ===========================================================================
 
 export const CONTENU_EN = {
@@ -46,14 +53,14 @@ worlds: {
   academie: {
     tag: "Academy", retour: "to the Academy",
     h1: "Tennis school in Lausanne",
-    metaTitle: "Tennis in Lausanne: school, sport-études, club | Team Lausanne",
-    metaDescription: "Tennis in Lausanne: lessons from age 4, competition, sport-études and pro. 12 courts at the Plaines-du-Loup, 6 of them covered in winter.",
+    metaTitle: "Tennis in Lausanne: school, sport studies, club | Team Lausanne",
+    metaDescription: "Tennis in Lausanne: lessons from age 4, competition, sport studies and pro. 12 courts at the Plaines-du-Loup, 6 of them covered in winter.",
     logo: "assets/logo-academie.webp", heroLogo: "assets/logo-academie-blanc.png",
     slogan: "Play. Progress. Together.",
     desc: "The training centre of Lausanne-Sports Tennis. A complete pathway, from a first rally to high performance, built for every age from 4 upwards.",
     hero: "assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
     heroVideo: "assets/video/accueil-hero.mp4",
-    cta: [{ label: "Our camps", type: "stages" }, { label: "Our GameZone tournaments", type: "gamezone" }, { label: "Our Sport-Études programme", type: "sport-etudes" }],
+    cta: [{ label: "Our camps", type: "stages" }, { label: "Our GameZone tournaments", type: "gamezone" }, { label: "Our Sport Studies programme", type: "sport-etudes" }],
     sections: [
       { type: "rich", anchor: "philosophie", title: "Our philosophy", body: [
         "Team Lausanne offers complete tennis coaching, suited to every age and every standard of play, within a genuine development pyramid.",
@@ -63,7 +70,7 @@ worlds: {
         sub: "At each stage, training and tournament volume rises step by step. That is how a young player tests their own motivation for tennis — our main selection criterion.",
         levels: [
           { name: "Pro · NCAA (USA) · Coach training", meta: "from 18", href: "#pro" },
-          { name: "Sport-Études & Pro U18", meta: "limited places", href: "#sport-etudes" },
+          { name: "Sport Studies & Pro U18", meta: "limited places", href: "#sport-etudes" },
           { name: "Performance", meta: "approx. 12–15 · 8 places", href: "#performance" },
           { name: "Competition", meta: "approx. 10–13 · 16 places", href: "#competition" },
           { name: "Kids Tennis", meta: "4–10 · open to all", href: "#kids" },
@@ -91,7 +98,7 @@ worlds: {
           { name: "Club", photo: "assets/photos/club-2026.jpg", href: "#club-academy" },
           { name: "Competition", photo: "assets/photos/competition-2026-card.jpg", href: "#competition" },
           { name: "Performance", photo: "assets/photos/performance-2026.jpg", href: "#performance" },
-          { name: "Sport-Études", photo: "assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
+          { name: "Sport Studies", photo: "assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
           { name: "Pro U18", photo: "assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
           { name: "Pro", photo: "assets/photos/pro-2026.jpg", href: "#pro" },
           { name: "Game Zone", photo: "assets/photos/gamezone-2026.jpg", href: "#gamezone" },
@@ -109,7 +116,7 @@ worlds: {
           ["Where can I play tennis in Lausanne?", "At TC Lausanne-Sports, route des Plaines-du-Loup 7, 1018 Lausanne: 12 courts in summer, 6 of them covered in winter. Team Lausanne coaches there, from four-year-olds to professional players."],
           ["Can you play tennis in Lausanne in winter?", "Yes. From mid-October to mid-April, 6 courts are covered — 2 indoor courts and 4 under an air dome: lessons, training and member bookings all carry on through the winter."],
           ["How young can a child start tennis?", "From age 4, in Kids Tennis: a playful, structured setting for learning the basics. A trial lesson can be arranged on request."],
-          ["Is there a sport-études tennis programme in Lausanne?", "Yes. Team Lausanne's Sport-Études takes 14 to 19-year-olds: two hours of tennis, one hour of physical preparation and four hours of supervised schoolwork a day, through to the Swiss federal maturité or the French baccalauréat. The Pro U18 and Pro programmes extend the path to the professional tour — a complete pathway, and a rare one in Switzerland."],
+          ["Is there a sport studies tennis programme in Lausanne?", "Yes. Team Lausanne's Sport Studies programme takes 14 to 19-year-olds: two hours of tennis, one hour of physical preparation and four hours of supervised schoolwork a day, through to the Swiss federal maturité or the French baccalauréat. The Pro U18 and Pro programmes extend the path to the professional tour — a complete pathway, and a rare one in Switzerland."],
           ["How do I join the club and book a court?", "Members of TC Lausanne-Sports book their courts and can play in the interclub league. Membership is arranged with the club, at lstennis.ch."],
           ["What is the Lausanne Open?", "Lausanne's international ITF M25 tournament, with 30,000 USD in prize money, hosted every summer by Team Lausanne on its own courts. A week of men's professional tennis at the Plaines-du-Loup, and entry is free."],
         ]},
@@ -121,7 +128,7 @@ worlds: {
         lead: "School holidays, public holidays, academy closures and camps: the dates that matter, all in one place.",
         pdfs: [
           { label: "Tennis school (PDF)", href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf" },
-          { label: "Sport-Études (PDF)", href: "assets/calendriers/calendrier-2026-27-sport-etudes.pdf" },
+          { label: "Sport Studies (PDF)", href: "assets/calendriers/calendrier-2026-27-sport-etudes.pdf" },
         ] },
     ],
   },
