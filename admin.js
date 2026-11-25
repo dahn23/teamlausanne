@@ -21163,8 +21163,9 @@ let mailcLastSig = "";     // contenu au dernier enregistrement → détecte les
 /* ---- Signature des mails (24.11.2026) ------------------------------------
    Un pied de mail par boîte. Les quatre boîtes partagées sont faites :
    Team Lausanne Academy, Lausanne Open, GameZone (= tournoi@) et
-   TC Lausanne-Sports (= admin@lstennis.ch). raphael@ n'a pas la sienne mais
-   CHOISIT parmi les quatre, cf. MAIL_SIGN_CHOIX plus bas.
+   TC Lausanne-Sports (= admin@lstennis.ch). S'y ajoute une signature de
+   PERSONNE (« perso:raphael ») qui n'appartient à aucune boîte : raphael@
+   CHOISIT entre elle et les quatre marques, cf. MAIL_SIGN_CHOIX plus bas.
    ⚠ Une boîte sans entrée ici ni là ne reçoit RIEN :
    mailSignatureHtml rend "" et mailPoserSignature retire au passage la
    signature de la boîte précédente. C'est voulu — une boîte non traitée vaut
@@ -21236,6 +21237,25 @@ const MAIL_SIGNATURES = {
       { txt: "@team_lausanne_academy", href: "https://www.instagram.com/team_lausanne_academy" },
     ],
   },
+  // ⚠ Clé « perso:… » et NON l'adresse de la boîte : mailSignOptions rend
+  // [sa propre clé] pour toute boîte présente ici, donc inscrire
+  // « raphael@teamlausanne.ch » ferait de cette boîte une boîte à signature
+  // unique — le menu de choix disparaîtrait, et la signature se poserait
+  // d'office sur les messages privés. C'est exactement ce qu'on ne veut pas.
+  "perso:raphael": {
+    nom: "RAPHAEL VERGNAUD",
+    menu: "Ma signature — Raphael Vergnaud",
+    role: "General Manager · Team Lausanne Academy",
+    logo: "/assets/logo-academie-mail.png",
+    logoL: 78, logoH: 78,
+    adresse: "Route des Plaines-du-Loup 7 · 1018 Lausanne",
+    liens: [
+      { txt: "raphael@teamlausanne.ch", href: "mailto:raphael@teamlausanne.ch" },
+      { txt: "teamlausanne.ch", href: "https://teamlausanne.ch" },
+      { txt: "+41 21 646 13 50", href: "tel:+41216461350" },
+      { txt: "@team_lausanne_academy", href: "https://www.instagram.com/team_lausanne_academy" },
+    ],
+  },
   "admin@lstennis.ch": {
     nom: "TENNIS CLUB LAUSANNE-SPORTS",
     logo: "/assets/logo-club-mail.png",
@@ -21264,6 +21284,10 @@ function mailSignatureHtml(adresse) {
     + `<td style="padding:0 18px 0 0;vertical-align:middle"><div style="width:2px;height:${lH + 6}px;background:${vert}"></div></td>`
     + `<td style="vertical-align:middle">`
     + `<div style="font-size:14px;font-weight:700;color:#073EB5;letter-spacing:.02em;padding-bottom:2px">${esc(s.nom)}</div>`
+    // Ligne de fonction, pour une signature de personne : le nom seul ne dit
+    // pas à qui on parle. Absente des signatures de marque, où elle n'aurait
+    // rien à porter.
+    + (s.role ? `<div style="font-size:12px;font-weight:600;color:#141a2e;padding-bottom:2px">${esc(s.role)}</div>` : "")
     + `<div style="font-size:12px;color:#69708a;padding-bottom:7px">${esc(s.adresse)}</div>`
     + `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:12px;line-height:1.8">${li}</table>`
     + `</td></tr>`
@@ -21297,7 +21321,9 @@ function mailPoserSignature(ed, adresse) {
    celle qui écrit : le pied affiche donc info@teamlausanne.ch même envoyé
    depuis raphael@. C'est voulu — on signe une marque, pas une personne. */
 const MAIL_SIGN_CHOIX = {
-  "raphael@teamlausanne.ch": ["info@teamlausanne.ch", "info@lausanneopen.ch", "tournoi@teamlausanne.ch", "admin@lstennis.ch"],
+  // La personnelle en tête : c'est elle qu'on veut neuf fois sur dix depuis
+  // sa propre boîte. Les quatre marques restent à un clic pour le reste.
+  "raphael@teamlausanne.ch": ["perso:raphael", "info@teamlausanne.ch", "info@lausanneopen.ch", "tournoi@teamlausanne.ch", "admin@lstennis.ch"],
 };
 function mailSignOptions(adresse) {
   const a = String(adresse || "").trim().toLowerCase();
@@ -21337,7 +21363,9 @@ async function mailSignatureBouton(ed, adresse, statut) {
   if (opts.length > 1) {
     const dern = mailSignDernier(adresse);
     const ordre = opts.includes(dern) ? [dern, ...opts.filter((k) => k !== dern)] : opts;
-    cle = await uiChoix("Signer ce message au nom de :", ordre.map((k) => ({ v: k, t: MAIL_SIGNATURES[k].nom })));
+    // `menu` plutôt que `nom` quand il existe : dans une liste de marques en
+    // capitales, « RAPHAEL VERGNAUD » ne se distingue pas comme étant la sienne.
+    cle = await uiChoix("Signer ce message au nom de :", ordre.map((k) => ({ v: k, t: MAIL_SIGNATURES[k].menu || MAIL_SIGNATURES[k].nom })));
     if (!cle) return;                                       // « Annuler » : on ne touche à rien
     mailSignRetenir(adresse, cle);
   }

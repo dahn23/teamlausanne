@@ -1442,12 +1442,13 @@ répondra qu'elle ne sait pas, et la question remontera dans
   vous l'avez effacée. Cliquer deux fois ne la double pas — elle est
   remplacée, jamais empilée — et le texte déjà écrit n'est pas touché. Le
   curseur revient au début du cadre, pour que vous écriviez au-dessus.
-  **Depuis votre boîte personnelle, vous choisissez.** Elle n'a pas de
-  signature à elle, et rien ne s'y pose tout seul : c'est voulu, un message
-  privé ne doit pas partir avec le blason de l'académie au bas. Le bouton
-  « ✍ Signature » y ouvre la liste des quatre — Team Lausanne Academy,
-  Lausanne Open 2027, GameZone, TC Lausanne-Sports — et met celle que vous
-  désignez. Votre dernier choix remonte en tête de la liste la fois suivante.
+  **Depuis votre boîte personnelle, vous choisissez.** Rien ne s'y pose tout
+  seul : c'est voulu, un message privé ne doit pas partir avec le blason de
+  l'académie au bas. Le bouton « ✍ Signature » y ouvre une liste de cinq :
+  **votre signature personnelle** en tête — nom, fonction, votre adresse
+  mail — puis les quatre marques (Team Lausanne Academy, Lausanne Open 2027,
+  GameZone, TC Lausanne-Sports), pour les fois où vous écrivez au nom de
+  l'une d'elles. Votre dernier choix remonte en tête la fois suivante, et
   « Annuler » ne touche à rien.
 - **Newsletter** — « ✉ Nouvelle newsletter ». La lettre se compose par **blocs**
   (en-tête, titre, texte, image, image + texte, bouton, bandeau, chiffres,
