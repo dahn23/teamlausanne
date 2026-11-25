@@ -21210,6 +21210,7 @@ const MAIL_SIGNATURES = {
     liens: [
       { txt: "info@lausanneopen.ch", href: "mailto:info@lausanneopen.ch" },
       { txt: "teamlausanne.ch/lausanne-open", href: "https://teamlausanne.ch/lausanne-open" },
+      { txt: "+41 21 646 13 50", href: "tel:+41216461350" },
       { txt: "@team_lausanne_academy", href: "https://www.instagram.com/team_lausanne_academy" },
     ],
   },

@@ -1423,8 +1423,8 @@ répondra qu'elle ne sait pas, et la question remontera dans
   tous les week-ends ! » et la page GameZone — c'est la boîte des tournois
   juniors du week-end, à ne pas confondre avec celle du Lausanne Open.
   **LS Tennis (admin@lstennis.ch)** : blason du club, « Jouer. Partager.
-  Ensemble. » et lstennis.ch. Les trois dernières reprennent le téléphone et
-  le compte Instagram de l'académie. Seule la boîte **privée** (la vôtre)
+  Ensemble. » et lstennis.ch. Les quatre portent le même téléphone et le même
+  compte Instagram. Seule la boîte **privée** (la vôtre)
   s'ouvre sans signature. Changer de
   boîte dans « De : » remplace la signature sans toucher à ce que vous avez
   écrit, et vous pouvez l'effacer comme n'importe quel texte. Un message qui
