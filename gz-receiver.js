@@ -32,6 +32,19 @@ window.addEventListener("message", async (e) => {
   }
 });
 
-// Signaler au bookmarklet qu'on est prêt à recevoir
-if (window.opener) window.opener.postMessage({ type: "gz-ready" }, "*");
-else st.textContent = "Ouvrez cette page via le bookmarklet, depuis la page Swiss Tennis.";
+// Depuis le 25.11.2026, le favori envoie par formulaire et la fonction
+// d'import revient ICI avec le résultat dans l'adresse (?ok=1&t=..&p=.. ou ?err=..).
+// L'ancien échange par pop-up (ci-dessus) reste pour un favori pas encore remplacé.
+const q = new URLSearchParams(location.search);
+if (q.has("ok") || q.has("err")) {
+  if (q.get("ok") === "1") {
+    logOps("gamezone", q.get("who"));
+    try { localStorage.setItem("tl-view", "gamezone"); } catch (_) {} // la console rouvre sur GameZone
+    st.innerHTML = `✓ Import terminé : <b>${+q.get("t") || 0}</b> tournoi(s), <b>${+q.get("p") || 0}</b> inscrits au total.`
+      + `<br><br><a href="/console" class="btn-prod" style="text-decoration:none">Ouvrir GameZone</a>`;
+  } else {
+    st.textContent = "Erreur : " + q.get("err");
+  }
+  history.replaceState(null, "", location.pathname); // un rechargement ne re-journalise pas
+} else if (window.opener) window.opener.postMessage({ type: "gz-ready" }, "*");
+else st.textContent = "Ouvrez cette page via le favori « Importer GameZone », depuis la page Swiss Tennis.";

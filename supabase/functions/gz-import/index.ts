@@ -87,15 +87,49 @@ function parseXls(b64: string) {
   return out;
 }
 
+// Mode « formulaire » (25.11.2026) : sur téléphone, la petite fenêtre relais
+// (gz-receiver.html) était bloquée — un pop-up ouvert après plusieurs secondes de
+// lecture n'est plus rattaché au geste de l'utilisateur. Le favori envoie donc
+// les données par un FORMULAIRE, dans le même onglet : la politique de sécurité
+// de Swiss Tennis bloque fetch() vers nous, mais ne dit rien des formulaires
+// (pas de form-action). On répond par une redirection vers notre page de
+// résultat — une page HTML servie d'ici s'afficherait en texte brut.
+const RET_OK = /^https:\/\/(app\.teamlausanne\.ch|teamlausanne\.netlify\.app|[a-z0-9-]+--teamlausanne\.netlify\.app)\/gz-receiver\.html$/;
+
+async function lire(req: Request) {
+  const ct = req.headers.get("content-type") || "";
+  if (ct.includes("application/x-www-form-urlencoded") || ct.includes("multipart/form-data")) {
+    const f = await req.formData();
+    let p: Record<string, unknown> = {};
+    try { p = JSON.parse(String(f.get("payload") || "{}")); } catch (_e) { /* vide */ }
+    const ret = String(f.get("ret") || "");
+    return { p, ret: RET_OK.test(ret) ? ret : null };
+  }
+  return { p: await req.json().catch(() => ({})), ret: null };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const payload = await req.json().catch(() => ({}));
-  const { key, tournaments } = payload;
+  const { p: payload, ret } = await lire(req);
+  // deno-lint-ignore no-explicit-any
+  const { key, tournaments, who } = payload as { key?: string; tournaments?: any[]; who?: string };
+  const fin = (body: Record<string, unknown>, s = 200) => {
+    if (!ret) return json(body, s);
+    const u = new URL(ret);
+    if (body.ok) {
+      const rep = body.report as { players: number }[];
+      u.searchParams.set("ok", "1");
+      u.searchParams.set("t", String(rep.length));
+      u.searchParams.set("p", String(rep.reduce((a, x) => a + x.players, 0)));
+      if (who) u.searchParams.set("who", String(who).slice(0, 80));
+    } else u.searchParams.set("err", String(body.error || "Erreur"));
+    return new Response(null, { status: 303, headers: { Location: u.toString() } });
+  };
 
   const { data: cfg } = await svc.from("gz_config").select("import_key").eq("id", 1).single();
-  if (!key || !cfg || key !== cfg.import_key) return json({ error: "Clé d'import invalide." }, 403);
-  if (!Array.isArray(tournaments)) return json({ error: "Format invalide." }, 400);
+  if (!key || !cfg || key !== cfg.import_key) return fin({ error: "Clé d'import invalide." }, 403);
+  if (!Array.isArray(tournaments)) return fin({ error: "Format invalide." }, 400);
 
   const report: unknown[] = [];
   for (const t of tournaments) {
@@ -129,15 +163,19 @@ Deno.serve(async (req) => {
         if (np) byLicense[p.license] = np.id;
       }
     }
-    // inscriptions (remplacer pour ce tournoi)
-    await svc.from("gz_entries").delete().eq("tournament_id", tid);
+    // inscriptions (remplacer pour ce tournoi). Garde-fou : on n'efface QUE si
+    // on a de quoi remplacer — un xls non reçu (réseau du téléphone, tirage pas
+    // fait) ne doit pas vider la liste des joueurs déjà importés.
     const entries = players.filter((p) => p.license && byLicense[p.license])
       .map((p) => ({ tournament_id: tid, participant_id: byLicense[p.license], epreuve: p.epreuve, confirmed: p.confirmed, comment: p.comment || null }));
-    if (entries.length) await svc.from("gz_entries").insert(entries);
+    if (entries.length) {
+      await svc.from("gz_entries").delete().eq("tournament_id", tid);
+      await svc.from("gz_entries").insert(entries);
+    }
 
     const uniquePlayers = Object.keys(byLicense).length;
     const selected = new Set(players.filter((p) => p.confirmed && p.license).map((p) => p.license)).size;
     report.push({ swiss_id: t.swiss_id, players: uniquePlayers, entries: entries.length, selected });
   }
-  return json({ ok: true, report });
+  return fin({ ok: true, report });
 });
