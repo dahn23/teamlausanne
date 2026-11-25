@@ -1,11 +1,30 @@
 (async () => {
   try {
-    const KEY = "__KEY__", RCV = "__RCV__", WHO = "__WHO__";
+    // Favori court (25.11.2026) : il pose window.__GZ puis charge CE fichier depuis
+    // jsDelivr (seul hébergeur autorisé par Swiss Tennis qui serve notre dépôt).
+    // L'ancien favori contenait tout le code (11 000 caractères) : trop long pour
+    // Chrome sur Android, qui ne le lançait pas. La clé reste dans le favori,
+    // jamais dans ce fichier public.
+    const G = window.__GZ || {};
+    const KEY = G.k || "__KEY__", RCV = G.r || "__RCV__", WHO = G.w || "__WHO__";
+    const FN = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/gz-import";
     const base = "/advantage/servlet/";
+    // Bandeau d'avancement : sur téléphone, sans lui, rien ne bouge pendant la lecture.
+    const info = (t) => {
+      let b = document.getElementById("gz-bm-info");
+      if (!t) { if (b) b.remove(); return; }
+      if (!b) {
+        b = document.createElement("div"); b.id = "gz-bm-info";
+        b.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:2147483647;background:#123cc4;color:#fff;font:600 16px/1.4 sans-serif;padding:14px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3)";
+        document.body.appendChild(b);
+      }
+      b.textContent = "GameZone — " + t;
+    };
+    info("lecture de la liste des tournois…");
     const g = async (u) => await (await fetch(u, { credentials: "include" })).text();
-    if (!/swisstennis/.test(location.host)) { alert("Ouvre d'abord ta liste de tournois Swiss Tennis (connecté), puis clique ce favori."); return; }
+    if (!/swisstennis/.test(location.host)) { info(""); alert("Ouvre d'abord ta liste de tournois Swiss Tennis (connecté), puis clique ce favori."); return; }
     let listH = await g(base + "MyTournamentList?lang=F");
-    if (/Login Zone/i.test(listH)) { alert("Tu n'es pas connecté à Swiss Tennis. Connecte-toi puis réessaie."); return; }
+    if (/Login Zone/i.test(listH)) { info(""); alert("Tu n'es pas connecté à Swiss Tennis. Connecte-toi puis réessaie."); return; }
     // Basculer sur le compte « Team Lausanne » si un autre est actif
     try {
       const rd = new DOMParser().parseFromString(listH, "text/html").querySelector("[data-realms]");
@@ -39,9 +58,10 @@
       if (dt && dt < cutoff) { skipped++; continue; }        // tournoi passé et figé → on saute
       ids.push(id);
     }
-    if (!ids.length) { alert("Aucun tournoi récent ou à venir à mettre à jour" + (skipped ? " (" + skipped + " tournoi(s) passé(s) ignoré(s))." : ".")); return; }
+    if (!ids.length) { info(""); alert("Aucun tournoi récent ou à venir à mettre à jour" + (skipped ? " (" + skipped + " tournoi(s) passé(s) ignoré(s))." : ".")); return; }
     const T = [];
     for (const id of ids) {
+      info("tournoi " + (T.length + 1) + " sur " + ids.length + "…");
       const dH = await g(base + "ProtectedDisplayTournament?tournament=Id" + id + "&lang=F");
       const d = new DOMParser().parseFromString(dH, "text/html");
       const tds = [...d.querySelectorAll("td")];
@@ -76,16 +96,17 @@
       } catch (e) { /* xls indisponible avant tirage */ }
       T.push({ swiss_id: "Id" + id, name, start_date: val("Débute le"), deadline: val("Date limite d'inscription"), draw_date: val("Tirage au sort"), status, epreuves: eps, players_b64: b64 });
     }
-    const w = window.open(RCV, "gzimport", "width=480,height=340");
-    if (!w) { alert("Autorisez les pop-ups pour comp.swisstennis.ch, puis recliquez le favori."); return; }
-    const origin = new URL(RCV).origin;
-    const onmsg = (e) => {
-      if (e.data && e.data.type === "gz-ready") {
-        w.postMessage({ type: "gz-data", key: KEY, who: WHO, tournaments: T }, origin);
-        window.removeEventListener("message", onmsg);
-      }
-    };
-    window.addEventListener("message", onmsg);
-    setTimeout(() => window.removeEventListener("message", onmsg), 20000);
-  } catch (e) { alert("Erreur bookmarklet : " + e.message); }
+    // Envoi par FORMULAIRE dans le même onglet (25.11.2026). L'ancienne petite
+    // fenêtre relais était bloquée sur téléphone (pop-up ouvert trop longtemps
+    // après le clic). Swiss Tennis interdit fetch() vers nous mais pas les
+    // formulaires ; la fonction répond en renvoyant sur gz-receiver.html.
+    info("Envoi à Team Lausanne…");
+    const f = document.createElement("form");
+    f.method = "POST"; f.action = FN; f.acceptCharset = "UTF-8"; f.style.display = "none";
+    const champ = (n, v) => { const i = document.createElement("textarea"); i.name = n; i.value = v; f.appendChild(i); };
+    champ("payload", JSON.stringify({ key: KEY, who: WHO, tournaments: T }));
+    champ("ret", RCV);
+    document.body.appendChild(f);
+    f.submit();
+  } catch (e) { info(""); alert("Erreur bookmarklet : " + e.message); }
 })();

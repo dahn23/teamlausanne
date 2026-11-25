@@ -1617,7 +1617,16 @@ répondra qu'elle ne sait pas, et la question remontera dans
   les changer. Ni l'un ni l'autre n'a le sous-onglet Études.
 - **GameZone** — tournois juniors, sept sous-onglets. La liste des tournois
   affiche, après la date, la colonne « Responsable(s) » : les personnes
-  nommées pour la journée (« — » si personne ne l'est encore). Dans le Résumé
+  nommées pour la journée (« — » si personne ne l'est encore).
+  **Actualiser depuis Swiss Tennis** = le favori « Importer GameZone » (encadré
+  sous la liste des tournois), utilisé sur la page Swiss Tennis connectée. Il
+  marche aussi **sur téléphone** : « 📱 Sur tablette / téléphone » explique
+  comment créer le favori (copier le code, le coller à la place de l'adresse
+  d'un favori). Un bandeau bleu montre l'avancement, puis la page « Import
+  terminé » s'affiche dans le même onglet, avec le bouton « Ouvrir GameZone ».
+  Un favori créé avant le 25.11.2026 ouvrait une petite fenêtre que les
+  téléphones bloquent : il faut recopier le code. Un tournoi dont la liste des
+  joueurs n'a pas pu être lue garde ses joueurs déjà importés. Dans le Résumé
   financier, le rapprochement par week-end : le cash se contrôle en comptant
   la caisse entière ; la carte est lue dans les mails SumUp (tous les relevés
   du lundi au vendredi suivant ; le reste « À verser » d'un relevé, versé le
