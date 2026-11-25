@@ -474,4 +474,7 @@ await writeFile(join(ICI, "sitemap.xml"), sitemap, "utf8");
 console.log(`build: ${ecrites.length} pages écrites`);
 for (const e of ecrites) console.log(`  ${e.adresse.padEnd(24)} ${String(e.mots).padStart(5)} mots`);
 console.log(`build: ${actus ? actusEcrites.length + " articles" : "actualités NON fabriquées"}`);
-console.log(`build: sitemap.xml — ${Object.keys(pages).length + 3 + (actus ? actusEcrites.length + 1 : 0)} adresses`);
+// On compte les adresses DANS le fichier produit, pas avec une formule :
+// celle d'avant additionnait des termes à la main et a cessé d'être juste le
+// jour où l'anglais est arrivé — elle annonçait 27 pour 40 adresses.
+console.log(`build: sitemap.xml — ${(sitemap.match(/<loc>/g) || []).length} adresses`);
