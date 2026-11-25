@@ -280,4 +280,16 @@ export const CERCLE_EN = [
    'alt="A Team Lausanne Academy professional sliding on clay"'],
   ['alt="Les vainqueurs du Lausanne Open 2026 avec leurs trophées"',
    'alt="The winners of the 2026 Lausanne Open with their trophies"'],
+
+  // --- la pastille FR | EN ---
+  // ⚠ Les quatorze pages de programme reçoivent la leur de selecteurLangue()
+  // dans build.mjs, qui réécrit celle du gabarit. Cette page-ci ne passe PAS
+  // par le gabarit : elle porte sa propre entête, donc sa propre pastille, et
+  // c'est ici qu'on la retourne. Sans cette entrée elle resterait « FR | EN »
+  // pointant vers /en/presidents-club — la page où l'on se trouve déjà.
+  // Le libellé du titre est dans la langue de DESTINATION (et marqué lang), au
+  // même titre que sur les pages fabriquées : on l'annonce à qui va le lire.
+  ['<a class="lang-switch" id="lang-switch" href="/en/presidents-club" hreflang="en" lang="en" title="Read this page in English"><span class="lang-on">FR</span>',
+   '<a class="lang-switch" id="lang-switch" href="/cercle-du-president" hreflang="fr" lang="fr" title="Lire cette page en français"><span class="lang-on">EN</span>'],
+  ['<span class="lang-off">EN</span>', '<span class="lang-off">FR</span>'],
 ];

@@ -14,8 +14,8 @@
   <link rel="alternate" hreflang="fr" href="https://teamlausanne.ch/confidentialite" />
   <link rel="alternate" hreflang="en" href="https://teamlausanne.ch/en/privacy" />
   <link rel="alternate" hreflang="x-default" href="https://teamlausanne.ch/confidentialite" />
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon-64.png" />
   <link rel="preconnect" href="https://use.typekit.net" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Polices de marque : Acumin Pro + Circe (kit Adobe uxl8yzy). -->
@@ -34,12 +34,20 @@
     .legal table{width:100%;border-collapse:collapse;font-size:.92rem;margin:10px 0}
     .legal th,.legal td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
     .legal th{color:var(--muted);font-weight:600}
-    .legal .retour{display:inline-block;margin-bottom:18px;color:var(--blue);font-weight:600;text-decoration:none}
+    .legal .retour{display:inline-block;color:var(--blue);font-weight:600;text-decoration:none}
+    /* Le lien de retour et la pastille FR | EN sur une même ligne. La pastille
+       elle-même vient de style.css (.lang-switch) : cette page le charge, à la
+       différence du Cercle du Président, qui a dû la recopier. */
+    .legal .legal-haut{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+    .legal .legal-haut .lang-switch{margin-left:auto}
   </style>
 </head>
 <body class="public" data-world="academie">
   <main class="legal">
-    <a class="retour" href="/">← Retour au site</a>
+    <div class="legal-haut">
+      <a class="retour" href="/">← Retour au site</a>
+      <a class="lang-switch" id="lang-switch" href="/en/privacy" hreflang="en" lang="en" title="Read this page in English"><span class="lang-on">FR</span><span class="lang-sep" aria-hidden="true"></span><span class="lang-off">EN</span></a>
+    </div>
 
     <h1>Politique de confidentialité</h1>
     <p class="lead">Cette page concerne <b>teamlausanne.ch</b>, le site public. L'espace membre et la

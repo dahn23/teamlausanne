@@ -481,7 +481,12 @@
   <div id="plan-modal" class="modal hidden">
     <div class="plan-card">
       <button type="button" id="plan-close" class="modal-x" aria-label="Fermer">✕</button>
-      <img id="plan-img" src="" alt="Plan des courts — Team Lausanne, Plaines-du-Loup" />
+      <!-- Pas de src : la vignette n'est posée qu'au clic (index.js, data-plan).
+           Un src="" vide ne vaut PAS « aucune image » — il résout vers l'adresse
+           de la page elle-même, que le navigateur télécharge puis rejette comme
+           image. Une requête inutile et une erreur en console sur CHAQUE page.
+           #visio-img, juste au-dessus, a toujours eu la bonne forme. -->
+      <img id="plan-img" alt="Plan des courts — Team Lausanne, Plaines-du-Loup" />
     </div>
   </div>
 

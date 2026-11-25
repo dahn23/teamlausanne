@@ -50,14 +50,14 @@ export const PAGES_AUTONOMES = [
     fr: "cercle-du-president.html",
     table: CERCLE_EN,
     slug: "presidents-club",
-    empreinte: "66ac25d55368e3be",
+    empreinte: "0b4b79569666c0c3",
     sitemap: true,
   },
   {
     fr: "confidentialite.html",          // la source française, à la racine de site/
     en: "privacy.html",                  // sa traduction, dans pages-en/
     slug: "privacy",                     // servie à /en/privacy
-    empreinte: "5941a6d68945ea9f",
+    empreinte: "5d577d478088acb6",
     // Une politique de confidentialité se lit, elle ne s'explore pas : elle
     // n'a pas sa place dans le plan du site, pas plus que la version
     // française (qui n'y figure pas non plus par priorité, mais y est).

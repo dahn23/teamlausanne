@@ -69,7 +69,7 @@ const icoStat = (k) => ICO_STAT[k]
        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO_STAT[k]}</svg>`
   : "";
 
-const partLogo = (p) => `assets/partenaires/${p.l}.${p.svg ? "svg" : "png"}`;
+const partLogo = (p) => `/assets/partenaires/${p.l}.${p.svg ? "svg" : "png"}`;
 
 // Les quatorze partenaires ci-dessus sont ceux du TOURNOI : ils ne s'affichent
 // que sur la page du Lausanne Open, dans sa propre section. Le bandeau du bas de
@@ -91,7 +91,10 @@ import { CONTENU } from "./contenu.js";
 // La table des adresses est partagée avec build.mjs : une seule liste pour le
 // serveur qui fabrique les pages et pour le navigateur qui les relie. Si elles
 // divergeaient, un lien mènerait à une page qui n'a pas été écrite.
-import { SLUGS, CLE_DE_SLUG } from "./adresses.js";
+// ⚠ On n'importe PLUS CLE_DE_SLUG : c'est la table des slugs français seuls,
+// et les deux endroits qui s'en servaient se trompaient de langue. Passer par
+// cleDeSlugDe(lang) oblige à dire de quelle langue on parle.
+import { SLUGS } from "./adresses.js";
 import {
   langueDuChemin, cleDeSlugDe, declarerPagesEN, cheminDe as cheminPublic,
 } from "./adresses.js";
@@ -268,8 +271,8 @@ const BALLE = `<svg class="kw-balle" viewBox="0 0 24 24" aria-hidden="true" focu
 // Par defaut la photo suit le slug. « photo » et « portrait » permettent d'en
 // viser une autre : Celyan n'a pas encore de photo faite pour cette page, et
 // reutilise en attendant celle de son portrait d'eleve.
-const coachPhoto = (c) => c.photo || `assets/photos/coaches/${c.slug}.jpg`;
-const coachPortrait = (c) => c.portrait || `assets/photos/coaches/${c.slug}-large.jpg`;
+const coachPhoto = (c) => c.photo || `/assets/photos/coaches/${c.slug}.jpg`;
+const coachPortrait = (c) => c.portrait || `/assets/photos/coaches/${c.slug}-large.jpg`;
 
 // Fleche du bouton, reprise de la page d'origine.
 const CCH_FLECHE = `<svg class="cch-fleche" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
@@ -587,7 +590,7 @@ function sectionHTML(sec) {
           const rang = sommet ? T("au meilleur de sa carrière") : `meilleur : ${s.best}ᵉ`;
           return `<button type="button" class="pcard" aria-expanded="false">
             <span class="pcard-photo">
-              <img src="assets/players/${esc(s.photo)}" alt="${esc(s.nom)}" loading="lazy" />
+              <img src="/assets/players/${esc(s.photo)}" alt="${esc(s.nom)}" loading="lazy" />
             </span>
             <span class="pcard-n" aria-hidden="true">${s.n}</span>
             <span class="pcard-bas">
@@ -709,7 +712,7 @@ function sectionHTML(sec) {
           </div>
           <label class="cf-field"><span>Message</span><textarea id="m-message" rows="3"></textarea></label>
           <label class="m-consent"><input type="checkbox" id="m-consent" required />
-            <span>J'ai lu et j'accepte le <a href="assets/Reglement_TCLS_2026.pdf" target="_blank" rel="noopener">règlement du club (PDF)</a>.</span></label>
+            <span>J'ai lu et j'accepte le <a href="/assets/Reglement_TCLS_2026.pdf" target="_blank" rel="noopener">règlement du club (PDF)</a>.</span></label>
           <button type="submit" id="m-btn">Envoyer ma demande d'adhésion</button>
           <p id="m-error" class="error" hidden></p>
         </form>
@@ -1785,7 +1788,7 @@ function route() {
   else { renderWorld(DEFAULT_WORLD); setTitle(DEFAULT_WORLD); }
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   annonceAccueil();
-  signalerIntrouvable();
+  signalerIntrouvable(h);
 }
 
 // Une adresse qui n'existe pas. Le serveur répond bien 404 et sert 404.html —
@@ -1796,10 +1799,16 @@ function route() {
 //
 // On garde l'accueil dessous — il offre tout ce qu'il faut pour rebondir —
 // mais on le dit, et le titre de l'onglet le dit aussi.
-function signalerIntrouvable() {
-  const chemin = location.pathname.replace(/^\/+|\/+$/g, "");
-  const connue = !chemin || CLE_DE_SLUG[chemin] || chemin === "actualites"
-    || chemin.startsWith("actualites/") || location.hash;
+function signalerIntrouvable(cle) {
+  // ⚠ NE PAS redire ici quelles adresses existent. Cette fonction l'a fait un
+  // temps, avec la table des slugs FRANÇAIS et le segment « actualites » en
+  // dur : sur /en/ le chemin vaut « en », qui ne figure pas dans cette table,
+  // et le bandeau rouge « Cette page n'existe pas » se posait sur CHACUNE des
+  // seize pages anglaises — au-dessus d'un contenu pourtant parfaitement
+  // servi. Le HTML livré était juste ; c'est le script qui démentait.
+  // cleCourante() porte déjà la règle, langue comprise, et rend une clé VIDE
+  // quand l'adresse ne mène nulle part : c'est tout ce qu'il y a à lire.
+  const connue = Boolean(cle) || Boolean(location.hash);
   const dejaLa = document.getElementById("introuvable");
   if (connue) { dejaLa?.remove(); return; }
   if (dejaLa) return;
@@ -2659,6 +2668,15 @@ document.addEventListener("click", (e) => {
   if (!a) return;
   if (a.target === "_blank" || a.hasAttribute("download")) return;
   const href = a.getAttribute("href");
+  // ⚠⚠ Un lien qui porte DÉJÀ sa langue sort d'ici sans être touché. Le
+  // sélecteur FR | EN en est un : sur /en/ il vise « / ». Repassé par la
+  // table, « / » redevient la clé « academie », et allerA recalcule son
+  // chemin dans la langue COURANTE — donc /en/ : la pastille FR poussait
+  // l'anglais par-dessus l'anglais et ne faisait visiblement rien.
+  // Changer de langue, c'est recharger ; on laisse le navigateur faire.
+  // ⚠ La garde ne vaut que pour les CHEMINS : une ancre (« #brochure ») n'a
+  // pas de langue, et la passer ici la ferait sortir sur toute page anglaise.
+  if (!href.startsWith("#") && langueDuChemin(href).lang !== LANG) return;
   // Une ancre : seulement si elle désigne une page. « #brochure » doit
   // continuer de faire défiler, pas de naviguer.
   // Un chemin : on le repasse par la table des adresses, et on ne retient que
@@ -2673,11 +2691,21 @@ document.addEventListener("click", (e) => {
 
 // L'inverse de cheminDe : une adresse interne redevient une clé de page.
 function cleDeChemin(href) {
-  const chemin = href.split("?")[0].split("#")[0].replace(/^\/+|\/+$/g, "");
-  if (!chemin) return "academie";
-  if (CLE_DE_SLUG[chemin]) return CLE_DE_SLUG[chemin];
-  if (chemin === "actualites") return "actualites";
-  if (chemin.startsWith("actualites/")) return "actu-" + chemin.slice("actualites/".length);
+  // Même oubli que signalerIntrouvable, en plus discret : la table FRANÇAISE
+  // et le segment « actualites » en dur. Sur une page anglaise aucun lien ne
+  // se reconnaissait, donc chaque clic repartait au serveur — un rechargement
+  // complet au lieu d'une navigation interne. Rien de cassé, mais deux fois
+  // plus lent, et seulement du côté anglais.
+  // ⚠ La langue vient du LIEN, pas de la page : depuis /en/, un lien vers une
+  // page pas encore traduite porte une adresse française (voir declarerPagesEN).
+  // C'est allerA qui voit alors que la langue change et recharge pour de bon.
+  const { lang, reste } = langueDuChemin(href.split("?")[0].split("#")[0]);
+  if (!reste) return "academie";
+  const table = cleDeSlugDe(lang);
+  if (table[reste]) return table[reste];
+  const seg = lang === "en" ? "news" : "actualites";
+  if (reste === seg) return "actualites";
+  if (reste.startsWith(seg + "/")) return "actu-" + reste.slice(seg.length + 1);
   return null;
 }
 
@@ -3238,7 +3266,7 @@ async function renderActus() {
   document.body.dataset.world = "academie";
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === "academie"));
   const w = WORLDS.academie;
-  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: "assets/photos/club-2026.jpg",
+  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: "/assets/photos/club-2026.jpg",
     tag: w.tag, slogan: T("Actualités"), sloganEntier: true,
     desc: T("Chaque semaine, un regard sur la vie de l'académie : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club."),
     ctaHTML: `<button class="btn-cta ghost" data-back="academie">← Retour ${esc(w.retour)}</button>` });
@@ -3296,7 +3324,7 @@ async function renderActu(slug) {
   document.body.dataset.world = "academie";
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === "academie"));
   const w = WORLDS.academie;
-  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: a.cover_url || "assets/photos/club-2026.jpg",
+  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: a.cover_url || "/assets/photos/club-2026.jpg",
     tag: a.category, slogan: a.title, sloganEntier: true, titreArticle: true, desc: a.lede || "",
     ctaHTML: `<a class="btn-cta ghost" href="${T("/actualites")}">${T("← Toutes les actualités")}</a>` });
 

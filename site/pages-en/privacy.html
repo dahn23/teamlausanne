@@ -30,12 +30,18 @@
     .legal table{width:100%;border-collapse:collapse;font-size:.92rem;margin:10px 0}
     .legal th,.legal td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
     .legal th{color:var(--muted);font-weight:600}
-    .legal .retour{display:inline-block;margin-bottom:18px;color:var(--blue);font-weight:600;text-decoration:none}
+    .legal .retour{display:inline-block;color:var(--blue);font-weight:600;text-decoration:none}
+    /* Le miroir exact de confidentialite.html : meme classe, meme regle. */
+    .legal .legal-haut{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+    .legal .legal-haut .lang-switch{margin-left:auto}
   </style>
 </head>
 <body class="public" data-world="academie">
   <main class="legal">
-    <a class="retour" href="/en/">← Back to the site</a>
+    <div class="legal-haut">
+      <a class="retour" href="/en/">← Back to the site</a>
+      <a class="lang-switch" id="lang-switch" href="/confidentialite" hreflang="fr" lang="fr" title="Lire cette page en français"><span class="lang-on">EN</span><span class="lang-sep" aria-hidden="true"></span><span class="lang-off">FR</span></a>
+    </div>
 
     <h1>Privacy policy</h1>
     <p class="lead">This page covers <b>teamlausanne.ch</b>, the public website. The member area and the

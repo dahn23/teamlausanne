@@ -190,7 +190,7 @@ coachs:
   // Sport-etudes est SA filiere, pas celle qu'il encadre : il donne le
   // Kids Tennis, le Club, la Competition et les stages.
   { slug: "celyan-lorival", role: "Coach", nom: "Célyan Lorival",
-    portrait: "assets/photos/coaches/celyan-lorival.jpg", portraitPos: "center 24%",
+    portrait: "/assets/photos/coaches/celyan-lorival.jpg", portraitPos: "center 24%",
     resume: "Joueur en sport-études et coach depuis deux ans, il transmet avec patience ce qu'il continue d'apprendre sur le court.",
     tags: ["Kids Tennis", "Club", "Compétition", "Stages"],
     bio: [
@@ -212,7 +212,7 @@ coachs:
   // et resserrée. Pas de rubrique « Formations » : il n'en a pas donné, et un
   // titre vide vaut mieux qu'un diplôme supposé.
   { slug: "augustin-tarouat", role: "Coach", nom: "Augustin Tarouat",
-    portrait: "assets/photos/coaches/augustin-tarouat.jpg", portraitPos: "center 20%",
+    portrait: "/assets/photos/coaches/augustin-tarouat.jpg", portraitPos: "center 20%",
     resume: "Formé en sport-études à Lyon, il aime décortiquer la technique et la tactique pour faire progresser chaque joueur à son rythme.",
     tags: ["Kids Tennis", "Club", "Compétition"],
     bio: [
@@ -249,7 +249,7 @@ coachs:
   // qu'en 776×680, et un fichier -large fabriqué par agrandissement serait plus
   // lourd sans être plus net. Le -large en t-shirt blanc reste pour son article.
   { slug: "andreas-egger", role: "Coach physique", nom: "Andreas Egger",
-    portrait: "assets/photos/coaches/andreas-egger.jpg", portraitPos: "center 10%",
+    portrait: "/assets/photos/coaches/andreas-egger.jpg", portraitPos: "center 10%",
     resume: "Préparateur physique, il accompagne les joueurs toute la saison et les pousse à se surpasser au quotidien.",
     tags: ["Sport-études & Pro"],
     bio: [
@@ -302,17 +302,17 @@ worlds:
     h1: "École de tennis à Lausanne",
     metaTitle: "Tennis à Lausanne : école, sport-études, club | Team Lausanne",
     metaDescription: "Tennis à Lausanne : cours enfants dès 4 ans, compétition, sport-études et pro. 12 courts aux Plaines-du-Loup, dont 6 couverts l'hiver.",
-    logo: "assets/logo-academie.webp", heroLogo: "assets/logo-academie-blanc.png",
+    logo: "/assets/logo-academie.webp", heroLogo: "/assets/logo-academie-blanc.png",
     slogan: "Jouer. Progresser. Ensemble.",
     desc: "Le centre de formation du Lausanne-Sports Tennis. Un parcours complet, du premier jeu à la performance, adapté à chaque âge dès 4 ans.",
-    hero: "assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
+    hero: "/assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
     // Le film de marque (version courte) passe par-dessus la photo. La photo
     // reste le fond : elle s'affiche tout de suite, elle est seule sur
     // telephone, en « animations reduites » et sur connexion econome, et elle
     // reprend la main si la lecture echoue. La video n'est qu'un confort.
     // Fichier retaille pour le web : 1080p, sans piste audio — le hero est
     // muet — soit 8,5 Mo contre 159 Mo pour le master 4K.
-    heroVideo: "assets/video/accueil-hero.mp4",
+    heroVideo: "/assets/video/accueil-hero.mp4",
     cta: [{ label: "Nos stages", type: "stages" }, { label: "Nos tournois GameZone", type: "gamezone" }, { label: "Notre programme Sport-Études", type: "sport-etudes" }],
     sections: [
       { type: "rich", anchor: "philosophie", title: "Notre philosophie", body: [
@@ -343,7 +343,7 @@ worlds:
       { type: "filmsec", variant: "hero", anchor: "film", eyebrow: "Le film du club",
         title: "Du premier échange aux grandes ambitions",
         lead: "Le centre de formation du Lausanne-Sports Tennis, en images.",
-        poster: "assets/photos/accueil-film-2026.jpg",
+        poster: "/assets/photos/accueil-film-2026.jpg",
         video: "16cjRpRNQZ0",
         link: { label: "Découvrir nos programmes", cta: true, scroll: "programmes" } },
       // Les coachs sur l'accueil : une pyramide de filieres ne dit pas QUI
@@ -362,16 +362,16 @@ worlds:
       { type: "carousel", anchor: "programmes", eyebrow: "Cours pour tous", title: "Un programme pour chaque niveau",
         sub: "Du premier échange à la performance, un parcours clair pour progresser avec plaisir.",
         items: [
-          { name: "Kids Tennis", photo: "assets/photos/kidstennis-2026.jpg", href: "#kids" },
-          { name: "Club", photo: "assets/photos/club-2026.jpg", href: "#club-academy" },
-          { name: "Compétition", photo: "assets/photos/competition-2026-card.jpg", href: "#competition" },
-          { name: "Performance", photo: "assets/photos/performance-2026.jpg", href: "#performance" },
-          { name: "Sport-études", photo: "assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
-          { name: "Pro U18", photo: "assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
-          { name: "Pro", photo: "assets/photos/pro-2026.jpg", href: "#pro" },
-          { name: "Game Zone", photo: "assets/photos/gamezone-2026.jpg", href: "#gamezone" },
-          { name: "Stages", photo: "assets/photos/stages-2026.jpg", href: "#stages" },
-          { name: "Adultes et privés", photo: "assets/photos/adultes-2026.jpg", href: "#adultes" },
+          { name: "Kids Tennis", photo: "/assets/photos/kidstennis-2026.jpg", href: "#kids" },
+          { name: "Club", photo: "/assets/photos/club-2026.jpg", href: "#club-academy" },
+          { name: "Compétition", photo: "/assets/photos/competition-2026-card.jpg", href: "#competition" },
+          { name: "Performance", photo: "/assets/photos/performance-2026.jpg", href: "#performance" },
+          { name: "Sport-études", photo: "/assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
+          { name: "Pro U18", photo: "/assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
+          { name: "Pro", photo: "/assets/photos/pro-2026.jpg", href: "#pro" },
+          { name: "Game Zone", photo: "/assets/photos/gamezone-2026.jpg", href: "#gamezone" },
+          { name: "Stages", photo: "/assets/photos/stages-2026.jpg", href: "#stages" },
+          { name: "Adultes et privés", photo: "/assets/photos/adultes-2026.jpg", href: "#adultes" },
         ] },
       // Les installations et le club : ce qu'on cherche en tapant « tennis Lausanne »
       // (où jouer, même l'hiver ?), et ce qu'aucune autre page ne disait (25.10.2026).
@@ -407,8 +407,8 @@ worlds:
         title: "Le calendrier de la saison",
         lead: "Vacances scolaires, jours fériés, fermetures de l'académie et stages : les dates à retenir, au même endroit.",
         pdfs: [
-          { label: "École de tennis (PDF)", href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf" },
-          { label: "Sport-études (PDF)", href: "assets/calendriers/calendrier-2026-27-sport-etudes.pdf" },
+          { label: "École de tennis (PDF)", href: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf" },
+          { label: "Sport-études (PDF)", href: "/assets/calendriers/calendrier-2026-27-sport-etudes.pdf" },
         ] },
     ],
   },
@@ -420,10 +420,10 @@ worlds:
     // Deux versions, comme pour l'académie : la couleur pour la barre de
     // navigation (fond clair), la blanche pour le hero, posé sur une photo —
     // le logo bleu s'y noyait, on ne lisait plus l'année.
-    logo: "assets/logo-open-2027.webp", heroLogo: "assets/logo-open-2027-blanc.webp",
+    logo: "/assets/logo-open-2027.webp", heroLogo: "/assets/logo-open-2027-blanc.webp",
     slogan: "Vibrer. Rêver. Ensemble.",
     desc: "3ᵉ édition du 21 au 29 août 2027. Le tournoi international de tennis masculin de Lausanne : le circuit professionnel, chez nous, aux Plaines-du-Loup.",
-    hero: "assets/photos/open-2026-6.jpg", heroPos: "center 30%",
+    hero: "/assets/photos/open-2026-6.jpg", heroPos: "center 30%",
     cta: [],
     sections: [
       { type: "stats", anchor: "tournoi", variant: "board", items: [
@@ -436,16 +436,16 @@ worlds:
       // est servie par le site : rien n'est demande a YouTube tant qu'on ne
       // clique pas, et le lecteur (et sa marque) n'apparait qu'a la lecture.
       { type: "split", anchor: "presentation", title: "Le grand rendez-vous du tennis vaudois masculin",
-        video: "S1kulGoQPNM", poster: "assets/video/lausanne-open-2026-film.jpg", body: [
+        video: "S1kulGoQPNM", poster: "/assets/video/lausanne-open-2026-film.jpg", body: [
         "Le Lausanne Open réunit chaque année plusieurs dizaines de joueurs de toutes nationalités, pour la plupart classés à l'ATP, sur les courts de la Pontaise.",
         "L'accès est entièrement gratuit, toute la semaine.",
       ], link: { label: "Site & résultats ITF ↗", href: "@itf_url" } },
       { type: "carousel", eyebrow: "Lausanne Open", title: "Une semaine d'événements",
         sub: "Entrée libre toute la semaine, animations grand public et hospitalité.",
         items: [
-          { name: "Initiation pour les écoles", photo: "assets/photos/open-ecoles-2026.jpg" },
-          { name: "Journée Team Lausanne", photo: "assets/photos/journee-famille-2026.jpg" },
-          { name: "VIP · Tennis & Lunch", photo: "assets/photos/open-lunch-2026.jpg" },
+          { name: "Initiation pour les écoles", photo: "/assets/photos/open-ecoles-2026.jpg" },
+          { name: "Journée Team Lausanne", photo: "/assets/photos/journee-famille-2026.jpg" },
+          { name: "VIP · Tennis & Lunch", photo: "/assets/photos/open-lunch-2026.jpg" },
         ]},
       { type: "seeds", anchor: "tetes-de-serie", title: "Voici les 8 têtes de série de l'édition 2026",
         sub: "Le tenant du titre, ancien numéro 1 mondial junior, et sept autres joueurs classés parmi les 650 meilleurs du monde. Classement ATP au moment du tirage." },
@@ -458,12 +458,12 @@ worlds:
             double: [{ f: "@flag_ie", n: "Charles Barry" }, { f: "@flag_fr", n: "Max Westphal" }] },
         ] },
       { type: "gallery", anchor: "photos", items: [
-        "assets/photos/open-2026-1.jpg",
-        "assets/photos/open-2026-2.jpg",
-        "assets/photos/open-2026-3.jpg",
-        "assets/photos/open-2026-4.jpg",
-        "assets/photos/open-2026-5.jpg",
-        "assets/photos/open-2026-7.jpg",
+        "/assets/photos/open-2026-1.jpg",
+        "/assets/photos/open-2026-2.jpg",
+        "/assets/photos/open-2026-3.jpg",
+        "/assets/photos/open-2026-4.jpg",
+        "/assets/photos/open-2026-5.jpg",
+        "/assets/photos/open-2026-7.jpg",
       ]},
       { type: "features", anchor: "infos", title: "Infos pratiques", items: [
         ["Dates", "3ᵉ édition : du samedi 21 au dimanche 29 août 2027."],
@@ -485,7 +485,7 @@ details:
     world: "tournoi", title: "Journée Team Lausanne", subtitle: "Samedi, en marge du Lausanne Open — ouvert à toutes et tous",
     metaTitle: "Journée Team Lausanne au Lausanne Open — tennis en famille",
     metaDescription: "La Journée Team Lausanne, en marge du Lausanne Open : jouez avec nos meilleurs joueurs, testez votre service au radar, initiation pour les enfants. Accès libre.",
-    hero: "assets/photos/open-kids.jpg",
+    hero: "/assets/photos/open-kids.jpg",
     sections: [
       { type: "rich", title: "Une journée de fête autour du tennis", body: [
         "En marge du Lausanne Open, la Journée Team Lausanne met le tennis à la portée de tous, petits et grands, dans une ambiance conviviale.",
@@ -497,7 +497,7 @@ details:
         ["Les petits", "Initiation pour les enfants."],
         ["Vers 15h", "On termine par la finale du double."],
       ]},
-      { type: "gallery", items: ["assets/photos/open-kids.jpg", "assets/photos/open-serve.jpg"] },
+      { type: "gallery", items: ["/assets/photos/open-kids.jpg", "/assets/photos/open-serve.jpg"] },
     ],
   },
   stages: {
@@ -505,7 +505,7 @@ details:
     metaTitle: "Stages de tennis à Lausanne pendant les vacances | Team Lausanne",
     metaDescription: "Stages de tennis pendant les vacances scolaires à Lausanne, pour les 4 à 18 ans et pour les adultes : de la découverte ludique à la semaine intensive.",
     subtitle: "Pendant les vacances scolaires, des stages de tennis pour les 4 à 18 ans et pour les adultes : de la découverte ludique à la semaine intensive, encadrés par nos coachs aux Plaines-du-Loup.",
-    hero: "assets/photos/stages-2026.jpg",
+    hero: "/assets/photos/stages-2026.jpg",
     cta: { label: "Choisir mon stage", scroll: "stagesec" },
     sections: [
       { type: "keywords", label: "Ce qui fait nos stages", items: [
@@ -547,11 +547,11 @@ details:
     // deborde en hauteur et seule la valeur verticale compte — 40 % garde la
     // raquette et la balle. Sur telephone c'est l'inverse, la photo deborde en
     // largeur : 30 % retient le joueur dans le cadre au lieu de le rogner.
-    hero: "assets/photos/sport-etudes-2026.jpg", heroPos: "30% 40%",
+    hero: "/assets/photos/sport-etudes-2026.jpg", heroPos: "30% 40%",
     // La photo reste le poster : elle s'affiche tout de suite, pendant le
     // chargement de la video, et demeure seule sur telephone et en mode
     // « animations reduites ». La video ne fait que passer par-dessus.
-    heroVideo: "assets/video/sport-etudes-hero.mp4",
+    heroVideo: "/assets/video/sport-etudes-hero.mp4",
     cta: { label: "Recevoir la brochure", scroll: "brochure" },
     sections: [
       { type: "keywords", label: "Ce qui fait le Sport-études", items: [
@@ -559,7 +559,7 @@ details:
         "Repas inclus", "Écoles partenaires", "Vers la maturité",
       ]},
       { type: "split", photos: [
-          "assets/photos/sport-etudes-2026-g1.jpg", "assets/photos/sport-etudes-2026-g2.jpg",
+          "/assets/photos/sport-etudes-2026-g1.jpg", "/assets/photos/sport-etudes-2026-g2.jpg",
         ],
         eyebrow: "Le programme de référence", title: "Étudier et s'entraîner, sans choisir", body: [
           "Le sport-études permet aux 14–19 ans de concilier études et entraînement intensif, dans un cadre optimal et un suivi individualisé.",
@@ -570,7 +570,7 @@ details:
       // sur un contenu que je n'ai pas vu.
       { type: "filmsec", eyebrow: "En images", title: "Viser haut, préparer son avenir",
         lead: "Le programme Sport-études en vidéo.",
-        poster: "assets/photos/sport-etudes-video.jpg",
+        poster: "/assets/photos/sport-etudes-video.jpg",
         video: "ZBRb8MNP0nI" },
       { type: "perks", eyebrow: "Un encadrement complet",
         title: "Tout est prévu autour du joueur",
@@ -594,52 +594,52 @@ details:
         title: "Nos athlètes",
         lead: "Derrière le programme, il y a d'abord des joueuses et des joueurs. Touchez une carte pour en savoir plus.", items: [
           { nom: "Talia Dupasquier Picci", age: "18 ans", classement: "R1 (117)",
-            photo: "assets/photos/eleve-talia-picci.jpg",
+            photo: "/assets/photos/eleve-talia-picci.jpg",
             mytennis: "19757017",
             mot: "Dix-huit ans et déjà joueuse professionnelle : vivre de son tennis, c'est le projet. Un tournoi presque chaque week-end, et les premiers rendez-vous internationaux. Elle donne des cours en stage et au Kids Tennis. Son moteur : aller chercher tout ce qu'elle peut, et passer au-dessus de son R1.",
             tags: ["Meilleur classement : R1 (99)", "Certifiée loisir niveau 1"] },
           { nom: "Célyan Lorival", age: "18 ans", classement: "R2",
-            photo: "assets/photos/eleve-celyan-lorival.jpg",
+            photo: "/assets/photos/eleve-celyan-lorival.jpg",
             mytennis: "19764390",
             mot: "Cinq ans de sport-études au Lausanne-Sports, et le bac en ligne de mire. Revers à une main, faible avoué pour l'ambiance des interclubs. Il enseigne depuis deux ans, en cours comme en stage : patient, et autant motivé par transmettre que par jouer.",
             tags: ["J+S continue 1", "J+S continue 2", "Official Swiss Tennis"] },
           // Propos recueillis aupres de Nadia, remis a la 3e personne.
           { nom: "Nadia Dévaud", age: "15 ans", classement: "R5",
-            photo: "assets/photos/eleve-nadia-devaud.jpg",
+            photo: "/assets/photos/eleve-nadia-devaud.jpg",
             mytennis: "19822148",
             mot: "Quinze ans, classée R5, et un an de sport-études au Lausanne-Sports. Un jeu offensif, porté par son coup droit. Son but : atteindre le niveau professionnel." },
           // Propos recueillis aupres de Hektor, remis a la 3e personne comme
           // les autres portraits.
           { nom: "Hektor Vitone", age: "13 ans", classement: "R4",
-            photo: "assets/photos/eleve-hektor-vitone.jpg",
+            photo: "/assets/photos/eleve-hektor-vitone.jpg",
             mytennis: "19874388",
             mot: "Treize ans, classé R4, et une première année au Lausanne-Sports. Plutôt joueur de fond de court. Son rêve : vivre de son tennis et intégrer le top 100 mondial." },
           // Propos recueillis aupres d'Isabella, remis a la 3e personne comme les
           // autres portraits. Elle se donne R4 : son classement passe donc de R5
           // a R4 ici aussi, sinon la pastille contredirait son texte.
           { nom: "Isabella Stadelmann", age: "14 ans", classement: "R4",
-            photo: "assets/photos/eleve-isabella-stadelmann.jpg",
+            photo: "/assets/photos/eleve-isabella-stadelmann.jpg",
             mytennis: "19803666",
             mot: "Quatorze ans, classée R4, et une deuxième année de sport-études au Lausanne-Sports. Un jeu agressif, porté vers l'avant. Ambitieuse et perfectionniste, toujours en quête du meilleur d'elle-même." },
           // Yuma : texte encore provisoire, il ne dit que ce qu'on sait de source
           // sure (filiere et classement Swiss Tennis). A remplacer des qu'on a sa
           // vraie presentation — il est le dernier.
           { nom: "Yuma Olgiati", age: "17 ans", classement: "R4",
-            photo: "assets/photos/eleve-yuma-olgiati.jpg",
+            photo: "/assets/photos/eleve-yuma-olgiati.jpg",
             mytennis: "19800610",
             mot: "En sport-études au Lausanne-Sports, classé R4. Sa présentation arrive prochainement." },
           // Propos recueillis aupres d'Ylan, remis a la 3e personne comme les
           // autres portraits. ATTENTION : son objectif est date (« d'ici Noel »).
           // A relire apres les fetes, sinon la phrase vieillira mal.
           { nom: "Ylan Allenspach", age: "16 ans", classement: "R5",
-            photo: "assets/photos/eleve-ylan-allenspach.jpg",
+            photo: "/assets/photos/eleve-ylan-allenspach.jpg",
             mytennis: "19796976",
             mot: "Seize ans, classé R5, et une première année au Lausanne-Sports. Joueur offensif, il aime prendre le jeu à son compte et s'appuie sur son coup droit pour faire la différence. Entraînements et tournois occupent une grande place dans son quotidien, avec l'envie de se mesurer à des joueurs toujours plus forts. Son objectif est clair : passer R3 d'ici Noël, et continuer à repousser ses limites." },
           // Propos recueillis aupres de Max, remis a la 3e personne comme les
           // autres portraits. Sa formule sur l'equipe est gardee telle quelle :
           // c'est la plus parlante des siennes.
           { nom: "Max Marten", age: "16 ans", classement: "R2",
-            photo: "assets/photos/eleve-max-marten.jpg",
+            photo: "/assets/photos/eleve-max-marten.jpg",
             mytennis: "19781973",
             mot: "Seize ans, classé R2. Il se dépasse chaque jour à l'entraînement pour aller chercher son objectif, et aime repousser ses limites. Surtout, il adore jouer en équipe : c'est ensemble qu'on va le plus loin. Motivé, travailleur, toujours prêt à progresser." },
         ]},
@@ -654,13 +654,13 @@ details:
           "Fin de saison le vendredi 2 juillet 2027, stages d'été dès le 5",
           "Vacances scolaires et jours fériés du Canton de Vaud",
         ],
-        href: "assets/calendriers/calendrier-2026-27-sport-etudes.pdf",
-        apercu: "assets/calendriers/calendrier-2026-27-sport-etudes-apercu.jpg",
+        href: "/assets/calendriers/calendrier-2026-27-sport-etudes.pdf",
+        apercu: "/assets/calendriers/calendrier-2026-27-sport-etudes-apercu.jpg",
         bouton: "Télécharger le calendrier" },
       { type: "brochure", anchor: "brochure",
         eyebrow: "Brochure 2026", title: "Le programme en détail, dans votre boîte mail",
         lead: "Le déroulé d'une semaine, les écoles partenaires, l'encadrement et les conditions d'admission — onze pages pour tout savoir avant de nous écrire.",
-        doc: "assets/brochures/sport-etudes-2026-fr.pdf",
+        doc: "/assets/brochures/sport-etudes-2026-fr.pdf",
         bouton: "Recevoir la brochure",
         mention: "Votre adresse sert uniquement à vous envoyer la brochure et à vous recontacter. Pas de liste de diffusion." },
       { type: "faq", eyebrow: "Questions fréquentes",
@@ -679,7 +679,7 @@ details:
     metaTitle: "Tennis compétition juniors à Lausanne (10-13 ans) | Team Lausanne",
     metaDescription: "Filière compétition pour les 10-13 ans à Lausanne : entraînement structuré, matchs et tournois pour les jeunes prêts à passer un cap. Seize places.",
     subtitle: "Entraînement structuré et matchs, pour les jeunes prêts à passer un cap : gagner en régularité, en confiance et en esprit de compétition, sur un parcours de progression clair.",
-    hero: "assets/photos/competition-2026.jpg",
+    hero: "/assets/photos/competition-2026.jpg",
     cta: { label: "Demander des informations", scroll: "enroll-sec" },
     sections: [
       { type: "keywords", label: "Ce qui fait la filière Compétition", items: [
@@ -687,8 +687,8 @@ details:
         "GameZone", "Esprit de compétition", "Vers la Performance",
       ]},
       { type: "split", photos: [
-          "assets/photos/competition-2026-s2.jpg", "assets/photos/competition-2026-s1.jpg",
-          "assets/photos/competition-2026-s3.jpg", "assets/photos/competition-2026-s4.jpg",
+          "/assets/photos/competition-2026-s2.jpg", "/assets/photos/competition-2026-s1.jpg",
+          "/assets/photos/competition-2026-s3.jpg", "/assets/photos/competition-2026-s4.jpg",
         ],
         eyebrow: "Un cap à passer", title: "Entrer en compétition", body: [
           "La filière Compétition accueille les jeunes d'environ 10 à 13 ans qui veulent se mesurer aux autres et progresser dans un cadre encadré.",
@@ -746,8 +746,8 @@ details:
           "Fin de saison le vendredi 2 juillet 2027",
           "Vacances scolaires et jours fériés du Canton de Vaud",
         ],
-        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
-        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        href: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
         bouton: "Télécharger le calendrier" },
       { type: "enroll", title: "Demander une inscription", filiere: "competition", ranking: true,
         lead: "Intéressé(e) par la filière Compétition ? Remplissez ce formulaire, le secrétariat vous recontacte." },
@@ -758,7 +758,7 @@ details:
     metaTitle: "Tennis performance juniors à Lausanne (12-15 ans) | Team Lausanne",
     metaDescription: "Filière performance pour les 12-15 ans à Lausanne : charge d'entraînement renforcée et préparation physique intégrée, le lien vers le sport-études. Huit places.",
     subtitle: "La filière qui fait le lien entre la Compétition et le Sport-études : charge d'entraînement renforcée, préparation physique intégrée et exigence du match, pour les jeunes prêts à passer à la vitesse supérieure.",
-    hero: "assets/photos/performance-2026.jpg",
+    hero: "/assets/photos/performance-2026.jpg",
     cta: { label: "Demander des informations", scroll: "enroll-sec" },
     sections: [
       { type: "keywords", label: "Ce qui fait la filière Performance", items: [
@@ -766,8 +766,8 @@ details:
         "Suivi individualisé", "Filière sélective", "Vers le Sport-études",
       ]},
       { type: "split", photos: [
-          "assets/photos/performance-2026-s1.jpg", "assets/photos/performance-2026-s2.jpg",
-          "assets/photos/performance-2026-s3.jpg",
+          "/assets/photos/performance-2026-s1.jpg", "/assets/photos/performance-2026-s2.jpg",
+          "/assets/photos/performance-2026-s3.jpg",
         ],
         eyebrow: "Une étape qui compte", title: "Viser le meilleur niveau", body: [
           "La filière Performance s'adresse aux jeunes d'environ 12 à 15 ans prêts à s'investir davantage. Elle se chevauche avec la Compétition : l'âge n'est pas un frein, c'est une évolution qui s'adapte à 1–2 ans près.",
@@ -830,8 +830,8 @@ details:
           "Fin de saison le vendredi 2 juillet 2027",
           "Vacances scolaires et jours fériés du Canton de Vaud",
         ],
-        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
-        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        href: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
         bouton: "Télécharger le calendrier" },
       { type: "enroll", title: "Demander une inscription", filiere: "performance", ranking: true,
         lead: "Intéressé(e) par la filière Performance ? Remplissez ce formulaire, le secrétariat vous recontacte." },
@@ -842,7 +842,7 @@ details:
     metaTitle: "Programme tennis Pro U18 à Lausanne | Team Lausanne",
     metaDescription: "Après l'école obligatoire, le tennis devient le métier : deux sessions par jour, le physique chaque matin et le circuit ITF junior en ligne de mire.",
     subtitle: "Après la scolarité obligatoire, l'entraînement devient le métier : deux sessions de tennis par jour, le physique tous les matins et le circuit ITF junior en ligne de mire, pour celles et ceux qui veulent voir jusqu'où ça peut aller.",
-    hero: "assets/photos/pro-u18-2026.jpg", heroPos: "55% 12%",
+    hero: "/assets/photos/pro-u18-2026.jpg", heroPos: "55% 12%",
     cta: { label: "Recevoir le dossier", scroll: "brochure" },
     sections: [
       { type: "keywords", label: "Ce qui fait le Pro U18", items: [
@@ -850,8 +850,8 @@ details:
         "Partenariat physio", "Préparation mentale", "Classement mondial",
       ]},
       { type: "split", photos: [
-          "assets/photos/pro-u18-2026-s1.jpg", "assets/photos/pro-u18-2026-s2.jpg",
-          "assets/photos/pro-u18-2026-s3.jpg",
+          "/assets/photos/pro-u18-2026-s1.jpg", "/assets/photos/pro-u18-2026-s2.jpg",
+          "/assets/photos/pro-u18-2026-s3.jpg",
         ],
         eyebrow: "Le tennis comme métier", title: "S'entraîner à plein temps, viser le monde", body: [
           "La scolarité obligatoire terminée, les journées se libèrent : deux sessions de tennis, une heure de préparation physique chaque matin, et le reste du temps pour récupérer et se soigner.",
@@ -904,7 +904,7 @@ details:
     metaTitle: "Programme tennis professionnel à Lausanne | Team Lausanne",
     metaDescription: "Un encadrement sur mesure pour joueuses et joueurs du circuit professionnel, dès 18 ans : calendrier, objectifs de classement, coaching et physique, à Lausanne.",
     subtitle: "À ce niveau, il n'y a pas d'offre standard : chaque joueuse et joueur a son calendrier, ses objectifs de classement et son encadrement. Nous construisons le programme autour de vous — jeu, corps, tête, logistique et financement.",
-    hero: "assets/photos/pro-2026.jpg", heroPos: "center 42%",
+    hero: "/assets/photos/pro-2026.jpg", heroPos: "center 42%",
     cta: { label: "Recevoir le dossier", scroll: "brochure" },
     sections: [
       { type: "keywords", label: "Ce qui fait la filière Pro", items: [
@@ -912,12 +912,12 @@ details:
         "Solutions de financement", "Jusqu'à 15 semaines de tournois", "Logement à Lausanne",
       ]},
       { type: "split", photos: [
-          "assets/photos/pro-2026-g1.jpg", "assets/photos/open-serve.jpg",
+          "/assets/photos/pro-2026-g1.jpg", "/assets/photos/open-serve.jpg",
           // Photo verticale dans un cadre large : le cadrage vise la tête plutôt
           // que le centre. 42 % est la valeur la plus haute qui garde la tête sur mobile, où
           // le cadre est bien plus aplati (776 px d'image visibles contre 1075
           // sur grand écran) ; au-delà, la tête sort par le haut.
-          { src: "assets/photos/pro-2026-court.jpg", pos: "center 42%" },
+          { src: "/assets/photos/pro-2026-court.jpg", pos: "center 42%" },
         ],
         eyebrow: "Du sur-mesure, pas un forfait", title: "Un programme construit autour de vous", body: [
           "Au niveau professionnel, deux joueurs n'ont jamais le même calendrier. L'encadrement s'adapte aux tournois, aux déplacements, aux blessures et aux objectifs de points — pas l'inverse.",
@@ -945,7 +945,7 @@ details:
         ["Cordage offert", "Les cordages sont pris en charge par l'académie — un avantage propre à la filière Pro."],
         ["Abonnement d'hiver à votre charge", "Il n'est pas compris dans le programme et se règle directement auprès du club."],
       ]},
-      { type: "split", photos: ["assets/webflow/sport-studies.jpg"],
+      { type: "split", photos: ["/assets/webflow/sport-studies.jpg"],
         eyebrow: "La question qu'on n'ose pas poser", title: "Une solution 360°, y compris financière", body: [
           "Le tennis professionnel coûte cher, et c'est souvent ce qui arrête les carrières avant le niveau de jeu. Nous préférons en parler dès le premier entretien.",
           "Plusieurs leviers existent au sein de l'académie pour alléger la facture — et ils se combinent.",
@@ -981,7 +981,7 @@ details:
     world: "academie", title: "Kids Tennis", subtitle: "Le tennis dès 4 ans, dans un cadre ludique, structuré et bienveillant : nos cours posent des bases solides et donnent le goût du jeu dès les toutes premières séances.",
     metaTitle: "Cours de tennis enfants à Lausanne dès 4 ans | Team Lausanne",
     metaDescription: "Cours de tennis pour enfants de 4 à 10 ans à Lausanne, aux Plaines-du-Loup : un cadre ludique, structuré et bienveillant pour apprendre les bases. Cours d'essai.",
-    hero: "assets/photos/kidstennis-2026.jpg",
+    hero: "/assets/photos/kidstennis-2026.jpg",
     cta: { label: "Demander un cours d'essai", scroll: "enroll-sec" },
     sections: [
       { type: "keywords", label: "Ce qui fait le Kids Tennis", items: [
@@ -989,8 +989,8 @@ details:
         "Cadre bienveillant", "Progression structurée", "Petits groupes",
       ]},
       { type: "split", photos: [
-          "assets/photos/kids-ambiance.jpg", "assets/photos/kids-2026-1.jpg",
-          "assets/photos/kids-open.jpg", "assets/photos/kids-2026-2.jpg",
+          "/assets/photos/kids-ambiance.jpg", "/assets/photos/kids-2026-1.jpg",
+          "/assets/photos/kids-open.jpg", "/assets/photos/kids-2026-2.jpg",
         ],
         eyebrow: "Un premier pas qui compte", title: "Apprendre le jeu comme il faut", body: [
           "Kids Tennis initie les enfants de 4 à 9 ans au tennis de façon ludique et progressive, tout au long de l'année scolaire.",
@@ -1032,8 +1032,8 @@ details:
           "Fin de saison le vendredi 2 juillet 2027",
           "Vacances scolaires et jours fériés du Canton de Vaud",
         ],
-        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
-        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        href: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
         bouton: "Télécharger le calendrier" },
       { type: "enroll", title: "Demander une inscription", filiere: "kidstennis", ranking: false,
         lead: "Envie d'inscrire votre enfant à Kids Tennis ? Remplissez ce formulaire, le secrétariat vous recontacte." },
@@ -1044,7 +1044,7 @@ details:
     metaTitle: "Cours de tennis loisir à Lausanne, tous niveaux | Team Lausanne",
     metaDescription: "Cours de tennis à Lausanne, une à deux fois par semaine et pour tous les niveaux : progresser à son rythme, toute l'année, avec les interclubs pour les membres.",
     subtitle: "Des entraînements encadrés, une à deux fois par semaine, pour tous les niveaux : progresser à son rythme, rester en mouvement et prendre du plaisir sur le court, toute l'année.",
-    hero: "assets/photos/club-2026.jpg",
+    hero: "/assets/photos/club-2026.jpg",
     cta: { label: "Demander des informations", scroll: "enroll-sec" },
     sections: [
       { type: "keywords", label: "Ce qui fait l'offre Club", items: [
@@ -1052,8 +1052,8 @@ details:
         "Apprendre en jouant", "Petits groupes", "Sur la durée",
       ]},
       { type: "split", photos: [
-          "assets/photos/club-2026-2.jpg", "assets/photos/club-2026-1.jpg",
-          "assets/photos/club-2026-3.jpg",
+          "/assets/photos/club-2026-2.jpg", "/assets/photos/club-2026-1.jpg",
+          "/assets/photos/club-2026-3.jpg",
         ],
         eyebrow: "Un lieu pour jouer et progresser", title: "Jouer et progresser, sans pression", body: [
           "L'offre Club s'adresse à celles et ceux qui veulent jouer 1 ou plusieurs heures par semaine toute l'année — débutants comme plus avancés.",
@@ -1097,8 +1097,8 @@ details:
           "Fin de saison le vendredi 2 juillet 2027",
           "Vacances scolaires et jours fériés du Canton de Vaud",
         ],
-        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
-        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        href: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
         bouton: "Télécharger le calendrier" },
       { type: "enroll", title: "Demander une inscription", filiere: "club", ranking: false,
         lead: "Envie de rejoindre l'offre Club ? Remplissez ce formulaire, le secrétariat vous recontacte." },
@@ -1108,7 +1108,7 @@ details:
     world: "academie", title: "Cours adultes et privés", subtitle: "Saison 2026-2027 — cours privés, semi-privés et de groupe, tous niveaux",
     metaTitle: "Cours de tennis adultes et privés à Lausanne | Team Lausanne",
     metaDescription: "Cours de tennis pour adultes à Lausanne : leçons privées, semi-privées et en groupe, tous niveaux, en français ou en anglais, au TC Lausanne-Sports.",
-    hero: "assets/photos/adultes-2026.jpg", heroPos: "center 45%",
+    hero: "/assets/photos/adultes-2026.jpg", heroPos: "center 45%",
     sections: [
       { type: "rich", title: "Cours adultes et privés, toute la saison", body: [
         "Team Lausanne Cours Adultes est l'association qui organise désormais l'ensemble des cours adultes et privés du TC Lausanne-Sports et de Team Lausanne.",
@@ -1144,8 +1144,8 @@ details:
     metaTitle: "Game Zone — tournois de tennis juniors à Lausanne",
     metaDescription: "Des tournois de tennis juniors presque tous les week-ends à Lausanne : une seule journée, deux matchs garantis, une médaille à chaque victoire.",
     subtitle: "Des tournois juniors presque tous les week-ends, sur une seule journée et deux matchs garantis. Une médaille à chaque victoire, une coupe dès la cinquième, et la grande coupe à la dixième — de quoi se lancer en compétition sans pression.",
-    hero: "assets/photos/gamezone-2026.jpg", heroPos: "55% 45%",
-    heroLogo: "assets/logo-gamezone-blanc.png",
+    hero: "/assets/photos/gamezone-2026.jpg", heroPos: "55% 45%",
+    heroLogo: "/assets/logo-gamezone-blanc.png",
     sections: [
       { type: "rich", title: "Le concept", body: [
         "Presque tous les week-ends, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant.",
@@ -1168,7 +1168,7 @@ details:
     world: "academie", title: "Nos coachs",
     metaTitle: "Coachs de tennis à Lausanne — l'équipe | Team Lausanne",
     subtitle: "Notre équipe réunit des expériences qui couvrent le Kids Tennis, le Club, la Compétition, la Performance, le Sport-études et le Pro. Chaque coach construit un cadre où l'on progresse avec clarté, régularité et confiance.",
-    hero: "assets/photos/coaches-hero.webp", heroPos: "center 35%",
+    hero: "/assets/photos/coaches-hero.webp", heroPos: "center 35%",
     cta: { label: "Nous écrire", contact: "Nos coachs" },
     sections: [
       { type: "keywords", label: "Ce qui fait notre encadrement", items: [
