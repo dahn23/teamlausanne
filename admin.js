@@ -6405,13 +6405,15 @@ async function loadMtPlayerBookmarklet() {
 async function loadBookmarklet() {
   const { data } = await sb.from("gz_config").select("import_key").maybeSingle();
   if (!data) { $("gz-bm-note").textContent = "Clé d'import indisponible (droits admin requis)."; return; }
-  let src;
-  try { src = await (await fetch("bookmarklet.js")).text(); }
-  catch (_e) { $("gz-bm-note").textContent = "Impossible de charger le bookmarklet."; return; }
-  const code = src
-    .replace("__KEY__", data.import_key)
-    .replace("__RCV__", location.origin + "/gz-receiver.html")
-    .replace("__WHO__", (meName || "").replace(/["\\]/g, ""));
+  // Favori COURT (25.11.2026) : il ne contient que la clé et charge bookmarklet.js
+  // depuis jsDelivr (autorisé par Swiss Tennis). Le code complet (11 000 caractères)
+  // n'était pas lancé par Chrome sur Android. Mettre bookmarklet.js à jour suffit
+  // désormais : plus besoin de recréer les favoris (jsDelivr garde @main ~12 h en cache).
+  const cfg = JSON.stringify({ k: data.import_key, r: location.origin + "/gz-receiver.html", w: (meName || "").replace(/["\\]/g, "") });
+  const code = `(function(){window.__GZ=${cfg};var s=document.createElement("script");`
+    + `s.src="https://cdn.jsdelivr.net/gh/dahn23/teamlausanne@main/bookmarklet.js?t="+Date.now();`
+    + `s.onerror=function(){alert("GameZone : impossible de charger l'import (réseau ?). Réessaie.")};`
+    + `document.body.appendChild(s)})()`;
   const a = document.createElement("a");
   a.href = "javascript:" + encodeURIComponent(code);
   a.textContent = "Importer GameZone";

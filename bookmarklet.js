@@ -1,6 +1,12 @@
 (async () => {
   try {
-    const KEY = "__KEY__", RCV = "__RCV__", WHO = "__WHO__";
+    // Favori court (25.11.2026) : il pose window.__GZ puis charge CE fichier depuis
+    // jsDelivr (seul hébergeur autorisé par Swiss Tennis qui serve notre dépôt).
+    // L'ancien favori contenait tout le code (11 000 caractères) : trop long pour
+    // Chrome sur Android, qui ne le lançait pas. La clé reste dans le favori,
+    // jamais dans ce fichier public.
+    const G = window.__GZ || {};
+    const KEY = G.k || "__KEY__", RCV = G.r || "__RCV__", WHO = G.w || "__WHO__";
     const FN = "https://lnrmtwamuaqcubohontn.supabase.co/functions/v1/gz-import";
     const base = "/advantage/servlet/";
     // Bandeau d'avancement : sur téléphone, sans lui, rien ne bouge pendant la lecture.
