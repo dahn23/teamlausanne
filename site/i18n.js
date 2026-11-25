@@ -177,7 +177,11 @@ export const CHROME_EN = [
   [">Adultes et privés<", ">Adults and private<"],
   // « President's Club » et non « Circle » : nom confirmé par Raphael le
   // 25.11.2026. C'est le nom de la chose, pas une traduction à retrouver.
-  [">Cercle du Président<", ">President's Club<"],
+  // ⚠ Le lien AUTANT que le libellé, comme pour « Confidentialité » : la
+  // version anglaise de la page vit à /en/presidents-club.
+  ['<a class="swm-l" href="/cercle-du-president"><span class="swm-n">Cercle du Président</span>',
+   '<a class="swm-l" href="/en/presidents-club"><span class="swm-n">President\'s Club</span>'],
+  ['<a class="sw" href="/cercle-du-president">', '<a class="sw" href="/en/presidents-club">'],
   [">réseautage · vendredi matin<", ">networking · Friday morning<"],
   // ⚠ PAS « The Club » ici, même si le nom complet est « President's Club » :
   // ce libellé court voisine dans la barre avec « The Club ↗ », qui désigne

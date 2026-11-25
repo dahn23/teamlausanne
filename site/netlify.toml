@@ -11,6 +11,10 @@
   from = "/en/privacy"
   to = "/en/privacy.html"
   status = 200
+[[redirects]]
+  from = "/en/presidents-club"
+  to = "/en/presidents-club.html"
+  status = 200
 [build]
   publish = "."
   # Fabrique une vraie page HTML par programme (voir build.mjs). Le script

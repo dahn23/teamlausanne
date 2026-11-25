@@ -339,7 +339,45 @@ for (const p of PAGES_AUTONOMES) {
   }
   // Mêmes chemins absolus que pour le gabarit : la page est servie depuis
   // /en/, un chemin relatif y repartirait de /en/ et pointerait dans le vide.
-  const html = absolutiser(await readFile(join(ICI, "pages-en", p.en), "utf8"));
+  let brut;
+  if (p.table) {
+    // Table de fragments appliquée à la page française. Même garde que
+    // CHROME_EN : un fragment introuvable arrête le build en le nommant.
+    brut = source;
+    const perdus = [];
+    for (const [fr, en] of p.table) {
+      if (!brut.includes(fr)) { perdus.push(fr); continue; }
+      brut = brut.split(fr).join(en);
+    }
+    if (perdus.length) {
+      console.error(`build: pages-en/ — fragments introuvables dans ${p.fr} :`);
+      for (const f of perdus) console.error("  · " + f.replace(/\s+/g, " ").slice(0, 90));
+      process.exit(1);
+    }
+    const urlFr = `${SITE}/${p.fr.replace(/\.html$/, "")}`;
+    const urlEn = `${SITE}/${PREFIXE.en}/${p.slug}`;
+    brut = brut
+      .replace(/<html lang="fr">/, '<html lang="en">')
+      .replace(/content="fr_CH"/, 'content="en_GB"')
+      // ⚠ La canonique et og:url doivent désigner la page ANGLAISE. Héritées
+      // telles quelles du français, elles auraient dit à Google que cette
+      // page est un double de la française — qui l'aurait alors seule
+      // indexée, et tout ce travail serait resté invisible.
+      // ⚠ On RETIRE d'abord les hreflang du fichier français : ils y sont
+      // (la page française doit les porter), et recopiés tels quels ils
+      // faisaient trois paires en double sur la page anglaise. Google ne s'en
+      // plaint pas bruyamment, il choisit — et on ne sait pas quoi.
+      .replace(/\s*<link rel="alternate" hreflang="[^"]*" href="[^"]*"\s*\/>/g, "")
+      .replace(/<link rel="canonical" href="[^"]*"\s*\/>/,
+        `<link rel="canonical" href="${urlEn}" />\n  <link rel="alternate" hreflang="fr" href="${urlFr}" />`
+        + `\n  <link rel="alternate" hreflang="en" href="${urlEn}" />`
+        + `\n  <link rel="alternate" hreflang="x-default" href="${urlFr}" />`)
+      .replace(/<meta property="og:url" content="[^"]*"\s*\/>/,
+        `<meta property="og:url" content="${urlEn}" />`);
+  } else {
+    brut = await readFile(join(ICI, "pages-en", p.en), "utf8");
+  }
+  const html = absolutiser(brut);
   await mkdir(join(ICI, PREFIXE.en), { recursive: true });
   await writeFile(join(ICI, PREFIXE.en, p.slug + ".html"), html, "utf8");
   autonomesEcrites.push(p);

@@ -30,7 +30,23 @@
 // l'alarme sans éteindre le feu.
 // ===========================================================================
 
+// Deux formes, et le choix se fait sur une seule question : la page
+// porte-t-elle beaucoup de MISE EN PAGE à elle ?
+//   · `en` — un fichier parallèle. Pour un texte qui doit se relire comme
+//     une page (la politique de confidentialité).
+//   · `table` — une table de fragments appliquée au fichier français. Pour
+//     une page qui porte 340 lignes de CSS qu'on ne veut pas voir vivre en
+//     double, où la deuxième copie serait oubliée à la première retouche.
+import { CERCLE_EN } from "./cercle.js";
+
 export const PAGES_AUTONOMES = [
+  {
+    fr: "cercle-du-president.html",
+    table: CERCLE_EN,
+    slug: "presidents-club",
+    empreinte: "ed7100e62b656d23",
+    sitemap: true,
+  },
   {
     fr: "confidentialite.html",          // la source française, à la racine de site/
     en: "privacy.html",                  // sa traduction, dans pages-en/
