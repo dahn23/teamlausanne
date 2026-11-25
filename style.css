@@ -1458,20 +1458,6 @@ html{-webkit-tap-highlight-color:transparent}
 /* ⚠ « button.rt-sign » et pas « .rt-sign » : la règle nue (0,1,0) se ferait
    battre par un sélecteur de bouton plus précis, et le bouton reviendrait au
    gris-sur-blanc d'un ghost — introuvable dans une barre d'outils. */
-/* ---- Traduction d'un article du site (db/249) ---------------------------
-   Deux colonnes : le français à gauche, en lecture seule, l'anglais à droite.
-   On traduit en regardant l'original, pas de mémoire — c'est pour ça que la
-   fenêtre est large et que le français ne se referme pas. */
-.actuen-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
-.actuen-lbl{font-weight:700;font-size:.84rem;margin:0 0 6px}
-.actuen-fr{background:#f6f7fb;border:1px solid var(--line);border-radius:10px;
-  padding:12px 14px;max-height:460px;overflow:auto;font-size:.9rem;line-height:1.5}
-.actuen-fr p{margin:0 0 10px}
-.actuen-grid label{display:block;margin-bottom:10px}
-/* Sous 900 px les deux colonnes se superposent : le français passe au-dessus
-   du champ anglais, ce qui reste l'ordre de lecture utile. */
-@media (max-width:900px){ .actuen-grid{grid-template-columns:1fr} }
-
 button.rt-sign{display:inline-flex;align-items:center;gap:4px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:0 10px;height:30px;font-size:.82rem;cursor:pointer;white-space:nowrap}
 button.rt-sign:hover{background:#eef3ff}
 .rt-suggest{background:#eef3ff;color:var(--blue-ink);border:1px solid var(--line);border-radius:7px;padding:0 12px;height:30px;font-size:.82rem;cursor:pointer;font-weight:600;white-space:nowrap}

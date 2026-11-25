@@ -9404,14 +9404,6 @@ const newsDate = (n) => n.published_at || n.created_at;
 function initNews() {
   $("news-new").addEventListener("click", () => openNews(null));
   $("news-close").addEventListener("click", closeNews);
-  // La fenêtre de traduction d'un article du site (db/249).
-  $("actuen-close").addEventListener("click", () => $("actuen-modal").classList.add("hidden"));
-  $("actuen-save").addEventListener("click", actuEnEnregistrer);
-  $("actuen-clear").addEventListener("click", () => {
-    $("actuen-t").value = ""; $("actuen-l").value = "";
-    $("actuen-b").value = ""; $("actuen-a").value = "";
-    $("actuen-etat").textContent = "Les quatre champs sont vidés. « Enregistrer » retirera l'article de /en/news.";
-  });
   $("news-form").addEventListener("submit", saveNews);
   $("n-delete").addEventListener("click", deleteNews);
   $("n-dup").addEventListener("click", duplicateNews);
@@ -9485,111 +9477,20 @@ let actusList = [];
 async function loadNewsActus() {
   const box = $("actu-list");
   box.innerHTML = '<p class="muted">Chargement…</p>';
-  // On lit aussi le français ET l'anglais : la fenêtre de traduction affiche
-  // les deux côte à côte, et la colonne « Anglais » doit savoir dire si
-  // l'article paraît déjà sur /en/news.
   const { data, error } = await sb.from("news_articles")
-    .select("id,slug,title,lede,body,cover_alt,category,status,published_on,portal_hidden,portal_until,title_en,lede_en,body_en,cover_alt_en")
+    .select("id,slug,title,category,status,published_on,portal_hidden,portal_until")
     .order("published_on", { ascending: false, nullsFirst: false });
   if (error) { box.innerHTML = `<p class="error">Lecture impossible : ${esc(error.message)}</p>`; return; }
   actusList = data || [];
   if (!actusList.length) { box.innerHTML = '<p class="muted">Aucune actualité sur le site pour l\'instant.</p>'; return; }
   box.innerHTML = `<table class="crm-table actu-table">
     <thead><tr><th>Article</th><th>Catégorie</th><th>Publié le</th>
-      <th>Visible dans l'app jusqu'au</th><th>Dans l'app</th><th>État</th><th>Anglais</th></tr></thead>
+      <th>Visible dans l'app jusqu'au</th><th>Dans l'app</th><th>État</th></tr></thead>
     <tbody>${actusList.map(actuRow).join("")}</tbody></table>`;
   box.querySelectorAll(".actu-until").forEach((i) =>
     i.addEventListener("change", () => saveActu(i.dataset.id, { portal_until: i.value || null })));
   box.querySelectorAll(".actu-show").forEach((c) =>
     c.addEventListener("change", () => saveActu(c.dataset.id, { portal_hidden: !c.checked })));
-  box.querySelectorAll(".actu-en").forEach((b) =>
-    b.addEventListener("click", () => actuEnOuvrir(b.dataset.id)));
-}
-
-// ---- La version anglaise d'un article (db/249) ---------------------------
-// Le site public existe en anglais sous /en. Les quatorze pages de programme
-// sont traduites une fois pour toutes dans un fichier ; les actualités, elles,
-// continuent d'arriver — d'où cette fenêtre.
-//
-// ⚠ Il n'existe PAS d'éditeur d'article dans la console : les articles du site
-// s'écrivent directement en base. On n'en fabrique donc pas un ici — on ajoute
-// seulement de quoi écrire la VERSION ANGLAISE, le français restant affiché à
-// côté en lecture seule. On traduit en regardant, pas de mémoire.
-//
-// ⚠ Un article ne paraît sur /en/news que si le titre ET le texte anglais sont
-// remplis (news_public, db/249). Un titre seul ne sort pas : la page serait
-// anglaise avec un contenu français.
-let actuEnId = null;
-
-// Le corps d'un article est un tableau de blocs ({t:"p", x:"…"}). Pour la
-// saisie on ne montre que les PARAGRAPHES, une ligne par paragraphe : demander
-// au secrétariat d'écrire du JSON serait lui demander de programmer.
-// ⚠ Conséquence assumée : un bloc image ou citation de la version française
-// n'a pas d'équivalent anglais ici. Il est signalé sous le champ plutôt que
-// perdu en silence.
-const actuBlocsEnTexte = (body) => (Array.isArray(body) ? body : [])
-  .filter((b) => b && b.t === "p" && b.x).map((b) => b.x).join("\n\n");
-const actuTexteEnBlocs = (txt) => String(txt || "").split(/\n\s*\n/)
-  .map((s) => s.trim()).filter(Boolean).map((x) => ({ t: "p", x }));
-
-function actuEnOuvrir(id) {
-  const a = actusList.find((x) => x.id === id); if (!a) return;
-  actuEnId = id;
-  $("actuen-title").textContent = "Version anglaise";
-  $("actuen-sub").textContent = a.title || a.slug;
-  const autres = (Array.isArray(a.body) ? a.body : []).filter((b) => b && b.t !== "p").length;
-  $("actuen-fr").innerHTML = `<p><b>${esc(a.title || "")}</b></p>`
-    + (a.lede ? `<p class="muted">${esc(a.lede)}</p>` : "")
-    + actuBlocsEnTexte(a.body).split(/\n\n/).map((p) => `<p>${esc(p)}</p>`).join("");
-  $("actuen-t").value = a.title_en || "";
-  $("actuen-l").value = a.lede_en || "";
-  $("actuen-b").value = actuBlocsEnTexte(a.body_en);
-  $("actuen-a").value = a.cover_alt_en || "";
-  $("actuen-etat").textContent = autres
-    ? `⚠ L'article français contient ${autres} bloc(s) qui ne sont pas du texte (image, citation…). Ils ne sont pas repris ici : la version anglaise n'aura que les paragraphes.`
-    : "";
-  $("actuen-modal").classList.remove("hidden");
-}
-
-async function actuEnEnregistrer() {
-  const a = actusList.find((x) => x.id === actuEnId); if (!a) return;
-  const t = $("actuen-t").value.trim();
-  const blocs = actuTexteEnBlocs($("actuen-b").value);
-  const et = $("actuen-etat");
-  // ⚠ Les deux ensemble, ou aucun des deux. Un titre sans texte ferait un
-  // article anglais vide ; un texte sans titre, un article sans nom. La base
-  // les refuserait à l'affichage — autant le dire ici, où on peut corriger.
-  if ((t && !blocs.length) || (!t && blocs.length)) {
-    et.textContent = "Il faut le titre ET le texte, ou ni l'un ni l'autre : un article à moitié traduit ne paraît pas.";
-    return;
-  }
-  et.textContent = "Enregistrement…";
-  const patch = {
-    title_en: t || null,
-    lede_en: $("actuen-l").value.trim() || null,
-    body_en: blocs.length ? blocs : null,
-    cover_alt_en: $("actuen-a").value.trim() || null,
-    updated_at: new Date().toISOString(),
-  };
-  const { error } = await sb.from("news_articles").update(patch).eq("id", actuEnId);
-  if (error) { et.textContent = "Enregistrement impossible : " + error.message; return; }
-  Object.assign(a, patch);
-  et.textContent = "";
-  $("actuen-modal").classList.add("hidden");
-  // La colonne « Anglais » de la ligne doit suivre tout de suite.
-  const tr = $("actu-list").querySelector(`tr[data-id="${actuEnId}"] .actu-en-cell`);
-  if (tr) tr.innerHTML = actuEnCell(a);
-  $("actu-list").querySelectorAll(".actu-en").forEach((b) =>
-    b.addEventListener("click", () => actuEnOuvrir(b.dataset.id)));
-}
-
-// Dit en un coup d'œil si l'article est lisible en anglais, et ouvre la
-// fenêtre dans les deux cas.
-function actuEnCell(a) {
-  const pret = !!(a.title_en && a.title_en.trim() && Array.isArray(a.body_en) && a.body_en.length);
-  return `<button type="button" class="ghost actu-en" data-id="${a.id}">`
-    + (pret ? '<span class="actu-on">✓ En ligne</span>' : '<span class="muted">À traduire</span>')
-    + "</button>";
 }
 
 function actuRow(a) {
@@ -9602,7 +9503,6 @@ function actuRow(a) {
     <td class="actu-chk"><label class="check"><input type="checkbox" class="actu-show" data-id="${a.id}"
           ${a.portal_hidden ? "" : "checked"} /></label></td>
     <td class="actu-etat">${actuEtat(a)}</td>
-    <td class="actu-en-cell">${actuEnCell(a)}</td>
   </tr>`;
 }
 
