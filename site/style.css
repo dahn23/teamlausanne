@@ -924,6 +924,33 @@ body[data-world="academie"] .btn-login{color:var(--fluo-ink)}
   border-radius:999px;font-weight:600;font-style:normal;text-transform:none;letter-spacing:0;
   font-size:.98rem;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
 .btn-contact:hover{background:var(--blue);color:#fff}
+
+/* ---- Sélecteur de langue FR | EN (25.11.2026) ---------------------------
+   Une pastille, pas un menu déroulant : il n'y a que deux langues, et un
+   menu pour deux choix demande deux gestes là où un suffit. La langue
+   COURANTE est pleine, l'autre est le lien — on voit d'un coup d'œil où on
+   est et où l'on peut aller, sans drapeau (un drapeau désigne un pays, pas
+   une langue : l'anglais n'est pas britannique ici, il est international).
+   ⚠ Les deux moitiés sont dans le MÊME <a> : la langue courante n'est pas
+   un lien vers la page qu'on regarde déjà. */
+.lang-switch{display:inline-flex;align-items:center;gap:0;margin-left:auto;
+  border:1.5px solid var(--blue);border-radius:999px;overflow:hidden;
+  text-decoration:none;font-weight:700;font-size:.8rem;letter-spacing:.06em;
+  line-height:1;white-space:nowrap;flex:0 0 auto}
+.lang-switch .lang-on{background:var(--blue);color:#fff;padding:8px 10px}
+.lang-switch .lang-off{color:var(--blue);background:#fff;padding:8px 10px;
+  transition:background-color .2s,color .2s}
+.lang-switch:hover .lang-off{background:var(--fluo);color:var(--fluo-ink)}
+.lang-switch:focus-visible{outline:3px solid var(--fluo);outline-offset:2px}
+/* La barre de séparation : un trait, pas un caractère « | » — un caractère
+   se fait lire à voix haute par les lecteurs d'écran au milieu du mot. */
+.lang-switch .lang-sep{width:1.5px;align-self:stretch;background:var(--blue)}
+/* Sur téléphone la barre d'entête est déjà serrée : la pastille reste, elle
+   ne fait que quatre signes, mais elle se resserre. */
+@media (max-width:640px){
+  .lang-switch{font-size:.74rem}
+  .lang-switch .lang-on,.lang-switch .lang-off{padding:7px 8px}
+}
 /* Entete : meme logique de remplissage, sans disque (ces boutons n'ont pas de pastille). */
 .btn-contact{transition:background-color .25s,color .25s,border-color .25s}
 .btn-contact:hover{background:var(--fluo);color:var(--fluo-ink);border-color:var(--fluo)}

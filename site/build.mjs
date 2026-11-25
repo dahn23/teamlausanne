@@ -23,11 +23,15 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTENU } from "./contenu.js";
+import { CONTENU_EN } from "./contenu-en.js";
 import {
   pagesDe, corpsHTML, titreDe, descriptionDe, esc, faqDe, naviguerHTML,
   articleHTML, listeActusHTML, descriptionArticle, enTeteDe,
 } from "./rendu-statique.js";
-import { SLUGS, urlDe } from "./adresses.js";
+import {
+  SLUGS, slugsDe, urlDe, cheminDe, PREFIXE, declarerPagesEN, versLangue,
+} from "./adresses.js";
+import { t, clesManquantes } from "./i18n.js";
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const SITE = "https://teamlausanne.ch";
@@ -68,14 +72,14 @@ function remplacer(html, motif, parQuoi, quoi) {
 // Les données structurées propres à une page : le fil d'Ariane, et pour une
 // filière le Course correspondant, rattaché à l'organisation déjà décrite
 // dans index.html par son @id.
-function jsonLdPage(cle, page, titre, description) {
-  const url = urlDe(cle);
+function jsonLdPage(cle, page, titre, description, lang = "fr") {
+  const url = urlDe(cle, lang);
   const graphe = [
     {
       "@type": "WebPage",
       "@id": url + "#page",
       url, name: titre, description,
-      inLanguage: "fr-CH",
+      inLanguage: lang === "en" ? "en" : "fr-CH",
       isPartOf: { "@id": SITE + "/#site" },
       about: { "@id": SITE + "/#academy" },
       primaryImageOfPage: IMAGE,
@@ -83,7 +87,7 @@ function jsonLdPage(cle, page, titre, description) {
     {
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Accueil", item: SITE + "/" },
+        { "@type": "ListItem", position: 1, name: t(lang, "nav_accueil"), item: urlDe("academie", lang) },
         { "@type": "ListItem", position: 2, name: titreCourt(cle, page), item: url },
       ],
     },
@@ -95,7 +99,7 @@ function jsonLdPage(cle, page, titre, description) {
       name: titreCourt(cle, page),
       description,
       url,
-      inLanguage: "fr",
+      inLanguage: lang === "en" ? "en" : "fr",
       provider: { "@id": SITE + "/#academy" },
       locationCreated: { "@id": SITE + "/#academy" },
     });
@@ -146,21 +150,86 @@ const EST_UNE_FILIERE = new Set([
 const titreCourt = (cle, page) => page.title || page.slogan || cle;
 
 // --- fabrication ----------------------------------------------------------
+// Deux langues dans la même exécution : le français à la racine, l'anglais
+// sous /en. La traduction avance page par page (voir l'entête de
+// contenu-en.js) — une page absente de CONTENU_EN n'a tout simplement pas de
+// version anglaise, et rien dans le site ne prétend le contraire.
 const pages = pagesDe(CONTENU);
-const ecrites = [];
+// Les marqueurs « @coachs » et les blocs partagés vivent dans contenu.js :
+// on résout les pages anglaises contre les deux fichiers réunis, le français
+// servant de réserve aux données communes (drapeaux, adresses externes).
+const pagesEnToutes = pagesDe({ ...CONTENU, ...CONTENU_EN });
+const CLES_EN = Object.keys(pagesEnToutes).filter(
+  (c) => (CONTENU_EN.worlds && c in CONTENU_EN.worlds) || (CONTENU_EN.details && c in CONTENU_EN.details));
+const pagesEn = Object.fromEntries(CLES_EN.map((c) => [c, pagesEnToutes[c]]));
+declarerPagesEN(CLES_EN);
 
-for (const [cle, page] of Object.entries(pages)) {
-  if (!(cle in SLUGS)) {
-    console.error(`build: pas d'adresse connue pour « ${cle} » — ajouter SLUGS dans rendu-statique.js.`);
+// Un libellé d'interface oublié, c'est un mot français au milieu d'une page
+// anglaise. On échoue ici plutôt que de le découvrir en ligne.
+const manquantes = clesManquantes("en");
+if (manquantes.length) {
+  console.error(`build: i18n.js — clés absentes en anglais : ${manquantes.join(", ")}`);
+  process.exit(1);
+}
+
+// Les deux versions d'une même page se déclarent l'une l'autre (hreflang).
+// Google a besoin des DEUX sens, et d'un x-default qui désigne la version
+// servie à qui n'a pas de préférence : le français, puisque le club est ici.
+function alternatesDe(cle) {
+  const liens = [`  <link rel="alternate" hreflang="fr" href="${urlDe(cle, "fr")}" />`];
+  if (CLES_EN.includes(cle)) liens.push(`  <link rel="alternate" hreflang="en" href="${urlDe(cle, "en")}" />`);
+  liens.push(`  <link rel="alternate" hreflang="x-default" href="${urlDe(cle, "fr")}" />`);
+  return liens.join("\n");
+}
+
+// Le sélecteur FR | EN de l'entête. Il vise LA MÊME page dans l'autre langue.
+// ⚠ Sur une page qui n'existe pas encore dans l'autre langue, on le RETIRE
+// complètement : une pastille qui renverrait vers l'accueil, ou vers la même
+// page, promet une traduction qui n'est pas là. Mieux vaut ne rien proposer
+// que proposer à faux — c'est la règle de toute cette traduction progressive.
+function selecteurLangue(html, cle, lang) {
+  const autre = lang === "en" ? "fr" : "en";
+  const cible = versLangue(cle, autre);
+  // ⚠ `\r?\n?` et non `\n` : le dépôt est cloné sous Windows, index.html a des
+  // fins de ligne CRLF, et une règle qui exige « \n » ne retire rien du tout —
+  // silencieusement. La pastille restait sur les pages non traduites.
+  if (!cible) return html.replace(/[ \t]*<a class="lang-switch"[\s\S]*?<\/a>\r?\n?/, "");
+  const courant = lang.toUpperCase(), vers = autre.toUpperCase();
+  return html.replace(/<a class="lang-switch"[\s\S]*?<\/a>/,
+    `<a class="lang-switch" id="lang-switch" href="${cible}" hreflang="${autre}" lang="${autre}"`
+    + ` title="${esc(t(lang, "basculer_langue"))}">`
+    + `<span class="lang-on">${courant}</span><span class="lang-sep" aria-hidden="true"></span>`
+    + `<span class="lang-off">${vers}</span></a>`);
+}
+
+const ecrites = [];
+const PLANS = [
+  { lang: "fr", pages, dossier: "" },
+  { lang: "en", pages: pagesEn, dossier: PREFIXE.en },
+];
+
+for (const plan of PLANS) {
+for (const [cle, page] of Object.entries(plan.pages)) {
+  const lang = plan.lang;
+  if (!(cle in slugsDe(lang))) {
+    console.error(`build: pas d'adresse connue pour « ${cle} » en ${lang} — ajouter SLUGS dans adresses.js.`);
     process.exit(1);
   }
-  const slug = SLUGS[cle];
-  const url = urlDe(cle);
+  const slug = slugsDe(lang)[cle];
+  const url = urlDe(cle, lang);
   const titre = titreDe(cle, page);
   const description = descriptionDe(cle, page);
-  const corps = corpsHTML(cle, page, pages);
+  const corps = corpsHTML(cle, page, plan.pages, lang);
 
   let html = gabarit;
+  // La langue du document : lue par les lecteurs d'écran, par les correcteurs
+  // orthographiques et par Google. Une page anglaise annoncée « fr » se fait
+  // lire avec l'accent français.
+  html = html.replace(/<html lang="[^"]*">/, `<html lang="${lang === "en" ? "en" : "fr"}">`);
+  html = html.replace(/<meta property="og:locale" content="[^"]*"\s*\/>/,
+    `<meta property="og:locale" content="${t(lang, "locale")}" />`);
+  html = html.replace("</head>", `${alternatesDe(cle)}\n</head>`);
+  html = selecteurLangue(html, cle, lang);
   html = remplacer(html, /<title>[\s\S]*?<\/title>/, `<title>${esc(titre)}</title>`, "<title>");
   html = remplacer(html, /<meta name="description" content="[^"]*"\s*\/>/,
     `<meta name="description" content="${esc(description)}" />`, 'meta description');
@@ -195,13 +264,13 @@ for (const [cle, page] of Object.entries(pages)) {
   // Les données structurées de la page viennent S'AJOUTER à celles du site
   // (organisation, lieu, programmes), qui restent dans le gabarit.
   html = html.replace("</head>",
-    `  <script type="application/ld+json">\n${jsonLdPage(cle, page, titre, description)}\n  </script>\n</head>`);
+    `  <script type="application/ld+json">\n${jsonLdPage(cle, page, titre, description, lang)}\n  </script>\n</head>`);
 
   // Le contenu, déjà rendu. index.js le remplacera au chargement ; d'ici là
   // c'est ce que lisent les robots, et ce que voit un visiteur dont le
   // JavaScript n'a pas encore fini de charger.
   html = html.replace(MARQUE,
-    `<main id="world-main" class="world-main" data-rendu-statique="${esc(cle)}">\n${corps}\n</main>`);
+    `<main id="world-main" class="world-main" data-rendu-statique="${esc(cle)}" data-langue="${esc(lang)}">\n${corps}\n</main>`);
 
   // « sport-etudes.html » et NON « sport-etudes/index.html ».
   //
@@ -215,8 +284,17 @@ for (const [cle, page] of Object.entries(pages)) {
   // Posé à plat, le fichier est servi à /sport-etudes, sans barre finale : les
   // chemins relatifs repartent donc de la racine, comme à l'accueil. En prime
   // l'adresse servie est exactement l'adresse canonique, sans redirection.
-  await writeFile(join(ICI, slug ? slug + ".html" : "index.html"), html, "utf8");
-  ecrites.push({ cle, adresse: "/" + slug, mots: corps.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length });
+  // Même règle pour l'anglais : en/kids-tennis.html, servi à /en/kids-tennis,
+  // sans barre finale. Le gabarit a déjà ses chemins en absolu (voir plus
+  // haut), et corpsHTML passe par absolutiser() : rien ne glisse d'un cran
+  // parce qu'on est descendu dans un dossier.
+  if (plan.dossier) await mkdir(join(ICI, plan.dossier), { recursive: true });
+  const fichier = plan.dossier
+    ? join(ICI, plan.dossier, (slug || "index") + ".html")
+    : join(ICI, slug ? slug + ".html" : "index.html");
+  await writeFile(fichier, html, "utf8");
+  ecrites.push({ cle, lang, adresse: cheminDe(cle, lang), mots: corps.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length });
+}
 }
 
 // --- les actualités -------------------------------------------------------
@@ -364,6 +442,12 @@ ${Object.keys(pages).map((cle) => `  <url>
     <lastmod>${aujourdhui}</lastmod>
     <changefreq>${cle === "academie" ? "weekly" : "monthly"}</changefreq>
     <priority>${cle === "academie" ? "1.0" : "0.8"}</priority>
+  </url>`).join("\n")}
+${CLES_EN.map((cle) => `  <url>
+    <loc>${urlDe(cle, "en")}</loc>
+    <lastmod>${aujourdhui}</lastmod>
+    <changefreq>${cle === "academie" ? "weekly" : "monthly"}</changefreq>
+    <priority>${cle === "academie" ? "0.9" : "0.7"}</priority>
   </url>`).join("\n")}
 ${actus ? `  <url>
     <loc>${SITE}/actualites</loc>

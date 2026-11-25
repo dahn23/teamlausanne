@@ -42,3 +42,6 @@ site/404.html
 # tools/planning-hebdo ecrit ici.
 exports/
 tools/planning-hebdo/seances.txt
+
+# Version anglaise, fabriquee au deploiement par site/build.mjs
+site/en/
