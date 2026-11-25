@@ -8017,6 +8017,7 @@ async function loadFinanceTab() {
     sb.from("gz_managers").select("tournament_id,person_id"),
     sb.from("gz_salaries").select("*").eq("taken", false).is("settled_at", null).order("created_at"),
     sb.from("gz_weekends").select("*").order("weekend_start", { ascending: false }),
+    loadGzBilan(),
   ]);
   gzWeekends = wks || [];
   const nameOf = (pid) => { const p = people.find((x) => x.id === pid); return p ? `${p.last_name} ${p.first_name}` : ""; };
@@ -8038,15 +8039,7 @@ function renderFinance() {
   const rows = gzFin.filter((r) => !sid || r.season_id === sid)
     .sort((a, b) => String(b.tournament_date || "").localeCompare(String(a.tournament_date || "")));
   const T = { presents: 0, twint: 0, cash: 0, carte: 0, total: 0, carteReel: 0, twintReel: 0, salaires: 0, net: 0 };
-  // « Réel » d'un tournoi = le versé VALIDÉ du week-end (frais déduits), réparti au prorata de ce que
-  // chaque tournoi a encaissé par ce moyen dans la console. Tant que rien n'est validé : montant console.
-  const reel = (r, kind, consoleAmt) => {
-    const w = gzWeekendOf(r.tournament_date);
-    if (!w || !w[kind + "_validated_at"] || w[kind + "_net"] == null) return null;
-    const wkTotal = Number(w[kind === "card" ? "carte" : "twint"]);
-    if (!(wkTotal > 0)) return consoleAmt > 0 ? Number(w[kind + "_net"]) : 0;
-    return round2(Number(w[kind + "_net"]) * consoleAmt / wkTotal);
-  };
+  const reel = gzFinReel;
   const cell = (real, cons) => real == null
     ? `<td class="gz-fin-prov" title="Pas encore validé : montant console">${cons}</td>`
     : `<td class="gz-fin-real" title="Versé validé, frais déduits">${real}</td>`;
@@ -8065,6 +8058,142 @@ function renderFinance() {
   $("gz-fin-totals").innerHTML =
     `<td colspan="2">TOTAL — ${rows.length} tournoi(s)</td><td>${T.presents}</td><td>${T.twint}</td><td>${round2(T.twintReel)}</td><td>${T.cash}</td><td>${T.carte}</td><td>${round2(T.carteReel)}</td><td>${T.salaires}</td><td>${round2(T.net)}</td><td></td>`;
   renderWeekends(sid);
+  renderGzBilan(sid);
+}
+
+// « Réel » d'un tournoi = le versé VALIDÉ du week-end (frais déduits), réparti au prorata de ce que
+// chaque tournoi a encaissé par ce moyen dans la console. Tant que rien n'est validé : null (→ montant console).
+function gzFinReel(r, kind, consoleAmt) {
+  const w = gzWeekendOf(r.tournament_date);
+  if (!w || !w[kind + "_validated_at"] || w[kind + "_net"] == null) return null;
+  const wkTotal = Number(w[kind === "card" ? "carte" : "twint"]);
+  if (!(wkTotal > 0)) return consoleAmt > 0 ? Number(w[kind + "_net"]) : 0;
+  return round2(Number(w[kind + "_net"]) * consoleAmt / wkTotal);
+}
+// Net d'un tournoi (même calcul que la colonne Total) + « prov » si une part n'est pas encore validée.
+function gzFinNetOf(r) {
+  const twint = Number(r.twint), cash = Number(r.cash), carte = Number(r.carte), sal = Number(r.salaires);
+  const cr = gzFinReel(r, "card", carte), tr = gzFinReel(r, "twint", twint);
+  const w = gzWeekendOf(r.tournament_date);
+  const prov = (carte > 0 && cr == null) || (twint > 0 && tr == null) || (cash !== 0 && !w?.cash_validated_at);
+  return { net: round2(cash + (cr ?? carte) + (tr ?? twint) - sal), prov };
+}
+
+// ---- Bilan par week-end + moyennes par catégorie (25.11.2026, demande Dan) ----
+// Swiss Tennis range une catégorie en plusieurs tableaux : T1 porte TOUTES les demandes de la
+// catégorie (17 inscrits, 4 confirmés), T2/T3 les sous-tableaux de 4, plus des consolantes
+// (rattrapage, les mêmes joueurs). D'où, par catégorie : demandes = joueurs distincts inscrits ;
+// acceptés = joueurs distincts confirmés hors consolante ; tableaux = épreuves hors consolante non annulées.
+let gzBilanT = [], gzBilanE = [];
+function gzCatOf(nom) {
+  const s = String(nom || "");
+  const m = s.match(/^\s*(MS|WS)\s+(\d+)\s*&\s*U/i);
+  if (m) return `${m[1].toUpperCase()} U${m[2]}`;
+  return s.replace(/\(.*?\)/g, " ").replace(/\bconsolante\b/ig, " ").replace(/\bTableau\s*\d+\b/ig, " ")
+    .replace(/\b[TG]\d+\b/g, " ").replace(/\s+/g, " ").trim() || "—";
+}
+const gzEstConsol = (nom) => /consol/i.test(String(nom || ""));
+const gzCatRang = (c) => { const m = c.match(/^(MS|WS) U(\d+)$/); return m ? (m[1] === "MS" ? 0 : 100) + (100 - +m[2]) : 500; };
+// Catégories d'un tournoi : { cat: { tab, annule, acc, dem } }
+function gzCatsOf(t) {
+  const cats = {};
+  const get = (c) => cats[c] || (cats[c] = { tab: 0, prop: 0, acc: new Set(), dem: new Set() });
+  for (const ep of t.epreuves || []) {
+    if (gzEstConsol(ep.name)) continue;
+    const c = get(gzCatOf(ep.name)); c.prop++;
+    if (!/annul/i.test(ep.status || "")) c.tab++;
+  }
+  for (const e of gzBilanE) {
+    if (e.tournament_id !== t.id) continue;
+    const c = get(gzCatOf(e.epreuve));
+    c.dem.add(e.participant_id);
+    if (e.confirmed && !gzEstConsol(e.epreuve)) c.acc.add(e.participant_id);
+  }
+  for (const k in cats) {
+    const c = cats[k];
+    c.annule = c.prop > 0 && c.tab === 0;
+    c.acc = c.annule ? 0 : c.acc.size; c.dem = c.dem.size;
+  }
+  return cats;
+}
+const gzCatKeys = (cats) => Object.keys(cats).sort((a, b) => gzCatRang(a) - gzCatRang(b) || a.localeCompare(b));
+const gzTermine = (t) => t.status === "Terminé" || !!t.closed_at;
+
+async function loadGzBilan() {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: ts } = await sb.from("gz_tournaments")
+    .select("id,name,tournament_date,status,closed_at,is_gamezone,epreuves,season_id").lt("tournament_date", today);
+  gzBilanT = (ts || []).filter(gzTermine);
+  const ids = gzBilanT.map((t) => t.id), out = [];
+  for (let i = 0; i < ids.length; i += 60) {
+    const part = ids.slice(i, i + 60);
+    const { data } = await fetchAllRows(() => sb.from("gz_entries")
+      .select("tournament_id,participant_id,epreuve,confirmed").in("tournament_id", part).order("id"));
+    out.push(...(data || []));
+  }
+  gzBilanE = out;
+}
+
+function renderGzBilan(sid) {
+  const b1 = $("gz-fin-bilan"), b2 = $("gz-fin-moy"); if (!b1 || !b2) return;
+  const ts = gzBilanT.filter((t) => !sid || t.season_id === sid)
+    .sort((a, b) => String(a.tournament_date).localeCompare(String(b.tournament_date)));
+  if (!ts.length) {
+    b1.innerHTML = b2.innerHTML = '<p class="muted" style="margin:0;font-size:.88rem">Aucun tournoi terminé sur cette saison.</p>';
+    return;
+  }
+  const JOURS = ["Dim.", "Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam."];
+  const jourOf = (iso) => new Date(iso + "T12:00:00").getDay();
+  const catsCache = new Map(ts.map((t) => [t.id, gzCatsOf(t)]));
+
+  // 1) Bilan par week-end (le plus récent en haut)
+  const wk = {};
+  for (const t of ts) (wk[gzSaturdayOf(t.tournament_date)] || (wk[gzSaturdayOf(t.tournament_date)] = [])).push(t);
+  b1.innerHTML = `<div class="table-wrap"><table class="crm-table"><thead><tr><th>Week-end</th><th>Net réel</th><th>Tournois et catégories</th></tr></thead><tbody>`
+    + Object.keys(wk).sort().reverse().map((sat) => {
+      let net = 0, prov = false, aFin = false;
+      for (const t of wk[sat]) {
+        const f = gzFin.find((x) => x.tournament_id === t.id);
+        if (f) { const n = gzFinNetOf(f); net += n.net; prov = prov || n.prov; aFin = true; }
+      }
+      const s = new Date(sat + "T12:00:00"), e = new Date(s); e.setDate(s.getDate() + 1);
+      const lbl = `${s.getDate()}–${e.getDate()}.${String(e.getMonth() + 1).padStart(2, "0")}.${e.getFullYear()}`;
+      const tours = wk[sat].map((t) => {
+        const cats = catsCache.get(t.id);
+        const lst = gzCatKeys(cats).map((k) => cats[k].annule
+          ? `<span style="color:#b42318">${esc(k)} annulé</span> <span class="muted">(${cats[k].dem})</span>`
+          : `${esc(k)} <b>${cats[k].acc}</b> <span class="muted">(${cats[k].dem})</span>`).join(" · ");
+        const nom = t.is_gamezone ? "GameZone" : esc(t.name || "Tournoi");
+        return `<div style="margin:2px 0"><b>${JOURS[jourOf(t.tournament_date)]} ${frDate(t.tournament_date).slice(0, 5)}</b> ${nom} — ${lst || '<span class="muted">aucune catégorie</span>'}</div>`;
+      }).join("");
+      const netTd = !aFin ? '<td class="muted">—</td>'
+        : `<td class="${prov ? "gz-fin-prov" : "gz-fin-real"}" style="white-space:nowrap" title="${prov ? "Pas encore entièrement validé : montants console" : "Versés validés"}"><b>${round2(net)}</b></td>`;
+      return `<tr><td style="white-space:nowrap">${lbl}</td>${netTd}<td style="font-size:.86rem">${tours}</td></tr>`;
+    }).join("") + `</tbody></table></div>`;
+
+  // 2) Moyennes par catégorie : samedi / dimanche / les deux (GameZone seulement)
+  const gz = ts.filter((t) => t.is_gamezone);
+  const col = (titre, liste) => {
+    const agg = {};
+    for (const t of liste) {
+      const cats = catsCache.get(t.id);
+      for (const k in cats) {
+        const a = agg[k] || (agg[k] = { n: 0, tab: 0, ann: 0, acc: 0, dem: 0 });
+        a.n++; a.tab += cats[k].tab; a.ann += cats[k].annule ? 1 : 0; a.acc += cats[k].acc; a.dem += cats[k].dem;
+      }
+    }
+    const moy = (x, n) => (n ? (Math.round(x / n * 10) / 10).toFixed(1) : "—");
+    const rows = gzCatKeys(agg).map((k) => { const a = agg[k];
+      return `<tr><td><b>${esc(k)}</b>${a.ann ? ` <span class="muted" style="font-size:.78rem" title="Catégorie annulée ${a.ann} fois sur ${a.n}">(${a.ann} annul.)</span>` : ""}</td>`
+        + `<td title="Tableaux joués, sur ${a.n} tournoi(s) où la catégorie était proposée">${a.tab}</td><td>${moy(a.acc, a.n)}</td><td>${moy(a.dem, a.n)}</td></tr>`; }).join("");
+    return `<div><h4 style="margin:0 0 6px">${titre} <span class="muted" style="font-weight:400;font-size:.84rem">— ${liste.length} tournoi(s)</span></h4>`
+      + (rows ? `<div class="table-wrap"><table class="crm-table"><thead><tr><th>Catégorie</th><th>Tableaux</th><th>Joueurs moy.</th><th>Inscrits moy.</th></tr></thead><tbody>${rows}</tbody></table></div>`
+        : '<p class="muted" style="margin:0;font-size:.86rem">Aucun.</p>') + `</div>`;
+  };
+  b2.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px">`
+    + col("Samedi", gz.filter((t) => jourOf(t.tournament_date) === 6))
+    + col("Dimanche", gz.filter((t) => jourOf(t.tournament_date) === 0))
+    + col("Samedi + dimanche", gz) + `</div>`;
 }
 
 // ---- Rapprochement par week-end (cash compté · mail SumUp · relevé Twint) ----

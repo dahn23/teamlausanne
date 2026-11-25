@@ -1633,6 +1633,18 @@ répondra qu'elle ne sait pas, et la question remontera dans
   lendemain, n'est pas compté deux fois) ; pour Twint on saisit seulement le
   **total versé** du week-end (« Saisir le versé ») et la console dit s'il
   colle à la commission habituelle (médiane des week-ends validés, ≈ 1,3 %).
+  Tout en bas du Financier, deux encadrés sur les tournois **terminés** de la
+  saison choisie. **« Bilan par week-end terminé »** : pour chaque week-end, le
+  **net réel** (cash + carte réel + Twint réel − salaires ; en gris tant que le
+  versé n'est pas validé) et, tournoi par tournoi, chaque catégorie (MS U14,
+  WS U12…) avec en gras les **joueurs acceptés** et entre parenthèses les
+  **demandes** ; une catégorie annulée est écrite en rouge. **« Moyennes par
+  catégorie »** : trois colonnes Samedi / Dimanche / Samedi + dimanche
+  (GameZone seulement) ; par catégorie, le nombre de **tableaux joués**
+  (consolantes non comptées), et en moyenne par tournoi où elle était
+  proposée les **joueurs acceptés** et les **inscrits**. Comment c'est compté :
+  sur Swiss Tennis, le tableau T1 porte toutes les demandes de la catégorie et
+  T2/T3 les sous-tableaux ; un joueur n'est compté qu'une fois par catégorie.
   Le bouton « Clôturer le tournoi » ne part qu'une fois, même sur un double
   appui. « Gérer le tournoi »,
   « Nommer responsable », « J'ai pris » / « Pas encore pris »,
