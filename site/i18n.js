@@ -363,6 +363,170 @@ export const CHROME_EN = [
    "Junior tournaments almost every weekend, over a single day, two matches guaranteed."],
 ];
 
+/* ===========================================================================
+ *  JS_EN — les libellés que index.js écrit À L'EXÉCUTION
+ * ---------------------------------------------------------------------------
+ * CHROME_EN traduit le gabarit une fois, au build. Mais index.js reprend la
+ * main au chargement et réécrit la page : filtres, carrousels, visionneuse,
+ * formulaires, messages d'erreur, page introuvable. Ces mots-là ne passent
+ * jamais par le gabarit.
+ *
+ * LA CLÉ EST LA PHRASE FRANÇAISE. On ne remplace pas les textes du code par
+ * des identifiants (« btn.more ») : le code reste lisible en français, qui
+ * est la langue du site, et une chaîne non traduite s'affiche en français
+ * plutôt que de disparaître. Un mot français sur une page anglaise se voit
+ * et se corrige ; un trou, non.
+ *
+ * ⚠ Les phrases à trou utilisent {x}, {n}, {total} — jamais la concaténation
+ * côté appelant : l'ordre des mots n'est pas le même d'une langue à l'autre.
+ * =========================================================================== */
+export const JS_EN = {
+  // --- navigation, filtres, carrousels ---
+  "Tout": "All",
+  "Filtrer par âge": "Filter by age",
+  "Filtrer par filière": "Filter by programme",
+  "Filtrer le calendrier": "Filter the calendar",
+  "Coachs précédents": "Previous coaches",
+  "Coachs suivants": "Next coaches",
+  "Athlètes précédents": "Previous athletes",
+  "Athlètes suivants": "Next athletes",
+  "Mois précédent": "Previous month",
+  "Mois suivant": "Next month",
+  "En savoir plus": "Find out more",
+  "Voir": "View",
+  "Fermer": "Close",
+  "Vidéo": "Video",
+
+  // --- fiches de coach ---
+  "Classement": "Ranking",
+  "Formations": "Qualifications",
+  "Parcours": "Background",
+  "au meilleur de sa carrière": "at their career best",
+  "En savoir plus sur {x}": "Find out more about {x}",
+  "Profil myTennis de {x}": "{x}'s myTennis profile",
+  "Lire la vidéo : {x}": "Play the video: {x}",
+  "{x} — Team Lausanne Academy, école de tennis à Lausanne":
+    "{x} — Team Lausanne Academy, tennis school in Lausanne",
+
+  // --- galeries et visionneuse ---
+  "Agrandir la photo {n} sur {total}": "Enlarge photo {n} of {total}",
+  "Photo précédente": "Previous photo",
+  "Photo suivante": "Next photo",
+  "Vainqueur GameZone": "GameZone winner",
+  "Les photos des vainqueurs apparaîtront ici.": "The winners' photos will appear here.",
+
+  // --- héros et contact ---
+  "Team Lausanne Academy — Tennis à Lausanne, du Kids Tennis au Pro":
+    "Team Lausanne Academy — Tennis in Lausanne, from Kids Tennis to Pro",
+  "Lausanne Open — ITF M25, 3ᵉ édition du 21 au 29 août 2027":
+    "Lausanne Open — ITF M25, 3rd edition, 21 to 29 August 2027",
+  "Nous écrire": "Get in touch",
+  "Une question sur l'Academy — écrivez-nous, nous répondons rapidement.":
+    "A question about the Academy — write to us, we answer quickly.",
+  "Une question sur le Lausanne Open, une demande de presse, un partenariat — écrivez-nous, nous répondons rapidement.":
+    "A question about the Lausanne Open, a press enquiry, a partnership — write to us, we answer quickly.",
+  "L’envoi a échoué. Écrivez-nous directement à info@teamlausanne.ch.":
+    "Sending failed. Please write to us directly at info@teamlausanne.ch.",
+  "L’envoi a échoué. Écrivez-nous à info@teamlausanne.ch.":
+    "Sending failed. Please write to us at info@teamlausanne.ch.",
+  "Merci, votre message est parti. Nous vous répondrons tout bientôt.":
+    "Thank you, your message is on its way. We will reply very soon.",
+
+  // --- page introuvable ---
+  "Page introuvable": "Page not found",
+
+  // --- calendrier ---
+  "Fermetures": "Closures",
+  "Stages": "Camps",
+  "Événements": "Events",
+  "Vacances scolaires": "School holidays",
+  "Jours fériés": "Public holidays",
+  "Fermeture": "Closure",
+  "Stage": "Camp",
+  "Événement": "Event",
+  "Jour férié": "Public holiday",
+  "En cours": "Under way",
+  "horaire à venir": "time to come",
+  "entrée(s)": "entry/entries",
+  "Du": "From",
+  "au": "to",
+
+  // --- stages ---
+  "Hiver": "Winter",
+  "Printemps": "Spring",
+  "Été": "Summer",
+  "Automne": "Autumn",
+  "Aucun stage ouvert aux inscriptions pour le moment. Reviens bientôt !":
+    "No camp is open for registration at the moment. Check back soon!",
+  "Choisis une catégorie.": "Choose a category.",
+  "À préciser": "To specify",
+  "Aucune": "None",
+  "Envoi…": "Sending…",
+  "Envoyer mon inscription": "Send my registration",
+  "Cet enfant est déjà inscrit à ce stage dans cette catégorie. Si c'est une erreur, écrivez-nous à info@teamlausanne.ch.":
+    "This child is already registered for this camp in this category. If that is a mistake, write to us at info@teamlausanne.ch.",
+  "Erreur : ": "Error: ",
+
+  // --- inscriptions et adhésions ---
+  "Demande d'inscription": "Registration request",
+  "Envoyer ma demande": "Send my request",
+  "Envoyer ma demande d'inscription": "Send my registration request",
+  "Envoyer ma demande d'adhésion": "Send my membership request",
+  "Adhésion — Club": "Membership — Club",
+  "Le secrétariat vous recontacte rapidement.": "The office will get back to you shortly.",
+  "Le responsable des cours adultes et privés vous recontactera rapidement pour en discuter. Rien n'est engagé à ce stade.":
+    "The head of adult and private lessons will get back to you shortly to talk it through. Nothing is committed at this stage.",
+  "Merci d'accepter le règlement du club.": "Please accept the club rules.",
+  "Téléphone : ": "Telephone: ",
+  "Date de naissance : ": "Date of birth: ",
+  "Adresse : ": "Address: ",
+  "Règlement du club : accepté ✔": "Club rules: accepted ✔",
+  "Entreprise / fonction : ": "Company / role: ",
+  "Formule : ": "Format: ",
+
+  // --- brochures et dossiers ---
+  "Recevoir la brochure": "Request the brochure",
+  "Télécharger le calendrier": "Download the calendar",
+  "PDF · 1 page · à imprimer en A4": "PDF · 1 page · prints on A4",
+  "Votre adresse sert uniquement a vous envoyer la brochure et a vous recontacter.":
+    "Your address is used only to send you the brochure and to get back to you.",
+  "Merci, la brochure part dans votre boîte mail. Nous vous recontactons bientôt.":
+    "Thank you — the brochure is on its way to your inbox. We will be in touch soon.",
+  "Merci ! Nous vous envoyons le dossier et reprenons contact avec vous rapidement pour en parler de vive voix.":
+    "Thank you! We are sending you the pack and will be in touch shortly to talk it through.",
+
+  // --- actualités ---
+  "Actualités": "News",
+  "Chaque semaine, un regard sur la vie de l'académie : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club.":
+    "Every week, a look at life at the academy: the camps, the tournaments, how our players are doing, and the people who make the club.",
+  "Chargement des actualités…": "Loading the news…",
+  "Pas encore d'article dans cette filière.": "No article in this programme yet.",
+  "← Toutes les actualités": "← All news",
+  "Toutes les actualités →": "All news →",
+  "Vie du club": "Club life",
+
+  // --- noms de filières employés comme libellés de filtre ---
+  // ⚠ Ce sont AUSSI des valeurs de données (news_articles.category) : on les
+  // traduit à l'AFFICHAGE seulement, jamais dans la liste elle-même, sinon
+  // la comparaison avec la catégorie venue de la base ne retrouve plus rien.
+  "Compétition": "Competition",
+  "Nos coachs": "Our coaches",
+  "Sport-études": "Sport Studies",
+
+  // --- la page introuvable ---
+  "Cette page n'existe pas": "This page does not exist",
+  "L'adresse": "The address",
+  "n'existe pas, ou n'existe plus.": "does not exist, or no longer exists.",
+  "Voici l'accueil — tout le reste est dans le menu, en haut.":
+    "Here is the home page — everything else is in the menu, at the top.",
+
+  // --- les mois, pour le calendrier et les dates d'articles ---
+  "janvier": "January", "février": "February", "mars": "March", "avril": "April",
+  "mai": "May", "juin": "June", "juillet": "July", "août": "August",
+  "septembre": "September", "octobre": "October", "novembre": "November",
+  "décembre": "December",
+};
+
 // Le libellé, avec repli sur le français plutôt que sur une chaîne vide : un
 // mot français sur une page anglaise se voit et se corrige ; un trou, non.
 export const t = (lang, cle) => (UI[lang] && UI[lang][cle]) || UI.fr[cle] || "";

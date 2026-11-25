@@ -96,6 +96,7 @@ import {
   langueDuChemin, cleDeSlugDe, declarerPagesEN, cheminDe as cheminPublic,
 } from "./adresses.js";
 import { CONTENU_EN } from "./contenu-en.js";
+import { JS_EN } from "./i18n.js";
 
 // ---------------------------------------------------------------------------
 //  La langue de la page, décidée UNE fois, au chargement
@@ -125,6 +126,25 @@ const SRC = LANG === "en"
       worlds: { ...CONTENU.worlds, ...(CONTENU_EN.worlds || {}) },
       details: { ...CONTENU.details, ...(CONTENU_EN.details || {}) } }
   : CONTENU;
+
+// ---------------------------------------------------------------------------
+//  T() — un libellé écrit par le script, dans la langue de la page
+// ---------------------------------------------------------------------------
+// La CLÉ est la phrase française : le code reste lisible, et une chaîne
+// oubliée s'affiche en français plutôt que de disparaître.
+//
+//   T("Fermer")                          → "Close"
+//   T("Agrandir la photo {n} sur {total}", { n: 2, total: 8 })
+//
+// ⚠ Les phrases à trou passent par {x} et JAMAIS par de la concaténation :
+// « Find out more about Mariano » et « En savoir plus sur Mariano » ne
+// placent pas le nom au même endroit, et un bout de phrase collé à un autre
+// ne se traduit pas.
+function T(fr, vars) {
+  let s = (LANG === "en" && JS_EN[fr]) || fr;
+  if (vars) for (const [k, v] of Object.entries(vars)) s = s.split("{" + k + "}").join(v);
+  return s;
+}
 
 const MENTION_IMAGE = CONTENU.mention_image;
 const COACHS = CONTENU.coachs;
@@ -269,7 +289,7 @@ function coachCarte(c) {
     <div class="cch-photo">
       <img src="${esc(asset(coachPhoto(c)))}" alt="${esc(c.nom)}" />
       <button type="button" class="cch-plus" aria-haspopup="dialog"
-        aria-label="En savoir plus sur ${esc(c.nom)}">En savoir plus${CCH_FLECHE}</button>
+        aria-label="${T("En savoir plus sur {x}", { x: esc(c.nom) })}">${T("En savoir plus")}${CCH_FLECHE}</button>
     </div>
   </article>`;
 }
@@ -284,7 +304,7 @@ function coachFiche(c) {
        aria-labelledby="cch-t-${esc(c.slug)}" hidden>
     <div class="cch-voile" data-cch-fermer></div>
     <div class="cch-panneau">
-      <button type="button" class="cch-fermer" data-cch-fermer aria-label="Fermer">
+      <button type="button" class="cch-fermer" data-cch-fermer aria-label="${T("Fermer")}">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <div class="cch-panneau-def">
@@ -294,9 +314,9 @@ function coachFiche(c) {
           <div class="cch-bio">
             ${c.bio.map((p) => `<p>${esc(p)}</p>`).join("")}
             ${c.citation ? `<blockquote class="cch-cite">${esc(c.citation)}</blockquote>` : ""}
-            ${coachBloc("Classement", c.classement)}
-            ${coachBloc("Formations", c.formations)}
-            ${coachBloc("Parcours", c.parcours)}
+            ${coachBloc(T("Classement"), c.classement)}
+            ${coachBloc(T("Formations"), c.formations)}
+            ${coachBloc(T("Parcours"), c.parcours)}
           </div>
         </div>
         <ul class="cch-fiche-tags">${c.tags.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
@@ -349,7 +369,7 @@ function sectionHTML(sec) {
             : sec.poster
             ? `<div class="split-media split-video split-film">
                  <button type="button" class="film-lance" data-film="${esc(sec.video)}"
-                   data-titre="${esc(sec.title)}" aria-label="Lire la vidéo : ${esc(sec.title)}">
+                   data-titre="${esc(sec.title)}" aria-label="${T("Lire la vidéo : {x}", { x: esc(sec.title) })}">
                    <img class="film-affiche" src="${esc(asset(sec.poster))}" alt="" loading="lazy" />
                    <span class="film-play" aria-hidden="true"></span>
                  </button>
@@ -380,7 +400,7 @@ function sectionHTML(sec) {
           ${sec.lead ? `<p class="actus-acc-lead">${esc(sec.lead)}</p>` : ""}
         </div>
         <div id="accueil-actus" class="actu-grille"></div>
-        <p class="actus-acc-tout"><a class="btn-cta" href="/actualites">Toutes les actualités →</a></p>
+        <p class="actus-acc-tout"><a class="btn-cta" href="/actualites">${T("Toutes les actualités →")}</a></p>
       </section>`;
 
     // Les programmes, tous visibles, groupes par intention. Remplace le
@@ -401,7 +421,7 @@ function sectionHTML(sec) {
           <div class="progmap-grille">${g.items.map((o) => `
             <a class="progcard" href="${esc(o.href)}">
               <span class="progcard-media">
-                <img src="${esc(asset(o.photo))}" alt="${esc(o.name)} — Team Lausanne Academy, école de tennis à Lausanne" loading="lazy" />
+                <img src="${esc(asset(o.photo))}" alt="${T("{x} — Team Lausanne Academy, école de tennis à Lausanne", { x: esc(o.name) })}" loading="lazy" />
                 ${o.age ? `<span class="progcard-age">${esc(o.age)}</span>` : ""}
               </span>
               <span class="progcard-txt">
@@ -564,7 +584,7 @@ function sectionHTML(sec) {
         ${sec.sub ? `<p class="wsec-sub">${esc(sec.sub)}</p>` : ""}
         <div class="pcard-grille">${SEEDS.map((s) => {
           const sommet = s.atp === s.best;
-          const rang = sommet ? "au meilleur de sa carrière" : `meilleur : ${s.best}ᵉ`;
+          const rang = sommet ? T("au meilleur de sa carrière") : `meilleur : ${s.best}ᵉ`;
           return `<button type="button" class="pcard" aria-expanded="false">
             <span class="pcard-photo">
               <img src="assets/players/${esc(s.photo)}" alt="${esc(s.nom)}" loading="lazy" />
@@ -635,7 +655,7 @@ function sectionHTML(sec) {
           <h2>${esc(sec.title)}</h2>
           ${sec.intro ? `<p class="perks-lead">${sec.intro}</p>` : ""}
         </div>
-        ${groupes.length > 1 ? `<div class="fm-filtres" role="group" aria-label="Filtrer par âge">
+        ${groupes.length > 1 ? `<div class="fm-filtres" role="group" aria-label=T("Filtrer par âge")>
           <button type="button" class="fm-filtre on" data-groupe="tous">Toutes</button>
           ${groupes.map((g) => `<button type="button" class="fm-filtre" data-groupe="${esc(g)}">${esc(nom(g))}</button>`).join("")}
         </div>` : ""}
@@ -788,7 +808,7 @@ function sectionHTML(sec) {
         <div class="gal" data-srcs="${esc(JSON.stringify(srcs))}">${photos.map((p, i) => `
           <button type="button" class="gphoto" data-i="${i}"
             style="background-image:url('${p.src}')${p.pos ? `;background-position:${p.pos}` : ""}"
-            aria-label="Agrandir la photo ${i + 1} sur ${photos.length}">
+            aria-label="${T("Agrandir la photo {n} sur {total}", { n: i + 1, total: photos.length })}">
             <span class="gphoto-loupe" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M11 8v6M8 11h6"/></svg>
@@ -836,7 +856,7 @@ function sectionHTML(sec) {
         </div></section>`;
 
     case "enroll":
-      return `<section class="wsec enroll-sec"><h2>${esc(sec.title || "Demande d'inscription")}</h2>
+      return `<section class="wsec enroll-sec"><h2>${esc(sec.title || T("Demande d'inscription"))}</h2>
         ${sec.lead ? `<p class="muted" style="max-width:640px;margin:-6px 0 22px">${esc(sec.lead)}</p>` : ""}
         <form id="enroll-form" class="cform" style="max-width:720px" data-filiere="${esc(sec.filiere)}">
           <div class="cf-row">
@@ -867,12 +887,12 @@ function sectionHTML(sec) {
           </div>
           <label class="cf-field"><span>Vos disponibilités</span><textarea id="en-dispo" rows="3" placeholder="ex. lundi et mercredi soir dès 18h, vendredi à midi…" required></textarea></label>
           <label class="cf-field"><span>Niveau / remarques</span><textarea id="en-comment" rows="2" placeholder="Niveau actuel, classement éventuel, langue souhaitée…"></textarea></label>` : `<label class="cf-field"><span>Commentaire</span><textarea id="en-comment" rows="3"></textarea></label>`}
-          <button type="submit" id="en-btn">${sec.adultes ? "Envoyer ma demande" : "Envoyer ma demande d'inscription"}</button>
+          <button type="submit" id="en-btn">${sec.adultes ? T("Envoyer ma demande") : T("Envoyer ma demande d'inscription")}</button>
           <p id="en-error" class="error" hidden></p>
         </form>
         <div id="en-done" class="hidden" style="max-width:720px;background:var(--accent-soft);border-radius:16px;padding:24px;text-align:center">
           <p style="font-size:1.15rem;font-weight:800;color:var(--blue-ink);margin:0 0 6px">Merci, votre demande est envoyée !</p>
-          <p class="muted" style="margin:0">${sec.adultes ? "Le responsable des cours adultes et privés vous recontactera rapidement pour en discuter. Rien n'est engagé à ce stade." : "Le secrétariat vous recontacte rapidement."}</p>
+          <p class="muted" style="margin:0">${sec.adultes ? T("Le responsable des cours adultes et privés vous recontactera rapidement pour en discuter. Rien n'est engagé à ce stade.") : T("Le secrétariat vous recontacte rapidement.")}</p>
         </div></section>`;
 
     // ---- Bandeau de mots-cles ----
@@ -896,9 +916,9 @@ function sectionHTML(sec) {
       // repousseraient tout le reste de la page vers le bas.
       const corps = sec.piste
         ? `<div class="cch-carrousel" data-carrousel data-auto="0">
-             <button type="button" class="carr-nav carr-prec" data-carr="-1" aria-label="Coachs précédents" hidden></button>
+             <button type="button" class="carr-nav carr-prec" data-carr="-1" aria-label=T("Coachs précédents") hidden></button>
              <div class="cch-piste" data-piste tabindex="0" role="group" aria-label="Nos coachs, liste défilante">${sec.items.map(coachCarte).join("")}</div>
-             <button type="button" class="carr-nav carr-suiv" data-carr="1" aria-label="Coachs suivants" hidden></button>
+             <button type="button" class="carr-nav carr-suiv" data-carr="1" aria-label=T("Coachs suivants") hidden></button>
            </div>`
         : `<div class="cch-grid">${sec.items.map(coachCarte).join("")}</div>`;
       return `<section class="wsec coaches">
@@ -948,7 +968,7 @@ function sectionHTML(sec) {
         </div>
         <div class="calp-suite" id="calp-suite"></div>
         <div class="calp-outils">
-          <div class="calp-filtres" id="calp-filtres" role="group" aria-label="Filtrer le calendrier"></div>
+          <div class="calp-filtres" id="calp-filtres" role="group" aria-label=T("Filtrer le calendrier")></div>
           ${(sec.pdfs || []).length ? `<div class="calp-dls">${sec.pdfs.map((p) =>
             `<a class="calp-dl" href="${esc(p.href)}" download>
                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M8 1v9m0 0 3.2-3.2M8 10 4.8 6.8M2 12.5v1A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5v-1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -981,7 +1001,7 @@ function sectionHTML(sec) {
             <span class="rdv-jour">${esc(d.jour)}</span>
             <span class="rdv-num">${esc(d.date)}</span>
             <span class="rdv-an">${esc(d.an)}</span>
-            <span class="rdv-h">${d.heures ? esc(d.heures) : "horaire à venir"}</span>
+            <span class="rdv-h">${d.heures ? esc(d.heures) : T("horaire à venir")}</span>
           </li>`).join("")}</ol>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}
         ${linkHTML(sec.link)}</section>`;
@@ -1034,7 +1054,7 @@ function sectionHTML(sec) {
            </video>`
         : sec.poster
         ? `<button type="button" class="film-lance" data-film="${esc(sec.video)}"
-             data-titre="${esc(sec.title)}" aria-label="Lire la vidéo : ${esc(sec.title)}">
+             data-titre="${esc(sec.title)}" aria-label="${T("Lire la vidéo : {x}", { x: esc(sec.title) })}">
              <img class="film-affiche" src="${esc(asset(sec.poster))}" alt="" loading="lazy" />
              <span class="film-play" aria-hidden="true"></span>
            </button>`
@@ -1069,7 +1089,7 @@ function sectionHTML(sec) {
           ${sec.lead ? `<p class="perks-lead">${esc(sec.lead)}</p>` : ""}
         </div>
         <div class="eleve-carrousel" data-carrousel>
-        <button type="button" class="carr-nav carr-prec" data-carr="-1" aria-label="Athlètes précédents" hidden></button>
+        <button type="button" class="carr-nav carr-prec" data-carr="-1" aria-label=T("Athlètes précédents") hidden></button>
         <div class="eleve-piste" data-piste tabindex="0" role="group" aria-label="Nos athlètes, liste défilante">${sec.items.map((e) => {
           // Identifiant de profil myTennis — celui qui figure dans l'adresse,
           // et NON le numero de licence : les deux sont differents, et une
@@ -1095,10 +1115,10 @@ function sectionHTML(sec) {
             <span class="eleve-plus" aria-hidden="true"></span>
           </button>
           ${lien ? `<a class="eleve-lien" href="${esc(lien)}" target="_blank" rel="noopener"
-             title="Profil myTennis de ${esc(e.nom)}">myTennis<span aria-hidden="true"> ↗</span></a>` : ""}
+             title="${T("Profil myTennis de {x}", { x: esc(e.nom) })}">myTennis<span aria-hidden="true"> ↗</span></a>` : ""}
         </article>`;
         }).join("")}</div>
-        <button type="button" class="carr-nav carr-suiv" data-carr="1" aria-label="Athlètes suivants" hidden></button>
+        <button type="button" class="carr-nav carr-suiv" data-carr="1" aria-label=T("Athlètes suivants") hidden></button>
         </div>
         ${sec.note ? `<p class="wsec-note">${esc(sec.note)}</p>` : ""}</section>`;
 
@@ -1123,8 +1143,8 @@ function sectionHTML(sec) {
               `<li>${esc(p)}</li>`).join("")}</ul>` : ""}
             <a class="btn-cta dlcal-btn" href="${esc(sec.href)}" download>
               <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false"><path d="M8 1v9m0 0 3.2-3.2M8 10 4.8 6.8M2 12.5v1A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5v-1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
-              ${esc(sec.bouton || "Télécharger le calendrier")}</a>
-            <p class="dlcal-meta">${esc(sec.meta || "PDF · 1 page · à imprimer en A4")}</p>
+              ${esc(sec.bouton || T("Télécharger le calendrier"))}</a>
+            <p class="dlcal-meta">${esc(sec.meta || T("PDF · 1 page · à imprimer en A4"))}</p>
           </div>
         </div></section>`;
     case "brochure":
@@ -1140,9 +1160,9 @@ function sectionHTML(sec) {
                 <input type="email" id="broch-email" required autocomplete="email"
                        placeholder="vous@exemple.ch" />
               </label>
-              <button type="submit" class="btn-cta" id="broch-btn">${esc(sec.bouton || "Recevoir la brochure")}</button>
+              <button type="submit" class="btn-cta" id="broch-btn">${esc(sec.bouton || T("Recevoir la brochure"))}</button>
               <p class="broch-msg" id="broch-msg" role="status"></p>
-              <p class="broch-rgpd">${esc(sec.mention || "Votre adresse sert uniquement a vous envoyer la brochure et a vous recontacter.")}</p>
+              <p class="broch-rgpd">${esc(sec.mention || T("Votre adresse sert uniquement a vous envoyer la brochure et a vous recontacter."))}</p>
             </form>
           </div>
           ${sec.apercu ? `<div class="broch-visuel"><img src="${esc(asset(sec.apercu))}" alt="" loading="lazy" /></div>` : ""}
@@ -1640,8 +1660,8 @@ const LO_ONLY = /lausanneopen/i.test(location.hostname);
 const DEFAULT_WORLD = LO_ONLY ? "tournoi" : "academie";
 if (LO_ONLY) document.body.classList.add("lo-only");
 const TITLES = {
-  academie: ["Team Lausanne Academy — Tennis à Lausanne, du Kids Tennis au Pro", "Team Lausanne Academy : le centre de formation tennis des Plaines-du-Loup à Lausanne. Kids Tennis, Club, Compétition, Performance, Sport-études, Pro U18, Pro, stages et tournois GameZone."],
-  tournoi: ["Lausanne Open — ITF M25, 3ᵉ édition du 21 au 29 août 2027", "Lausanne Open : le tournoi international de tennis masculin de Lausanne. ITF M25, 30 000 $ de dotation, entrée libre. 3ᵉ édition du 21 au 29 août 2027 aux Plaines-du-Loup."],
+  academie: [T("Team Lausanne Academy — Tennis à Lausanne, du Kids Tennis au Pro"), "Team Lausanne Academy : le centre de formation tennis des Plaines-du-Loup à Lausanne. Kids Tennis, Club, Compétition, Performance, Sport-études, Pro U18, Pro, stages et tournois GameZone."],
+  tournoi: [T("Lausanne Open — ITF M25, 3ᵉ édition du 21 au 29 août 2027"), "Lausanne Open : le tournoi international de tennis masculin de Lausanne. ITF M25, 30 000 $ de dotation, entrée libre. 3ᵉ édition du 21 au 29 août 2027 aux Plaines-du-Loup."],
 };
 // `page` : la fiche ou le monde affiché. S'il porte metaTitle / metaDescription, ce sont
 // ceux de la page servie par build.mjs — Google exécute ce script, et un titre réécrit
@@ -1656,8 +1676,8 @@ function setTitle(world, sub, page) {
   // Texte du formulaire « Nous écrire » selon le monde affiché
   const cs = document.querySelector("#contact-lo .wsec-sub");
   if (cs) cs.textContent = world === "tournoi"
-    ? "Une question sur le Lausanne Open, une demande de presse, un partenariat — écrivez-nous, nous répondons rapidement."
-    : "Une question sur l'Academy — écrivez-nous, nous répondons rapidement.";
+    ? T("Une question sur le Lausanne Open, une demande de presse, un partenariat — écrivez-nous, nous répondons rapidement.")
+    : T("Une question sur l'Academy — écrivez-nous, nous répondons rapidement.");
 }
 // Droit à l'image : les filières où des mineurs sont photographiés en cours,
 // en stage ou en tournoi. Sport-études, Pro U18 et Pro en sont absents — leur
@@ -1750,7 +1770,7 @@ function route() {
   majMentionImage(h);
   // Les actualités : la liste, et un article par son slug. Elles ne vivent pas
   // dans DETAILS puisqu'elles viennent de la base, pas de contenu.js.
-  if (!LO_ONLY && h === "actualites") { renderActus(); setTitle("academie", "Actualités"); }
+  if (!LO_ONLY && h === "actualites") { renderActus(); setTitle("academie", T("Actualités")); }
   else if (!LO_ONLY && h.startsWith("actu-")) { renderActu(h.slice(5)); }
   else if (DETAILS[h] && WORLDS[DETAILS[h].world] && (!LO_ONLY || DETAILS[h].world === "tournoi")) { renderDetail(h); setTitle(DETAILS[h].world, DETAILS[h].title, DETAILS[h]); }
   else if (WORLDS[h] && !LO_ONLY) { renderWorld(h); setTitle(h); }
@@ -1775,15 +1795,15 @@ function signalerIntrouvable() {
   const dejaLa = document.getElementById("introuvable");
   if (connue) { dejaLa?.remove(); return; }
   if (dejaLa) return;
-  setTitle("academie", "Page introuvable");
+  setTitle("academie", T("Page introuvable"));
   const main = $("world-main");
   if (!main) return;
   const bloc = document.createElement("section");
   bloc.id = "introuvable";
   bloc.className = "wsec introuvable";
-  bloc.innerHTML = `<p class="introuvable-t">Cette page n'existe pas</p>
-    <p class="introuvable-x">L'adresse <code>${esc(location.pathname)}</code> n'existe pas, ou n'existe plus.
-    Voici l'accueil — tout le reste est dans le menu, en haut.</p>`;
+  bloc.innerHTML = `<p class="introuvable-t">${T("Cette page n'existe pas")}</p>
+    <p class="introuvable-x">${T("L'adresse")} <code>${esc(location.pathname)}</code> ${T("n'existe pas, ou n'existe plus.")}
+    ${T("Voici l'accueil — tout le reste est dans le menu, en haut.")}</p>`;
   main.prepend(bloc);
 }
 
@@ -1816,7 +1836,7 @@ const calpAujourdHui = () => { const d = new Date(); return calpISO(d.getFullYea
 const calpJoursDansMois = (a, m) => new Date(a, m + 1, 0).getDate();
 const calpFrDate = (iso) => {
   const [a, m, j] = iso.split("-").map(Number);
-  return `${j} ${CALP_MOIS[m - 1]} ${a}`;
+  return `${j} ${T(CALP_MOIS[m - 1])} ${a}`;
 };
 // « Du 5 au 11 octobre 2026 » plutôt que de répéter le mois et l'année des deux
 // côtés ; on ne les redit que lorsqu'ils changent.
@@ -1825,7 +1845,7 @@ const calpPeriode = (d, f) => {
   const [a1, m1, j1] = d.split("-").map(Number);
   const [a2, m2] = f.split("-").map(Number);
   if (a1 === a2 && m1 === m2) return `Du ${j1} au ${calpFrDate(f)}`;
-  if (a1 === a2) return `Du ${j1} ${CALP_MOIS[m1 - 1]} au ${calpFrDate(f)}`;
+  if (a1 === a2) return `${T("Du")} ${j1} ${T(CALP_MOIS[m1 - 1])} ${T("au")} ${calpFrDate(f)}`;
   return `Du ${calpFrDate(d)} au ${calpFrDate(f)}`;
 };
 const calpLabel = (g) => (CALP_GENRES.find(([k]) => k === g) || [g, g])[1];
@@ -1917,11 +1937,11 @@ function calpFiltresRendre() {
   const aVenir = calpAVenir();
   const presents = new Set();
   for (const e of aVenir) for (const g of e.genres) presents.add(g);
-  const liste = [["tout", "Tout"]].concat(CALP_GENRES.filter(([g]) => presents.has(g)));
+  const liste = [["tout", T("Tout")]].concat(CALP_GENRES.filter(([g]) => presents.has(g)));
   box.innerHTML = liste.map(([g, lbl]) => {
     const n = g === "tout" ? aVenir.length : aVenir.filter((e) => e.genres.includes(g)).length;
     return `<button type="button" class="calp-pill calp-g-${g}${calpFiltre === g ? " on" : ""}"
-      data-calp-filtre="${esc(g)}" aria-pressed="${calpFiltre === g}">${esc(lbl)}
+      data-calp-filtre="${esc(g)}" aria-pressed="${calpFiltre === g}">${esc(T(lbl))}
       <span class="calp-n">${n}</span></button>`;
   }).join("");
 }
@@ -1939,7 +1959,7 @@ function calpSuite() {
       ? `Jusqu'au ${calpFrDate(e.fin)}`
       : calpPeriode(e.debut, e.fin);
     return `<article class="calp-next calp-g-${e.genre}">
-      <span class="calp-next-g">${encours ? "En cours" : esc(CALP_UN[e.genre] || e.genre)}</span>
+      <span class="calp-next-g">${encours ? T("En cours") : esc(T(CALP_UN[e.genre] || e.genre))}</span>
       <b class="calp-next-t">${esc(e.titre)}</b>
       <span class="calp-next-q">${esc(quand)}</span>
     </article>`;
@@ -2013,10 +2033,10 @@ function calpCalendrier() {
 
   box.innerHTML = `
     <div class="calm-barre">
-      <button type="button" class="calm-nav" data-calm="-1" aria-label="Mois précédent"
+      <button type="button" class="calm-nav" data-calm="-1" aria-label=T("Mois précédent")
         ${calpDecaler(calpMois, -1) < calpMin ? "disabled" : ""}>‹</button>
-      <strong class="calm-mois" aria-live="polite">${CALP_MOIS[mois]} ${an}</strong>
-      <button type="button" class="calm-nav" data-calm="1" aria-label="Mois suivant"
+      <strong class="calm-mois" aria-live="polite">${T(CALP_MOIS[mois])} ${an}</strong>
+      <button type="button" class="calm-nav" data-calm="1" aria-label=T("Mois suivant")
         ${calpDecaler(calpMois, 1) > calpMax ? "disabled" : ""}>›</button>
       ${calpMois === calpMin ? "" : '<button type="button" class="calm-auj" data-calm-auj>Aujourd\'hui</button>'}
     </div>
@@ -2049,7 +2069,7 @@ function calpCalendrier() {
             c.iso === auj ? " calm-auj" : ""}${c.iso === calpJourSel ? " calm-sel" : ""}${
             n ? "" : " calm-vide"}"
             style="grid-column:${i + 1}" data-calm-jour="${c.iso}"
-            ${n ? `aria-label="${esc(c.j + " " + CALP_MOIS[Number(c.iso.slice(5, 7)) - 1])} — ${n} entrée(s)"` : `aria-label="${c.j}"`}>
+            ${n ? `aria-label="${esc(c.j + " " + T(CALP_MOIS[Number(c.iso.slice(5, 7)) - 1]))} — ${n} ${T("entrée(s)")}"` : `aria-label="${c.j}"`}>
             <span class="calm-n">${c.j}</span></button>`;
         }).join("")}
         ${barres.map((b) => `<button type="button"
@@ -2062,7 +2082,7 @@ function calpCalendrier() {
     }).join("")}</div>
     <ul class="calm-legende">${CALP_GENRES.filter(([g]) =>
       retenus.some((e) => e.genres.includes(g))).map(([g, lbl]) =>
-      `<li class="calm-lg calp-g-${g}"><i aria-hidden="true"></i>${esc(lbl)}</li>`).join("")}</ul>`;
+      `<li class="calm-lg calp-g-${g}"><i aria-hidden="true"></i>${esc(T(lbl))}</li>`).join("")}</ul>`;
   calpJourRendre();
 }
 
@@ -2077,7 +2097,7 @@ function calpJourRendre() {
   box.hidden = false;
   box.innerHTML = `<div class="calm-jour-t">
       <b>${esc(calpFrDate(calpJourSel))}</b>
-      <button type="button" class="calm-fermer" data-calm-fermer aria-label="Fermer">×</button>
+      <button type="button" class="calm-fermer" data-calm-fermer aria-label="${T("Fermer")}">×</button>
     </div>
     <ul class="calp-items">${lot.map((e) => {
       const lien = e.genres.includes("stage")
@@ -2135,7 +2155,7 @@ function annonceAccueil() {
   el.id = "annonce"; el.className = "annonce"; el.setAttribute("role", "status");
   el.setAttribute("aria-labelledby", "annonce-t");
   el.innerHTML = `
-    <button type="button" class="annonce-x" aria-label="Fermer cette annonce">✕</button>
+    <button type="button" class="annonce-x" aria-label=T("Fermer cette annonce")>✕</button>
     <span class="annonce-oeil">${esc(ANNONCE.oeil)}</span>
     <h2 id="annonce-t" class="annonce-t">${esc(ANNONCE.titre)}</h2>
     <p class="annonce-corps">${esc(ANNONCE.corps)}</p>
@@ -2171,7 +2191,7 @@ const stgDays = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 8
 // (« le stage d'automne »), plus parlant qu'une date seule.
 const stgSaison = (d) => {
   const m = new Date(d).getMonth() + 1;
-  return m <= 2 || m === 12 ? "Hiver" : m <= 5 ? "Printemps" : m <= 8 ? "Été" : "Automne";
+  return m <= 2 || m === 12 ? T("Hiver") : m <= 5 ? T("Printemps") : m <= 8 ? T("Été") : T("Automne");
 };
 const stgEff = (p, d) => Math.round(Number(p) * Math.min(d, 5) / 5 * 100) / 100;
 
@@ -2195,7 +2215,7 @@ function stgOpenCats(s) {
 }
 function stgRenderList() {
   const L = $("stgp-list"); if (!L) return;
-  if (!stgSessions.length) { L.innerHTML = '<p class="muted">Aucun stage ouvert aux inscriptions pour le moment. Reviens bientôt !</p>'; return; }
+  if (!stgSessions.length) { L.innerHTML = `<p class="muted">${T("Aucun stage ouvert aux inscriptions pour le moment. Reviens bientôt !")}</p>`; return; }
   L.innerHTML = stgSessions.map((s) => {
     const d = stgDays(s.start_date, s.end_date);
     const oc = stgOpenCats(s);
@@ -2255,9 +2275,9 @@ $("stgp-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const err = $("stgp-error"); err.hidden = true;
   const c = stgCats[$("f-category").value] || {};
-  if (!c.id) { err.textContent = "Choisis une catégorie."; err.hidden = false; return; }
+  if (!c.id) { err.textContent = T("Choisis une catégorie."); err.hidden = false; return; }
   let meal = null;
-  if (c.meal) { const sel = document.querySelector('input[name="meal"]:checked')?.value; meal = sel === "autre" ? ($("f-meal-text").value.trim() || "À préciser") : "Aucune"; }
+  if (c.meal) { const sel = document.querySelector('input[name="meal"]:checked')?.value; meal = sel === "autre" ? ($("f-meal-text").value.trim() || T("À préciser")) : T("Aucune"); }
   const addon = Number(c.private_addon_price) || 0;
   const row = { stage_id: stgCurrent.id, category_id: c.id,
     first_name: $("f-first").value.trim(), last_name: $("f-last").value.trim(),
@@ -2266,15 +2286,15 @@ $("stgp-form").addEventListener("submit", async (e) => {
     ranking: c.ask_ranking ? ($("f-ranking").value.trim() || null) : null,
     private_addon: addon > 0 && $("f-addon").checked,
     comment: $("f-comment").value.trim() || null };
-  const btn = e.target.querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = "Envoi…";
+  const btn = e.target.querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = T("Envoi…");
   const { error } = await sb.from("stage_registrations").insert(row);
   if (error) {
     // 23505 = l'index unique stage_registrations_pas_deux_fois (db/142). Un
     // parent doit lire une phrase, pas le jargon de Postgres.
     err.textContent = error.code === "23505"
-      ? "Cet enfant est déjà inscrit à ce stage dans cette catégorie. Si c'est une erreur, écrivez-nous à info@teamlausanne.ch."
-      : "Erreur : " + error.message;
-    err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer mon inscription"; return;
+      ? T("Cet enfant est déjà inscrit à ce stage dans cette catégorie. Si c'est une erreur, écrivez-nous à info@teamlausanne.ch.")
+      : T("Erreur : ") + error.message;
+    err.hidden = false; btn.disabled = false; btn.textContent = T("Envoyer mon inscription"); return;
   }
   $("stgp-form").classList.add("hidden"); $("stgp-done").classList.remove("hidden");
 });
@@ -2304,10 +2324,10 @@ function gzOpenLightbox(urls, start) {
   let i = start;
   const ov = document.createElement("div");
   ov.className = "gz-lb";
-  ov.innerHTML = `<button type="button" class="gz-lb-x" aria-label="Fermer">✕</button>
-    <button type="button" class="gz-lb-nav gz-lb-prev" aria-label="Photo précédente">‹</button>
-    <img class="gz-lb-img" alt="Vainqueur GameZone" />
-    <button type="button" class="gz-lb-nav gz-lb-next" aria-label="Photo suivante">›</button>
+  ov.innerHTML = `<button type="button" class="gz-lb-x" aria-label="${T("Fermer")}">✕</button>
+    <button type="button" class="gz-lb-nav gz-lb-prev" aria-label=T("Photo précédente")>‹</button>
+    <img class="gz-lb-img" alt=T("Vainqueur GameZone") />
+    <button type="button" class="gz-lb-nav gz-lb-next" aria-label=T("Photo suivante")>›</button>
     <div class="gz-lb-count"></div>`;
   const img = ov.querySelector(".gz-lb-img"), count = ov.querySelector(".gz-lb-count");
   const show = (n) => { i = (n + urls.length) % urls.length; img.src = urls[i]; count.textContent = `${i + 1} / ${urls.length}`; };
@@ -2339,8 +2359,8 @@ async function loadGzPhotos(seasonId) {
   const wrap = $("gz-photos-carousel"); if (!wrap) return;
   const { data } = await sb.rpc("gz_public_winner_photos", { p_season: seasonId });
   const rows = data || [];
-  if (!rows.length) { wrap.innerHTML = `<p class="muted">Les photos des vainqueurs apparaîtront ici.</p>`; return; }
-  const imgs = rows.map((p) => `<div class="gzc-card"><img src="${esc(p.photo_url)}" loading="lazy" alt="Vainqueur GameZone"/></div>`).join("");
+  if (!rows.length) { wrap.innerHTML = `<p class="muted">${T("Les photos des vainqueurs apparaîtront ici.")}</p>`; return; }
+  const imgs = rows.map((p) => `<div class="gzc-card"><img src="${esc(p.photo_url)}" loading="lazy" alt=T("Vainqueur GameZone")/></div>`).join("");
   // Peu de photos → statique (pas de duplication ni d'animation) ; sinon défilement animé.
   if (rows.length < 5) wrap.innerHTML = `<div class="gzc-track gzc-static">${imgs}</div>`;
   else wrap.innerHTML = `<div class="gzc-track">${imgs}${imgs}</div>`;
@@ -2551,25 +2571,25 @@ $("plan-modal").addEventListener("click", (e) => { if (e.target === $("plan-moda
 document.addEventListener("submit", async (e) => {
   if (e.target.id !== "member-form") return;
   e.preventDefault();
-  if (!$("m-consent").checked) { const er = $("m-error"); er.textContent = "Merci d'accepter le règlement du club."; er.hidden = false; return; }
+  if (!$("m-consent").checked) { const er = $("m-error"); er.textContent = T("Merci d'accepter le règlement du club."); er.hidden = false; return; }
   const err = $("m-error"); err.hidden = true;
-  const btn = $("m-btn"); btn.disabled = true; btn.textContent = "Envoi…";
+  const btn = $("m-btn"); btn.disabled = true; btn.textContent = T("Envoi…");
   const v = (id) => $(id).value.trim();
   const msg = [
-    "Téléphone : " + v("m-phone"),
-    "Date de naissance : " + v("m-birth"),
-    "Adresse : " + v("m-address") + ", " + v("m-npa") + " " + v("m-city"),
-    "Règlement du club : accepté ✔",
+    T("Téléphone : ") + v("m-phone"),
+    T("Date de naissance : ") + v("m-birth"),
+    T("Adresse : ") + v("m-address") + ", " + v("m-npa") + " " + v("m-city"),
+    T("Règlement du club : accepté ✔"),
     v("m-message") ? "\nMessage : " + v("m-message") : "",
   ].join("\n");
   const { error } = await sb.from("contact_messages").insert({
-    source: "Adhésion — Club",
+    source: T("Adhésion — Club"),
     name: v("m-first") + " " + v("m-last"),
     email: v("m-email"),
     message: msg,
   });
-  btn.disabled = false; btn.textContent = "Envoyer ma demande d'adhésion";
-  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
+  btn.disabled = false; btn.textContent = T("Envoyer ma demande d'adhésion");
+  if (error) { err.textContent = T("Erreur : ") + error.message; err.hidden = false; return; }
   $("member-form").classList.add("hidden");
   $("m-done").classList.remove("hidden");
 });
@@ -2579,9 +2599,9 @@ document.addEventListener("submit", async (e) => {
   if (e.target.id !== "biz-form") return;
   e.preventDefault();
   const err = $("biz-error"); err.hidden = true;
-  const btn = $("biz-btn"); btn.disabled = true; btn.textContent = "Envoi…";
+  const btn = $("biz-btn"); btn.disabled = true; btn.textContent = T("Envoi…");
   const parts = [];
-  if ($("biz-company").value.trim()) parts.push("Entreprise / fonction : " + $("biz-company").value.trim());
+  if ($("biz-company").value.trim()) parts.push(T("Entreprise / fonction : ") + $("biz-company").value.trim());
   if ($("biz-phone").value.trim()) parts.push("Téléphone : " + $("biz-phone").value.trim());
   const m = $("biz-message").value.trim();
   if (m) { if (parts.length) parts.push(""); parts.push(m); }
@@ -2591,8 +2611,8 @@ document.addEventListener("submit", async (e) => {
     email: $("biz-email").value.trim(),
     message: parts.join("\n") || null,
   });
-  btn.disabled = false; btn.textContent = "Envoyer ma demande";
-  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
+  btn.disabled = false; btn.textContent = T("Envoyer ma demande");
+  if (error) { err.textContent = T("Erreur : ") + error.message; err.hidden = false; return; }
   $("biz-form").classList.add("hidden");
   $("biz-done").classList.remove("hidden");
 });
@@ -2602,7 +2622,7 @@ document.addEventListener("submit", async (e) => {
   if (e.target.id !== "enroll-form") return;
   e.preventDefault();
   const err = $("en-error"); err.hidden = true;
-  const btn = $("en-btn"); btn.disabled = true; btn.textContent = "Envoi…";
+  const btn = $("en-btn"); btn.disabled = true; btn.textContent = T("Envoi…");
   const v = (id) => ($(id) ? $(id).value.trim() : "");
   // Formulaire adultes : formule + fréquence + disponibilités rangées dans le commentaire (même table, tag « adultes »).
   const adult = [v("en-formule") ? "Formule : " + v("en-formule") : "", v("en-freq") ? "Fréquence : " + v("en-freq") : "", v("en-dispo") ? "Disponibilités : " + v("en-dispo") : ""].filter(Boolean);
@@ -2616,8 +2636,8 @@ document.addEventListener("submit", async (e) => {
     comment,
   };
   const { error } = await sb.from("enrollment_requests").insert(row);
-  btn.disabled = false; btn.textContent = e.target.dataset.filiere === "adultes" ? "Envoyer ma demande" : "Envoyer ma demande d'inscription";
-  if (error) { err.textContent = "Erreur : " + error.message; err.hidden = false; return; }
+  btn.disabled = false; btn.textContent = e.target.dataset.filiere === "adultes" ? T("Envoyer ma demande") : T("Envoyer ma demande d'inscription");
+  if (error) { err.textContent = T("Erreur : ") + error.message; err.hidden = false; return; }
   $("enroll-form").classList.add("hidden");
   $("en-done").classList.remove("hidden");
 });
@@ -2811,7 +2831,7 @@ document.addEventListener("submit", async (e) => {
   const lu = (n) => (f.querySelector(`[name="${n}"]`)?.value || "").trim();
   const nom = lu("nom"), email = lu("email"), texte = lu("message");
   if (!nom || !email || !texte) return;
-  btn.disabled = true; msg.className = "lo-msg"; msg.textContent = "Envoi…";
+  btn.disabled = true; msg.className = "lo-msg"; msg.textContent = T("Envoi…");
 
   const { error } = await sb.from("contact_messages").insert({
     source: "Nous écrire",
@@ -2822,7 +2842,7 @@ document.addEventListener("submit", async (e) => {
 
   if (error) {
     msg.className = "lo-msg ko";
-    msg.textContent = "L’envoi a échoué. Écrivez-nous directement à info@teamlausanne.ch.";
+    msg.textContent = T("L’envoi a échoué. Écrivez-nous directement à info@teamlausanne.ch.");
     btn.disabled = false;
     return;
   }
@@ -2835,7 +2855,7 @@ document.addEventListener("submit", async (e) => {
 
   f.reset();
   msg.className = "lo-msg ok";
-  msg.textContent = "Merci, votre message est parti. Nous vous répondrons tout bientôt.";
+  msg.textContent = T("Merci, votre message est parti. Nous vous répondrons tout bientôt.");
   btn.disabled = false;
 });
 
@@ -2850,7 +2870,7 @@ document.addEventListener("click", (e) => {
   const f = document.createElement("iframe");
   f.className = "film-media";
   f.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(b.dataset.film)}?${FILM_PARAMS}`;
-  f.title = b.dataset.titre || "Vidéo";
+  f.title = b.dataset.titre || T("Vidéo");
   f.allow = "autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
   f.allowFullscreen = true;
   f.setAttribute("frameborder", "0");
@@ -3063,7 +3083,7 @@ document.addEventListener("submit", async (e) => {
   // secretariat, qui repond en personne. C'est le cas des filieres Pro, ou le
   // tarif se discute plutot qu'il ne s'affiche.
   const auto = !!doc;
-  btn.disabled = true; msg.className = "broch-msg"; msg.textContent = "Envoi…";
+  btn.disabled = true; msg.className = "broch-msg"; msg.textContent = T("Envoi…");
 
   const { error } = await sb.from("contact_messages").insert({
     source: `Brochure ${sujet}`,
@@ -3075,7 +3095,7 @@ document.addEventListener("submit", async (e) => {
   });
   if (error) {
     msg.className = "broch-msg ko";
-    msg.textContent = "L’envoi a échoué. Écrivez-nous à info@teamlausanne.ch.";
+    msg.textContent = T("L’envoi a échoué. Écrivez-nous à info@teamlausanne.ch.");
     btn.disabled = false;
     return;
   }
@@ -3096,9 +3116,9 @@ document.addEventListener("submit", async (e) => {
   f.reset();
   msg.className = "broch-msg ok";
   msg.innerHTML = !auto
-    ? "Merci ! Nous vous envoyons le dossier et reprenons contact avec vous rapidement pour en parler de vive voix."
+    ? T("Merci ! Nous vous envoyons le dossier et reprenons contact avec vous rapidement pour en parler de vive voix.")
     : parti
-    ? "Merci, la brochure part dans votre boîte mail. Nous vous recontactons bientôt."
+    ? T("Merci, la brochure part dans votre boîte mail. Nous vous recontactons bientôt.")
     : `Merci ! Voici la brochure : <a href="${esc(doc)}" target="_blank" rel="noopener">la télécharger</a>. Nous vous recontactons bientôt.`;
   btn.disabled = false;
 });
@@ -3183,11 +3203,11 @@ function actuBloc(b) {
     // clics interne prend le relais, et on reste sans rechargement.
     if (/^#[\w-]+$/.test(b.x)) {
       const chemin = cheminDe(b.x.slice(1));
-      return `<p class="actu-lien"><a class="btn-cta" href="${esc(chemin || b.x)}">${esc(b.label || "En savoir plus")} →</a></p>`;
+      return `<p class="actu-lien"><a class="btn-cta" href="${esc(chemin || b.x)}">${esc(b.label || T("En savoir plus"))} →</a></p>`;
     }
     if (/^https?:\/\//i.test(b.x))
       return `<p class="actu-lien"><a class="btn-cta" href="${esc(b.x)}"
-        target="_blank" rel="noopener">${esc(b.label || "Voir")} ↗</a></p>`;
+        target="_blank" rel="noopener">${esc(b.label || T("Voir"))} ↗</a></p>`;
     return "";
   }
   return "";   // type inconnu : on ignore, on ne casse pas la page
@@ -3211,10 +3231,10 @@ async function renderActus() {
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === "academie"));
   const w = WORLDS.academie;
   paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: "assets/photos/club-2026.jpg",
-    tag: w.tag, slogan: "Actualités", sloganEntier: true,
-    desc: "Chaque semaine, un regard sur la vie de l'académie : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club.",
+    tag: w.tag, slogan: T("Actualités"), sloganEntier: true,
+    desc: T("Chaque semaine, un regard sur la vie de l'académie : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club."),
     ctaHTML: `<button class="btn-cta ghost" data-back="academie">← Retour ${esc(w.retour)}</button>` });
-  $("world-main").innerHTML = `<section class="wsec"><p class="muted">Chargement des actualités…</p></section>`;
+  $("world-main").innerHTML = `<section class="wsec"><p class="muted">${T("Chargement des actualités…")}</p></section>`;
 
   const tous = await actusCharger();
   if (!tous.length) {
@@ -3233,12 +3253,12 @@ async function renderActus() {
 
   $("world-main").innerHTML = `
     <section class="wsec actu-sec">
-      <div class="actu-filtres" role="group" aria-label="Filtrer par filière">
+      <div class="actu-filtres" role="group" aria-label=T("Filtrer par filière")>
         ${presentes.map((c) => `<button type="button" class="chip-f${c === actuFiltre ? " on" : ""}"
-          data-actu-f="${esc(c)}" aria-pressed="${c === actuFiltre}">${esc(c)}</button>`).join("")}
+          data-actu-f="${esc(c)}" aria-pressed="${c === actuFiltre}">${esc(T(c))}</button>`).join("")}
       </div>
       <p class="actu-compte">${vus.length} article${vus.length > 1 ? "s" : ""}${
-        actuFiltre === "Tout" ? "" : " · " + esc(actuFiltre)}</p>
+        actuFiltre === "Tout" ? "" : " · " + esc(T(actuFiltre))}</p>
 
       ${une ? `<a class="actu-une" href="/actualites/${esc(une.slug)}">
         ${une.cover_url ? `<img src="${esc(asset(une.cover_url))}" alt="${esc(une.cover_alt || "")}" />` : ""}
@@ -3252,7 +3272,7 @@ async function renderActus() {
         </div></a>` : ""}
 
       ${reste.length ? `<div class="actu-grille">${reste.map(actuCarte).join("")}</div>` : ""}
-      ${!vus.length ? `<p class="actu-vide">Pas encore d'article dans cette filière.</p>` : ""}
+      ${!vus.length ? `<p class="actu-vide">${T("Pas encore d'article dans cette filière.")}</p>` : ""}
     </section>`;
 
   $("world-main").querySelectorAll("[data-actu-f]").forEach((b) =>
@@ -3270,7 +3290,7 @@ async function renderActu(slug) {
   const w = WORLDS.academie;
   paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: a.cover_url || "assets/photos/club-2026.jpg",
     tag: a.category, slogan: a.title, sloganEntier: true, titreArticle: true, desc: a.lede || "",
-    ctaHTML: `<a class="btn-cta ghost" href="/actualites">← Toutes les actualités</a>` });
+    ctaHTML: `<a class="btn-cta ghost" href="/actualites">${T("← Toutes les actualités")}</a>` });
 
   const corps = Array.isArray(a.body) ? a.body.map(actuBloc).join("") : "";
   const autres = tous.filter((x) => x.slug !== a.slug).slice(0, 3);
