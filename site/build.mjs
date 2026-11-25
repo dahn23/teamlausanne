@@ -31,7 +31,7 @@ import {
 import {
   SLUGS, slugsDe, urlDe, cheminDe, PREFIXE, declarerPagesEN, versLangue,
 } from "./adresses.js";
-import { t, clesManquantes } from "./i18n.js";
+import { t, clesManquantes, CHROME_EN } from "./i18n.js";
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const SITE = "https://teamlausanne.ch";
@@ -202,6 +202,28 @@ function selecteurLangue(html, cle, lang) {
     + `<span class="lang-off">${vers}</span></a>`);
 }
 
+// Le gabarit traduit, fabriqué UNE fois : les quatorze pages anglaises
+// partent toutes de lui.
+// ⚠ Un fragment qui ne correspond plus arrête le build en le nommant. Sans
+// ça, retoucher le menu français laisserait le menu anglais en français, et
+// personne ne le verrait avant un visiteur — exactement le genre de panne
+// silencieuse que ce fichier combat partout ailleurs.
+function gabaritAnglais(html) {
+  const perdus = [];
+  for (const [fr, en] of CHROME_EN) {
+    if (!html.includes(fr)) { perdus.push(fr); continue; }
+    html = html.split(fr).join(en);
+  }
+  if (perdus.length) {
+    console.error("build: i18n.js — ces fragments n'existent plus dans index.html :");
+    for (const p of perdus) console.error("  · " + p.slice(0, 90));
+    console.error("build: le menu ou le pied de page a changé côté français. Mettre CHROME_EN à jour.");
+    process.exit(1);
+  }
+  return html;
+}
+const gabaritEN = gabaritAnglais(gabarit);
+
 const ecrites = [];
 const PLANS = [
   { lang: "fr", pages, dossier: "" },
@@ -221,7 +243,7 @@ for (const [cle, page] of Object.entries(plan.pages)) {
   const description = descriptionDe(cle, page);
   const corps = corpsHTML(cle, page, plan.pages, lang);
 
-  let html = gabarit;
+  let html = lang === "en" ? gabaritEN : gabarit;
   // La langue du document : lue par les lecteurs d'écran, par les correcteurs
   // orthographiques et par Google. Une page anglaise annoncée « fr » se fait
   // lire avec l'accent français.
