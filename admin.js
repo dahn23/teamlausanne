@@ -21163,8 +21163,9 @@ let mailcLastSig = "";     // contenu au dernier enregistrement → détecte les
 /* ---- Signature des mails (24.11.2026) ------------------------------------
    Un pied de mail par boîte. Les quatre boîtes partagées sont faites :
    Team Lausanne Academy, Lausanne Open, GameZone (= tournoi@) et
-   TC Lausanne-Sports (= admin@lstennis.ch). Seule raphael@ reste nue, c'est
-   une boîte privée. ⚠ Une boîte sans entrée ici ne reçoit RIEN :
+   TC Lausanne-Sports (= admin@lstennis.ch). raphael@ n'a pas la sienne mais
+   CHOISIT parmi les quatre, cf. MAIL_SIGN_CHOIX plus bas.
+   ⚠ Une boîte sans entrée ici ni là ne reçoit RIEN :
    mailSignatureHtml rend "" et mailPoserSignature retire au passage la
    signature de la boîte précédente. C'est voulu — une boîte non traitée vaut
    mieux qu'une boîte mal signée.
@@ -21285,6 +21286,38 @@ function mailPoserSignature(ed, adresse) {
 // l'ouverture, donc « l'éditeur est-il vide ? » répondrait toujours non — et
 // « Écris un message » ne protégerait plus rien, et ouvrir un mail sans y
 // répondre enregistrerait un brouillon.
+/* ---- Boîtes qui CHOISISSENT leur signature ------------------------------
+   Une boîte partagée porte sa marque : la signature s'y pose toute seule.
+   Une boîte personnelle, non — depuis raphael@ on écrit tantôt pour
+   l'académie, tantôt pour le tournoi, tantôt à titre privé. On y choisit
+   donc à chaque message, et rien ne se pose d'office : une signature
+   automatique finirait par coller le blason de l'académie au bas d'un
+   message personnel, et ça ne se rattrape pas après l'envoi.
+   ⚠ La clé est l'adresse de la boîte DONT on emprunte la signature, pas
+   celle qui écrit : le pied affiche donc info@teamlausanne.ch même envoyé
+   depuis raphael@. C'est voulu — on signe une marque, pas une personne. */
+const MAIL_SIGN_CHOIX = {
+  "raphael@teamlausanne.ch": ["info@teamlausanne.ch", "info@lausanneopen.ch", "tournoi@teamlausanne.ch", "admin@lstennis.ch"],
+};
+function mailSignOptions(adresse) {
+  const a = String(adresse || "").trim().toLowerCase();
+  if (MAIL_SIGNATURES[a]) return [a];                       // sa propre signature, pas de question
+  return (MAIL_SIGN_CHOIX[a] || []).filter((k) => MAIL_SIGNATURES[k]);
+}
+// Le dernier choix revient en tête de liste la fois suivante : on écrit
+// rarement pour quatre marques dans la même journée. ⚠ localStorage peut
+// lever (navigation privée, données de site bloquées) — jamais sans try.
+const MAIL_SIGN_MEM = "tl-sign-dernier";
+function mailSignDernier(adresse) {
+  try { return JSON.parse(localStorage.getItem(MAIL_SIGN_MEM) || "{}")[adresse] || ""; } catch (_) { return ""; }
+}
+function mailSignRetenir(adresse, cle) {
+  try {
+    const m = JSON.parse(localStorage.getItem(MAIL_SIGN_MEM) || "{}");
+    m[adresse] = cle;
+    localStorage.setItem(MAIL_SIGN_MEM, JSON.stringify(m));
+  } catch (_) { /* tant pis, on redemandera */ }
+}
 // Bouton « ✍ Signature » des deux barres d'outils (nouveau message et cadre de
 // réponse). La signature est posée d'office à l'ouverture d'un cadre VIDE ;
 // elle manque donc dans trois cas parfaitement normaux, et le bouton est là
@@ -21293,13 +21326,22 @@ function mailPoserSignature(ed, adresse) {
 // qu'on a vidé. Plus, bien sûr, quand on l'a effacée par erreur.
 // ⚠ Le curseur est replacé AU DÉBUT : la signature est en bas, et sans ça on
 // se met à écrire dessous.
-function mailSignatureBouton(ed, adresse, statut) {
+async function mailSignatureBouton(ed, adresse, statut) {
   if (!ed) return;
-  if (!mailSignatureHtml(adresse)) {
+  const opts = mailSignOptions(adresse);
+  if (!opts.length) {
     if (statut) statut.textContent = `Pas encore de signature pour ${adresse || "cette boîte"}.`;
     return;
   }
-  mailPoserSignature(ed, adresse);
+  let cle = opts[0];
+  if (opts.length > 1) {
+    const dern = mailSignDernier(adresse);
+    const ordre = opts.includes(dern) ? [dern, ...opts.filter((k) => k !== dern)] : opts;
+    cle = await uiChoix("Signer ce message au nom de :", ordre.map((k) => ({ v: k, t: MAIL_SIGNATURES[k].nom })));
+    if (!cle) return;                                       // « Annuler » : on ne touche à rien
+    mailSignRetenir(adresse, cle);
+  }
+  mailPoserSignature(ed, cle);
   if (statut) statut.textContent = "";
   ed.focus();
   const sel = window.getSelection();
@@ -21756,7 +21798,7 @@ async function openMail(id) {
         <button type="button" class="rt-btn" id="mail-d-link" title="Insérer un lien (surligner un mot puis cliquer)">🔗</button>
         <label class="rt-color" title="Couleur du texte">A<input type="color" id="mail-d-color" value="#000000" /></label>
         <label class="rt-attach" title="Joindre un fichier">📎 Joindre<input type="file" id="mail-d-file" multiple hidden /></label>
-        <button type="button" class="rt-sign" id="mail-d-sign" title="Remettre la signature de ${esc(m.account_address)}">✍ Signature</button>
+        <button type="button" class="rt-sign" id="mail-d-sign" title="${mailSignOptions(m.account_address).length > 1 ? "Choisir la signature à mettre au bas du message" : "Remettre la signature de " + esc(m.account_address)}">✍ Signature</button>
         ${isOut ? "" : `<button type="button" id="mail-d-suggest" class="rt-suggest" title="Rédiger une réponse automatiquement">✨ Proposer une réponse</button>`}
       </div>
       <div class="mail-d-cc">
