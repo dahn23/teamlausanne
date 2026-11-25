@@ -15,6 +15,12 @@
 import { SUPABASE_URL } from "./config.js";
 
 const API = `${SUPABASE_URL}/functions/v1/chatbot`;
+// La langue de la page : /en/... parle anglais, le reste francais. Lue dans
+// l'adresse et non dans le navigateur, pour qu'une adresse rende toujours la
+// meme chose (meme regle que index.js).
+const BOT_LANG = /^\/en(\/|$)/.test(location.pathname) ? "en" : "fr";
+const BOT_T = (fr, en) => (BOT_LANG === "en" ? en : fr);
+
 const CLE_CONV = "tl-bot-conv";
 const CLE_BULLE = "tl-bot-bulle";   // la bulle d'accueil, refermée pour la visite
 
@@ -112,8 +118,8 @@ function ajouter(role, texte, index) {
   b.querySelector(".bot-bulle").innerHTML = role === "bot" ? md(texte) : esc(texte);
   if (role === "bot" && index != null) {
     const p = el(`<div class="bot-pouces">
-      <button type="button" class="bot-pouce" data-note="1" aria-label="Réponse utile">${SVG_POUCE}</button>
-      <button type="button" class="bot-pouce bot-bas" data-note="-1" aria-label="Réponse pas utile">${SVG_POUCE}</button>
+      <button type="button" class="bot-pouce" data-note="1" aria-label="${BOT_T("Réponse utile", "Helpful answer")}">${SVG_POUCE}</button>
+      <button type="button" class="bot-pouce bot-bas" data-note="-1" aria-label="${BOT_T("Réponse pas utile", "Unhelpful answer")}">${SVG_POUCE}</button>
     </div>`);
     p.querySelectorAll(".bot-pouce").forEach((btn) => btn.addEventListener("click", () => {
       p.querySelectorAll(".bot-pouce").forEach((x) => x.classList.remove("choisi"));
@@ -140,7 +146,7 @@ async function envoyer(texte) {
   try {
     const r = await fetch(`${API}/message`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ message: texte, conversation_id: convId, page: location.hash || "/" }),
+      body: JSON.stringify({ message: texte, conversation_id: convId, page: location.hash || "/", lang: BOT_LANG }),
     });
     const d = await r.json();
     attente.remove();
@@ -149,7 +155,8 @@ async function envoyer(texte) {
       try { sessionStorage.setItem(CLE_CONV, convId); } catch {}
       ajouter("bot", d.reponse, d.index);
     } else {
-      ajouter("bot", d?.error || "Je n'ai pas réussi à répondre. Réessaie dans un instant, ou écris-nous à info@teamlausanne.ch.");
+      ajouter("bot", d?.error || BOT_T("Je n'ai pas réussi à répondre. Réessaie dans un instant, ou écris-nous à info@teamlausanne.ch.",
+        "I could not answer that. Try again in a moment, or write to us at info@teamlausanne.ch."));
     }
   } catch {
     attente.remove();
@@ -161,10 +168,10 @@ async function envoyer(texte) {
 }
 
 function construire() {
-  const bouton = el(`<button type="button" class="bot-rond" aria-label="Ouvrir l'assistant">
+  const bouton = el(`<button type="button" class="bot-rond" aria-label="${BOT_T("Ouvrir l'assistant", "Open the assistant")}">
     ${SVG_MARQUE}</button>`);
 
-  panneau = el(`<div class="bot-panneau" role="dialog" aria-modal="false" aria-label="Assistant Team Lausanne" hidden>
+  panneau = el(`<div class="bot-panneau" role="dialog" aria-modal="false" aria-label="${BOT_T("Assistant Team Lausanne", "Team Lausanne assistant")}" hidden>
     <header class="bot-tete">
       ${SVG_MARQUE}
       <div><b>Team Lausanne</b><span>en ligne</span></div>
@@ -172,7 +179,7 @@ function construire() {
     </header>
     <div class="bot-fil"></div>
     <form class="bot-pied">
-      <textarea rows="1" placeholder="Pose ta question…" maxlength="800" aria-label="Votre question"></textarea>
+      <textarea rows="1" placeholder="${BOT_T("Pose ta question…", "Ask your question…")}" maxlength="800" aria-label="${BOT_T("Votre question", "Your question")}"></textarea>
       <button type="submit" aria-label="Envoyer">↑</button>
     </form>
     <p class="bot-note">Assistant automatique — il peut se tromper. N'y mets pas de données personnelles
@@ -188,7 +195,7 @@ function construire() {
   let bulle = null;
   try {
     if (!sessionStorage.getItem(CLE_BULLE) && conf.accueil) {
-      bulle = el(`<div class="bot-bulle-accueil"><p></p><button type="button" aria-label="Masquer">${SVG_FERMER}</button></div>`);
+      bulle = el(`<div class="bot-bulle-accueil"><p></p><button type="button" aria-label="${BOT_T("Masquer", "Hide")}">${SVG_FERMER}</button></div>`);
       bulle.querySelector("p").textContent = conf.accueil;
       bulle.querySelector("button").addEventListener("click", (e) => {
         e.stopPropagation();
@@ -250,7 +257,11 @@ function construire() {
   // Jamais sur la console ni sur Mon espace : ce bot ne sait que du public.
   if (/\/(console|admin|espace)/.test(location.pathname)) return;
   try {
-    const r = await fetch(`${API}/config`);
+    // ⚠ On demande la configuration DANS la langue de la page : le mot
+    // d'accueil et les questions suggérées viennent du serveur, pas d'ici.
+    // Tant que la fonction ne connaît pas ce paramètre elle l'ignore et rend
+    // le français — le widget ne casse donc pas en attendant son déploiement.
+    const r = await fetch(`${API}/config?lang=${BOT_LANG}`);
     conf = await r.json();
   } catch { return; }                      // injoignable : pas de bulle, pas de bouton
   if (!conf || conf.bot !== "maison") return;   // éteint en console : rien ne s'affiche

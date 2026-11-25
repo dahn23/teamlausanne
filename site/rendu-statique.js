@@ -31,7 +31,8 @@ export const esc = (s) => String(s == null ? "" : s)
 // La table des adresses vit dans adresses.js : le navigateur la lit aussi, et
 // n'a pas à télécharger ce moteur de rendu pour connaître un chemin.
 export { SLUGS, CLE_DE_SLUG, urlDe } from "./adresses.js";
-import { SLUGS } from "./adresses.js";
+import { SLUGS, slugsDe, cheminDe } from "./adresses.js";
+import { t } from "./i18n.js";
 
 // contenu.js porte deux renvois, en texte, que index.js résout avant de
 // rendre : "@coachs" devient la liste des coachs, { type:"mention" } sans
@@ -114,7 +115,7 @@ const ligneDe = (it) => {
 // Toute section non reconnue passe ici. On n'essaie pas de deviner sa mise en
 // page : on sort son titre, ses phrases et ses listes. Mieux vaut un bloc
 // simple qu'un bloc manquant — c'est du texte que les moteurs doivent lire.
-function sectionGenerique(sec) {
+function sectionGenerique(sec, lang = "fr") {
   const out = [];
   out.push(h(2, sec.title || sec.label));
   out.push(texteDe(sec.lead || sec.sub || sec.subtitle || sec.body || sec.note));
@@ -125,7 +126,7 @@ function sectionGenerique(sec) {
 }
 
 // --- sections à forme connue ----------------------------------------------
-function sectionConnue(sec) {
+function sectionConnue(sec, lang = "fr") {
   switch (sec.type) {
     // Une question, une réponse : c'est le format que les moteurs de réponse
     // citent le plus volontiers. On le rend en vraie liste de définitions.
@@ -151,14 +152,14 @@ function sectionConnue(sec) {
             const nom = o && (o.name || o.title || o.label);
             if (!nom) return "";
             return o.href
-              ? `<li><a href="${esc(lienDe(o.href))}">${esc(nom)}</a></li>`
+              ? `<li><a href="${esc(lienDe(o.href, lang))}">${esc(nom)}</a></li>`
               : `<li>${esc(nom)}</li>`;
           }).join("")}</ul>`;
 
     case "progmap":
       return h(2, sec.title) + p(sec.sub) + tab(sec.groupes).map((g) =>
         h(3, g.titre) + p(g.pour) + `<ul>${tab(g.items).map((o) =>
-          `<li><a href="${esc(lienDe(o.href))}"><strong>${esc(o.name)}</strong></a>${
+          `<li><a href="${esc(lienDe(o.href, lang))}"><strong>${esc(o.name)}</strong></a>${
             o.age ? ` (${esc(o.age)})` : ""}${o.quoi ? ` — ${esc(o.quoi)}` : ""}</li>`
         ).join("")}</ul>`).join("") + p(sec.note);
 
@@ -211,17 +212,21 @@ function sectionConnue(sec) {
 // Un href de contenu.js est encore en #ancre. Dans la page statique, il doit
 // pointer la VRAIE adresse, sans quoi on servirait à un robot des liens qui
 // ne mènent nulle part et on perdrait tout le maillage interne.
-export function lienDe(href) {
-  if (!href) return "/";
+// ⚠ `lang` est passé explicitement, et non lu dans une variable de module :
+// build.mjs rend les deux langues dans la même exécution, et un état global
+// aurait fini par rendre une page anglaise avec les liens français — sans
+// erreur, et sans que personne le voie avant la mise en ligne.
+export function lienDe(href, lang = "fr") {
+  if (!href) return cheminDe("academie", lang);
   if (!href.startsWith("#")) return href;
   const cle = href.slice(1);
-  return cle in SLUGS ? "/" + SLUGS[cle] : href;
+  return cle in slugsDe(lang) ? cheminDe(cle, lang) : href;
 }
 
-export function sectionHTML(sec) {
+export function sectionHTML(sec, lang = "fr") {
   if (!sec || typeof sec !== "object") return "";
-  const connu = sectionConnue(sec);
-  const html = connu === null ? sectionGenerique(sec) : connu;
+  const connu = sectionConnue(sec, lang);
+  const html = connu === null ? sectionGenerique(sec, lang) : connu;
   return html ? `<section>${html}</section>` : "";
 }
 
@@ -258,29 +263,29 @@ export function absolutiser(html) {
 //
 // Ce bloc disparaît dès qu'index.js prend la main — il ne s'ajoute pas au
 // menu, il le remplace le temps du chargement.
-export function naviguerHTML(cleCourante, pages) {
+export function naviguerHTML(cleCourante, pages, lang = "fr") {
   const liens = Object.keys(pages)
-    .filter((c) => c !== cleCourante && c in SLUGS)
+    .filter((c) => c !== cleCourante && c in slugsDe(lang))
     .map((c) => {
       const { titre } = enTeteDe(c, pages[c]);
-      return `<li><a href="${esc("/" + SLUGS[c])}">${esc(titre || c)}</a></li>`;
+      return `<li><a href="${esc(cheminDe(c, lang))}">${esc(titre || c)}</a></li>`;
     }).join("");
-  return `<nav aria-label="Les autres pages">
-<h2>Découvrir aussi</h2>
-<ul>${liens}<li><a href="/actualites">Actualités</a></li></ul>
+  return `<nav aria-label="${esc(t(lang, "nav_autres_pages"))}">
+<h2>${esc(t(lang, "decouvrir_aussi"))}</h2>
+<ul>${liens}<li><a href="${esc(t(lang, "chemin_actualites"))}">${esc(t(lang, "nav_actualites"))}</a></li></ul>
 </nav>`;
 }
 
-export function corpsHTML(cle, page, pages) {
+export function corpsHTML(cle, page, pages, lang = "fr") {
   const { titre, chapo } = enTeteDe(cle, page);
-  const sections = tab(page.sections).map(sectionHTML).join("\n");
+  const sections = tab(page.sections).map((s) => sectionHTML(s, lang)).join("\n");
   // La photo de tête, avec un vrai texte de remplacement. Une page sans
   // image n'existe pas dans Google Images, et « alt » est la seule chose
   // qu'un moteur sait lire d'une photo.
   const hero = page.hero
-    ? `<figure><img src="${esc(page.hero)}" alt="${esc(titre)} — Team Lausanne Academy, école de tennis à Lausanne" /></figure>`
+    ? `<figure><img src="${esc(page.hero)}" alt="${esc(titre)} — ${esc(t(lang, "alt_academie"))}" /></figure>`
     : "";
-  const nav = pages ? naviguerHTML(cle, pages) : "";
+  const nav = pages ? naviguerHTML(cle, pages, lang) : "";
   // <h2> et non <h1> : le titre principal de la page est désormais écrit dans
   // le <h1> du hero par build.mjs. Deux <h1> identiques se faisaient concurrence.
   return absolutiser(`<article>\n${h(2, titre)}\n${p(chapo)}\n${hero}\n${sections}\n</article>\n${nav}`);
@@ -314,7 +319,7 @@ export function faqDe(page) {
 // perdre le maillage interne qu'on vient de construire.
 // ===========================================================================
 
-export function actuBlocHTML(b) {
+export function actuBlocHTML(b, lang = "fr") {
   if (!b || typeof b !== "object") return "";
   if (b.t === "p") return p(b.x);
   if (b.t === "h2") return h(2, b.x);
@@ -330,7 +335,7 @@ export function actuBlocHTML(b) {
   // adresse « javascript: » glissée en base ne doit pas devenir un lien.
   if (b.t === "lien" && typeof b.x === "string") {
     if (/^#[\w-]+$/.test(b.x)) {
-      return `<p><a href="${esc(lienDe(b.x))}">${esc(b.label || "En savoir plus")}</a></p>`;
+      return `<p><a href="${esc(lienDe(b.x, lang))}">${esc(b.label || t(lang, "en_savoir_plus"))}</a></p>`;
     }
     if (/^https?:\/\//i.test(b.x)) {
       return `<p><a href="${esc(b.x)}" target="_blank" rel="noopener">${esc(b.label || "Voir")}</a></p>`;
@@ -340,8 +345,8 @@ export function actuBlocHTML(b) {
   return "";
 }
 
-export function articleHTML(a, nav = "") {
-  const corps = tab(a.body).map(actuBlocHTML).join("\n");
+export function articleHTML(a, nav = "", lang = "fr") {
+  const corps = tab(a.body).map((b) => actuBlocHTML(b, lang)).join("\n");
   const date = a.published_on
     ? `<p><time datetime="${esc(a.published_on)}">${esc(a.published_on)}</time>${
         a.author ? ` · ${esc(a.author)}` : ""}${a.category ? ` · ${esc(a.category)}` : ""}</p>`
@@ -354,23 +359,25 @@ ${date}
 ${p(a.lede)}
 ${couv}
 ${corps}
-<p><a href="/actualites">Toutes les actualités</a></p>
+<p><a href="${esc(t(lang, "chemin_actualites_liste"))}">${esc(t(lang, "toutes_actualites"))}</a></p>
 </article>
 ${nav}`);
 }
 
-export function listeActusHTML(articles) {
+export function listeActusHTML(articles, lang = "fr") {
+  // ⚠ Le slug est commun aux deux langues (db/249) : seul le chemin change.
+  const base = lang === "en" ? "/en/news" : "/actualites";
   const items = tab(articles).map((a) => `<li>
     <article>
-      <h2><a href="/actualites/${esc(a.slug)}">${esc(a.title)}</a></h2>
-      ${a.category ? `<p>${esc(a.category)}${
+      <h2><a href="${base}/${esc(a.slug)}">${esc(a.title)}</a></h2>
+      ${a.category ? `<p>${esc(t(lang, "cat_" + a.category) || a.category)}${
         a.published_on ? ` · <time datetime="${esc(a.published_on)}">${esc(a.published_on)}</time>` : ""}</p>` : ""}
       ${p(a.lede)}
     </article>
   </li>`).join("\n");
   return absolutiser(`<article>
-<h2>Actualités</h2>
-<p>La vie de l'académie, semaine après semaine : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club.</p>
+<h2>${esc(t(lang, "actus_titre"))}</h2>
+<p>${esc(t(lang, "actus_intro"))}</p>
 <ul>
 ${items}
 </ul>
