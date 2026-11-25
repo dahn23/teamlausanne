@@ -465,6 +465,48 @@ const alternesActu = (slug) => {
        + `  <link rel="alternate" hreflang="x-default" href="${fr}" />`;
 };
 
+// La pastille FR | EN des pages d'actualités.
+//
+// ⚠ selecteurLangue() ne sert QUE les quatorze pages de programme : il
+// interroge versLangue(), qui ne connaît que SLUGS, et « actualites » n'y est
+// pas. Les pages d'actualités ne passaient donc par aucune réécriture et
+// gardaient le href écrit en dur dans le gabarit : « /en/ ». Résultat, sur un
+// article français la pastille annonçait « Read this page in English » et
+// déposait le lecteur sur l'ACCUEIL anglais — une traduction promise qui
+// n'existe pas, et la page perdue au passage. Les hreflang, eux, étaient
+// justes depuis le début (alternesActu les omet quand l'article n'est pas
+// traduit) : la balise disait vrai, le bouton mentait.
+//
+// On repart donc de la même vérité, SLUGS_EN_ACTU, pour que les deux ne
+// puissent plus diverger.
+// Le slug se lit dans l'adresse canonique, que les deux fabricants ont déjà en
+// main : rien à passer en plus, donc rien à oublier à un appel sur quatre.
+const slugDActu = (url) => {
+  const m = String(url || "").match(/\/(?:actualites|news)\/([^/?#]+)\/?$/);
+  return m ? m[1] : "";
+};
+
+const selecteurLangueActu = (html, url, lang) => {
+  const slug = slugDActu(url);
+  // Depuis l'anglais, le français existe toujours. Depuis le français, il faut
+  // que quelqu'un ait traduit : l'article, ou au moins un article pour que la
+  // liste anglaise soit fabriquée.
+  const cible = lang === "en"
+    ? ACTU_CHEMIN.fr + (slug ? "/" + slug : "")
+    : (slug ? SLUGS_EN_ACTU.has(slug) : SLUGS_EN_ACTU.size > 0)
+      ? ACTU_CHEMIN.en + (slug ? "/" + slug : "")
+      : null;
+  // ⚠ `\r?\n?` et non `\n` — même raison que dans selecteurLangue : sous
+  // Windows le gabarit a des fins de ligne CRLF et la règle ne retirerait rien.
+  if (!cible) return html.replace(/[ \t]*<a class="lang-switch"[\s\S]*?<\/a>\r?\n?/, "");
+  const autre = lang === "en" ? "fr" : "en";
+  return html.replace(/<a class="lang-switch"[\s\S]*?<\/a>/,
+    `<a class="lang-switch" id="lang-switch" href="${cible}" hreflang="${autre}" lang="${autre}"`
+    + ` title="${esc(t(lang, "basculer_langue"))}">`
+    + `<span class="lang-on">${lang.toUpperCase()}</span><span class="lang-sep" aria-hidden="true"></span>`
+    + `<span class="lang-off">${autre.toUpperCase()}</span></a>`);
+};
+
 if (actus) {
   // `image` : l'adresse ABSOLUE de la couverture de l'article. Sans elle, les
   // pages d'actualités gardaient l'image par défaut du gabarit : partagé sur
@@ -479,6 +521,7 @@ if (actus) {
                    `<meta property="og:locale" content="${t("en", "locale")}" />`);
     }
     if (alternes) html = html.replace("</head>", `${alternes}\n</head>`);
+    html = selecteurLangueActu(html, url, lang);
     if (image) html = imagePartage(html, image, imageAlt);
     // Même règle que les pages de filière : un seul <h1>, rempli, dans le HTML
     // servi (voir plus haut). Les pages d'actualités passaient par ici et
@@ -558,6 +601,7 @@ if (actusEn && actusEn.length) {
                .replace(/<meta property="og:locale" content="[^"]*"\s*\/>/,
                  `<meta property="og:locale" content="${t("en", "locale")}" />`);
     if (alternes) html = html.replace("</head>", `${alternes}\n</head>`);
+    html = selecteurLangueActu(html, url, "en");
     if (image) html = imagePartage(html, image, imageAlt);
     html = remplacer(html, /<h1 class="hero-slogan" id="hero-slogan"><\/h1>/,
       `<h1 class="hero-slogan" id="hero-slogan">${esc(h1 || t("en", "actus_titre"))}</h1>`,
