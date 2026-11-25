@@ -1414,8 +1414,8 @@ répondra qu'elle ne sait pas, et la question remontera dans
   cadre de réponse est aussi sous les mails que vous avez envoyés, et écrit
   au destinataire du fil — utile quand votre dernier mot est resté sans
   réponse et qu'il faut relancer.
-  **La signature.** Un nouveau message et un cadre de réponse s'ouvrent déjà
-  signés, et **chaque boîte a la sienne** — son logo, son slogan, ses liens.
+  **La signature.** Un nouveau message s'ouvre déjà signé, et **chaque boîte
+  a la sienne** — son logo, son slogan, ses liens.
   **Team Lausanne (info@)** : logo de l'académie, adresse, site, téléphone et
   compte Instagram. **Lausanne Open (info@lausanneopen.ch)** : logo du
   tournoi, « ITF M25 · 21 – 29 août 2027 · Lausanne » et la page du tournoi.
@@ -1424,24 +1424,28 @@ répondra qu'elle ne sait pas, et la question remontera dans
   juniors du week-end, à ne pas confondre avec celle du Lausanne Open.
   **LS Tennis (admin@lstennis.ch)** : blason du club, « Jouer. Partager.
   Ensemble. » et lstennis.ch. Les quatre portent le même téléphone et le même
-  compte Instagram. Seule la boîte **privée** (la vôtre)
-  s'ouvre sans signature. Changer de
-  boîte dans « De : » remplace la signature sans toucher à ce que vous avez
-  écrit, et vous pouvez l'effacer comme n'importe quel texte. Un message qui
-  ne contient que la signature reste considéré comme **vide** : il ne part
-  pas, et il n'enregistre pas de brouillon.
-  **Quand elle se pose toute seule, et quand non.** Elle arrive
-  automatiquement dans un cadre **vide** : un nouveau message, un cadre de
-  réponse où vous n'aviez pas de brouillon en cours, et un transfert. Elle
-  n'arrive **pas** quand un **brouillon est repris** (il contient déjà ce que
-  vous aviez écrit, signature comprise) ni après « ✨ Proposer une réponse »,
-  qui remplace tout le contenu du cadre.
-  **Le bouton « ✍ Signature ».** Dans la barre d'outils, à côté de
-  « 📎 Joindre ». Il remet la signature de la boîte en cours à tout moment :
-  après une suggestion de l'IA, sur un brouillon repris, ou simplement si
-  vous l'avez effacée. Cliquer deux fois ne la double pas — elle est
-  remplacée, jamais empilée — et le texte déjà écrit n'est pas touché. Le
-  curseur revient au début du cadre, pour que vous écriviez au-dessus.
+  compte Instagram. Seule la boîte **privée** (la vôtre) s'ouvre sans
+  signature.
+  **Quand elle se pose toute seule : dans un nouveau message et dans un
+  transfert. Nulle part ailleurs.** Un **cadre de réponse reste nu** — dans
+  un fil où l'on s'écrit trois fois dans la journée, une signature à chaque
+  tour n'a pas de sens. Pour en mettre une dans une réponse, c'est le bouton.
+  **Le bouton « ✍ Signature »** est dans la barre d'outils, à côté de
+  « 📎 Joindre », et il fait **les deux sens** : il met la signature, et il
+  la **retire** d'un clic si elle est déjà là. C'est la façon la plus simple
+  de s'en débarrasser — inutile d'essayer de la sélectionner à la souris, un
+  bloc comme celui-là se sélectionne mal. Le texte que vous avez écrit n'est
+  jamais touché, et le curseur revient au début du cadre pour que vous
+  écriviez au-dessus.
+  **Une signature n'empêche jamais d'envoyer.** Un message qui ne contient
+  qu'elle part normalement : elle est là parce que vous l'avez voulue, et
+  l'objet suffit souvent (« facture en pièce jointe »). Seul un cadre
+  réellement vide, sans texte, sans signature et sans pièce jointe, est
+  refusé. En revanche, une signature seule **n'enregistre pas de brouillon** :
+  ouvrir un message et le laisser ne vous en fabrique pas un.
+  **Si vous l'avez enlevée, elle ne revient pas.** Changer de boîte dans
+  « De : » **remplace** la signature présente par celle de la nouvelle boîte,
+  mais n'en remet pas une là où vous veniez de l'enlever.
   **Depuis votre boîte personnelle, vous choisissez.** Rien ne s'y pose tout
   seul : c'est voulu, un message privé ne doit pas partir avec le blason de
   l'académie au bas. Le bouton « ✍ Signature » y ouvre une liste de cinq :

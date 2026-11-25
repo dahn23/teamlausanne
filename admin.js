@@ -20679,7 +20679,7 @@ async function loadMail() {
     brancherLien("mailc-link", "mailc-body");
     // Changer de boîte change la signature : chacune a son adresse, et plus
     // tard son logo. Seul le bloc de signature est remplacé, pas le texte.
-    $("mailc-from").addEventListener("change", () => mailPoserSignature($("mailc-body"), $("mailc-from").value));
+    $("mailc-from").addEventListener("change", () => mailMajSignature($("mailc-body"), $("mailc-from").value));
     $("mailc-sign").addEventListener("click", () => mailSignatureBouton($("mailc-body"), $("mailc-from").value, $("mailc-status")));
     $("mailc-file").addEventListener("change", (e) => { for (const f of e.target.files) { if (f.size > 8 * 1024 * 1024) { alert(`${f.name} dépasse 8 Mo — trop lourd.`); continue; } mailcFiles.push(f); } e.target.value = ""; renderMailcFiles(); });
     attachEmailAC($("mailc-to")); attachEmailAC($("mailc-cc")); attachEmailAC($("mailc-bcc"));  // autocompletion adresses
@@ -21344,16 +21344,29 @@ function mailSignRetenir(adresse, cle) {
     localStorage.setItem(MAIL_SIGN_MEM, JSON.stringify(m));
   } catch (_) { /* tant pis, on redemandera */ }
 }
-// Bouton « ✍ Signature » des deux barres d'outils (nouveau message et cadre de
-// réponse). La signature est posée d'office à l'ouverture d'un cadre VIDE ;
-// elle manque donc dans trois cas parfaitement normaux, et le bouton est là
-// pour eux : un brouillon repris (il contient déjà ce qu'on avait écrit),
-// « ✨ Proposer une réponse » (qui remplace tout l'éditeur), et un transfert
-// qu'on a vidé. Plus, bien sûr, quand on l'a effacée par erreur.
-// ⚠ Le curseur est replacé AU DÉBUT : la signature est en bas, et sans ça on
-// se met à écrire dessous.
+/* Bouton « ✍ Signature » des deux barres d'outils. Il fait les DEUX sens :
+   il met la signature, et il la retire si elle est là. Un seul bouton, pas
+   d'état à deviner.
+   Où la signature arrive-t-elle toute seule ? Dans un NOUVEAU message et
+   dans un transfert, rien d'autre. Un cadre de réponse reste nu : on
+   l'y posait, et dans un fil où l'on s'écrit trois fois dans la journée elle
+   revenait à chaque tour. Le bouton sert donc aussi aux réponses, ainsi
+   qu'après « ✨ Proposer une réponse », qui remplace tout l'éditeur, et sur
+   un brouillon repris, qui porte déjà ce qu'on avait écrit.
+   ⚠ Le curseur est replacé AU DÉBUT : la signature est en bas, et sans ça on
+   se met à écrire dessous. */
 async function mailSignatureBouton(ed, adresse, statut) {
   if (!ed) return;
+  // Déjà une signature ? Le bouton la RETIRE. Un seul geste pour s'en
+  // débarrasser : dans un champ libre, un bloc de tableaux ne se sélectionne
+  // pas proprement à la souris, et on finissait par en laisser la moitié.
+  const deja = ed.querySelector(".tl-sign");
+  if (deja) {
+    deja.remove();
+    if (statut) statut.textContent = "Signature retirée.";
+    ed.focus();
+    return;
+  }
   const opts = mailSignOptions(adresse);
   if (!opts.length) {
     if (statut) statut.textContent = `Pas encore de signature pour ${adresse || "cette boîte"}.`;
@@ -21376,6 +21389,23 @@ async function mailSignatureBouton(ed, adresse, statut) {
   if (sel) { const r = document.createRange(); r.setStart(ed, 0); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }
   ed.querySelector(".tl-sign")?.scrollIntoView({ block: "nearest" });
 }
+// Changement de boîte dans « De : » : on MET À JOUR la signature présente, on
+// n'en ajoute jamais. ⚠ Sinon, changer d'expéditeur ressusciterait celle que
+// la personne venait justement d'enlever — et elle n'aurait aucun moyen de
+// comprendre pourquoi elle revient.
+function mailMajSignature(ed, adresse) {
+  if (!ed || !ed.querySelector(".tl-sign")) return;
+  mailPoserSignature(ed, adresse);
+}
+// Y a-t-il vraiment RIEN à envoyer ? ⚠ Un message qui ne porte « que » la
+// signature n'est pas vide : elle y est parce qu'on l'a mise, le cadre est
+// visiblement plein, et refuser l'envoi à ce moment-là passe pour une panne.
+// L'objet porte d'ailleurs souvent le message à lui seul (« facture en pièce
+// jointe », « ok pour samedi »). On ne bloque donc que le cadre réellement nu.
+// ⚠ À ne pas confondre avec mailSansSign, qui sert aux BROUILLONS : là, une
+// signature seule ne vaut pas la peine d'être conservée.
+const mailRienAEnvoyer = (ed, fichiers) =>
+  !mailSansSign(ed) && !(fichiers || []).length && !ed?.querySelector(".tl-sign");
 function mailSansSign(ed) {
   if (!ed) return "";
   const c = ed.cloneNode(true);
@@ -21639,7 +21669,7 @@ async function mailComposeSend() {
   const html = $("mailc-body").innerHTML.trim(), text = $("mailc-body").innerText.trim();
   const st = $("mailc-status");
   if (!to) { st.textContent = "Indique un destinataire."; return; }
-  if (!mailSansSign($("mailc-body")) && !mailcFiles.length) { st.textContent = "Écris un message."; return; }
+  if (mailRienAEnvoyer($("mailc-body"), mailcFiles)) { st.textContent = "Écris un message."; return; }
   const btn = $("mailc-send"); btn.disabled = true; st.textContent = "Envoi…";
   try {
     const attachments = [];
@@ -21666,7 +21696,7 @@ async function mailSendReply(id) {
   const html = (editor.innerHTML || "").trim();
   const text = (editor.innerText || "").trim();
   const st = $("mail-d-sendstatus");
-  if (!mailSansSign(editor) && !mailFiles.length) { st.textContent = "Écris un message avant d'envoyer."; return; }
+  if (mailRienAEnvoyer(editor, mailFiles)) { st.textContent = "Écris un message avant d'envoyer."; return; }
   const btn = $("mail-d-send"); btn.disabled = true; st.textContent = "Envoi…";
   try {
     const attachments = [];
@@ -21826,7 +21856,7 @@ async function openMail(id) {
         <button type="button" class="rt-btn" id="mail-d-link" title="Insérer un lien (surligner un mot puis cliquer)">🔗</button>
         <label class="rt-color" title="Couleur du texte">A<input type="color" id="mail-d-color" value="#000000" /></label>
         <label class="rt-attach" title="Joindre un fichier">📎 Joindre<input type="file" id="mail-d-file" multiple hidden /></label>
-        <button type="button" class="rt-sign" id="mail-d-sign" title="${mailSignOptions(m.account_address).length > 1 ? "Choisir la signature à mettre au bas du message" : "Remettre la signature de " + esc(m.account_address)}">✍ Signature</button>
+        <button type="button" class="rt-sign" id="mail-d-sign" title="Mettre la signature au bas du message — et la retirer d'un clic si elle y est déjà">✍ Signature</button>
         ${isOut ? "" : `<button type="button" id="mail-d-suggest" class="rt-suggest" title="Rédiger une réponse automatiquement">✨ Proposer une réponse</button>`}
       </div>
       <div class="mail-d-cc">
@@ -21957,9 +21987,11 @@ async function loadMailDraft(id, compte) {
   const ind = $("mail-d-draft");
   const { data } = await sb.from("mail_drafts").select("body_html").eq("mail_id", id).maybeSingle();
   if (data?.body_html && !ed.innerHTML.trim()) { ed.innerHTML = data.body_html; if (ind) ind.textContent = "📝 Brouillon repris"; }
-  // Pas de brouillon repris → cadre vide : on y pose la signature de la boîte
-  // où le message est arrivé, donc celle d'où partira la réponse.
-  if (!ed.innerHTML.trim()) mailPoserSignature(ed, compte);
+  // ⚠ PAS de signature d'office dans un cadre de RÉPONSE (25.11.2026). On en
+  // posait une ; dans un fil où l'on s'écrit trois fois dans la journée, elle
+  // revenait à chaque tour et il fallait l'enlever à chaque tour. Un nouveau
+  // message reste signé (openMailCompose), une réponse ne l'est que si on
+  // clique sur « ✍ Signature ».
   const saveNow = async () => {
     const html = ed.innerHTML.trim();
     // ⚠ On regarde le texte SANS la signature : sinon ouvrir un message sans
