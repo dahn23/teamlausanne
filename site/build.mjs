@@ -397,12 +397,15 @@ for (const p of PAGES_AUTONOMES) {
 const SUPABASE = "https://lnrmtwamuaqcubohontn.supabase.co";
 const CLE_PUBLIABLE = "sb_publishable_nsRKXBFgwmDjtmvS3mFc0w_Q4pi_qxK";
 
-async function lireActus() {
+async function lireActus(lang = "fr") {
   try {
     const r = await fetch(`${SUPABASE}/rest/v1/rpc/news_public`, {
       method: "POST",
       headers: { apikey: CLE_PUBLIABLE, "Content-Type": "application/json" },
-      body: "{}",
+      // ⚠ En anglais, news_public ne rend QUE les articles dont le titre ET le
+      // corps sont traduits (db/249). Un article à moitié traduit ne sort pas :
+      // on préfère une liste plus courte à une page anglaise en français.
+      body: JSON.stringify({ p_lang: lang }),
       signal: AbortSignal.timeout(20000),
     });
     if (!r.ok) throw new Error("HTTP " + r.status);
@@ -416,7 +419,31 @@ async function lireActus() {
 }
 
 const actus = await lireActus();
+const actusEn = await lireActus("en");
 const actusEcrites = [];
+const actusEnEcrites = [];
+
+// Les adresses des actualités, par langue. Le slug est COMMUN aux deux
+// (db/249) : /actualites/<slug> et /en/news/<slug>.
+const ACTU_CHEMIN = { fr: "/actualites", en: "/en/news" };
+const ACTU_DOSSIER = { fr: "actualites", en: "en/news" };
+// Les articles traduits, pour savoir où poser un hreflang. Un article qui
+// n'existe qu'en français n'en porte pas : il n'a pas d'autre version.
+const SLUGS_EN_ACTU = new Set((actusEn || []).map((a) => a && a.slug).filter(Boolean));
+
+// Les hreflang d'un article : seulement si les DEUX versions existent. Un
+// article que personne n'a traduit n'a pas d'autre version — annoncer une
+// page anglaise absente enverrait Google sur un 404.
+// ⚠ Défini ICI, au niveau du module, et non dans le bloc français : la
+// fabrication anglaise s'en sert aussi, et elle vit dans son propre bloc.
+const alternesActu = (slug) => {
+  if (slug && !SLUGS_EN_ACTU.has(slug)) return "";
+  const fr = SITE + ACTU_CHEMIN.fr + (slug ? "/" + slug : "");
+  const en = SITE + ACTU_CHEMIN.en + (slug ? "/" + slug : "");
+  return `  <link rel="alternate" hreflang="fr" href="${fr}" />\n`
+       + `  <link rel="alternate" hreflang="en" href="${en}" />\n`
+       + `  <link rel="alternate" hreflang="x-default" href="${fr}" />`;
+};
 
 if (actus) {
   // `image` : l'adresse ABSOLUE de la couverture de l'article. Sans elle, les
@@ -424,14 +451,20 @@ if (actus) {
   // LinkedIn ou WhatsApp, un portrait de coach s'affichait avec le logo du
   // club. imagePartage() existait déjà, mais n'était appelée que pour les
   // pages de filière — les articles ne passaient jamais dedans.
-  const pageActu = (titre, description, url, corps, jsonld, h1, image, imageAlt) => {
-    let html = gabarit;
+  const pageActu = (titre, description, url, corps, jsonld, h1, image, imageAlt, lang = "fr", alternes = "") => {
+    let html = lang === "en" ? gabaritEN : gabarit;
+    if (lang === "en") {
+      html = html.replace(/<html lang="[^"]*">/, '<html lang="en">')
+                 .replace(/<meta property="og:locale" content="[^"]*"\s*\/>/,
+                   `<meta property="og:locale" content="${t("en", "locale")}" />`);
+    }
+    if (alternes) html = html.replace("</head>", `${alternes}\n</head>`);
     if (image) html = imagePartage(html, image, imageAlt);
     // Même règle que les pages de filière : un seul <h1>, rempli, dans le HTML
     // servi (voir plus haut). Les pages d'actualités passaient par ici et
     // gardaient donc le <h1> vide du gabarit.
     html = remplacer(html, /<h1 class="hero-slogan" id="hero-slogan"><\/h1>/,
-      `<h1 class="hero-slogan" id="hero-slogan">${esc(h1 || "Actualités")}</h1>`,
+      `<h1 class="hero-slogan" id="hero-slogan">${esc(h1 || t(lang, "actus_titre"))}</h1>`,
       "<h1> du hero (actualités)");
     html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(titre)}</title>`);
     html = html.replace(/<meta name="description" content="[^"]*"\s*\/>/,
@@ -447,7 +480,7 @@ if (actus) {
     if (jsonld) {
       html = html.replace("</head>", `  <script type="application/ld+json">\n${jsonld}\n  </script>\n</head>`);
     }
-    return html.replace(MARQUE, `<main id="world-main" class="world-main" data-rendu-statique="actu">\n${corps}\n</main>`);
+    return html.replace(MARQUE, `<main id="world-main" class="world-main" data-rendu-statique="actu" data-langue="${esc(lang)}">\n${corps}\n</main>`);
   };
 
   // Le même maillage que sur les pages de filière : un article ne doit pas
@@ -462,7 +495,10 @@ if (actus) {
     JSON.stringify({ "@context": "https://schema.org", "@type": "CollectionPage",
       "@id": SITE + "/actualites#page", url: SITE + "/actualites", name: "Actualités",
       inLanguage: "fr-CH", isPartOf: { "@id": SITE + "/#site" },
-      about: { "@id": SITE + "/#academy" } }, null, 2)), "utf8");
+      about: { "@id": SITE + "/#academy" } }, null, 2),
+    undefined, undefined, undefined, "fr",
+    // La liste anglaise n'existe que s'il y a au moins un article traduit.
+    (actusEn && actusEn.length) ? alternesActu(null) : ""), "utf8");
 
   // Un fichier par article, dans actualites/
   await mkdir(join(ICI, "actualites"), { recursive: true });
@@ -485,8 +521,76 @@ if (actus) {
       publisher: { "@id": SITE + "/#academy" },
     }, null, 2);
     await writeFile(join(ICI, "actualites", a.slug + ".html"),
-      pageActu(`${a.title} — Team Lausanne Academy`, description, url, articleHTML(a, navCommune), jsonld, a.title, couverture, a.cover_alt), "utf8");
+      pageActu(`${a.title} — Team Lausanne Academy`, description, url, articleHTML(a, navCommune), jsonld, a.title, couverture, a.cover_alt,
+        "fr", alternesActu(a.slug)), "utf8");
     actusEcrites.push({ slug: a.slug, date: a.published_on });
+  }
+}
+
+// --- les actualités, en anglais -------------------------------------------
+// Mêmes pages, même forme, sous /en/news. La liste n'existe que s'il y a au
+// moins un article traduit : une rubrique « News » vide dirait que le club ne
+// se passe rien, alors qu'elle dit seulement que personne n'a traduit.
+if (actusEn && actusEn.length) {
+  const pageActuEn = (titre, description, url, corps, jsonld, h1, image, imageAlt, alternes) => {
+    let html = gabaritEN;
+    html = html.replace(/<html lang="[^"]*">/, '<html lang="en">')
+               .replace(/<meta property="og:locale" content="[^"]*"\s*\/>/,
+                 `<meta property="og:locale" content="${t("en", "locale")}" />`);
+    if (alternes) html = html.replace("</head>", `${alternes}\n</head>`);
+    if (image) html = imagePartage(html, image, imageAlt);
+    html = remplacer(html, /<h1 class="hero-slogan" id="hero-slogan"><\/h1>/,
+      `<h1 class="hero-slogan" id="hero-slogan">${esc(h1 || t("en", "actus_titre"))}</h1>`,
+      "<h1> du hero (actualités en)");
+    html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(titre)}</title>`);
+    html = html.replace(/<meta name="description" content="[^"]*"\s*\/>/,
+      `<meta name="description" content="${esc(description)}" />`);
+    html = html.replace(/<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${url}" />`);
+    html = html.replace(/<meta property="og:url" content="[^"]*"\s*\/>/, `<meta property="og:url" content="${url}" />`);
+    html = html.replace(/<meta property="og:title" content="[^"]*"\s*\/>/, `<meta property="og:title" content="${esc(titre)}" />`);
+    html = html.replace(/<meta property="og:description" content="[^"]*"\s*\/>/,
+      `<meta property="og:description" content="${esc(description)}" />`);
+    html = html.replace(/<meta name="twitter:title" content="[^"]*"\s*\/>/, `<meta name="twitter:title" content="${esc(titre)}" />`);
+    html = html.replace(/<meta name="twitter:description" content="[^"]*"\s*\/>/,
+      `<meta name="twitter:description" content="${esc(description)}" />`);
+    if (jsonld) html = html.replace("</head>", `  <script type="application/ld+json">\n${jsonld}\n  </script>\n</head>`);
+    return html.replace(MARQUE, `<main id="world-main" class="world-main" data-rendu-statique="actu" data-langue="en">\n${corps}\n</main>`);
+  };
+
+  const navEn = naviguerHTML(null, pagesEn, "en");
+  const urlListe = SITE + ACTU_CHEMIN.en;
+  await mkdir(join(ICI, ACTU_DOSSIER.en), { recursive: true });
+  await writeFile(join(ICI, "en", "news.html"), pageActuEn(
+    "News — Team Lausanne Academy",
+    "Life at the academy, week by week: the camps, the tournaments, how our players are doing, and the people who make the club.",
+    urlListe, listeActusHTML(actusEn, "en") + navEn,
+    JSON.stringify({ "@context": "https://schema.org", "@type": "CollectionPage",
+      "@id": urlListe + "#page", url: urlListe, name: "News",
+      inLanguage: "en", isPartOf: { "@id": SITE + "/#site" },
+      about: { "@id": SITE + "/#academy" } }, null, 2),
+    undefined, undefined, undefined, alternesActu(null)), "utf8");
+
+  for (const a of actusEn) {
+    if (!a || !a.slug) continue;
+    const url = `${SITE}${ACTU_CHEMIN.en}/${a.slug}`;
+    const description = descriptionArticle(a);
+    const couverture = a.cover_url ? SITE + "/" + String(a.cover_url).replace(/^\//, "") : IMAGE;
+    const jsonld = JSON.stringify({
+      "@context": "https://schema.org", "@type": "NewsArticle",
+      "@id": url + "#article", mainEntityOfPage: url, url,
+      headline: String(a.title || "").slice(0, 110),
+      description, inLanguage: "en",
+      datePublished: a.published_on, dateModified: a.published_on,
+      articleSection: a.category || undefined,
+      image: couverture,
+      author: { "@type": "Organization", name: a.author || "Team Lausanne Academy", url: SITE + "/" },
+      publisher: { "@id": SITE + "/#academy" },
+    }, null, 2);
+    await writeFile(join(ICI, ACTU_DOSSIER.en, a.slug + ".html"),
+      pageActuEn(`${a.title} — Team Lausanne Academy`, description, url,
+        articleHTML(a, navEn, "en"), jsonld, a.title, couverture, a.cover_alt,
+        alternesActu(a.slug)), "utf8");
+    actusEnEcrites.push({ slug: a.slug, date: a.published_on });
   }
 }
 
@@ -546,6 +650,18 @@ ${actusEcrites.map((a) => `  <url>
     <lastmod>${a.date || aujourdhui}</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
+  </url>`).join("\n")}` : ""}
+${actusEnEcrites.length ? `  <url>
+    <loc>${SITE}${ACTU_CHEMIN.en}</loc>
+    <lastmod>${aujourdhui}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+${actusEnEcrites.map((a) => `  <url>
+    <loc>${SITE}${ACTU_CHEMIN.en}/${a.slug}</loc>
+    <lastmod>${a.date || aujourdhui}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
   </url>`).join("\n")}` : ""}
 ${autonomesEcrites.filter((p) => p.sitemap).map((p) => `  <url>
     <loc>${SITE}/${PREFIXE.en}/${p.slug}</loc>

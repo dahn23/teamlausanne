@@ -359,23 +359,25 @@ ${date}
 ${p(a.lede)}
 ${couv}
 ${corps}
-<p><a href="/actualites">Toutes les actualités</a></p>
+<p><a href="${esc(t(lang, "chemin_actualites_liste"))}">${esc(t(lang, "toutes_actualites"))}</a></p>
 </article>
 ${nav}`);
 }
 
-export function listeActusHTML(articles) {
+export function listeActusHTML(articles, lang = "fr") {
+  // ⚠ Le slug est commun aux deux langues (db/249) : seul le chemin change.
+  const base = lang === "en" ? "/en/news" : "/actualites";
   const items = tab(articles).map((a) => `<li>
     <article>
-      <h2><a href="/actualites/${esc(a.slug)}">${esc(a.title)}</a></h2>
-      ${a.category ? `<p>${esc(a.category)}${
+      <h2><a href="${base}/${esc(a.slug)}">${esc(a.title)}</a></h2>
+      ${a.category ? `<p>${esc(t(lang, "cat_" + a.category) || a.category)}${
         a.published_on ? ` · <time datetime="${esc(a.published_on)}">${esc(a.published_on)}</time>` : ""}</p>` : ""}
       ${p(a.lede)}
     </article>
   </li>`).join("\n");
   return absolutiser(`<article>
-<h2>Actualités</h2>
-<p>La vie de l'académie, semaine après semaine : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club.</p>
+<h2>${esc(t(lang, "actus_titre"))}</h2>
+<p>${esc(t(lang, "actus_intro"))}</p>
 <ul>
 ${items}
 </ul>

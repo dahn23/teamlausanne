@@ -51,6 +51,9 @@ export const UI = {
 
     // --- actualités ---
     actus_titre: "Actualités",
+    actus_intro: "La vie de l'académie, semaine après semaine : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club.",
+    toutes_actualites: "Toutes les actualités",
+    chemin_actualites_liste: "/actualites",
     actus_vide: "Pas encore d'article.",
     actus_lire: "Lire l'article",
 
@@ -111,6 +114,9 @@ export const UI = {
 
     // --- actualités ---
     actus_titre: "News",
+    actus_intro: "Life at the academy, week by week: the camps, the tournaments, how our players are doing, and the people who make the club.",
+    toutes_actualites: "All news",
+    chemin_actualites_liste: "/en/news",
     actus_vide: "No articles yet.",
     actus_lire: "Read the article",
 
@@ -503,6 +509,12 @@ export const JS_EN = {
   "Pas encore d'article dans cette filière.": "No article in this programme yet.",
   "← Toutes les actualités": "← All news",
   "Toutes les actualités →": "All news →",
+  "← Revenir aux actualités": "← Back to the news",
+  // ⚠ Un CHEMIN dans la table des libellés, et la clé est le chemin FRANÇAIS
+  // — comme partout ici. T() rend la clé telle quelle quand la page est en
+  // français, donc « /actualites » reste « /actualites » sans rien de plus.
+  // Une clé inventée du genre « chemin_actus » aurait affiché son propre nom.
+  "/actualites": "/en/news",
   "Vie du club": "Club life",
 
   // --- noms de filières employés comme libellés de filtre ---

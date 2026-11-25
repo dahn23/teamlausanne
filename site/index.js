@@ -400,7 +400,7 @@ function sectionHTML(sec) {
           ${sec.lead ? `<p class="actus-acc-lead">${esc(sec.lead)}</p>` : ""}
         </div>
         <div id="accueil-actus" class="actu-grille"></div>
-        <p class="actus-acc-tout"><a class="btn-cta" href="/actualites">${T("Toutes les actualités →")}</a></p>
+        <p class="actus-acc-tout"><a class="btn-cta" href="${T("/actualites")}">${T("Toutes les actualités →")}</a></p>
       </section>`;
 
     // Les programmes, tous visibles, groupes par intention. Remplace le
@@ -1730,14 +1730,22 @@ function cleCourante() {
   // Les actualités : /actualites et /actualites/<slug>. Le routeur interne
   // continue de parler en « actualites » et « actu-<slug> » — seule l'adresse
   // publique change.
-  if (chemin === "actualites") return "actualites";
-  if (chemin.startsWith("actualites/")) return "actu-" + chemin.slice("actualites/".length);
+  // ⚠ Le segment des actualités change de nom selon la langue : « actualites »
+  // en français, « news » en anglais. La CLÉ interne, elle, ne change pas —
+  // le reste du routeur n'a rien à apprendre.
+  const segActu = LANG === "en" ? "news" : "actualites";
+  if (chemin === segActu) return "actualites";
+  if (chemin.startsWith(segActu + "/")) return "actu-" + chemin.slice(segActu.length + 1);
   return location.hash.replace("#", "");
 }
 
-// L'adresse publique d'une clé d'actualité.
-const cheminActu = (cle) => (cle === "actualites" ? "/actualites"
-  : cle.startsWith("actu-") ? "/actualites/" + cle.slice(5) : null);
+// L'adresse publique d'une clé d'actualité, dans la langue en cours.
+// Le slug est commun aux deux langues (db/249) : seul le chemin change.
+const cheminActu = (cle) => {
+  const base = LANG === "en" ? "/en/news" : "/actualites";
+  return cle === "actualites" ? base
+    : cle.startsWith("actu-") ? base + "/" + cle.slice(5) : null;
+};
 
 // Aller à une page. Un vrai chemin quand elle en a un, l'ancre sinon.
 function allerA(cle) {
@@ -3171,7 +3179,7 @@ const actuDate = (iso) => {
 
 async function actusCharger() {
   if (actusCache) return actusCache;
-  const { data, error } = await sb.rpc("news_public", { p_slug: null });
+  const { data, error } = await sb.rpc("news_public", { p_slug: null, p_lang: LANG });
   actusCache = error ? [] : (data || []);
   return actusCache;
 }
@@ -3290,7 +3298,7 @@ async function renderActu(slug) {
   const w = WORLDS.academie;
   paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: a.cover_url || "assets/photos/club-2026.jpg",
     tag: a.category, slogan: a.title, sloganEntier: true, titreArticle: true, desc: a.lede || "",
-    ctaHTML: `<a class="btn-cta ghost" href="/actualites">${T("← Toutes les actualités")}</a>` });
+    ctaHTML: `<a class="btn-cta ghost" href="${T("/actualites")}">${T("← Toutes les actualités")}</a>` });
 
   const corps = Array.isArray(a.body) ? a.body.map(actuBloc).join("") : "";
   const autres = tous.filter((x) => x.slug !== a.slug).slice(0, 3);
@@ -3304,7 +3312,7 @@ async function renderActu(slug) {
       ${autres.length ? `<div class="actu-suite">
         <h2>À lire aussi</h2>
         <div class="actu-grille">${autres.map(actuCarte).join("")}</div></div>` : ""}
-      <p class="actu-retour"><a href="/actualites">← Revenir aux actualités</a></p>
+      <p class="actu-retour"><a href="${T("/actualites")}">${T("← Revenir aux actualités")}</a></p>
     </section>`;
   setTitle("academie", a.title);
   animate();

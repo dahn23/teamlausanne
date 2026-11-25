@@ -15,6 +15,11 @@
   from = "/en/presidents-club"
   to = "/en/presidents-club.html"
   status = 200
+# La liste des actualites anglaises, fabriquee au build dans en/news.html.
+[[redirects]]
+  from = "/en/news"
+  to = "/en/news.html"
+  status = 200
 [build]
   publish = "."
   # Fabrique une vraie page HTML par programme (voir build.mjs). Le script
@@ -253,6 +258,12 @@
 # ne concerne QUE les adresses sans page.
 [[redirects]]
   from = "/actualites/*"
+  to = "/index.html"
+  status = 404
+# Meme regle pour les articles anglais : une adresse sans page repond 404 et
+# non 200. Un article qui existe a bien son fichier, servi en priorite.
+[[redirects]]
+  from = "/en/news/*"
   to = "/index.html"
   status = 404
 
