@@ -20680,6 +20680,7 @@ async function loadMail() {
     // Changer de boîte change la signature : chacune a son adresse, et plus
     // tard son logo. Seul le bloc de signature est remplacé, pas le texte.
     $("mailc-from").addEventListener("change", () => mailPoserSignature($("mailc-body"), $("mailc-from").value));
+    $("mailc-sign").addEventListener("click", () => mailSignatureBouton($("mailc-body"), $("mailc-from").value, $("mailc-status")));
     $("mailc-file").addEventListener("change", (e) => { for (const f of e.target.files) { if (f.size > 8 * 1024 * 1024) { alert(`${f.name} dépasse 8 Mo — trop lourd.`); continue; } mailcFiles.push(f); } e.target.value = ""; renderMailcFiles(); });
     attachEmailAC($("mailc-to")); attachEmailAC($("mailc-cc")); attachEmailAC($("mailc-bcc"));  // autocompletion adresses
   }
@@ -21077,6 +21078,10 @@ function mailWireCompose() {
     e.target.value = "";
     renderMailFiles();
   });
+  // La boîte d'envoi est celle où le message est arrivé : elle est posée sur
+  // l'éditeur (data-acct) plutôt que relue dans mailMsgs, qui peut avoir été
+  // rafraîchi entre-temps.
+  $("mail-d-sign").addEventListener("click", () => mailSignatureBouton($("mail-d-replyhtml"), $("mail-d-replyhtml").dataset.acct, $("mail-d-sendstatus")));
   $("mail-d-send").addEventListener("click", () => mailSendReply($("mail-d-send").dataset.mid));
   $("mail-d-send").dataset.mid = mailSelId;
   // Absent sur un mail envoyé : proposer une « réponse » à son propre message
@@ -21280,6 +21285,27 @@ function mailPoserSignature(ed, adresse) {
 // l'ouverture, donc « l'éditeur est-il vide ? » répondrait toujours non — et
 // « Écris un message » ne protégerait plus rien, et ouvrir un mail sans y
 // répondre enregistrerait un brouillon.
+// Bouton « ✍ Signature » des deux barres d'outils (nouveau message et cadre de
+// réponse). La signature est posée d'office à l'ouverture d'un cadre VIDE ;
+// elle manque donc dans trois cas parfaitement normaux, et le bouton est là
+// pour eux : un brouillon repris (il contient déjà ce qu'on avait écrit),
+// « ✨ Proposer une réponse » (qui remplace tout l'éditeur), et un transfert
+// qu'on a vidé. Plus, bien sûr, quand on l'a effacée par erreur.
+// ⚠ Le curseur est replacé AU DÉBUT : la signature est en bas, et sans ça on
+// se met à écrire dessous.
+function mailSignatureBouton(ed, adresse, statut) {
+  if (!ed) return;
+  if (!mailSignatureHtml(adresse)) {
+    if (statut) statut.textContent = `Pas encore de signature pour ${adresse || "cette boîte"}.`;
+    return;
+  }
+  mailPoserSignature(ed, adresse);
+  if (statut) statut.textContent = "";
+  ed.focus();
+  const sel = window.getSelection();
+  if (sel) { const r = document.createRange(); r.setStart(ed, 0); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }
+  ed.querySelector(".tl-sign")?.scrollIntoView({ block: "nearest" });
+}
 function mailSansSign(ed) {
   if (!ed) return "";
   const c = ed.cloneNode(true);
@@ -21474,7 +21500,11 @@ async function mailForward(m) {
     : "De : " + esc(m.from_name ? `${m.from_name} <${m.from_address}>` : (m.from_address || ""));
   const orig = m.body_html || esc(m.body_text || "").replace(/\n/g, "<br>");
   const quoted = `<br><br>---------- Message transféré ----------<br>${who}<br>Objet : ${esc(m.subject || "")}<br>Date : ${esc(mailDT(m.received_at))}<br><br>${orig}`;
-  openMailCompose({ account: m.account_address, subject: subj, bodyHtml: quoted, files });
+  // ⚠ La signature est posée ICI, et pas par openMailCompose : celui-ci ne
+  // signe qu'un éditeur vide, donc un transfert partait nu. Elle va AVANT le
+  // trait de transfert — après, elle se retrouverait au bas du message
+  // d'origine, comme si elle en faisait partie.
+  openMailCompose({ account: m.account_address, subject: subj, bodyHtml: mailSignatureHtml(m.account_address) + quoted, files });
 }
 function renderMailcFiles() {
   const box = $("mailc-files"); if (!box) return;
@@ -21726,13 +21756,14 @@ async function openMail(id) {
         <button type="button" class="rt-btn" id="mail-d-link" title="Insérer un lien (surligner un mot puis cliquer)">🔗</button>
         <label class="rt-color" title="Couleur du texte">A<input type="color" id="mail-d-color" value="#000000" /></label>
         <label class="rt-attach" title="Joindre un fichier">📎 Joindre<input type="file" id="mail-d-file" multiple hidden /></label>
+        <button type="button" class="rt-sign" id="mail-d-sign" title="Remettre la signature de ${esc(m.account_address)}">✍ Signature</button>
         ${isOut ? "" : `<button type="button" id="mail-d-suggest" class="rt-suggest" title="Rédiger une réponse automatiquement">✨ Proposer une réponse</button>`}
       </div>
       <div class="mail-d-cc">
         <input id="mail-d-cc" type="text" autocomplete="off" placeholder="Cc (copie, optionnel)" />
         <input id="mail-d-bcc" type="text" autocomplete="off" placeholder="Cci (copie cachée, optionnel)" />
       </div>
-      <div id="mail-d-replyhtml" class="rt-edit" contenteditable="true" data-ph="${isOut ? "Relancer" : "Répondre à"} ${esc(destFil)}…"></div>
+      <div id="mail-d-replyhtml" class="rt-edit" contenteditable="true" data-acct="${esc(m.account_address)}" data-ph="${isOut ? "Relancer" : "Répondre à"} ${esc(destFil)}…"></div>
       <div id="mail-d-files" class="rt-files"></div>
       <div class="mail-d-reply-foot"><span class="muted" style="font-size:.8rem">Envoi depuis ${esc(m.account_address)}</span>
         <span id="mail-d-draft" class="mail-draft muted" style="font-size:.78rem"></span>

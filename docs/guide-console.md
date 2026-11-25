@@ -1430,6 +1430,20 @@ répondra qu'elle ne sait pas, et la question remontera dans
   écrit, et vous pouvez l'effacer comme n'importe quel texte. Un message qui
   ne contient que la signature reste considéré comme **vide** : il ne part
   pas, et il n'enregistre pas de brouillon.
+  **Quand elle se pose toute seule, et quand non.** Elle arrive
+  automatiquement dans un cadre **vide** : un nouveau message, un cadre de
+  réponse où vous n'aviez pas de brouillon en cours, et un transfert. Elle
+  n'arrive **pas** quand un **brouillon est repris** (il contient déjà ce que
+  vous aviez écrit, signature comprise) ni après « ✨ Proposer une réponse »,
+  qui remplace tout le contenu du cadre.
+  **Le bouton « ✍ Signature ».** Dans la barre d'outils, à côté de
+  « 📎 Joindre ». Il remet la signature de la boîte en cours à tout moment :
+  après une suggestion de l'IA, sur un brouillon repris, ou simplement si
+  vous l'avez effacée. Cliquer deux fois ne la double pas — elle est
+  remplacée, jamais empilée — et le texte déjà écrit n'est pas touché. Le
+  curseur revient au début du cadre, pour que vous écriviez au-dessus. Sur la
+  boîte privée, qui n'a pas de signature, le bouton vous le dit au lieu de ne
+  rien faire.
 - **Newsletter** — « ✉ Nouvelle newsletter ». La lettre se compose par **blocs**
   (en-tête, titre, texte, image, image + texte, bouton, bandeau, chiffres,
   séparateur, pied), et la galerie de **modèles** en propose six prêts à

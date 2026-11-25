@@ -1455,6 +1455,11 @@ html{-webkit-tap-highlight-color:transparent}
 .rt-color input[type=color]{width:20px;height:20px;border:0;padding:0;background:none;cursor:pointer}
 .rt-attach{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:7px;padding:0 10px;height:30px;cursor:pointer;font-size:.82rem}
 .rt-attach:hover{background:#eef3ff}
+/* ⚠ « button.rt-sign » et pas « .rt-sign » : la règle nue (0,1,0) se ferait
+   battre par un sélecteur de bouton plus précis, et le bouton reviendrait au
+   gris-sur-blanc d'un ghost — introuvable dans une barre d'outils. */
+button.rt-sign{display:inline-flex;align-items:center;gap:4px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:0 10px;height:30px;font-size:.82rem;cursor:pointer;white-space:nowrap}
+button.rt-sign:hover{background:#eef3ff}
 .rt-suggest{background:#eef3ff;color:var(--blue-ink);border:1px solid var(--line);border-radius:7px;padding:0 12px;height:30px;font-size:.82rem;cursor:pointer;font-weight:600;white-space:nowrap}
 .rt-suggest:hover{background:#dde7ff}
 .rt-suggest:disabled{opacity:.6;cursor:wait}
