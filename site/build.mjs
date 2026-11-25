@@ -20,12 +20,14 @@
 // ===========================================================================
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTENU } from "./contenu.js";
 import { CONTENU_EN } from "./contenu-en.js";
+import { PAGES_AUTONOMES } from "./pages-en/manifeste.js";
 import {
-  pagesDe, corpsHTML, titreDe, descriptionDe, esc, faqDe, naviguerHTML,
+  pagesDe, corpsHTML, titreDe, descriptionDe, esc, faqDe, naviguerHTML, absolutiser,
   articleHTML, listeActusHTML, descriptionArticle, enTeteDe,
 } from "./rendu-statique.js";
 import {
@@ -319,6 +321,30 @@ for (const [cle, page] of Object.entries(plan.pages)) {
 }
 }
 
+// --- les pages autonomes en anglais ---------------------------------------
+// Le Cercle du Président et la politique de confidentialité sont écrites
+// directement en HTML : leur version anglaise est un fichier parallèle, pas
+// des données. On la recopie dans en/, en vérifiant que le français n'a pas
+// bougé depuis la dernière traduction (voir pages-en/manifeste.js).
+const autonomesEcrites = [];
+for (const p of PAGES_AUTONOMES) {
+  const source = await readFile(join(ICI, p.fr), "utf8");
+  const vue = createHash("sha256").update(source).digest("hex").slice(0, 16);
+  if (vue !== p.empreinte) {
+    console.error(`build: ${p.fr} a changé depuis sa traduction anglaise.`);
+    console.error(`build:   empreinte attendue ${p.empreinte}, trouvée ${vue}`);
+    console.error(`build:   → reporter le changement dans pages-en/${p.en}, PUIS mettre l'empreinte à jour.`);
+    console.error("build:   (mettre l'empreinte à jour sans traduire éteindrait l'alarme, pas le feu.)");
+    process.exit(1);
+  }
+  // Mêmes chemins absolus que pour le gabarit : la page est servie depuis
+  // /en/, un chemin relatif y repartirait de /en/ et pointerait dans le vide.
+  const html = absolutiser(await readFile(join(ICI, "pages-en", p.en), "utf8"));
+  await mkdir(join(ICI, PREFIXE.en), { recursive: true });
+  await writeFile(join(ICI, PREFIXE.en, p.slug + ".html"), html, "utf8");
+  autonomesEcrites.push(p);
+}
+
 // --- les actualités -------------------------------------------------------
 // Elles ne vivent pas dans contenu.js mais dans la base. On les lit au
 // déploiement par news_public(), la fonction SECURITY DEFINER qui ne rend que
@@ -483,6 +509,12 @@ ${actusEcrites.map((a) => `  <url>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>`).join("\n")}` : ""}
+${autonomesEcrites.filter((p) => p.sitemap).map((p) => `  <url>
+    <loc>${SITE}/${PREFIXE.en}/${p.slug}</loc>
+    <lastmod>${aujourdhui}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>`).join("\n")}
 ${["cercle-du-president", "confidentialite"].map((s) => `  <url>
     <loc>${SITE}/${s}</loc>
     <lastmod>${aujourdhui}</lastmod>

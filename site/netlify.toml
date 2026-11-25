@@ -4,6 +4,13 @@
   from = "/confidentialite"
   to = "/confidentialite.html"
   status = 200
+# Meme regle pour la version anglaise, fabriquee au build dans en/ depuis
+# pages-en/privacy.html. Sans elle, /en/privacy serait servie en 404 : le
+# fichier existe bien, mais sous son nom complet.
+[[redirects]]
+  from = "/en/privacy"
+  to = "/en/privacy.html"
+  status = 200
 [build]
   publish = "."
   # Fabrique une vraie page HTML par programme (voir build.mjs). Le script

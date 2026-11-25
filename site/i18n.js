@@ -254,8 +254,11 @@ export const CHROME_EN = [
   ["<h2>Un lieu, trois mondes</h2>", "<h2>One place, three worlds</h2>"],
   [">Tout se joue au même endroit, aux Plaines-du-Loup à Lausanne.",
    ">It all happens in one place, at the Plaines-du-Loup in Lausanne."],
+  // Les trois verbes sont ceux des trois marches juste en dessous — Play,
+  // Progress, Enjoy. La phrase les reprend mot pour mot, sinon le texte
+  // annonce une chose et les pastilles en disent une autre.
   ["Le club où l'on joue, l'academy où l'on progresse, le tournoi où l'on vibre.</p>",
-   "The club where you play, the academy where you improve, the tournament where you cheer.</p>"],
+   "The club where you play, the academy where you progress, the tournament where you enjoy it.</p>"],
   // Les trois marches du parcours, mots donnés par Raphael : un verbe nu,
   // comme le slogan « Play. Progress. Together. » qu'elles reprennent.
   ["<h3>On joue</h3>", "<h3>Play</h3>"],
@@ -264,7 +267,11 @@ export const CHROME_EN = [
   [">Un lieu, plusieurs mondes<", ">One place, several worlds<"],
   [">Jouer. Grandir. Vibrer. Ensemble.<", ">Play. Grow. Enjoy. Together.<"],
   ["© 2026 Team Lausanne — Club · Academy · Tournoi", "© 2026 Team Lausanne — Club · Academy · Tournament"],
-  [">Confidentialité<", ">Privacy<"],
+  // ⚠ Le LIEN autant que le libellé : traduire « Confidentialité » en
+  // « Privacy » sans changer le href aurait envoyé l'anglophone sur la
+  // politique française. Un mot anglais menant à une page française est pire
+  // qu'un mot français, parce qu'il ne prévient pas.
+  ['<a href="/confidentialite">Confidentialité</a>', '<a href="/en/privacy">Privacy</a>'],
 
   // --- visionneuse et plan des courts ---
   ['aria-label="Photo en grand"', 'aria-label="Photo enlarged"'],
