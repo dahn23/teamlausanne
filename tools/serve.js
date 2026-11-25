@@ -13,7 +13,10 @@ const PORT = Number(process.argv[3]) || 4173;
 const RACINE = path.resolve(__dirname, "..", SOUS);
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".json": "application/json",
-  ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".ico": "image/x-icon" };
+  ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
+  ".ico": "image/x-icon", ".mp4": "video/mp4", ".pdf": "application/pdf",
+  ".xml": "application/xml; charset=utf-8", ".txt": "text/plain; charset=utf-8",
+  ".woff2": "font/woff2", ".avif": "image/avif", ".gif": "image/gif" };
 
 http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
@@ -21,9 +24,28 @@ http.createServer((req, res) => {
   // public, « / » c'est l'accueil.
   if (p === "/") p = SOUS ? "/index.html" : "/connexion.html";
   if (!SOUS && p === "/console") p = "/admin.html";
-  const f = path.join(RACINE, p);
-  if (!f.startsWith(RACINE) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
+  let f = path.join(RACINE, p);
+  // Netlify sert « /sport-etudes » depuis sport-etudes.html et « /en/ » depuis
+  // en/index.html. Ce serveur-ci ne le faisait pas : toute adresse publique
+  // tombait en 404 en local, donc on ne pouvait PAS relire le site chez soi —
+  // et c'est ainsi que trois bogues d'affichage sont partis en production le
+  // 25.11.2026, vérifiés au curl faute de pouvoir les ouvrir.
+  // ⚠ Essayer « .html » AVANT « /index.html » : c'est l'ordre de Netlify, et
+  // les pages sont posées à plat exprès (voir build.mjs).
+  const existe = (x) => fs.existsSync(x) && !fs.statSync(x).isDirectory();
+  if (!existe(f)) {
+    const candidats = [f + ".html", path.join(f, "index.html"),
+      // Et comme en production, une adresse inconnue rend 404.html — avec le
+      // VRAI code 404, sinon un lien mort passerait pour une page valide.
+      path.join(RACINE, "404.html")];
+    f = candidats.find(existe) || f;
+  }
+  if (!f.startsWith(RACINE) || !existe(f)) {
     res.writeHead(404, { "content-type": "text/plain" }); res.end("404 " + p); return;
+  }
+  if (path.basename(f) === "404.html" && !p.endsWith("404.html")) {
+    res.writeHead(404, { "content-type": TYPES[".html"], "cache-control": "no-store" });
+    fs.createReadStream(f).pipe(res); return;
   }
   res.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream",
     "cache-control": "no-store" });

@@ -69,7 +69,7 @@ const icoStat = (k) => ICO_STAT[k]
        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO_STAT[k]}</svg>`
   : "";
 
-const partLogo = (p) => `assets/partenaires/${p.l}.${p.svg ? "svg" : "png"}`;
+const partLogo = (p) => `/assets/partenaires/${p.l}.${p.svg ? "svg" : "png"}`;
 
 // Les quatorze partenaires ci-dessus sont ceux du TOURNOI : ils ne s'affichent
 // que sur la page du Lausanne Open, dans sa propre section. Le bandeau du bas de
@@ -271,8 +271,8 @@ const BALLE = `<svg class="kw-balle" viewBox="0 0 24 24" aria-hidden="true" focu
 // Par defaut la photo suit le slug. « photo » et « portrait » permettent d'en
 // viser une autre : Celyan n'a pas encore de photo faite pour cette page, et
 // reutilise en attendant celle de son portrait d'eleve.
-const coachPhoto = (c) => c.photo || `assets/photos/coaches/${c.slug}.jpg`;
-const coachPortrait = (c) => c.portrait || `assets/photos/coaches/${c.slug}-large.jpg`;
+const coachPhoto = (c) => c.photo || `/assets/photos/coaches/${c.slug}.jpg`;
+const coachPortrait = (c) => c.portrait || `/assets/photos/coaches/${c.slug}-large.jpg`;
 
 // Fleche du bouton, reprise de la page d'origine.
 const CCH_FLECHE = `<svg class="cch-fleche" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
@@ -590,7 +590,7 @@ function sectionHTML(sec) {
           const rang = sommet ? T("au meilleur de sa carrière") : `meilleur : ${s.best}ᵉ`;
           return `<button type="button" class="pcard" aria-expanded="false">
             <span class="pcard-photo">
-              <img src="assets/players/${esc(s.photo)}" alt="${esc(s.nom)}" loading="lazy" />
+              <img src="/assets/players/${esc(s.photo)}" alt="${esc(s.nom)}" loading="lazy" />
             </span>
             <span class="pcard-n" aria-hidden="true">${s.n}</span>
             <span class="pcard-bas">
@@ -712,7 +712,7 @@ function sectionHTML(sec) {
           </div>
           <label class="cf-field"><span>Message</span><textarea id="m-message" rows="3"></textarea></label>
           <label class="m-consent"><input type="checkbox" id="m-consent" required />
-            <span>J'ai lu et j'accepte le <a href="assets/Reglement_TCLS_2026.pdf" target="_blank" rel="noopener">règlement du club (PDF)</a>.</span></label>
+            <span>J'ai lu et j'accepte le <a href="/assets/Reglement_TCLS_2026.pdf" target="_blank" rel="noopener">règlement du club (PDF)</a>.</span></label>
           <button type="submit" id="m-btn">Envoyer ma demande d'adhésion</button>
           <p id="m-error" class="error" hidden></p>
         </form>
@@ -3266,7 +3266,7 @@ async function renderActus() {
   document.body.dataset.world = "academie";
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === "academie"));
   const w = WORLDS.academie;
-  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: "assets/photos/club-2026.jpg",
+  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: "/assets/photos/club-2026.jpg",
     tag: w.tag, slogan: T("Actualités"), sloganEntier: true,
     desc: T("Chaque semaine, un regard sur la vie de l'académie : les stages, les tournois, les parcours de nos joueuses et joueurs, et les gens qui font le club."),
     ctaHTML: `<button class="btn-cta ghost" data-back="academie">← Retour ${esc(w.retour)}</button>` });
@@ -3324,7 +3324,7 @@ async function renderActu(slug) {
   document.body.dataset.world = "academie";
   document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.world === "academie"));
   const w = WORLDS.academie;
-  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: a.cover_url || "assets/photos/club-2026.jpg",
+  paintHero({ logo: w.logo, heroLogo: w.heroLogo, hero: a.cover_url || "/assets/photos/club-2026.jpg",
     tag: a.category, slogan: a.title, sloganEntier: true, titreArticle: true, desc: a.lede || "",
     ctaHTML: `<a class="btn-cta ghost" href="${T("/actualites")}">${T("← Toutes les actualités")}</a>` });
 

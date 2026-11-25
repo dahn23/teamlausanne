@@ -21,9 +21,9 @@
   <meta property="og:description" content="Tennis avec nos pros, Business Spotlight et apéritif dînatoire, chaque vendredi matin en halle couverte à Lausanne. Sur invitation." />
   <meta property="og:image" content="https://teamlausanne.ch/assets/cercle/hero.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png" />
-  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon-64.png" />
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
   <link rel="preconnect" href="https://use.typekit.net" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Polices de marque : Acumin Pro + Circe (kit Adobe uxl8yzy), Noto Sans en repli (charte 2026). -->
@@ -100,11 +100,31 @@
     .top-brand span{font-family:var(--accent);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;
       opacity:.75;border-left:1px solid rgba(255,255,255,.3);padding-left:14px;line-height:1.3}
     .top .btn{padding:12px 20px;font-size:.8rem}
+    /* Pastille FR | EN. Cette page a sa propre mise en page et ne partage pas
+       style.css : la règle est donc recopiée ici, en version CLAIRE — l'entête
+       est posée sur une photo sombre, et le bleu de la charte y disparaîtrait.
+       ⚠ Elle existe aussi sur /en/presidents-club, où pages-en/cercle.js ne
+       remplace QUE le lien et les deux libellés : si on renomme une classe
+       ici, il faut y toucher aussi. */
+    .top .lang-switch{display:inline-flex;align-items:center;margin-left:auto;
+      border:1.5px solid rgba(255,255,255,.55);border-radius:999px;overflow:hidden;
+      text-decoration:none;font-weight:700;font-size:.78rem;letter-spacing:.06em;
+      line-height:1;white-space:nowrap;flex:0 0 auto}
+    .top .lang-switch .lang-on{background:#fff;color:var(--ink);padding:8px 10px}
+    .top .lang-switch .lang-off{color:#fff;padding:8px 10px;transition:background-color .2s,color .2s}
+    .top .lang-switch:hover .lang-off{background:var(--fluo);color:var(--fluo-ink)}
+    .top .lang-switch:focus-visible{outline:3px solid var(--fluo);outline-offset:2px}
+    /* Un trait, pas un caractère « | » : un « | » se fait lire à voix haute. */
+    .top .lang-switch .lang-sep{width:1.5px;align-self:stretch;background:rgba(255,255,255,.55)}
+    @media (max-width:640px){
+      .top .lang-switch{font-size:.72rem}
+      .top .lang-switch .lang-on,.top .lang-switch .lang-off{padding:7px 8px}
+    }
 
     /* --- héros --- */
     .hero{position:relative;min-height:100vh;min-height:100svh;display:flex;align-items:flex-end;
       color:#fff;background:var(--nuit);overflow:hidden;padding:140px 0 64px}
-    .hero-bg{position:absolute;inset:0;background:url("assets/cercle/hero.jpg") 62% 30%/cover no-repeat;
+    .hero-bg{position:absolute;inset:0;background:url("/assets/cercle/hero.jpg") 62% 30%/cover no-repeat;
       transform:scale(1.04);animation:lent 18s ease-out forwards}
     @keyframes lent{to{transform:scale(1)}}
     .hero::after{content:"";position:absolute;inset:0;
@@ -163,7 +183,7 @@
     /* --- la halle --- */
     .halle{padding:0;background:var(--nuit-2);color:#fff}
     .halle-in{display:grid;grid-template-columns:1.25fr 1fr;min-height:620px}
-    .halle-img{background:url("assets/cercle/halle.jpg") center/cover no-repeat;min-height:360px}
+    .halle-img{background:url("/assets/cercle/halle.jpg") center/cover no-repeat;min-height:360px}
     .halle-txt{padding:clamp(56px,8vw,110px) clamp(24px,6vw,90px);display:flex;flex-direction:column;justify-content:center}
     .halle-txt ul{list-style:none;padding:0;margin:30px 0 0;display:grid;gap:16px}
     .halle-txt li{display:flex;gap:14px;align-items:flex-start;color:rgba(255,255,255,.8)}
@@ -216,7 +236,7 @@
 
     /* --- bandeau photo --- */
     .bandeau{position:relative;padding:clamp(90px,14vw,170px) 0;color:#fff;text-align:center;overflow:hidden}
-    .bandeau::before{content:"";position:absolute;inset:0;background:url("assets/cercle/table.jpg") center 60%/cover no-repeat}
+    .bandeau::before{content:"";position:absolute;inset:0;background:url("/assets/cercle/table.jpg") center 60%/cover no-repeat}
     .bandeau::after{content:"";position:absolute;inset:0;background:rgba(5,11,31,.7)}
     .bandeau .wrap{position:relative;z-index:2}
     .bandeau p{font-family:var(--accent);font-size:clamp(1.8rem,4.4vw,3.4rem);line-height:1.1;font-weight:300;max-width:900px;margin:0 auto}
@@ -353,9 +373,10 @@
   <header class="top">
     <div class="wrap">
       <a class="top-brand" href="/">
-        <img src="assets/logo-academie-blanc.png" alt="Team Lausanne Academy" />
+        <img src="/assets/logo-academie-blanc.png" alt="Team Lausanne Academy" />
         <span>TC Lausanne-Sports<br />Team Lausanne Academy</span>
       </a>
+      <a class="lang-switch" id="lang-switch" href="/en/presidents-club" hreflang="en" lang="en" title="Read this page in English"><span class="lang-on">FR</span><span class="lang-sep" aria-hidden="true"></span><span class="lang-off">EN</span></a>
       <a class="btn btn-fluo" href="#invitation">Demander une invitation</a>
     </div>
   </header>
@@ -404,25 +425,25 @@
       </div>
       <div class="piliers">
         <article class="pilier rv">
-          <img src="assets/cercle/pros.jpg" alt="Un coach de Team Lausanne corrige le geste d'une joueuse" loading="lazy" />
+          <img src="/assets/cercle/pros.jpg" alt="Un coach de Team Lausanne corrige le geste d'une joueuse" loading="lazy" />
           <div class="num">01</div>
           <h3>Le tennis avec ceux qui font la différence</h3>
           <p>Deux heures sur le court, encadrées par les coachs et joueurs professionnels de Team Lausanne Academy. Débutant ou joueur confirmé, chacun joue à son niveau.</p>
         </article>
         <article class="pilier rv">
-          <img src="assets/cercle/coach.jpg" alt="Coach de Team Lausanne au bord du court" loading="lazy" />
+          <img src="/assets/cercle/coach.jpg" alt="Coach de Team Lausanne au bord du court" loading="lazy" />
           <div class="num">02</div>
           <h3>Des rencontres qui comptent</h3>
           <p>Un cercle sélectionné d'entrepreneurs, de dirigeants et de décideurs de la région — et un lien direct avec le président et les acteurs clés du TC Lausanne-Sports.</p>
         </article>
         <article class="pilier rv">
-          <img src="assets/cercle/spotlight.jpg" alt="Prise de notes pendant une présentation" loading="lazy" />
+          <img src="/assets/cercle/spotlight.jpg" alt="Prise de notes pendant une présentation" loading="lazy" />
           <div class="num">03</div>
           <h3>Votre entreprise sous les projecteurs</h3>
           <p>Un Business Spotlight de 10 minutes pour présenter votre activité, votre vision et vos opportunités à un public qui décide.</p>
         </article>
         <article class="pilier rv">
-          <img src="assets/cercle/table.jpg" alt="Tables de l'espace hospitalité au bord des courts" loading="lazy" />
+          <img src="/assets/cercle/table.jpg" alt="Tables de l'espace hospitalité au bord des courts" loading="lazy" />
           <div class="num">04</div>
           <h3>L'après-match qui crée les opportunités</h3>
           <p>Chaque vendredi se prolonge autour d'un apéritif dînatoire. Le meilleur moment pour transformer une partie en relation.</p>
@@ -483,7 +504,7 @@
            doit pouvoir descendre à côté du nom, sous la citation. -->
       <p class="eyebrow">Le mot du président</p>
       <div class="mot-photo">
-        <img src="assets/cercle/kazem-huber.jpg" width="400" height="400" loading="lazy"
+        <img src="/assets/cercle/kazem-huber.jpg" width="400" height="400" loading="lazy"
              alt="Kazem Huber, président du TC Lausanne-Sports" />
       </div>
       <blockquote>« Un club de tennis, c'est d'abord un lieu de rencontre. Avec le Cercle, nous réunissons le vendredi matin celles et ceux qui font l'économie de la région — autour d'un filet plutôt que d'une table de réunion. On joue, on échange, on prolonge autour de l'apéritif. Et <b>il se noue souvent plus de choses en une matinée qu'en trois rendez-vous.</b> »</blockquote>
@@ -549,15 +570,15 @@
       </div>
       <div class="eco-grid">
         <article class="eco-card rv">
-          <img src="assets/cercle/detail.jpg" alt="Chaussure de tennis sur terre battue" loading="lazy" />
+          <img src="/assets/cercle/detail.jpg" alt="Chaussure de tennis sur terre battue" loading="lazy" />
           <div><h3>TC Lausanne-Sports</h3><p>Le club et ses 12 courts aux Plaines-du-Loup, dont 6 couverts en hiver. Un lien direct avec son président et ses acteurs clés.</p></div>
         </article>
         <article class="eco-card rv">
-          <img src="assets/cercle/academy.jpg" alt="Joueur professionnel de Team Lausanne Academy en glissade sur terre battue" loading="lazy" />
+          <img src="/assets/cercle/academy.jpg" alt="Joueur professionnel de Team Lausanne Academy en glissade sur terre battue" loading="lazy" />
           <div><h3>Team Lausanne Academy</h3><p>Du Kids Tennis au programme Pro, en passant par le sport-études : les coachs qui animent vos vendredis forment la relève.</p></div>
         </article>
         <article class="eco-card rv">
-          <img src="assets/cercle/open.jpg" alt="Les vainqueurs du Lausanne Open 2026 avec leurs trophées" loading="lazy" />
+          <img src="/assets/cercle/open.jpg" alt="Les vainqueurs du Lausanne Open 2026 avec leurs trophées" loading="lazy" />
           <div><h3>Lausanne Open</h3><p>Le tournoi international ITF M25 que nous organisons chaque été : un rendez-vous privilégié pour les membres du Cercle et leurs invités.</p></div>
         </article>
       </div>

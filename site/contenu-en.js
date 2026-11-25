@@ -187,7 +187,7 @@ coachs:
     ]},
 
   { slug: "celyan-lorival", role: "Coach", nom: "Célyan Lorival",
-    portrait: "assets/photos/coaches/celyan-lorival.jpg", portraitPos: "center 24%",
+    portrait: "/assets/photos/coaches/celyan-lorival.jpg", portraitPos: "center 24%",
     resume: "A sport studies player and a coach for two years, he passes on with patience what he is still learning on court himself.",
     tags: ["Kids Tennis", "Club", "Competition", "Camps"],
     bio: [
@@ -206,7 +206,7 @@ coachs:
     ]},
 
   { slug: "augustin-tarouat", role: "Coach", nom: "Augustin Tarouat",
-    portrait: "assets/photos/coaches/augustin-tarouat.jpg", portraitPos: "center 20%",
+    portrait: "/assets/photos/coaches/augustin-tarouat.jpg", portraitPos: "center 20%",
     resume: "Trained in a sport studies programme in Lyon, he likes taking technique and tactics apart to help every player improve at their own pace.",
     tags: ["Kids Tennis", "Club", "Competition"],
     bio: [
@@ -237,7 +237,7 @@ coachs:
     ]},
 
   { slug: "andreas-egger", role: "Physical coach", nom: "Andreas Egger",
-    portrait: "assets/photos/coaches/andreas-egger.jpg", portraitPos: "center 10%",
+    portrait: "/assets/photos/coaches/andreas-egger.jpg", portraitPos: "center 10%",
     resume: "A strength and conditioning coach, he works with the players all season and pushes them to go beyond themselves day after day.",
     tags: ["Sport Studies & Pro"],
     bio: [
@@ -281,11 +281,11 @@ worlds: {
     h1: "Tennis school in Lausanne",
     metaTitle: "Tennis in Lausanne: school, sport studies, club | Team Lausanne",
     metaDescription: "Tennis in Lausanne: lessons from age 4, competition, sport studies and pro. 12 courts at the Plaines-du-Loup, 6 of them covered in winter.",
-    logo: "assets/logo-academie.webp", heroLogo: "assets/logo-academie-blanc.png",
+    logo: "/assets/logo-academie.webp", heroLogo: "/assets/logo-academie-blanc.png",
     slogan: "Play. Progress. Together.",
     desc: "The training centre of Lausanne-Sports Tennis. A complete pathway, from a first rally to high performance, built for every age from 4 upwards.",
-    hero: "assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
-    heroVideo: "assets/video/accueil-hero.mp4",
+    hero: "/assets/photos/competition-2026-g1.jpg", heroPos: "center 40%",
+    heroVideo: "/assets/video/accueil-hero.mp4",
     cta: [{ label: "Our camps", type: "stages" }, { label: "Our GameZone tournaments", type: "gamezone" }, { label: "Our Sport Studies programme", type: "sport-etudes" }],
     sections: [
       { type: "rich", anchor: "philosophie", title: "Our philosophy", body: [
@@ -309,7 +309,7 @@ worlds: {
       { type: "filmsec", variant: "hero", anchor: "film", eyebrow: "The club's film",
         title: "From a first rally to real ambition",
         lead: "The training centre of Lausanne-Sports Tennis, in pictures.",
-        poster: "assets/photos/accueil-film-2026.jpg",
+        poster: "/assets/photos/accueil-film-2026.jpg",
         video: "16cjRpRNQZ0",
         link: { label: "Explore our programmes", cta: true, scroll: "programmes" } },
       { type: "coachs", piste: true, anchor: "coachs", eyebrow: "The people who coach",
@@ -320,16 +320,16 @@ worlds: {
       { type: "carousel", anchor: "programmes", eyebrow: "Tennis for everyone", title: "A programme for every level",
         sub: "From a first rally to high performance, a clear path to improve and enjoy it.",
         items: [
-          { name: "Kids Tennis", photo: "assets/photos/kidstennis-2026.jpg", href: "#kids" },
-          { name: "Club", photo: "assets/photos/club-2026.jpg", href: "#club-academy" },
-          { name: "Competition", photo: "assets/photos/competition-2026-card.jpg", href: "#competition" },
-          { name: "Performance", photo: "assets/photos/performance-2026.jpg", href: "#performance" },
-          { name: "Sport Studies", photo: "assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
-          { name: "Pro U18", photo: "assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
-          { name: "Pro", photo: "assets/photos/pro-2026.jpg", href: "#pro" },
-          { name: "Game Zone", photo: "assets/photos/gamezone-2026.jpg", href: "#gamezone" },
-          { name: "Camps", photo: "assets/photos/stages-2026.jpg", href: "#stages" },
-          { name: "Adults and private lessons", photo: "assets/photos/adultes-2026.jpg", href: "#adultes" },
+          { name: "Kids Tennis", photo: "/assets/photos/kidstennis-2026.jpg", href: "#kids" },
+          { name: "Club", photo: "/assets/photos/club-2026.jpg", href: "#club-academy" },
+          { name: "Competition", photo: "/assets/photos/competition-2026-card.jpg", href: "#competition" },
+          { name: "Performance", photo: "/assets/photos/performance-2026.jpg", href: "#performance" },
+          { name: "Sport Studies", photo: "/assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
+          { name: "Pro U18", photo: "/assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
+          { name: "Pro", photo: "/assets/photos/pro-2026.jpg", href: "#pro" },
+          { name: "Game Zone", photo: "/assets/photos/gamezone-2026.jpg", href: "#gamezone" },
+          { name: "Camps", photo: "/assets/photos/stages-2026.jpg", href: "#stages" },
+          { name: "Adults and private lessons", photo: "/assets/photos/adultes-2026.jpg", href: "#adultes" },
         ] },
       { type: "features", anchor: "installations", title: "12 courts, all year round", items: [
         ["12 courts in summer", "At TC Lausanne-Sports, route des Plaines-du-Loup 7: 10 outdoor courts and 2 indoor courts, from mid-April to mid-October."],
@@ -353,8 +353,8 @@ worlds: {
         title: "The season calendar",
         lead: "School holidays, public holidays, academy closures and camps: the dates that matter, all in one place.",
         pdfs: [
-          { label: "Tennis school (PDF)", href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf" },
-          { label: "Sport Studies (PDF)", href: "assets/calendriers/calendrier-2026-27-sport-etudes.pdf" },
+          { label: "Tennis school (PDF)", href: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf" },
+          { label: "Sport Studies (PDF)", href: "/assets/calendriers/calendrier-2026-27-sport-etudes.pdf" },
         ] },
     ],
   },
@@ -363,10 +363,10 @@ worlds: {
     tag: "Lausanne Open", retour: "to the Lausanne Open",
     metaTitle: "Lausanne Open — ITF M25 tennis tournament in Lausanne",
     metaDescription: "International ITF M25 tournament with 30,000 USD in prize money, the meeting point for men's professional tennis in Lausanne. Free entry. 3rd edition, 21–29 August 2027.",
-    logo: "assets/logo-open-2027.webp", heroLogo: "assets/logo-open-2027-blanc.webp",
+    logo: "/assets/logo-open-2027.webp", heroLogo: "/assets/logo-open-2027-blanc.webp",
     slogan: "Feel it. Dream it. Together.",
     desc: "3rd edition, 21 to 29 August 2027. Lausanne's international men's tennis tournament: the professional tour, here, at the Plaines-du-Loup.",
-    hero: "assets/photos/open-2026-6.jpg", heroPos: "center 30%",
+    hero: "/assets/photos/open-2026-6.jpg", heroPos: "center 30%",
     cta: [],
     sections: [
       { type: "stats", anchor: "tournoi", variant: "board", items: [
@@ -376,16 +376,16 @@ worlds: {
         { v: "ITF M25",      l: "category",             ico: "ecusson",  href: "@itf_url" },
       ] },
       { type: "split", anchor: "presentation", title: "The great meeting point of men's tennis in Vaud",
-        video: "S1kulGoQPNM", poster: "assets/video/lausanne-open-2026-film.jpg", body: [
+        video: "S1kulGoQPNM", poster: "/assets/video/lausanne-open-2026-film.jpg", body: [
         "Each year the Lausanne Open brings together several dozen players of every nationality, most of them ATP-ranked, on the courts of the Pontaise.",
         "Entry is entirely free, all week long.",
       ], link: { label: "ITF site & results ↗", href: "@itf_url" } },
       { type: "carousel", eyebrow: "Lausanne Open", title: "A week of events",
         sub: "Free entry all week, activities for everyone and hospitality.",
         items: [
-          { name: "Taster sessions for schools", photo: "assets/photos/open-ecoles-2026.jpg" },
-          { name: "Team Lausanne Day", photo: "assets/photos/journee-famille-2026.jpg" },
-          { name: "VIP · Tennis & Lunch", photo: "assets/photos/open-lunch-2026.jpg" },
+          { name: "Taster sessions for schools", photo: "/assets/photos/open-ecoles-2026.jpg" },
+          { name: "Team Lausanne Day", photo: "/assets/photos/journee-famille-2026.jpg" },
+          { name: "VIP · Tennis & Lunch", photo: "/assets/photos/open-lunch-2026.jpg" },
         ]},
       { type: "seeds", anchor: "tetes-de-serie", title: "The 8 seeds of the 2026 edition",
         sub: "The defending champion, a former junior world number one, and seven other players ranked among the world's top 650. ATP ranking at the time of the draw." },
@@ -398,12 +398,12 @@ worlds: {
             double: [{ f: "@flag_ie", n: "Charles Barry" }, { f: "@flag_fr", n: "Max Westphal" }] },
         ] },
       { type: "gallery", anchor: "photos", items: [
-        "assets/photos/open-2026-1.jpg",
-        "assets/photos/open-2026-2.jpg",
-        "assets/photos/open-2026-3.jpg",
-        "assets/photos/open-2026-4.jpg",
-        "assets/photos/open-2026-5.jpg",
-        "assets/photos/open-2026-7.jpg",
+        "/assets/photos/open-2026-1.jpg",
+        "/assets/photos/open-2026-2.jpg",
+        "/assets/photos/open-2026-3.jpg",
+        "/assets/photos/open-2026-4.jpg",
+        "/assets/photos/open-2026-5.jpg",
+        "/assets/photos/open-2026-7.jpg",
       ]},
       { type: "features", anchor: "infos", title: "Practical information", items: [
         ["Dates", "3rd edition: Saturday 21 to Sunday 29 August 2027."],
@@ -424,7 +424,7 @@ details:
     world: "tournoi", title: "Team Lausanne Day", subtitle: "Saturday, alongside the Lausanne Open — open to everyone",
     metaTitle: "Team Lausanne Day at the Lausanne Open — tennis for all the family",
     metaDescription: "Team Lausanne Day, alongside the Lausanne Open: play with our best players, measure your serve on the radar, taster sessions for children. Free access.",
-    hero: "assets/photos/open-kids.jpg",
+    hero: "/assets/photos/open-kids.jpg",
     sections: [
       { type: "rich", title: "A day of celebration around tennis", body: [
         "Alongside the Lausanne Open, Team Lausanne Day puts tennis within everyone's reach, young and old, in a relaxed atmosphere.",
@@ -436,7 +436,7 @@ details:
         ["For the little ones", "Taster sessions for children."],
         ["Around 3pm", "We finish with the doubles final."],
       ]},
-      { type: "gallery", items: ["assets/photos/open-kids.jpg", "assets/photos/open-serve.jpg"] },
+      { type: "gallery", items: ["/assets/photos/open-kids.jpg", "/assets/photos/open-serve.jpg"] },
     ],
   },
   stages: {
@@ -444,7 +444,7 @@ details:
     metaTitle: "Tennis camps in Lausanne during the school holidays | Team Lausanne",
     metaDescription: "Tennis camps during the school holidays in Lausanne, for ages 4 to 18 and for adults: from playful discovery to an intensive week.",
     subtitle: "During the school holidays, tennis camps for ages 4 to 18 and for adults: from playful discovery to an intensive week, run by our coaches at the Plaines-du-Loup.",
-    hero: "assets/photos/stages-2026.jpg",
+    hero: "/assets/photos/stages-2026.jpg",
     cta: { label: "Choose my camp", scroll: "stagesec" },
     sections: [
       { type: "keywords", label: "What makes our camps", items: [
@@ -482,8 +482,8 @@ details:
     metaTitle: "Sport studies tennis in Lausanne (ages 14-19) | Team Lausanne",
     metaDescription: "Sport studies tennis in Lausanne, ages 14 to 19: 2h of tennis, 1h of physical work and 4h of supervised schoolwork a day, through to the maturité or the bac. Lunch included.",
     subtitle: "Combining school and daily training, from 14 to 19: two hours of tennis, one hour of physical preparation and four hours of supervised schoolwork a day, with individual support from the first day to the diploma.",
-    hero: "assets/photos/sport-etudes-2026.jpg", heroPos: "30% 40%",
-    heroVideo: "assets/video/sport-etudes-hero.mp4",
+    hero: "/assets/photos/sport-etudes-2026.jpg", heroPos: "30% 40%",
+    heroVideo: "/assets/video/sport-etudes-hero.mp4",
     cta: { label: "Request the brochure", scroll: "brochure" },
     sections: [
       { type: "keywords", label: "What makes Sport Studies", items: [
@@ -491,7 +491,7 @@ details:
         "Lunch included", "Partner schools", "Towards the maturité",
       ]},
       { type: "split", photos: [
-          "assets/photos/sport-etudes-2026-g1.jpg", "assets/photos/sport-etudes-2026-g2.jpg",
+          "/assets/photos/sport-etudes-2026-g1.jpg", "/assets/photos/sport-etudes-2026-g2.jpg",
         ],
         eyebrow: "The benchmark programme", title: "Study and train, without choosing", body: [
           "Sport studies lets 14 to 19-year-olds combine school and intensive training, in the right setting and with individual support.",
@@ -500,7 +500,7 @@ details:
       { type: "stats", items: [["35", "weeks / year"], ["2h", "tennis / day"], ["1h", "physical / day"], ["4h", "study / day"]] },
       { type: "filmsec", eyebrow: "In pictures", title: "Aim high, prepare for what comes next",
         lead: "The Sport Studies programme on film.",
-        poster: "assets/photos/sport-etudes-video.jpg",
+        poster: "/assets/photos/sport-etudes-video.jpg",
         video: "ZBRb8MNP0nI" },
       { type: "perks", eyebrow: "Complete support",
         title: "Everything is arranged around the player",
@@ -522,37 +522,37 @@ details:
         title: "Our athletes",
         lead: "Behind the programme there are, above all, players. Tap a card to find out more.", items: [
           { nom: "Talia Dupasquier Picci", age: "18", classement: "R1 (117)",
-            photo: "assets/photos/eleve-talia-picci.jpg",
+            photo: "/assets/photos/eleve-talia-picci.jpg",
             mytennis: "19757017",
             mot: "Eighteen and already a professional player: making a living from her tennis is the plan. A tournament almost every weekend, and her first international events. She teaches on camps and in Kids Tennis. What drives her: taking everything she can get, and climbing past her R1.",
             tags: ["Best ranking: R1 (99)", "Certified recreational coach, level 1"] },
           { nom: "Célyan Lorival", age: "18", classement: "R2",
-            photo: "assets/photos/eleve-celyan-lorival.jpg",
+            photo: "/assets/photos/eleve-celyan-lorival.jpg",
             mytennis: "19764390",
             mot: "Five years of sport studies at Lausanne-Sports, with the bac in his sights. A one-handed backhand, and an admitted weakness for the atmosphere of the interclub. He has been teaching for two years, in lessons and on camps: patient, and as motivated by passing it on as by playing.",
             tags: ["J+S continuing 1", "J+S continuing 2", "Official Swiss Tennis"] },
           { nom: "Nadia Dévaud", age: "15", classement: "R5",
-            photo: "assets/photos/eleve-nadia-devaud.jpg",
+            photo: "/assets/photos/eleve-nadia-devaud.jpg",
             mytennis: "19822148",
             mot: "Fifteen, ranked R5, and one year of sport studies at Lausanne-Sports. An attacking game, built on her forehand. Her goal: to reach professional level." },
           { nom: "Hektor Vitone", age: "13", classement: "R4",
-            photo: "assets/photos/eleve-hektor-vitone.jpg",
+            photo: "/assets/photos/eleve-hektor-vitone.jpg",
             mytennis: "19874388",
             mot: "Thirteen, ranked R4, and a first year at Lausanne-Sports. More of a baseline player. His dream: to make a living from his tennis and reach the world's top 100." },
           { nom: "Isabella Stadelmann", age: "14", classement: "R4",
-            photo: "assets/photos/eleve-isabella-stadelmann.jpg",
+            photo: "/assets/photos/eleve-isabella-stadelmann.jpg",
             mytennis: "19803666",
             mot: "Fourteen, ranked R4, and a second year of sport studies at Lausanne-Sports. An aggressive game, always moving forward. Ambitious and a perfectionist, always after the best of herself." },
           { nom: "Yuma Olgiati", age: "17", classement: "R4",
-            photo: "assets/photos/eleve-yuma-olgiati.jpg",
+            photo: "/assets/photos/eleve-yuma-olgiati.jpg",
             mytennis: "19800610",
             mot: "In sport studies at Lausanne-Sports, ranked R4. His profile is coming shortly." },
           { nom: "Ylan Allenspach", age: "16", classement: "R5",
-            photo: "assets/photos/eleve-ylan-allenspach.jpg",
+            photo: "/assets/photos/eleve-ylan-allenspach.jpg",
             mytennis: "19796976",
             mot: "Sixteen, ranked R5, and a first year at Lausanne-Sports. An attacking player, he likes to take charge of the point and relies on his forehand to make the difference. Training and tournaments take up much of his week, with the urge to test himself against stronger and stronger players. His goal is clear: to reach R3 by Christmas, and keep pushing his limits." },
           { nom: "Max Marten", age: "16", classement: "R2",
-            photo: "assets/photos/eleve-max-marten.jpg",
+            photo: "/assets/photos/eleve-max-marten.jpg",
             mytennis: "19781973",
             mot: "Sixteen, ranked R2. He pushes himself every day in training to chase down his goal, and likes testing his limits. Above all he loves playing in a team: together is how you go furthest. Motivated, hard-working, always ready to improve." },
         ]},
@@ -564,13 +564,13 @@ details:
           "Season ends Friday 2 July 2027, summer camps from the 5th",
           "School holidays and public holidays of the Canton of Vaud",
         ],
-        href: "assets/calendriers/calendrier-2026-27-sport-etudes.pdf",
-        apercu: "assets/calendriers/calendrier-2026-27-sport-etudes-apercu.jpg",
+        href: "/assets/calendriers/calendrier-2026-27-sport-etudes.pdf",
+        apercu: "/assets/calendriers/calendrier-2026-27-sport-etudes-apercu.jpg",
         bouton: "Download the calendar" },
       { type: "brochure", anchor: "brochure",
         eyebrow: "2026 brochure", title: "The programme in detail, in your inbox",
         lead: "How a week unfolds, the partner schools, the support and the admission conditions — eleven pages to tell you everything before you write to us.",
-        doc: "assets/brochures/sport-etudes-2026-fr.pdf",
+        doc: "/assets/brochures/sport-etudes-2026-fr.pdf",
         bouton: "Request the brochure",
         mention: "Your address is used only to send you the brochure and to get back to you. No mailing list." },
       { type: "faq", eyebrow: "Frequently asked questions",
@@ -589,7 +589,7 @@ details:
     metaTitle: "Junior competition tennis in Lausanne (ages 10-13) | Team Lausanne",
     metaDescription: "Competition pathway for ages 10-13 in Lausanne: structured training, matches and tournaments for young players ready to step up. Sixteen places.",
     subtitle: "Structured training and matches, for young players ready to step up: building consistency, confidence and a competitive edge, along a clear path of progression.",
-    hero: "assets/photos/competition-2026.jpg",
+    hero: "/assets/photos/competition-2026.jpg",
     cta: { label: "Request information", scroll: "enroll-sec" },
     sections: [
       { type: "keywords", label: "What makes the Competition pathway", items: [
@@ -597,8 +597,8 @@ details:
         "GameZone", "Competitive spirit", "Towards Performance",
       ]},
       { type: "split", photos: [
-          "assets/photos/competition-2026-s2.jpg", "assets/photos/competition-2026-s1.jpg",
-          "assets/photos/competition-2026-s3.jpg", "assets/photos/competition-2026-s4.jpg",
+          "/assets/photos/competition-2026-s2.jpg", "/assets/photos/competition-2026-s1.jpg",
+          "/assets/photos/competition-2026-s3.jpg", "/assets/photos/competition-2026-s4.jpg",
         ],
         eyebrow: "A step to take", title: "Entering competition", body: [
           "The Competition pathway takes young players of roughly 10 to 13 who want to measure themselves against others and improve within a structured setting.",
@@ -651,8 +651,8 @@ details:
           "Season ends Friday 2 July 2027",
           "School holidays and public holidays of the Canton of Vaud",
         ],
-        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
-        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        href: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
         bouton: "Download the calendar" },
       { type: "enroll", title: "Request a place", filiere: "competition", ranking: true,
         lead: "Interested in the Competition pathway? Fill in this form and the office will get back to you." },
@@ -663,7 +663,7 @@ details:
     metaTitle: "Junior performance tennis in Lausanne (ages 12-15) | Team Lausanne",
     metaDescription: "Performance pathway for ages 12-15 in Lausanne: a heavier training load and physical preparation built in, the link towards sport studies. Eight places.",
     subtitle: "The pathway that bridges Competition and Sport Studies: a heavier training load, physical preparation built in and the demands of match play, for young players ready to move up a gear.",
-    hero: "assets/photos/performance-2026.jpg",
+    hero: "/assets/photos/performance-2026.jpg",
     cta: { label: "Request information", scroll: "enroll-sec" },
     sections: [
       { type: "keywords", label: "What makes the Performance pathway", items: [
@@ -671,8 +671,8 @@ details:
         "Individual support", "Selective pathway", "Towards Sport Studies",
       ]},
       { type: "split", photos: [
-          "assets/photos/performance-2026-s1.jpg", "assets/photos/performance-2026-s2.jpg",
-          "assets/photos/performance-2026-s3.jpg",
+          "/assets/photos/performance-2026-s1.jpg", "/assets/photos/performance-2026-s2.jpg",
+          "/assets/photos/performance-2026-s3.jpg",
         ],
         eyebrow: "A stage that counts", title: "Aiming for the highest level", body: [
           "The Performance pathway is for young players of roughly 12 to 15 ready to invest more. It overlaps with Competition: age is no barrier, it is a progression that adapts within a year or two.",
@@ -730,8 +730,8 @@ details:
           "Season ends Friday 2 July 2027",
           "School holidays and public holidays of the Canton of Vaud",
         ],
-        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
-        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        href: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
         bouton: "Download the calendar" },
       { type: "enroll", title: "Request a place", filiere: "performance", ranking: true,
         lead: "Interested in the Performance pathway? Fill in this form and the office will get back to you." },
@@ -742,7 +742,7 @@ details:
     metaTitle: "Pro U18 tennis programme in Lausanne | Team Lausanne",
     metaDescription: "Once compulsory school is behind you, tennis becomes the job: two sessions a day, physical work every morning and the ITF junior circuit in your sights.",
     subtitle: "Once compulsory schooling is over, training becomes the job: two tennis sessions a day, physical work every morning and the ITF junior circuit in your sights, for those who want to see how far this can go.",
-    hero: "assets/photos/pro-u18-2026.jpg", heroPos: "55% 12%",
+    hero: "/assets/photos/pro-u18-2026.jpg", heroPos: "55% 12%",
     cta: { label: "Request the information pack", scroll: "brochure" },
     sections: [
       { type: "keywords", label: "What makes Pro U18", items: [
@@ -750,8 +750,8 @@ details:
         "Physio partnership", "Mental preparation", "World ranking",
       ]},
       { type: "split", photos: [
-          "assets/photos/pro-u18-2026-s1.jpg", "assets/photos/pro-u18-2026-s2.jpg",
-          "assets/photos/pro-u18-2026-s3.jpg",
+          "/assets/photos/pro-u18-2026-s1.jpg", "/assets/photos/pro-u18-2026-s2.jpg",
+          "/assets/photos/pro-u18-2026-s3.jpg",
         ],
         eyebrow: "Tennis as the job", title: "Train full time, aim at the world", body: [
           "With compulsory schooling behind you, the days open up: two tennis sessions, an hour of physical preparation every morning, and the rest of the time to recover and look after yourself.",
@@ -802,7 +802,7 @@ details:
     metaTitle: "Professional tennis programme in Lausanne | Team Lausanne",
     metaDescription: "Tailored support for players on the professional tour, from 18 upwards: calendar, ranking goals, coaching and physical preparation, in Lausanne.",
     subtitle: "At this level there is no standard offer: every player has their own calendar, their own ranking goals and their own support. We build the programme around you — game, body, mind, logistics and funding.",
-    hero: "assets/photos/pro-2026.jpg", heroPos: "center 42%",
+    hero: "/assets/photos/pro-2026.jpg", heroPos: "center 42%",
     cta: { label: "Request the information pack", scroll: "brochure" },
     sections: [
       { type: "keywords", label: "What makes the Pro pathway", items: [
@@ -810,8 +810,8 @@ details:
         "Funding solutions", "Up to 15 tournament weeks", "Accommodation in Lausanne",
       ]},
       { type: "split", photos: [
-          "assets/photos/pro-2026-g1.jpg", "assets/photos/open-serve.jpg",
-          { src: "assets/photos/pro-2026-court.jpg", pos: "center 42%" },
+          "/assets/photos/pro-2026-g1.jpg", "/assets/photos/open-serve.jpg",
+          { src: "/assets/photos/pro-2026-court.jpg", pos: "center 42%" },
         ],
         eyebrow: "Tailored, not a package", title: "A programme built around you", body: [
           "At professional level, no two players ever have the same calendar. The support adapts to tournaments, travel, injuries and ranking targets — not the other way round.",
@@ -836,7 +836,7 @@ details:
         ["Stringing covered", "Strings are paid for by the academy — a benefit specific to the Pro pathway."],
         ["Winter subscription at your cost", "It is not included in the programme and is settled directly with the club."],
       ]},
-      { type: "split", photos: ["assets/webflow/sport-studies.jpg"],
+      { type: "split", photos: ["/assets/webflow/sport-studies.jpg"],
         eyebrow: "The question nobody dares ask", title: "A 360° solution, funding included", body: [
           "Professional tennis is expensive, and that is often what ends careers before the level of play does. We prefer to talk about it at the first meeting.",
           "Several levers exist within the academy to lighten the bill — and they combine.",
@@ -870,7 +870,7 @@ details:
     world: "academie", title: "Kids Tennis", subtitle: "Tennis from age 4, in a playful, structured and supportive setting: our lessons lay solid foundations and give children a taste for the game from the very first sessions.",
     metaTitle: "Children's tennis lessons in Lausanne from age 4 | Team Lausanne",
     metaDescription: "Tennis lessons for children aged 4 to 10 in Lausanne, at the Plaines-du-Loup: a playful, structured and supportive setting for learning the basics. Trial lesson available.",
-    hero: "assets/photos/kidstennis-2026.jpg",
+    hero: "/assets/photos/kidstennis-2026.jpg",
     cta: { label: "Request a trial lesson", scroll: "enroll-sec" },
     sections: [
       { type: "keywords", label: "What makes Kids Tennis", items: [
@@ -878,8 +878,8 @@ details:
         "A supportive setting", "Structured progression", "Small groups",
       ]},
       { type: "split", photos: [
-          "assets/photos/kids-ambiance.jpg", "assets/photos/kids-2026-1.jpg",
-          "assets/photos/kids-open.jpg", "assets/photos/kids-2026-2.jpg",
+          "/assets/photos/kids-ambiance.jpg", "/assets/photos/kids-2026-1.jpg",
+          "/assets/photos/kids-open.jpg", "/assets/photos/kids-2026-2.jpg",
         ],
         eyebrow: "A first step that counts", title: "Learning the game properly", body: [
           "Kids Tennis introduces children aged 4 to 9 to tennis in a playful, gradual way, right through the school year.",
@@ -918,8 +918,8 @@ details:
           "Season ends Friday 2 July 2027",
           "School holidays and public holidays of the Canton of Vaud",
         ],
-        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
-        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        href: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
         bouton: "Download the calendar" },
       { type: "enroll", title: "Request a place", filiere: "kidstennis", ranking: false,
         lead: "Would you like to enrol your child in Kids Tennis? Fill in this form and the office will get back to you." },
@@ -930,7 +930,7 @@ details:
     metaTitle: "Recreational tennis lessons in Lausanne, all levels | Team Lausanne",
     metaDescription: "Tennis lessons in Lausanne, once or twice a week and for all levels: improve at your own pace, all year round, with interclub for club members.",
     subtitle: "Supervised training, once or twice a week, for all levels: improve at your own pace, keep moving and enjoy your time on court, all year round.",
-    hero: "assets/photos/club-2026.jpg",
+    hero: "/assets/photos/club-2026.jpg",
     cta: { label: "Request information", scroll: "enroll-sec" },
     sections: [
       { type: "keywords", label: "What makes the Club offer", items: [
@@ -938,8 +938,8 @@ details:
         "Learning by playing", "Small groups", "Over the long run",
       ]},
       { type: "split", photos: [
-          "assets/photos/club-2026-2.jpg", "assets/photos/club-2026-1.jpg",
-          "assets/photos/club-2026-3.jpg",
+          "/assets/photos/club-2026-2.jpg", "/assets/photos/club-2026-1.jpg",
+          "/assets/photos/club-2026-3.jpg",
         ],
         eyebrow: "A place to play and improve", title: "Play and improve, without pressure", body: [
           "The Club offer is for those who want to play one or several hours a week all year round — beginners and more advanced players alike.",
@@ -980,8 +980,8 @@ details:
           "Season ends Friday 2 July 2027",
           "School holidays and public holidays of the Canton of Vaud",
         ],
-        href: "assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
-        apercu: "assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
+        href: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis.pdf",
+        apercu: "/assets/calendriers/calendrier-2026-27-ecole-de-tennis-apercu.jpg",
         bouton: "Download the calendar" },
       { type: "enroll", title: "Request a place", filiere: "club", ranking: false,
         lead: "Would you like to join the Club offer? Fill in this form and the office will get back to you." },
@@ -991,7 +991,7 @@ details:
     world: "academie", title: "Adult and private lessons", subtitle: "2026-2027 season — private, semi-private and group lessons, all levels",
     metaTitle: "Adult and private tennis lessons in Lausanne | Team Lausanne",
     metaDescription: "Tennis lessons for adults in Lausanne: private, semi-private and group lessons, all levels, in French or English, at TC Lausanne-Sports.",
-    hero: "assets/photos/adultes-2026.jpg", heroPos: "center 45%",
+    hero: "/assets/photos/adultes-2026.jpg", heroPos: "center 45%",
     sections: [
       { type: "rich", title: "Adult and private lessons, all season", body: [
         "Team Lausanne Cours Adultes is the association that now runs all adult and private lessons for TC Lausanne-Sports and Team Lausanne.",
@@ -1027,8 +1027,8 @@ details:
     metaTitle: "Game Zone — junior tennis tournaments in Lausanne",
     metaDescription: "Junior tennis tournaments almost every weekend in Lausanne: a single day, two matches guaranteed, a medal for every win.",
     subtitle: "Junior tournaments almost every weekend, on a single day and with two matches guaranteed. A medal for every win, a cup from the fifth, and the big cup at the tenth — a way into competition without the pressure.",
-    hero: "assets/photos/gamezone-2026.jpg", heroPos: "55% 45%",
-    heroLogo: "assets/logo-gamezone-blanc.png",
+    hero: "/assets/photos/gamezone-2026.jpg", heroPos: "55% 45%",
+    heroLogo: "/assets/logo-gamezone-blanc.png",
     sections: [
       { type: "rich", title: "How it works", body: [
         "Almost every weekend, Game Zone runs junior tournaments over a single day, with two matches guaranteed per player.",
@@ -1042,7 +1042,7 @@ details:
     world: "academie", title: "Our coaches",
     metaTitle: "Tennis coaches in Lausanne — the team | Team Lausanne",
     subtitle: "Our team brings together experience spanning Kids Tennis, Club, Competition, Performance, Sport Studies and Pro. Every coach builds a setting where players improve with clarity, consistency and confidence.",
-    hero: "assets/photos/coaches-hero.webp", heroPos: "center 35%",
+    hero: "/assets/photos/coaches-hero.webp", heroPos: "center 35%",
     cta: { label: "Get in touch", contact: "Our coaches" },
     sections: [
       { type: "keywords", label: "What makes our coaching", items: [
