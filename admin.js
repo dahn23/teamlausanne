@@ -9240,7 +9240,7 @@ const ST_JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "
 let stListe = [], stId = null, stModele = null;
 let stCours = [], stCourts = new Map(), stCoachs = new Map(), stJoueurs = new Map();
 let stcSel = new Set(), stcPlayers = [], stDrag = null, stNomTimer = null, stApplyPret = null;
-let styVue = "grille", styJour = 1, stySaison = "hiver", stDragH = 0, stDragCourt = null;
+let styVue = "semaine", styJour = 1, stySaison = "hiver", stDragH = 0, stDragCourt = null;
 
 function stWire() {
   $("sty-new").addEventListener("click", stNouvelleOuvrir);
@@ -9391,75 +9391,106 @@ async function stEnregistrerEntete() {
 
 // Dispatcher des deux vues. Le sous-titre et les pastilles de jour sont
 // communs : ils ne doivent pas être redessinés par chacune des deux.
+/* Les deux vues sont la MÊME grille — courts en colonnes, heures en lignes,
+   comme l'onglet Réservations. « Jour » en montre une, « Semaine entière »
+   les empile toutes, un bandeau par jour. C'est la réponse à la vraie
+   question qu'on se pose devant un planning : quel court est pris, quand, et
+   par qui — ce qu'une liste de cartes ne disait pas.
+   ⚠ Une grille court × heure n'a que deux dimensions : le JOUR est la
+   troisième. En vue « Jour » il est porté par les pastilles Lun…Dim, qui
+   servent aussi de cibles de dépôt ; en vue « Semaine entière » chaque
+   bandeau de jour est lui-même une cible. */
 function stRender() {
   const n = stCours.length;
+  const parJour = (dow) => stCours.filter((c) => c.dow === dow).length;
   $("sty-sous").textContent = `${n} cours${stModele?.source_week ? ` · copiée de la semaine du ${frDate(stModele.source_week)}` : ""}`
+    + " · " + ST_JOURS.map((j, i) => parJour(i + 1) ? `${j.slice(0, 3)} ${parJour(i + 1)}` : null).filter(Boolean).join(" · ")
     + " · aucun court n'est réservé tant que cette semaine n'est pas appliquée";
   $("sty-jours").innerHTML = ST_JOURS.map((j, i) => {
-    const dow = i + 1, nb = stCours.filter((c) => c.dow === dow).length;
+    const dow = i + 1, nb = parJour(dow);
     return `<button type="button" class="sty-j${dow === styJour ? " on" : ""}" data-dow="${dow}"
       title="${j}${nb ? ` — ${nb} cours` : " — vide"}"><span class="sty-j-l">${j.slice(0, 3)}</span>${nb ? `<span class="sty-j-n">${nb}</span>` : ""}</button>`;
   }).join("");
-  // Les pastilles de jour sont aussi des cibles de dépôt : c'est la façon de
-  // changer un cours de jour depuis la grille, qui n'en montre qu'un seul.
   $("sty-jours").querySelectorAll(".sty-j").forEach((b) => {
     b.addEventListener("click", () => { styJour = Number(b.dataset.dow); stRender(); });
-    b.addEventListener("dragover", (e) => { if (stDrag) { e.preventDefault(); b.classList.add("sty-j-over"); } });
-    b.addEventListener("dragleave", () => b.classList.remove("sty-j-over"));
-    b.addEventListener("drop", (e) => { e.preventDefault(); b.classList.remove("sty-j-over"); stDeplacer(stDrag, { dow: Number(b.dataset.dow) }); });
+    stCibleJour(b, Number(b.dataset.dow), "sty-j-over");
   });
-  $("sty-jours").classList.toggle("hidden", styVue !== "grille");
-  $("sty-saison").classList.toggle("hidden", styVue !== "grille");
-  $("sty-grid").parentElement.classList.toggle("hidden", styVue !== "grille");
-  $("sty-week").classList.toggle("hidden", styVue !== "semaine");
-  if (styVue === "grille") stRenderGrille(); else stRenderWeek();
+  $("sty-jours").classList.toggle("hidden", styVue !== "jour");
+  stRenderGrille();
 }
 
-/* La grille des courts — la même lecture que l'onglet Réservations : les
-   courts en colonnes, les heures en lignes, un bloc coloré par cours. On voit
-   d'un coup d'œil quel court est pris, à quelle heure et par qui, ce qu'une
-   liste de cartes ne montre pas.
-   ⚠ Elle n'affiche QU'UN jour : c'est une grille court × heure, le jour est
-   la troisième dimension. D'où les pastilles Lun…Dim au-dessus, qui servent
-   aussi de cibles de dépôt. */
-function stRenderGrille() {
-  const grid = $("sty-grid");
-  // Courts de la saison choisie, PLUS tout court utilisé par la semaine type
-  // même s'il est fermé à cette saison : un cours posé sur un court masqué
-  // deviendrait invisible, et on le chercherait longtemps.
+// Un bandeau ou une pastille de jour accepte qu'on lui lâche un cours dessus :
+// c'est la seule façon de changer de jour, la grille n'en montrant qu'un.
+function stCibleJour(el, dow, cls) {
+  el.addEventListener("dragover", (e) => { if (stDrag) { e.preventDefault(); el.classList.add(cls); } });
+  el.addEventListener("dragleave", () => el.classList.remove(cls));
+  el.addEventListener("drop", (e) => { e.preventDefault(); el.classList.remove(cls); stDeplacer(stDrag, { dow }); });
+}
+
+// Les courts à afficher : ceux de la saison choisie, PLUS tout court
+// réellement utilisé par la semaine type même s'il est fermé à cette saison.
+// Filtrer sur la seule saison ferait disparaître un cours sans rien dire.
+function stCourtsAffiches() {
   const col = stySaison === "ete" ? "open_summer" : "open_winter";
   const utilises = new Set();
   for (const c of stCours) for (const ct of (stCourts.get(c.id) || [])) utilises.add(Number(ct));
   const courts = resaCourtsAll.filter((c) => c[col] || isFitnessCourt(c) || utilises.has(Number(c.id)));
-  const horsSaison = courts.filter((c) => !c[col] && !isFitnessCourt(c));
+  return { courts, horsSaison: courts.filter((c) => !c[col] && !isFitnessCourt(c)) };
+}
+
+function stRenderGrille() {
+  const hote = $("sty-grilles");
+  hote.innerHTML = "";
+  const { courts, horsSaison } = stCourtsAffiches();
   $("sty-avis").hidden = !horsSaison.length;
   if (horsSaison.length) {
     $("sty-avis").innerHTML = `⚠ ${horsSaison.map((c) => esc(c.name)).join(", ")} ${horsSaison.length > 1 ? "sont fermés" : "est fermé"} en ${stySaison === "ete" ? "été" : "hiver"}, `
       + `mais ${horsSaison.length > 1 ? "portent" : "porte"} des cours : la colonne reste affichée pour qu'ils ne disparaissent pas.`;
   }
+  // Vue semaine : tous les jours qui ont quelque chose, plus le jour courant
+  // même vide (sinon on ne pourrait rien ajouter sur un jour neuf).
+  const jours = styVue === "jour"
+    ? [styJour]
+    : ST_JOURS.map((_, i) => i + 1).filter((d) => stCours.some((c) => c.dow === d) || d === styJour);
+  for (const dow of jours) hote.appendChild(stGrilleDunJour(dow, courts, jours.length > 1));
+}
 
-  // Les cours du jour, avec leurs courts : une entrée par (cours, court).
-  const dujour = stCours.filter((c) => c.dow === styJour);
+// Construit la grille d'UN jour : bandeau, bac des cours sans court, grille.
+function stGrilleDunJour(dow, courts, avecBandeau) {
+  const bloc = document.createElement("section");
+  bloc.className = "sty-jour-bloc";
+  const dujour = stCours.filter((c) => c.dow === dow);
+
+  if (avecBandeau) {
+    const h = document.createElement("div");
+    h.className = "sty-jour-h";
+    h.innerHTML = `<b>${ST_JOURS[dow - 1]}</b><span class="muted">${dujour.length ? `${dujour.length} cours` : "aucun cours"}</span>`;
+    stCibleJour(h, dow, "sty-jour-h-over");
+    bloc.appendChild(h);
+  }
+
+  // Une entrée par (cours, court).
   const blocs = [];
   for (const c of dujour) for (const ct of (stCourts.get(c.id) || [])) blocs.push({ c, court: Number(ct) });
   // ⚠ Un cours SANS court n'a aucune case : il disparaîtrait de la grille
-  // sans laisser de trace, alors que la pastille du jour le compte. Il va
-  // dans un bac au-dessus, d'où on peut l'ouvrir pour lui donner un court.
+  // alors que le compteur du jour le compte. Il va dans un bac au-dessus.
   const sansCourt = dujour.filter((c) => !(stCourts.get(c.id) || []).length);
-  $("sty-sanscourt").hidden = !sansCourt.length;
   if (sansCourt.length) {
-    $("sty-sanscourt").innerHTML = `<span class="sty-sc-t">Sans court — invisible dans la grille :</span>`
+    const bac = document.createElement("div");
+    bac.className = "sty-sanscourt";
+    bac.innerHTML = `<span class="sty-sc-t">Sans court — invisible dans la grille :</span>`
       + sansCourt.sort((a, b) => a.start_time.localeCompare(b.start_time)).map((c) => {
         const t = courseTypes.find((x) => String(x.id) === String(c.course_type_id));
         return `<button type="button" class="sty-sc" data-cid="${c.id}" style="border-left-color:${t?.color || c.color || "#0b6b3a"}">`
           + `${c.start_time.slice(0, 5)} · ${esc(c.title || t?.name || "Cours")}</button>`;
       }).join("");
-    $("sty-sanscourt").querySelectorAll(".sty-sc").forEach((b) =>
+    bac.querySelectorAll(".sty-sc").forEach((b) =>
       b.addEventListener("click", () => stOuvrirCours(stCours.find((x) => x.id === b.dataset.cid))));
+    bloc.appendChild(bac);
   }
-  // Deux cours sur le même court à la même heure : la base les acceptera
-  // (c'est un brouillon), mais l'un des deux sera sauté à l'application. On
-  // le signale ICI, pendant qu'on peut encore le corriger.
+
+  // Deux cours sur le même court à la même heure : permis dans un brouillon,
+  // mais l'un des deux sera sauté à l'application. On le signale ici.
   const enConflit = new Set();
   for (let i = 0; i < blocs.length; i++) {
     for (let j = i + 1; j < blocs.length; j++) {
@@ -9470,8 +9501,11 @@ function stRenderGrille() {
     }
   }
 
+  const enveloppe = document.createElement("div");
+  enveloppe.className = "grid-wrap";
+  const grid = document.createElement("div");
+  grid.className = "rgrid";
   grid.style.gridTemplateColumns = `64px repeat(${courts.length}, minmax(74px,1fr))`;
-  grid.innerHTML = "";
   grid.appendChild(rcell("", "rcell corner"));
   for (const c of courts) {
     const el = document.createElement("div");
@@ -9483,11 +9517,20 @@ function stRenderGrille() {
     el.title = `${c.name} · ${c.surface}`;
     grid.appendChild(el);
   }
-  for (let h = 8; h <= 21; h++) {
+  // Plage horaire : celle de la grille des Réservations, ÉLARGIE à ce que la
+  // semaine type contient réellement. Un cours à 7h30 ou à 22h sortirait de
+  // 8h–21h et ne s'afficherait nulle part.
+  let h1 = 8, h2 = 21;
+  for (const c of dujour) {
+    h1 = Math.min(h1, Number(c.start_time.slice(0, 2)));
+    h2 = Math.max(h2, Number(c.end_time.slice(0, 2)) - (c.end_time.slice(3, 5) === "00" ? 1 : 0));
+  }
+  for (let h = h1; h <= h2; h++) {
     grid.appendChild(rcell(pad2(h) + ":15", "rcell rhour"));
     for (const ct of courts) {
       const d = pad2(h) + ":15:00", f = pad2(h + 1) + ":15:00";
-      const b = blocs.find((x) => x.court === Number(ct.id) && x.c.start_time < f && x.c.end_time > d);
+      const ici = blocs.filter((x) => x.court === Number(ct.id) && x.c.start_time < f && x.c.end_time > d);
+      const b = ici[0];
       const el = document.createElement("div");
       el.className = "rcell rslot";
       if (b) {
@@ -9496,9 +9539,13 @@ function stRenderGrille() {
         el.style.background = fond;
         el.style.color = texteSur(fond);
         const coachs = (stCoachs.get(b.c.id) || []).map((pid) => people.find((p) => String(p.id) === pid)).filter(Boolean);
-        el.textContent = coachs.length
+        const nom = coachs.length
           ? coachs[0].last_name + (coachs.length > 1 ? ` +${coachs.length - 1}` : "")
           : (b.c.title || type?.name || "Cours");
+        // ⚠ Deux cours dans la même case : la case n'en dessine qu'un. Sans ce
+        // « +1 », le second serait invisible — et c'est exactement le genre de
+        // disparition silencieuse qui fait douter de la copie entière.
+        el.innerHTML = esc(nom) + (ici.length > 1 ? `<span class="sty-plus" title="${esc(ici.slice(1).map((x) => `${x.c.start_time.slice(0, 5)} ${x.c.title || "Cours"}`).join(" · "))}">+${ici.length - 1}</span>` : "");
         const nj = (stJoueurs.get(b.c.id) || []).length;
         el.title = [b.c.title || type?.name || "Cours",
           `${b.c.start_time.slice(0, 5)}–${b.c.end_time.slice(0, 5)}`,
@@ -9511,7 +9558,12 @@ function stRenderGrille() {
         el.draggable = true;
         el.dataset.cid = b.c.id;
         el.dataset.h = h;
-        el.addEventListener("click", () => stOuvrirCours(stCours.find((x) => x.id === b.c.id)));
+        el.addEventListener("click", (ev) => {
+          // Le « +1 » ouvre le cours CACHÉ : sinon on ne pourrait jamais
+          // l'atteindre, la case appartenant au premier.
+          const cache = ev.target.classList?.contains("sty-plus") ? ici[1]?.c : b.c;
+          stOuvrirCours(stCours.find((x) => x.id === cache.id));
+        });
         el.addEventListener("dragstart", (ev) => {
           // On retient l'heure de la case SAISIE : attraper la 2e heure d'un
           // bloc de deux heures et la lâcher sur 14h doit poser le bloc de
@@ -9523,17 +9575,20 @@ function stRenderGrille() {
       } else {
         el.classList.add("rfree");
         el.title = "Ajouter un cours ici";
-        el.addEventListener("click", () => stOuvrirCours(null, styJour, { court: Number(ct.id), heure: pad2(h) + ":15" }));
+        el.addEventListener("click", () => stOuvrirCours(null, dow, { court: Number(ct.id), heure: pad2(h) + ":15" }));
         el.addEventListener("dragover", (ev) => { if (stDrag) { ev.preventDefault(); el.classList.add("sty-cible"); } });
         el.addEventListener("dragleave", () => el.classList.remove("sty-cible"));
         el.addEventListener("drop", (ev) => {
           ev.preventDefault(); el.classList.remove("sty-cible");
-          stDeplacer(stDrag, { court: Number(ct.id), dh: h - stDragH });
+          stDeplacer(stDrag, { court: Number(ct.id), dh: h - stDragH, dow });
         });
       }
       grid.appendChild(el);
     }
   }
+  enveloppe.appendChild(grid);
+  bloc.appendChild(enveloppe);
+  return bloc;
 }
 
 // Déplacer un cours type : changer de jour, d'heure, de court, ou plusieurs
@@ -9567,61 +9622,6 @@ async function stDeplacer(cid, { dow, court, dh } = {}) {
   }
   if (maj.dow) styJour = maj.dow;
   stRender();
-}
-
-function stRenderWeek() {
-  const carte = (c) => {
-    const type = courseTypes.find((t) => String(t.id) === String(c.course_type_id));
-    const courts = (stCourts.get(c.id) || []).map((id) => {
-      const ct = resaCourtsAll.find((x) => String(x.id) === String(id));
-      return ct ? ct.name.replace("Court ", "C") : id;
-    }).join(" ");
-    const coachs = (stCoachs.get(c.id) || []).map((pid) => {
-      const p = people.find((x) => String(x.id) === pid);
-      return p ? p.first_name : "?";
-    }).join(", ");
-    const nj = (stJoueurs.get(c.id) || []).length;
-    return `<div class="sty-ev" draggable="true" data-id="${c.id}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
-      <div class="sty-ev-t">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
-      <div class="sty-ev-n">${esc(c.title || type?.name || "Cours")}</div>
-      <div class="sty-ev-m muted">${courts || "—"}${nj ? ` · ${nj}j` : ""}</div>
-      ${coachs ? `<div class="sty-ev-co">${esc(coachs)}</div>` : ""}
-    </div>`;
-  };
-  $("sty-week").innerHTML = ST_JOURS.map((jour, i) => {
-    const dow = i + 1;
-    const dc = stCours.filter((c) => c.dow === dow).sort((a, b) => a.start_time.localeCompare(b.start_time));
-    return `<div class="sty-day" data-dow="${dow}">
-      <div class="sty-dh"><span><b>${jour}</b> <span class="muted">${dc.length || ""}</span></span>
-        <button type="button" class="sty-add-day" data-dow="${dow}" title="Ajouter un cours ce jour-là">+</button></div>
-      <div class="sty-evs">${dc.map(carte).join("")}</div>
-    </div>`;
-  }).join("");
-
-  $("sty-week").querySelectorAll(".sty-ev").forEach((el) => {
-    el.addEventListener("click", () => stOuvrirCours(stCours.find((c) => c.id === el.dataset.id)));
-    el.addEventListener("dragstart", (e) => { stDrag = el.dataset.id; el.classList.add("sty-drag"); e.dataTransfer.effectAllowed = "move"; });
-    el.addEventListener("dragend", () => { stDrag = null; el.classList.remove("sty-drag"); });
-  });
-  $("sty-week").querySelectorAll(".sty-add-day").forEach((b) =>
-    b.addEventListener("click", () => stOuvrirCours(null, Number(b.dataset.dow))));
-  // La zone de dépôt est la COLONNE entière, pas la pile de cartes : une
-  // journée vide n'a pas de carte, et viser un trait de 2 px à la souris
-  // n'est pas une interface.
-  $("sty-week").querySelectorAll(".sty-day").forEach((col) => {
-    col.addEventListener("dragover", (e) => { if (stDrag) { e.preventDefault(); col.classList.add("sty-over"); } });
-    col.addEventListener("dragleave", () => col.classList.remove("sty-over"));
-    col.addEventListener("drop", async (e) => {
-      e.preventDefault(); col.classList.remove("sty-over");
-      if (!stDrag) return;
-      const id = stDrag, dow = Number(col.dataset.dow);
-      const c = stCours.find((x) => x.id === id);
-      if (!c || c.dow === dow) return;
-      const { error } = await sb.from("plan_template_courses").update({ dow }).eq("id", id);
-      if (error) return uiAlert("Échec : " + error.message);
-      c.dow = dow; stRender();
-    });
-  });
 }
 
 // `pose` = la case vide cliquée dans la grille ({ court, heure }) : le court

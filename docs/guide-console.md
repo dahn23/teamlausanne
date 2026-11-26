@@ -364,14 +364,21 @@ penser à la supprimer.
 semaine copiée n'est pas touchée — on en prend une photo), soit une **page
 blanche**.
 
-**Retoucher.** Deux vues, au choix, comme dans le Planning.
+**Retoucher.** La semaine s'affiche comme l'onglet **Réservations** : les
+courts en colonnes, les heures en lignes, un bloc coloré par cours avec le
+nom du coach dessus. On voit d'un coup quel court est pris, quand et par qui.
 
-**« Grille des courts »** (celle qui s'ouvre) — exactement la lecture de
-l'onglet Réservations : les courts en colonnes, les heures en lignes, un bloc
-coloré par cours. On voit d'un coup quel court est pris, à quelle heure et
-par quel coach. Elle montre **un jour à la fois** : les pastilles
-**Lun · Mar · Mer…** au-dessus changent de jour, et le chiffre sur chacune
-dit combien de cours s'y trouvent.
+Deux façons de la parcourir, par le bouton en haut à gauche :
+- **« Semaine entière »** (celle qui s'ouvre) — **tous les jours à la suite**,
+  une grille par jour, chacune sous son bandeau (« Mercredi — 34 cours »).
+  C'est la semaine complète, telle qu'elle a été copiée.
+- **« Un jour »** — une seule grille, et des pastilles **Lun · Mar · Mer…**
+  pour changer de jour. Plus confortable quand on travaille sur une journée
+  précise. Le chiffre sur chaque pastille dit combien de cours s'y trouvent.
+
+Dans les deux cas, la ligne au-dessus récapitule la semaine : *« 108 cours ·
+copiée de la semaine du 23.11.2026 · Lun 14 · Mar 22 · Mer 34 · Jeu 22 ·
+Ven 16 »*. Si un total vous surprend, c'est là qu'il se lit.
 - **Cliquer un bloc** pour tout modifier : type, intitulé, jour, horaire,
   courts, coachs, joueurs.
 - **Cliquer une case vide** crée un cours **sur ce court, à cette heure** —
@@ -379,23 +386,27 @@ dit combien de cours s'y trouvent.
 - **Faire glisser un bloc** sur une autre case : il change de court et
   d'heure. Si le cours occupe **plusieurs courts**, seule l'heure bouge — les
   courts restent, parce que deviner lesquels décaler ferait pire que rien.
-- **Faire glisser un bloc sur une pastille de jour** (Lun, Mar…) pour le
-  changer de jour.
+- **Changer un cours de jour** : le faire glisser sur le **bandeau d'un autre
+  jour** (en vue « Semaine entière ») ou sur une **pastille de jour** (en vue
+  « Un jour »). Sinon, ouvrir le cours et changer « Jour ».
 - Le bouton **Été / Hiver** décide des courts affichés — six l'hiver, douze
   l'été. Un cours posé sur un court fermé à la saison choisie ne disparaît
   pas : sa colonne reste, et un bandeau orange le signale.
-- Un cours **sans court** n'a aucune case : il apparaît dans un bac orange
-  au-dessus de la grille, à cliquer pour lui en donner un.
-- Deux cours sur le **même court à la même heure** sont cerclés de rouge.
-  C'est permis dans un brouillon, mais à l'application l'un des deux sera
-  sauté : autant le voir tout de suite.
 
-**« Semaine »** — les sept jours côte à côte, une carte par cours. Pratique
-pour embrasser la semaine entière et déplacer un cours d'un jour à l'autre
-en le faisant glisser d'une colonne à la suivante.
+**Rien ne peut disparaître sans le dire** — trois garde-fous, parce qu'un
+cours qu'on ne voit plus fait douter de toute la copie :
+- Un cours **sans court** n'a aucune case dans une grille court × heure : il
+  apparaît dans un bac orange au-dessus du jour, à cliquer pour lui en
+  donner un.
+- Deux cours **au même moment sur le même court** ne tiennent pas dans la
+  même case : le second est signalé par un **+1** en coin, qui l'ouvre d'un
+  clic, et les deux sont cerclés de rouge. C'est permis dans un brouillon,
+  mais à l'application l'un des deux sera sauté : autant le voir avant.
+- Un cours **avant 8h ou après 21h** allonge la grille de ce jour au lieu de
+  tomber hors cadre.
 
-« + Cours » ajoute un cours depuis n'importe laquelle des deux vues, et le
-nom et la note s'enregistrent tout seuls.
+« + Cours » ajoute un cours depuis n'importe quelle vue, et le nom comme la
+note s'enregistrent tout seuls.
 
 **Appliquer.** « Appliquer à des semaines… », puis une date de début et une
 date de fin : la semaine type est posée sur **chaque semaine de la plage**.

@@ -1394,22 +1394,13 @@ html{-webkit-tap-highlight-color:transparent}
 .sty-nom{font-weight:800;font-size:1.02rem;min-width:240px;flex:0 1 320px}
 .sty-note{flex:1 1 320px;min-width:240px}
 .sty-sous{font-size:.8rem;margin:0 0 12px}
-.sty-week{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));justify-content:start;gap:8px}
-.sty-day{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:8px;min-width:0;display:flex;flex-direction:column}
-.sty-day.sty-over{border-color:var(--blue);box-shadow:inset 0 0 0 2px var(--blue);background:#f2f6ff}
-.sty-dh{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:.82rem;color:var(--blue-ink);
-  margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
-.sty-add-day{background:#eef1f7;color:var(--blue-ink);font-weight:800;line-height:1;width:22px;height:22px;padding:0;border:0;border-radius:6px;cursor:pointer;flex:0 0 auto}
-.sty-add-day:hover{background:#dde3ef}
-/* min-height : une journée vide doit rester une cible de dépôt visible. */
-.sty-evs{display:flex;flex-direction:column;gap:6px;min-height:44px}
-.sty-ev{border-left:3px solid #0b6b3a;background:#f7f9fc;border-radius:8px;padding:6px 8px;cursor:grab}
-.sty-ev:hover{background:#eef3ff}
-.sty-ev.sty-drag{opacity:.45;cursor:grabbing}
-.sty-ev-t{font-weight:800;font-size:.78rem;color:var(--blue-ink)}
-.sty-ev-n{font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
-.sty-ev-m{font-size:.72rem}
-.sty-ev-co{font-size:.74rem;font-weight:600;color:var(--blue-ink);margin-top:1px}
+/* Un jour de la semaine type : bandeau, puis sa grille de courts. En vue
+   « Semaine entière », ces blocs s'empilent. */
+.sty-jour-bloc{margin:0 0 18px}
+.sty-jour-h{display:flex;align-items:baseline;gap:10px;margin:0 14px 6px;padding:5px 10px;border-radius:8px;
+  background:#eef1f7;color:var(--blue-ink);font-size:.9rem;position:sticky;left:0}
+.sty-jour-h b{font-size:.98rem}
+.sty-jour-h.sty-jour-h-over{background:#dbe6ff;box-shadow:inset 0 0 0 2px var(--blue)}
 /* Barre de la grille : vue, jour, saison. */
 .sty-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px}
 .sty-jours{display:flex;gap:4px;flex-wrap:wrap}
@@ -1425,8 +1416,13 @@ html{-webkit-tap-highlight-color:transparent}
 /* Un bloc de cours dans la grille des courts. .rbloc/.rslot viennent de la
    grille des Réservations : on hérite de sa forme, on n'ajoute que ce qui
    est propre au brouillon (glissement, chevauchement). */
-.sty-bloc{cursor:grab}
+.sty-bloc{cursor:grab;position:relative}
 .sty-bloc.sty-drag{opacity:.45;cursor:grabbing}
+/* « +1 » : un second cours occupe la même case et ne peut pas s'y dessiner.
+   Le pastiller vaut mieux que de le laisser disparaître — et il s'ouvre. */
+.sty-plus{position:absolute;top:1px;right:2px;background:rgba(0,0,0,.3);border-radius:99px;
+  padding:0 4px;font-size:.62rem;font-weight:800;line-height:1.45;cursor:pointer}
+.sty-plus:hover{background:rgba(0,0,0,.5)}
 /* Deux cours sur le même court à la même heure : légal dans un brouillon,
    mais l'un des deux sera sauté à l'application. Liseré rouge pour qu'on le
    voie maintenant, pas dans le rapport. */

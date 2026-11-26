@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=418" />
+  <link rel="stylesheet" href="style.css?v=419" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -1059,15 +1059,16 @@
                 <input id="sty-note" class="sty-note" placeholder="Note (facultatif) — à quoi elle sert" />
               </div>
               <p id="sty-sous" class="muted sty-sous"></p>
-              <!-- Deux vues, comme le Planning : la grille des courts (celle
-                   des Réservations — on voit tout de suite quel court est
-                   pris et par qui) et la semaine en sept colonnes. -->
+              <!-- Une seule façon de lire : la grille des courts de l'onglet
+                   Réservations. « Semaine entière » empile les sept jours,
+                   « Jour » n'en montre qu'un. Les grilles sont construites
+                   dans #sty-grilles, une <section> par jour. -->
               <div class="sty-bar">
                 <div class="cs-viewtoggle">
-                  <button id="sty-vue-grille" class="cs-vt active" data-vue="grille">Grille des courts</button>
-                  <button id="sty-vue-semaine" class="cs-vt" data-vue="semaine">Semaine</button>
+                  <button id="sty-vue-semaine" class="cs-vt active" data-vue="semaine">Semaine entière</button>
+                  <button id="sty-vue-jour" class="cs-vt" data-vue="jour">Un jour</button>
                 </div>
-                <div id="sty-jours" class="sty-jours"></div>
+                <div id="sty-jours" class="sty-jours hidden"></div>
                 <span class="spacer"></span>
                 <div class="cs-viewtoggle" id="sty-saison">
                   <button class="cs-vt" data-saison="ete">Été</button>
@@ -1075,12 +1076,7 @@
                 </div>
               </div>
               <p id="sty-avis" class="sty-avis" hidden></p>
-              <!-- Un cours sans court n'a aucune case dans la grille : il
-                   vivrait nulle part. Il atterrit donc dans ce bac, au-dessus,
-                   comme les publications sans date du Social Media Planner. -->
-              <div id="sty-sanscourt" class="sty-sanscourt" hidden></div>
-              <div class="grid-wrap"><div id="sty-grid" class="rgrid"></div></div>
-              <div id="sty-week" class="sty-week hidden"></div>
+              <div id="sty-grilles"></div>
             </div>
           </div>
 
