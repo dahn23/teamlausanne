@@ -9240,6 +9240,7 @@ const ST_JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "
 let stListe = [], stId = null, stModele = null;
 let stCours = [], stCourts = new Map(), stCoachs = new Map(), stJoueurs = new Map();
 let stcSel = new Set(), stcPlayers = [], stDrag = null, stNomTimer = null, stApplyPret = null;
+let styVue = "grille", styJour = 1, stySaison = "hiver", stDragH = 0, stDragCourt = null;
 
 function stWire() {
   $("sty-new").addEventListener("click", stNouvelleOuvrir);
@@ -9250,6 +9251,16 @@ function stWire() {
     $("stnew-datelbl").hidden = c.dataset.val !== "semaine";
   }));
   $("sty-back").addEventListener("click", () => { stId = null; stRenderListe(); });
+  document.querySelectorAll("#sty-editeur .cs-vt[data-vue]").forEach((b) => b.addEventListener("click", () => {
+    styVue = b.dataset.vue;
+    document.querySelectorAll("#sty-editeur .cs-vt[data-vue]").forEach((x) => x.classList.toggle("active", x === b));
+    stRender();
+  }));
+  $("sty-saison").querySelectorAll(".cs-vt").forEach((b) => b.addEventListener("click", () => {
+    stySaison = b.dataset.saison;
+    $("sty-saison").querySelectorAll(".cs-vt").forEach((x) => x.classList.toggle("active", x === b));
+    stRender();
+  }));
   $("sty-add").addEventListener("click", () => stOuvrirCours(null));
   $("sty-apply").addEventListener("click", stAppliquerOuvrir);
   // Le nom et la note s'enregistrent tout seuls, une demi-seconde après la
@@ -9358,7 +9369,14 @@ async function stOuvrirModele(id) {
   $("sty-editeur").classList.remove("hidden");
   $("sty-nom").value = stModele?.name || "";
   $("sty-note").value = stModele?.note || "";
-  stRenderWeek();
+  // Saison : celle de la semaine copiée, sinon celle d'aujourd'hui. C'est
+  // elle qui décide des courts affichés (6 l'hiver, 12 l'été).
+  stySaison = seasonA(stModele?.source_week || isoA(new Date())) === "ete" ? "ete" : "hiver";
+  $("sty-saison").querySelectorAll(".cs-vt").forEach((b) => b.classList.toggle("active", b.dataset.saison === stySaison));
+  // On ouvre sur le premier jour qui a des cours : le lundi d'une semaine
+  // type vide n'apprend rien.
+  styJour = (stCours.slice().sort((a, b) => a.dow - b.dow)[0]?.dow) || 1;
+  stRender();
 }
 
 async function stEnregistrerEntete() {
@@ -9371,10 +9389,187 @@ async function stEnregistrerEntete() {
   if (stModele) { stModele.name = nom; stModele.note = note; }
 }
 
-function stRenderWeek() {
+// Dispatcher des deux vues. Le sous-titre et les pastilles de jour sont
+// communs : ils ne doivent pas être redessinés par chacune des deux.
+function stRender() {
   const n = stCours.length;
   $("sty-sous").textContent = `${n} cours${stModele?.source_week ? ` · copiée de la semaine du ${frDate(stModele.source_week)}` : ""}`
     + " · aucun court n'est réservé tant que cette semaine n'est pas appliquée";
+  $("sty-jours").innerHTML = ST_JOURS.map((j, i) => {
+    const dow = i + 1, nb = stCours.filter((c) => c.dow === dow).length;
+    return `<button type="button" class="sty-j${dow === styJour ? " on" : ""}" data-dow="${dow}"
+      title="${j}${nb ? ` — ${nb} cours` : " — vide"}"><span class="sty-j-l">${j.slice(0, 3)}</span>${nb ? `<span class="sty-j-n">${nb}</span>` : ""}</button>`;
+  }).join("");
+  // Les pastilles de jour sont aussi des cibles de dépôt : c'est la façon de
+  // changer un cours de jour depuis la grille, qui n'en montre qu'un seul.
+  $("sty-jours").querySelectorAll(".sty-j").forEach((b) => {
+    b.addEventListener("click", () => { styJour = Number(b.dataset.dow); stRender(); });
+    b.addEventListener("dragover", (e) => { if (stDrag) { e.preventDefault(); b.classList.add("sty-j-over"); } });
+    b.addEventListener("dragleave", () => b.classList.remove("sty-j-over"));
+    b.addEventListener("drop", (e) => { e.preventDefault(); b.classList.remove("sty-j-over"); stDeplacer(stDrag, { dow: Number(b.dataset.dow) }); });
+  });
+  $("sty-jours").classList.toggle("hidden", styVue !== "grille");
+  $("sty-saison").classList.toggle("hidden", styVue !== "grille");
+  $("sty-grid").parentElement.classList.toggle("hidden", styVue !== "grille");
+  $("sty-week").classList.toggle("hidden", styVue !== "semaine");
+  if (styVue === "grille") stRenderGrille(); else stRenderWeek();
+}
+
+/* La grille des courts — la même lecture que l'onglet Réservations : les
+   courts en colonnes, les heures en lignes, un bloc coloré par cours. On voit
+   d'un coup d'œil quel court est pris, à quelle heure et par qui, ce qu'une
+   liste de cartes ne montre pas.
+   ⚠ Elle n'affiche QU'UN jour : c'est une grille court × heure, le jour est
+   la troisième dimension. D'où les pastilles Lun…Dim au-dessus, qui servent
+   aussi de cibles de dépôt. */
+function stRenderGrille() {
+  const grid = $("sty-grid");
+  // Courts de la saison choisie, PLUS tout court utilisé par la semaine type
+  // même s'il est fermé à cette saison : un cours posé sur un court masqué
+  // deviendrait invisible, et on le chercherait longtemps.
+  const col = stySaison === "ete" ? "open_summer" : "open_winter";
+  const utilises = new Set();
+  for (const c of stCours) for (const ct of (stCourts.get(c.id) || [])) utilises.add(Number(ct));
+  const courts = resaCourtsAll.filter((c) => c[col] || isFitnessCourt(c) || utilises.has(Number(c.id)));
+  const horsSaison = courts.filter((c) => !c[col] && !isFitnessCourt(c));
+  $("sty-avis").hidden = !horsSaison.length;
+  if (horsSaison.length) {
+    $("sty-avis").innerHTML = `⚠ ${horsSaison.map((c) => esc(c.name)).join(", ")} ${horsSaison.length > 1 ? "sont fermés" : "est fermé"} en ${stySaison === "ete" ? "été" : "hiver"}, `
+      + `mais ${horsSaison.length > 1 ? "portent" : "porte"} des cours : la colonne reste affichée pour qu'ils ne disparaissent pas.`;
+  }
+
+  // Les cours du jour, avec leurs courts : une entrée par (cours, court).
+  const dujour = stCours.filter((c) => c.dow === styJour);
+  const blocs = [];
+  for (const c of dujour) for (const ct of (stCourts.get(c.id) || [])) blocs.push({ c, court: Number(ct) });
+  // ⚠ Un cours SANS court n'a aucune case : il disparaîtrait de la grille
+  // sans laisser de trace, alors que la pastille du jour le compte. Il va
+  // dans un bac au-dessus, d'où on peut l'ouvrir pour lui donner un court.
+  const sansCourt = dujour.filter((c) => !(stCourts.get(c.id) || []).length);
+  $("sty-sanscourt").hidden = !sansCourt.length;
+  if (sansCourt.length) {
+    $("sty-sanscourt").innerHTML = `<span class="sty-sc-t">Sans court — invisible dans la grille :</span>`
+      + sansCourt.sort((a, b) => a.start_time.localeCompare(b.start_time)).map((c) => {
+        const t = courseTypes.find((x) => String(x.id) === String(c.course_type_id));
+        return `<button type="button" class="sty-sc" data-cid="${c.id}" style="border-left-color:${t?.color || c.color || "#0b6b3a"}">`
+          + `${c.start_time.slice(0, 5)} · ${esc(c.title || t?.name || "Cours")}</button>`;
+      }).join("");
+    $("sty-sanscourt").querySelectorAll(".sty-sc").forEach((b) =>
+      b.addEventListener("click", () => stOuvrirCours(stCours.find((x) => x.id === b.dataset.cid))));
+  }
+  // Deux cours sur le même court à la même heure : la base les acceptera
+  // (c'est un brouillon), mais l'un des deux sera sauté à l'application. On
+  // le signale ICI, pendant qu'on peut encore le corriger.
+  const enConflit = new Set();
+  for (let i = 0; i < blocs.length; i++) {
+    for (let j = i + 1; j < blocs.length; j++) {
+      if (blocs[i].court !== blocs[j].court) continue;
+      if (blocs[i].c.start_time < blocs[j].c.end_time && blocs[i].c.end_time > blocs[j].c.start_time) {
+        enConflit.add(blocs[i].c.id); enConflit.add(blocs[j].c.id);
+      }
+    }
+  }
+
+  grid.style.gridTemplateColumns = `64px repeat(${courts.length}, minmax(74px,1fr))`;
+  grid.innerHTML = "";
+  grid.appendChild(rcell("", "rcell corner"));
+  for (const c of courts) {
+    const el = document.createElement("div");
+    el.className = "rcell rhead " + surfaceClass(c.surface);
+    const n = String(c.name).replace(/^Court\s*/i, "");
+    el.innerHTML = /^court\s/i.test(c.name)
+      ? `<span class="cn-full">Court&nbsp;${esc(n)}</span><span class="cn-short">${esc(n)}</span>`
+      : `<span class="cn-full">${esc(c.name)}</span><span class="cn-short">${esc(c.name)}</span>`;
+    el.title = `${c.name} · ${c.surface}`;
+    grid.appendChild(el);
+  }
+  for (let h = 8; h <= 21; h++) {
+    grid.appendChild(rcell(pad2(h) + ":15", "rcell rhour"));
+    for (const ct of courts) {
+      const d = pad2(h) + ":15:00", f = pad2(h + 1) + ":15:00";
+      const b = blocs.find((x) => x.court === Number(ct.id) && x.c.start_time < f && x.c.end_time > d);
+      const el = document.createElement("div");
+      el.className = "rcell rslot";
+      if (b) {
+        const type = courseTypes.find((t) => String(t.id) === String(b.c.course_type_id));
+        const fond = type?.color || b.c.color || "#1e3ad1";
+        el.style.background = fond;
+        el.style.color = texteSur(fond);
+        const coachs = (stCoachs.get(b.c.id) || []).map((pid) => people.find((p) => String(p.id) === pid)).filter(Boolean);
+        el.textContent = coachs.length
+          ? coachs[0].last_name + (coachs.length > 1 ? ` +${coachs.length - 1}` : "")
+          : (b.c.title || type?.name || "Cours");
+        const nj = (stJoueurs.get(b.c.id) || []).length;
+        el.title = [b.c.title || type?.name || "Cours",
+          `${b.c.start_time.slice(0, 5)}–${b.c.end_time.slice(0, 5)}`,
+          coachs.map((p) => `${p.last_name} ${p.first_name}`).join(", "),
+          nj ? `${nj} joueur${nj > 1 ? "s" : ""}` : "",
+          (stCourts.get(b.c.id) || []).length > 1 ? "Plusieurs courts : le glisser ne change que l'heure" : "",
+          enConflit.has(b.c.id) ? "⚠ Deux cours se chevauchent sur ce court" : ""].filter(Boolean).join(" · ");
+        el.classList.add("rbloc", "sty-bloc");
+        if (enConflit.has(b.c.id)) el.classList.add("sty-clash");
+        el.draggable = true;
+        el.dataset.cid = b.c.id;
+        el.dataset.h = h;
+        el.addEventListener("click", () => stOuvrirCours(stCours.find((x) => x.id === b.c.id)));
+        el.addEventListener("dragstart", (ev) => {
+          // On retient l'heure de la case SAISIE : attraper la 2e heure d'un
+          // bloc de deux heures et la lâcher sur 14h doit poser le bloc de
+          // 13h à 15h, pas de 14h à 16h. Même règle que la vraie grille.
+          stDrag = b.c.id; stDragH = h; stDragCourt = Number(ct.id);
+          el.classList.add("sty-drag"); ev.dataTransfer.effectAllowed = "move";
+        });
+        el.addEventListener("dragend", () => { stDrag = null; el.classList.remove("sty-drag"); });
+      } else {
+        el.classList.add("rfree");
+        el.title = "Ajouter un cours ici";
+        el.addEventListener("click", () => stOuvrirCours(null, styJour, { court: Number(ct.id), heure: pad2(h) + ":15" }));
+        el.addEventListener("dragover", (ev) => { if (stDrag) { ev.preventDefault(); el.classList.add("sty-cible"); } });
+        el.addEventListener("dragleave", () => el.classList.remove("sty-cible"));
+        el.addEventListener("drop", (ev) => {
+          ev.preventDefault(); el.classList.remove("sty-cible");
+          stDeplacer(stDrag, { court: Number(ct.id), dh: h - stDragH });
+        });
+      }
+      grid.appendChild(el);
+    }
+  }
+}
+
+// Déplacer un cours type : changer de jour, d'heure, de court, ou plusieurs
+// à la fois. ⚠ Le court ne suit QUE si le cours n'en occupe qu'un : décaler
+// un cours posé sur quatre courts en même temps n'a pas de sens évident, et
+// deviner à la place de la personne ferait pire. Dans ce cas seule l'heure
+// bouge, et l'infobulle du bloc le dit.
+async function stDeplacer(cid, { dow, court, dh } = {}) {
+  const c = stCours.find((x) => x.id === cid);
+  if (!c) return;
+  const maj = {}, courts = stCourts.get(cid) || [];
+  if (dow && dow !== c.dow) maj.dow = dow;
+  if (dh) {
+    const decale = (t) => pad2(Number(t.slice(0, 2)) + dh) + t.slice(2);
+    const d = decale(c.start_time), f = decale(c.end_time);
+    if (d < "07:00:00" || f > "23:00:00") return uiAlert("Hors de la grille.");
+    maj.start_time = d; maj.end_time = f;
+  }
+  const changeCourt = court != null && courts.length === 1 && Number(courts[0]) !== court;
+  if (!Object.keys(maj).length && !changeCourt) return;
+  if (Object.keys(maj).length) {
+    const { error } = await sb.from("plan_template_courses").update(maj).eq("id", cid);
+    if (error) return uiAlert("Échec : " + error.message);
+    Object.assign(c, maj);
+  }
+  if (changeCourt) {
+    const { error } = await sb.from("plan_template_courts")
+      .update({ court_id: court }).eq("template_course_id", cid).eq("court_id", courts[0]);
+    if (error) return uiAlert("Échec : " + error.message);
+    stCourts.set(cid, [court]);
+  }
+  if (maj.dow) styJour = maj.dow;
+  stRender();
+}
+
+function stRenderWeek() {
   const carte = (c) => {
     const type = courseTypes.find((t) => String(t.id) === String(c.course_type_id));
     const courts = (stCourts.get(c.id) || []).map((id) => {
@@ -9424,12 +9619,15 @@ function stRenderWeek() {
       if (!c || c.dow === dow) return;
       const { error } = await sb.from("plan_template_courses").update({ dow }).eq("id", id);
       if (error) return uiAlert("Échec : " + error.message);
-      c.dow = dow; stRenderWeek();
+      c.dow = dow; stRender();
     });
   });
 }
 
-function stOuvrirCours(c, dowDefaut) {
+// `pose` = la case vide cliquée dans la grille ({ court, heure }) : le court
+// et l'heure sont déjà choisis par le geste, les reproposer vides serait une
+// question à laquelle la personne vient de répondre.
+function stOuvrirCours(c, dowDefaut, pose) {
   $("stc-error").hidden = true;
   $("stc-title").textContent = c ? "Modifier le cours" : "Nouveau cours de la semaine type";
   $("stc-id").value = c?.id || "";
@@ -9438,12 +9636,13 @@ function stOuvrirCours(c, dowDefaut) {
   $("stc-type").value = c?.course_type_id || "";
   $("stc-label").value = c?.title || "";
   $("stc-dow").value = String(c?.dow || dowDefaut || 1);
-  $("stc-start").value = c ? c.start_time.slice(0, 5) : "17:00";
-  $("stc-end").value = c ? c.end_time.slice(0, 5) : "18:00";
+  const debut = c ? c.start_time.slice(0, 5) : (pose?.heure || "17:00");
+  $("stc-start").value = debut;
+  $("stc-end").value = c ? c.end_time.slice(0, 5) : pad2(Number(debut.slice(0, 2)) + 1) + debut.slice(2);
   const type = courseTypes.find((t) => String(t.id) === String(c?.course_type_id));
   $("stc-color").value = type?.color || c?.color || "#0b6b3a";
   renderChips("stc-courts", resaCourtsAll.map((x) => [x.id, x.name.replace("Court ", "C")]),
-    (stCourts.get(c?.id) || []).map(String));
+    c ? (stCourts.get(c.id) || []).map(String) : (pose?.court != null ? [String(pose.court)] : []));
   renderChips("stc-coaches", people.filter((p) => hasRoleIn(p.id, COACH_ROLES))
     .map((p) => [String(p.id), `${p.last_name} ${p.first_name}`])
     .sort((a, b) => a[1].localeCompare(b[1])), stCoachs.get(c?.id) || []);

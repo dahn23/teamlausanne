@@ -364,13 +364,38 @@ penser à la supprimer.
 semaine copiée n'est pas touchée — on en prend une photo), soit une **page
 blanche**.
 
-**Retoucher.** La semaine s'affiche en sept colonnes, du lundi au dimanche.
-- Cliquer une carte pour tout modifier : type, intitulé, jour, horaire,
+**Retoucher.** Deux vues, au choix, comme dans le Planning.
+
+**« Grille des courts »** (celle qui s'ouvre) — exactement la lecture de
+l'onglet Réservations : les courts en colonnes, les heures en lignes, un bloc
+coloré par cours. On voit d'un coup quel court est pris, à quelle heure et
+par quel coach. Elle montre **un jour à la fois** : les pastilles
+**Lun · Mar · Mer…** au-dessus changent de jour, et le chiffre sur chacune
+dit combien de cours s'y trouvent.
+- **Cliquer un bloc** pour tout modifier : type, intitulé, jour, horaire,
   courts, coachs, joueurs.
-- **Faire glisser une carte** d'un jour à l'autre pour la déplacer. La
-  colonne visée s'éclaire ; le jour change dès qu'on lâche.
-- « + » en tête d'un jour, ou « + Cours », pour en ajouter un.
-- Le nom et la note s'enregistrent tout seuls.
+- **Cliquer une case vide** crée un cours **sur ce court, à cette heure** —
+  les deux sont déjà remplis dans la fenêtre.
+- **Faire glisser un bloc** sur une autre case : il change de court et
+  d'heure. Si le cours occupe **plusieurs courts**, seule l'heure bouge — les
+  courts restent, parce que deviner lesquels décaler ferait pire que rien.
+- **Faire glisser un bloc sur une pastille de jour** (Lun, Mar…) pour le
+  changer de jour.
+- Le bouton **Été / Hiver** décide des courts affichés — six l'hiver, douze
+  l'été. Un cours posé sur un court fermé à la saison choisie ne disparaît
+  pas : sa colonne reste, et un bandeau orange le signale.
+- Un cours **sans court** n'a aucune case : il apparaît dans un bac orange
+  au-dessus de la grille, à cliquer pour lui en donner un.
+- Deux cours sur le **même court à la même heure** sont cerclés de rouge.
+  C'est permis dans un brouillon, mais à l'application l'un des deux sera
+  sauté : autant le voir tout de suite.
+
+**« Semaine »** — les sept jours côte à côte, une carte par cours. Pratique
+pour embrasser la semaine entière et déplacer un cours d'un jour à l'autre
+en le faisant glisser d'une colonne à la suivante.
+
+« + Cours » ajoute un cours depuis n'importe laquelle des deux vues, et le
+nom et la note s'enregistrent tout seuls.
 
 **Appliquer.** « Appliquer à des semaines… », puis une date de début et une
 date de fin : la semaine type est posée sur **chaque semaine de la plage**.
