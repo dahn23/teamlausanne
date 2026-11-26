@@ -3155,7 +3155,10 @@ document.addEventListener("submit", async (e) => {
     ? T("Merci ! Nous vous envoyons le dossier et reprenons contact avec vous rapidement pour en parler de vive voix.")
     : parti
     ? T("Merci, la brochure part dans votre boîte mail. Nous vous recontactons bientôt.")
-    : `Merci ! Voici la brochure : <a href="${esc(doc)}" target="_blank" rel="noopener">la télécharger</a>. Nous vous recontactons bientôt.`;
+    // #page=1 : les lecteurs PDF des navigateurs retiennent la page où l'on
+    // s'était arrêté la fois d'avant et rouvrent le document dessus — on
+    // tombait au milieu, sur le calendrier. L'ancre force la couverture.
+    : `Merci ! Voici la brochure : <a href="${esc(doc)}#page=1" target="_blank" rel="noopener">la télécharger</a>. Nous vous recontactons bientôt.`;
   btn.disabled = false;
 });
 

@@ -20,6 +20,14 @@
   from = "/en/news"
   to = "/en/news.html"
   status = 200
+# Brochure Sport-etudes : l'edition 2026-27 remplace celle de 2026
+# (26.11.2026). L'ancienne adresse circule dans tous les mails deja envoyes
+# depuis septembre : elle doit continuer de mener a la brochure, et a la
+# brochure A JOUR. D'ou une redirection plutot que deux fichiers a maintenir.
+[[redirects]]
+  from = "/assets/brochures/sport-etudes-2026-fr.pdf"
+  to = "/assets/brochures/sport-etudes-2026-27-fr.pdf"
+  status = 301
 [build]
   publish = "."
   # Fabrique une vraie page HTML par programme (voir build.mjs). Le script
