@@ -191,8 +191,8 @@ coachs:
     resume: "A sport studies player and a coach for two years, he passes on with patience what he is still learning on court himself.",
     tags: ["Kids Tennis", "Club", "Competition", "Camps"],
     bio: [
-      "Célyan Lorival has been in sport studies at Lausanne-Sports for five years, with the bac in his sights. He has been teaching for around two years, from Kids Tennis to Competition, in lessons and on camps.",
-      "A one-handed backhand, and an admitted weakness for the atmosphere of the interclub. Patient and motivated, he enjoys passing it on as much as playing.",
+      "Célyan Lorival has been in sport studies at Lausanne-Sports for five years, working towards his baccalauréat. He has been teaching for around two years, from Kids Tennis to Competition, in lessons and on camps.",
+      "A one-handed backhand, and an admitted soft spot for the interclub atmosphere. Patient and motivated, he enjoys passing it on as much as playing.",
     ],
     classement: ["Current and best ranking: R2."],
     formations: [
@@ -480,7 +480,7 @@ details:
   "sport-etudes": {
     world: "academie", title: "Sport Studies",
     metaTitle: "Sport studies tennis in Lausanne (ages 14-19) | Team Lausanne",
-    metaDescription: "Sport studies tennis in Lausanne, ages 14 to 19: 2h of tennis, 1h of physical work and 4h of supervised schoolwork a day, through to the maturité or the bac. Lunch included.",
+    metaDescription: "Sport studies tennis in Lausanne, ages 14 to 19: 2h of tennis, 1h of physical work and 4h of supervised schoolwork a day, through to the maturité or the baccalauréat. Lunch included.",
     subtitle: "Combining school and daily training, from 14 to 19: two hours of tennis, one hour of physical preparation and four hours of supervised schoolwork a day, with individual support from the first day to the diploma.",
     hero: "/assets/photos/sport-etudes-2026.jpg", heroPos: "30% 40%",
     heroVideo: "/assets/video/sport-etudes-hero.mp4",
@@ -529,7 +529,7 @@ details:
           { nom: "Célyan Lorival", age: "18", classement: "R2",
             photo: "/assets/photos/eleve-celyan-lorival.jpg",
             mytennis: "19764390",
-            mot: "Five years of sport studies at Lausanne-Sports, with the bac in his sights. A one-handed backhand, and an admitted weakness for the atmosphere of the interclub. He has been teaching for two years, in lessons and on camps: patient, and as motivated by passing it on as by playing.",
+            mot: "Five years of sport studies at Lausanne-Sports, working towards his baccalauréat. A one-handed backhand, and an admitted soft spot for the interclub atmosphere. He has been teaching for two years, in lessons and on camps: patient, and as motivated by passing it on as by playing.",
             tags: ["J+S continuing 1", "J+S continuing 2", "Official Swiss Tennis"] },
           { nom: "Nadia Dévaud", age: "15", classement: "R5",
             photo: "/assets/photos/eleve-nadia-devaud.jpg",

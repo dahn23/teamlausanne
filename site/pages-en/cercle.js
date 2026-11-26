@@ -292,4 +292,22 @@ export const CERCLE_EN = [
   ['<a class="lang-switch" id="lang-switch" href="/en/presidents-club" hreflang="en" lang="en" title="Read this page in English"><span class="lang-on">FR</span>',
    '<a class="lang-switch" id="lang-switch" href="/cercle-du-president" hreflang="fr" lang="fr" title="Lire cette page en français"><span class="lang-on">EN</span>'],
   ['<span class="lang-off">EN</span>', '<span class="lang-off">FR</span>'],
+
+  // --- l'horaire du vendredi ---
+  // ⚠ Ces trois-là manquaient, et le défaut se voyait à l'œil nu : juste
+  // au-dessus, le bandeau du haut annonçait déjà « 10.00am to 12.30pm »
+  // (traduit, lui), puis le déroulé de la matinée repassait en « 10h00 » et
+  // « 12h00 — 12h30 ». Deux formats d'heure dans la même page anglaise.
+  // ⚠ « >10h00< » ne risque pas d'attraper « >10h00 – 12h30< » : le fragment
+  // exige le chevron juste après, et l'autre a « – 12h30 » entre les deux.
+  [">10h00<", ">10.00am<"],
+  [">10h10 — 12h00<", ">10.10am — 12.00pm<"],
+  [">12h00 — 12h30<", ">12.00pm — 12.30pm<"],
+
+  // --- le guillemet fermant de la citation du président ---
+  // L'ouvrant « était traduit en “ (il est au début du long fragment de la
+  // citation), le fermant » ne l'était pas : il vit APRÈS le </b>, donc hors
+  // du fragment. La citation anglaise s'ouvrait en anglais et se fermait en
+  // français — “ … » — ce qui se lit comme une faute de frappe.
+  ["</b> »</blockquote>", "</b>”</blockquote>"],
 ];

@@ -234,7 +234,7 @@ export const CHROME_EN = [
   [">une question, un essai<", ">a question, a trial lesson<"],
 
   // --- hero ---
-  [">Changez d'univers ↑<", ">Switch world ↑<"],
+  [">Changez d'univers ↑<", ">Switch worlds ↑<"],
 
   // --- formulaire de contact + plan ---
   // ⚠ Pas d'entrée pour « <h2>Nous écrire</h2> » : la paire générique
