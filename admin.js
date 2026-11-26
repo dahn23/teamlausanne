@@ -9362,7 +9362,17 @@ async function stSupprimerModele(id) {
   stId = null; await stOuvrir();
 }
 
+// ⚠ Cette fonction sert à DEUX choses : ouvrir une semaine type, et la
+// relire après chaque enregistrement. Dans le second cas elle ne doit rien
+// repositionner — on travaillait sur le mardi, enregistrer un cours
+// renvoyait au lundi (et à la saison d'origine si on avait basculé en été).
+// D'où `memeModele` : les choix de l'utilisateur ne sont posés qu'à la
+// PREMIÈRE ouverture. Le test porte sur l'identifiant plutôt que sur un
+// paramètre passé par les appelants — un paramètre, on l'oublie au cinquième
+// appel, et la vue resaute sans qu'on sache pourquoi.
 async function stOuvrirModele(id) {
+  const memeModele = stId === id;
+  const scroll = memeModele ? window.scrollY : 0;
   stId = id;
   stModele = stListe.find((t) => t.id === id) || null;
   const [{ data: cs }, { data: rs }] = await Promise.all([
@@ -9388,14 +9398,19 @@ async function stOuvrirModele(id) {
   $("sty-editeur").classList.remove("hidden");
   $("sty-nom").value = stModele?.name || "";
   $("sty-note").value = stModele?.note || "";
-  // Saison : celle de la semaine copiée, sinon celle d'aujourd'hui. C'est
-  // elle qui décide des courts affichés (6 l'hiver, 12 l'été).
-  stySaison = seasonA(stModele?.source_week || isoA(new Date())) === "ete" ? "ete" : "hiver";
+  if (!memeModele) {
+    // Saison : celle de la semaine copiée, sinon celle d'aujourd'hui. C'est
+    // elle qui décide des courts affichés (6 l'hiver, 12 l'été).
+    stySaison = seasonA(stModele?.source_week || isoA(new Date())) === "ete" ? "ete" : "hiver";
+    // On ouvre sur le premier jour qui a des cours : le lundi d'une semaine
+    // type vide n'apprend rien.
+    styJour = (stCours.slice().sort((a, b) => a.dow - b.dow)[0]?.dow) || 1;
+  }
   $("sty-saison").querySelectorAll(".cs-vt").forEach((b) => b.classList.toggle("active", b.dataset.saison === stySaison));
-  // On ouvre sur le premier jour qui a des cours : le lundi d'une semaine
-  // type vide n'apprend rien.
-  styJour = (stCours.slice().sort((a, b) => a.dow - b.dow)[0]?.dow) || 1;
   stRender();
+  // La grille est redessinée en entier : sans cela, enregistrer un cours en
+  // bas du vendredi ramenait la page en haut du lundi.
+  if (memeModele) window.scrollTo({ top: scroll });
 }
 
 async function stEnregistrerEntete() {
@@ -9715,6 +9730,9 @@ async function stEnregistrerResa(e) {
     ? await sb.from("plan_template_bookings").update(row).eq("id", id)
     : await sb.from("plan_template_bookings").insert(row);
   if (error) return failC(err, error.message);
+  // Ce qu'on vient d'enregistrer est ce qu'on veut voir : si son jour a
+  // changé dans la fenêtre, la vue le suit au lieu de le perdre de vue.
+  styJour = row.dow;
   $("str-modal").classList.add("hidden");
   await stOuvrirModele(stId);
 }
@@ -9826,6 +9844,8 @@ async function stEnregistrerCours(e) {
     poser("plan_template_players", "child_person_id", joueurs),
   ])).filter(Boolean);
   if (erreurs.length) return failC(err, erreurs[0].message);
+  // Idem : la vue suit le cours qu'on vient d'enregistrer.
+  styJour = row.dow;
   $("stc-modal").classList.add("hidden");
   await stOuvrirModele(stId);
 }
