@@ -331,6 +331,24 @@ photos GameZone, qui sont dans un espace public depuis le début.
 
 La croix sur une vignette retire la photo et son fichier, définitivement.
 
+### Chaque nom garde sa couleur
+
+Dans une réservation de court, le champ **Nom** propose les noms déjà
+utilisés. Depuis le 26.11.2026, **choisir un nom connu repose sa couleur** —
+Xavier Schumacher revient en brun, un Tournoi en rose, sans y penser. Vous
+pouvez toujours changer la couleur juste après : c'est alors **ce dernier
+choix qui devient la couleur de ce nom** pour les fois suivantes.
+
+Avant, la couleur d'un nom était enregistrée à sa toute première saisie et
+plus jamais relue : le même locataire se retrouvait en trois couleurs selon
+le jour, et rien ne permettait de corriger la première.
+
+⚠ Cela ne touche **que les réservations de court**. Une séance de l'école est
+un cours : sa couleur vient de son **type** (École de tennis, Compétition,
+Performance…), et c'est la filière qu'on lit dans la grille, pas le nom du
+coach. Un coach qui donne un cours de l'école **et** loue un court pour ses
+leçons privées garde donc deux couleurs, et c'est voulu.
+
 ### Recopier une semaine
 
 « Copier la semaine » reprend une semaine entière et la pose sur une autre.

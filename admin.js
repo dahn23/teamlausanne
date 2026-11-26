@@ -803,6 +803,10 @@ async function initResa(roles) {
   $("resa-today").addEventListener("click", () => allerAuJour(isoA(new Date())));
   $("resa-away-new").addEventListener("click", () => openAway(null, $("resa-date").value));
   $("r-kind").addEventListener("change", majAwayHint);
+  // Choisir un nom connu repose sa couleur. Sur une réservation EXISTANTE on
+  // n'y touche pas : elle a déjà la sienne, et la changer en effleurant le
+  // champ serait une modification qu'on n'a pas demandée.
+  $("r-name").addEventListener("change", () => { if (!$("r-id").value) majCouleurDepuisNom(); });
   // On repart de la date déjà saisie : le tournoi qu'on allait poser sur la
   // grille devient un déplacement le même jour, sans resaisir quoi que ce soit.
   $("r-away-go").addEventListener("click", () => {
@@ -1225,11 +1229,34 @@ function openResaCreate(courtId, hour, dur) {
   $("r-start").value = hour ?? 8;
   $("r-dur").value = dur ?? 1;
   $("r-color").value = "#1e3ad1";
+  majCouleurDepuisNom();            // nom pre-rempli ? sa couleur suit
   $("r-rec").checked = false; $("r-until").value = "";
   $("r-del-occ").classList.add("hidden");
   $("r-del-series").classList.add("hidden");
   majAwayHint();
   $("resa-modal").classList.remove("hidden");
+}
+
+/* Couleur attachée à un nom (26.11.2026).
+   `booking_labels` garde depuis toujours un nom ET une couleur, mais cette
+   couleur n'était jamais relue : elle s'écrivait à la première saisie et
+   dormait. D'où des créneaux du même locataire en trois couleurs — Xavier
+   Schumacher en jaune, en bleu par défaut et en brun selon le jour.
+   Maintenant, choisir un nom déjà connu repose SA couleur. On peut toujours
+   la changer juste après : c'est le dernier choix délibéré qui fait foi, et
+   il devient le défaut de la fois suivante (cf. l'enregistrement).
+   ⚠ Cela ne concerne QUE les réservations de court. Une séance de l'école
+   est un cours : sa couleur vient de son TYPE (drawResaGrid lit
+   course_types.color avant celle de la réservation), et rien ici ne peut
+   l'atteindre. C'est la même garde que db/254. */
+const couleurDuNom = (nom) => {
+  const n = String(nom || "").trim().toLowerCase();
+  return n ? (resaLabels.find((l) => String(l.name).trim().toLowerCase() === n)?.color || null) : null;
+};
+
+function majCouleurDepuisNom() {
+  const c = couleurDuNom($("r-name").value);
+  if (c) $("r-color").value = c;
 }
 
 // Le renvoi « hors du club » n'a de sens que pour un tournoi : c'est le seul
@@ -1300,8 +1327,14 @@ async function saveResa(e) {
     if (error) return failR(err, error.code === "23P01" ? "Ce créneau est déjà pris." : error.message);
   }
 
-  if (name && !resaLabels.some((l) => l.name === name)) {
-    await sb.from("booking_labels").insert({ name, color });
+  // Le nom retient sa couleur pour la fois suivante. On met aussi à jour un
+  // nom DÉJÀ connu : sans cela, la couleur enregistrée à la toute première
+  // saisie resterait figée pour toujours, et c'est exactement ce qui avait
+  // laissé « Schumacher » sur le bleu par défaut. Le dernier choix fait foi.
+  if (name) {
+    const connu = resaLabels.find((l) => String(l.name).trim().toLowerCase() === name.trim().toLowerCase());
+    if (!connu) await sb.from("booking_labels").insert({ name, color });
+    else if (connu.color !== color) await sb.from("booking_labels").update({ color }).eq("id", connu.id);
     await loadResaLabels();
   }
   closeResa();
