@@ -160,7 +160,7 @@ export const UI = {
  *
  * NE SE TRADUISENT PAS, et c'est normal qu'ils soient absents de la table :
  * « Team Lausanne Academy », « Kids Tennis », « Club », « Performance »,
- * « Pro », « Pro U18 », « Game Zone », « Lausanne Open », « Academy »,
+ * « Pro », « Pro U18 », « GameZone », « Lausanne Open », « Academy »,
  * « Contact », « Email », « XL », les adresses et le compte Instagram.
  * =========================================================================== */
 export const CHROME_EN = [

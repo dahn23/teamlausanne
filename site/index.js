@@ -1618,7 +1618,7 @@ function renderDetail(id) {
     : d.cta.scroll ? `<button class="btn-cta" data-scroll="${esc(d.cta.scroll)}">${esc(d.cta.label)}</button>`
     : `<button class="btn-cta" data-contact="${esc(d.cta.contact)}">${esc(d.cta.label)}</button>`;
   const ctaHTML = ctaPage + `<button class="btn-cta ghost" data-back="${d.world}">← Retour ${esc(w.retour)}</button>`;
-  // Une page peut porter son propre logo : la Game Zone a le sien.
+  // Une page peut porter son propre logo : la GameZone a le sien.
   paintHero({ logo: w.logo, heroLogo: d.heroLogo || w.heroLogo, hero: d.hero, heroPos: d.heroPos, heroVideo: d.heroVideo, tag: w.tag, slogan: d.title, desc: d.subtitle, ctaHTML, sloganEntier: true });
   $("world-main").innerHTML = d.sections.map(sectionWrap).join("");
   animate();

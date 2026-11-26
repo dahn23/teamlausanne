@@ -117,7 +117,7 @@ const WORLDS = {
           { name: "Sport-études", photo: "assets/webflow/sport-studies.jpg", href: "#sport-etudes" },
           { name: "Pro U18", photo: "assets/webflow/coaching-technique.jpg", href: "#pro-u18" },
           { name: "Pro", photo: "assets/webflow/physical-training.jpg", href: "#pro" },
-          { name: "Game Zone", photo: "assets/webflow/event-gamezone.webp", href: "#gamezone" },
+          { name: "GameZone", photo: "assets/webflow/event-gamezone.webp", href: "#gamezone" },
           { name: "Stages", photo: "assets/webflow/prog-adults.webp", href: "#stages" },
         ]},
       { type: "team", title: "Team Compétition & Performance",
@@ -429,11 +429,11 @@ const DETAILS = {
     ],
   },
   gamezone: {
-    world: "academie", title: "Game Zone", subtitle: "Des tournois juniors presque tous les week-ends",
+    world: "academie", title: "GameZone", subtitle: "Des tournois juniors presque tous les week-ends",
     hero: "assets/photos/kids2.jpg",
     sections: [
       { type: "rich", title: "Le concept", body: [
-        "Presque tous les week-ends, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant.",
+        "Presque tous les week-ends, la GameZone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant.",
         "Le format idéal pour se lancer en compétition et cumuler de l'expérience — et aller décrocher la grande coupe à la 10ᵉ victoire ! Une petite coupe est déjà remise dès 5 victoires, et une médaille à chaque victoire.",
       ], link: { label: "Consulter les prochains tournois ↗", href: GAMEZONE_URL } },
       { type: "gzphotos" },

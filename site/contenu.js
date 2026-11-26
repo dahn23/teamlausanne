@@ -369,7 +369,7 @@ worlds:
           { name: "Sport-études", photo: "/assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
           { name: "Pro U18", photo: "/assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
           { name: "Pro", photo: "/assets/photos/pro-2026.jpg", href: "#pro" },
-          { name: "Game Zone", photo: "/assets/photos/gamezone-2026.jpg", href: "#gamezone" },
+          { name: "GameZone", photo: "/assets/photos/gamezone-2026.jpg", href: "#gamezone" },
           { name: "Stages", photo: "/assets/photos/stages-2026.jpg", href: "#stages" },
           { name: "Adultes et privés", photo: "/assets/photos/adultes-2026.jpg", href: "#adultes" },
         ] },
@@ -859,7 +859,7 @@ details:
         ], link: { label: "Recevoir le dossier", scroll: "brochure", cta: true } },
       { type: "stats", items: [
         ["46", "semaines d'entraînement"],
-        ["5", "matchs locaux"],
+        ["5", "matchs d'interclubs"],
         ["2", "sessions de tennis / jour"],
         ["5h", "de jeu quotidien"],
       ]},
@@ -1140,15 +1140,15 @@ details:
     ],
   },
   gamezone: {
-    world: "academie", title: "Game Zone",
-    metaTitle: "Game Zone — tournois de tennis juniors à Lausanne",
+    world: "academie", title: "GameZone",
+    metaTitle: "GameZone — tournois de tennis juniors à Lausanne",
     metaDescription: "Des tournois de tennis juniors presque tous les week-ends à Lausanne : une seule journée, deux matchs garantis, une médaille à chaque victoire.",
     subtitle: "Des tournois juniors presque tous les week-ends, sur une seule journée et deux matchs garantis. Une médaille à chaque victoire, une coupe dès la cinquième, et la grande coupe à la dixième — de quoi se lancer en compétition sans pression.",
     hero: "/assets/photos/gamezone-2026.jpg", heroPos: "55% 45%",
     heroLogo: "/assets/logo-gamezone-blanc.png",
     sections: [
       { type: "rich", title: "Le concept", body: [
-        "Presque tous les week-ends, la Game Zone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant.",
+        "Presque tous les week-ends, la GameZone propose des tournois juniors sur une seule journée, avec deux matchs garantis par participant.",
         "Le format idéal pour se lancer en compétition et cumuler de l'expérience — et aller décrocher la grande coupe à la 10ᵉ victoire ! Une petite coupe est déjà remise dès 5 victoires, et une médaille à chaque victoire.",
       ], link: { label: "Consulter les prochains tournois ↗", href: "@gamezone_url" } },
       { type: "gzphotos" },

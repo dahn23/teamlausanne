@@ -327,7 +327,7 @@ worlds: {
           { name: "Sport Studies", photo: "/assets/photos/sport-etudes-2026.jpg", href: "#sport-etudes" },
           { name: "Pro U18", photo: "/assets/photos/pro-u18-2026.jpg", href: "#pro-u18" },
           { name: "Pro", photo: "/assets/photos/pro-2026.jpg", href: "#pro" },
-          { name: "Game Zone", photo: "/assets/photos/gamezone-2026.jpg", href: "#gamezone" },
+          { name: "GameZone", photo: "/assets/photos/gamezone-2026.jpg", href: "#gamezone" },
           { name: "Camps", photo: "/assets/photos/stages-2026.jpg", href: "#stages" },
           { name: "Adults and private lessons", photo: "/assets/photos/adultes-2026.jpg", href: "#adultes" },
         ] },
@@ -759,7 +759,7 @@ details:
         ], link: { label: "Request the information pack", scroll: "brochure", cta: true } },
       { type: "stats", items: [
         ["46", "weeks of training"],
-        ["5", "local matches"],
+        ["5", "interclub matches"],
         ["2", "tennis sessions / day"],
         ["5h", "of play a day"],
       ]},
@@ -1023,15 +1023,15 @@ details:
     ],
   },
   gamezone: {
-    world: "academie", title: "Game Zone",
-    metaTitle: "Game Zone — junior tennis tournaments in Lausanne",
+    world: "academie", title: "GameZone",
+    metaTitle: "GameZone — junior tennis tournaments in Lausanne",
     metaDescription: "Junior tennis tournaments almost every weekend in Lausanne: a single day, two matches guaranteed, a medal for every win.",
     subtitle: "Junior tournaments almost every weekend, on a single day and with two matches guaranteed. A medal for every win, a cup from the fifth, and the big cup at the tenth — a way into competition without the pressure.",
     hero: "/assets/photos/gamezone-2026.jpg", heroPos: "55% 45%",
     heroLogo: "/assets/logo-gamezone-blanc.png",
     sections: [
       { type: "rich", title: "How it works", body: [
-        "Almost every weekend, Game Zone runs junior tournaments over a single day, with two matches guaranteed per player.",
+        "Almost every weekend, GameZone runs junior tournaments over a single day, with two matches guaranteed per player.",
         "The ideal format for getting into competition and building experience — and for going after the big cup on the 10th win! A small cup is already awarded at 5 wins, and a medal for every win.",
       ], link: { label: "See the upcoming tournaments ↗", href: "@gamezone_url" } },
       { type: "gzphotos" },
