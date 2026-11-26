@@ -5424,7 +5424,13 @@ function initCours(roles) {
       document.querySelectorAll("#view-cours .cours-subtab").forEach((x) => x.classList.toggle("active", x === b));
       document.querySelectorAll("#view-cours .cours-sub").forEach((s) => s.classList.toggle("hidden", s.id !== "cours-sub-" + b.dataset.sub));
       if (b.dataset.sub === "photos") phjOuvrir();
+      if (b.dataset.sub === "semaine") stOuvrir();
     }));
+  // Semaine type (db/251) : même porte que le planning — qui peut écrire un
+  // cours peut écrire un brouillon de cours. Un coach voit l'onglet Cours
+  // mais pas celui-ci (la RLS le refuserait de toute façon).
+  $("cours-subtab-semaine").classList.toggle("hidden", !isCourseMgr);
+  if (isCourseMgr) stWire();
   // Photos (db/245) : réservé à la population du Répertoire — c'est elle qui
   // publie vers les familles. Un coach voit l'onglet Cours mais pas celui-ci.
   $("cours-subtab-photos")?.classList.toggle("hidden", !meCanPhotos());
@@ -9203,6 +9209,454 @@ async function cwRun() {
   alert(`✓ ${created} cours copiés.` + (cwConflicts.length ? ` ${cwConflicts.length} ignoré(s) pour conflit.` : ""));
   loadCoursesCurrent();
 }
+/* =====================================================================
+   SEMAINE TYPE — le brouillon de planning (db/251)            26.11.2026
+   =====================================================================
+   Copier une semaine, la retoucher tranquillement, la poser ensuite sur
+   les semaines à venir. Avant, il fallait monter la semaine pour de vrai
+   quelque part dans le futur puis la supprimer : les courts étaient
+   réservés pendant ce temps, les joueurs la voyaient, et on oubliait
+   toujours une ligne en nettoyant.
+
+   ⚠⚠ CE QUI REND LE BROUILLON ÉTANCHE : une semaine type n'écrit AUCUNE
+   ligne dans `court_bookings`. C'est elle qui occupe un court, déclenche
+   l'anti-chevauchement et s'affiche dans la grille publique. Ici les
+   courts ne sont qu'une LISTE (`plan_template_courts`) ; les réservations
+   naissent à l'instant où l'on applique, et pas avant. Ne jamais ajouter
+   d'écriture dans court_bookings de ce côté-ci : ce serait reprendre
+   exactement le problème qu'on vient de supprimer.
+
+   ⚠ Un cours type porte un JOUR (`dow`, 1 = lundi), pas une date. Toutes
+   les conversions passent par ST_JOURS ; une date rattacherait le modèle
+   à une semaine précise, ce qui n'a aucun sens pour un modèle.
+
+   ⚠ Les identifiants et les classes portent `sty-`, pas `st-` : `st-` est
+   DÉJÀ pris dans ce fichier, deux fois — par l'écran Statistiques
+   (`st-kpis`, `st-range`, `st-from`…) et par les pastilles de présence
+   (`st-present`, `st-absent`). Une classe `.st-head` aurait visé les deux.
+   Les fonctions, elles, gardent `st…` : elles sont uniques dans le fichier.
+   ===================================================================== */
+const ST_JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+let stListe = [], stId = null, stModele = null;
+let stCours = [], stCourts = new Map(), stCoachs = new Map(), stJoueurs = new Map();
+let stcSel = new Set(), stcPlayers = [], stDrag = null, stNomTimer = null, stApplyPret = null;
+
+function stWire() {
+  $("sty-new").addEventListener("click", stNouvelleOuvrir);
+  $("stnew-close").addEventListener("click", () => $("stnew-modal").classList.add("hidden"));
+  $("stnew-go").addEventListener("click", stNouvelleGo);
+  $("stnew-src").querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
+    $("stnew-src").querySelectorAll(".chip").forEach((x) => x.classList.toggle("sel", x === c));
+    $("stnew-datelbl").hidden = c.dataset.val !== "semaine";
+  }));
+  $("sty-back").addEventListener("click", () => { stId = null; stRenderListe(); });
+  $("sty-add").addEventListener("click", () => stOuvrirCours(null));
+  $("sty-apply").addEventListener("click", stAppliquerOuvrir);
+  // Le nom et la note s'enregistrent tout seuls, une demi-seconde après la
+  // dernière frappe : un bouton « Enregistrer » pour deux champs de texte
+  // finit toujours par être oublié, et le nom reviendrait à l'ancien.
+  for (const id of ["sty-nom", "sty-note"]) {
+    $(id).addEventListener("input", () => {
+      clearTimeout(stNomTimer);
+      stNomTimer = setTimeout(stEnregistrerEntete, 500);
+    });
+  }
+  $("stc-close").addEventListener("click", () => $("stc-modal").classList.add("hidden"));
+  $("stc-form").addEventListener("submit", stEnregistrerCours);
+  $("stc-del").addEventListener("click", stSupprimerCours);
+  $("stc-search").addEventListener("input", stRenderJoueurs);
+  $("stc-type").addEventListener("change", () => {
+    const t = courseTypes.find((x) => String(x.id) === $("stc-type").value);
+    if (t?.color) $("stc-color").value = t.color;
+  });
+  $("stc-dow").innerHTML = ST_JOURS.map((j, i) => `<option value="${i + 1}">${j}</option>`).join("");
+  $("stc-start").innerHTML = QH.map((t) => `<option value="${t}">${t}</option>`).join("");
+  $("stc-end").innerHTML = QH.map((t) => `<option value="${t}">${t}</option>`).join("");
+  $("stapply-close").addEventListener("click", () => $("stapply-modal").classList.add("hidden"));
+  $("stapply-go").addEventListener("click", stAppliquerGo);
+  $("stapply-modes").querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
+    $("stapply-modes").querySelectorAll(".chip").forEach((x) => x.classList.toggle("sel", x === c));
+    stMajExplication();
+  }));
+  // Changer la plage invalide la vérification : on ne veut pas appliquer
+  // sur des dates qu'on n'a pas montrées.
+  for (const id of ["stapply-du", "stapply-au"]) {
+    $(id).addEventListener("change", () => {
+      stApplyPret = null;
+      $("stapply-apercu").hidden = true; $("stapply-mode").hidden = true;
+      $("stapply-go").textContent = "Vérifier"; $("stapply-go").disabled = false;
+    });
+  }
+}
+
+async function stOuvrir() {
+  if (stId) return;                       // on revient dans l'onglet, éditeur ouvert
+  const { data } = await sb.from("plan_templates").select("*").order("created_at", { ascending: false });
+  stListe = data || [];
+  // Le compte de cours de chaque modèle, en une seule requête.
+  const ids = stListe.map((t) => t.id);
+  const comptes = new Map();
+  if (ids.length) {
+    const { data: cs } = await sb.from("plan_template_courses").select("template_id").in("template_id", ids);
+    for (const c of cs || []) comptes.set(c.template_id, (comptes.get(c.template_id) || 0) + 1);
+  }
+  for (const t of stListe) t._n = comptes.get(t.id) || 0;
+  stRenderListe();
+}
+
+function stRenderListe() {
+  $("sty-editeur").classList.add("hidden");
+  $("sty-liste").classList.remove("hidden");
+  if (!stListe.length) {
+    $("sty-cards").innerHTML = `<p class="muted">Aucune semaine type pour l'instant.</p>`;
+    return;
+  }
+  $("sty-cards").innerHTML = stListe.map((t) => `
+    <div class="sty-card" data-id="${t.id}">
+      <div class="sty-card-n">${esc(t.name)}</div>
+      ${t.note ? `<div class="sty-card-note">${esc(t.note)}</div>` : ""}
+      <div class="sty-card-m muted">${t._n} cours${t.source_week ? ` · copiée de la semaine du ${frDate(t.source_week)}` : ""}</div>
+      ${t.applied_at ? `<div class="sty-card-m muted">Appliquée le ${frDate(t.applied_at.slice(0, 10))}${t.applied_to ? ` — ${esc(t.applied_to)}` : ""}</div>` : ""}
+      <div class="sty-card-b">
+        <button type="button" class="ghost sty-open" data-id="${t.id}">Ouvrir</button>
+        <button type="button" class="ghost sty-del" data-id="${t.id}" title="Supprimer cette semaine type">Supprimer</button>
+      </div>
+    </div>`).join("");
+  $("sty-cards").querySelectorAll(".sty-open").forEach((b) =>
+    b.addEventListener("click", () => stOuvrirModele(b.dataset.id)));
+  $("sty-cards").querySelectorAll(".sty-del").forEach((b) =>
+    b.addEventListener("click", () => stSupprimerModele(b.dataset.id)));
+}
+
+async function stSupprimerModele(id) {
+  const t = stListe.find((x) => x.id === id);
+  if (!await uiConfirm(`Supprimer la semaine type « ${t?.name || ""} » ?\n\nLes cours déjà appliqués à de vraies semaines ne bougent pas : c'est le brouillon qui part.`)) return;
+  const { error } = await sb.from("plan_templates").delete().eq("id", id);
+  if (error) return uiAlert("Échec : " + error.message);
+  stId = null; await stOuvrir();
+}
+
+async function stOuvrirModele(id) {
+  stId = id;
+  stModele = stListe.find((t) => t.id === id) || null;
+  const { data: cs } = await sb.from("plan_template_courses").select("*").eq("template_id", id);
+  stCours = cs || [];
+  const ids = stCours.map((c) => c.id);
+  stCourts = new Map(); stCoachs = new Map(); stJoueurs = new Map();
+  if (ids.length) {
+    const [ct, co, jo] = await Promise.all([
+      sb.from("plan_template_courts").select("*").in("template_course_id", ids).then((r) => r.data || []),
+      sb.from("plan_template_coaches").select("*").in("template_course_id", ids).then((r) => r.data || []),
+      sb.from("plan_template_players").select("*").in("template_course_id", ids).then((r) => r.data || []),
+    ]);
+    const pousser = (m, k, v) => { if (!m.has(k)) m.set(k, []); m.get(k).push(v); };
+    for (const x of ct) pousser(stCourts, x.template_course_id, x.court_id);
+    for (const x of co) pousser(stCoachs, x.template_course_id, String(x.coach_person_id));
+    for (const x of jo) pousser(stJoueurs, x.template_course_id, String(x.child_person_id));
+  }
+  $("sty-liste").classList.add("hidden");
+  $("sty-editeur").classList.remove("hidden");
+  $("sty-nom").value = stModele?.name || "";
+  $("sty-note").value = stModele?.note || "";
+  stRenderWeek();
+}
+
+async function stEnregistrerEntete() {
+  if (!stId) return;
+  const nom = $("sty-nom").value.trim() || "Semaine type";
+  const note = $("sty-note").value.trim() || null;
+  const { error } = await sb.from("plan_templates")
+    .update({ name: nom, note, updated_at: new Date().toISOString() }).eq("id", stId);
+  if (error) return uiAlert("Le nom n'a pas pu être enregistré : " + error.message);
+  if (stModele) { stModele.name = nom; stModele.note = note; }
+}
+
+function stRenderWeek() {
+  const n = stCours.length;
+  $("sty-sous").textContent = `${n} cours${stModele?.source_week ? ` · copiée de la semaine du ${frDate(stModele.source_week)}` : ""}`
+    + " · aucun court n'est réservé tant que cette semaine n'est pas appliquée";
+  const carte = (c) => {
+    const type = courseTypes.find((t) => String(t.id) === String(c.course_type_id));
+    const courts = (stCourts.get(c.id) || []).map((id) => {
+      const ct = resaCourtsAll.find((x) => String(x.id) === String(id));
+      return ct ? ct.name.replace("Court ", "C") : id;
+    }).join(" ");
+    const coachs = (stCoachs.get(c.id) || []).map((pid) => {
+      const p = people.find((x) => String(x.id) === pid);
+      return p ? p.first_name : "?";
+    }).join(", ");
+    const nj = (stJoueurs.get(c.id) || []).length;
+    return `<div class="sty-ev" draggable="true" data-id="${c.id}" style="border-left-color:${type?.color || c.color || "#0b6b3a"}">
+      <div class="sty-ev-t">${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}</div>
+      <div class="sty-ev-n">${esc(c.title || type?.name || "Cours")}</div>
+      <div class="sty-ev-m muted">${courts || "—"}${nj ? ` · ${nj}j` : ""}</div>
+      ${coachs ? `<div class="sty-ev-co">${esc(coachs)}</div>` : ""}
+    </div>`;
+  };
+  $("sty-week").innerHTML = ST_JOURS.map((jour, i) => {
+    const dow = i + 1;
+    const dc = stCours.filter((c) => c.dow === dow).sort((a, b) => a.start_time.localeCompare(b.start_time));
+    return `<div class="sty-day" data-dow="${dow}">
+      <div class="sty-dh"><span><b>${jour}</b> <span class="muted">${dc.length || ""}</span></span>
+        <button type="button" class="sty-add-day" data-dow="${dow}" title="Ajouter un cours ce jour-là">+</button></div>
+      <div class="sty-evs">${dc.map(carte).join("")}</div>
+    </div>`;
+  }).join("");
+
+  $("sty-week").querySelectorAll(".sty-ev").forEach((el) => {
+    el.addEventListener("click", () => stOuvrirCours(stCours.find((c) => c.id === el.dataset.id)));
+    el.addEventListener("dragstart", (e) => { stDrag = el.dataset.id; el.classList.add("sty-drag"); e.dataTransfer.effectAllowed = "move"; });
+    el.addEventListener("dragend", () => { stDrag = null; el.classList.remove("sty-drag"); });
+  });
+  $("sty-week").querySelectorAll(".sty-add-day").forEach((b) =>
+    b.addEventListener("click", () => stOuvrirCours(null, Number(b.dataset.dow))));
+  // La zone de dépôt est la COLONNE entière, pas la pile de cartes : une
+  // journée vide n'a pas de carte, et viser un trait de 2 px à la souris
+  // n'est pas une interface.
+  $("sty-week").querySelectorAll(".sty-day").forEach((col) => {
+    col.addEventListener("dragover", (e) => { if (stDrag) { e.preventDefault(); col.classList.add("sty-over"); } });
+    col.addEventListener("dragleave", () => col.classList.remove("sty-over"));
+    col.addEventListener("drop", async (e) => {
+      e.preventDefault(); col.classList.remove("sty-over");
+      if (!stDrag) return;
+      const id = stDrag, dow = Number(col.dataset.dow);
+      const c = stCours.find((x) => x.id === id);
+      if (!c || c.dow === dow) return;
+      const { error } = await sb.from("plan_template_courses").update({ dow }).eq("id", id);
+      if (error) return uiAlert("Échec : " + error.message);
+      c.dow = dow; stRenderWeek();
+    });
+  });
+}
+
+function stOuvrirCours(c, dowDefaut) {
+  $("stc-error").hidden = true;
+  $("stc-title").textContent = c ? "Modifier le cours" : "Nouveau cours de la semaine type";
+  $("stc-id").value = c?.id || "";
+  // ⚠ Les <option> viennent d'être posées par stWire : poser la valeur
+  // explicitement, sinon pretty-select n'affiche rien au premier rendu.
+  $("stc-type").value = c?.course_type_id || "";
+  $("stc-label").value = c?.title || "";
+  $("stc-dow").value = String(c?.dow || dowDefaut || 1);
+  $("stc-start").value = c ? c.start_time.slice(0, 5) : "17:00";
+  $("stc-end").value = c ? c.end_time.slice(0, 5) : "18:00";
+  const type = courseTypes.find((t) => String(t.id) === String(c?.course_type_id));
+  $("stc-color").value = type?.color || c?.color || "#0b6b3a";
+  renderChips("stc-courts", resaCourtsAll.map((x) => [x.id, x.name.replace("Court ", "C")]),
+    (stCourts.get(c?.id) || []).map(String));
+  renderChips("stc-coaches", people.filter((p) => hasRoleIn(p.id, COACH_ROLES))
+    .map((p) => [String(p.id), `${p.last_name} ${p.first_name}`])
+    .sort((a, b) => a[1].localeCompare(b[1])), stCoachs.get(c?.id) || []);
+  stcPlayers = people.filter((p) => hasRoleIn(p.id, COURSE_ROLES))
+    .map((p) => [String(p.id), `${p.last_name} ${p.first_name}`])
+    .sort((a, b) => a[1].localeCompare(b[1]));
+  stcSel = new Set(stJoueurs.get(c?.id) || []);
+  $("stc-search").value = "";
+  stRenderJoueurs();
+  $("stc-del").classList.toggle("hidden", !c);
+  $("stc-modal").classList.remove("hidden");
+}
+
+// Même principe que le sélecteur du vrai cours : les joueurs choisis restent
+// toujours visibles, le reste est une recherche limitée à dix lignes.
+function stRenderJoueurs() {
+  const q = ($("stc-search").value || "").trim().toLowerCase();
+  const sel = stcPlayers.filter((p) => stcSel.has(p[0]));
+  let pool = stcPlayers.filter((p) => !stcSel.has(p[0]));
+  if (q) pool = pool.filter((p) => p[1].toLowerCase().includes(q));
+  const shown = [...sel, ...pool.slice(0, 10)];
+  const reste = pool.length - Math.min(pool.length, 10);
+  $("stc-children").innerHTML = shown.map(([val, label]) =>
+    `<button type="button" class="chip ${stcSel.has(val) ? "sel" : ""}" data-val="${val}">${esc(label)}</button>`).join("")
+    + (reste > 0 ? `<span class="muted" style="align-self:center">+${reste} — affine la recherche</span>` : "");
+  $("stc-children").querySelectorAll(".chip").forEach((ch) => ch.addEventListener("click", () => {
+    const v = ch.dataset.val;
+    if (stcSel.has(v)) stcSel.delete(v); else stcSel.add(v);
+    stRenderJoueurs();
+  }));
+  $("stc-count").textContent = `(${stcSel.size})`;
+}
+
+async function stEnregistrerCours(e) {
+  e.preventDefault();
+  const err = $("stc-error"); err.hidden = true;
+  const debut = $("stc-start").value, fin = $("stc-end").value;
+  if (fin <= debut) return failC(err, "La fin doit suivre le début.");
+  const row = {
+    template_id: stId,
+    course_type_id: $("stc-type").value || null,
+    title: $("stc-label").value.trim() || null,
+    dow: Number($("stc-dow").value),
+    start_time: debut, end_time: fin,
+    color: $("stc-color").value || null,
+  };
+  const id = $("stc-id").value;
+  let cid = id;
+  if (id) {
+    const { error } = await sb.from("plan_template_courses").update(row).eq("id", id);
+    if (error) return failC(err, error.message);
+  } else {
+    const { data, error } = await sb.from("plan_template_courses").insert(row).select("id").single();
+    if (error) return failC(err, error.message);
+    cid = data.id;
+  }
+  // Courts, coachs et joueurs : on efface et on repose. Trois tables sans
+  // autre colonne que leurs deux clés — un diff coûterait plus cher à lire
+  // qu'à écrire, et il n'y a rien à préserver (pas de statut ici : db/240).
+  const courts = chipValues("stc-courts").map(Number);
+  const coachs = chipValues("stc-coaches");
+  const joueurs = [...stcSel];
+  await Promise.all([
+    sb.from("plan_template_courts").delete().eq("template_course_id", cid),
+    sb.from("plan_template_coaches").delete().eq("template_course_id", cid),
+    sb.from("plan_template_players").delete().eq("template_course_id", cid),
+  ]);
+  const poser = async (table, col, vals) => {
+    if (!vals.length) return null;
+    const { error } = await sb.from(table).insert(vals.map((v) => ({ template_course_id: cid, [col]: v })));
+    return error;
+  };
+  const erreurs = (await Promise.all([
+    poser("plan_template_courts", "court_id", courts),
+    poser("plan_template_coaches", "coach_person_id", coachs),
+    poser("plan_template_players", "child_person_id", joueurs),
+  ])).filter(Boolean);
+  if (erreurs.length) return failC(err, erreurs[0].message);
+  $("stc-modal").classList.add("hidden");
+  await stOuvrirModele(stId);
+}
+
+async function stSupprimerCours() {
+  const id = $("stc-id").value;
+  if (!id) return;
+  if (!await uiConfirm("Retirer ce cours de la semaine type ?")) return;
+  const { error } = await sb.from("plan_template_courses").delete().eq("id", id);
+  if (error) return uiAlert("Échec : " + error.message);
+  $("stc-modal").classList.add("hidden");
+  await stOuvrirModele(stId);
+}
+
+// ---- Créer une semaine type ----
+function stNouvelleOuvrir() {
+  $("stnew-nom").value = "";
+  $("stnew-date").value = mondayOf($("cs-date").value || isoA(new Date()));
+  $("stnew-error").hidden = true;
+  $("stnew-src").querySelectorAll(".chip").forEach((c) => c.classList.toggle("sel", c.dataset.val === "semaine"));
+  $("stnew-datelbl").hidden = false;
+  $("stnew-modal").classList.remove("hidden");
+}
+
+async function stNouvelleGo() {
+  const err = $("stnew-error"); err.hidden = true;
+  const nom = $("stnew-nom").value.trim();
+  const depuis = $("stnew-src").querySelector(".chip.sel")?.dataset.val === "semaine";
+  const btn = $("stnew-go"); btn.disabled = true; btn.textContent = "Création…";
+  try {
+    let id;
+    if (depuis) {
+      const lundi = mondayOf($("stnew-date").value || isoA(new Date()));
+      const { data, error } = await sb.rpc("plan_semaine_depuis", { p_nom: nom || `Semaine du ${frDate(lundi)}`, p_lundi: lundi });
+      if (error) throw error;
+      id = data;
+    } else {
+      const { data, error } = await sb.from("plan_templates")
+        .insert({ name: nom || "Semaine type" }).select("id").single();
+      if (error) throw error;
+      id = data.id;
+    }
+    $("stnew-modal").classList.add("hidden");
+    stId = null; await stOuvrir();
+    await stOuvrirModele(id);
+  } catch (e) {
+    failC(err, e?.message || String(e));
+  }
+  btn.disabled = false; btn.textContent = "Créer";
+}
+
+// ---- Appliquer ----
+function stAppliquerOuvrir() {
+  if (!stCours.length) return uiAlert("Cette semaine type est vide : il n'y a rien à poser.");
+  stApplyPret = null;
+  const lundiProchain = addDays(mondayOf(isoA(new Date())), 7);
+  $("stapply-sub").textContent = `« ${stModele?.name || ""} » — ${stCours.length} cours à poser, semaine après semaine.`;
+  $("stapply-du").value = lundiProchain;
+  $("stapply-au").value = addDays(lundiProchain, 6);
+  $("stapply-apercu").hidden = true; $("stapply-mode").hidden = true;
+  $("stapply-error").hidden = true;
+  $("stapply-modes").querySelectorAll(".chip").forEach((c) => c.classList.toggle("sel", c.dataset.val === "ajouter"));
+  $("stapply-go").disabled = false; $("stapply-go").textContent = "Vérifier";
+  $("stapply-modal").classList.remove("hidden");
+}
+
+const stMode = () => $("stapply-modes").querySelector(".chip.sel")?.dataset.val || "ajouter";
+
+function stMajExplication() {
+  const a = stApplyPret; if (!a) return;
+  const mode = stMode();
+  const btn = $("stapply-go");
+  if (mode === "ajouter") {
+    $("stapply-expl").innerHTML = a.existants
+      ? `Les <b>${a.existants}</b> cours déjà en place ne bougent pas. Les cours de la semaine type qui tomberaient sur un court occupé sont sautés — rien n'est écrasé.`
+      : "Ces semaines sont vides : il n'y a rien à garder ni à remplacer.";
+    btn.textContent = a.crees ? `Poser ${a.crees} cours` : "Rien à poser";
+    btn.disabled = !a.crees;
+    btn.classList.remove("danger");
+  } else {
+    const protege = a.proteges
+      ? ` <b>${a.proteges}</b> cours dont l'appel est déjà commencé seront <b>gardés</b> : les supprimer effacerait des heures de coach, donc la console refuse.`
+      : "";
+    $("stapply-expl").innerHTML = `Les <b>${a.existants - a.proteges}</b> cours actuellement dans ces dates seront <b>supprimés</b>, puis la semaine type sera posée.${protege}`;
+    btn.textContent = `Remplacer ${a.existants - a.proteges} cours`;
+    btn.disabled = false;
+    btn.classList.add("danger");
+  }
+}
+
+async function stAppliquerGo() {
+  if (stApplyPret) return stAppliquerRun();
+  const err = $("stapply-error"); err.hidden = true;
+  const du = $("stapply-du").value, au = $("stapply-au").value;
+  if (!du || !au) return failC(err, "Choisis une date de début et une date de fin.");
+  if (au < du) return failC(err, "La date de fin précède la date de début.");
+  const btn = $("stapply-go"); btn.disabled = true; btn.textContent = "Calcul…";
+  const { data, error } = await sb.rpc("plan_semaine_apercu", { p_template: stId, p_du: du, p_au: au });
+  btn.disabled = false;
+  if (error) { btn.textContent = "Vérifier"; return failC(err, error.message); }
+  if (data?.erreur) { btn.textContent = "Vérifier"; return failC(err, data.erreur); }
+  stApplyPret = data;
+  $("stapply-apercu").hidden = false;
+  $("stapply-apercu").innerHTML =
+    `<b>${data.semaines}</b> semaine${data.semaines > 1 ? "s" : ""}, du ${frDate(du)} au ${frDate(au)}.`
+    + `<br><b>${data.crees}</b> cours seraient créés.`
+    + (data.nb_conflits ? `<div class="cw-warn">${data.nb_conflits} tomberaient sur un court déjà pris et seraient sautés :<br>`
+        + data.conflits.slice(0, 8).map((c) => esc(`${frDate(c.date)} ${c.heure} — ${c.titre}`)).join("<br>")
+        + (data.nb_conflits > 8 ? `<br>…et ${data.nb_conflits - 8} autres.` : "") + `</div>` : "");
+  $("stapply-mode").hidden = false;
+  stMajExplication();
+}
+
+async function stAppliquerRun() {
+  const err = $("stapply-error"); err.hidden = true;
+  const du = $("stapply-du").value, au = $("stapply-au").value, mode = stMode();
+  if (mode === "remplacer" && !await uiConfirm(
+    `Supprimer ${stApplyPret.existants - stApplyPret.proteges} cours entre le ${frDate(du)} et le ${frDate(au)}, puis poser la semaine type ?\n\nC'est irréversible.`)) return;
+  const btn = $("stapply-go"); btn.disabled = true; btn.textContent = "En cours…";
+  const { data, error } = await sb.rpc("plan_semaine_appliquer", { p_template: stId, p_du: du, p_au: au, p_mode: mode });
+  btn.disabled = false; btn.textContent = "Vérifier";
+  if (error) return failC(err, error.message);
+  $("stapply-modal").classList.add("hidden");
+  stApplyPret = null;
+  const lignes = [`✓ ${data.crees} cours posés sur ${data.semaines} semaine${data.semaines > 1 ? "s" : ""}.`];
+  if (data.supprimes) lignes.push(`${data.supprimes} cours remplacés.`);
+  if (data.nb_gardes) lignes.push(`${data.nb_gardes} cours gardés : leur appel était commencé.\n` +
+    data.gardes.slice(0, 6).map((c) => `· ${frDate(c.date)} ${c.heure} — ${c.titre}`).join("\n"));
+  if (data.nb_ignores) lignes.push(`${data.nb_ignores} sautés : le court était déjà pris.\n` +
+    data.ignores.slice(0, 6).map((c) => `· ${frDate(c.date)} ${c.heure} — ${c.titre}`).join("\n"));
+  await uiAlert(lignes.join("\n\n"));
+  stId = null; await stOuvrir();
+  loadCoursesCurrent();
+}
+
 function failC(el, msg) { el.textContent = msg; el.hidden = false; }
 
 function closePerson() {

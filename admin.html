@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=416" />
+  <link rel="stylesheet" href="style.css?v=417" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -980,6 +980,7 @@
           <p class="crm-lead">Le planning de la semaine et les types de cours. Une leçon bloque son court, et l'appel s'ouvre 25 minutes avant le début.</p>
           <div class="subnav">
             <button class="subtab cours-subtab active" data-sub="planning">Planning</button>
+            <button class="subtab cours-subtab" data-sub="semaine" id="cours-subtab-semaine">Semaine type</button>
             <button class="subtab cours-subtab" data-sub="photos" id="cours-subtab-photos">Photos</button>
             <button class="subtab cours-subtab" data-sub="types" id="cours-subtab-types">Types de cours</button>
           </div>
@@ -1028,6 +1029,38 @@
             </div>
             <div id="cs-list" class="cs-list"></div>
             <div id="cs-week" class="cs-week hidden"></div>
+          </div>
+
+          <!-- Sous-onglet Semaine type (db/251) — le brouillon de planning.
+               Deux écrans dans le même volet : la liste des semaines types,
+               et l'éditeur de l'une d'elles. -->
+          <div id="cours-sub-semaine" class="cours-sub hidden">
+            <div id="sty-liste">
+              <div class="sty-head">
+                <h2 class="cs-title">Semaines types</h2>
+                <button id="sty-new" class="primary">+ Nouvelle semaine type</button>
+              </div>
+              <p class="muted sty-intro">Un brouillon de planning, à côté du vrai.
+                On copie une semaine, on la retouche autant qu'on veut, puis on la
+                pose sur les semaines à venir. Tant qu'elle n'est pas appliquée,
+                <b>elle ne réserve aucun court</b> et personne d'autre ne la voit.</p>
+              <div id="sty-cards" class="sty-cards"></div>
+            </div>
+
+            <div id="sty-editeur" class="hidden">
+              <div class="sty-head">
+                <button id="sty-back" class="ghost">‹ Toutes les semaines types</button>
+                <span class="spacer"></span>
+                <button id="sty-add" class="ghost">+ Cours</button>
+                <button id="sty-apply" class="primary">Appliquer à des semaines…</button>
+              </div>
+              <div class="sty-ed-id">
+                <input id="sty-nom" class="sty-nom" placeholder="Nom de la semaine type" />
+                <input id="sty-note" class="sty-note" placeholder="Note (facultatif) — à quoi elle sert" />
+              </div>
+              <p id="sty-sous" class="muted sty-sous"></p>
+              <div id="sty-week" class="sty-week"></div>
+            </div>
           </div>
 
           <!-- Sous-onglet Types de cours -->
@@ -3985,6 +4018,84 @@ Team Lausanne Tennis</textarea></label>
         <button type="button" id="cw-go">Vérifier</button>
       </div>
       <p id="cw-error" class="error" hidden></p>
+    </div>
+  </div>
+
+  <!-- ---- Semaine type : nouvelle (db/251) ---- -->
+  <div id="stnew-modal" class="modal hidden">
+    <div class="card">
+      <button type="button" id="stnew-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 style="margin-top:0">Nouvelle semaine type</h2>
+      <label>Nom<input id="stnew-nom" placeholder="ex. Horaire d'hiver 2027" /></label>
+      <label class="cs-lbl">Partir de</label>
+      <div class="chip-select" id="stnew-src">
+        <button type="button" class="chip sel" data-val="semaine">Une semaine existante</button>
+        <button type="button" class="chip" data-val="vide">Une page blanche</button>
+      </div>
+      <label id="stnew-datelbl">Copier la semaine du <span class="muted">(n'importe quelle date de cette semaine)</span>
+        <input type="date" id="stnew-date" />
+      </label>
+      <p class="muted" style="font-size:.86rem">La semaine copiée n'est pas touchée : on en prend une photo.</p>
+      <div class="form-foot">
+        <span class="spacer"></span>
+        <button type="button" id="stnew-go">Créer</button>
+      </div>
+      <p id="stnew-error" class="error" hidden></p>
+    </div>
+  </div>
+
+  <!-- ---- Semaine type : un cours du brouillon ---- -->
+  <div id="stc-modal" class="modal hidden">
+    <form id="stc-form" class="card wide">
+      <button type="button" id="stc-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="stc-title">Cours de la semaine type</h2>
+      <input type="hidden" id="stc-id" />
+      <div class="form-grid">
+        <label>Type de cours<select id="stc-type"></select></label>
+        <label>Intitulé (optionnel)<input id="stc-label" placeholder="ex. Groupe rouge" /></label>
+        <label>Jour<select id="stc-dow"></select></label>
+        <label>Couleur<input type="color" id="stc-color" value="#0b6b3a" /></label>
+        <label>Début<select id="stc-start"></select></label>
+        <label>Fin<select id="stc-end"></select></label>
+      </div>
+      <label class="cs-lbl">Courts</label><div id="stc-courts" class="chip-select"></div>
+      <label class="cs-lbl">Coachs</label><div id="stc-coaches" class="chip-select"></div>
+      <label class="cs-lbl">Joueurs <span id="stc-count" class="muted"></span></label>
+      <input id="stc-search" class="c-search" type="text" placeholder="Rechercher un joueur (nom, prénom)…" autocomplete="off" />
+      <div id="stc-children" class="chip-select"></div>
+      <div class="form-foot">
+        <button type="button" id="stc-del" class="danger hidden">Retirer ce cours</button>
+        <span class="spacer"></span>
+        <button type="submit" id="stc-save">Enregistrer</button>
+      </div>
+      <p id="stc-error" class="error" hidden></p>
+    </form>
+  </div>
+
+  <!-- ---- Semaine type : appliquer à des semaines réelles ---- -->
+  <div id="stapply-modal" class="modal hidden">
+    <div class="card">
+      <button type="button" id="stapply-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 style="margin-top:0">Appliquer la semaine type</h2>
+      <p class="muted" id="stapply-sub" style="margin:0 0 12px"></p>
+      <div class="form-grid">
+        <label>À partir du<input type="date" id="stapply-du" /></label>
+        <label>Jusqu'au<input type="date" id="stapply-au" /></label>
+      </div>
+      <div id="stapply-apercu" class="sty-apercu" hidden></div>
+      <div id="stapply-mode" hidden>
+        <label class="cs-lbl">Et ce qui est déjà dans ces semaines ?</label>
+        <div class="chip-select" id="stapply-modes">
+          <button type="button" class="chip sel" data-val="ajouter">Le garder</button>
+          <button type="button" class="chip" data-val="remplacer">Le remplacer</button>
+        </div>
+        <p class="muted sty-mode-expl" id="stapply-expl"></p>
+      </div>
+      <div class="form-foot">
+        <span class="spacer"></span>
+        <button type="button" id="stapply-go">Vérifier</button>
+      </div>
+      <p id="stapply-error" class="error" hidden></p>
     </div>
   </div>
 

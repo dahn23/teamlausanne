@@ -1373,6 +1373,45 @@ html{-webkit-tap-highlight-color:transparent}
 .cw-ev-n{font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
 .cw-ev-m{font-size:.72rem}
 .cw-ev-co{font-size:.74rem;font-weight:600;color:var(--blue-ink);margin-top:1px}
+/* Semaine type — le brouillon de planning (db/251).
+   Volontairement proche de la vue Semaine (.cw-*) : c'est la même chose,
+   en brouillon. Mais JAMAIS les mêmes classes — les deux grilles vivent
+   dans la même feuille, et une retouche de l'une ne doit pas bouger
+   l'autre (cf. le préfixe pcal- du calendrier du portail).
+   ⚠ Le préfixe est `sty-` et non `st-` : `st-` sert déjà aux pastilles de
+   présence (.st-present, .st-absent) et à l'écran Statistiques
+   (.st-range, .st-highlight). `.st-head` aurait visé les trois. */
+.sty-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.sty-head .cs-title{margin:0}
+.sty-intro{font-size:.88rem;max-width:62ch;margin:0 0 14px}
+.sty-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.sty-card{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:12px 14px;display:flex;flex-direction:column;gap:3px}
+.sty-card-n{font-weight:800;color:var(--blue-ink)}
+.sty-card-note{font-size:.86rem}
+.sty-card-m{font-size:.78rem}
+.sty-card-b{display:flex;gap:8px;margin-top:8px}
+.sty-ed-id{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.sty-nom{font-weight:800;font-size:1.02rem;min-width:240px;flex:0 1 320px}
+.sty-note{flex:1 1 320px;min-width:240px}
+.sty-sous{font-size:.8rem;margin:0 0 12px}
+.sty-week{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));justify-content:start;gap:8px}
+.sty-day{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:8px;min-width:0;display:flex;flex-direction:column}
+.sty-day.sty-over{border-color:var(--blue);box-shadow:inset 0 0 0 2px var(--blue);background:#f2f6ff}
+.sty-dh{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:.82rem;color:var(--blue-ink);
+  margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.sty-add-day{background:#eef1f7;color:var(--blue-ink);font-weight:800;line-height:1;width:22px;height:22px;padding:0;border:0;border-radius:6px;cursor:pointer;flex:0 0 auto}
+.sty-add-day:hover{background:#dde3ef}
+/* min-height : une journée vide doit rester une cible de dépôt visible. */
+.sty-evs{display:flex;flex-direction:column;gap:6px;min-height:44px}
+.sty-ev{border-left:3px solid #0b6b3a;background:#f7f9fc;border-radius:8px;padding:6px 8px;cursor:grab}
+.sty-ev:hover{background:#eef3ff}
+.sty-ev.sty-drag{opacity:.45;cursor:grabbing}
+.sty-ev-t{font-weight:800;font-size:.78rem;color:var(--blue-ink)}
+.sty-ev-n{font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
+.sty-ev-m{font-size:.72rem}
+.sty-ev-co{font-size:.74rem;font-weight:600;color:var(--blue-ink);margin-top:1px}
+.sty-apercu{background:#f6f8fc;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:12px 0 4px;font-size:.9rem;line-height:1.5}
+.sty-mode-expl{font-size:.84rem;line-height:1.5;margin:8px 0 0}
 /* CSEL — planning hebdo (repas + études) */
 .tbl-wrap{overflow-x:auto}
 .csel-sub .tag{margin:0}
@@ -6583,9 +6622,9 @@ button.nf-sans:hover{color:#7f1d1a}
    l'historique. Préfixe « ptst- » : « pts- » appartient déjà à la saisie de la console, et les
    deux écrans partagent cette feuille. */
 .ptst-bat{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin:0 0 14px;box-shadow:0 1px 2px rgba(16,24,40,.05)}
-.ptst-head{display:flex;flex-direction:column;gap:2px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
-.ptst-head h3{margin:0;font-size:1.02rem;color:var(--blue-ink)}
-.ptst-head>span{font-size:.8rem;color:var(--ink)}
+.ptsty-head{display:flex;flex-direction:column;gap:2px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.ptsty-head h3{margin:0;font-size:1.02rem;color:var(--blue-ink)}
+.ptsty-head>span{font-size:.8rem;color:var(--ink)}
 .ptst-com{margin:12px 14px 2px;padding:10px 12px;background:#f6f8fd;border-radius:11px;font-size:.88rem;line-height:1.45}
 .ptst-com b{color:var(--blue-ink)}
 .ptst-list{padding:8px 6px 10px}
@@ -6597,9 +6636,9 @@ button.nf-sans:hover{color:#7f1d1a}
 .ptst-ico{width:46px;height:32px;flex:0 0 46px;object-fit:contain}
 .ptst-l{flex:1;min-width:0;font-weight:700;font-size:.9rem;line-height:1.25}
 .ptst-v{flex:0 0 auto;text-align:right;font-weight:800;color:var(--blue-ink);font-size:.95rem}
-.ptst-ev{display:block;font-size:.72rem;font-weight:700}
-.ptst-ev.up{color:#1c7d38}
-.ptst-ev.down{color:#b23838}
+.ptsty-ev{display:block;font-size:.72rem;font-weight:700}
+.ptsty-ev.up{color:#1c7d38}
+.ptsty-ev.down{color:#b23838}
 .ptst-d{margin:2px 10px 8px;padding:0 0 0 56px;font-size:.84rem;line-height:1.45;color:var(--muted)}
 .ptst-h{list-style:none;margin:0 10px 10px;padding:0 0 0 56px;display:flex;flex-direction:column;gap:3px}
 .ptst-h li{display:flex;justify-content:space-between;gap:12px;font-size:.82rem;border-bottom:1px dashed var(--line);padding:3px 0}

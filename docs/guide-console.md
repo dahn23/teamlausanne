@@ -230,9 +230,13 @@ créer. C'est l'écran le plus utilisé de la console.
 **Qui peut écrire** : tout l'encadrement. Un moniteur voit « Cours » et
 « Heures », rien d'autre.
 
-### Les deux sous-onglets
+### Les sous-onglets
 
 - **« Planning »** — la grille des cours. Vues « Jour » et « Semaine ».
+- **« Semaine type »** — un brouillon de planning, à côté du vrai : on copie
+  une semaine, on la retouche, on la pose ensuite sur les semaines à venir.
+  Rien n'est réservé tant qu'on ne l'applique pas.
+- **« Photos »** — l'album que les familles voient dans Mon espace.
 - **« Types de cours »** — les modèles réutilisables, pour ne pas ressaisir
   les mêmes réglages à chaque fois.
 
@@ -341,6 +345,58 @@ C'est le geste qui fait gagner le plus de temps en début de saison.
 Les coachs suivent le cours, **mais pas leurs indisponibilités** : un coach
 marqué « ∅ » sur la semaine source repart **disponible** sur la semaine cible.
 C'est voulu — une indisponibilité vaut pour une séance, pas pour toujours.
+
+### La semaine type — tinker sans rien casser
+
+« Copier la semaine » recopie à l'identique. **Semaine type** sert quand on
+veut d'abord *changer* quelque chose : déplacer un groupe du mardi au jeudi,
+ajouter un cours, changer un coach — et seulement ensuite poser le résultat
+sur les semaines à venir.
+
+C'est un **brouillon, à côté du vrai planning**. Tant qu'il n'est pas
+appliqué : **aucun court n'est réservé**, rien n'apparaît dans la grille de
+réservation, rien n'entre dans les heures des coachs, et personne d'autre ne
+le voit. Plus besoin de monter une fausse semaine dans le futur puis de
+penser à la supprimer.
+
+**L'écran.** Cours → **Semaine type**. La liste de vos semaines types, puis
+« + Nouvelle semaine type » : soit une **copie d'une semaine existante** (la
+semaine copiée n'est pas touchée — on en prend une photo), soit une **page
+blanche**.
+
+**Retoucher.** La semaine s'affiche en sept colonnes, du lundi au dimanche.
+- Cliquer une carte pour tout modifier : type, intitulé, jour, horaire,
+  courts, coachs, joueurs.
+- **Faire glisser une carte** d'un jour à l'autre pour la déplacer. La
+  colonne visée s'éclaire ; le jour change dès qu'on lâche.
+- « + » en tête d'un jour, ou « + Cours », pour en ajouter un.
+- Le nom et la note s'enregistrent tout seuls.
+
+**Appliquer.** « Appliquer à des semaines… », puis une date de début et une
+date de fin : la semaine type est posée sur **chaque semaine de la plage**.
+Une seule semaine ? Mettre le lundi et le dimanche. La plage peut commencer
+en milieu de semaine : à partir d'un mercredi, le lundi et le mardi de cette
+semaine-là sont laissés tranquilles.
+
+« Vérifier » montre d'abord ce qui se passerait : combien de cours seraient
+créés, et lesquels tomberaient sur un **court déjà pris** — ceux-là sont
+toujours sautés et nommés, jamais écrasés.
+
+Puis une question : ce qui est **déjà** dans ces semaines, on le garde ou on
+le remplace ?
+- **Le garder** — les cours en place ne bougent pas, la semaine type vient
+  s'ajouter à côté.
+- **Le remplacer** — les cours de la plage sont supprimés, puis la semaine
+  type est posée. Irréversible, et la console demande confirmation.
+
+⚠ **Un cours dont l'appel est commencé n'est jamais supprimé**, même en mode
+« remplacer ». Supprimer un cours effacerait ses présences, donc les heures
+du coach, donc sa paie. Ces cours-là sont **gardés** et listés nommément à la
+fin : à vous de voir quoi en faire.
+
+La semaine type reste après usage : on peut la ré-appliquer, la modifier pour
+le trimestre suivant, ou la supprimer. La supprimer n'enlève rien aux cours
+déjà posés — c'est le brouillon qui part.
 
 ### L'appel
 
@@ -1986,6 +2042,13 @@ filière. Sans rien cocher, une entrée reste interne.
 
 **Comment recopier le planning d'une semaine sur la suivante ?**
 Cours → Planning → « Copier la semaine ».
+
+**Je veux réorganiser le planning avant de le poser — où est-ce que je peux
+essayer sans rien casser ?**
+Cours → **Semaine type**. On y copie une semaine, on la bricole (glisser une
+carte d'un jour à l'autre, changer coachs et joueurs), et on l'applique
+ensuite à une plage de semaines. Tant que ce n'est pas appliqué, aucun court
+n'est réservé et personne ne la voit.
 
 **Comment inscrire un enfant à un stage à la main ?**
 Stages → ouvrir la semaine → « + Ajouter un inscrit ».
