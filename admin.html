@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=419" />
+  <link rel="stylesheet" href="style.css?v=420" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -1052,6 +1052,7 @@
                 <button id="sty-back" class="ghost">‹ Toutes les semaines types</button>
                 <span class="spacer"></span>
                 <button id="sty-add" class="ghost">+ Cours</button>
+                <button id="sty-add-resa" class="ghost">+ Réservation</button>
                 <button id="sty-apply" class="primary">Appliquer à des semaines…</button>
               </div>
               <div class="sty-ed-id">
@@ -4086,6 +4087,32 @@ Team Lausanne Tennis</textarea></label>
         <button type="submit" id="stc-save">Enregistrer</button>
       </div>
       <p id="stc-error" class="error" hidden></p>
+    </form>
+  </div>
+
+  <!-- ---- Semaine type : une réservation qui n'est PAS un cours (db/252) ----
+       Abonné d'hiver, club de la région, locataire : pas de coach, pas de
+       joueurs, juste un créneau et un nom. D'où une fenêtre à part. -->
+  <div id="str-modal" class="modal hidden">
+    <form id="str-form" class="card">
+      <button type="button" id="str-close" class="modal-close" aria-label="Fermer">×</button>
+      <h2 id="str-title">Réservation de la semaine type</h2>
+      <input type="hidden" id="str-id" />
+      <div class="form-grid">
+        <label>Intitulé<input id="str-label" placeholder="ex. Angelo Musarò" /></label>
+        <label>Genre<select id="str-kind"></select></label>
+        <label>Jour<select id="str-dow"></select></label>
+        <label>Court<select id="str-court"></select></label>
+        <label>Début<select id="str-start"></select></label>
+        <label>Fin<select id="str-end"></select></label>
+      </div>
+      <label>Couleur<input type="color" id="str-color" value="#1e3ad1" /></label>
+      <div class="form-foot">
+        <button type="button" id="str-del" class="danger hidden">Retirer</button>
+        <span class="spacer"></span>
+        <button type="submit" id="str-save">Enregistrer</button>
+      </div>
+      <p id="str-error" class="error" hidden></p>
     </form>
   </div>
 

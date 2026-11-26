@@ -364,6 +364,13 @@ penser à la supprimer.
 semaine copiée n'est pas touchée — on en prend une photo), soit une **page
 blanche**.
 
+**Ce qu'une copie emporte : toute la grille, pas seulement les cours.** Les
+cours avec leurs courts, leurs coachs et leurs joueurs, **et** tout ce qui
+occupe un court sans être un cours — abonnés de la saison d'hiver, clubs de
+la région, locataires. Sur une semaine type, les deux se retouchent et se
+reposent ensemble. C'est le sens de « copier une semaine » : ce que vous
+voyez dans Réservations ce jour-là, vous le retrouvez à l'identique.
+
 **Retoucher.** La semaine s'affiche comme l'onglet **Réservations** : les
 courts en colonnes, les heures en lignes, un bloc coloré par cours avec le
 nom du coach dessus. On voit d'un coup quel court est pris, quand et par qui.
@@ -379,10 +386,13 @@ Deux façons de la parcourir, par le bouton en haut à gauche :
 Dans les deux cas, la ligne au-dessus récapitule la semaine : *« 108 cours ·
 copiée de la semaine du 23.11.2026 · Lun 14 · Mar 22 · Mer 34 · Jeu 22 ·
 Ven 16 »*. Si un total vous surprend, c'est là qu'il se lit.
-- **Cliquer un bloc** pour tout modifier : type, intitulé, jour, horaire,
-  courts, coachs, joueurs.
+- **Cliquer un bloc** pour le modifier. Un **cours** ouvre sa fenêtre
+  habituelle (type, intitulé, jour, horaire, courts, coachs, joueurs) ; une
+  **réservation hors cours** ouvre une fenêtre plus courte — intitulé, genre,
+  jour, court, horaire, couleur — parce qu'elle n'a ni coach ni joueurs.
 - **Cliquer une case vide** crée un cours **sur ce court, à cette heure** —
-  les deux sont déjà remplis dans la fenêtre.
+  les deux sont déjà remplis dans la fenêtre. Pour un abonné d'hiver ou un
+  club, le bouton **« + Réservation »** en haut.
 - **Faire glisser un bloc** sur une autre case : il change de court et
   d'heure. Si le cours occupe **plusieurs courts**, seule l'heure bouge — les
   courts restent, parce que deviner lesquels décaler ferait pire que rien.
@@ -420,10 +430,14 @@ toujours sautés et nommés, jamais écrasés.
 
 Puis une question : ce qui est **déjà** dans ces semaines, on le garde ou on
 le remplace ?
-- **Le garder** — les cours en place ne bougent pas, la semaine type vient
+- **Le garder** — ce qui est en place ne bouge pas, la semaine type vient
   s'ajouter à côté.
-- **Le remplacer** — les cours de la plage sont supprimés, puis la semaine
-  type est posée. Irréversible, et la console demande confirmation.
+- **Le remplacer** — les cours **et les réservations hors cours** de la
+  plage sont supprimés, puis la semaine type est posée. Le compte des deux
+  est annoncé avant d'écrire : « supprimer 34 cours ET 11 réservations ».
+  Irréversible, et la console demande confirmation. ⚠ Cela efface aussi les
+  créneaux d'abonnés et de clubs posés à la main sur ces dates — c'est le
+  prix d'un remplacement, d'où le décompte en toutes lettres.
 
 ⚠ **Un cours dont l'appel est commencé n'est jamais supprimé**, même en mode
 « remplacer ». Supprimer un cours effacerait ses présences, donc les heures
