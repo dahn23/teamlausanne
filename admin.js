@@ -20912,7 +20912,7 @@ async function loadMail() {
     // tard son logo. Seul le bloc de signature est remplacé, pas le texte.
     $("mailc-from").addEventListener("change", () => mailMajSignature($("mailc-body"), $("mailc-from").value));
     $("mailc-sign").addEventListener("click", () => mailSignatureBouton($("mailc-body"), $("mailc-from").value, $("mailc-status")));
-    $("mailc-file").addEventListener("change", (e) => { for (const f of e.target.files) { if (f.size > 8 * 1024 * 1024) { alert(`${f.name} dépasse 8 Mo — trop lourd.`); continue; } mailcFiles.push(f); } e.target.value = ""; renderMailcFiles(); });
+    $("mailc-file").addEventListener("change", (e) => { mailAjouterPJ(mailcFiles, e.target.files); e.target.value = ""; renderMailcFiles(); });
     attachEmailAC($("mailc-to")); attachEmailAC($("mailc-cc")); attachEmailAC($("mailc-bcc"));  // autocompletion adresses
   }
   const [{ data: accts }, msgs] = await Promise.all([
@@ -21291,6 +21291,42 @@ function mailLinkify(text) {
     .map((p, i) => i % 2 ? `<a href="${esc(p)}" target="_blank" rel="noopener">${esc(p)}</a>` : esc(p).replace(/\n/g, "<br>"))
     .join("");
 }
+// ---- Pièces jointes d'un mail : les quatre portes ----
+// 15 Mo par fichier (26.11.2026 ; 8 Mo auparavant, une présentation ne passait
+// pas). ⚠ Ce chiffre vit à QUATRE endroits, et il suffit qu'un seul reste en
+// arrière pour que la limite se déplace sans se voir :
+//   1. MAIL_PJ_MAX ci-dessous — les deux champs « Joindre » ;
+//   2. le bucket « mail-drafts » (file_size_limit, db/250) — c'est
+//      l'enregistrement AUTOMATIQUE du brouillon qui échouerait, pendant que
+//      l'envoi, lui, passerait : la pièce disparaîtrait à la réouverture ;
+//   3. MAXB dans l'edge function mail-send — au-delà, la copie du message
+//      envoyé garde le NOM de la pièce mais pas le fichier ;
+//   4. rien chez le fournisseur : Hostpoint accepte 50 Mo par message, pièces
+//      comprises et APRÈS encodage, Infomaniak 201 Mo. Ce n'est pas la borne.
+// Le total est plafonné plus bas que 4 × 15 Mo : la pièce voyage encodée en
+// base64 (+33 %), et la plupart des messageries d'en face refusent au-delà de
+// 25 Mo. Un message accepté chez nous puis rejeté chez le destinataire est
+// pire qu'un refus tout de suite — on ne saurait même pas qu'il n'est pas parti.
+const MAIL_PJ_MAX = 15 * 1024 * 1024;
+const MAIL_PJ_TOTAL = 18 * 1024 * 1024;    // ≈ 24,5 Mo une fois encodé
+const mailMo = (n) => (n / 1048576).toFixed(1).replace(/\.0$/, "").replace(".", ",");
+// Ajoute les fichiers choisis à une liste de pièces jointes et dit NOMMÉMENT
+// ce qui a été refusé. Partagée par « Nouveau message » et le cadre de
+// réponse : les deux portaient leur propre copie de la limite.
+function mailAjouterPJ(liste, fichiers) {
+  let total = liste.reduce((s, f) => s + f.size, 0);
+  const refus = [];
+  for (const f of fichiers) {
+    if (f.size > MAIL_PJ_MAX) {
+      refus.push(`« ${f.name} » pèse ${mailMo(f.size)} Mo : ${mailMo(MAIL_PJ_MAX)} Mo au maximum par fichier.`);
+    } else if (total + f.size > MAIL_PJ_TOTAL) {
+      refus.push(`« ${f.name} » ferait dépasser ${mailMo(MAIL_PJ_TOTAL)} Mo de pièces jointes en tout — au-delà, beaucoup de messageries refusent le message.`);
+    } else {
+      liste.push(f); total += f.size;
+    }
+  }
+  if (refus.length) uiAlert(refus.join("\n\n"));
+}
 let mailFiles = [];
 function mailWireCompose() {
   mailFiles = [];
@@ -21302,10 +21338,7 @@ function mailWireCompose() {
   $("mail-d-color").addEventListener("input", (e) => { document.execCommand("foreColor", false, e.target.value); $("mail-d-replyhtml").focus(); });
   brancherLien("mail-d-link", "mail-d-replyhtml");
   $("mail-d-file").addEventListener("change", (e) => {
-    for (const f of e.target.files) {
-      if (f.size > 8 * 1024 * 1024) { alert(`${f.name} dépasse 8 Mo — trop lourd.`); continue; }
-      mailFiles.push(f);
-    }
+    mailAjouterPJ(mailFiles, e.target.files);
     e.target.value = "";
     renderMailFiles();
   });

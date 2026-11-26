@@ -32,7 +32,12 @@ const SEND_NAME: Record<string, string> = {
   "admin@lstennis.ch": "LS Tennis",
   "raphael@teamlausanne.ch": "Raphael Vergnaud - Team Lausanne",
 };
-const MAXB = 10 * 1024 * 1024;
+// Taille au-delà de laquelle la copie du message envoyé ne garde PAS le fichier
+// (seulement son nom et son poids). 15 Mo depuis le 26.11.2026 : c'est aussi ce
+// que la console accepte de joindre (MAIL_PJ_MAX, admin.js). Les deux chiffres
+// vont ensemble — plus bas ici, une pièce partirait sans qu'on puisse jamais la
+// relire dans « Envoyés », et rien ne le dirait.
+const MAXB = 15 * 1024 * 1024;
 // Serveurs par boîte (18.09.2026 ; Infomaniak le 04.11.2026) : @teamlausanne.ch et
 // @lausanneopen.ch sont chez Hostpoint (Cloud Office), @lstennis.ch chez Infomaniak,
 // le reste chez Gmail. Un mot de passe d'application Gmail s'écrit avec des espaces ;

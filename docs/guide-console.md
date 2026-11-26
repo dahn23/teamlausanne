@@ -1414,6 +1414,15 @@ répondra qu'elle ne sait pas, et la question remontera dans
   cadre de réponse est aussi sous les mails que vous avez envoyés, et écrit
   au destinataire du fil — utile quand votre dernier mot est resté sans
   réponse et qu'il faut relancer.
+  **Les pièces jointes.** Le bouton « 📎 Joindre » accepte **15 Mo par
+  fichier** et **18 Mo en tout** dans un même message — de quoi envoyer une
+  présentation. Un fichier refusé l'est **nommément**, avec son poids et la
+  limite ; les autres fichiers choisis en même temps sont gardés. Pourquoi
+  deux chiffres : une pièce jointe est recodée pour le voyage et grossit d'un
+  tiers en chemin, et beaucoup de messageries d'en face refusent un message
+  au-delà de 25 Mo. Être arrêté ici vaut mieux que de croire un message parti
+  alors que le serveur du destinataire l'a rejeté. Plus lourd que ça : passer
+  par un lien de téléchargement.
   **La signature.** Un nouveau message s'ouvre déjà signé, et **chaque boîte
   a la sienne** — son logo, son slogan, ses liens.
   **Team Lausanne (info@)** : logo de l'académie, adresse, site, téléphone et

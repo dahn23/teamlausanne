@@ -1,0 +1,17 @@
+-- 250 — Pièces jointes d'un mail : 15 Mo au lieu de 8 (26.11.2026).
+--
+-- Le secrétariat ne pouvait pas joindre une présentation : la console refusait
+-- à 8 Mo. Trois portes portaient ce chiffre, la quatrième est ici.
+--
+-- Le bucket « mail-drafts » reçoit les pièces d'un brouillon. Son plafond était
+-- le même 8 Mo, et c'est l'enregistrement AUTOMATIQUE du brouillon qui aurait
+-- échoué : la fenêtre d'écriture aurait accepté le fichier, l'envoi aussi, mais
+-- rouvrir le brouillon l'aurait trouvé amputé de sa pièce. Un plafond de
+-- stockage plus bas que le plafond d'envoi ne se voit nulle part.
+--
+-- Les autres portes, à garder au même chiffre (voir le pavé « les quatre
+-- portes » dans admin.js) : MAIL_PJ_MAX côté console, MAXB dans l'edge function
+-- mail-send (copie du message envoyé). Côté fournisseur il n'y a pas de borne
+-- à 15 Mo : Hostpoint accepte 50 Mo par message, pièces comprises et après
+-- encodage, Infomaniak 201 Mo.
+update storage.buckets set file_size_limit = 15 * 1024 * 1024 where id = 'mail-drafts';
