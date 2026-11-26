@@ -1076,6 +1076,23 @@
                   <button class="cs-vt" data-saison="hiver">Hiver</button>
                 </div>
               </div>
+              <!-- Heures des coachs, comme dans Réservations. Ici elles se
+                   calculent sur la semaine type elle-même : c'est ce qu'on
+                   regarde en montant un planning, avant de l'appliquer. -->
+              <details id="sty-heures" class="rh-bloc">
+                <summary><b>Heures des coachs</b> <span id="sty-h-quand" class="muted"></span></summary>
+                <div class="rh-barre">
+                  <label class="fac-rech">
+                    <span class="sr-only">Chercher un coach</span>
+                    <input type="search" id="sty-h-rech" placeholder="Chercher un coach — Gattiker, Palena…" autocomplete="off" />
+                  </label>
+                  <div class="fac-filters" id="sty-h-portee">
+                    <button type="button" class="chip filt sel" data-portee="semaine">La semaine</button>
+                    <button type="button" class="chip filt" data-portee="jour">Le jour affiché</button>
+                  </div>
+                </div>
+                <div id="sty-h-liste" class="rh-liste"></div>
+              </details>
               <p id="sty-avis" class="sty-avis" hidden></p>
               <div id="sty-grilles"></div>
             </div>

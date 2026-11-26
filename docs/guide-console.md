@@ -415,6 +415,21 @@ cours qu'on ne voit plus fait douter de toute la copie :
 - Un cours **avant 8h ou après 21h** allonge la grille de ce jour au lieu de
   tomber hors cadre.
 
+**Les heures des coachs.** Le bandeau **« Heures des coachs »**, au-dessus de
+la grille, se déplie et donne pour chaque coach le total de la semaine type —
+le même tableau que dans Réservations, mais calculé sur le brouillon, avant
+qu'il soit posé. « La semaine » ou « Le jour affiché » au choix.
+La règle est celle de la paie : **chaque coach attaché à un cours compte la
+durée entière du cours**, elle n'est pas partagée entre eux — deux coachs sur
+deux heures, ce sont deux fois deux heures. ⚠ Ce sont des heures **prévues** :
+pour un cours pro ou sport-études réparti en blocs, la paie comptera le détail
+de séance, qui n'existe pas encore dans un brouillon.
+
+**Vous restez où vous travaillez.** Enregistrer un cours du mardi ne vous
+renvoie pas au lundi, ne rouvre pas la saison d'origine et ne remonte pas la
+page : la vue ne se repositionne qu'à la première ouverture. Et si vous
+changez le jour d'un cours dans sa fenêtre, la vue le suit.
+
 « + Cours » ajoute un cours depuis n'importe quelle vue, et le nom comme la
 note s'enregistrent tout seuls.
 

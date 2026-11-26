@@ -9256,6 +9256,15 @@ function stWire() {
     $("stnew-datelbl").hidden = c.dataset.val !== "semaine";
   }));
   $("sty-back").addEventListener("click", () => { stId = null; stRenderListe(); });
+  // Le bloc des heures ne se calcule que s il est ouvert, comme celui de
+  // Reservations : personne ne paie un rendu pour un panneau replie.
+  $("sty-heures").addEventListener("toggle", stRenderHeures);
+  $("sty-h-rech").addEventListener("input", (e) => { styHRech = e.target.value.trim(); stRenderHeures(); });
+  $("sty-h-portee").querySelectorAll("[data-portee]").forEach((b2) => b2.addEventListener("click", () => {
+    styHPortee = b2.dataset.portee;
+    $("sty-h-portee").querySelectorAll("[data-portee]").forEach((x) => x.classList.toggle("sel", x === b2));
+    stRenderHeures();
+  }));
   document.querySelectorAll("#sty-editeur .cs-vt[data-vue]").forEach((b) => b.addEventListener("click", () => {
     styVue = b.dataset.vue;
     document.querySelectorAll("#sty-editeur .cs-vt[data-vue]").forEach((x) => x.classList.toggle("active", x === b));
@@ -9451,7 +9460,65 @@ function stRender() {
     stCibleJour(b, Number(b.dataset.dow), "sty-j-over");
   });
   $("sty-jours").classList.toggle("hidden", styVue !== "jour");
+  stRenderHeures();
   stRenderGrille();
+}
+
+/* Heures des coachs d'une semaine type — le même bloc que dans Réservations,
+   mais calculé ICI, sans requête : tout est déjà en mémoire.
+   ⚠ La règle suit celle de la paie (`coach_heures_periode`) : chaque coach
+   attaché à un cours compte la DURÉE ENTIÈRE du cours, elle n'est pas divisée
+   entre eux. Deux coachs sur deux heures, ce sont deux fois deux heures.
+   ⚠ Une réserve, dite dans le bloc : pour un cours « détaillé » (pro et
+   sport-études sur plusieurs courts ou coachs), la paie compte le détail de
+   séance, qui n'existe pas dans un brouillon. Le chiffre est donc l'heure
+   PRÉVUE — un plafond pour ces cours-là, juste pour tous les autres. */
+let styHPortee = "semaine", styHRech = "";
+
+function stHeures() {
+  const dansPortee = (c) => styHPortee === "semaine" || c.dow === styJour;
+  const par = new Map();
+  for (const c of stCours) {
+    if (!dansPortee(c)) continue;
+    const h = (Number(c.end_time.slice(0, 2)) * 60 + Number(c.end_time.slice(3, 5))
+             - Number(c.start_time.slice(0, 2)) * 60 - Number(c.start_time.slice(3, 5))) / 60;
+    for (const pid of (stCoachs.get(c.id) || [])) {
+      const e = par.get(pid) || { pid, heures: 0, n: 0 };
+      e.heures += h; e.n += 1; par.set(pid, e);
+    }
+  }
+  return [...par.values()].map((e) => {
+    const p = people.find((x) => String(x.id) === e.pid);
+    return { ...e, nom: p ? `${p.first_name} ${p.last_name}` : "—" };
+  }).sort((a, b) => b.heures - a.heures || a.nom.localeCompare(b.nom));
+}
+
+function stRenderHeures() {
+  const L = $("sty-h-liste"); if (!L) return;
+  $("sty-h-quand").textContent = "— " + (styHPortee === "semaine" ? "la semaine entière" : ST_JOURS[styJour - 1]);
+  if (!$("sty-heures").open) return;        // replié : rien à dessiner
+  const lignes = stHeures();
+  const vus = lignes.filter((r) => !styHRech || r.nom.toLowerCase().includes(styHRech.toLowerCase()));
+  if (!vus.length) {
+    L.innerHTML = `<p class="muted" style="margin:0">${lignes.length
+      ? "Aucun coach ne correspond à cette recherche."
+      : "Aucun cours avec un coach sur cette période."}</p>`;
+    return;
+  }
+  // La jauge se mesure sur le plus chargé de TOUS les coachs, pas du résultat
+  // filtré : sinon chercher un nom lui donnerait toujours une barre pleine.
+  const max = Math.max(...lignes.map((r) => r.heures), 1);
+  const total = lignes.reduce((a, r) => a + r.heures, 0);
+  const fmt = (n) => n.toFixed(2).replace(/\.?0+$/, "") + " h";
+  L.innerHTML = vus.map((r) => `<div class="rh-ligne">
+      <span class="rh-nom">${esc(r.nom)}</span>
+      <span class="rh-jauge"><i style="width:${Math.round((r.heures / max) * 100)}%"></i></span>
+      <b class="rh-h">${fmt(r.heures)}</b>
+      <span class="rh-n muted">${r.n} cours</span>
+    </div>`).join("")
+    + `<p class="rh-total muted">${lignes.length} coach(s) · ${fmt(total)} au total`
+    + (vus.length < lignes.length ? ` · ${vus.length} affiché(s)` : "")
+    + ` · heures <b>prévues</b> : pour un cours pro ou sport-études réparti en blocs, la paie comptera le détail de séance.</p>`;
 }
 
 // Un bandeau ou une pastille de jour accepte qu'on lui lâche un cours dessus :
