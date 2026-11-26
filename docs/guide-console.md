@@ -425,6 +425,22 @@ deux heures, ce sont deux fois deux heures. ⚠ Ce sont des heures **prévues** 
 pour un cours pro ou sport-études réparti en blocs, la paie comptera le détail
 de séance, qui n'existe pas encore dans un brouillon.
 
+**Les leçons pas encore arrêtées comptent aussi.** Une partie des leçons est
+posée comme **réservation** et non comme cours — celles qu'on note
+« À confirmer / Mège » en attendant. La fenêtre d'une réservation a donc un
+bloc **« Pour le calcul des heures »**, avec deux champs :
+- un **coach** → le créneau compte sur ses heures, affiché à part en
+  « + 15 h à confirmer » si la case ci-dessous est cochée ;
+- **« Leçon à confirmer »** sans coach → le créneau va sur une ligne
+  **« À confirmer — coach non désigné »**, en bas de la liste ;
+- **ni l'un ni l'autre** → ce n'est pas une leçon (abonné d'hiver, club,
+  locataire) et le créneau ne compte nulle part. C'est le cas du plus gros
+  du volume, et c'est voulu.
+
+Le total en bas sépare les deux : *« 14 h fermes · 24 h à confirmer »*. ⚠ Ces
+deux champs ne servent **qu'au brouillon** : une réservation appliquée reste
+une réservation, le planning réel n'a pas de coach sur un créneau de court.
+
 **Vous restez où vous travaillez.** Enregistrer un cours du mardi ne vous
 renvoie pas au lundi, ne rouvre pas la saison d'origine et ne remonte pas la
 page : la vue ne se repositionne qu'à la première ouverture. Et si vous

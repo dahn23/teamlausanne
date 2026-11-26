@@ -9475,48 +9475,81 @@ function stRender() {
    PRÉVUE — un plafond pour ces cours-là, juste pour tous les autres. */
 let styHPortee = "semaine", styHRech = "";
 
+const stDuree = (x) => (Number(x.end_time.slice(0, 2)) * 60 + Number(x.end_time.slice(3, 5))
+  - Number(x.start_time.slice(0, 2)) * 60 - Number(x.start_time.slice(3, 5))) / 60;
+
+// Trois sources, trois traitements (db/253) :
+//   · un COURS      → ses coachs comptent la duree entiere, c'est ferme ;
+//   · une RÉSERVATION avec coach → elle compte aussi, mais en « a confirmer »
+//     si la case est cochee : c'est une leçon pas encore arretee ;
+//   · une RÉSERVATION « a confirmer » SANS coach → une ligne a part.
+// Une reservation qui n'est ni l'un ni l'autre (abonne, club, locataire)
+// n'est pas une leçon et ne compte nulle part — c'est le gros du volume
+// (56 h sur la semaine type de novembre), l'y verser n'aurait aucun sens.
 function stHeures() {
-  const dansPortee = (c) => styHPortee === "semaine" || c.dow === styJour;
+  const dedans = (x) => styHPortee === "semaine" || x.dow === styJour;
   const par = new Map();
+  const ligne = (pid) => {
+    if (!par.has(pid)) par.set(pid, { pid, heures: 0, n: 0, aConfirmer: 0, nConfirmer: 0 });
+    return par.get(pid);
+  };
   for (const c of stCours) {
-    if (!dansPortee(c)) continue;
-    const h = (Number(c.end_time.slice(0, 2)) * 60 + Number(c.end_time.slice(3, 5))
-             - Number(c.start_time.slice(0, 2)) * 60 - Number(c.start_time.slice(3, 5))) / 60;
-    for (const pid of (stCoachs.get(c.id) || [])) {
-      const e = par.get(pid) || { pid, heures: 0, n: 0 };
-      e.heures += h; e.n += 1; par.set(pid, e);
-    }
+    if (!dedans(c)) continue;
+    const h = stDuree(c);
+    for (const pid of (stCoachs.get(c.id) || [])) { const e = ligne(pid); e.heures += h; e.n += 1; }
   }
-  return [...par.values()].map((e) => {
+  let flotH = 0, flotN = 0;                      // « À confirmer », sans coach
+  for (const r of stResas) {
+    if (!dedans(r)) continue;
+    const h = stDuree(r);
+    if (r.coach_person_id) {
+      const e = ligne(String(r.coach_person_id));
+      if (r.coach_a_confirmer) { e.aConfirmer += h; e.nConfirmer += 1; }
+      else { e.heures += h; e.n += 1; }
+    } else if (r.coach_a_confirmer) { flotH += h; flotN += 1; }
+  }
+  const lignes = [...par.values()].map((e) => {
     const p = people.find((x) => String(x.id) === e.pid);
     return { ...e, nom: p ? `${p.first_name} ${p.last_name}` : "—" };
-  }).sort((a, b) => b.heures - a.heures || a.nom.localeCompare(b.nom));
+  }).sort((a, b) => (b.heures + b.aConfirmer) - (a.heures + a.aConfirmer) || a.nom.localeCompare(b.nom));
+  return { lignes, flotH, flotN };
 }
 
 function stRenderHeures() {
   const L = $("sty-h-liste"); if (!L) return;
   $("sty-h-quand").textContent = "— " + (styHPortee === "semaine" ? "la semaine entière" : ST_JOURS[styJour - 1]);
   if (!$("sty-heures").open) return;        // replié : rien à dessiner
-  const lignes = stHeures();
+  const { lignes, flotH, flotN } = stHeures();
   const vus = lignes.filter((r) => !styHRech || r.nom.toLowerCase().includes(styHRech.toLowerCase()));
-  if (!vus.length) {
+  if (!vus.length && !flotN) {
     L.innerHTML = `<p class="muted" style="margin:0">${lignes.length
       ? "Aucun coach ne correspond à cette recherche."
-      : "Aucun cours avec un coach sur cette période."}</p>`;
+      : "Aucune leçon avec un coach sur cette période."}</p>`;
     return;
   }
   // La jauge se mesure sur le plus chargé de TOUS les coachs, pas du résultat
   // filtré : sinon chercher un nom lui donnerait toujours une barre pleine.
-  const max = Math.max(...lignes.map((r) => r.heures), 1);
+  // Elle inclut les heures à confirmer, en second segment plus clair : ce
+  // qu'on compare, c'est la charge probable.
+  const max = Math.max(...lignes.map((r) => r.heures + r.aConfirmer), flotH, 1);
   const total = lignes.reduce((a, r) => a + r.heures, 0);
+  const totalConf = lignes.reduce((a, r) => a + r.aConfirmer, 0) + flotH;
   const fmt = (n) => n.toFixed(2).replace(/\.?0+$/, "") + " h";
   L.innerHTML = vus.map((r) => `<div class="rh-ligne">
       <span class="rh-nom">${esc(r.nom)}</span>
-      <span class="rh-jauge"><i style="width:${Math.round((r.heures / max) * 100)}%"></i></span>
-      <b class="rh-h">${fmt(r.heures)}</b>
-      <span class="rh-n muted">${r.n} cours</span>
+      <span class="rh-jauge"><i style="width:${Math.round((r.heures / max) * 100)}%"></i>${
+        r.aConfirmer ? `<i class="rh-j-conf" style="width:${Math.round((r.aConfirmer / max) * 100)}%"></i>` : ""}</span>
+      <b class="rh-h">${fmt(r.heures)}${r.aConfirmer ? `<span class="rh-conf"> + ${fmt(r.aConfirmer)} à confirmer</span>` : ""}</b>
+      <span class="rh-n muted">${r.n} cours${r.nConfirmer ? ` · ${r.nConfirmer} à conf.` : ""}</span>
     </div>`).join("")
-    + `<p class="rh-total muted">${lignes.length} coach(s) · ${fmt(total)} au total`
+    + (flotN && !styHRech ? `<div class="rh-ligne rh-flot">
+      <span class="rh-nom">À confirmer <span class="muted">— coach non désigné</span></span>
+      <span class="rh-jauge"><i class="rh-j-conf" style="width:${Math.round((flotH / max) * 100)}%"></i></span>
+      <b class="rh-h"><span class="rh-conf">${fmt(flotH)}</span></b>
+      <span class="rh-n muted">${flotN} créneaux</span>
+    </div>` : "")
+    + `<p class="rh-total muted">${lignes.length} coach(s) · ${fmt(total)} fermes`
+    + (totalConf ? ` · ${fmt(totalConf)} à confirmer` : "")
     + (vus.length < lignes.length ? ` · ${vus.length} affiché(s)` : "")
     + ` · heures <b>prévues</b> : pour un cours pro ou sport-études réparti en blocs, la paie comptera le détail de séance.</p>`;
 }
@@ -9772,6 +9805,15 @@ function stOuvrirResa(r, dowDefaut, pose) {
   // arrive d'une requête lancée au démarrage, bien après le câblage.
   $("str-court").innerHTML = resaCourtsAll.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
   $("str-court").value = String(r?.court_id ?? pose?.court ?? resaCourtsAll[0]?.id ?? "");
+  // Coach du créneau (db/253) : même liste que celle d'un cours, plus un
+  // choix vide — la plupart des réservations ne sont pas des leçons.
+  $("str-coach").innerHTML = `<option value="">— aucun —</option>`
+    + people.filter((p) => hasRoleIn(p.id, COACH_ROLES))
+      .map((p) => [String(p.id), `${p.last_name} ${p.first_name}`])
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("");
+  $("str-coach").value = r?.coach_person_id ? String(r.coach_person_id) : "";
+  $("str-confirmer").checked = !!r?.coach_a_confirmer;
   const debut = r ? r.start_time.slice(0, 5) : (pose?.heure || "17:00");
   $("str-start").value = debut;
   $("str-end").value = r ? r.end_time.slice(0, 5) : pad2(Number(debut.slice(0, 2)) + 1) + debut.slice(2);
@@ -9791,6 +9833,8 @@ async function stEnregistrerResa(e) {
     kind: $("str-kind").value || "libre",
     title: $("str-label").value.trim() || null,
     color: $("str-color").value || null,
+    coach_person_id: $("str-coach").value || null,
+    coach_a_confirmer: $("str-confirmer").checked,
   };
   const id = $("str-id").value;
   const { error } = id

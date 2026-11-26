@@ -21,7 +21,7 @@
   <!-- Poppins : la police de l'interface (console + Mon espace). Noto Sans reste
        en repli, il est prevu par la charte. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" />
-  <link rel="stylesheet" href="style.css?v=420" />
+  <link rel="stylesheet" href="style.css?v=421" />
   <!-- Filet de diagnostic : admin.js est un module, et une seule erreur de
        syntaxe y empeche l'analyse du fichier entier — aucun gestionnaire pose,
        .side et .admin-main restent a opacity 0. L'utilisateur voit une page
@@ -4124,6 +4124,21 @@ Team Lausanne Tennis</textarea></label>
         <label>Fin<select id="str-end"></select></label>
       </div>
       <label>Couleur<input type="color" id="str-color" value="#1e3ad1" /></label>
+      <!-- db/253 : une partie des leçons est posée comme réservation, pas
+           comme cours — souvent celles qui ne sont pas encore arrêtées. Ces
+           deux champs les font entrer dans « Heures des coachs ». Ils ne
+           servent qu'au brouillon : une réservation appliquée reste une
+           réservation, court_bookings n'a pas de coach. -->
+      <fieldset class="str-coach">
+        <legend>Pour le calcul des heures <span class="muted">(facultatif)</span></legend>
+        <div class="form-grid">
+          <label>Coach<select id="str-coach"></select></label>
+          <label class="str-chk"><input type="checkbox" id="str-confirmer" /> Leçon <b>à confirmer</b></label>
+        </div>
+        <p class="muted str-aide">Un coach ici&nbsp;: le créneau compte sur ses heures. «&nbsp;À confirmer&nbsp;» sans coach&nbsp;:
+          il compte sur une ligne «&nbsp;À confirmer&nbsp;». Ni l'un ni l'autre&nbsp;: ce n'est pas une leçon
+          (abonné, club, locataire) et il ne compte nulle part.</p>
+      </fieldset>
       <div class="form-foot">
         <button type="button" id="str-del" class="danger hidden">Retirer</button>
         <span class="spacer"></span>
