@@ -15,6 +15,7 @@
 // v43 (13.10.2026) : un mail de plus de 2 Mo est importé en entier par mail-import-one (partie par partie).
 // v45 (04.11.2026) : admin@lstennis.ch (Infomaniak) relevée directement, comme les boîtes Hostpoint —
 //                    elle arrive dans son propre onglet « LS Tennis » de la Messagerie, sans redirection.
+// v48 (26.11.2026) : la notification porte le début du message (voir apercu), à lire en la dépliant.
 import { ImapFlow } from "npm:imapflow@1.0.164";
 import { simpleParser } from "npm:mailparser@3.6.5";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -104,11 +105,25 @@ async function maybeInvoice(supa: any, mailId: string, subj: string, body: strin
   await supa.from("mail_messages").update({ has_invoice: true }).eq("id", mailId);
 }
 
+// Début du message pour la notification (26.11.2026) : l'objet seul ne disait rien, on veut
+// pouvoir lire quelques lignes en dépliant la notif, comme Gmail ou WhatsApp. On coupe avant la
+// partie citée d'une réponse (« Le … a écrit : », « > », « De : »…), sinon la notif répète l'ancien message.
+// ⚠ Même fonction dans push-native (notifs de l'app) : les garder identiques.
+function apercu(t: string | null | undefined, max: number): string {
+  let s = String(t || "").replace(/\r/g, "");
+  // « Le jeu. 26 nov. 2026 à 17:19, X <x@y>\na écrit : » tient souvent sur DEUX lignes : on coupe à la ligne
+  // qui commence par Le/On/Am et porte un chiffre (la date), pas à celle du « a écrit ».
+  const cut = s.search(/\n\s*>|\n\s*(Le|On|Am)\s[^\n]*\d[^]{0,250}?(a\s+écrit|wrote|schrieb)\s*:|\n-{2,}\s*(Message d'origine|Original Message|Message transféré|Forwarded message)|\n--\s*\n|\n_{5,}|\n(De|From|Von)\s*:|\n\s*(Envoyé de mon|Sent from my)/i);
+  if (cut > 0) s = s.slice(0, cut);
+  s = s.replace(/\[(image|cid):[^\]]*\]/gi, "").replace(/\s+/g, " ").trim();
+  return s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s;
+}
+
 // deno-lint-ignore no-explicit-any
 async function sendPush(supa: any) {
   const cutoff = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
   const { data: mails } = await supa.from("mail_messages")
-    .select("id,from_name,from_address,subject,account_address").eq("direction", "in").eq("pushed", false)
+    .select("id,from_name,from_address,subject,account_address,body_text,snippet").eq("direction", "in").eq("pushed", false)
     .gte("received_at", cutoff).order("received_at", { ascending: false }).limit(20);
   if (!mails || !mails.length) return { found: 0, sent: 0 };
   const ids = mails.map((m: { id: string }) => m.id);
@@ -130,8 +145,9 @@ async function sendPush(supa: any) {
   const payloadFor = (list: any[]) => {
     const n = list.length;
     const title = n === 1 ? `Nouveau mail — ${boxOf(list[0])}` : `${n} nouveaux mails`;
-    const body = n === 1 ? `${nm(list[0])} : ${list[0].subject || "(sans objet)"}`
-      : list.slice(0, 3).map((m: any) => `${boxOf(m)} • ${nm(m)} : ${m.subject || "(sans objet)"}`).join("\n");
+    const ap = (m: any, max: number) => apercu(m.body_text || m.snippet, max);
+    const body = n === 1 ? `${nm(list[0])} : ${list[0].subject || "(sans objet)"}` + (ap(list[0], 450) ? "\n" + ap(list[0], 450) : "")
+      : list.slice(0, 3).map((m: any) => `${boxOf(m)} • ${nm(m)} : ${m.subject || "(sans objet)"}` + (ap(m, 90) ? " — " + ap(m, 90) : "")).join("\n");
     return JSON.stringify({ title, body, url: "/console", tag: "mail", icon: PUSH_ICON, badge: PUSH_BADGE });
   };
   let sent = 0; let error: string | null = null; let targets = 0;

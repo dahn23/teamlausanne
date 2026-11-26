@@ -56,6 +56,18 @@ async function apnsJwt(p8: string): Promise<string> {
   return apnsCache.jwt;
 }
 
+// Début du message dans la notif d'un mail (26.11.2026), pour le lire en dépliant la notification.
+// ⚠ Même fonction dans mail-cron (notifs navigateur) : les garder identiques.
+function apercu(t: string | null | undefined, max: number): string {
+  let s = String(t || "").replace(/\r/g, "");
+  // « Le jeu. 26 nov. 2026 à 17:19, X <x@y>\na écrit : » tient souvent sur DEUX lignes : on coupe à la ligne
+  // qui commence par Le/On/Am et porte un chiffre (la date), pas à celle du « a écrit ».
+  const cut = s.search(/\n\s*>|\n\s*(Le|On|Am)\s[^\n]*\d[^]{0,250}?(a\s+écrit|wrote|schrieb)\s*:|\n-{2,}\s*(Message d'origine|Original Message|Message transféré|Forwarded message)|\n--\s*\n|\n_{5,}|\n(De|From|Von)\s*:|\n\s*(Envoyé de mon|Sent from my)/i);
+  if (cut > 0) s = s.slice(0, cut);
+  s = s.replace(/\[(image|cid):[^\]]*\]/gi, "").replace(/\s+/g, " ").trim();
+  return s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s;
+}
+
 Deno.serve(async (req) => {
   try {
     const cronSecret = Deno.env.get("CRON_SECRET") || "";
@@ -88,7 +100,7 @@ Deno.serve(async (req) => {
     if (payload.action === "mails") {
       const cutoff = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
       const { data: mails } = await supa.from("mail_messages")
-        .select("id,from_name,from_address,subject,account_address")
+        .select("id,from_name,from_address,subject,account_address,body_text,snippet")
         .eq("direction", "in").eq("pushed_native", false).eq("is_spam", false).eq("status", "a_traiter")
         .gte("received_at", cutoff).order("received_at", { ascending: false }).limit(20);
       // On marque précisément : les mails retenus (par id), puis ceux qui n'ont pas à être notifiés (spam, déjà traités,
@@ -105,7 +117,8 @@ Deno.serve(async (req) => {
         const { data: staffRoles } = await supa.from("user_roles").select("user_id,role").in("role", ["superadmin", "admin", "secretaire"]);
         const staffIds = [...new Set((staffRoles || []).map((r: { user_id: string }) => r.user_id))] as string[];
         const superIds = new Set((staffRoles || []).filter((r: { role: string }) => r.role === "superadmin").map((r: { user_id: string }) => r.user_id));
-        type M = { from_name?: string; from_address?: string; subject?: string; account_address?: string };
+        type M = { from_name?: string; from_address?: string; subject?: string; account_address?: string; body_text?: string; snippet?: string };
+        const ap = (m: M, max: number) => apercu(m.body_text || m.snippet, max);
         const nm = (m: M) => m.from_name || m.from_address || "?";
         const boxOf = (m: M) => accLabel[m.account_address || ""] || m.account_address || "";
         for (const uid of staffIds) {
@@ -115,7 +128,8 @@ Deno.serve(async (req) => {
           messages.push({
             user_id: uid, url: "/console",
             title: n === 1 ? `Nouveau mail — ${boxOf(visible[0])}` : `${n} nouveaux mails`,
-            body: n === 1 ? `${nm(visible[0])} : ${visible[0].subject || "(sans objet)"}` : visible.slice(0, 3).map((m) => `${boxOf(m)} • ${nm(m)} : ${m.subject || "(sans objet)"}`).join("\n"),
+            body: n === 1 ? `${nm(visible[0])} : ${visible[0].subject || "(sans objet)"}` + (ap(visible[0], 450) ? "\n" + ap(visible[0], 450) : "")
+              : visible.slice(0, 3).map((m) => `${boxOf(m)} • ${nm(m)} : ${m.subject || "(sans objet)"}` + (ap(m, 90) ? " — " + ap(m, 90) : "")).join("\n"),
           });
         }
       }
