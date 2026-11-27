@@ -45,3 +45,6 @@ tools/planning-hebdo/seances.txt
 
 # Version anglaise, fabriquee au deploiement par site/build.mjs
 site/en/
+
+# Archive jetable du site du club (depot manuel sur Netlify) : 5,4 Mo, jamais dans git.
+club-site-brouillon.zip
