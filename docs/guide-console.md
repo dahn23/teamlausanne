@@ -445,17 +445,32 @@ de séance, qui n'existe pas encore dans un brouillon.
 
 **Les leçons pas encore arrêtées comptent aussi.** Une partie des leçons est
 posée comme **réservation** et non comme cours — celles qu'on note
-« À confirmer / Mège » en attendant. La fenêtre d'une réservation a donc un
-bloc **« Pour le calcul des heures »**, avec deux champs :
-- un **coach** → le créneau compte sur ses heures, affiché à part en
-  « + 15 h à confirmer » si la case ci-dessous est cochée ;
-- **« Leçon à confirmer »** sans coach → le créneau va sur une ligne
-  **« À confirmer — coach non désigné »**, en bas de la liste ;
+« À confirmer » en attendant de savoir qui les donnera. La fenêtre d'une
+réservation a donc un bloc **« Pour le calcul des heures »**, avec deux
+champs :
+- **« Leçon à confirmer »** sans coach → le créneau rejoint la catégorie
+  **« À confirmer — à attribuer »**, en bas de la liste. Ce sont vos heures
+  **disponibles** ;
+- un **coach** → le créneau compte sur ses heures à lui (à part, en
+  « + 2,5 h à confirmer », tant que la case reste cochée) ;
 - **ni l'un ni l'autre** → ce n'est pas une leçon (abonné d'hiver, club,
   locataire) et le créneau ne compte nulle part. C'est le cas du plus gros
   du volume, et c'est voulu.
 
-Le total en bas sépare les deux : *« 14 h fermes · 24 h à confirmer »*. ⚠ Ces
+**Distribuer les heures disponibles.** Cliquer sur **« À confirmer »**
+déplie la liste des créneaux : jour, horaire, court, intitulé, durée, et un
+menu **« — à attribuer — »** sur chacun. Choisir un coach lui donne le
+créneau sur-le-champ — ses heures montent, le pot baisse, sans ouvrir une
+seule fenêtre de réservation. Reposer le menu sur « — à attribuer — » le
+rend au pot.
+
+⚠ « À confirmer » n'est **rattaché à personne**, même si l'intitulé nomme
+quelqu'un (« A confirmer / Mège » dit à qui on pense, rien de plus). Tant
+que vous n'avez pas attribué le créneau, ses heures ne sont celles de
+personne — sinon le total de ce coach répondrait à côté de la question que
+cet écran sert à poser.
+
+Le total en bas sépare les deux : *« 12 h fermes · 24 h à confirmer »*. ⚠ Ces
 deux champs ne servent **qu'au brouillon** : une réservation appliquée reste
 une réservation, le planning réel n'a pas de coach sur un créneau de court.
 

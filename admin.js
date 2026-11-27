@@ -9506,7 +9506,7 @@ function stRender() {
    sport-études sur plusieurs courts ou coachs), la paie compte le détail de
    séance, qui n'existe pas dans un brouillon. Le chiffre est donc l'heure
    PRÉVUE — un plafond pour ces cours-là, juste pour tous les autres. */
-let styHPortee = "semaine", styHRech = "";
+let styHPortee = "semaine", styHRech = "", styFlotOuvert = false;
 
 const stDuree = (x) => (Number(x.end_time.slice(0, 2)) * 60 + Number(x.end_time.slice(3, 5))
   - Number(x.start_time.slice(0, 2)) * 60 - Number(x.start_time.slice(3, 5))) / 60;
@@ -9532,6 +9532,7 @@ function stHeures() {
     for (const pid of (stCoachs.get(c.id) || [])) { const e = ligne(pid); e.heures += h; e.n += 1; }
   }
   let flotH = 0, flotN = 0;                      // « À confirmer », sans coach
+  const flotSlots = [];                          // les créneaux eux-mêmes, à attribuer
   for (const r of stResas) {
     if (!dedans(r)) continue;
     const h = stDuree(r);
@@ -9539,20 +9540,21 @@ function stHeures() {
       const e = ligne(String(r.coach_person_id));
       if (r.coach_a_confirmer) { e.aConfirmer += h; e.nConfirmer += 1; }
       else { e.heures += h; e.n += 1; }
-    } else if (r.coach_a_confirmer) { flotH += h; flotN += 1; }
+    } else if (r.coach_a_confirmer) { flotH += h; flotN += 1; flotSlots.push(r); }
   }
+  flotSlots.sort((a, b) => a.dow - b.dow || a.start_time.localeCompare(b.start_time));
   const lignes = [...par.values()].map((e) => {
     const p = people.find((x) => String(x.id) === e.pid);
     return { ...e, nom: p ? `${p.first_name} ${p.last_name}` : "—" };
   }).sort((a, b) => (b.heures + b.aConfirmer) - (a.heures + a.aConfirmer) || a.nom.localeCompare(b.nom));
-  return { lignes, flotH, flotN };
+  return { lignes, flotH, flotN, flotSlots };
 }
 
 function stRenderHeures() {
   const L = $("sty-h-liste"); if (!L) return;
   $("sty-h-quand").textContent = "— " + (styHPortee === "semaine" ? "la semaine entière" : ST_JOURS[styJour - 1]);
   if (!$("sty-heures").open) return;        // replié : rien à dessiner
-  const { lignes, flotH, flotN } = stHeures();
+  const { lignes, flotH, flotN, flotSlots } = stHeures();
   const vus = lignes.filter((r) => !styHRech || r.nom.toLowerCase().includes(styHRech.toLowerCase()));
   if (!vus.length && !flotN) {
     L.innerHTML = `<p class="muted" style="margin:0">${lignes.length
@@ -9575,16 +9577,54 @@ function stRenderHeures() {
       <b class="rh-h">${fmt(r.heures)}${r.aConfirmer ? `<span class="rh-conf"> + ${fmt(r.aConfirmer)} à confirmer</span>` : ""}</b>
       <span class="rh-n muted">${r.n} cours${r.nConfirmer ? ` · ${r.nConfirmer} à conf.` : ""}</span>
     </div>`).join("")
+    // « À confirmer » est une catégorie à part entière, jamais rattachée à
+    // quelqu'un : ce sont les heures DISPONIBLES. On peut la déplier pour
+    // voir chaque créneau et l'attribuer sur place — c'est le geste qu'on
+    // vient faire ici, pas dans neuf fenêtres de réservation.
     + (flotN && !styHRech ? `<div class="rh-ligne rh-flot">
-      <span class="rh-nom">À confirmer <span class="muted">— coach non désigné</span></span>
+      <span class="rh-nom"><button type="button" id="sty-h-plier" class="sty-h-plier"
+        aria-expanded="${styFlotOuvert}">${styFlotOuvert ? "▾" : "▸"} À confirmer</button>
+        <span class="muted">— à attribuer</span></span>
       <span class="rh-jauge"><i class="rh-j-conf" style="width:${Math.round((flotH / max) * 100)}%"></i></span>
       <b class="rh-h"><span class="rh-conf">${fmt(flotH)}</span></b>
       <span class="rh-n muted">${flotN} créneaux</span>
-    </div>` : "")
+    </div>` + (styFlotOuvert ? `<div class="sty-h-flot">${flotSlots.map((r) => {
+      const ct = resaCourtsAll.find((c) => Number(c.id) === Number(r.court_id));
+      return `<div class="sty-h-slot">
+        <span class="sty-h-quand">${ST_JOURS[r.dow - 1].slice(0, 3)} ${r.start_time.slice(0, 5)}–${r.end_time.slice(0, 5)}</span>
+        <span class="sty-h-ou muted">${esc(ct ? ct.name : "—")}${r.title ? " · " + esc(r.title) : ""}</span>
+        <b class="sty-h-d">${fmt(stDuree(r))}</b>
+        <select class="sty-h-attrib" data-id="${r.id}" aria-label="Attribuer ce créneau">
+          <option value="">— à attribuer —</option>
+          ${people.filter((p) => hasRoleIn(p.id, COACH_ROLES))
+            .map((p) => [String(p.id), `${p.last_name} ${p.first_name}`])
+            .sort((a, b) => a[1].localeCompare(b[1]))
+            .map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("")}
+        </select>
+      </div>`;
+    }).join("")}</div>` : "") : "")
     + `<p class="rh-total muted">${lignes.length} coach(s) · ${fmt(total)} fermes`
     + (totalConf ? ` · ${fmt(totalConf)} à confirmer` : "")
     + (vus.length < lignes.length ? ` · ${vus.length} affiché(s)` : "")
     + ` · heures <b>prévues</b> : pour un cours pro ou sport-études réparti en blocs, la paie comptera le détail de séance.</p>`;
+
+  // La liste est redessinée à chaque rendu : les écouteurs se reposent ici,
+  // jamais en `addEventListener` sur un parent conservé — ils s'empileraient.
+  $("sty-h-plier")?.addEventListener("click", () => { styFlotOuvert = !styFlotOuvert; stRenderHeures(); });
+  L.querySelectorAll(".sty-h-attrib").forEach((s) => s.addEventListener("change", () => stAttribuer(s.dataset.id, s.value)));
+}
+
+// Attribuer un créneau « à confirmer » à un coach — ou le rendre au pot.
+// ⚠ On NE touche PAS à `coach_a_confirmer` : le créneau reste une leçon non
+// arrêtée, elle a juste un nom dessus. C'est l'intitulé, pas ce champ, qui
+// dira plus tard qu'elle est confirmée.
+async function stAttribuer(id, coachId) {
+  const { error } = await sb.from("plan_template_bookings")
+    .update({ coach_person_id: coachId || null }).eq("id", id);
+  if (error) return uiAlert("Échec : " + error.message);
+  const r = stResas.find((x) => x.id === id);
+  if (r) r.coach_person_id = coachId || null;
+  stRenderHeures();
 }
 
 // Un bandeau ou une pastille de jour accepte qu'on lui lâche un cours dessus :

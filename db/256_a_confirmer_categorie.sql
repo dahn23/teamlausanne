@@ -1,0 +1,28 @@
+-- =====================================================================
+-- 256 — « À confirmer » redevient une catégorie à part              27.11.2026
+-- =====================================================================
+-- db/253 avait rattaché à Quentin Mège les six créneaux intitulés
+-- « A confirmer / Mege », pour que leurs 15 h apparaissent sur sa ligne.
+-- Décision revue : ce sont des heures DISPONIBLES, pas les siennes. Les
+-- poser sur un nom avant qu'elles soient données fausse la seule question
+-- qu'on vient poser à cet écran — combien d'heures reste-t-il à distribuer,
+-- et à qui je les donne.
+--
+-- On vide donc `coach_person_id` partout où `coach_a_confirmer` est vrai.
+-- Les neuf créneaux (24 h) reviennent au pot ; Mège retrouve ses 12 h, qui
+-- sont ses cours réels et rien d'autre.
+--
+-- ⚠ `coach_a_confirmer` reste à true : le créneau est toujours une leçon
+-- non arrêtée. C'est ce drapeau qui le fait entrer dans le décompte ; sans
+-- lui il redeviendrait un créneau d'abonné, invisible dans les heures.
+--
+-- ⚠ Les deux colonnes gardent tout leur sens — attribuer un créneau depuis
+-- le bloc « À confirmer » écrit `coach_person_id`, et l'heure passe alors
+-- sur la ligne du coach. C'est le geste, pas une valeur posée d'avance.
+--
+-- Les INTITULÉS ne sont pas touchés : « A confirmer / Mege » est une note
+-- écrite à la main, elle dit à qui on pense. L'effacer supprimerait une
+-- information que personne n'a demandé à perdre.
+-- =====================================================================
+
+update plan_template_bookings set coach_person_id = null where coach_a_confirmer = true;
