@@ -12,7 +12,7 @@ Grand chantier construit **par couches**. Données sensibles : **mineurs + finan
   - project_id : `lnrmtwamuaqcubohontn` — région eu-central-1
   - URL : `https://lnrmtwamuaqcubohontn.supabase.co`
   - clé publique : `sb_publishable_nsRKXBFgwmDjtmvS3mFc0w_Q4pi_qxK`
-- **Déploiement** : **Git push → Netlify auto-deploy**. Les machines de l'équipe n'ont NI Node/npx, NI CLI, NI token → ne pas tenter de déploiement CLI. Dépôt : `github.com/dahn23/teamlausanne`. Sites Netlify : `teamlausanne.netlify.app` (console + portail) et `lausanneopen.ch` (dossier `open/`).
+- **Déploiement** : **Git push → Netlify auto-deploy**. Les machines de l'équipe n'ont NI Node/npx, NI CLI, NI token → ne pas tenter de déploiement CLI. Dépôt : `github.com/dahn23/teamlausanne`. Sites Netlify : `teamlausanne.netlify.app` (console + portail) et `lausanneopen.ch` (dossier `open/`). **Site du club** (brouillon, noindex) : dossier `club/`, projet Netlify **`inquisitive-donut-90746d`** dans l'équipe de Dan, base directory `club`, branché sur GitHub (27.11.2026) — un push suffit, plus de zip. ⚠ L'app GitHub Netlify est installée sur le compte **dahn23** (« All repositories ») : un collaborateur (Raphael) ne voit pas le dépôt dans l'import Netlify, c'est **Dan** qui branche un nouveau site.
 - **Travail à plusieurs** (Dan + Raphael, chacun sur son Claude Code) : `main` = production. Pour une modif à risque, passer par une **branche + Pull Request** → Netlify génère une **URL de préview** pour tester avant de fusionner. `git pull` avant de commencer. Changements de **schéma DB** = coordonnés (une seule base partagée).
 
 ## Rôles (app_role)
