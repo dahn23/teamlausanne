@@ -1,0 +1,37 @@
+# Site Netlify DÉDIÉ au site du Lausanne-Sports Tennis (le club).
+# Dans les réglages du site Netlify : base directory = "club".
+# Netlify lit alors ce fichier et ne publie QUE ce dossier — ni la console,
+# ni le site de l'académie ne sont accessibles depuis cette adresse.
+[build]
+  publish = "."
+  command = ""
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# ⚠ TANT QUE C'EST UN BROUILLON : hors des moteurs de recherche. Le club a
+# déjà un site en ligne (ls-tennis.ch) ; deux versions indexées en même temps
+# se feraient concurrence et personne ne saurait laquelle est la bonne.
+# À RETIRER le jour de la mise en ligne, en même temps que robots.txt.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+# Toujours revalider : pas d'ancienne version en cache pendant qu'on y travaille.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
